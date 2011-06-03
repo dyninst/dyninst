@@ -1,6 +1,6 @@
 #include "DynPointMaker.h"
-#include "function.h"
-#include "instPoint.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/instPoint.h"
 
 
 Point* DynPointMaker::createPoint(Address addr, Point::Type type,

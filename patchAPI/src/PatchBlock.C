@@ -193,3 +193,12 @@ PatchFunction*
 PatchBlock::getFunction(ParseAPI::Function* f) {
   return function()->object()->getFunc(f);
 }
+
+PatchFunction*
+PatchBlock::function() const { return function_; }
+
+ParseAPI::Block*
+PatchBlock::block() const { return block_; }
+    
+PatchObject*
+PatchBlock::object() const { return obj_; }

@@ -18,7 +18,7 @@ DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
 }
 
 DynObject::DynObject(const DynObject* par_obj, process* child, Address base)
-  : PatchObject(par_obj, base), as_(child) {
+  : PatchObject(par_obj, base), as_((AddressSpace*)child) {
 }
 
 DynObject::~DynObject() {

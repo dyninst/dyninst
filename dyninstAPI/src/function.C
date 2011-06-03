@@ -750,6 +750,7 @@ instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
   iter = points_.exits.find(b);
   if (iter != points_.exits.end()) return iter->second;
   assert(0);
+  return NULL;
 }
 
 void func_instance::funcExitPoints(Points* pts) {
@@ -887,6 +888,7 @@ instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
     }
   }
   assert(0);
+  return NULL;
 }
 
 instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
@@ -916,6 +918,7 @@ instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
     }
   }
   assert(0);
+  return NULL;
 }
 
 void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
@@ -960,6 +963,7 @@ instPoint* func_instance::edgePoint(edge_instance* e, bool create) {
   if (iter != edgePoints_.end()) {
     if (iter->second.point) return iter->second.point;
   }
+  return NULL;
 }
 
 void func_instance::edgePoints(Points* pts) {

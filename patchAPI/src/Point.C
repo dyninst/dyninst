@@ -14,6 +14,12 @@ using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeSource;
 using Dyninst::ParseAPI::CodeRegion;
 using Dyninst::InstructionAPI::InstructionDecoder;
+using Dyninst::PatchAPI::SnippetPtr;
+using Dyninst::PatchAPI::SnippetType;
+using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::SnippetState;
+using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::PatchEdge;
 
 InstancePtr
 Instance::create(Point* point, SnippetPtr snippet,

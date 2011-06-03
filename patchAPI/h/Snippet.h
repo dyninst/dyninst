@@ -17,7 +17,7 @@ class Snippet {
     PATCHAPI_EXPORT virtual ~Snippet() {}
     PATCHAPI_EXPORT static SnippetPtr create(void* snippet_rep);
 
-    PATCHAPI_EXPORT void* rep() const { return snippet_rep_; }
+    void* rep() const { return snippet_rep_; }
 
   private:
     void* snippet_rep_;

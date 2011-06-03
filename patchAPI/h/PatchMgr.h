@@ -45,11 +45,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //
     // return false if no any point found
     template <class Scope, class FilterFunc, class FilterArgument, class OutputIterator>
-    PATCHAPI_EXPORT bool findPoints(Scope* scope,
-                                    Point::Type types,
-                                    FilterFunc filter_func,
-                                    FilterArgument filter_arg,
-                                    OutputIterator output_iter) {
+    bool findPoints(Scope* scope,
+                    Point::Type types,
+                    FilterFunc filter_func,
+                    FilterArgument filter_arg,
+                    OutputIterator output_iter) {
       patch_cerr << ws2 << "Find points.\n";
 
       PointSet candidate_points;
@@ -73,9 +73,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Use default identity filter function
     template <class Scope, class OutputIterator>
-    PATCHAPI_EXPORT bool findPoints(Scope* scope,
-                                    Point::Type types,
-                                    OutputIterator output_iter) {
+    bool findPoints(Scope* scope,
+                    Point::Type types,
+                    OutputIterator output_iter) {
       IdentityFilterFunc<char*> filter_func;
       char* dummy = NULL;
       return findPoints<Scope, IdentityFilterFunc<char*>, char*, OutputIterator>
@@ -93,7 +93,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //   1) Broken batchStart/batchFinish pair
     //   2) Some insertion/removal fails
     template <class OutputIterator>
-    PATCHAPI_EXPORT bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
+    bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
       if (batch_mode_ != 1) return false;
       batch_mode_--;
       return patch();
@@ -106,10 +106,10 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Delete ALL snippets at certain points.
     // This uses the same filter-based interface as findPoints.
     template <class Scope, class FilterFunc, class FilterArgument>
-    PATCHAPI_EXPORT bool removeSnippets(Scope* scope,
-                                        Point::Type types,
-                                        FilterFunc filter_func,
-                                        FilterArgument filter_arg) {
+    bool removeSnippets(Scope* scope,
+                        Point::Type types,
+                        FilterFunc filter_func,
+                        FilterArgument filter_arg) {
       PointSet points;
       if (!findPoints(scope, types, filter_func, filter_arg,
           back_inserter(points) ) ) return false;
@@ -122,8 +122,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Use default identity filter function.
     template <class Scope>
-    PATCHAPI_EXPORT bool removeSnippets(Scope* scope,
-                                        Point::Type types) {
+    bool removeSnippets(Scope* scope,
+                        Point::Type types) {
       IdentityFilterFunc<char*> filter_func;
       return removeSnippets<Scope, IdentityFilterFunc, char*>
                 (scope, types, filter_func);
@@ -159,13 +159,13 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     void getPointsByType(TypePtMap& type_pt_map, Point::Type types,
                          Point::Type type, Address addr,
                          Scope* scope, PointSet& points);
-    bool findPointsByType(Address*, Point::Type, PointSet&);
-    bool findPointsByType(PatchBlock*, Point::Type, PointSet&);
-    bool findPointsByType(PatchEdge*, Point::Type, PointSet&);
-    bool findPointsByType(PatchFunction*, Point::Type, PointSet&);
+    PATCHAPI_EXPORT bool findPointsByType(Address*, Point::Type, PointSet&);
+    PATCHAPI_EXPORT bool findPointsByType(PatchBlock*, Point::Type, PointSet&);
+    PATCHAPI_EXPORT bool findPointsByType(PatchEdge*, Point::Type, PointSet&);
+    PATCHAPI_EXPORT bool findPointsByType(PatchFunction*, Point::Type, PointSet&);
 
     // Core instrumentation function!
-    bool patch();
+    PATCHAPI_EXPORT bool patch();
 
     PointMakerPtr point_maker_;
 
@@ -195,4 +195,5 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
 }
 }
+
 #endif  // PATCHAPI_H_PATCHMGR_H_
