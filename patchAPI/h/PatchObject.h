@@ -28,11 +28,11 @@ class PatchObject {
     typedef std::map<const ParseAPI::Edge*, PatchEdge*> EdgeMap;
 
     // Getters and setter
-    PATCHAPI_EXPORT Address codeBase() { return codeBase_; }
-    PATCHAPI_EXPORT ParseAPI::CodeObject* co() const { return co_; }
-    PATCHAPI_EXPORT ParseAPI::CodeSource* cs() const { return cs_; }
-    PATCHAPI_EXPORT AddrSpacePtr addrSpace() const { return addr_space_; }
-    PATCHAPI_EXPORT void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
+    Address codeBase() { return codeBase_; }
+    ParseAPI::CodeObject* co() const { return co_; }
+    ParseAPI::CodeSource* cs() const { return cs_; }
+    AddrSpacePtr addrSpace() const { return addr_space_; }
+    void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
     // Function
     PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *);
@@ -59,9 +59,9 @@ class PatchObject {
     EdgeMap edges_;
     CFGMakerPtr cfg_maker_;
 
-    PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm);
-    PatchObject(const PatchObject* par_obj, Address a);
-    void copyCFG(PatchObject* par_obj);
+    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm);
+    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a);
+    PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
 };
 
 }

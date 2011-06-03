@@ -10,6 +10,15 @@ using Dyninst::InstructionAPI::Instruction;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
 using Dyninst::PatchAPI::PointMaker;
+using Dyninst::PatchAPI::AddrSpacePtr;
+using Dyninst::PatchAPI::PointMakerPtr;
+using Dyninst::PatchAPI::InstrumenterPtr;
+using Dyninst::PatchAPI::InstancePtr;
+using Dyninst::PatchAPI::Point;
+using Dyninst::PatchAPI::PointSet;
+using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::PatchEdge;
+using Dyninst::PatchAPI::PatchFunction;
 
 bool debug_patchapi_flag = false;
 
@@ -334,3 +343,4 @@ PatchMgr::~PatchMgr() {
     delete *pi;
   }
 }
+

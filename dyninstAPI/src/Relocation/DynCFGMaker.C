@@ -1,9 +1,9 @@
 
 #include "DynObject.h"
-#include "mapped_module.h"
-#include "mapped_object.h"
-#include "parse-cfg.h"
-#include "function.h"
+#include "dyninstAPI/src/mapped_module.h"
+#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/parse-cfg.h"
+#include "dyninstAPI/src/function.h"
 
 using Dyninst::PatchAPI::DynCFGMaker;
 using Dyninst::PatchAPI::PatchObject;

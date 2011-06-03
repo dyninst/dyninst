@@ -23,7 +23,7 @@ class SnippetRep {
     explicit SnippetRep(T rep) : rep_(rep) {}
     ~SnippetRep() {}
 
-    PATCHAPI_EXPORT T rep() { return rep_; }
+    T rep() { return rep_; }
 
   protected:
     T rep_;

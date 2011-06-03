@@ -6,7 +6,7 @@
 #include "Instrumenter.h"
 
 // Dyninst Internal
-#include "addressSpace.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 #define DYN_CAST(type, obj)  dyn_detail::boost::dynamic_pointer_cast<type>(obj)
 

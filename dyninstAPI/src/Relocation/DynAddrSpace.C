@@ -7,6 +7,7 @@ using Dyninst::ParseAPI::CodeObject;
 using Dyninst::PatchAPI::DynAddrSpace;
 using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynObject;
+using Dyninst::PatchAPI::PatchObject;
 
 bool DynAddrSpace::loadLibrary(DynObject* obj) {
   loadObject(obj);
@@ -43,7 +44,7 @@ bool DynAddrSpace::write(PatchObject* obj, Address to, Address from, size_t size
 
 Address DynAddrSpace::malloc(PatchObject* obj, size_t size, Address near) {
   DynObject* dobj = dynamic_cast<DynObject*>(obj);
-  return dobj->as()->inferiorMalloc(size, anyHeap, near, NULL);
+  return dobj->as()->inferiorMalloc(size);
 }
 
 bool DynAddrSpace::realloc(PatchObject* obj, Address orig, size_t size) {

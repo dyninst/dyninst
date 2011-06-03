@@ -52,24 +52,24 @@ class Point {
     };
 
     template <class Scope>
-    PATCHAPI_EXPORT static Point* create(Address addr,
-                                         Point::Type type,
-                                         PatchMgrPtr mgr,
-                                         Scope* scope) {
+    static Point* create(Address addr,
+			             Point::Type type,
+						 PatchMgrPtr mgr,
+						 Scope* scope) {
       Point* ret = new Point(addr, type, mgr, scope);
       return ret;
     }
     Point() {}
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
-    Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
+    PATCHAPI_EXPORT Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*);
+    PATCHAPI_EXPORT Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchBlock* blk);
+    PATCHAPI_EXPORT Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchEdge* edge);
+    PATCHAPI_EXPORT Point(Address addr, Point::Type type, PatchMgrPtr mgr, PatchFunction* func);
     PATCHAPI_EXPORT virtual ~Point();
 
     // Point as a snippet container
     typedef std::list<InstancePtr>::iterator instance_iter;
-    PATCHAPI_EXPORT instance_iter begin() { return instanceList_.begin();}
-    PATCHAPI_EXPORT instance_iter end() { return instanceList_.end();}
+    instance_iter begin() { return instanceList_.begin();}
+    instance_iter end() { return instanceList_.end();}
     PATCHAPI_EXPORT InstancePtr pushBack(SnippetPtr);
     PATCHAPI_EXPORT InstancePtr pushFront(SnippetPtr);
     PATCHAPI_EXPORT bool remove(InstancePtr);
@@ -79,24 +79,24 @@ class Point {
 
     // Getters
     PATCHAPI_EXPORT size_t size();
-    PATCHAPI_EXPORT Address address() const { return addr_; }
-    PATCHAPI_EXPORT Type type() const {return type_;}
-    PATCHAPI_EXPORT bool empty() const { return instanceList_.empty();}
+    Address address() const { return addr_; }
+    Type type() const {return type_;}
+    bool empty() const { return instanceList_.empty();}
 
     typedef std::set<PatchFunction*> FuncSet;
     typedef std::set<PatchBlock*> BlockSet;
-    PATCHAPI_EXPORT const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
-    PATCHAPI_EXPORT const Point::BlockSet& getInstBlocks() const { return inst_blks_; }
+    const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
+    const Point::BlockSet& getInstBlocks() const { return inst_blks_; }
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
-    PATCHAPI_EXPORT const ParseAPI::CodeObject* co() const { return co_; }
-    PATCHAPI_EXPORT const ParseAPI::CodeSource* cs() const { return cs_; }
-    PATCHAPI_EXPORT const PatchObject* obj() const { return obj_; }
-    PATCHAPI_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+    const ParseAPI::CodeObject* co() const { return co_; }
+    const ParseAPI::CodeSource* cs() const { return cs_; }
+    const PatchObject* obj() const { return obj_; }
+    const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-    PATCHAPI_EXPORT PatchFunction* getFunction() const { return the_func_; }
-    PATCHAPI_EXPORT PatchBlock* getBlock() const { return the_block_; }
-    PATCHAPI_EXPORT PatchEdge* getEdge() const { return the_edge_; }
+    PatchFunction* getFunction() const { return the_func_; }
+    PatchBlock* getBlock() const { return the_block_; }
+    PatchEdge* getEdge() const { return the_edge_; }
 
     // Point type utilities
 
@@ -207,13 +207,13 @@ class PointMaker {
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    virtual Point* createPoint(Address addr, Point::Type type,
+    PATCHAPI_EXPORT virtual Point* createPoint(Address addr, Point::Type type,
                                Address* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
+    PATCHAPI_EXPORT virtual Point* createPoint(Address addr, Point::Type type,
                                PatchBlock* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
+    PATCHAPI_EXPORT virtual Point* createPoint(Address addr, Point::Type type,
                                PatchEdge* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
+    PATCHAPI_EXPORT virtual Point* createPoint(Address addr, Point::Type type,
                                PatchFunction* scope);
 
     void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }

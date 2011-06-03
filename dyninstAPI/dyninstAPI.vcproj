@@ -44,7 +44,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h;&quot;$(VSInstallDir)DIA SDK\include\&quot;"
+				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../patchAPI/h;../symtabAPI/h;../instructionAPI/h;&quot;$(VSInstallDir)DIA SDK\include\&quot;;../parseAPI/h"
 				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf;cap_liveness"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
@@ -1163,6 +1163,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynAddrSpace.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\dynamiclinking.C"
 				>
 				<FileConfiguration
@@ -1179,6 +1191,54 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynCFGMaker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynInstrumenter.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynObject.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynPointMaker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1494,18 +1554,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\instPoint.C"
 				>
 				<FileConfiguration
@@ -1548,6 +1596,18 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1923,7 +1983,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1936,6 +1996,30 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\CFG\RelocEdge.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2125,18 +2209,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\templates-nt.C"
 				>
 				<FileConfiguration
@@ -2149,18 +2221,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2246,10 +2306,6 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Widgets\ASTWidget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File
@@ -2469,11 +2525,31 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynAddrSpace.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\dynamiclinking.h"
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynCommon.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\dyninst.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynInstrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynObject.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynPointMaker.h"
 				>
 			</File>
 			<File
@@ -2553,10 +2629,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\instP.h"
 				>
 			</File>
@@ -2578,6 +2650,10 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2681,7 +2757,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\CFG\RelocGraph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
 				>
 			</File>
 			<File
@@ -2737,14 +2821,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\Transformers\Transformer.h"
 				>
 			</File>
@@ -2762,6 +2838,10 @@
 			</File>
 			<File
 				RelativePath=".\src\w32CONTEXT.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File

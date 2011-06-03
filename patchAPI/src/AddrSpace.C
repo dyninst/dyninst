@@ -5,6 +5,7 @@
 
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::AddrSpacePtr;
+using Dyninst::PatchAPI::PatchObject;
 
 /* Use an PatchObject (a.out) to initialize the AddrSpace */
 
@@ -36,3 +37,18 @@ AddrSpace::~AddrSpace() {
     delete obj;
   }
 }
+
+bool AddrSpace::write(PatchObject* /*obj*/, Address /*to*/,
+                      Address /*from*/, size_t /*size*/)
+{  return false; }
+
+Address AddrSpace::malloc(PatchObject* /*obj*/, size_t /*size*/,
+                          Address /*near*/)
+{  return false; }
+
+bool AddrSpace::realloc(PatchObject* /*obj*/, Address /*orig*/,
+                        size_t /*size*/)
+{  return false; }
+
+bool AddrSpace::free(PatchObject* /*obj*/, Address /*orig*/)
+{  return false; }

@@ -24,7 +24,7 @@
 #include "common/h/Types.h"
 
 // For debug
-extern bool debug_patchapi_flag;
+extern PATCHAPI_EXPORT bool debug_patchapi_flag;
 #define patch_cerr if (debug_patchapi_flag) std::cerr
 
 // For formating debug information

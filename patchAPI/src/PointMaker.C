@@ -6,6 +6,9 @@
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PointMaker;
+using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::PatchEdge;
+
 
 Point*
 PointMaker::createPoint(Address addr,

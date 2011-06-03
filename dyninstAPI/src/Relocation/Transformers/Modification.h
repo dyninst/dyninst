@@ -38,7 +38,7 @@
 #include <list>
 #include <set>
 #include <map>
-#include "Relocation/DynInstrumenter.h"
+#include "../DynInstrumenter.h"
 
 class block_instance;
 class instPoint;

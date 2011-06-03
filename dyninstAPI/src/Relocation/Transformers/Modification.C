@@ -113,10 +113,11 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    if (trace->block() != trace->func()->entryBlock()) return true;
 
    FuncModMap::const_iterator iter = funcReps_.find(trace->func());
-   //func_instance* oldfun = SCAST_FI(iter->first);
-   func_instance* newfun = SCAST_FI(iter->second);
-
    if (iter == funcReps_.end()) return true;
+   //func_instance* oldfun = SCAST_FI(iter->first);
+   PatchFunction* pnewfun = iter->second;
+   //func_instance* newfun = SCAST_FI(iter->second);
+   func_instance* newfun = SCAST_FI(pnewfun);
 
    relocation_cerr << "Performing function replacement in trace " << trace->id()
                    << " going to function " << newfun->name()
@@ -157,10 +158,11 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    if (trace->block() != trace->func()->entryBlock()) return true;
 
    FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
+   if (iter == funcWraps_.end()) return true;
+
    // func_instance* oldfun = SCAST_FI(iter->first);
    func_instance* newfun = SCAST_FI(iter->second);
 
-   if (iter == funcWraps_.end()) return true;
 
    relocation_cerr << "Performing function wrapping in trace " << trace->id()
                    << " going to function " << newfun->name()

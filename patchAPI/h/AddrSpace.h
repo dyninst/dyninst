@@ -22,20 +22,16 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
 
     // Write data in mutatee's address space
     PATCHAPI_EXPORT virtual bool write(PatchObject* /*obj*/, Address /*to*/,
-                                       Address /*from*/, size_t /*size*/)
-    {  return false; }
+                                       Address /*from*/, size_t /*size*/);
 
     // Memory allocation / reallocation / deallocation in mutatee's addressSpace
     PATCHAPI_EXPORT virtual Address malloc(PatchObject* /*obj*/, size_t /*size*/,
-                                           Address /*near*/)
-    {  return false; }
+                                           Address /*near*/);
 
     PATCHAPI_EXPORT virtual bool realloc(PatchObject* /*obj*/, Address /*orig*/,
-                                         size_t /*size*/)
-    {  return false; }
+                                         size_t /*size*/);
 
-    PATCHAPI_EXPORT virtual bool free(PatchObject* /*obj*/, Address /*orig*/)
-    {  return false; }
+    PATCHAPI_EXPORT virtual bool free(PatchObject* /*obj*/, Address /*orig*/);
 
     // Load a binary oject into the address space
     PATCHAPI_EXPORT virtual bool loadObject(PatchObject* obj);
@@ -51,7 +47,7 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     PatchObject* first_object_;
     PatchMgrPtr mgr_;
 
-    bool init(PatchObject*);
+    PATCHAPI_EXPORT bool init(PatchObject*);
     AddrSpace() {}
     explicit AddrSpace(AddrSpacePtr) {}
 };

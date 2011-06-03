@@ -35,6 +35,8 @@
 #include "Transformer.h"
 #include "dyninstAPI/src/instPoint.h"
 
+class edge_instance;
+
 namespace Dyninst {
 namespace Relocation {
 
@@ -74,10 +76,10 @@ class Instrumenter : public Transformer {
   };
 
   struct EdgePredicate {
-  EdgePredicate(edge_instance *e) : e_(e) {};
-     bool operator()(RelocEdge *e);
 
-     edge_instance *e_;
+	EdgePredicate(edge_instance *e) : e_(e) {}
+    bool operator()(RelocEdge *e);
+    edge_instance *e_;
   };
 
 };

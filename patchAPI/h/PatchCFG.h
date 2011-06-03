@@ -23,10 +23,10 @@ class PatchEdge {
    PATCHAPI_EXPORT static PatchEdge *create(ParseAPI::Edge *,
                                             PatchBlock *src,
                                             PatchBlock *trg);
-   PatchEdge(ParseAPI::Edge *internalEdge,
+   PATCHAPI_EXPORT PatchEdge(ParseAPI::Edge *internalEdge,
              PatchBlock *source,
              PatchBlock *target);
-   PatchEdge(const PatchEdge *parent,
+   PATCHAPI_EXPORT PatchEdge(const PatchEdge *parent,
              PatchBlock *child_src,
              PatchBlock *child_trg);
    PATCHAPI_EXPORT virtual ~PatchEdge();
@@ -55,8 +55,8 @@ class PatchBlock {
     typedef std::vector<PatchEdge*> edgelist;
 
     PATCHAPI_EXPORT static PatchBlock *create(ParseAPI::Block *, PatchFunction *);
-    PatchBlock(const PatchBlock *parblk, PatchObject *child);
-    PatchBlock(ParseAPI::Block *block, PatchObject *obj);
+    PATCHAPI_EXPORT PatchBlock(const PatchBlock *parblk, PatchObject *child);
+    PATCHAPI_EXPORT PatchBlock(ParseAPI::Block *block, PatchObject *obj);
     PATCHAPI_EXPORT virtual ~PatchBlock();
 
     // Getters
@@ -76,14 +76,14 @@ class PatchBlock {
     PATCHAPI_EXPORT std::string format() const;
 
     // Difference between this layer and ParseAPI: per-function blocks.
-    PATCHAPI_EXPORT PatchFunction *function() const { return function_; }
-    PATCHAPI_EXPORT ParseAPI::Block *block() const { return block_; }
-    PATCHAPI_EXPORT PatchObject* object() const { return obj_; }
+    PATCHAPI_EXPORT PatchFunction *function() const;
+    PATCHAPI_EXPORT ParseAPI::Block *block() const;
+    PATCHAPI_EXPORT PatchObject* object() const;
     PATCHAPI_EXPORT edgelist &getSources();
     PATCHAPI_EXPORT edgelist &getTargets();
 
     template <class OutputIterator>
-    PATCHAPI_EXPORT void getFunctions(OutputIterator result);
+    void getFunctions(OutputIterator result);
 
   protected:
     typedef enum {
@@ -110,20 +110,20 @@ class PatchFunction {
    public:
      typedef std::vector<PatchBlock *> blocklist;
 
-     static PatchFunction *create(ParseAPI::Function *, PatchObject*);
-     PatchFunction(ParseAPI::Function *f, PatchObject* o);
-     PatchFunction(const PatchFunction* parFunc, PatchObject* child);
-     virtual ~PatchFunction();
+     PATCHAPI_EXPORT static PatchFunction *create(ParseAPI::Function *, PatchObject*);
+     PATCHAPI_EXPORT PatchFunction(ParseAPI::Function *f, PatchObject* o);
+     PATCHAPI_EXPORT PatchFunction(const PatchFunction* parFunc, PatchObject* child);
+     PATCHAPI_EXPORT virtual ~PatchFunction();
 
      const string &name() { return func_->name(); }
      Address addr() const { return addr_;  }
      ParseAPI::Function *function() { return func_; }
      PatchObject* object() { return obj_; }
 
-     const blocklist &getAllBlocks();
-     PatchBlock *getEntryBlock();
-     const blocklist &getExitBlocks();
-     const blocklist &getCallBlocks();
+     PATCHAPI_EXPORT const blocklist &getAllBlocks();
+     PATCHAPI_EXPORT PatchBlock *getEntryBlock();
+     PATCHAPI_EXPORT const blocklist &getExitBlocks();
+     PATCHAPI_EXPORT const blocklist &getCallBlocks();
 
    protected:
      ParseAPI::Function *func_;
