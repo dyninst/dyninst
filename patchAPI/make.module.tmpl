@@ -14,7 +14,7 @@ RELEASE_MINOR = 0
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 
-LDFLAGS += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -lcommon -lsymtabAPI -linstructionAPI -lparseAPI
+LDFLAGS += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -lcommon -lsymtabAPI -linstructionAPI -lparseAPI
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
