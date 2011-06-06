@@ -123,33 +123,12 @@ PatchMgr::findPointsByType(Address* addr, Point::Type types,
     }
   }
   if (cs == NULL) {
-    //    fprintf(stderr, "ERROR: 0x%lx is not a valid relative address (absolute addr: 0x%lx, codeBase: 0x%lx)\n", (size_t)relative_addr, (size_t)*addr, (size_t)codeBase);
-    // exit(-1);
     return false;
   }
   InstructionDecoder d(cs->getPtrToInstruction(relative_addr),
                        cs->length(),
                        cs->getArch());
-  /*
-  PatchObject* o = NULL;
-  for (AddrSpace::ObjSet::iterator ci = as_->objSet().begin();
-       ci != as_->objSet().end(); ci++) {
-    if ((*ci)->isValidAddress(*addr)) {
-      o = *ci;
-      break;
-    } else {
-      continue;
-    }
-  }
-  if (o == NULL) {
-    //fprintf(stderr, "ERROR: 0x%lx is not a valid relative address (absolute addr: 0x%lx, codeBase: 0x%lx)\n", (size_t)relative_addr, (size_t)*addr, (size_t)codeBase);
-    return false;
-    // exit(-1);
-  }
-  InstructionDecoder d(o->getPtrToInstruction(*addr),
-                       o->cs()->length(),
-                       o->getArch());
-  */
+
   Instruction::Ptr insn = d.decode();
   if (insn == 0) {
     patch_cerr << "ERROR: instruction at relative addr 0x" << std::hex << relative_addr

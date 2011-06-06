@@ -199,6 +199,6 @@ PatchBlock::function() const { return function_; }
 
 ParseAPI::Block*
 PatchBlock::block() const { return block_; }
-    
+
 PatchObject*
 PatchBlock::object() const { return obj_; }

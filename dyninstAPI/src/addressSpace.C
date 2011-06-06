@@ -2065,6 +2065,7 @@ void AddressSpace::initPatchAPI() {
 }
 
 bool AddressSpace::patch(AddressSpace* as) {
+  // FIXME: after transactional semantics fully implemented
   std::vector<Dyninst::PatchAPI::InstancePtr> errorInstances;
   as->mgr()->batchStart();
   return as->mgr()->batchFinish(&errorInstances);

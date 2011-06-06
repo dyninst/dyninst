@@ -884,6 +884,9 @@ void BPatch_process::beginInsertionSetInt()
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
     // Nothing else to do...
+
+    /* PatchAPI Stuffs */
+    //llproc->mgr()->batchStart();
 }
 
 
@@ -914,8 +917,6 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
   /* PatchAPI stuffs */
   bool ret = AddressSpace::patch(llproc);
   /* End of PatchAPI stuffs */
-
-  // bool ret = llproc->relocate();
 
   llproc->trapMapping.flush();
 

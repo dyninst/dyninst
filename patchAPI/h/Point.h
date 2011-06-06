@@ -53,9 +53,9 @@ class Point {
 
     template <class Scope>
     static Point* create(Address addr,
-			             Point::Type type,
-						 PatchMgrPtr mgr,
-						 Scope* scope) {
+                         Point::Type type,
+                         PatchMgrPtr mgr,
+                         Scope* scope) {
       Point* ret = new Point(addr, type, mgr, scope);
       return ret;
     }

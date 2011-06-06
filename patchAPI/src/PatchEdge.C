@@ -21,12 +21,6 @@ PatchEdge::PatchEdge(const PatchEdge *parent, PatchBlock *src, PatchBlock *trg)
   : edge_(parent->edge_), src_(src), trg_(trg) {
 }
 
-// In an attempt to save memory we don't create the CFG copy ahead of
-// time, but instead do it on demand. This causes some interesting
-// problems though.  We must create edges ahead of time if we're
-// de-sharing a block. That said, we can create blocks on the fly if
-// there is no ambiguity - that is, if we're in the same function.
-
 PatchBlock*
 PatchEdge::source() {
   if (src_) return src_;

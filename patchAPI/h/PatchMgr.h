@@ -131,9 +131,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Getters
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
-    PATCHAPI_EXPORT InstanceSet& getCurInstances() { return current_instances_; }
     PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
-    PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; } 
+    PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
     // This order matches out filter sequence:
@@ -175,17 +174,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     AddrTypePtMap addr_type_pt_map_;
     PointSet del_pt_set_;
 
-    // The lifetime of it is the runtime of mutator
-    InstanceSet current_instances_;
-
-    // The lifetime of them is one batch
-    /*
-    InstanceSet insertion_set_;
-    InstanceSet deletion_set_;
-    FuncRepMap funcReplacement_;
-    CallRepMap callReplacement_;
-    CallRemoval callRemoval_;
-    */
     InstrumenterPtr instor_;
     AddrSpacePtr as_;
 

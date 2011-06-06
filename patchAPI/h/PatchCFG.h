@@ -12,7 +12,6 @@ namespace PatchAPI {
 class PatchEdge;
 class PatchBlock;
 class PatchFunction;
-//class PatchObject;
 
 class PatchEdge {
    friend class PatchBlock;
@@ -101,7 +100,6 @@ class PatchBlock {
 };
 
 
-/* PatchAPI Function */
 class PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
@@ -140,7 +138,6 @@ void PatchBlock::getFunctions(OutputIterator result) {
   std::vector<ParseAPI::Function *> pFuncs;
   block()->getFuncs(pFuncs);
   for (unsigned i = 0; i < pFuncs.size(); ++i) {
-    //PatchFunction *func = function()->object()->getFunction(pFuncs[i]);
     PatchFunction *func = getFunction(pFuncs[i]);
     *result = func;
     ++result;
