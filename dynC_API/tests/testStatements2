@@ -1,5 +1,1 @@
-//Hello from testStatements2
-
-int i;
-
-printf("Hello from testStatements2:%s\n", inst`str);
+inf`printf("Goodbye from %s.\n", dyninst`function_name);

@@ -10,7 +10,7 @@
 #include "BPatch_function.h"
 
 #define STATEMENT_PATH "../testStatements"
-#define STATEMENT_PATH_2 "../testStatements3"
+#define STATEMENT_PATH_2 "../testStatements2"
 const char *MUTATEE_PATH = "myMutatee";
 const char *MUTATEE_ARGS[3];
 const char *MODULE_NAME = "testMutatee.cpp";
@@ -29,7 +29,9 @@ int main(){
    ifstream myfile(STATEMENT_PATH);
    ifstream myfile2(STATEMENT_PATH_2);
 
-  cout << "Starting binary " << MUTATEE_PATH  << "... ";
+   FILE *myCFILE = fopen(STATEMENT_PATH, "r");
+
+//  cout << "Starting binary " << MUTATEE_PATH  << "... ";
   BPatch_addressSpace * appProc;
   bool rewrite = false;
   if(rewrite){
@@ -37,7 +39,7 @@ int main(){
   }else{
      appProc = bpatch.processCreate(MUTATEE_PATH, MUTATEE_ARGS);
   }
-  cout << "complete" << endl;
+//  cout << "complete" << endl;
   if (!appProc) return -1;
 
   BPatch_image *appImage = appProc->getImage();
@@ -46,34 +48,11 @@ int main(){
   if (mutatee == NULL){cout << "Bad Mutatee!" << endl;}
 
   const std::vector<BPatch_function *> * functions = mutatee->getProcedures();  
-
       
-     std::string fileString;
-     std::string line;
-     if(!myfile.is_open()){
-        fprintf(stderr, "Error: Unable to open file\n");
-        exit(-1);
-     }
-     while(!myfile.eof())
-     {
-        std::getline(myfile, line);
-        fileString += line + "\n";
-     }
-
-     std::string fileString2;
-     if(!myfile2.is_open()){
-        fprintf(stderr, "Error: Unable to open file\n");
-        exit(-1);
-     }
-     while(!myfile2.eof())
-     {
-        std::getline(myfile2, line);
-        fileString2 += line + "\n";
-     }
-
-     appProc->malloc(*appImage->findType("long"), std::string("globalVar"));
-     
-
+  
+  appProc->malloc(*appImage->findType("long"), std::string("globalVar"));
+  
+  
   std::vector<BPatch_point *> * entry_points = (*functions)[0]->findPoint(BPatch_entry);
   std::vector<BPatch_point *> * exit_points = (*functions)[0]->findPoint(BPatch_exit);;
   
@@ -84,22 +63,44 @@ int main(){
 
   
 /////////////////////////////////////////////////////////
+  std::map<BPatch_point *, BPatch_snippet *> *entry_snippets, exit_snippets;
+  entry_snippets = dynC_API::createSnippet(myCFILE,  *entry_points);
+//  BPatch_snippet *testSn = dynC_API::createSnippet(fileString,  *(*entry_points)[0]);
+  if(entry_snippets == NULL){
+     fprintf(stderr, "entry_snippets is null.\n");
+     exit(-1);
+  }
+  std::map<BPatch_point *, BPatch_snippet *>::iterator it;
+  for(it = entry_snippets->begin(); it != entry_snippets->end(); ++it){
+     printf("Why, hello der!\n");
+     if((*it).first == NULL){
+        fprintf(stderr, "point is null.\n");
+        exit(-1);
+     }
+     if((*it).second == NULL){
+        fprintf(stderr, "snippet is null.\n");
+     } else{
+        appProc->insertSnippet(*(*it).second, *(*it).first);       
+     }
+  }
+
+/*
   for(unsigned int i = 0; i < entry_points->size(); ++i){
      if((*entry_points)[i] == NULL){
         printf("entry point %d is null \n", i);
      }
-     char str[] = "printf(\"Flow!\\n\");"; 
-     BPatch_snippet *retSnippet = dynC_API::createSnippet(fileString, *(*entry_points)[i], "entrySnippet");
-     if (retSnippet != NULL){
-        appProc->insertSnippet(*retSnippet, *(*entry_points)[i]);       
+     BPatch_snippet *entrySnippet = dynC_API::createSnippet(fileString, *(*entry_points)[i]);
+     if (entrySnippet != NULL){
+        appProc->insertSnippet(*entrySnippet, *(*entry_points)[i]);       
      }
-     BPatch_snippet *retSnippet2 = dynC_API::createSnippet(strdup(fileString2.c_str()), *(*exit_points)[i], "entrySnippet");
-     if (retSnippet != NULL){
-        appProc->insertSnippet(*retSnippet2, *(*exit_points)[i]);       
+     BPatch_snippet *exitSnippet= dynC_API::createSnippet(fileString2.c_str(), *(*exit_points)[i], "exitSnippet");
+     if (exitSnippet != NULL){
+        appProc->insertSnippet(*exitSnippet, *(*exit_points)[i]);       
      }
-     
+
 //     BPatch_snippet *auxSnippet = dynC_API::createSnippet(&myfile2, "AuxSnippet");
-  }
+   }
+*/       
 /////////////////////////////////////////////////////////
 
 
