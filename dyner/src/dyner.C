@@ -1052,7 +1052,6 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    std::stringstream sn;
    
    for(unsigned int i = 0; i < points->size(); ++i){
-      printf("bpCounter = %d\n", bpCtr);
       sn.str("");
       if(argc > expr_start){
          sn << "if(" << line_buf << "){\n";
@@ -1067,15 +1066,13 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       snippetName.str() = "";
       snippetName << "breakSnippet_" << bpCtr;
       
-      BPatch_snippet *statement = dynC_API::createSnippet(sn.str().c_str(), *(*points)[i], snippetName.str().c_str());
+      BPatch_snippet *statement = dynC_API::createSnippet(sn.str(), *(*points)[i]);
       if(statement == NULL){
          fprintf(stderr, "Error creating breakpoint %d.\n", bpCtr);
          bpCtr++;
          continue;
          //return TCL_ERROR;
       }
-      printf("insert %d... point %p\n", bpCtr, (*points)[i]->getAddress());
-      printf("{\n%s}\n", sn.str().c_str());
       BPatchSnippetHandle *handle = appProc->insertSnippet(*statement, *(*points)[i], when, BPatch_lastSnippet);
          
       if (handle == 0) {
@@ -1204,7 +1201,7 @@ int instTermStatement(int argc, TCLCONST char *argv[])
    
    char *line_buf = getBufferAux(argc, argv, 2, true);
 
-   BPatch_snippet *statement = dynC_API::createSnippet(line_buf, *appProc, "terminalSnippet");
+   BPatch_snippet *statement = dynC_API::createSnippet(line_buf, *appProc);
    
    if(statement == NULL){
       fprintf(stderr, "Instrumentation not set due to error.\n");
@@ -1285,7 +1282,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    for(unsigned int i = 0; i < points->size(); ++i){
       std::stringstream snName;
       snName << "dynerSnippet_" << dynerSnippetNumber;
-      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i]);
       if(snippet == NULL){
          printf("Snippet generation failure for point %d.\n", ipCtr++);
          continue;
@@ -1351,7 +1348,7 @@ int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    // reenable for targetpoint at breaks?
    // if(targetPoint == NULL){
    //printf("hi_generic\n");
-   statement = dynC_API::createSnippet(line_buf, *appProc, "SnippetEx");
+   statement = dynC_API::createSnippet(line_buf, *appProc);
    //}else{
    //   printf("func: %s\n", targetPoint->getFunction()->getName(new char[512], 512));
    //   statement = dynC_API::createSnippet(line_buf, *targetPoint, "SnippetEx");
@@ -1669,7 +1666,7 @@ int newVar(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       return TCL_ERROR;
    }
    
-   BPatch_variableExpr *newVar = appProc->malloc(*type);
+   BPatch_variableExpr *newVar = appProc->malloc(*type, argv[2]);
    if (!newVar) {
       printf("Unable to create variable.\n");
       return TCL_ERROR;
