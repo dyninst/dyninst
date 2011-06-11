@@ -82,6 +82,16 @@ class Relocator;
 class Modificator;
 class SnippetGenerator;
 
+class Command;
+typedef dyn_detail::boost::shared_ptr<Command> CommandPtr;
+typedef std::list<CommandPtr> CommandList;
+
+class BatchCommand;
+typedef dyn_detail::boost::shared_ptr<BatchCommand> BatchCommandPtr;
+
+class Patcher;
+typedef dyn_detail::boost::shared_ptr<Patcher> PatcherPtr;
+
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 
 // This is a little complex, so let me explain my logic
