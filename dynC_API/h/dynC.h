@@ -28,7 +28,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-//command.h
+
 #ifndef DYN_C_H
 #define DYN_C_H
 
@@ -39,21 +39,25 @@
 #include "snippetGen.h"
 #include <sstream>
 #include <string>
+#include <map>
 
 namespace dynC_API{
-   BPatch_snippet *createSnippet(const char *s, BPatch_point &point, const char *name = "");
-   BPatch_snippet *createSnippet(FILE *f, BPatch_point &point, const char *name = "");
-   BPatch_snippet *createSnippet(std::string str, BPatch_point &point, const char *name = "");
-   BPatch_snippet *createSnippet(const char *s, BPatch_addressSpace &addSpace, const char *name = "");
-   BPatch_snippet *createSnippet(FILE *f, BPatch_addressSpace &addSpace, const char *name = "");
-   BPatch_snippet *createSnippet(std::string str, BPatch_addressSpace &addSpace, const char *name = "");
+   BPatch_snippet *createSnippet(const char *s, BPatch_point &point);
+   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points);
 
-//   BPatch_snippet *createSnippet(std::ifstream *is, BPatch_point *point, char *name = "");
+   BPatch_snippet *createSnippet(FILE *f, BPatch_point &point);
+   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(FILE *f, std::vector<BPatch_point *> points);
+
+   BPatch_snippet *createSnippet(std::string str, BPatch_point &point);
+   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(std::string str, std::vector<BPatch_point *> points);
+
+   BPatch_snippet *createSnippet(const char *s, BPatch_addressSpace &addSpace);
+   BPatch_snippet *createSnippet(FILE *f, BPatch_addressSpace &addSpace);
+   BPatch_snippet *createSnippet(std::string str, BPatch_addressSpace &addSpace);
    
+//dynC internal
    std::string mangle(const char *varName, const char *snippetName, const char *typeName);
    std::string getMangledStub(const char *varName, const char *snippetName);
-//   std::string getSnippetName(const char *mangled);
-//   BPatch_variableExpr demangle(const char *mangledName);
 }
 
 #endif

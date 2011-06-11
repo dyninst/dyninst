@@ -114,7 +114,7 @@ std::vector<BPatch_snippet *> endSnippets;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOID
 %token STRUCT UNION ENUM ELLIPSIS 
 %token IF
-%token LOCAL PARAM GLOBAL INF DYNINST INST
+%token LOCAL PARAM GLOBAL INF DYNINST INST REGISTER
 %token NEWLINE
 
 %token CASE DEFAULT SWITCH RETURN
@@ -932,6 +932,17 @@ const_list:
 arith_expression: variable_expr
 | constant {$$ = $1->first}
 | NILL {$$ = new BPatch_nullExpr();}
+| REGISTER BACKTICK IDENTIFIER 
+{
+   $$ = snippetGen->findRegister($3);
+   if ($$ == NULL){
+      $$ = new BPatch_nullExpr();
+      char *errString = strdup(snippetGen->getError().c_str());
+      yyerror(errString);
+      free(errString);
+   }
+}
+
    | DYNINST BACKTICK IDENTIFIER
     {
        if(verbose) printf("dyninst`%s ", $3);

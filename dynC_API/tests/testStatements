@@ -1,2 +1,4 @@
-inf`printf("Hi!\n");
-inf`printf("Hi -> %p.\n", &inf`hi);
+//static int entryCount = 0;
+inf`printf("Hello from %s for the %d(th) time.\n", dyninst`function_name, global`globalVar++);
+//inf`count(3, "My name is count.\n");
+inf`printf("Register eax = %p.\n", reg`rax);

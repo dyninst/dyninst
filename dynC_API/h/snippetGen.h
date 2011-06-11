@@ -72,6 +72,8 @@ class SnippetGenerator{
    BPatch_image *image;
    
    char *snippetName;
+
+   std::vector<BPatch_register> registers;
   
   public:
    std::string getError() {return lastError.str();};
@@ -96,8 +98,7 @@ class SnippetGenerator{
 
    BPatch_snippet *findOrCreateVariable(const char * name, const char * type, const void * initialValue = NULL);
    BPatch_snippet *findOrCreateArray(const char * name, const char * elementType, long size);
-   BPatch_snippet *findOrCreateStruct();
-   BPatch_snippet *findOrCreateUnion();
+   BPatch_snippet *findRegister(const char *name);
    BPatch_snippet *findAppVariable(const char * name, bool global = false, bool local = false);
    BPatch_snippet *findParameter(const char * name);
    BPatch_snippet *findParameter(int index);

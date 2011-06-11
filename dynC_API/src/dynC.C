@@ -50,59 +50,72 @@ namespace dynC_API{
 
    const std::string varNameBase = "dynC_mangled_";
    const bool debug = false;
-   static int snippetCount;
+   static int snippetCount = 0;
 
-   BPatch_snippet * createSnippet(const char *s, BPatch_point &point, const char *name){
-      if(debug) printf("Hello World! from createSnippet\n");
-      if(debug) printf("Set lex input to:\n%s\n", s);
+
+  std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points){
+
       char *mutS = strdup(s);
       set_lex_input(mutS);
-      if(strlen(name) == 0){
-         char *autoName = new char[32];
-         sprintf(autoName, "%s%d", "Snippet_", snippetCount);
-         name = autoName;
+
+      std::map<BPatch_point *, BPatch_snippet *> *ret_map = new std::map<BPatch_point *, BPatch_snippet *>();
+      
+      if(ret_map == NULL){
+         fprintf(stderr, "DYNC_INTERNAL Error [%s:%d]: 'new' operation failed!\n", __FILE__, __LINE__);
+         return NULL;
       }
+
       snippetCount++;
-      char *mutName = strdup(name);      
+
+      std::vector<BPatch_point *>::iterator it;
+      std::stringstream name;
+      name.str() = "";
+      name << "Snippet_" << snippetCount;
+      char *mutName = strdup(name.str().c_str());      
       dynCSnippetName = mutName;
-      snippetPoint = &point;
-      snippetGen = new SnippetGenerator(point, mutName);
-      if(dynCparse() == 0){
-         if(debug){
-            dyn_debug_ast = 1;
-            parse_result->ast_wrapper->debugPrint();
-            dyn_debug_ast = 0;
+
+      for(it = points.begin(); it != points.end(); ++it){
+         snippetPoint = (*it);
+         snippetGen = new SnippetGenerator(**it, mutName);
+
+         if(dynCparse() == 0){
+            ret_map->insert(pair<BPatch_point *, BPatch_snippet *>((*it), parse_result));
+         }else{
+            free(mutName);
+            free(mutS);
+            delete ret_map;
+            delete snippetGen;
+            return NULL; //error
          }
-         free(mutName);
-         free(mutS);
-         return parse_result;
+         delete snippetGen;
       }
       free(mutName);
-      free(mutS);
-      return NULL; //error
+      return ret_map;
    }
 
-   BPatch_snippet * createSnippet(const char *s, BPatch_addressSpace &addSpace, const char *name){
-      if(debug) printf("Hello World! from createSnippet\n");
+   BPatch_snippet * createSnippet(const char *s, BPatch_point &point){
+      std::vector<BPatch_point*> points;
+      points.push_back(&point);
+      std::map<BPatch_point *, BPatch_snippet *> *retMap = createSnippet(s, points);
+      if (retMap->empty()){
+         return NULL;
+      }
+      return (*retMap->begin()).second;
+   }
+
+   BPatch_snippet * createSnippet(const char *s, BPatch_addressSpace &addSpace){
+
       char *mutS = strdup(s);
       set_lex_input(mutS);
-      if(debug) printf("Set lex input to:\n%s", s);
-      if(strlen(name) == 0){
-         char *autoName = new char[32];
-         sprintf(autoName, "%s%d", "Snippet_", snippetCount);
-         name = autoName;
-      }
+
       snippetCount++;
-      char *mutName = strdup(name);
+      std::string name = "Snippet_";
+      name += snippetCount;
+      char *mutName = strdup(name.c_str());      
       dynCSnippetName = mutName;
       snippetPoint = NULL;
       snippetGen = new SnippetGenerator(addSpace, mutName);
       if(dynCparse() == 0){
-         if(debug){
-            dyn_debug_ast = 1;
-            parse_result->ast_wrapper->debugPrint();
-            dyn_debug_ast = 0;
-         }
          free(mutS);
          free(mutName);
          return parse_result;
@@ -112,7 +125,7 @@ namespace dynC_API{
       return NULL; //error
    }
 
-   BPatch_snippet * createSnippet(FILE *f, BPatch_point &point, const char *name){
+   BPatch_snippet * createSnippet(FILE *f, BPatch_point &point){
       std::string fileString;
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
@@ -126,13 +139,32 @@ namespace dynC_API{
       rewind(f);
 
       char *cstr = strdup(fileString.c_str());
-      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      BPatch_snippet *retSn = createSnippet(cstr, point);
       free(cstr);
       return retSn;
    }
 
+   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(FILE *f, std::vector<BPatch_point *> points){
+      std::string fileString;
+      if(f == NULL){
+         fprintf(stderr, "Error: Unable to open file\n");
+         return NULL;
+      }
+      char c;
+      while((c = fgetc(f)) != EOF)
+      {
+         fileString += c;
+      }
+      rewind(f);
 
-   BPatch_snippet * createSnippet(FILE *f, BPatch_addressSpace &addSpace, const char *name){
+      char *cstr = strdup(fileString.c_str());
+      std::map<BPatch_point *, BPatch_snippet *> *retMap = createSnippet(cstr, points);
+      free(cstr);
+      return retMap;
+   }
+
+
+   BPatch_snippet * createSnippet(FILE *f, BPatch_addressSpace &addSpace){
       std::string fileString;
       if(f == NULL){
          fprintf(stderr, "Error: Unable to open file\n");
@@ -145,22 +177,29 @@ namespace dynC_API{
       }
       rewind(f);
       char *cstr = strdup(fileString.c_str());
-      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace);
       free(cstr);
       return retSn;
    }
 
-   BPatch_snippet * createSnippet(std::string str, BPatch_point &point, const char *name){
+   BPatch_snippet * createSnippet(std::string str, BPatch_point &point){
       char *cstr = strdup(str.c_str());
-      BPatch_snippet *retSn = createSnippet(cstr, point, name);
+      BPatch_snippet *retSn = createSnippet(cstr, point);
       free(cstr);
       return retSn;
    }
 
-
-   BPatch_snippet * createSnippet(std::string str, BPatch_addressSpace &addSpace, const char *name){
+   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(std::string str, std::vector<BPatch_point *> points){
       char *cstr = strdup(str.c_str());
-      BPatch_snippet *retSn = createSnippet(cstr, addSpace, name);
+      std::map<BPatch_point *, BPatch_snippet *> *retMap = createSnippet(cstr, points);
+      free(cstr);
+      return retMap;
+   }
+
+
+   BPatch_snippet * createSnippet(std::string str, BPatch_addressSpace &addSpace){
+      char *cstr = strdup(str.c_str());
+      BPatch_snippet *retSn = createSnippet(cstr, addSpace);
       free(cstr);
       return retSn;      
    }
