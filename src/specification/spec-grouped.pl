@@ -66,6 +66,7 @@ module('symtab').
 module('stackwalker').
 module('instruction').
 module('proccontrol').
+module('patchapi').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -85,6 +86,13 @@ mutatee_comp('').
 mutatee_link_options('', '').
 comp_std_flags_str('', '').
 comp_mutatee_flags_str('', '').
+
+mutatee('patchapi_group_test', [
+   'patch1_1_mutatee.c'
+   ]). 
+compiler_for_mutatee('patchapi_group_test', Compiler) :-
+    comp_lang(Compiler, 'c').
+mutatee_format('patchapi_group_test', 'staticMutatee').
 
 mutatee('dyninst_group_test', ['test1_1_mutatee.c', 
 	'test1_2_mutatee.c',
@@ -2123,6 +2131,26 @@ groupable_test('test1_36F').
 tests_module('test1_36F', 'dyninst').
 
 
+% patchAPI tests
+
+test('patch1_1', 'patch1_1', 'patchapi_group_test').
+test_description('patch1_1', 'insert snippets at entry, exit, and call points').
+test_runs_everywhere('patch1_1').
+groupable_test('patch1_1').
+mutator('patch1_1', ['patch1_1.C']).
+test_runmode('patch1_1', 'staticdynamic').
+test_start_state('patch1_1', 'stopped').
+tests_module('patch1_1', 'patchapi').
+
+test('patch4_1', 'patch4_1', 'patchapi_group_test').
+test_description('patch4_1', 'transactional semantics').
+test_runs_everywhere('patch4_1').
+groupable_test('patch4_1').
+mutator('patch4_1', ['patch4_1.C']).
+test_runmode('patch4_1', 'staticdynamic').
+test_start_state('patch4_1', 'stopped').
+tests_module('patch4_1', 'patchapi').
+
 % SymtabAPI tests
 
 test('test_lookup_func', 'test_lookup_func', 'symtab_group_test').
@@ -3076,6 +3104,7 @@ all_mutators_require_libs(['testSuite']).
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
+module_required_libs('patchapi', ['patchAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instruction', ['instructionAPI']).
 module_required_libs('proccontrol', ['pcontrol']).
