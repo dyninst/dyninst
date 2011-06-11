@@ -21,8 +21,29 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_add_symbols test_line_in
 
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_add_symbols.o test_line_info.o test_module.o test_relocations.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
+
+patchapi_MUTATORS = patch1_1 patch4_1 
+
+patchapi_OBJS_ALL_MUTATORS = patch1_1.o patch4_1.o 
+
 init_fini_callback.so: init_fini_callback.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/init_fini_callback.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch1_1.so: patch1_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch1_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch4_1.so: patch4_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch4_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -907,4 +928,9 @@ instruction_MUTATORS_SO += $(addsuffix .so,$(instruction_MUTATORS))
 
 # Create shared library names from the mutator test names
 symtab_MUTATORS_SO += $(addsuffix .so,$(symtab_MUTATORS))
+
+
+
+# Create shared library names from the mutator test names
+patchapi_MUTATORS_SO += $(addsuffix .so,$(patchapi_MUTATORS))
 
