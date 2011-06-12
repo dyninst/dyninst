@@ -32,6 +32,7 @@ class BatchCommand : public Command {
     PATCHAPI_EXPORT virtual bool run();
     PATCHAPI_EXPORT virtual bool undo();
 
+    /* Add/Remove Commands to to_do_ list. */
     PATCHAPI_EXPORT void add(CommandPtr);
     PATCHAPI_EXPORT void remove(CommandList::iterator);
 

@@ -6,6 +6,7 @@
 #include "common.h"
 #include "Point.h"
 #include "AddrSpace.h"
+#include "Command.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -13,7 +14,7 @@ namespace PatchAPI {
 /* Relocate the original code and generate snippet binary code in mutatee's
    address space. */
 
-class Instrumenter {
+class Instrumenter : public BatchCommand {
   public:
     PATCHAPI_EXPORT static InstrumenterPtr create(AddrSpacePtr as);
     virtual ~Instrumenter() {}
