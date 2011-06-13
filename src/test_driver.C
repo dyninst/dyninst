@@ -127,6 +127,7 @@ bool quietFormat = false;
 bool runDyninst = false;
 bool runSymtab = false;
 bool runInstruction = false;
+bool runPatchAPI = false;
 bool runAllComps = true;
 bool printMutateeLogHeader = false;
 bool measureMEMCPU = false;
@@ -479,6 +480,7 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
              (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
              (!runSymtab && groups[i]->mod->name == std::string("symtab")) ||
              (!runInstruction && groups[i]->mod->name == std::string("instruction")) ||
+             (!runPatchAPI && groups[i]->mod->name == std::string("patchapi")) ||
              (!runProcControl && groups[i]->mod->name == std::string("proccontrol")))
          {
             groups[i]->disabled = true;
@@ -1474,11 +1476,17 @@ int parseArgs(int argc, char *argv[])
          runProcControl = true;
          runAllComps = false;
       }
+      else if (strcmp(argv[i], "-patchapi") == 0)
+      {
+         runPatchAPI = true;
+         runAllComps = false;
+      }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
          runSymtab = true;
          runDyninst = true;
          runInstruction = true;
+         runPatchAPI = true;
          runAllComps = true;
       }
       else if (strcmp(argv[i], "-max") == 0)
