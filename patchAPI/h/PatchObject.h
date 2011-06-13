@@ -30,7 +30,7 @@ class PatchObject {
     // Getters and setter
     Address codeBase() { return codeBase_; }
     ParseAPI::CodeObject* co() const { return co_; }
-    ParseAPI::CodeSource* cs() const { return cs_; }
+    //ParseAPI::CodeSource* cs() const { return cs_; }
     AddrSpacePtr addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
@@ -51,7 +51,7 @@ class PatchObject {
 
   protected:
     ParseAPI::CodeObject* co_;
-    ParseAPI::CodeSource* cs_;
+    //ParseAPI::CodeSource* cs_;
     Address codeBase_;
     AddrSpacePtr addr_space_;
     FuncMap funcs_;

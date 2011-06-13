@@ -15,8 +15,9 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
   public:
     DynInstrumenter() {}
     virtual ~DynInstrumenter() {}
-    virtual bool process();
-  };
+    virtual bool run();
+    virtual bool undo();
+};
 typedef dyn_detail::boost::shared_ptr<DynInstrumenter> DynInstrumenterPtr;
 
 }

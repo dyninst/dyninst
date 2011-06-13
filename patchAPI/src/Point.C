@@ -65,7 +65,7 @@ Point::initCodeStructure() {
        ci != mgr_->as()->objSet().end(); ci++) {
     PatchObject* obj = *ci;
     CodeObject* co = obj->co();
-    CodeSource* cs = obj->cs();
+    CodeSource* cs = co->cs();
     Address relative_addr = addr_ - obj->codeBase();
     vector<CodeRegion*> regions = cs->regions();
     for (vector<CodeRegion*>::iterator ri = regions.begin(); ri != regions.end(); ri++) {

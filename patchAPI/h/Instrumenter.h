@@ -18,10 +18,10 @@ class Instrumenter : public BatchCommand {
   public:
     PATCHAPI_EXPORT static InstrumenterPtr create(AddrSpacePtr as);
     virtual ~Instrumenter() {}
-
+    /*
     // Iterate all Objects and call their process method to do instrumentation
     PATCHAPI_EXPORT virtual bool process();
-
+    */
     // Code Modification interfaces
 
     // Function Replacement
