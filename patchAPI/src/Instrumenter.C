@@ -18,12 +18,12 @@ Instrumenter::create(AddrSpacePtr as) {
   if (!ret) return InstrumenterPtr();
   return ret;
 }
-
+/*
 bool
 Instrumenter::process() {
   return true;
 }
-
+*/
 bool
 Instrumenter::replaceFunction(PatchFunction* oldfunc, PatchFunction *newfunc) {
   functionReplacements_[oldfunc] = newfunc;

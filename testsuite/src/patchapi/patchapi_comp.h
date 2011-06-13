@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Command.h"
+#include "PatchMgr.h"
 
 #define test_cerr std::cerr
 
@@ -18,7 +19,7 @@ class COMPLIB_DLL_EXPORT PatchApiMutator : public TestMutator {
   create_mode_t runmode_;
 };
 
-/* PatchAPI plugins */
-
+/* Utilities for testing PatchAPI */
+Dyninst::PatchAPI::PatchMgrPtr makePatchMgr(Dyninst::ParseAPI::CodeObject*);
 
 #endif /* TESTSUITE_SRC_PATCHAPI_COMP_H_ */

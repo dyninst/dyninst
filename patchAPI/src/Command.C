@@ -1,16 +1,26 @@
+#include "Point.h"
 #include "Command.h"
+#include "Snippet.h"
+#include "PatchMgr.h"
+#include "Instrumenter.h"
 
+using Dyninst::PatchAPI::Point;
+using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::Command;
 using Dyninst::PatchAPI::CommandPtr;
+using Dyninst::PatchAPI::SnippetPtr;
+using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::BatchCommand;
+using Dyninst::PatchAPI::PatchFunction;
+using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::BatchCommandPtr;
-using Dyninst::PatchAPI::PushFrontCommand;
 using Dyninst::PatchAPI::PushBackCommand;
-using Dyninst::PatchAPI::RemoveSnippetCommand;
+using Dyninst::PatchAPI::PushFrontCommand;
 using Dyninst::PatchAPI::RemoveCallCommand;
 using Dyninst::PatchAPI::ReplaceCallCommand;
 using Dyninst::PatchAPI::ReplaceFuncCommand;
-using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::RemoveSnippetCommand;
 
 /* Basic Command */
 
@@ -41,6 +51,7 @@ bool BatchCommand::run() {
   for (CommandList::iterator i = to_do_.begin(); i != to_do_.end();) {
     done_.push_front(*i);
     if (!(*i)->run()) { return false; }
+    // Be careful! We are modifying the iterator during the loop ...
     i = to_do_.erase(i);
   }
   return true;
@@ -57,12 +68,15 @@ bool BatchCommand::undo() {
 /* Public Interface: Patcher, which accepts instrumentation requests from users. */
 
 bool Patcher::run() {
-  // The instrumentation engine
-  // add()
-  for (CommandList::iterator i = to_do_.begin(); i != to_do_.end(); i++) {
-    to_do_.erase(i);
+
+  // We implicitly add the instrumentation engine
+  add(mgr_->instrumenter());
+
+  // The "common" BatchCommand stuffs
+  for (CommandList::iterator i = to_do_.begin(); i != to_do_.end();) {
     done_.push_front(*i);
     if (!(*i)->run()) return false;
+    i = to_do_.erase(i);
   }
   return true;
 }
@@ -71,61 +85,65 @@ bool Patcher::run() {
    snippet instance list */
 
 bool PushFrontCommand::run() {
+  instance_ = pt_->pushFront(snip_);
   return true;
 }
 
 bool PushFrontCommand::undo() {
-  return true;
+  return pt_->remove(instance_);
 }
 
 /* Public Interface: Insert Snippet by pushing the the end of
    snippet instance list */
 
 bool PushBackCommand::run() {
+  instance_ = pt_->pushBack(snip_);
   return true;
 }
 
 bool PushBackCommand::undo() {
-  return true;
+  return pt_->remove(instance_);
 }
 
 /* Public Interface: Remove Snippet */
 
 bool RemoveSnippetCommand::run() {
-  return true;
+  return instance_->destroy();
 }
 
 bool RemoveSnippetCommand::undo() {
-  return true;
-}
-
-bool RemoveCallCommand::run() {
+  // TODO(wenbin)
   return true;
 }
 
 /* Public Interface: Remove Function Call */
 
-bool RemoveCallCommand::undo() {
-  return true;
+bool RemoveCallCommand::run() {
+  return mgr_->instrumenter()->removeCall(call_block_, context_);
 }
 
-bool ReplaceCallCommand::run() {
-  return true;
+
+bool RemoveCallCommand::undo() {
+  return mgr_->instrumenter()->revertModifiedCall(call_block_, context_);
 }
 
 /* Public Interface: Replace Function Call */
 
-bool ReplaceCallCommand::undo() {
-  return true;
+bool ReplaceCallCommand::run() {
+  return mgr_->instrumenter()->modifyCall(call_block_, new_callee_, context_);
 }
 
-bool ReplaceFuncCommand::run() {
-  return true;
+bool ReplaceCallCommand::undo() {
+  return mgr_->instrumenter()->revertModifiedCall(call_block_, context_);
 }
 
 /* Public Interface: Replace Function */
 
+bool ReplaceFuncCommand::run() {
+  return mgr_->instrumenter()->replaceFunction(old_func_, new_func_);
+}
+
 bool ReplaceFuncCommand::undo() {
-  return true;
+  return mgr_->instrumenter()->revertReplacedFunction(old_func_);
 }
 

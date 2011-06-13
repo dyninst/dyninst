@@ -21,12 +21,13 @@ PatchObject::clone(PatchObject* par_obj, Address base) {
 }
 
 PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm)
-  : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
+  // : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
+  : co_(o), codeBase_(a), cfg_maker_(cm) {
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a)
-  : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
-
+  // : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
+  : co_(parObj->co()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
 }
 
 PatchObject::~PatchObject() {

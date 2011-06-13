@@ -115,8 +115,8 @@ PatchMgr::findPointsByType(Address* addr, Point::Type types,
        ci != as_->objSet().end(); ci++) {
     codeBase = (*ci)->codeBase();
     relative_addr = *addr - codeBase;
-    if ((*ci)->cs()->isValidAddress(relative_addr)) {
-      cs = (*ci)->cs();
+    if ((*ci)->co()->cs()->isValidAddress(relative_addr)) {
+      cs = (*ci)->co()->cs();
       break;
     } else {
       continue;
@@ -308,7 +308,7 @@ bool
 PatchMgr::patch() {
   patch_cerr << ws4 << "Relocation and Generation Start.\n";
 
-  if (!instor_->process()) {
+  if (!instor_->run()) {
     std::cerr << "ERROR: instrumenter process failed!\n";
     return false;
   }

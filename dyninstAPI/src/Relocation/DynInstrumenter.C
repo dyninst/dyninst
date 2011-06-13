@@ -2,7 +2,7 @@
 
 using Dyninst::PatchAPI::DynInstrumenter;
 
-bool DynInstrumenter::process() {
+bool DynInstrumenter::run() {
   DynAddrSpacePtr das = DYN_CAST(DynAddrSpace, as_);
   std::set<AddressSpace*> seen;
   bool ret = true;
@@ -17,3 +17,6 @@ bool DynInstrumenter::process() {
   return ret;
 }
 
+bool DynInstrumenter::undo() {
+  return true;
+}
