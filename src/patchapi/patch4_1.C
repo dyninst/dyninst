@@ -28,6 +28,10 @@
 #include "patchapi_comp.h"
 
 using Dyninst::PatchAPI::Command;
+using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::PatchMgr;
+using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::BatchCommand;
 
 typedef std::list<int> CmdList;
@@ -129,7 +133,9 @@ test_results_t patch4_1_Mutator::executeTest() {
   // XXX: should be Patcher in the future ...
 
   /* Test1: run a batch of operations successfully */
-  BatchCommand patcher;
+  // BatchCommand patcher;
+  PatchMgrPtr mgr = makePatchMgr(NULL);
+  Patcher patcher(mgr);
   patcher.add(DummyCommand1::create(&cmd_list));
   patcher.add(DummyCommand2::create(&cmd_list));
   patcher.add(DummyCommand3::create(&cmd_list));

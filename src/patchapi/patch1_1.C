@@ -1,3 +1,6 @@
+/*
+ */
+
 #include "test_lib.h"
 #include "patchapi_comp.h"
 
