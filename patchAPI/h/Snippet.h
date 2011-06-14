@@ -4,23 +4,26 @@
 #define PATCHAPI_H_SNIPPET_H_
 
 #include "common.h"
-#include "SnippetRep.h"
 
 namespace Dyninst {
 namespace PatchAPI {
 
-/* A sequence of code. See also: SnippetRep.h */
-
+/* Interface for snippet representation. */
+template <class T>
 class Snippet {
- public:
-    explicit Snippet(void* snippet_rep) : snippet_rep_(snippet_rep) {}
-    PATCHAPI_EXPORT virtual ~Snippet() {}
-    PATCHAPI_EXPORT static SnippetPtr create(void* snippet_rep);
+  public:
+    typedef dyn_detail::boost::shared_ptr<Snippet<T> > Ptr;
+    static Ptr create(T rep) { return Ptr(new Snippet<T>(rep)); }
+    static Ptr get(SnippetPtr s) {
+      return dyn_detail::boost::static_pointer_cast<Snippet<T> >(s);
+    }
+    explicit Snippet(T rep) : rep_(rep) {}
+    ~Snippet() {}
 
-    void* rep() const { return snippet_rep_; }
+    T rep() { return rep_; }
 
-  private:
-    void* snippet_rep_;
+  protected:
+    T rep_;
 };
 
 }

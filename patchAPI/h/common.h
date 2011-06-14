@@ -71,9 +71,6 @@ typedef dyn_detail::boost::shared_ptr<Linker> LinkerPtr;
 class PatchMgr;
 typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
 
-class Snippet;
-typedef dyn_detail::boost::shared_ptr<Snippet> SnippetPtr;
-
 class PatchFunction;
 class PatchBlock;
 class PatchEdge;
@@ -91,6 +88,9 @@ typedef dyn_detail::boost::shared_ptr<BatchCommand> BatchCommandPtr;
 
 class Patcher;
 typedef dyn_detail::boost::shared_ptr<Patcher> PatcherPtr;
+
+typedef dyn_detail::boost::shared_ptr<void> VoidPtr;
+typedef VoidPtr SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 

@@ -65,6 +65,7 @@
 #include "InstructionDecoder.h"
 
 #include "mapped_object.h"
+#include "Snippet.h"
 
 /*
  * Private constructor, insn

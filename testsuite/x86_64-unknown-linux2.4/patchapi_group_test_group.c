@@ -34,14 +34,24 @@ extern "C" {
 #include "../src/mutatee_call_info.h"
 
 extern int patch1_1_mutatee();
+extern int patch1_2_mutatee();
+extern int patch1_3_mutatee();
+extern int patch2_1_mutatee();
+extern int patch3_1_mutatee();
+extern int patch3_2_mutatee();
 
 mutatee_call_info_t mutatee_funcs[] = {
-  {"patch1_1_mutatee", patch1_1_mutatee, GROUPED, "patch1_1_mutatee"}
+  {"patch1_1", patch1_1_mutatee, GROUPED, "patch1_1"},
+  {"patch1_2", patch1_2_mutatee, GROUPED, "patch1_2"},
+  {"patch1_3", patch1_3_mutatee, GROUPED, "patch1_3"},
+  {"patch2_1", patch2_1_mutatee, GROUPED, "patch2_1"},
+  {"patch3_1", patch3_1_mutatee, GROUPED, "patch3_1"},
+  {"patch3_2", patch3_2_mutatee, GROUPED, "patch3_2"}
 };
 
-int max_tests = 1;
-int runTest[1];
-int passedTest[1];
+int max_tests = 6;
+int runTest[6];
+int passedTest[6];
 #ifdef __cplusplus
 }
 #endif

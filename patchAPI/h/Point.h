@@ -179,7 +179,7 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
               : point_(point), snippet_(snippet) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
-                    SnippetType type = SYSTEM, SnippetState state = PENDING);
+                        SnippetType type = SYSTEM, SnippetState state = PENDING);
 
     // Getters and Setters
     SnippetState state() const { return state_;}

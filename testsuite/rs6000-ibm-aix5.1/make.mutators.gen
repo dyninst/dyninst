@@ -22,11 +22,51 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module te
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 
-patchapi_MUTATORS = patch1_1 patch4_1 
+patchapi_MUTATORS = patch1_1 patch1_2 patch1_3 patch2_1 patch3_1 patch3_2 patch4_1 
 
-patchapi_OBJS_ALL_MUTATORS = patch1_1.o patch4_1.o 
+patchapi_OBJS_ALL_MUTATORS = patch1_1.o patch1_2.o patch1_3.o patch2_1.o patch3_1.o patch3_2.o patch4_1.o 
 
 patch1_1.so: patch1_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch1_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch1_2.so: patch1_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch1_2.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch1_3.so: patch1_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch1_3.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch2_1.so: patch2_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch2_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch3_1.so: patch3_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch3_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch3_2.so: patch3_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch3_2.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO

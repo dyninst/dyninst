@@ -67,7 +67,6 @@ namespace Dyninst {
 };
 
 using Dyninst::PatchAPI::PatchMgrPtr;
-using Dyninst::PatchAPI::SnippetRep;
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -163,10 +162,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
     block_instance *block_;
     edge_instance *edge_;
 
-    // Minitramps tramps_;
-    typedef std::set<SnippetRep<miniTramp*>*> SnipSet;
-    SnipSet snip_set_;
-
     bitArray liveRegs_;
     void calcLiveness();
     // Will fill in insn if it's NULL-equivalent
@@ -176,7 +171,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     baseTramp *baseTramp_;
 };
-#define GET_MINI(i) (((SnippetRep<miniTramp*>*)(i)->snippet()->rep())->rep())
+#define GET_MINI(i) (Dyninst::PatchAPI::Snippet<miniTramp*>::get((i)->snippet())->rep())
 
 typedef std::map<Address, instPoint *> InsnInstpoints;
 

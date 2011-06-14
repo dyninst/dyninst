@@ -59,8 +59,8 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
-using Dyninst::PatchAPI::SnippetPtr;
 using Dyninst::PatchAPI::Snippet;
+using Dyninst::PatchAPI::SnippetPtr;
 
 instPoint *instPoint::funcEntry(func_instance *f) {
   return f->funcEntryPoint(true);
@@ -268,10 +268,6 @@ instPoint::~instPoint() {
   // Uninstrument?
   //for (iterator iter = begin(); iter != end(); ++iter)
   //  delete *iter;
-
-  for (SnipSet::iterator i = snip_set_.begin(); i != snip_set_.end(); i++)
-    delete *i;
-  snip_set_.clear();
   if (baseTramp_) delete baseTramp_;
 };
 
@@ -287,9 +283,7 @@ func_instance *instPoint::func() const {
 
 miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   SnippetRep<miniTramp*>* rep = new SnippetRep<miniTramp*>(newTramp);
-   snip_set_.insert(rep);
-   SnippetPtr snip = Snippet::create(rep);
+   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
    pushFront(snip);
 
    markModified();
@@ -299,9 +293,7 @@ miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
 
 miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   SnippetRep<miniTramp*>* rep = new SnippetRep<miniTramp*>(newTramp);
-   snip_set_.insert(rep);
-   SnippetPtr snip = Snippet::create(rep);
+   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
    Dyninst::PatchAPI::InstancePtr i = pushBack(snip);
    markModified();
 
