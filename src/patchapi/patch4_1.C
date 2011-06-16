@@ -127,15 +127,10 @@ extern "C" DLLEXPORT TestMutator* patch4_1_factory() {
 }
 
 test_results_t patch4_1_Mutator::executeTest() {
-  // Oracle against this cmd_list!
   CmdList cmd_list;
 
-  // XXX: should be Patcher in the future ...
-
   /* Test1: run a batch of operations successfully */
-  // BatchCommand patcher;
-  PatchMgrPtr mgr = makePatchMgr(NULL);
-  Patcher patcher(mgr);
+  Patcher patcher(mgr_);
   patcher.add(DummyCommand1::create(&cmd_list));
   patcher.add(DummyCommand2::create(&cmd_list));
   patcher.add(DummyCommand3::create(&cmd_list));
@@ -154,6 +149,7 @@ test_results_t patch4_1_Mutator::executeTest() {
   oracle.push_back(10);
   oracle.push_back(11);
 
+  // There should be 9 commands in total.
   if (oracle.size() != 9) {
     logerror("**Failed patch4_1 (transactional semantics)\n");
     logerror("  Expect 9 commands to execute, but in fact %d executed\n", oracle.size());
@@ -170,7 +166,7 @@ test_results_t patch4_1_Mutator::executeTest() {
 
   /* Test2:  */
   cmd_list.clear();
-  BatchCommand failed_patcher;
+  Patcher failed_patcher(mgr_);
   failed_patcher.add(DummyCommand1::create(&cmd_list));
   failed_patcher.add(DummyCommand2::create(&cmd_list));
   failed_patcher.add(DummyCommand3::create(&cmd_list));
@@ -178,6 +174,7 @@ test_results_t patch4_1_Mutator::executeTest() {
   failed_patcher.add(FailedInstrumenter::create(&cmd_list));
   failed_patcher.commit();
 
+  // One fails, all fail.
   if (!cmd_list.empty()) {
     logerror("**Failed patch4_1 (transactional semantics)\n");
     logerror("  Expect cmd_list to be empty, but %d commands not undone: \n", cmd_list.size());
