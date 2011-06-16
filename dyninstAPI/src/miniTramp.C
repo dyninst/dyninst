@@ -44,6 +44,13 @@
 // for AIX
 #include "function.h"
 
+#include "Relocation/DynInstrumenter.h"
+#include "Command.h"
+
+using Dyninst::PatchAPI::DynRemoveSnipCommand;
+using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::PatcherPtr;
+
 int miniTramp::_id = 1;
 
 miniTramp::miniTramp(AstNodePtr ast, instPoint *point, bool recursive)
@@ -82,6 +89,9 @@ miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
 }
 
 bool miniTramp::uninstrument() {
-   point_->erase(this);
-   return true;
+  /* PatchAPI stuffs */
+  DynRemoveSnipCommand::Ptr rm_snip = DynRemoveSnipCommand::create(this);
+  instP()->proc()->patcher()->add(rm_snip);
+  /* end of PatchAPI stuffs */
+  return true;
 }

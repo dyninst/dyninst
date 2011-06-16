@@ -118,6 +118,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      addrSpace->loadLibrary((*i).second->getAOut());
      (*i).second->setMgr(origBinEdit->mgr());
+     (*i).second->setPatcher(origBinEdit->patcher());
   }
   /* End of PatchAPI stuffs */
 
@@ -317,6 +318,7 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
     assert(plib);
     DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as())->loadLibrary(plib);
     lib.second->setMgr(origBinEdit->mgr());
+    lib.second->setPatcher(origBinEdit->patcher());
     /* End of PatchAPi stuffs */
 
     int_variable* masterTrampGuard = origBinEdit->createTrampGuard();

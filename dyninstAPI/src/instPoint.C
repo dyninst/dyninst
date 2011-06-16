@@ -285,18 +285,15 @@ miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
    Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
    pushFront(snip);
-
    markModified();
-
    return newTramp;
 }
 
 miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
    miniTramp *newTramp = new miniTramp(ast, this, recursive);
    Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
-   Dyninst::PatchAPI::InstancePtr i = pushBack(snip);
+   pushBack(snip);
    markModified();
-
    return newTramp;
 }
 

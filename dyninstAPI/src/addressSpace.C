@@ -70,6 +70,7 @@ using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
+using PatchAPI::Patcher;
 using PatchAPI::PointMakerPtr;
 using PatchAPI::DynInstrumenterPtr;
 using PatchAPI::DynInstrumenter;
@@ -1448,7 +1449,6 @@ void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, fun
 }
 
 void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
-  //functionReplacements_[oldfunc] = newfunc;
   mgr()->instrumenter()->replaceFunction(oldfunc, newfunc);
   addModifiedFunction(oldfunc);
 }
@@ -1474,7 +1474,6 @@ bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) 
 }
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
-  //modifyCall(block, NULL, context);
   mgr()->instrumenter()->removeCall(block, context);
 }
 
@@ -2049,6 +2048,8 @@ void AddressSpace::initPatchAPI() {
    mgr_ = PatchMgr::create(addr_space,
                            DynPointMakerPtr(new DynPointMaker),
                            DynInstrumenterPtr(new DynInstrumenter));
+   patcher_ = Patcher::create(mgr_);
+
    // load in shared libraries
    const pdvector<mapped_object*>& mobjs = mappedObjects();
    for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
@@ -2065,8 +2066,5 @@ void AddressSpace::initPatchAPI() {
 }
 
 bool AddressSpace::patch(AddressSpace* as) {
-  // FIXME: after transactional semantics fully implemented
-  std::vector<Dyninst::PatchAPI::InstancePtr> errorInstances;
-  as->mgr()->batchStart();
-  return as->mgr()->batchFinish(&errorInstances);
+  return as->patcher()->commit();
 }

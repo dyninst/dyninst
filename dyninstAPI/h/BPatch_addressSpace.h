@@ -46,10 +46,13 @@
 #include <signal.h>
 
 // PatchAPI stuffs
+//#include "Command.h"
+
 namespace Dyninst {
 namespace PatchAPI { 
   class PatchMgr;
   class DynAddrSpace;
+  class Patcher;
   typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
   typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
 }
@@ -403,13 +406,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
 
-  // PatchAPI stuffs -- by wenbin
-  public:
-    Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
-    Dyninst::PatchAPI::DynAddrSpacePtr addrSpace() const { return addr_space_; }
-  protected:
-    Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    Dyninst::PatchAPI::DynAddrSpacePtr addr_space_;
 };
 
 #endif 

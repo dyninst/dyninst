@@ -45,7 +45,7 @@ class BatchCommand : public Command {
 class Patcher : public BatchCommand {
   public:
     typedef dyn_detail::boost::shared_ptr<Patcher> Ptr;
-    PATCHAPI_EXPORT PatcherPtr create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
+    PATCHAPI_EXPORT static PatcherPtr create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
       return Ptr(new Patcher(mgr));
     }
     Patcher(Dyninst::PatchAPI::PatchMgrPtr mgr) : mgr_(mgr) {}

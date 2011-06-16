@@ -66,6 +66,7 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchMgr.h"
+#include "Command.h"
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"
@@ -77,9 +78,11 @@ using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::PatchMgr;
 using PatchAPI::PointMakerPtr;
+using PatchAPI::Patcher;
+using PatchAPI::PatcherPtr;
 
 int BPatch_process::getAddressWidthInt(){
-	return llproc->getAddressWidth();
+        return llproc->getAddressWidth();
 }
 
 /*
@@ -99,10 +102,10 @@ int BPatch_process::getPidInt()
  * constructed.  The new process is placed into a stopped state before
  * executing any code.
  *
- * path		Pathname of the executable to start.
- * argv		A list of pointers to character strings which are the
+ * path         Pathname of the executable to start.
+ * argv         A list of pointers to character strings which are the
  *              arguments for the new process, terminated by a NULL pointer.
- * envp		A list of pointers to character strings which are the
+ * envp         A list of pointers to character strings which are the
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
@@ -290,8 +293,8 @@ bool LinuxConsideredHarmful(pid_t pid)
  * Constructs a new BPatch_process and associates it with a running process.
  * Stops execution of the process.
  *
- * path		Pathname of the executable file for the process.
- * pid		Process ID of the target process.
+ * path         Pathname of the executable file for the process.
+ * pid          Process ID of the target process.
  */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
@@ -432,7 +435,7 @@ void BPatch_process::BPatch_process_dtor()
    if (pendingInsertions)
    {
        for (unsigned f = 0; f < pendingInsertions->size(); f++)
-	   {
+           {
            delete (*pendingInsertions)[f];
        }
 
@@ -460,7 +463,7 @@ void BPatch_process::BPatch_process_dtor()
    else
    {
        if (llproc->isAttached())
-	   {
+           {
            proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
            terminateExecutionInt();
        }
@@ -714,8 +717,8 @@ bool BPatch_process::wasRunningWhenAttachedInt()
  *
  * Detach from the thread represented by this object.
  *
- * cont		True if the thread should be continued as the result of the
- * 		detach, false if it should not.
+ * cont         True if the thread should be continued as the result of the
+ *              detach, false if it should not.
  */
 bool BPatch_process::detachInt(bool cont)
 {
@@ -749,10 +752,10 @@ bool BPatch_process::isDetachedInt()
  * Causes the process to dump its state to a file, and optionally to terminate.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the state should be written.
- * terminate	Indicates whether or not the thread should be terminated after
- *		dumping core.  True indicates that it should, false that is
- *		should not.
+ * file         The name of the file to which the state should be written.
+ * terminate    Indicates whether or not the thread should be terminated after
+ *              dumping core.  True indicates that it should, false that is
+ *              should not.
  */
 bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
 {
@@ -766,7 +769,7 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
       fprintf(stderr, "%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
       terminateExecutionInt();
    } else if (was_stopped) {
-    	unreportedStop = had_unreportedStop;
+        unreportedStop = had_unreportedStop;
    } else {
       continueExecutionInt();
    }
@@ -781,7 +784,7 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
  * Writes the contents of memory into a file.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the image should be written.
+ * file         The name of the file to which the image should be written.
  */
 bool BPatch_process::dumpImageInt(const char *file)
 {
@@ -933,7 +936,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 
 
 bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
-							BPatch_Vector<BPatch_catchupInfo> &)
+                                                        BPatch_Vector<BPatch_catchupInfo> &)
 {
    return false;
 }
@@ -943,8 +946,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
  *
  * Enable or disable the execution of all snippets for the thread.
  *
- * activate	If set to true, execution of snippets is enabled.  If false,
- *		execution is disabled.
+ * activate     If set to true, execution of snippets is enabled.  If false,
+ *              execution is disabled.
  */
 bool BPatch_process::setMutationsActiveInt(bool activate)
 {
@@ -980,10 +983,10 @@ void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
  * inferior RPC completion.  It determines what thread the RPC was executed on
  * and then calls the API's higher-level callback routine for that thread.
  *
- * theProc	The process in which the RPC completed.
- * userData	This is a value that can be set when we invoke an inferior RPC
- *		and which will be returned to us in this callback.
- * returnValue	The value returned by the RPC.
+ * theProc      The process in which the RPC completed.
+ * userData     This is a value that can be set when we invoke an inferior RPC
+ *              and which will be returned to us in this callback.
+ * returnValue  The value returned by the RPC.
  */
 
 int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
@@ -1071,12 +1074,12 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
  * when the snippet has executed in the mutatee, and can wait until the
  * snippet has executed to return.
  *
- * expr		The snippet to evaluate.
- * userData	This value is given to the callback function along with the
- *		return value for the snippet.  Can be used by the caller to
- *		store per-oneTimeCode information.
- * synchronous	True means wait until the snippet has executed, false means
- *		return immediately.
+ * expr         The snippet to evaluate.
+ * userData     This value is given to the callback function along with the
+ *              return value for the snippet.  Can be used by the caller to
+ *              store per-oneTimeCode information.
+ * synchronous  True means wait until the snippet has executed, false means
+ *              return immediately.
  */
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           BPatch_thread *thread,
@@ -1226,7 +1229,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * Load a dynamically linked library into the address space of the mutatee.
  *
- * libname	The name of the library to load.
+ * libname      The name of the library to load.
  */
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
 {
@@ -1377,7 +1380,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    bool found = false;
    for (unsigned i=0; i<threads.size(); i++)
       if (threads[i] == bpthr)
-	  {
+          {
          found = true;
          break;
       }
@@ -1443,7 +1446,7 @@ bool BPatch_process::updateThreadInfo()
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
    {
-	   async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
+           async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
        return false;
    }
 
@@ -1466,11 +1469,11 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                                                   unsigned long stack_top,
                                                   unsigned long start_pc, process *proc_)
 {
-	async_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
+        async_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
    //bool thread_exists = (getThread(threadid) != NULL);
 
   if (!llproc && proc_)
-	  llproc = proc_;
+          llproc = proc_;
 
   BPatch_thread *newthr =
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
@@ -1493,7 +1496,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
 
     for (unsigned int i = 0; i < cbs.size(); ++i)
-	{
+        {
         BPatch::bpatch->mutateeStatusChange = true;
         llproc->sh->signalEvent(evtThreadExit);
         AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
@@ -2077,7 +2080,7 @@ void BPatch_process::overwriteAnalysisUpdate
             vector<edgeStub> svec;
             svec.push_back(edgeStub(
                 NULL, fit->first->addr(), ParseAPI::NOEDGE));
-		    fit->first->obj()->parseNewEdges(svec);
+                    fit->first->obj()->parseNewEdges(svec);
             assert(0);
         }
         // else, this is the entry point of the function, do nothing,
