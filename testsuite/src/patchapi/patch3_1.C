@@ -18,6 +18,5 @@ extern "C" DLLEXPORT TestMutator* patch3_1_factory() {
 }
 
 test_results_t patch3_1_Mutator::executeTest() {
-  //std::cerr << "before pssed\n";
   return PASSED;
 }

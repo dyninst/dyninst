@@ -90,7 +90,6 @@ comp_mutatee_flags_str('', '').
 mutatee('patchapi_group_test', [
    'patch1_1_mutatee.c',
    'patch1_2_mutatee.c',
-   'patch1_3_mutatee.c',
    'patch2_1_mutatee.c',
    'patch3_1_mutatee.c',
    'patch3_2_mutatee.c'
@@ -2155,15 +2154,6 @@ mutator('patch1_2', ['patch1_2.C']).
 test_runmode('patch1_2', 'staticdynamic').
 test_start_state('patch1_2', 'stopped').
 tests_module('patch1_2', 'patchapi').
-
-test('patch1_3', 'patch1_3', 'patchapi_group_test').
-test_description('patch1_3', 'insert at instruction before').
-test_runs_everywhere('patch1_3').
-groupable_test('patch1_3').
-mutator('patch1_3', ['patch1_3.C']).
-test_runmode('patch1_3', 'staticdynamic').
-test_start_state('patch1_3', 'stopped').
-tests_module('patch1_3', 'patchapi').
 
 test('patch2_1', 'patch2_1', 'patchapi_group_test').
 test_description('patch2_1', 'remove snippets at function entry').

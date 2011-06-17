@@ -24,11 +24,11 @@ symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_line_info.dll
 
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_line_info.obj test_module.obj test_type_info.obj test_symtab_ser_funcs.obj test_ser_anno.obj test_anno_basic_types.obj 
 
-patchapi_MUTATORS = patch1_1 patch1_2 patch1_3 patch2_1 patch3_1 patch3_2 patch4_1 
+patchapi_MUTATORS = patch1_1 patch1_2 patch2_1 patch3_1 patch3_2 patch4_1 
 
-patchapi_MUTATORS_SO = patch1_1.dll patch1_2.dll patch1_3.dll patch2_1.dll patch3_1.dll patch3_2.dll patch4_1.dll 
+patchapi_MUTATORS_SO = patch1_1.dll patch1_2.dll patch2_1.dll patch3_1.dll patch3_2.dll patch4_1.dll 
 
-patchapi_OBJS_ALL_MUTATORS = patch1_1.obj patch1_2.obj patch1_3.obj patch2_1.obj patch3_1.obj patch3_2.obj patch4_1.obj 
+patchapi_OBJS_ALL_MUTATORS = patch1_1.obj patch1_2.obj patch2_1.obj patch3_1.obj patch3_2.obj patch4_1.obj 
 
 mutators: $(dyninst_MUTATORS_SO) $(instruction_MUTATORS_SO) $(symtab_MUTATORS_SO) $(patchapi_MUTATORS_SO)
 
@@ -606,12 +606,6 @@ patch1_2.dll: patch1_2.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ patch1_2.obj $(MUTATOR_LIBS)
 
 patch1_2.obj: ../src/patchapi/patch1_2.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-patch1_3.dll: patch1_3.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ patch1_3.obj $(MUTATOR_LIBS)
-
-patch1_3.obj: ../src/patchapi/patch1_3.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 patch2_1.dll: patch2_1.obj $(LIBTESTSUITE)

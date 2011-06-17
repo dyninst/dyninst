@@ -14,6 +14,7 @@ namespace PatchAPI {
 
 class Command {
   public:
+    typedef dyn_detail::boost::shared_ptr<Command> Ptr;
     Command() {}
     virtual ~Command() {}
 
@@ -69,6 +70,7 @@ class PushFrontCommand : public Command {
 
     PATCHAPI_EXPORT virtual bool run();
     PATCHAPI_EXPORT virtual bool undo();
+    InstancePtr instance() { return instance_; }
  private:
    Dyninst::PatchAPI::Point* pt_;
    Dyninst::PatchAPI::SnippetPtr snip_;
@@ -89,6 +91,8 @@ class PushBackCommand : public Command {
 
     PATCHAPI_EXPORT virtual bool run();
     PATCHAPI_EXPORT virtual bool undo();
+    InstancePtr instance() { return instance_; }
+
   private:
     Dyninst::PatchAPI::Point* pt_;
     Dyninst::PatchAPI::SnippetPtr snip_;

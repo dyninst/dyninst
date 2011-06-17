@@ -218,13 +218,13 @@ patchapi_SOLO_MUTATEES_bg_CC = patchapi_group_test.mutatee_solo_dynamic_bgxlc++_
 
 # Now a list of rules for compiling the mutatees with bgxlc++
 
-patchapi_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: patchapi_group_test_group_bgxlc++_32_none_none.o patch1_1_mutatee_solo_bgxlc++_32_none_none.o patch1_2_mutatee_solo_bgxlc++_32_none_none.o patch1_3_mutatee_solo_bgxlc++_32_none_none.o patch2_1_mutatee_solo_bgxlc++_32_none_none.o patch3_1_mutatee_solo_bgxlc++_32_none_none.o patch3_2_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+patchapi_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: patchapi_group_test_group_bgxlc++_32_none_none.o patch1_1_mutatee_solo_bgxlc++_32_none_none.o patch1_2_mutatee_solo_bgxlc++_32_none_none.o patch2_1_mutatee_solo_bgxlc++_32_none_none.o patch3_1_mutatee_solo_bgxlc++_32_none_none.o patch3_2_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
 	$(M_bg_CC)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) -qnostaticlink 
-patchapi_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: patchapi_group_test_group_bgxlc++_32_pic_none.o patch1_1_mutatee_solo_bgxlc++_32_pic_none.o patch1_2_mutatee_solo_bgxlc++_32_pic_none.o patch1_3_mutatee_solo_bgxlc++_32_pic_none.o patch2_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_2_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+patchapi_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: patchapi_group_test_group_bgxlc++_32_pic_none.o patch1_1_mutatee_solo_bgxlc++_32_pic_none.o patch1_2_mutatee_solo_bgxlc++_32_pic_none.o patch2_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_2_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
 	$(M_bg_CC)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) -qnostaticlink 
-patchapi_group_test.mutatee_solo_static_bgxlc++_32_none_none: patchapi_group_test_group_bgxlc++_32_none_none.o patch1_1_mutatee_solo_bgxlc++_32_none_none.o patch1_2_mutatee_solo_bgxlc++_32_none_none.o patch1_3_mutatee_solo_bgxlc++_32_none_none.o patch2_1_mutatee_solo_bgxlc++_32_none_none.o patch3_1_mutatee_solo_bgxlc++_32_none_none.o patch3_2_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+patchapi_group_test.mutatee_solo_static_bgxlc++_32_none_none: patchapi_group_test_group_bgxlc++_32_none_none.o patch1_1_mutatee_solo_bgxlc++_32_none_none.o patch1_2_mutatee_solo_bgxlc++_32_none_none.o patch2_1_mutatee_solo_bgxlc++_32_none_none.o patch3_1_mutatee_solo_bgxlc++_32_none_none.o patch3_2_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
 	$(M_bg_CC)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  
-patchapi_group_test.mutatee_solo_static_bgxlc++_32_pic_none: patchapi_group_test_group_bgxlc++_32_pic_none.o patch1_1_mutatee_solo_bgxlc++_32_pic_none.o patch1_2_mutatee_solo_bgxlc++_32_pic_none.o patch1_3_mutatee_solo_bgxlc++_32_pic_none.o patch2_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_2_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+patchapi_group_test.mutatee_solo_static_bgxlc++_32_pic_none: patchapi_group_test_group_bgxlc++_32_pic_none.o patch1_1_mutatee_solo_bgxlc++_32_pic_none.o patch1_2_mutatee_solo_bgxlc++_32_pic_none.o patch2_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_1_mutatee_solo_bgxlc++_32_pic_none.o patch3_2_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
 	$(M_bg_CC)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  
 
 # Exceptional rules for mutatees compiled with bgxlc++
@@ -631,8 +631,6 @@ dyninst_group_test_group_bgxlc++_32_pic_none.o: dyninst_group_test_group.c
 	$(M_bg_CC) $(SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -o $@ $<
 
 # Generic rules for bgxlc++'s mutatees and varying optimization levels for patchapi
-patch1_3_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_3_mutatee.c
-	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_3_mutatee.c -o $@ $<
 patch1_1_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
 	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
 patch3_1_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
@@ -643,8 +641,6 @@ patch2_1_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c 
 	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
 patch1_2_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
 	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
-patch1_3_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_3_mutatee.c
-	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/patchapi -DTEST_NAME=patch1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_3_mutatee.c -o $@ $<
 patch1_1_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
 	$(M_bg_CC) $(patchapi_SOLO_MUTATEE_DEFS)  $(CXXFLAGS) -c   -qpic -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
 patch3_1_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
@@ -912,13 +908,13 @@ patchapi_SOLO_MUTATEES_bg_cc = patchapi_group_test.mutatee_solo_dynamic_bgxlc_32
 
 # Now a list of rules for compiling the mutatees with bgxlc
 
-patchapi_group_test.mutatee_solo_dynamic_bgxlc_32_none_none: patchapi_group_test_group_bgxlc_32_none_none.o patch1_1_mutatee_solo_bgxlc_32_none_none.o patch1_2_mutatee_solo_bgxlc_32_none_none.o patch1_3_mutatee_solo_bgxlc_32_none_none.o patch2_1_mutatee_solo_bgxlc_32_none_none.o patch3_1_mutatee_solo_bgxlc_32_none_none.o patch3_2_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+patchapi_group_test.mutatee_solo_dynamic_bgxlc_32_none_none: patchapi_group_test_group_bgxlc_32_none_none.o patch1_1_mutatee_solo_bgxlc_32_none_none.o patch1_2_mutatee_solo_bgxlc_32_none_none.o patch2_1_mutatee_solo_bgxlc_32_none_none.o patch3_1_mutatee_solo_bgxlc_32_none_none.o patch3_2_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
 	$(M_bg_cc)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) -qnostaticlink 
-patchapi_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none: patchapi_group_test_group_bgxlc_32_pic_none.o patch1_1_mutatee_solo_bgxlc_32_pic_none.o patch1_2_mutatee_solo_bgxlc_32_pic_none.o patch1_3_mutatee_solo_bgxlc_32_pic_none.o patch2_1_mutatee_solo_bgxlc_32_pic_none.o patch3_1_mutatee_solo_bgxlc_32_pic_none.o patch3_2_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+patchapi_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none: patchapi_group_test_group_bgxlc_32_pic_none.o patch1_1_mutatee_solo_bgxlc_32_pic_none.o patch1_2_mutatee_solo_bgxlc_32_pic_none.o patch2_1_mutatee_solo_bgxlc_32_pic_none.o patch3_1_mutatee_solo_bgxlc_32_pic_none.o patch3_2_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
 	$(M_bg_cc)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) -qnostaticlink 
-patchapi_group_test.mutatee_solo_static_bgxlc_32_none_none: patchapi_group_test_group_bgxlc_32_none_none.o patch1_1_mutatee_solo_bgxlc_32_none_none.o patch1_2_mutatee_solo_bgxlc_32_none_none.o patch1_3_mutatee_solo_bgxlc_32_none_none.o patch2_1_mutatee_solo_bgxlc_32_none_none.o patch3_1_mutatee_solo_bgxlc_32_none_none.o patch3_2_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+patchapi_group_test.mutatee_solo_static_bgxlc_32_none_none: patchapi_group_test_group_bgxlc_32_none_none.o patch1_1_mutatee_solo_bgxlc_32_none_none.o patch1_2_mutatee_solo_bgxlc_32_none_none.o patch2_1_mutatee_solo_bgxlc_32_none_none.o patch3_1_mutatee_solo_bgxlc_32_none_none.o patch3_2_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
 	$(M_bg_cc)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  
-patchapi_group_test.mutatee_solo_static_bgxlc_32_pic_none: patchapi_group_test_group_bgxlc_32_pic_none.o patch1_1_mutatee_solo_bgxlc_32_pic_none.o patch1_2_mutatee_solo_bgxlc_32_pic_none.o patch1_3_mutatee_solo_bgxlc_32_pic_none.o patch2_1_mutatee_solo_bgxlc_32_pic_none.o patch3_1_mutatee_solo_bgxlc_32_pic_none.o patch3_2_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+patchapi_group_test.mutatee_solo_static_bgxlc_32_pic_none: patchapi_group_test_group_bgxlc_32_pic_none.o patch1_1_mutatee_solo_bgxlc_32_pic_none.o patch1_2_mutatee_solo_bgxlc_32_pic_none.o patch2_1_mutatee_solo_bgxlc_32_pic_none.o patch3_1_mutatee_solo_bgxlc_32_pic_none.o patch3_2_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
 	$(M_bg_cc)  -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  
 
 # Exceptional rules for mutatees compiled with bgxlc
@@ -1321,8 +1317,6 @@ dyninst_group_test_group_bgxlc_32_pic_none.o: dyninst_group_test_group.c
 	$(M_bg_cc) $(SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -o $@ $<
 
 # Generic rules for bgxlc's mutatees and varying optimization levels for patchapi
-patch1_3_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_3_mutatee.c
-	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_3_mutatee.c -o $@ $<
 patch1_1_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
 	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
 patch3_1_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
@@ -1333,8 +1327,6 @@ patch2_1_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
 patch1_2_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
 	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
-patch1_3_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_3_mutatee.c
-	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/patchapi -DTEST_NAME=patch1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_3_mutatee.c -o $@ $<
 patch1_1_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
 	$(M_bg_cc) $(patchapi_SOLO_MUTATEE_DEFS)  $(CFLAGS) -c   -qpic -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
 patch3_1_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c

@@ -2,17 +2,39 @@
  * #Name: patch2_1
  * #Desc: Mutator Side - Remove Snippets at Function Entry
  * #Dep:
- *      0, global variable patch2_1_var is initialized to 0
- *      1, add 1 to global variable patch2_1_var
- *      2, add 2 to global variable patch2_1_var
- *      3, add 3 to global variable patch2_1_var
- *      4, delete the snippet inserted at 1 and 3.
- *      5, check if the global variable is 2
  * #Notes:
+ *     batch               operation               result
+ *     -----               ----------              ------
+ *     patcher1            push_back 1             1
+ *     patcher1            push_back 2             1,2
+ *     patcher1            push_back 3             1,2,3
+ *     patcher1            push_back 4             1,2,3,4
+ *     patcher2            remove 2                1,3,4
+ *     patcher2            remove 4                1,3
+ *     patcher2            remove 1                3
  */
 
 #include "test_lib.h"
 #include "patchapi_comp.h"
+
+using Dyninst::PatchAPI::PatchFunction;
+using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::PushFrontCommand;
+using Dyninst::PatchAPI::PushBackCommand;
+using Dyninst::PatchAPI::Point;
+using Dyninst::PatchAPI::Snippet;
+using Dyninst::PatchAPI::Command;
+using Dyninst::PatchAPI::RemoveSnippetCommand;
+using Dyninst::PatchAPI::InstancePtr;
+
+/* Dummy Snippets */
+struct DummySnippet {
+  DummySnippet(int n) : name(n) {}
+  int name;
+};
+#define SnippetDef(NAME)  \
+  DummySnippet s ## NAME ( NAME );  \
+  Snippet<DummySnippet*>::Ptr snip ## NAME = Snippet<DummySnippet*>::create(&s ## NAME);
 
 class patch2_1_Mutator : public PatchApiMutator {
   virtual test_results_t executeTest();
@@ -23,6 +45,67 @@ extern "C" DLLEXPORT TestMutator* patch2_1_factory() {
 }
 
 test_results_t patch2_1_Mutator::executeTest() {
-  //std::cerr << "before pssed\n";
+  PatchFunction* func = findFunction("patch2_1_func");
+  if (func == NULL) {
+    logerror("**Failed patch2_1 (delete snippet)\n");
+    logerror("  Cannot find function %s \n", func->name().c_str());
+    return FAILED;
+  }
+  logerror("- function %s found!\n", func->name().c_str());
+
+  /* Step 1: find Points */
+  vector<Point*> pts;
+  Point::Type type = Point::FuncEntry;
+  mgr_->findPoints(func, type, back_inserter(pts));
+  if (1 != pts.size()) {
+    logerror("**Failed patch2_1 (snippet removal)\n");
+    logerror("  cannot find correct point at function entry\n");
+    return FAILED;
+  }
+
+  /* Step 2: insert snippets */
+  InstancePtr i1;
+  InstancePtr i2;
+  InstancePtr i4;
+
+  Patcher patcher1(mgr_);
+  SnippetDef(1);
+  PushBackCommand::Ptr c1 = PushBackCommand::create(pts[0], snip1);
+  patcher1.add(c1);
+
+  SnippetDef(2);
+  PushBackCommand::Ptr c2 = PushBackCommand::create(pts[0], snip2);
+  patcher1.add(c2);
+
+  SnippetDef(3);
+  PushBackCommand::Ptr c3 = PushBackCommand::create(pts[0], snip3);
+  patcher1.add(c3);
+
+  SnippetDef(4);
+  PushBackCommand::Ptr c4 = PushBackCommand::create(pts[0], snip4);
+  patcher1.add(c4);
+  patcher1.commit();
+
+  Patcher patcher2(mgr_);
+  patcher2.add(RemoveSnippetCommand::create(c2->instance()));
+  patcher2.add(RemoveSnippetCommand::create(c4->instance()));
+  patcher2.commit();
+
+  Patcher patcher3(mgr_);
+  patcher3.add(RemoveSnippetCommand::create(c1->instance()));
+  patcher3.commit();
+
+  /* Step 3: verify the insertion order */
+  int expected_vals[] = {3};
+  int counter = 0;
+  for (Point::instance_iter i = pts[0]->begin(); i != pts[0]->end(); i++) {
+    DummySnippet* s = Snippet<DummySnippet*>::get((*i)->snippet())->rep();
+    if (s->name != expected_vals[counter]) {
+      logerror(" expect %d, but in fact %d", s->name, expected_vals[counter]);
+      return FAILED;
+    }
+    ++counter;
+  }
+
   return PASSED;
 }
