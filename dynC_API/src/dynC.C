@@ -79,7 +79,7 @@ namespace dynC_API{
          snippetGen = new SnippetGenerator(**it, mutName);
 
          if(dynCparse() == 0){
-            ret_map->insert(pair<BPatch_point *, BPatch_snippet *>((*it), parse_result));
+            ret_map->insert(std::pair<BPatch_point *, BPatch_snippet *>((*it), parse_result));
          }else{
             free(mutName);
             free(mutS);
@@ -131,10 +131,10 @@ namespace dynC_API{
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      char c;
+      int c;
       while((c = fgetc(f)) != EOF)
       {
-         fileString += c;
+         fileString += (unsigned char)c;
       }
       rewind(f);
 
@@ -150,10 +150,10 @@ namespace dynC_API{
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      char c;
+      int c;
       while((c = fgetc(f)) != EOF)
       {
-         fileString += c;
+         fileString += (unsigned char)c;
       }
       rewind(f);
 
@@ -170,10 +170,10 @@ namespace dynC_API{
          fprintf(stderr, "Error: Unable to open file\n");
          return NULL;
       }
-      char c;
+      int c;
       while((c = fgetc(f)) != EOF)
       {
-         fileString += c;
+         fileString += (unsigned char)c;
       }
       rewind(f);
       char *cstr = strdup(fileString.c_str());
