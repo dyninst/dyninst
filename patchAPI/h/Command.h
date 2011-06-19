@@ -165,13 +165,15 @@ class ReplaceCallCommand : public Command {
 class ReplaceFuncCommand : public Command {
   public:
     typedef dyn_detail::boost::shared_ptr<ReplaceFuncCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::PatchFunction* old_func,
+    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr,
+                      Dyninst::PatchAPI::PatchFunction* old_func,
                       Dyninst::PatchAPI::PatchFunction* new_func) {
-      return Ptr(new ReplaceFuncCommand(old_func, new_func));
+      return Ptr(new ReplaceFuncCommand(mgr, old_func, new_func));
     }
-    ReplaceFuncCommand(Dyninst::PatchAPI::PatchFunction* old_func,
+    ReplaceFuncCommand(Dyninst::PatchAPI::PatchMgrPtr mgr,
+                       Dyninst::PatchAPI::PatchFunction* old_func,
                        Dyninst::PatchAPI::PatchFunction* new_func)
-      : old_func_(old_func), new_func_(new_func)  {}
+      : mgr_(mgr), old_func_(old_func), new_func_(new_func)  {}
     virtual ~ReplaceFuncCommand() {}
 
     PATCHAPI_EXPORT virtual bool run();

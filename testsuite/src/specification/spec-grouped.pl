@@ -2142,7 +2142,8 @@ test_description('patch1_1', 'insert snippets at entry, exit, and call points').
 test_runs_everywhere('patch1_1').
 groupable_test('patch1_1').
 mutator('patch1_1', ['patch1_1.C']).
-test_runmode('patch1_1', 'staticdynamic').
+%test_runmode('patch1_1', 'staticdynamic').
+test_runmode('patch1_1', 'createProcess').
 test_start_state('patch1_1', 'stopped').
 tests_module('patch1_1', 'patchapi').
 
@@ -2151,7 +2152,7 @@ test_description('patch1_2', 'insert snippet order').
 test_runs_everywhere('patch1_2').
 groupable_test('patch1_2').
 mutator('patch1_2', ['patch1_2.C']).
-test_runmode('patch1_2', 'staticdynamic').
+test_runmode('patch1_2', 'createProcess').
 test_start_state('patch1_2', 'stopped').
 tests_module('patch1_2', 'patchapi').
 
@@ -2160,7 +2161,7 @@ test_description('patch2_1', 'remove snippets at function entry').
 test_runs_everywhere('patch2_1').
 groupable_test('patch2_1').
 mutator('patch2_1', ['patch2_1.C']).
-test_runmode('patch2_1', 'staticdynamic').
+test_runmode('patch2_1', 'createProcess').
 test_start_state('patch2_1', 'stopped').
 tests_module('patch2_1', 'patchapi').
 
@@ -2169,7 +2170,7 @@ test_description('patch3_1', 'function call replacement / removal').
 test_runs_everywhere('patch3_1').
 groupable_test('patch3_1').
 mutator('patch3_1', ['patch3_1.C']).
-test_runmode('patch3_1', 'staticdynamic').
+test_runmode('patch3_1', 'createProcess').
 test_start_state('patch3_1', 'stopped').
 tests_module('patch3_1', 'patchapi').
 
@@ -2178,7 +2179,7 @@ test_description('patch3_2', 'replace function').
 test_runs_everywhere('patch3_2').
 groupable_test('patch3_2').
 mutator('patch3_2', ['patch3_2.C']).
-test_runmode('patch3_2', 'staticdynamic').
+test_runmode('patch3_2', 'createProcess').
 test_start_state('patch3_2', 'stopped').
 tests_module('patch3_2', 'patchapi').
 
@@ -2187,7 +2188,7 @@ test_description('patch4_1', 'transactional semantics').
 test_runs_everywhere('patch4_1').
 groupable_test('patch4_1').
 mutator('patch4_1', ['patch4_1.C']).
-test_runmode('patch4_1', 'staticdynamic').
+test_runmode('patch4_1', 'createProcess').
 test_start_state('patch4_1', 'stopped').
 tests_module('patch4_1', 'patchapi').
 
