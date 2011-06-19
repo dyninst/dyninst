@@ -73,6 +73,7 @@ class PatchBlock {
     PATCHAPI_EXPORT bool containsCall();
     PATCHAPI_EXPORT bool containsDynamicCall();
     PATCHAPI_EXPORT std::string format() const;
+    PATCHAPI_EXPORT PatchFunction* getCallee();
 
     // Difference between this layer and ParseAPI: per-function blocks.
     PATCHAPI_EXPORT PatchFunction *function() const;

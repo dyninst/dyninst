@@ -140,15 +140,17 @@ class RemoveCallCommand : public Command {
 class ReplaceCallCommand : public Command {
   public:
     typedef dyn_detail::boost::shared_ptr<ReplaceCallCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::PatchBlock* call_block,
+    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr,
+                      Dyninst::PatchAPI::PatchBlock* call_block,
                       Dyninst::PatchAPI::PatchFunction* new_callee,
                       Dyninst::PatchAPI::PatchFunction* context) {
-      return Ptr(new ReplaceCallCommand(call_block, new_callee, context));
+      return Ptr(new ReplaceCallCommand(mgr, call_block, new_callee, context));
     }
-    ReplaceCallCommand(Dyninst::PatchAPI::PatchBlock* call_block,
+    ReplaceCallCommand(Dyninst::PatchAPI::PatchMgrPtr mgr,
+                       Dyninst::PatchAPI::PatchBlock* call_block,
                        Dyninst::PatchAPI::PatchFunction* new_callee,
                        Dyninst::PatchAPI::PatchFunction* context)
-      : call_block_(call_block), new_callee_(new_callee), context_(context) {}
+      : mgr_(mgr), call_block_(call_block), new_callee_(new_callee), context_(context) {}
     virtual ~ReplaceCallCommand() {}
 
     PATCHAPI_EXPORT virtual bool run();

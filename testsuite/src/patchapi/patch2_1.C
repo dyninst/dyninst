@@ -64,10 +64,6 @@ test_results_t patch2_1_Mutator::executeTest() {
   }
 
   /* Step 2: insert snippets */
-  InstancePtr i1;
-  InstancePtr i2;
-  InstancePtr i4;
-
   Patcher patcher1(mgr_);
   SnippetDef(1);
   PushBackCommand::Ptr c1 = PushBackCommand::create(pts[0], snip1);
@@ -100,6 +96,7 @@ test_results_t patch2_1_Mutator::executeTest() {
   int counter = 0;
   for (Point::instance_iter i = pts[0]->begin(); i != pts[0]->end(); i++) {
     DummySnippet* s = Snippet<DummySnippet*>::get((*i)->snippet())->rep();
+
     if (s->name != expected_vals[counter]) {
       logerror(" expect %d, but in fact %d", s->name, expected_vals[counter]);
       return FAILED;

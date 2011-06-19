@@ -132,3 +132,28 @@ PatchFunction* PatchApiMutator::findFunction(const char* name) {
 
   return NULL;
 }
+
+void PatchApiMutator::loadLibrary(char* libname) {
+  char fullname[128];
+  char lib_name[128];
+  sprintf(lib_name, "%s", libname);
+  CodeObject* lib = mgr_->as()->getFirstObject()->co();
+  SymtabCodeSource* scs = static_cast<SymtabCodeSource*>(lib->cs());
+  bool isStatic = scs->getSymtabObject()->isStaticBinary();
+
+  int pointer_size = 0;
+#if defined(arch_x86_64_test) || defined(ppc64_linux_test)
+  pointer_size = sizeof(void*);
+#endif
+
+  addLibArchExt(lib_name, 127, pointer_size, isStatic);
+
+  sprintf(fullname, "./%s", lib_name);
+  SymtabCodeSource* sts_lib = new SymtabCodeSource(fullname);
+  CodeObject* co_lib = new CodeObject(sts_lib);
+  co_lib->parse();
+
+  PatchObject* obj_lib = PatchObject::create(co_lib, 0);
+  mgr_->as()->loadObject(obj_lib);
+  logerror("open %s\n", fullname);
+}

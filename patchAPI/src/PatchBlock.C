@@ -202,3 +202,15 @@ PatchBlock::block() const { return block_; }
 
 PatchObject*
 PatchBlock::object() const { return obj_; }
+
+PatchFunction*
+PatchBlock::getCallee() {
+  PatchBlock::edgelist::iterator it = getTargets().begin();
+  for (; it != getTargets().end(); ++it) {
+    if ((*it)->type() == ParseAPI::CALL) {
+      PatchBlock* trg = (*it)->target();
+      return trg->function();
+    }
+  }
+  return NULL;
+}

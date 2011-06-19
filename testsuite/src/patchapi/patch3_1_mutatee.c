@@ -4,6 +4,10 @@ static int patch3_1_var1 = 0;
 static int patch3_1_var2 = 0;
 static int patch3_1_var3 = 0;
 
+void patch3_1_call1_1() {
+  patch3_1_var1 = 1;
+}
+
 void patch3_1_call1() {
   patch3_1_var1 = 2;
 }
