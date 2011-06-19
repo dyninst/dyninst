@@ -168,8 +168,8 @@ dyninst_COMPONENT_LIB = $(LIBDYNINSTCOMP)
 #######################################################
 SRCS_PATCHAPICOMP_LIB = patchapi/patchapi_comp.C
 OBJS_PATCHAPICOMP_LIB = $(notdir $(SRCS_PATCHAPICOMP_LIB:%.C=%.o))
-SRCS_PATCHAPITESTLIB =
-
+SRCS_PATCHAPITESTLIB = patchapi/libtestpatch1.c \
+                       patchapi/libtestpatch2.c \
 
 patchapi_MUTATOR_FLAGS = -L. -ltestpatchapi -ldyninstAPI -lcommon  -linstructionAPI
 
@@ -812,6 +812,11 @@ endif
 $(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/dyninst/lib%.c 
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
+
+$(DEPS_PATCHAPI_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/patchapi/lib%.c 
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
+
 
 $(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
 	@mkdir -p $(DEPENDDIR)

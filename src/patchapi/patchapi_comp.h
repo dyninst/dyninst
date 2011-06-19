@@ -25,6 +25,7 @@ class COMPLIB_DLL_EXPORT PatchApiMutator : public TestMutator {
 
   Dyninst::PatchAPI::PatchMgrPtr makePatchMgr(CodeObject* co);
   Dyninst::PatchAPI::PatchFunction* findFunction(const char* name);
+  void loadLibrary(char* libname);
 };
 
 /* Utilities for testing PatchAPI */
