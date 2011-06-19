@@ -155,5 +155,5 @@ void PatchApiMutator::loadLibrary(char* libname) {
 
   PatchObject* obj_lib = PatchObject::create(co_lib, 0);
   mgr_->as()->loadObject(obj_lib);
-  logerror("open %s\n", fullname);
+  logerror("load %s\n", fullname);
 }
