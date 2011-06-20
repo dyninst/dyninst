@@ -12,7 +12,7 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR)
 
-IFLAGS += ../../../include
+IFLAGS += -I../../../include
 #DYNINST_INCDIR = -I../../dyninstAPI/h
 #SYMTAB_INCDIR = -I../../symtabAPI/h
 #DYNUTIL_INCDIR = -I../../dynutil/h
@@ -34,7 +34,7 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR) $(IFLAGS)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CXXFLAGS += $(OS_DEF)
@@ -464,6 +464,12 @@ else
 	@echo Compiling $<
 	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
+$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
+	@echo Compiling $<
+	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(AR) rcs $@ $*.o
+endif
+
 
 $(PATCHAPI_TESTLIBS): %.so : patchapi/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
@@ -490,21 +496,14 @@ else
 	@echo Compiling $<
 	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
-
-ifdef cap_instruction_api
-      INSNAPI_LINK = -linstructionAPI
-endif
-
-$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
-	@echo Compiling $<
-	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(HIDE_COMP)$(AR) rcs $@ $*.o
-endif
-
 $(PATCHAPI_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : patchapi/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
+endif
+
+ifdef cap_instruction_api
+      INSNAPI_LINK = -linstructionAPI
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
