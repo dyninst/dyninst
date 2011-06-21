@@ -8,6 +8,7 @@ using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::Command;
 using Dyninst::PatchAPI::CommandPtr;
+using Dyninst::PatchAPI::CommandList;
 using Dyninst::PatchAPI::SnippetPtr;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::InstancePtr;

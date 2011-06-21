@@ -233,6 +233,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Command.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Instrumenter.C"
 				>
 				<FileConfiguration
@@ -392,26 +404,6 @@
 					/>
 				</FileConfiguration>
 			</File>
-			<File
-				RelativePath=".\src\Snippet.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -424,6 +416,10 @@
 			</File>
 			<File
 				RelativePath=".\h\CFGMaker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\Command.h"
 				>
 			</File>
 			<File

@@ -16,11 +16,16 @@ CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_te
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/testsuite/src \
-	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi -Dsnprintf=_snprintf
+	-I$(TO_CORE)/instructionAPI/h -I$(TO_CORE)/parseAPI/h -I$(TO_CORE)/patchAPI/h \
+	 /D_DEBUG /Zi -Dsnprintf=_snprintf
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
-LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib  \
+              $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib \
+              $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib  \
+              $(TO_CORE)\patchAPI/$(PLATFORM)\patchAPI.lib  \
+              $(TO_CORE)\parseAPI\$(PLATFORM)\parseAPI.lib 
 
 SYSLIBS		= 
 
@@ -28,8 +33,9 @@ LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
 LIBSYMTABCOMP = libtestsymtab.dll
 LIBINSTRUCTIONCOMP = libtestinstruction.dll
+LIBPATCHAPICOMP = libtestpatchapi.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libtestpatchapi.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib patchAPI.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -49,6 +55,10 @@ SRCS_DYNINSTTESTLIB = ../src/dyninst/libtestA.c \
                       ../src/dyninst/libtestB.c \
                       ../src/dyninst/libInstMe.c \
                       ../src/dyninst/libLoadMe.c
+                      
+SRCS_PATCHAPITESTLIB = ../src/patchapi/libtestpatch1.c \
+                       ../src/patchapi/libtestpatch2.c \
+                      
 !ifdef M_ABI
 DYNINST_TESTLIBS = $(SRCS_DYNINSTTESTLIB:.c=.dll)
 DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
@@ -60,12 +70,28 @@ DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
 DYNINST_TESTLIBS_ABI =
 !endif
 
-TESTLIBS = $(DYNINST_TESTLIBS)
+!ifdef M_ABI
+PATCHAPI_TESTLIBS = $(SRCS_PATCHAPITESTLIB:.c=.dll)
+PATCHAPI_TESTLIBS = $(PATCHAPI_TESTLIBS:../src/patchapi/=)
+# no ABIs on windows yet, this should be $src_$m_abi.dll
+PATCHAPI_TESTLIBS_ABI =
+!else
+PATCHAPI_TESTLIBS = $(SRCS_PATCHAPITESTLIB:.c=.dll)
+PATCHAPI_TESTLIBS = $(PATCHAPI_TESTLIBS:../src/patchapi/=)
+PATCHAPI_TESTLIBS_ABI =
+!endif
+
+TESTLIBS = $(DYNINST_TESTLIBS) $(PATCHAPI_TESTLIBS)
 
 DYNINST_TESTLIBS_OBJS = $(SRCS_DYNINSTTESTLIB:.c=.obj)
 DYNINST_TESTLIBS_OBJS = $(DYNINST_TESTLIBS_OBJS:../src/dyninst/=)
 
+PATCHAPI_TESTLIBS_OBJS = $(SRCS_PATCHAPITESTLIB:.c=.obj)
+PATCHAPI_TESTLIBS_OBJS = $(PATCHAPI_TESTLIBS_OBJS:../src/patchapi/=)
+
 SRCS_SYMTABCOMP = ../src/symtab/symtab_comp.C
+
+SRCS_PATCHAPICOMP = ../src/patchapi/patchapi_comp.C
 
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
@@ -76,6 +102,9 @@ OBJS_DYNINSTCOMP = $(OBJS_DYNINSTCOMP:../src/dyninst/=)
 OBJS_SYMTABCOMP = $(SRCS_SYMTABCOMP:.C=.obj)
 OBJS_SYMTABCOMP = $(OBJS_SYMTABCOMP:../src/symtab/=)
 
+OBJS_PATCHAPICOMP = $(SRCS_PATCHAPICOMP:.C=.obj)
+OBJS_PATCHAPICOMP = $(OBJS_PATCHAPICOMP:../src/patchapi/=)
+
 SRCS_TEMPLATES = ../src/test_driver_templates.C
 OBJS_TEMPLATES = $(SRCS_TEMPLATES:.C=.obj)
 OBJS_TEMPLATES = $(OBJS_TEMPLATES:../src/=)
@@ -85,9 +114,9 @@ SRCS_INSTRUCTIONCOMP = ../src/instruction/instruction_comp.C
 OBJS_INSTRUCTIONCOMP = $(SRCS_INSTRUCTIONCOMP:.C=.obj)
 OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
 
-TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
+TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib libtestpatchapi.lib
 
-all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPATCHAPICOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -108,14 +137,17 @@ clean:
 # -$(MKDIR) $(DEST)
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
-LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib
+LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib -LIBPATH:$(TO_CORE)/parseAPI/$(PLATFORM) -LIBPATH:$(TO_CORE)/patchAPI/$(PLATFORM) 
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib parseAPI.lib patchAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
 
 $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_DYNINSTCOMP) $(LIBS) libtestSuite.lib
+
+$(LIBPATCHAPICOMP): $(OBJS_PATCHAPICOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_PATCHAPICOMP) $(LIBS) libtestSuite.lib
 
 $(LIBSYMTABCOMP): $(OBJS_SYMTABCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_SYMTABCOMP) $(LIBS) libtestSuite.lib
@@ -129,6 +161,9 @@ $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
 $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
+$(OBJS_PATCHAPICOMP): $(SRCS_PATCHAPICOMP)
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
 $(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
@@ -137,6 +172,12 @@ $(OBJS_INSTRUCTIONCOMP): $(SRCS_INSTRUCTIONCOMP)
 
 $(DYNINST_TESTLIBS_OBJS) : $(SRCS_DYNINSTTESTLIB)
 	$(CC) -c $(LDFLAGS) $(CFLAGS) $(CFLAGS_TESTLIBS)$**
+	
+$(PATCHAPI_TESTLIBS_OBJS) : $(SRCS_PATCHAPITESTLIB)
+	$(CC) -c $(LDFLAGS) $(CFLAGS) $(CFLAGS_TESTLIBS)$**
+
+$(PATCHAPI_TESTLIBS): $(PATCHAPI_TESTLIBS_OBJS)
+	$(LINK) $(TESTLIB_FLAGS) $*.obj -out:$@
 
 $(DYNINST_TESTLIBS): $(DYNINST_TESTLIBS_OBJS)
 	$(LINK) $(TESTLIB_FLAGS) $*.obj -out:$@

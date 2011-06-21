@@ -95,10 +95,12 @@ COMPLIB_DLL_EXPORT ComponentTester *componentTesterFactory() {
 PatchApiComponent::~PatchApiComponent() {
 }
 
-PatchApiMutator::PatchApiMutator() {
+PatchApiMutator::PatchApiMutator() : co_lib_(NULL), sts_lib_(NULL) {
 }
 
 PatchApiMutator::~PatchApiMutator() {
+	if (co_lib_) delete co_lib_;
+	if (sts_lib_) delete sts_lib_;
 }
 
 test_results_t PatchApiMutator::setup(ParameterDict &param) {
@@ -149,11 +151,11 @@ void PatchApiMutator::loadLibrary(char* libname) {
   addLibArchExt(lib_name, 127, pointer_size, isStatic);
 
   sprintf(fullname, "./%s", lib_name);
-  SymtabCodeSource* sts_lib = new SymtabCodeSource(fullname);
-  CodeObject* co_lib = new CodeObject(sts_lib);
-  co_lib->parse();
+  sts_lib_ = new SymtabCodeSource(fullname);
+  co_lib_ = new CodeObject(sts_lib_);
+  co_lib_->parse();
 
-  PatchObject* obj_lib = PatchObject::create(co_lib, 0);
+  PatchObject* obj_lib = PatchObject::create(co_lib_, 0);
   mgr_->as()->loadObject(obj_lib);
   logerror("load %s\n", fullname);
 }
