@@ -24,6 +24,9 @@ class Command {
     PATCHAPI_EXPORT virtual bool undo() = 0;
 };
 
+/* A BatchCommand is in fact a list of Commands, and is to iterate all Commands
+   in the list to run() or undo(). */
+
 class BatchCommand : public Command {
   public:
     PATCHAPI_EXPORT BatchCommandPtr create();
@@ -43,6 +46,10 @@ class BatchCommand : public Command {
 
 };
 
+/* A Patcher is a special BatchCommand, which implicitly execute Instrumenter
+   after executing all Commands in its list. Instrumenter is for code relocation
+   and code generation. */
+
 class Patcher : public BatchCommand {
   public:
     typedef dyn_detail::boost::shared_ptr<Patcher> Ptr;
@@ -56,6 +63,8 @@ class Patcher : public BatchCommand {
   private:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
 };
+
+/* Default implementation of some basic instrumentation Commands */
 
 class PushFrontCommand : public Command {
   public:
