@@ -22,17 +22,12 @@ class COMPLIB_DLL_EXPORT PatchApiMutator : public TestMutator {
  protected:
   create_mode_t runmode_;
   Dyninst::PatchAPI::PatchMgrPtr mgr_;
+  Dyninst::ParseAPI::SymtabCodeSource* sts_lib_;
+  Dyninst::ParseAPI::CodeObject* co_lib_;
 
   Dyninst::PatchAPI::PatchMgrPtr makePatchMgr(CodeObject* co);
   Dyninst::PatchAPI::PatchFunction* findFunction(const char* name);
   void loadLibrary(char* libname);
-};
-
-/* Utilities for testing PatchAPI */
-Dyninst::PatchAPI::PatchMgrPtr makePatchMgr(Dyninst::ParseAPI::CodeObject*);
-
-/* Plugin of PatchAPI */
-class TestAddrSpace {
 };
 
 #endif /* TESTSUITE_SRC_PATCHAPI_COMP_H_ */

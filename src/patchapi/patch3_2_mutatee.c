@@ -1,9 +1,9 @@
 #include "mutatee_util.h"
 
-int patch3_2_call1() {}
-int patch3_2_call2() {}
-int patch3_2_call3() {}
-int patch3_2_call7() {}
+void patch3_2_call1() {}
+void patch3_2_call2() {}
+void patch3_2_call3() {}
+void patch3_2_call7() {}
 
 
 /* in libtestpatch1 */
