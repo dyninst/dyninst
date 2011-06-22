@@ -43,8 +43,6 @@
 
 #if defined(_MSC_VER)
 #include "external/stdint-win.h"
-#elif defined(os_solaris)
-#include <inttypes.h>
 #else
 #include <stdint.h>
 #endif

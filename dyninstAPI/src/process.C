@@ -82,12 +82,7 @@
 
 #include "dyninstAPI/h/BPatch.h"
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-#include "dyninstAPI/src/writeBackElf.h"
-#include "dyninstAPI/src/saveSharedLibrary.h" 
-#elif defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/writeBackXCOFF.h"
 #endif
 
@@ -98,7 +93,19 @@
 #include "common/h/Timer.h"
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
 using namespace Dyninst;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::DynAddrSpacePtr;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -161,13 +168,13 @@ Address process::getTOCoffsetInfo(Address dest)
 }
 
 Address process::getTOCoffsetInfo(func_instance *func) {
-
+  
 #if defined(arch_power) && defined(os_linux)
    // See comment above.
    if (getAddressWidth() == 4)
       return 0;
 #endif
-
+   assert(func);
     mapped_object *mobj = func->obj();
 
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
@@ -389,633 +396,6 @@ bool process::isInSignalHandler(Address addr)
 }
 
 /*
- * This function adds an item to the dataUpdates vector
- * which is used to maintain a list of variables that have
- * been written by the mutator //ccw 26 nov 2001
- */
- 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-
-void process::saveWorldData( Address address, int size, const void * src ) {
-	if( collectSaveWorldData ) {
-		dataUpdate *newData = new dataUpdate;
-		newData->address= address;
-		newData->size = size;
-		newData->value = new char[size];
-		memcpy(newData->value, src, size);
-		dataUpdates.push_back(newData);
-		}
-	} /* end saveWorldData() */
-	
-#else
-
-void process::saveWorldData( Address, int, const void* ) { ; }	  
-
-#endif
-
-#if defined (cap_save_the_world) 
-
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-/* || defined(rs6000_ibm_aix4_1)*/
-
-char* process::saveWorldFindDirectory(){
-
-	const char* directoryNameExt = "_dyninstsaved";
-	int dirNo = 0;
-/* ccw */
-	char cwd[1024];
-        char* directoryName;
-	int lastChar;
-	getcwd(cwd, 1024);
-	lastChar = strlen(cwd);
-
-	if( cwd[lastChar] != '/' && lastChar != 1023){
-		cwd[lastChar] = '/';
-		cwd[++lastChar] ='\0';
-	}
-
-	directoryName = new char[strlen(cwd) +
-                        strlen(directoryNameExt) + 3+1+1];
-/* ccw */
-	sprintf(directoryName,"%s%s%x",cwd, directoryNameExt,dirNo);
-        while(dirNo < 0x1000 && mkdir(directoryName, S_IRWXU) ){
-                 if(errno == EEXIST){
-                         dirNo ++;
-                 }else{
-                         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
-                         delete [] directoryName;
-                         return NULL;
-                 }
-                 sprintf(directoryName, "%s%s%x",cwd,
-                         directoryNameExt,dirNo);
-        }
-	if(dirNo == 0x1000){
-	         BPatch_reportError(BPatchSerious, 122, "dumpPatchedImage: cannot open directory to store mutated binary. No files saved\n");
-	         delete [] directoryName;
-	         return NULL;
-	}
-	return directoryName;
-
-}
-#endif
-#endif
-
-#if defined (cap_save_the_world)
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-
-
-char *process::saveWorldFindNewSharedLibraryName(string originalLibNameFullPath, char* dirName){
-	const char *originalLibName = originalLibNameFullPath.c_str();
-	unsigned int index=0;
-
-	unsigned int nextIndex = 0;
-	for(nextIndex = 0; nextIndex < originalLibNameFullPath.length() ;nextIndex++){
-		if(originalLibName[nextIndex] == '/'){
-			index = nextIndex +1;
-		}
-	}
-
-	string oldLibName = originalLibNameFullPath.substr(index,originalLibNameFullPath.length());
-	char* newLibName = new char[strlen(dirName) + oldLibName.length()+1];
-	memcpy(newLibName,dirName,strlen(dirName)+1);
-	newLibName =strcat(newLibName, oldLibName.c_str());
-
-	return newLibName;
-
-	
-}
-
-
-
-unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize, 
-                                 unsigned int &dyninst_SharedLibrariesSize, 
-                                 char* directoryName, unsigned int &count) {
-
-   unsigned int dl_debug_statePltEntry=0;
-#if defined(sparc_sun_solaris2_4)
-   unsigned int tmp_dlopen;
-#endif
-   bool dlopenUsed = false;
-   
-   //In the mutated binary we need to catch the dlopen events and adjust the
-   //instrumentation of the shared libraries (and jumps into the shared
-   //libraries) as the base address of the shared libraries different for the
-   //base addresses during the original mutator/mutatee run.
-
-   //the r_debug interface ensures that a change to the dynamic linking
-   //information causes _dl_debug_state to be called.  This is because dlopen
-   //is too small and odd to instrument/breakpoint.  So our code will rely on
-   //this fact. (all these functions are contained in ld-linux.so)
-
-   //Our method: The Procedure Linking Table (.plt) for ld-linux contains an
-   //entry that jumps to a specified address in the .rel.plt table. To call a
-   //function, the compiler generates a jump to the correct .plt entry which
-   //reads its jump value out of the .rel.plt.
-
-   //On the sly, secretly replace the entry in .rel.plt with folgers crystals
-   //and poof, we jump to our own function in RTcommon.c
-   //(dyninst_dl_debug_state) [actually we replace the entry in .rel.plt with
-   //the address of dyninst_dl_debug_state].  To ensure correctness,
-   //dyninst_dl_debug_state contains a call to the real _dl_debug_state
-   //immediately before it returns, thus ensuring any code relying on that
-   //fact that _dl_debug_state is actually run remains happy.
-
-   //It is very important then, that we know the location of the entry in the
-   //.rel.plt table.  We need to record the offset of this entry with respect
-   //to the base address of ld-linux.so (for obvious reasons) This offset is
-   //then sent to RTcommon.c, and here is the slick part, by assigning it to
-   //the 'load address' of the section "dyninstAPI_SharedLibraries," which
-   //contains the shared library/basei address pairs used to fixup the saved
-   //binary. This way when checkElfFile() reads the section the offset will
-   //be there in the section header.
-
-   //neat, eh?  this is how it will work in the future, currently this is not
-   //yet fully implemented and part of the cvs tree.
-
-   //UPDATE: the above is implemented EXCEPT for adjusting the instrumentation
-   //when shared libraries move. currently an error is thrown when a shared
-   //lib is in the wrong place and execution is terminated!
-
-	//I have now added the notion of DirtyCalled to a shared library.
-	//This is a library that contains a function that is called by
-	//instrumentation.  The shared lib may or may not be instrumented itself.
-	//If it is not instrumented (Dirty) then it is NOT saved as a mutated 
-	//shared library.  A flag in dyninstAPI_mutatedSO section that follows
-	//the filename denotes whether the library is Dirty or merely DirtyCalled
-
-   count = 0;
-   for (unsigned i = 1; i < mapped_objects.size(); i++) {
-     // We start at 1 because 0 is the a.out
-     mapped_object *sh_obj = mapped_objects[i];
-
-      //ccw 24 jul 2003
-      if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()) &&
-		/* there are some libraries we should not save even if they are marked as mutated*/
-		NULL==strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT") && 
-		NULL== strstr(sh_obj->fileName().c_str(),"ld-linux.so") && 
-		NULL==strstr(sh_obj->fileName().c_str(),"libc")){ //ccw 6 jul 2003
-         count ++;
-         if(!dlopenUsed && sh_obj->isopenedWithdlopen()){
-            BPatch_reportError(BPatchWarning,123,"dumpPatchedImage: dlopen used by the mutatee, this may cause the mutated binary to fail\n");
-            dlopenUsed = true;
-         }			
-         //bperr(" %s is DIRTY!\n", sh_obj->fileName().c_str());
-        
-
-         if( sh_obj->isDirty()){ 
-			//fprintf(stderr," SAVING SHARED LIB: %s\n", sh_obj->fileName().c_str());
-            //if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
-            Address textAddr, textSize;
-            char *newName = saveWorldFindNewSharedLibraryName(sh_obj->fileName(),directoryName);
-
-		/* 	what i need to do:
-			open the ORIGINAL shared lib --> sh_obj->fileName()
-			read the text section out.
-			reapply the instrumentation code
-			save this new, instrumented text section back to the NEW DLDUMPED file in the _dyninstSaved# dir --> newName
-		*/		 
-
-            saveSharedLibrary *sharedObj =
-               new saveSharedLibrary(sh_obj->getBaseAddress(),
-                                     sh_obj->fullName().c_str(), newName);
-
-            	sharedObj->openBothLibraries();
-            
-		sharedObj->getTextInfo(textAddr, textSize);
-		char* textSection ;//= sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
-		textSection = new char[textSize]; //ccw 14 dec 2005
-
-		if(textSection){
-
-			//applyMutationsToTextSection(textSection, textAddr, textSize);
-
-			readDataSpace((void*)textAddr, textSize, (void*)textSection, true); //ccw 14 dec 2005
-	          	sharedObj->saveMutations(textSection);
-     		       	sharedObj->closeNewLibrary();
-			delete [] textSection;
-		}else{
-			char msg[strlen(sh_obj->fileName().c_str())+100];
-			sprintf(msg,"dumpPatchedImage: could not retreive .text section for %s\n",sh_obj->fileName().c_str());
-       			BPatch_reportError(BPatchWarning,123,msg);
-			sharedObj->closeNewLibrary();
-		}
-		//sharedObj->closeOriginalLibrary();
-	  	delete sharedObj;
-       		delete [] newName;
-         }
-         mutatedSharedObjectsSize += strlen(sh_obj->fileName().c_str()) +1 ;
-         mutatedSharedObjectsSize += sizeof(int); //a flag to say if this is only DirtyCalled
-      }
-      //this is for the dlopen problem...
-      if(strstr(sh_obj->fileName().c_str(), "ld-linux.so") ){
-         //find the offset of _dl_debug_state in the .plt
-	 Symtab *obj = sh_obj->parse_img()->getObject();
-	 vector<relocationEntry> fbt;
-	 obj->getFuncBindingTable(fbt);
-	 dl_debug_statePltEntry = 0;
-	 for(unsigned i=0; i<fbt.size();i++)
-	 {
-	 	if(fbt[i].name() == "_dl_debug_state")
-			dl_debug_statePltEntry = fbt[i].rel_addr();
-	 }
-      }
-#if defined(sparc_sun_solaris2_4)
-      relocationEntry re;
-      tmp_dlopen = 0;
-      vector<relocationEntry> fbt;
-      sh_obj->parse_img()->getObject()->getFuncBindingTable(fbt);
-      for( unsigned int i = 0; i < fbt.size(); i++ )
-      {
-	if("dlopen" == fbt[i].name())
-		tmp_dlopen =  fbt[i].rel_addr();
-      }
-      
-      if( tmp_dlopen && (!sh_obj->isopenedWithdlopen()))
-      {
-         dl_debug_statePltEntry = tmp_dlopen + sh_obj->getBaseAddress();
-      }
-#endif
-      //this is for the dyninst_SharedLibraries section we need to find out
-      //the length of the names of each of the shared libraries to create the
-      //data buffer for the section
-      
-      dyninst_SharedLibrariesSize += strlen(sh_obj->fileName().c_str())+1;
-      //add the size of the address
-      dyninst_SharedLibrariesSize += sizeof(unsigned int);
-   }
-#if defined(sparc_sun_solaris2_4)
-   if(tmp_dlopen) {
-       dl_debug_statePltEntry = tmp_dlopen;
-   }
-   
-   //dl_debug_statePltEntry = parse_img()->getObject()->getPltSlot("dlopen");
-#endif
-   dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
-   
-   return dl_debug_statePltEntry;
-}
-	
-bool process::applyMutationsToTextSection(char* /*textSection*/, unsigned /*textAddr*/, 
-                                          unsigned /*textSize*/)
-{
-    // Uhh... what does this do?
-#if 0
-	mutationRecord *mr = afterMutationList.getHead();
-
-	while (mr != NULL) {
-            if( mr->addr >= textAddr && mr->addr < (textAddr+textSize)){
-                memcpy(&(textSection[mr->addr-textAddr]), mr->data, mr->size);
-            }
-            mr = mr->next;
-	}
-	return true;
-#endif
-   return true;
-}
-
-char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize){
-	//dyninst_SharedLibraries
-	//the SharedLibraries sections contains a list of all the shared libraries
-	//that have been loaded and the base address for each one.
-	//The format of the sections is:
-	//
-	//sharedlibraryName
-	//baseAddr
-	//...
-	//sharedlibraryName
-	//baseAddr
-	//'\0'
-	
-	char *dyninst_SharedLibrariesData = new char[dyninst_SharedLibrariesSize];
-	char *ptr= dyninst_SharedLibrariesData;
-	//int size = mapped_objects->size() - 1; // a.out is included as well
-	mapped_object *sh_obj;
-
-	for(unsigned i=1; i < mapped_objects.size(); i++) {
-	  sh_obj = mapped_objects[i];
-
-		memcpy((void*) ptr, sh_obj->fileName().c_str(), strlen(sh_obj->fileName().c_str())+1);
-		//fprintf(stderr,"loaded shared libs %s : ", ptr);
-		ptr += strlen(sh_obj->fileName().c_str())+1;
-
-		unsigned int baseAddr = sh_obj->getBaseAddress();
-		/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
-			the load address of the dynamic object, as the documentation says.  It is the
-			RELOCATED address of the object. If the object was not relocated then the
-			value is ZERO.
-
-			So, on LINUX we check the address of the dynamic section, map->l_ld, which is
-			correct.
-		*/
-#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-                int_symbol info;
-		std::string dynamicSection = "_DYNAMIC";
-		sh_obj->getSymbolInfo(dynamicSection,info);
-		baseAddr = sh_obj->getBaseAddress() + info->getAddr();
-		//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->fileName().c_str(), baseAddr);
-#endif
-
-		memcpy( (void*)ptr, &baseAddr, sizeof(unsigned int));
-		//fprintf(stderr," 0x%x \n", *(unsigned int*) ptr);
-		ptr += sizeof(unsigned int);
-	}
-	memset( (void*)ptr, '\0' , 1);
-
-	return dyninst_SharedLibrariesData;
-}
-#endif
-#endif
-
-#if defined (cap_save_the_world)
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-void process::saveWorldCreateHighMemSections(
-                        pdvector<imageUpdate*> &compactedHighmemUpdates, 
-                        pdvector<imageUpdate*> &highmem_updates,
-                        void *ptr) {
-
-   Address guardFlagAddr= trampGuardBase();
-
-   unsigned int pageSize = getpagesize();
-   unsigned int startPage, stopPage;
-   unsigned int numberUpdates=1;
-   int startIndex, stopIndex;
-   char *data;
-   char name[50];
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-	writeBackElf *newFile = (writeBackElf*) ptr;
-#elif defined(rs6000_ibm_aix4_1)
-	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
-
-#endif
-
-#if 0
-   unsigned int trampGuardValue;
-   	bool err ;
-//#if !defined(rs6000_ibm_aix4_1)
-
-	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
-//   	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
-//                (void*) &trampGuardValue, true);
-   
-
-	for(int i=0;i< max_number_of_threads;i++){
-		err = writeDataSpace((void*) &( ((int *)guardFlagAddr)[i]), sizeof(unsigned int),
-                  (void*) &numberUpdates);
-        	if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        		assert(err);
-
-		saveWorldData( (Address) &( ((int *)guardFlagAddr)[i]),sizeof(unsigned int), &numberUpdates); //ccw 7 jul 2003
-	}
-#endif
-
-      sprintf(name,"dyninstAPItrampguard");
-
-	data = new char[sizeof(max_number_of_threads)*max_number_of_threads];
-	memcpy(data, &max_number_of_threads,sizeof(max_number_of_threads));
-	//fprintf(stderr,"WRITING: max_number_of_threads %d\n",max_number_of_threads);
-	//ccw 14 dec 2005
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      newFile->addSection(guardFlagAddr,data,sizeof(max_number_of_threads),name,false);
-#elif defined(rs6000_ibm_aix4_1)
-	sprintf(name,"trampg");
-	//fprintf(stderr," trampg 0x%x\n",guardFlagAddr);
-	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(unsigned int) *max_number_of_threads,data);
-	//newFile->setDataEnd(guardFlagAddr+sizeof(unsigned int) *max_number_of_threads);
-#endif
-	delete []data;
-
-		
-#if  defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) \
- || defined(sparc_sun_solaris2_4)
-
-#if defined(sparc_sun_solaris2_4)
-	if( imageUpdates.size() == 0 ){
-#endif
-	//fprintf(stderr,"LOADING trampgu 0x%x\n",guardFlagAddr);
-	data = new char[sizeof(unsigned int) * max_number_of_threads];
-	memset(data,1,sizeof(unsigned int) * max_number_of_threads);		
-	newFile->addSection(guardFlagAddr,data,sizeof(unsigned int) * max_number_of_threads,"dyninstAPI_1",false);
-	delete []data;
-#if defined(sparc_sun_solaris2_4)
-	}
-#endif
-#endif
-
-   for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
-      //the layout of dyninstAPIhighmem_%08x is:
-      //pageData
-      //address of update
-      //size of update
-      // ...
-      //address of update
-      //size of update
-      //number of updates
-
-      startPage = compactedHighmemUpdates[j]->address - 
-                  compactedHighmemUpdates[j]->address % pageSize;
-      stopPage = compactedHighmemUpdates[j]->address + 
-                 compactedHighmemUpdates[j]->size -
-                 (compactedHighmemUpdates[j]->address + 
-                  compactedHighmemUpdates[j]->size) % pageSize;
-
-      numberUpdates = 0;
-      startIndex = -1;
-      stopIndex = -1;
-      
-      for(unsigned index = 0;index < highmem_updates.size(); index++){
-         //here we ignore anything with an address of zero.
-         //these can be safely deleted in writeBackElf
-         if( highmem_updates[index]->address && 
-             startPage <= highmem_updates[index]->address &&
-             highmem_updates[index]->address  < (startPage + pageSize /*compactedHighmemUpdates[j]->sizei*/)){
-            numberUpdates ++;
-            stopIndex = index;
-            if(startIndex == -1){
-               startIndex = index;
-            }
-           //bperr(" HighMemUpdates address 0x%x \n", highmem_updates[index]->address );
-         }
-	//bperr(" high mem updates: 0x%x", highmem_updates[index]->address);
-      }
-      unsigned int dataSize = compactedHighmemUpdates[j]->size + 
-         sizeof(unsigned int) + 
-         (2*(stopIndex - startIndex + 1) /*numberUpdates*/ * sizeof(unsigned int));
-
-	//bperr("DATASIZE: %x : %x + 4 + ( 2*(%x - %x +1) * 4)\n", dataSize, compactedHighmemUpdates[j]->size, stopIndex, startIndex);
-      
-      data = new char[dataSize];
-      
-      //fill in pageData
-      readDataSpace((void*) compactedHighmemUpdates[j]->address, 
-                    compactedHighmemUpdates[j]->size, data, true);
-      
-      unsigned int *dataPtr = 
-         (unsigned int*) ( (char*) data + compactedHighmemUpdates[j]->size);
-
-      //fill in address of update
-      //fill in size of update
-      for(int index = startIndex; index<=stopIndex;index++){ 
-
-         memcpy(dataPtr, &highmem_updates[index]->address,
-                sizeof(unsigned int));
-         dataPtr ++;
-         memcpy(dataPtr, &highmem_updates[index]->size, sizeof(unsigned int));
-
-         dataPtr++;
-         //bperr("%d J %d ADDRESS: 0x%x SIZE 0x%x\n",index, j,
-         //highmem_updates[index]->address, highmem_updates[index]->size);
-
-	
-      }
-      //fill in number of updates
-      memcpy(dataPtr, &numberUpdates, sizeof(unsigned int));
-
-      //bperr(" NUMBER OF UPDATES 0x%x  %d %x\n\n",numberUpdates,dataSize,dataSize);
-      sprintf(name,"dyninstAPIhighmem_%08x",j);
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      newFile->addSection(compactedHighmemUpdates[j]->address,data ,dataSize,name,false);
-#elif defined(rs6000_ibm_aix4_1)
-	  sprintf(name, "dyH_%03x",j);
-      newFile->addSection(&(name[0]), compactedHighmemUpdates[j]->address,compactedHighmemUpdates[j]->address,
-		dataSize, (char*) data );
-
-#endif
-      
-      //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
-      delete [] (char*) data;
-   }
-#if 0
-   err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), 
-                  (void*)&trampGuardValue);
-   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        assert(err);
-#endif 
-}
-
-void process::saveWorldCreateDataSections(void* ptr){
-
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-	writeBackElf *newFile = (writeBackElf*) ptr;
-#elif defined(rs6000_ibm_aix4_1)
-	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
-#endif
-
-	char *dataUpdatesData;
-	int sizeofDataUpdatesData=0;
-	for(unsigned int m=0;m<dataUpdates.size();m++){
-		sizeofDataUpdatesData += (sizeof(int) + sizeof(Address)); //sizeof(size) +sizeof(Address);
-		sizeofDataUpdatesData += dataUpdates[m]->size;
-	}
-
-
-	if(dataUpdates.size() > 0) {
-		dataUpdatesData = new char[sizeofDataUpdatesData+(sizeof(int) + sizeof(Address))];
-		char* ptr = dataUpdatesData;
-		for(unsigned int k=0;k<dataUpdates.size();k++){
-			memcpy(ptr, &dataUpdates[k]->size, sizeof(int));
-			ptr += sizeof(int);
-			memcpy(ptr, &dataUpdates[k]->address, sizeof(Address));
-			ptr+=sizeof(Address);
-			memcpy(ptr, dataUpdates[k]->value, dataUpdates[k]->size);
-			ptr+=dataUpdates[k]->size;
-			/*fprintf(stderr," DATA UPDATE : from: %x to %x , value %x\n", dataUpdates[k]->address, dataUpdates[k]->address+ dataUpdates[k]->size, (unsigned int) dataUpdates[k]->value);*/
-
-		}
-		*(int*) ptr=0;
-		ptr += sizeof(int);
-		*(unsigned int*) ptr=0;
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-		newFile->addSection(0/*lastCompactedUpdateAddress*/, dataUpdatesData, 
-			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), "dyninstAPI_data", false);
-#elif defined(rs6000_ibm_aix4_1)
-		newFile->addSection("dyn_dat", 0/*lastCompactedUpdateAddress*/,0,
-			sizeofDataUpdatesData + (sizeof(int) + sizeof(Address)), (char*) dataUpdatesData);
-
-#endif
-
-		delete [] (char*) dataUpdatesData;
-	}
-
-}
-#endif
-#endif
-
-#if defined (cap_save_the_world)
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-
-void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002 
-
-	int dataSize=0;
-	char *data, *dataptr;
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-	writeBackElf *newFile = (writeBackElf*) ptr;
-#elif defined(rs6000_ibm_aix4_1)
-	writeBackXCOFF *newFile = (writeBackXCOFF*) ptr;
-#endif
-
-	for(unsigned i=0;i<loadLibraryUpdates.size();i++){
-		dataSize += loadLibraryUpdates[i].length() + 1 + sizeof(void *);
-	}
-	dataSize++;
-	data = new char[dataSize];
-	dataptr = data;
-	/*bperr(" dataSize: %d\n", dataSize);*/
-
-	for(unsigned j=0;j<loadLibraryUpdates.size();j++){
-		memcpy( dataptr, loadLibraryUpdates[j].c_str(), loadLibraryUpdates[j].length()); 
-
-		/*bperr("SAVING: %s %d\n", dataptr,dataSize);*/
-		dataptr += loadLibraryUpdates[j].length();
-		*dataptr = '\0';
-		dataptr++;
-                void *tmp_brk = loadLibraryBRKs[j];
-                memcpy( dataptr, &tmp_brk, sizeof(void *));
-                dataptr += sizeof(void *);
-	}
-	*dataptr = '\0'; //mark the end
-	if(dataSize > 1){
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-		newFile->addSection(0, data, dataSize, "dyninstAPI_loadLib", false);
-#elif  defined(rs6000_ibm_aix4_1)
-		newFile->addSection("dyn_lib",0,0, dataSize, data);
-#endif
-	}
-	delete [] data;
-}
-
-#endif
-#endif
-
-/*
  * Given an image, add all static heaps inside it
  * (DYNINSTstaticHeap...) to the buffer pool.
  */
@@ -1079,7 +459,6 @@ void process::addInferiorHeap(mapped_object *obj)
 void process::initInferiorHeap()
 {
     initializeHeap();
-
     // first initialization: add static heaps to pool
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         addInferiorHeap(mapped_objects[i]);
@@ -1627,7 +1006,6 @@ process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     nextTrapIsExec(false),
     inExec_(false),
     theRpcMgr(NULL),
-    collectSaveWorldData(true),
     requestTextMiniTramp(false),
     traceLink(0),
     bootstrapState(unstarted_bs),
@@ -2073,13 +1451,12 @@ bool process::setupGeneral()
         return true;
     // We should be paused; be sure.
     pause();
-    
+
     // In the ST case, threads[0] (the only one) is effectively
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
 
     startup_printf("Creating initial thread...\n");
-
     createInitialThread();
 
     // Probably not going to find anything (as we haven't loaded the
@@ -2157,7 +1534,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     nextTrapIsExec(parentProc->nextTrapIsExec),
     inExec_(parentProc->inExec_),
     theRpcMgr(NULL), // Set later
-    collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
     traceLink(childTrace_fd),
     bootstrapState(parentProc->bootstrapState),
@@ -2230,7 +1606,6 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     // NT
     //    int thrHandle_temp;
-
     process *theProc = SignalGeneratorCommon::newProcess(File, dir,
                                                          argv, envp,
                                                          stdin_fd, stdout_fd, 
@@ -2290,6 +1665,7 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
    assert(theProc->reachedBootstrapState(bootstrapped_bs));
    startup_printf("%s[%d]:  process state: %s\n\n\n\n", FILE__, __LINE__, theProc->getBootstrapStateAsString().c_str());
+
    return theProc;    
 }
 
@@ -2402,6 +1778,7 @@ bool process::loadDyninstLib() {
       continueProc();
    }
 #endif
+
    while (!reachedBootstrapState(libcLoaded_bs)) {
       startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
@@ -2452,6 +1829,7 @@ bool process::loadDyninstLib() {
            << "different version of libelf than it was built with." << endl;
       return false;
    }
+
    startup_printf("Initialized dynamic linking tracer\n");
 
    if (!getDyninstRTLibName()) {
@@ -2491,6 +1869,8 @@ bool process::loadDyninstLib() {
       startup_printf("Failed to get initial shared objects\n");
       return false;
    }
+
+   initPatchAPI();
 
    startup_printf("Processed initial shared objects:\n");
 
@@ -3223,8 +2603,6 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
   write_printf("x86_");
 #elif defined(arch_power)
   write_printf("power_");
-#elif defined(arch_sparc)
-  write_printf("sparc_");
 #else
   write_printf("unknown_");
 #endif
@@ -5295,6 +4673,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 break;
             case FUNC_CALL:
                 {
+		  cerr << "BPatch::interrequest\n";
                    for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {
                       miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);
@@ -5314,7 +4693,12 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         } // matchingFuncs        
         
     } // requests
-    relocate();
+    // relocate();
+
+    /* PatchAPI stuffs */
+    AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+
     return;
 }
 
@@ -6037,7 +5421,7 @@ bool process::recognize_threads(process *parent)
 	// See comment below about Solaris threads.
 	// TODO: see if there is some mechanism of identifying the helper
 	// threads...
-#if defined(os_aix) || defined(os_solaris)
+#if defined(os_aix)
 	if (lwp->executingSystemCall()) {
             startup_printf("%s[%d]: LWP %d in a system call, skipping in recognize_threads\n",
                            FILE__, __LINE__, lwp_id);

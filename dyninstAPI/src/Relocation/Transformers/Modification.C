@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2009 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -32,24 +32,29 @@
 #include "Transformer.h"
 #include "Modification.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Target.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/ASTAtom.h"
-#include "../Atoms/InstAtom.h"
+#include "../CFG/RelocTarget.h"
+#include "../Widgets/Widget.h"
+#include "../Widgets/CFWidget.h"
+#include "../Widgets/ASTWidget.h"
+#include "../Widgets/InstWidget.h"
+#include "../CFG/RelocGraph.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/function.h"
+#include "../Widgets/CallbackWidget.h"
+
 
 using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
 
 Modification::Modification(const CallModMap &callMod,
-			   const FuncReplaceMap &funcRepl) :
-   callMods_(callMod), 
-   funcReps_(funcRepl) {};
+                           const FuncModMap &funcRepl,
+                           const FuncModMap &funcWraps) :
+  callMods_(callMod),
+  funcReps_(funcRepl),
+  funcWraps_(funcWraps) {};
 
-bool Modification::processTrace(TraceList::iterator &iter, const TraceMap &traceMap) {
+bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -57,76 +62,167 @@ bool Modification::processTrace(TraceList::iterator &iter, const TraceMap &trace
   //    fallthrough edge
   // 3) Function replacement; TODO
 
-  Trace::Ptr trace = *iter;
+   if (!replaceCall(cur, cfg)) return false;
+   if (!replaceFunction(cur, cfg)) return false;
+   if (!wrapFunction(cur, cfg)) return false;
 
-  replaceCall(trace, traceMap); 
-  replaceFunction(trace, traceMap);
-  return true;
+   return true;
 }
 
-void Modification::replaceCall(Trace::Ptr trace, const TraceMap &traceMap) {
+bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
    // See if we have a modification for this point
    CallModMap::const_iterator iter = callMods_.find(trace->block());
-   if (iter == callMods_.end()) return;
-   std::map<func_instance *, func_instance *>::const_iterator iter2 = iter->second.find(trace->func());
-   if (iter2 == iter->second.end()) return;
+   if (iter == callMods_.end()) return true;
+   std::map<PatchFunction*, PatchFunction*>::const_iterator iter2 = iter->second.find(trace->func());
+   if (iter2 == iter->second.end()) return true;
 
-   func_instance *repl = iter2->second;
-   
+   func_instance *repl = SCAST_FI(iter2->second);
+
+   relocation_cerr << "Replacing call in trace "
+                   << trace->id() << " with call to "
+                   << (repl ? repl->name() : "<NULL>")
+                   << ", " << hex
+                   << (repl ? repl->addr() : 0)
+                   << dec << endl;
+
+
    // Replace the call at the end of this trace /w/ repl (if non-NULL),
    // or elide completely (if NULL)
-   // We do this via edge twiddling in the Trace
-   
+   // We do this via edge twiddling in the RelocBlock
+
+   Predicates::Type pred(ParseAPI::CALL);
+
    if (!repl) {
-      trace->removeTargets(ParseAPI::CALL);
-      return;
+      if (!cfg->removeEdge(pred, trace->outs())) return false;
+      return true;
    }
-   Trace::Targets &targets = trace->getTargets(ParseAPI::CALL);
-   for (Trace::Targets::iterator d_iter = targets.begin();
-        d_iter != targets.end(); ++d_iter) {
-      delete *d_iter;
-   }
-   targets.clear();
-   
-   block_instance *entry = repl->entryBlock();
-   assert(entry);
 
-   targets.push_back(getTarget(entry, traceMap));
-}
-
-void Modification::replaceFunction(Trace::Ptr trace, const TraceMap &traceMap) {
-   FuncReplaceMap::const_iterator iter = funcReps_.find(trace->func());
-   if (iter == funcReps_.end()) return;
-
-   // See if we're the entry block
-   if (trace->block() != trace->func()->entryBlock()) return;
-   relocation_cerr << "Performing function replacement in trace " << trace->id() 
-                   << " going to function " << iter->second->name() 
-                   << " /w/ entry block " 
-                   << (iter->second->entryBlock() ? iter->second->entryBlock()->start() : -1) << endl;
-   // Okay, time to do work. 
-   // Just update the out-edges (removing everything except
-   // a... fallthrough, why not... to the replacement function)
-   trace->removeTargets();
-   trace->getTargets(ParseAPI::FALLTHROUGH).push_back(getTarget(iter->second->entryBlock(), traceMap));
-
-   // And erase anything in the trace to be sure we immediately jump.
-   // Amusingly? Entry instrumentation of the function will still execute...
-   // Need to determine semantics of this and FIXME TODO
-   trace->elements().clear();
-
-   CFAtom::Ptr newCF = CFAtom::create(trace->block()->start());
-   trace->elements().push_back(newCF);
-   trace->cfAtom() = newCF;
-}
-
-TargetInt *Modification::getTarget(block_instance *block, const TraceMap &traceMap) {
-   // See if there's a reloc copy
-   TraceMap::const_iterator t_iter = traceMap.find(block);
-   if (t_iter != traceMap.end()) {
-      return new Target<Trace *>(t_iter->second.get());
+   RelocBlock *target = cfg->find(repl->entryBlock());
+   if (target) {
+      if (!cfg->changeTargets(pred, trace->outs(), target)) return false;
    }
    else {
-      return new Target<block_instance *>(block);
+      if (!cfg->changeTargets(pred, trace->outs(), repl->entryBlock())) return false;
    }
+
+   return true;
 }
+
+bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
+   // See if we're the entry block
+   if (trace->block() != trace->func()->entryBlock()) return true;
+
+   FuncModMap::const_iterator iter = funcReps_.find(trace->func());
+   if (iter == funcReps_.end()) return true;
+   //func_instance* oldfun = SCAST_FI(iter->first);
+   PatchFunction* pnewfun = iter->second;
+   //func_instance* newfun = SCAST_FI(iter->second);
+   func_instance* newfun = SCAST_FI(pnewfun);
+
+   relocation_cerr << "Performing function replacement in trace " << trace->id()
+                   << " going to function " << newfun->name()
+                   << " /w/ entry block "
+                   << (newfun->entryBlock() ? newfun->entryBlock()->start() : -1) << endl;
+   // Stub a jump to the replacement function
+   RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
+                           newfun,
+                           cfg);
+   RelocBlock *target = cfg->find(newfun->entryBlock());
+   if (target) {
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<RelocBlock *>(target),
+                    ParseAPI::DIRECT);
+   }
+   else {
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<block_instance *>(newfun->entryBlock()),
+                    ParseAPI::DIRECT);
+   }
+
+   // Redirect the springboard to the replacement function
+   cfg->setSpringboard(trace->block(), stub);
+
+   // Redirect all call in-edges to the replacement function
+   Predicates::Interprocedural pred;
+   if (target) {
+      if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
+   }
+   else {
+      if (!cfg->changeTargets(pred, trace->ins(), newfun->entryBlock())) return false;
+   }
+   return true;
+}
+
+bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
+   // See if we're the entry block
+   if (trace->block() != trace->func()->entryBlock()) return true;
+
+   FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
+   if (iter == funcWraps_.end()) return true;
+
+   // func_instance* oldfun = SCAST_FI(iter->first);
+   func_instance* newfun = SCAST_FI(iter->second);
+
+
+   relocation_cerr << "Performing function wrapping in trace " << trace->id()
+                   << " going to function " << newfun->name()
+                   << " /w/ entry block "
+                   << (newfun->entryBlock() ? newfun->entryBlock()->start() : -1) << endl;
+
+   // This is a special case of replaceFunction; the predicate is "all calls except from the
+   // wrapper are redirected".
+   RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
+                           newfun,
+                           cfg);
+   RelocBlock *target = cfg->find(newfun->entryBlock());
+   if (target) {
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<RelocBlock *>(target),
+                    ParseAPI::DIRECT);
+   }
+   else {
+      cfg->makeEdge(new Target<RelocBlock *>(stub),
+                    new Target<block_instance *>(newfun->entryBlock()),
+                    ParseAPI::DIRECT);
+   }
+
+   cfg->setSpringboard(trace->block(), stub);
+
+   WrapperPredicate pred(trace->func());
+   if (target) {
+      if (!cfg->changeTargets(pred, trace->ins(), target)) return false;
+   }
+   else {
+      if (!cfg->changeTargets(pred, trace->ins(), newfun->entryBlock())) return false;
+   }
+   // We also need to track the "new" entry block so we can build a new symbol for it.
+   CallbackWidget::Ptr c = CallbackWidget::create(new WrapperPatch(trace->func()));
+   trace->elements().push_front(c);
+
+   return true;
+}
+
+RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg) {
+   RelocBlock *t = RelocBlock::createStub(block, func);
+   // Put it at the end, why not.
+   cfg->addRelocBlock(t);
+   return t;
+}
+
+// TODO: make this mildly more efficient. On the other hand, is it a big deal?
+Modification::WrapperPredicate::WrapperPredicate(func_instance *f)
+   : f_(f) {};
+
+
+bool Modification::WrapperPredicate::operator()(RelocEdge *e) {
+   if (e->src->type() != TargetInt::RelocBlockTarget) return false;
+   RelocBlock *t = static_cast<Target<RelocBlock *> *>(e->src)->t();
+   return t->func() == f_;
+}
+
+bool Modification::WrapperPatch::apply(codeGen &gen, CodeBuffer *) {
+   // Tell our function to create a wrapper symbol at this address
+   func_->createWrapperSymbol(gen.currAddr());
+   return true;
+}
+

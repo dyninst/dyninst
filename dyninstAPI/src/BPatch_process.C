@@ -1,37 +1,33 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#ifdef sparc_sun_solaris2_4
-#include <dlfcn.h>
-#endif
 
 #define BPATCH_FILE
 
@@ -69,10 +65,24 @@
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
+#include "PatchMgr.h"
+#include "Command.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
 using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
+using PatchAPI::Patcher;
+using PatchAPI::PatcherPtr;
 
 int BPatch_process::getAddressWidthInt(){
-	return llproc->getAddressWidth();
+        return llproc->getAddressWidth();
 }
 
 /*
@@ -92,19 +102,19 @@ int BPatch_process::getPidInt()
  * constructed.  The new process is placed into a stopped state before
  * executing any code.
  *
- * path		Pathname of the executable to start.
- * argv		A list of pointers to character strings which are the
+ * path         Pathname of the executable to start.
+ * argv         A list of pointers to character strings which are the
  *              arguments for the new process, terminated by a NULL pointer.
- * envp		A list of pointers to character strings which are the
+ * envp         A list of pointers to character strings which are the
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_process::BPatch_process(const char *path, const char *argv[], 
+BPatch_process::BPatch_process(const char *path, const char *argv[],
                                BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
-     exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
-     createdViaAttach(false), detached(false), unreportedStop(false), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1),
+     exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
+     createdViaAttach(false), detached(false), unreportedStop(false),
      unreportedTermination(false), terminated(false), reportedExit(false),
      unstartedRPC(false), activeOneTimeCodes_(0),
      resumeAfterCompleted_(false), hybridAnalysis_(NULL)
@@ -121,13 +131,13 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
       for(int i = 0; argv[i] != NULL; i++)
          argv_vec.push_back(argv[i]);
    }
-    
+
    // Construct a vector out of the contents of envp
    if(envp) {
       for(int i = 0; envp[i] != NULL; ++i)
          envp_vec.push_back(envp[i]);
    }
-   
+
    std::string directoryName = "";
 
  #if !defined(os_windows)
@@ -145,12 +155,12 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
       char *nextpath = strtok_r(pathenv_copy, ":", &ptrptr);
       while (nextpath) {
          struct stat statbuf;
-         
+
          char *fullpath = new char[strlen(nextpath)+strlen(path)+2];
          strcpy(fullpath,nextpath);
          strcat(fullpath,"/");
          strcat(fullpath,path);
-         
+
          if (!stat(fullpath,&statbuf)) {
             directoryName = nextpath;
             delete[] fullpath;
@@ -180,19 +190,21 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
            }
        }
    }
-   
+
    std::string spath(path);
-   llproc = ll_createProcess(spath, &argv_vec, mode, this, 
+   llproc = ll_createProcess(spath, &argv_vec, mode, this,
                              (envp ? &envp_vec : NULL),
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
-   if (llproc == NULL) { 
-      BPatch::bpatch->reportError(BPatchFatal, 68, 
+   if (llproc == NULL) {
+      BPatch::bpatch->reportError(BPatchFatal, 68,
            "Dyninst was unable to create the specified process");
       return;
    }
+
    startup_cerr << "Registering function callback..." << endl;
    llproc->registerFunctionCallback(createBPFuncCB);
-   
+
+
    startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
    llproc->set_up_ptr(this);
@@ -232,7 +244,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    (namely, with a single process having spawned the mutator and the
    mutatee) are susceptible to a kernel bug that will cause a panic
    if the mutator exits before the mutatee. See the comment above
-   class ForkNewProcessCallback : public DBICallbackBase in 
+   class ForkNewProcessCallback : public DBICallbackBase in
    debuggerinterface.h for details.
 */
 bool LinuxConsideredHarmful(pid_t pid)
@@ -243,14 +255,14 @@ bool LinuxConsideredHarmful(pid_t pid)
     char buf[1024];
     char filename[64];
 
-    get_linux_version(major,minor,sub,subsub); 
+    get_linux_version(major,minor,sub,subsub);
 
     if( major == 2 && minor == 6 &&
         (sub < 11 || (sub == 11 && subsub <= 11)) )
     {
         my_ppid = getppid();
         my_pid = getpid();
-        // If anybody knows a better way to get the parent pid, be my 
+        // If anybody knows a better way to get the parent pid, be my
         // guest to change this.
         snprintf(filename, 64, "/proc/%d/status", pid);
         fd = fopen(filename, "r");
@@ -259,7 +271,7 @@ bool LinuxConsideredHarmful(pid_t pid)
                             filename);
             return false;
         }
-        while (fgets(buf, 1024, fd)) { 
+        while (fgets(buf, 1024, fd)) {
             if (strncmp(buf, "PPid", 4) == 0) {
                 sscanf(buf, "%*s %d", &mutatee_ppid);
                 break;
@@ -281,14 +293,14 @@ bool LinuxConsideredHarmful(pid_t pid)
  * Constructs a new BPatch_process and associates it with a running process.
  * Stops execution of the process.
  *
- * path		Pathname of the executable file for the process.
- * pid		Process ID of the target process.
+ * path         Pathname of the executable file for the process.
+ * pid          Process ID of the target process.
  */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
-   : llproc(NULL), lastSignal(-1), exitCode(-1), 
-     exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
-     createdViaAttach(true), detached(false), unreportedStop(false), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1),
+     exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
+     createdViaAttach(true), detached(false), unreportedStop(false),
      unreportedTermination(false), terminated(false), reportedExit(false),
      unstartedRPC(false), activeOneTimeCodes_(0), resumeAfterCompleted_(false),
      hybridAnalysis_(NULL)
@@ -323,12 +335,12 @@ BPatch_process::BPatch_process
    image = new BPatch_image(this);
     startup_printf("%s[%d]:  created new BPatch_image...\n", FILE__, __LINE__);
    std::string spath = path ? std::string(path) : std::string();
-    startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__, 
+    startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__,
           path ? path : "no_path", pid);
    llproc = ll_attachProcess(spath, pid, this, mode);
    if (!llproc) {
       BPatch::bpatch->unRegisterProcess(pid, this);
-      BPatch::bpatch->reportError(BPatchFatal, 68, 
+      BPatch::bpatch->reportError(BPatchFatal, 68,
              "Dyninst was unable to attach to the specified process");
       return;
    }
@@ -364,7 +376,7 @@ BPatch_process::BPatch_process
  */
 BPatch_process::BPatch_process(process *nProc)
    : llproc(nProc), lastSignal(-1), exitCode(-1),
-     exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
+     exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
      reportedExit(false), unstartedRPC(false), activeOneTimeCodes_(0),
@@ -378,7 +390,7 @@ BPatch_process::BPatch_process(process *nProc)
    BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
-   for (unsigned i=0; i<llproc->threads.size(); i++) 
+   for (unsigned i=0; i<llproc->threads.size(); i++)
    {
       dyn_thread *dynthr = llproc->threads[i];
       BPatch_thread *thrd = new BPatch_thread(this, dynthr);
@@ -402,9 +414,9 @@ BPatch_process::BPatch_process(process *nProc)
  */
 void BPatch_process::BPatch_process_dtor()
 {
-    
+
    if (!detached &&
-       !getAsync()->detachFromProcess(llproc)) 
+       !getAsync()->detachFromProcess(llproc))
    {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
@@ -415,15 +427,15 @@ void BPatch_process::BPatch_process_dtor()
       deleteBPThread(threads[i]);
    }
 
-   if (image) 
+   if (image)
       delete image;
-   
+
    image = NULL;
 
-   if (pendingInsertions) 
+   if (pendingInsertions)
    {
-       for (unsigned f = 0; f < pendingInsertions->size(); f++) 
-	   {
+       for (unsigned f = 0; f < pendingInsertions->size(); f++)
+           {
            delete (*pendingInsertions)[f];
        }
 
@@ -433,30 +445,30 @@ void BPatch_process::BPatch_process_dtor()
 
    if (!llproc) {
 
-      return; 
+      return;
    }
 
    //  unRegister process before doing detach
-   BPatch::bpatch->unRegisterProcess(getPid(), this);   
+   BPatch::bpatch->unRegisterProcess(getPid(), this);
 
    /**
     * If we attached to the process, then we detach and leave it be,
     * otherwise we'll terminate it
     **/
 
-   if (createdViaAttach) 
+   if (createdViaAttach)
    {
        llproc->detachProcess(true);
    }
-   else  
+   else
    {
-       if (llproc->isAttached()) 
-	   {
+       if (llproc->isAttached())
+           {
            proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
            terminateExecutionInt();
        }
    }
-   
+
    if (NULL != hybridAnalysis_) {
        delete hybridAnalysis_;
    }
@@ -486,7 +498,7 @@ bool BPatch_process::stopExecutionInt()
    while (lowlevel_process()->sh->isActivelyProcessing()) {
        lowlevel_process()->sh->waitForEvent(evtAnyEvent);
    }
-  
+
    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
    if (llproc->sh->pauseProcessBlocking()) {
@@ -511,7 +523,7 @@ bool BPatch_process::continueExecutionInt()
     if (statusIsTerminated()) {
         return false;
     }
-    
+
     if (!llproc->reachedBootstrapState(bootstrapped_bs)) {
         return false;
     }
@@ -532,9 +544,9 @@ bool BPatch_process::continueExecutionInt()
       unstartedRPC = false;
    }
 
-   //  DON'T let the user continue the process if we have potentially active 
+   //  DON'T let the user continue the process if we have potentially active
    //  signal handling going on:
-   // You know... this should really never happen. 
+   // You know... this should really never happen.
 
    // Just let them know we care...
 
@@ -565,7 +577,7 @@ bool BPatch_process::terminateExecutionInt()
    while (!isTerminated()) {
        BPatch::bpatch->waitForStatusChangeInt();
    }
-   
+
    return true;
 }
 
@@ -634,7 +646,7 @@ bool BPatch_process::isTerminatedInt()
 {
     // USER LEVEL CALL! BPatch_process should use
     // statusIsTerminated.
-    
+
     // This call considers a process terminated if it has reached
     // or passed the entry to exit. The process may still exist,
     // but we no longer let the user modify it; hence, terminated.
@@ -643,12 +655,12 @@ bool BPatch_process::isTerminatedInt()
 
     if (exitedNormally || exitedViaSignal) return true;
 
-    // First see if we've already terminated to avoid 
+    // First see if we've already terminated to avoid
     // checking process status too often.
     if (reportedExit)
        return true;
     if (statusIsTerminated()) {
-        proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__); 
+        proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
         llproc->terminateProc();
         setUnreportedTermination(false);
         return true;
@@ -668,7 +680,7 @@ BPatch_exitType BPatch_process::terminationStatusInt() {
    if(exitedNormally)
       return ExitedNormally;
    else if(exitedViaSignal)
-      return ExitedViaSignal;   
+      return ExitedViaSignal;
    return NoExit;
 }
 
@@ -678,7 +690,7 @@ BPatch_exitType BPatch_process::terminationStatusInt() {
  * Returns exit code of applications
  *
  */
-int BPatch_process::getExitCodeInt() 
+int BPatch_process::getExitCodeInt()
 {
    return exitCode;
 }
@@ -705,8 +717,8 @@ bool BPatch_process::wasRunningWhenAttachedInt()
  *
  * Detach from the thread represented by this object.
  *
- * cont		True if the thread should be continued as the result of the
- * 		detach, false if it should not.
+ * cont         True if the thread should be continued as the result of the
+ *              detach, false if it should not.
  */
 bool BPatch_process::detachInt(bool cont)
 {
@@ -740,10 +752,10 @@ bool BPatch_process::isDetachedInt()
  * Causes the process to dump its state to a file, and optionally to terminate.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the state should be written.
- * terminate	Indicates whether or not the thread should be terminated after
- *		dumping core.  True indicates that it should, false that is
- *		should not.
+ * file         The name of the file to which the state should be written.
+ * terminate    Indicates whether or not the thread should be terminated after
+ *              dumping core.  True indicates that it should, false that is
+ *              should not.
  */
 bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
 {
@@ -757,44 +769,14 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
       fprintf(stderr, "%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
       terminateExecutionInt();
    } else if (was_stopped) {
-    	unreportedStop = had_unreportedStop;
+        unreportedStop = had_unreportedStop;
    } else {
       continueExecutionInt();
    }
-    
+
    return ret;
 }
 
-/*
- * BPatch_process::dumpPatchedImage
- *
- * Writes the mutated file back to disk,
- * in ELF format.
- */
-#if defined (cap_save_the_world)
-#if defined(os_solaris) || (defined(os_linux) && defined(arch_x86)) || defined(os_aix)
-char* BPatch_process::dumpPatchedImageInt(const char* file)
-{
-   bool was_stopped = isStopped();
-   bool had_unreportedStop = unreportedStop;
-   
-   stopExecution();
-   char* ret = llproc->dumpPatchedImage(file);
-   if (was_stopped) 
-      unreportedStop = had_unreportedStop;
-   else 
-      continueExecutionInt();
-
-   return ret;
-   return NULL;
-}
-#endif
-#else
-char* BPatch_process::dumpPatchedImageInt(const char*)
-{
-   return NULL;
-}
-#endif
 
 /*
  * BPatch_process::dumpImage
@@ -802,7 +784,7 @@ char* BPatch_process::dumpPatchedImageInt(const char*)
  * Writes the contents of memory into a file.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the image should be written.
+ * file         The name of the file to which the image should be written.
  */
 bool BPatch_process::dumpImageInt(const char *file)
 {
@@ -817,9 +799,9 @@ bool BPatch_process::dumpImageInt(const char *file)
    stopExecutionInt();
 
    bool ret = llproc->dumpImage(file);
-   if (was_stopped) 
+   if (was_stopped)
       unreportedStop = had_unreportedStop;
-   else 
+   else
       continueExecutionInt();
 
    return ret;
@@ -829,9 +811,9 @@ bool BPatch_process::dumpImageInt(const char *file)
 /*
  * BPatch_process::getInheritedVariable
  *
- * Allows one to retrieve a variable which exists in a child process that 
+ * Allows one to retrieve a variable which exists in a child process that
  * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in 
+ * Function is invoked on the child BPatch_process (created from a fork in
  * the application).
  *
  * parentVar   A BPatch_variableExpr created in the parent thread
@@ -848,7 +830,7 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
       // parent process
       return NULL;
    }
-   
+
    return new BPatch_variableExpr(this, llproc, parentVar.getBaseAddr(), Null_Register,
                                   const_cast<BPatch_type *>(parentVar.getType()));
 }
@@ -857,9 +839,9 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
 /*
  * BPatch_process::getInheritedSnippet
  *
- * Allows one to retrieve a snippet which exists in a child process which 
+ * Allows one to retrieve a snippet which exists in a child process which
  * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in 
+ * Function is invoked on the child BPatch_process (created from a fork in
  * the application).
  *
  * Allows one to retrieve a snippet which exists in a child process which
@@ -894,23 +876,26 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
 
 /*
  * BPatch_addressSpace::beginInsertionSet
- * 
+ *
  * Starts a batch insertion set; that is, all calls to insertSnippet until
  * finalizeInsertionSet are delayed.
  *
  */
 
-void BPatch_process::beginInsertionSetInt() 
+void BPatch_process::beginInsertionSetInt()
 {
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
     // Nothing else to do...
+
+    /* PatchAPI Stuffs */
+    //llproc->mgr()->batchStart();
 }
 
 
 /*
  * BPatch_process::finalizeInsertionSet
- * 
+ *
  * Installs all instrumentation specified since the last beginInsertionSet call.
  *
  * modified gets set as a result of the catchup/fixup logic and is helpful in
@@ -919,27 +904,28 @@ void BPatch_process::beginInsertionSetInt()
  * we go thru the trouble to modify the process state to make everything work
  * then the function really should work.
  */
-
-bool BPatch_process::finalizeInsertionSetInt(bool, bool *) 
+bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 {
   // Can't insert code when mutations are not active.
   bool shouldContinue = false;
   if (!mutationsActive) {
     return false;
   }
-  
+
   if ( ! statusIsStopped() ) {
     shouldContinue = true;
     stopExecutionInt();
   }
-  
-  bool ret = llproc->relocate();
-  
+
+  /* PatchAPI stuffs */
+  bool ret = AddressSpace::patch(llproc);
+  /* End of PatchAPI stuffs */
+
   llproc->trapMapping.flush();
-  
-  if (shouldContinue) 
+
+  if (shouldContinue)
     continueExecutionInt();
-  
+
   if (pendingInsertions) {
     delete pendingInsertions;
     pendingInsertions = NULL;
@@ -949,8 +935,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 }
 
 
-bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *, 
-							BPatch_Vector<BPatch_catchupInfo> &)
+bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
+                                                        BPatch_Vector<BPatch_catchupInfo> &)
 {
    return false;
 }
@@ -959,21 +945,21 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
  * BPatch_process::setMutationsActive
  *
  * Enable or disable the execution of all snippets for the thread.
- * 
- * activate	If set to true, execution of snippets is enabled.  If false,
- *		execution is disabled.
+ *
+ * activate     If set to true, execution of snippets is enabled.  If false,
+ *              execution is disabled.
  */
 bool BPatch_process::setMutationsActiveInt(bool activate)
 {
    // If not activating or deactivating, just return.
    if ((activate && mutationsActive) || (!activate && !mutationsActive))
       return true;
-   
+
    if (activate)
       llproc->reinstallMutations();
    else
       llproc->uninstallMutations();
-   
+
    mutationsActive = activate;
    return true;
 }
@@ -997,14 +983,14 @@ void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
  * inferior RPC completion.  It determines what thread the RPC was executed on
  * and then calls the API's higher-level callback routine for that thread.
  *
- * theProc	The process in which the RPC completed.
- * userData	This is a value that can be set when we invoke an inferior RPC
- *		and which will be returned to us in this callback.
- * returnValue	The value returned by the RPC.
+ * theProc      The process in which the RPC completed.
+ * userData     This is a value that can be set when we invoke an inferior RPC
+ *              and which will be returned to us in this callback.
+ * returnValue  The value returned by the RPC.
  */
 
 int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
-                                                 unsigned /* rpcid */, 
+                                                 unsigned /* rpcid */,
                                                  void *userData,
                                                  void *returnValue)
 {
@@ -1020,9 +1006,9 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    }
 
    assert(global_mutex->depth());
-   
+
    OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
-   
+
    BPatch_process *bproc =
       BPatch::bpatch->getProcessByPid(theProc->getPid());
 
@@ -1036,7 +1022,7 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    info->setCompleted(true);
 
    bool synchronous = info->isSynchronous();
-   
+
    if (!synchronous) {
        // Asynchronous RPCs: if we're running, then hint to run the process
        if (bproc->isVisiblyStopped)
@@ -1045,7 +1031,7 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
            retval = RPC_RUN_WHEN_DONE;
 
       BPatch::bpatch->signalNotificationFD();
-       
+
       //  if we have a specific callback for (just) this oneTimeCode, call it
       OneTimeCodeCallback *specific_cb = info->getCallback();
       if (specific_cb) {
@@ -1057,18 +1043,18 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       //  get global oneTimeCode callbacks
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
-      
+
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-          
+
           OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
           if (cb) {
               cb->setTargetThread(TARGET_UI_THREAD);
               cb->setSynchronous(false);
               (*cb)(bproc->threads[0], info->getUserData(), returnValue);
           }
-          
+
       }
-      
+
       delete info;
    }
 
@@ -1088,15 +1074,15 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
  * when the snippet has executed in the mutatee, and can wait until the
  * snippet has executed to return.
  *
- * expr		The snippet to evaluate.
- * userData	This value is given to the callback function along with the
- *		return value for the snippet.  Can be used by the caller to
- *		store per-oneTimeCode information.
- * synchronous	True means wait until the snippet has executed, false means
- *		return immediately.
+ * expr         The snippet to evaluate.
+ * userData     This value is given to the callback function along with the
+ *              return value for the snippet.  Can be used by the caller to
+ *              store per-oneTimeCode information.
+ * synchronous  True means wait until the snippet has executed, false means
+ *              return immediately.
  */
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
-                                          BPatch_thread *thread, 
+                                          BPatch_thread *thread,
                                           void *userData,
                                           BPatchOneTimeCodeCallback cb,
                                           bool synchronous,
@@ -1137,13 +1123,13 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                       FILE__, __LINE__, llproc->getPid());
 
    llproc->getRpcMgr()->postRPCtoDo(expr.ast_wrapper,
-                                    false, 
+                                    false,
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,
                                     false, // We'll determine later
                                     false, // don't use lowmem heap...
                                     (thread) ? (thread->llthread) : NULL,
-                                    NULL); 
+                                    NULL);
    activeOneTimeCodes_++;
 
    // We override while the inferiorRPC runs...
@@ -1172,8 +1158,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
            if (err) *err = true;
            return NULL;
        }
-       
-       eventType ev = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
+
+       eventType ev = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/,
                                                statusRPCDone);
        inferiorrpc_printf("%s[%d]: got RPC event from system: terminated %d\n",
                           FILE__, __LINE__, statusIsTerminated());
@@ -1198,7 +1184,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 
    inferiorrpc_printf("%s[%d]: RPC completed, process status %s\n",
                       FILE__, __LINE__, statusIsStopped() ? "stopped" : "running");
-   
+
    if (err) *err = false;
    delete info;
    return ret;
@@ -1207,10 +1193,10 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 void BPatch_process::oneTimeCodeCompleted(bool isSynchronous) {
     assert(activeOneTimeCodes_ > 0);
     activeOneTimeCodes_--;
-    
+
     if (activeOneTimeCodes_ == 0 && isSynchronous) {
         inferiorrpc_printf("%s[%d]: oneTimeCodes outstanding reached 0, isVisiblyStopped %d, completing: %s\n",
-                           FILE__, __LINE__, 
+                           FILE__, __LINE__,
                            isVisiblyStopped,
                            resumeAfterCompleted_ ? "setting running" : "leaving stopped");
         if (resumeAfterCompleted_) {
@@ -1226,10 +1212,10 @@ void BPatch_process::oneTimeCodeCompleted(bool isSynchronous) {
 
 //  BPatch_process::oneTimeCodeAsync
 //
-//  Have the specified code be executed by the mutatee once.  Don't wait 
+//  Have the specified code be executed by the mutatee once.  Don't wait
 //  until done.
-bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
-                                         void *userData, BPatchOneTimeCodeCallback cb) 
+bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
+                                         void *userData, BPatchOneTimeCodeCallback cb)
 {
    if (statusIsTerminated()) {
       return false;
@@ -1243,7 +1229,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * Load a dynamically linked library into the address space of the mutatee.
  *
- * libname	The name of the library to load.
+ * libname      The name of the library to load.
  */
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
 {
@@ -1252,7 +1238,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       fprintf(stderr, "%s[%d]:  Process not stopped in loadLibrary\n", FILE__, __LINE__);
       return false;
    }
-   
+
    if (!libname) {
       fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
               __FILE__, __LINE__);
@@ -1277,48 +1263,50 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       return false;
    }
    if (bpfv.size() > 1) {
-      std::string msg = std::string("Found ") + utos(bpfv.size()) + 
+      std::string msg = std::string("Found ") + utos(bpfv.size()) +
          std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
    }
-   BPatch_function *dlopen_func = bpfv[0]; 
+   BPatch_function *dlopen_func = bpfv[0];
    if (dlopen_func == NULL) return false;
 
    /**
     * Generate a call to DYNINSTloadLibrary, and then run the generated code.
     **/
-   BPatch_Vector<BPatch_snippet *> args;   
+   BPatch_Vector<BPatch_snippet *> args;
    BPatch_constExpr nameArg(libname);
-   args.push_back(&nameArg);   
+   args.push_back(&nameArg);
    BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
-    
+
    if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
-      BPatch_variableExpr *dlerror_str_var = 
+      BPatch_variableExpr *dlerror_str_var =
          dyn_rt_lib->findVariable("gLoadLibraryErrorString");
-      assert(NULL != dlerror_str_var);      
+      assert(NULL != dlerror_str_var);
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
       return false;
    }
+
+   /* PatchAPI stuffs */
+   mapped_object* plib = llproc->findObject(libname);
+   if (plib) DYN_CAST(DynAddrSpace, llproc->mgr()->as())->loadLibrary(plib);
+   /* End of PatchAPi stuffs */
+
    return true;
 }
 
-/* 
- *	this function sets a flag in process that 
- *	forces the collection of data for saveworld.
- */
 void BPatch_process::enableDumpPatchedImageInt(){
-	llproc->collectSaveWorldData=true;
+    // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
 }
 
-void BPatch_process::setExitedViaSignal(int signalnumber) 
+void BPatch_process::setExitedViaSignal(int signalnumber)
 {
    exitedViaSignal = true;
    lastSignal = signalnumber;
 }
 
-void BPatch_process::setExitedNormally() 
+void BPatch_process::setExitedNormally()
 {
    exitedNormally = true;
 }
@@ -1367,8 +1355,8 @@ void BPatch_process::getAS(std::vector<AddressSpace *> &as)
 }
 
 BPatch_thread *BPatch_process::createOrUpdateBPThread(
-                         int lwp, dynthread_t tid, unsigned index, 
-                         unsigned long stack_start,  
+                         int lwp, dynthread_t tid, unsigned index,
+                         unsigned long stack_start,
                          unsigned long start_addr)
 {
    async_printf("%s[%d]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
@@ -1386,13 +1374,13 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
       if (bpthr->doa) {
              bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
           return bpthr;
-      }         
+      }
    }
 
    bool found = false;
    for (unsigned i=0; i<threads.size(); i++)
-      if (threads[i] == bpthr) 
-	  {
+      if (threads[i] == bpthr)
+          {
          found = true;
          break;
       }
@@ -1407,7 +1395,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
      //        FILE__, __LINE__, getThreadStr(getExecThreadID()), start_addr);
    }
-   bpthr->updateValues(tid, stack_start, initial_func, lwp);   
+   bpthr->updateValues(tid, stack_start, initial_func, lwp);
    return bpthr;
 }
 
@@ -1416,10 +1404,10 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
  **/
 void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 {
-   if (!thrd || !thrd->getBPatchID()) 
+   if (!thrd || !thrd->getBPatchID())
    {
       //Don't delete if this is the initial thread.  Some Dyninst programs
-      // may use the initial BPatch_thread as a handle instead of the 
+      // may use the initial BPatch_thread as a handle instead of the
       // BPatch_process, and we don't want to delete that handle out from
       // under the users.
       return;
@@ -1433,10 +1421,10 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 #ifdef IBM_BPATCH_COMPAT
 /**
  * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
- * which is in turn a wrapper for creating a new 
+ * which is in turn a wrapper for creating a new
  * ibmBpatchElf32Teader(name, addr)
  **/
-bool BPatch_process::addSharedObjectInt(const char *name, 
+bool BPatch_process::addSharedObjectInt(const char *name,
                                         const unsigned long loadaddr)
 {
    return loadLibraryInt(name);
@@ -1448,17 +1436,17 @@ bool BPatch_process::updateThreadInfo()
 {
    if (!llproc->multithread_capable())
       return true;
-   
+
    if (!llproc->recognize_threads(NULL))
        return false;
-   
+
    async_printf("%s[%d]:  about to startup async thread\n", FILE__, __LINE__);
 
    //We want to startup the event handler thread even if there's
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
    {
-	   async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
+           async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
        return false;
    }
 
@@ -1471,23 +1459,23 @@ bool BPatch_process::updateThreadInfo()
  * and printing the current instruction as it executes.
  **/
 
-void BPatch_process::debugSuicideInt() 
+void BPatch_process::debugSuicideInt()
 {
     llproc->debugSuicide();
 }
 
-BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid, 
-                                                  dynthread_t threadid, 
-                                                  unsigned long stack_top, 
+BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
+                                                  dynthread_t threadid,
+                                                  unsigned long stack_top,
                                                   unsigned long start_pc, process *proc_)
 {
-	async_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
+        async_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
    //bool thread_exists = (getThread(threadid) != NULL);
 
-  if (!llproc && proc_) 
-	  llproc = proc_;
+  if (!llproc && proc_)
+          llproc = proc_;
 
-  BPatch_thread *newthr = 
+  BPatch_thread *newthr =
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
 
   bool result = BPatch::bpatch->registerThreadCreate(this, newthr);
@@ -1495,9 +1483,9 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   if (!result)
      return newthr;
 
-  if (newthr->isDeadOnArrival()) 
+  if (newthr->isDeadOnArrival())
   {
-    //  thread was created, yes, but it also already exited...  set up and 
+    //  thread was created, yes, but it also already exited...  set up and
     //  execute thread exit callbacks too... (this thread will not trigger
     //  other thread events since we never attached to it)
     //  it is up to the user to check deadOnArrival() before doing anything
@@ -1507,12 +1495,12 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
 
-    for (unsigned int i = 0; i < cbs.size(); ++i) 
-	{
+    for (unsigned int i = 0; i < cbs.size(); ++i)
+        {
         BPatch::bpatch->mutateeStatusChange = true;
         llproc->sh->signalEvent(evtThreadExit);
         AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-        async_printf("%s[%d]:  before issuing thread exit callback: tid %lu\n", 
+        async_printf("%s[%d]:  before issuing thread exit callback: tid %lu\n",
                      FILE__, __LINE__, newthr->getTid());
         cb(this, newthr);
     }
@@ -1540,26 +1528,26 @@ bool BPatchSnippetHandle::usesTrapInt() {
  *
  * @intPoint: the instPoint at which the event occurred, will be
  *    wrapped in a BPatch_point and sent to the callback as a parameter
- * @intFunc: the function in which the event occurred, will be wrapped 
+ * @intFunc: the function in which the event occurred, will be wrapped
  *    in a BPatch_function and sent to the callback as a parameter
  * @proc: the process is needed for the creation of BPatch level objects
  * @cb_ID: helps us identify the correct call
- * @retVal: the return value of a parameter snippet that gets passed 
- *    down in the stopThread snippet and evaluated.  
+ * @retVal: the return value of a parameter snippet that gets passed
+ *    down in the stopThread snippet and evaluated.
  *
  * Return Value: Will always be true if code unless an error occurs, a
  *    callback is triggered for every stopThread snippet instance.
  */
-bool BPatch_process::triggerStopThread(instPoint *intPoint, 
+bool BPatch_process::triggerStopThread(instPoint *intPoint,
          func_instance *intFunc, int cb_ID, void *retVal)
 {
     // find the BPatch_point corresponding to the instrumentation point
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_procedureLocation bpPointType = 
+    BPatch_procedureLocation bpPointType =
         BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
-    if (!bpPoint) { 
-        return false; 
+    if (!bpPoint) {
+        return false;
     }
     isVisiblyStopped = true;
     // trigger all callbacks matching the snippet and event type
@@ -1589,14 +1577,14 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
  * wrapped in a BPatch_function and sent to the callback as a parameter
  *
  * Return Value: true if a matching callback was found and no error occurred
- * 
+ *
  */
-bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint, 
+bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
         func_instance *intFunc, long signum, BPatch_Vector<Address> *handlers)
 {
     // find the BPatch_point corresponding to the exception-raising instruction
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_procedureLocation bpPointType = 
+    BPatch_procedureLocation bpPointType =
         BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { return false; }
@@ -1606,7 +1594,7 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        SignalHandlerCallback *cb = 
+        SignalHandlerCallback *cb =
             dynamic_cast<SignalHandlerCallback *>(cbs[i]);
         if (cb && cb->handlesSignal(signum)) {
             (*cb)(bpPoint, signum, handlers);
@@ -1619,14 +1607,14 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
 /* BPatch::triggerCodeOverwriteCB
  *
  * Grabs BPatch level objects for the instPoint and enclosing function
- * and triggers a registered callback if there is one 
+ * and triggers a registered callback if there is one
  *
  * @intPoint: the instPoint at which the event occurred, will be
  * wrapped in a BPatch_point and sent to the callback as a parameter
  *
  * Return Value: true if a matching callback was found and no error occurred
  */
-bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint, 
+bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
                                             Address faultTarget)
 {
     // does the callback exist?
@@ -1643,11 +1631,11 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
         BPatch_point::convertInstPointType_t(faultPoint->type()));
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
-    for (unsigned int i = 0; i < cbs.size(); ++i) 
+    for (unsigned int i = 0; i < cbs.size(); ++i)
     {
-        CodeOverwriteCallback *cb = 
+        CodeOverwriteCallback *cb =
             dynamic_cast<CodeOverwriteCallback *>(cbs[i]);
-        if (cb) { 
+        if (cb) {
             foundCallback = true;
 
             (*cb)(bpPoint, faultTarget, lowlevel_process());
@@ -1662,7 +1650,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  * being debugged.  The debugging process will still have debug
  * access, but system calls that ask if the process is being debugged
  * will say that it is not because they merely return the value of the
- * user-space beingDebugged flag. 
+ * user-space beingDebugged flag.
  */
 bool BPatch_process::hideDebuggerInt()
 {
@@ -1747,7 +1735,7 @@ bool BPatch_process::hideDebuggerInt()
                                 funcs[0],repfuncs[0]));
     }
 
-    if (kern) { 
+    if (kern) {
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(
@@ -1764,14 +1752,14 @@ bool BPatch_process::hideDebuggerInt()
                                 funcs[0],repfuncs[0]));
     }
 
-    if (kern && user) { 
+    if (kern && user) {
         // OutputDebugStringA
         vector<BPatch_function*> funcs;
         kern->findFunction("OutputDebugStringA",
             funcs, false, false, true);
         assert(funcs.size());
         vector<BPatch_function*> sle_funcs;
-        user->findFunction("SetLastErrorEx", sle_funcs, 
+        user->findFunction("SetLastErrorEx", sle_funcs,
                            false, false, true, true);
         assert(!sle_funcs.empty());
         vector<BPatch_snippet*> args;
@@ -1784,8 +1772,8 @@ bool BPatch_process::hideDebuggerInt()
         for (unsigned i=0; i < exitPoints->size(); i++) {
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
-    } 
-    
+    }
+
     if (NULL != hybridAnalysis_) {
         hybridAnalysis_->addReplacedFuncs(disabledFuncs);
     }
@@ -1820,14 +1808,14 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
     return buf;
 }
 
-// is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
+// is the first instruction: [00 00] add byte ptr ds:[eax],al ?
 static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
     Symtab *sym = func->obj()->parse_img()->getObject();
-    if (sym->findEnclosingRegion(func->addr()) 
-        != 
-        sym->findEnclosingRegion(func->addr()+1)) 
+    if (sym->findEnclosingRegion(func->addr())
+        !=
+        sym->findEnclosingRegion(func->addr()+1))
     {
         return false;
     }
@@ -1842,7 +1830,7 @@ static bool hasWeirdEntryBytes(func_instance *func)
 }
 
 // return true if the analysis changed
-// 
+//
 void BPatch_process::overwriteAnalysisUpdate
     ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
       std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
@@ -1869,18 +1857,18 @@ void BPatch_process::overwriteAnalysisUpdate
         return;
     }
 
-    // Identify the dead code
+    // identify the dead code
     std::set<block_instance*> delBBIs;
     std::map<func_instance*,set<block_instance*> > elimMap;
     std::list<func_instance*> deadFuncs;
     std::map<func_instance*,block_instance*> newFuncEntries;
-    llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
+    llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries);
 
     // remove instrumentation from affected funcs
     beginInsertionSet();
     for(std::map<func_instance*,set<block_instance*> >::iterator fIter = elimMap.begin();
-        fIter != elimMap.end(); 
-        fIter++) 
+        fIter != elimMap.end();
+        fIter++)
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
         //hybridAnalysis_->removeInstrumentation(bpfunc,false,false);
@@ -1888,11 +1876,11 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     //remove instrumentation from dead functions
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
-        // remove instrumentation 
+        // remove instrumentation
         findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
     }
 
@@ -1901,22 +1889,22 @@ void BPatch_process::overwriteAnalysisUpdate
 
     finalizeInsertionSet(false);
 
-    // create stub edge set which is: all edges such that: 
+    // create stub edge set which is: all edges such that:
     //     e->trg() in owBBIs and
     //     while e->src() in delBlocks try e->src()->sources()
-    std::map<func_instance*,vector<edgeStub> > stubs = 
+    std::map<func_instance*,vector<edgeStub> > stubs =
        llproc->getStubs(owBBIs,delBBIs,deadFuncs);
 
     // remove dead springboards
-    for(set<block_instance*>::iterator bit = delBBIs.begin(); 
+    for(set<block_instance*>::iterator bit = delBBIs.begin();
         bit != delBBIs.end();
-        bit++) 
+        bit++)
     {
         llproc->getMemEm()->removeSpringboards(*bit);
     }
-    for(list<func_instance*>::iterator fit = deadFuncs.begin(); 
+    for(list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
-        fit++) 
+        fit++)
     {
         malware_cerr << "Removing instrumentation from dead func at " 
             << hex << (*fit)->addr() << dec << endl;
@@ -1927,7 +1915,7 @@ void BPatch_process::overwriteAnalysisUpdate
     std::map<parse_func*,vector<ParseAPI::Block*>*> modFuncs;
     for(set<block_instance*>::iterator bit = delBBIs.begin(); 
         bit != delBBIs.end();
-        bit++) 
+        bit++)
     {
         mal_printf("Deleting block [%lx %lx) from func at %lx\n",
                    (*bit)->start(),(*bit)->end(),(*bit)->func()->addr());
@@ -1961,9 +1949,9 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // delete completely dead functions
     map<block_instance*,Address> deadFuncCallers; // build up list of live callers
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
         using namespace ParseAPI;
         Address funcAddr = (*fit)->addr();
@@ -1985,8 +1973,8 @@ void BPatch_process::overwriteAnalysisUpdate
                     }
                     bool isFuncDead = false;
                     for (std::list<func_instance*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end(); 
-                         dfit++) 
+                         dfit != deadFuncs.end();
+                         dfit++)
                     {
                         if (cfunc == *dfit) {
                             isFuncDead = true;
@@ -1996,11 +1984,11 @@ void BPatch_process::overwriteAnalysisUpdate
                     if (isFuncDead) {
                         continue;
                     }
-                    if ( (*fit)->ifunc()->hasWeirdInsns() || 
-                         hasWeirdEntryBytes(*fit) ) 
+                    if ( (*fit)->ifunc()->hasWeirdInsns() ||
+                         hasWeirdEntryBytes(*fit) )
                     {
                        instPoint *cPoint = cbbi->preCallPoint();
-                       
+
                        monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
                     } else {
                         // parse right away
@@ -2021,9 +2009,9 @@ void BPatch_process::overwriteAnalysisUpdate
     }
     mal_printf("Done deleting dead func blocks\n");
     //remove dead functions
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
         bpfunc->getModule()->removeFunction(bpfunc,false);
@@ -2034,11 +2022,11 @@ void BPatch_process::overwriteAnalysisUpdate
     // set up datastructures for re-parsing dead function entries with valid call edges
     map<mapped_object*,vector<edgeStub> > dfstubs;
     set<Address> reParsedFuncs;
-    vector<BPatch_module*> dontcare; 
-    vector<Address> targVec; 
+    vector<BPatch_module*> dontcare;
+    vector<Address> targVec;
     for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
          bit != deadFuncCallers.end();
-         bit++) 
+         bit++)
     {
         // the function is still reachable, reparse it
         if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
@@ -2078,19 +2066,19 @@ void BPatch_process::overwriteAnalysisUpdate
         if (entry != nit->second) {
             mal_printf("For overwritten executing func chose entry "
                        "block %lx rather than active block %lx %s %d\n",
-                       entry->start(), 
+                       entry->start(),
                        nit->second->start(),FILE__,__LINE__);
         }
     }
 
     //3. parse new code, one overwritten function at a time
-    for(std::map<func_instance*,set<block_instance*> >::iterator 
+    for(std::map<func_instance*,set<block_instance*> >::iterator
         fit = elimMap.begin();
         fit != elimMap.end();
-        fit++) 
+        fit++)
     {
         // parse new edges in the function
-        if (stubs[fit->first].size()) 
+        if (stubs[fit->first].size())
         {
             fit->first->obj()->parseNewEdges(stubs[fit->first]);
         } 
@@ -2101,10 +2089,10 @@ void BPatch_process::overwriteAnalysisUpdate
             vector<edgeStub> svec;
             svec.push_back(edgeStub(
                 NULL, fit->first->addr(), ParseAPI::NOEDGE));
-		    fit->first->obj()->parseNewEdges(svec);
+                    fit->first->obj()->parseNewEdges(svec);
             assert(0);
         }
-        // else, this is the entry point of the function, do nothing, 
+        // else, this is the entry point of the function, do nothing,
         // we'll parse this anyway through recursive traversal if there's
         // code at this address
 
@@ -2113,7 +2101,7 @@ void BPatch_process::overwriteAnalysisUpdate
         bpfunc->removeCFG();
         owFuncs.push_back(bpfunc);
     }
-        
+
     // do a consistency check
     for(std::map<func_instance*,set<int_block*> >::iterator 
         fit = elimMap.begin();
@@ -2128,10 +2116,10 @@ void BPatch_process::overwriteAnalysisUpdate
 }
 
 
-/* Protect analyzed code without protecting relocated code in the 
+/* Protect analyzed code without protecting relocated code in the
  * runtime library and for now only protect code in the aOut,
  * also don't protect code that hasn't been analyzed
- */ 
+ */
 bool BPatch_process::protectAnalyzedCode()
 {
     bool ret = true;
@@ -2144,7 +2132,7 @@ bool BPatch_process::protectAnalyzedCode()
     return false;
 }
 
-void BPatch_process::set_llproc(process *proc) 
+void BPatch_process::set_llproc(process *proc)
 {
     assert(NULL == llproc);
     llproc = proc;

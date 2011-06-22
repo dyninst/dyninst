@@ -191,6 +191,7 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
 
 #define PRE_TRAMP_SIZE 4096
 #define POST_TRAMP_SIZE 4096
+
 // recursive into miniTramps
 // If we generated once, we skip most of this as useless.
 // However, we still go into the miniTramps.
@@ -282,7 +283,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // <Cost section>
    // <Load state>
 
-
    // Break it down...
    // <Save state>
    //   -- TODO: an AST for saves that knows how many registers
@@ -298,9 +298,16 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    pdvector<AstNodePtr> miniTramps;
 
    if (point_) {
+     /*
       for (instPoint::iterator iter = point_->begin(); 
            iter != point_->end(); ++iter) {
          miniTramps.push_back((*iter)->ast());
+      }
+     */
+      for (instPoint::instance_iter iter = point_->begin(); 
+           iter != point_->end(); ++iter) {
+        miniTramp* mini = GET_MINI(*iter);
+        miniTramps.push_back(mini->ast());
       }
    }
    else {
@@ -375,9 +382,6 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // Run the minitramps
    baseTrampElements.push_back(minis);
     
-   // Cost code...
-   //
-    
    if (trampGuardAddr) {
       // And set the tramp guard flag to 1
       baseTrampElements.push_back(AstNode::operatorNode(storeOp,
@@ -443,9 +447,16 @@ bool baseTramp::checkForFuncCalls()
    if (ast_)
       return ast_->containsFuncCall();
    if (point_) {
+     /*
       for (instPoint::iterator iter = point_->begin(); 
            iter != point_->end(); ++iter) {
          if ((*iter)->ast()->containsFuncCall()) return true;
+      }
+*/
+      for (instPoint::instance_iter iter = point_->begin(); 
+           iter != point_->end(); ++iter) {
+	miniTramp* mini = GET_MINI(*iter);
+        if (mini->ast()->containsFuncCall()) return true;
       }
    }
    return false;
@@ -464,12 +475,22 @@ bool baseTramp::hasFuncJump()
       }
       return (funcJumpState_ >= cfj_jump);
    }
-   for (instPoint::iterator iter = point_->begin(); 
+   /*   
+	for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       cfjRet_t tmp = (*iter)->ast()->containsFuncJump();
       if ((int) tmp > (int) funcJumpState_)
          funcJumpState_ = tmp;
    }
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+      cfjRet_t tmp = mini->ast()->containsFuncJump();
+      if ((int) tmp > (int) funcJumpState_)
+         funcJumpState_ = tmp;
+   }
+
    return (funcJumpState_ >= cfj_jump);
 }
 
@@ -483,6 +504,7 @@ bool baseTramp::doOptimizations()
    }
 
    hasFuncCall = false;
+   /*
    for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       if ((*iter)->ast()->containsFuncCall()) {
@@ -490,7 +512,16 @@ bool baseTramp::doOptimizations()
          break;
       }
    }
-   
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+      if (mini->ast()->containsFuncCall()) {
+         hasFuncCall = true;
+         break;
+      }
+   }
+
    needsStackFrame_ = usesReg;
    
    if (!hasFuncCall) {
@@ -564,6 +595,7 @@ bool baseTramp::guarded() const {
    bool recursive = false;
 
    // See if any of our miniTramps are guarded
+   /*
    for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       if ((*iter)->recursive())
@@ -571,6 +603,16 @@ bool baseTramp::guarded() const {
       else
          guarded = true;
    }
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+     if (mini->recursive())
+         recursive = true;
+      else
+         guarded = true;
+   }
+
    if (recursive && guarded) {
       cerr << "Warning: mix of recursive and guarded snippets @ " << point_
            << ", picking guarded" << endl;

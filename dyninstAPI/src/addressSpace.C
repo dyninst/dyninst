@@ -42,12 +42,8 @@
 // Two-level codeRange structure
 #include "mapped_object.h"
 #include "mapped_module.h"
-#if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif //defined(cap_instruction_api)
 
 #include "dynutil/h/AST.h"
 #include "Relocation/CodeMover.h"
@@ -59,10 +55,25 @@
 #include "parseAPI/h/CodeObject.h"
 #include <boost/tuple/tuple.hpp>
 
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+#include "Relocation/DynInstrumenter.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 
 using namespace Dyninst;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::DynAddrSpacePtr;
+using PatchAPI::PatchMgr;
+using PatchAPI::Patcher;
+using PatchAPI::PointMakerPtr;
+using PatchAPI::DynInstrumenterPtr;
+using PatchAPI::DynInstrumenter;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
@@ -72,7 +83,8 @@ AddressSpace::AddressSpace () :
     costAddr_(0),
     memEmulator_(NULL),
     emulateMem_(false),
-    emulatePC_(false)
+    emulatePC_(false),
+    delayRelocation_(false)
 {
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
@@ -98,7 +110,7 @@ BinaryEdit *AddressSpace::edit() {
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
 void AddressSpace::copyAddressSpace(process *parent) {
-    deleteAddressSpace();
+   deleteAddressSpace();
 
     // This is only defined for process->process copy
     // until someone can give a good reason for copying
@@ -117,9 +129,11 @@ void AddressSpace::copyAddressSpace(process *parent) {
         // This clones funcs, which then clone instPoints, which then 
         // clone baseTramps, which then clones miniTramps.
     }
+
+    initPatchAPI();
+
     // Clone the tramp guard base
     trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
-    
 
     /////////////////////////
     // Inferior heap
@@ -146,6 +160,7 @@ void AddressSpace::copyAddressSpace(process *parent) {
     
     // Let's assume we're not forking _in the middle of instrumentation_
     // (good Lord), and so leave modifiedFunctions_ alone.
+    /*
     for (CallModMap::iterator iter = parent->callModifications_.begin(); 
          iter != parent->callModifications_.end(); ++iter) {
        // Need to forward map the lot
@@ -157,11 +172,33 @@ void AddressSpace::copyAddressSpace(process *parent) {
           callModifications_[newB][context] = target;
        }
     }
-    for (FuncReplaceMap::iterator iter = parent->functionReplacements_.begin();
-         iter != parent->functionReplacements_.end(); ++iter) {
-       func_instance *from = findFunction(iter->first->ifunc());
-       func_instance *to = findFunction(iter->second->ifunc());
-       functionReplacements_[from] = to;
+    */
+
+    assert(parent->mgr());
+    PatchAPI::CallModMap& cmm = parent->mgr()->instrumenter()->callModMap();
+    for (PatchAPI::CallModMap::iterator iter = cmm.begin(); iter != cmm.end(); ++iter) {
+       // Need to forward map the lot
+      block_instance *newB = findBlock(SCAST_BI(iter->first)->llb());
+      for (std::map<PatchFunction*, PatchFunction*>::iterator iter2 = iter->second.begin();
+            iter2 != iter->second.end(); ++iter2) {
+        func_instance *context = (SCAST_FI(iter2->first) == NULL) ? NULL : findFunction(SCAST_FI(iter2->first)->ifunc());
+        func_instance *target = (SCAST_FI(iter2->second) == NULL) ? NULL : findFunction(SCAST_FI(iter2->second)->ifunc());
+        cmm[newB][context] = target;
+       }
+    }
+
+    PatchAPI::FuncModMap& frm = parent->mgr()->instrumenter()->funcRepMap();
+    for (PatchAPI::FuncModMap::iterator iter = frm.begin(); iter != frm.end(); ++iter) {
+      func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
+      func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
+      frm[from] = to;
+    }
+
+    PatchAPI::FuncModMap& fwm = parent->mgr()->instrumenter()->funcWrapMap();
+    for (PatchAPI::FuncModMap::iterator iter = fwm.begin(); iter != fwm.end(); ++iter) {
+      func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
+      func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
+      fwm[from] = to;
     }
 
     if (memEmulator_) assert(0 && "FIXME!");
@@ -200,8 +237,7 @@ void AddressSpace::deleteAddressSpace() {
     forwardDefensiveMap_.clear();
     reverseDefensiveMap_.clear();
     instrumentationInstances_.clear();
-    callModifications_.clear();
-    functionReplacements_.clear();
+
     if (memEmulator_) delete memEmulator_;
     memEmulator_ = NULL;
 }
@@ -861,7 +897,8 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (f)
         return f;
 
-#if defined(cap_instruction_api)
+    if (!findObject(addr)) return NULL;
+
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
             InstructionDecoder::maxInstructionLength,
@@ -887,11 +924,6 @@ func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 	break;
       }
     }
-#else
-    InstrucIter ii(addr, this);
-    if (ii.isAJumpInstruction())
-        addr2 = ii.getBranchTargetAddress();
-#endif //defined(cap_instruction_api)
     return findOneFuncByAddr(addr2);
 }
 
@@ -1413,31 +1445,56 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 
 void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, func_instance *context) {
   // Just register it for later code generation
-   callModifications_[block][context] = newFunc;
-   if (context) addModifiedFunction(context);
-   else addModifiedBlock(block);
+  //callModifications_[block][context] = newFunc;
+  mgr()->instrumenter()->modifyCall(block, newFunc, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
-  functionReplacements_[oldfunc] = newfunc;
+  mgr()->instrumenter()->replaceFunction(oldfunc, newfunc);
   addModifiedFunction(oldfunc);
 }
 
+bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) {
+   if (oldfunc->proc() != this) {
+      return oldfunc->proc()->wrapFunction(oldfunc, newfunc);
+   }
+   assert(oldfunc->proc() == this);
+
+   // functionWraps_[oldfunc] = newfunc;
+   mgr()->instrumenter()->wrapFunction(oldfunc, newfunc);
+   addModifiedFunction(oldfunc);
+
+   if (edit() && oldfunc->obj() != newfunc->obj()) {
+     if (!AddressSpace::patch(this)) return false;
+     if (!newfunc->callWrappedFunction(oldfunc)) return false;
+   }
+   else {
+      addModifiedFunction(newfunc);
+   }
+   return true;
+}
+
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
-   modifyCall(block, NULL, context);
+  mgr()->instrumenter()->removeCall(block, context);
 }
 
 void AddressSpace::revertCall(block_instance *block, func_instance *context) {
+  /*
    if (callModifications_.find(block) != callModifications_.end()) {
       callModifications_[block].erase(context);
    }
-   if (context) addModifiedFunction(context);
-   else addModifiedBlock(block);
+  */
+  mgr()->instrumenter()->revertModifiedCall(block, context);
+  if (context) addModifiedFunction(context);
+  else addModifiedBlock(block);
 }
 
 void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
-   functionReplacements_.erase(oldfunc);
-   addModifiedFunction(oldfunc);
+  //functionReplacements_.erase(oldfunc);
+  mgr()->instrumenter()->revertReplacedFunction(oldfunc);
+  addModifiedFunction(oldfunc);
 }
 
 func_instance *AddressSpace::isFunctionReplaced(func_instance *func) const
@@ -1465,6 +1522,8 @@ using namespace Dyninst;
 using namespace Relocation;
 
 bool AddressSpace::relocate() {
+   if (delayRelocation()) return true;
+
   relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
@@ -1497,9 +1556,11 @@ bool AddressSpace::relocate() {
         }
     } while (repeat);
 
-	addModifiedRegion(iter->first);
+    addModifiedRegion(iter->first);
 
-    if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
+    Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
+
+    if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
       ret = false;
     }
 
@@ -1513,6 +1574,7 @@ bool AddressSpace::relocate() {
 
 // iter is some sort of functions
 bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
+
   if (begin == end) {
     return true;
   }
@@ -1523,7 +1585,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   relocatedCode_.push_back(new CodeTracker());
   CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
   if (!cm->addFunctions(begin, end)) return false;
-
 
   SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
 
@@ -1544,8 +1605,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (dyn_debug_reloc || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
-      cerr << "DUMPING RELOCATION BUFFER " << hex 
-           << cm->blockMap().begin()->first->start() << dec << endl;
+      cerr << "DUMPING RELOCATION BUFFER" << endl;
 
       Address base = baseAddr;
       InstructionDecoder deco
@@ -1648,7 +1708,9 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Insert whatever binary modifications are desired
   // Right now needs to go before Instrumenters because we use
   // instrumentation for function replacement.
-   Modification mod(callModifications_, functionReplacements_);
+   Modification mod(mgr()->instrumenter()->callModMap(),
+                    mgr()->instrumenter()->funcRepMap(),
+                    mgr()->instrumenter()->funcWrapMap());
    cm->transform(mod);
 
   // Add instrumentation
@@ -2001,4 +2063,31 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
     }
 #endif
     return stubs;
+}
+
+/* PatchAPI Stuffs */
+void AddressSpace::initPatchAPI() {
+   DynAddrSpacePtr addr_space = DynAddrSpace::create(getAOut());
+   mgr_ = PatchMgr::create(addr_space,
+                           DynPointMakerPtr(new DynPointMaker),
+                           DynInstrumenterPtr(new DynInstrumenter));
+   patcher_ = Patcher::create(mgr_);
+
+   // load in shared libraries
+   const pdvector<mapped_object*>& mobjs = mappedObjects();
+   for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
+        i != mobjs.end(); i++) {
+     if (*i != getAOut()) {
+       addr_space->loadLibrary(*i);
+     }
+   }
+
+   assert(mgr());
+   mgr()->instrumenter()->callModMap().clear();
+   mgr()->instrumenter()->funcRepMap().clear();
+   mgr()->instrumenter()->funcWrapMap().clear();
+}
+
+bool AddressSpace::patch(AddressSpace* as) {
+  return as->patcher()->commit();
 }

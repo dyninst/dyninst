@@ -37,12 +37,7 @@
 #include <assert.h>
 #include <vector>
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
-#include "arch-sparc.h"
-using namespace NS_sparc;
-
-#elif defined(arch_power)
+#if defined(arch_power)
 #include "arch-power.h"
 using namespace NS_power;
 

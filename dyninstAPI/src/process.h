@@ -52,7 +52,6 @@
 #include "dyninstAPI/src/syscalltrap.h"
 #endif
 #include "dyninstAPI/src/codeRange.h"
-#include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/ast.h"
@@ -73,17 +72,10 @@
 // /usr/include/procfs.h is the one we want, and /usr/include/sys/procfs.h
 // is the ioctl one. This makes it impossible to have a single include
 // line. 
-#if defined(os_solaris)
-#include <procfs.h>
-#elif defined(os_aix) || defined(os_osf) || defined(os_irix)
+#if defined(os_aix)
 #include <sys/procfs.h>
 #endif
 
-
-#if defined( cap_unwind )
-#include <libunwind.h>
-#include <libunwind-ptrace.h>
-#endif /* defined( cap_unwind ) */
 
 #if defined(os_linux)
 #include "common/h/parseauxv.h"
@@ -253,42 +245,9 @@ class process : public AddressSpace {
     void continueAfterNextStop() { continueAfterNextStop_ = true; }
     static process *findProcess(int pid);
 
-#if defined (cap_save_the_world) 
-    
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-    char* dumpPatchedImage(std::string outFile);//ccw 28 oct 2001
-    
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4)
-    bool prelinkSharedLibrary(string originalLibNameFullPath, char* dirName, Address baseAddr);
-#endif
-    
-#if defined(sparc_sun_solaris2_4)  //ccw 10 mar 2004
-    bool dldumpSharedLibrary(std::string dyninstRT_name, char* directoryname);
-#endif
-    
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) \
- || defined(sparc_sun_solaris2_4)
-    char *saveWorldFindNewSharedLibraryName(string originalLibNameFullPath, char* dirName);
-    void setPrelinkCommand(char *command);
-#endif
-    
-#endif
-
-#else
-#if 0
-    char* dumpPatchedImage(std::string /*outFile*/) { return NULL; } 
-#endif
-#endif
-
-    bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
-    
-    
     bool dumpImage(std::string outFile);
+
+
     
     //  SignalHandler::dumpMemory()
     //
@@ -319,10 +278,6 @@ class process : public AddressSpace {
     rpcMgr *getRpcMgr() const { return theRpcMgr; }
     
     bool getCurrPCVector(pdvector <Address> &currPCs);
-    
-#if defined(os_solaris) && (defined(arch_x86) || defined(arch_x86_64))
-    bool changeIntReg(int reg, Address addr);
-#endif
     
     void installInstrRequests(const pdvector<instMapping*> &requests);
 
@@ -362,30 +317,6 @@ class process : public AddressSpace {
     bool initTrampGuard();
     void saveWorldData(Address address, int size, const void* src);
     
-#if defined(cap_save_the_world)
-    
-    char* saveWorldFindDirectory();
-    
-    unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
-                                         unsigned int &dyninst_SharedLibrariesSize,
-                                         char* directoryName, unsigned int &count);
-    char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
-    
-    void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
-                                        pdvector<imageUpdate*> &highmemUpdates,
-                                        void *newElf);
-    void saveWorldCreateDataSections(void* ptr);
-    void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-    void saveWorldloadLibrary(std::string tmp, void *brk_ptr) {
-        loadLibraryUpdates.push_back(tmp);
-        loadLibraryBRKs.push_back(brk_ptr);
-    };
-    
-#if defined(os_aix)
-    void addLib(char *lname);//ccw 30 jul 2002
-#endif // os_aix
-    
-#endif // cap_save_the_world
     
     
     void writeDebugDataSpace(void *inTracedProcess, u_int amount, 
@@ -401,9 +332,6 @@ class process : public AddressSpace {
 
     bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
     bool writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf);
-#if 0
-    bool writeTextWord(caddr_t inTracedProcess, int data);
-#endif
     bool readTextSpace(const void *inTracedProcess, u_int amount,
                        void *inSelf);
     bool readTextWord(const void *inTracedProcess, u_int amount,
@@ -995,20 +923,8 @@ private:
   rpcMgr *theRpcMgr;
 
 
-  ///////////////////////////////
-  // Save The World
-  ///////////////////////////////
-  bool collectSaveWorldData;//this is set to collect data for
-				//save the world
-
-  pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
-  pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
-  pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  pdvector<std::string> loadLibraryCalls;//ccw 14 may 2002 
-  pdvector<std::string> loadLibraryUpdates;//ccw 14 may 2002
-  pdvector<void*> loadLibraryBRKs;
   int requestTextMiniTramp; //ccw 20 jul 2002
-	void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
+  void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
 
 
   // Pipe between mutator and mutatee

@@ -184,7 +184,10 @@ bool syscallNotification::removePreFork() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete preForkInst;
     preForkInst = NULL;
@@ -216,7 +219,10 @@ bool syscallNotification::removePostFork() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete postForkInst;
     postForkInst = NULL;
@@ -247,7 +253,10 @@ bool syscallNotification::removePreExec() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete preExecInst;
     preExecInst = NULL;
@@ -281,7 +290,10 @@ bool syscallNotification::removePreExit() {
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete preExitInst;
     preExitInst = NULL;

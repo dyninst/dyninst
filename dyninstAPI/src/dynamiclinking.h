@@ -207,46 +207,6 @@ public:
     pdvector<Address> *getLinkMapAddrs();
 #endif // os-linux
 
-#if defined(os_solaris)
-       Address r_debug_addr;
-       u_int r_state;  // either 0 (RT_CONSISTENT), 1 (RT_ADD), or 2 (RT_DELETE)
-
-       // Return /proc/.../object name for ld.so.1
-       bool get_ld_name(char *ld_name, Address ld_base, int map_fd, int pid);
-       
-       // get_ld_base_addr: This routine returns the base address of ld.so.1
-       // it returns true on success, and false on error
-       bool get_ld_base_addr(Address &addr, int auxv_fd);
-
-          // find_function: this routine finds the symbol table for ld.so.1, and
-       // parses it to find the address of f_name
-       // fills in f_name_addr with the address of f_name
-       // it returns false on error
-       // f_name_addr can't be passed in by reference since it makes calling it
-       // with a NULL parameter unpleasant.
-       bool findFunctionIn_ld_so_1(std::string f_name, int ld_fd, 
-                                   Address ld_base_addr, Address *f_name_addr, 
-                                   int st_type);
-       
-       // find_r_debug: this routine finds the symbol table for ld.so.1, and
-       // parses it to find the address of symbol r_debug
-       // it returns false on error
-       bool find_r_debug(int ld_fd, Address ld_base_addr);
-       
-       // find_dlopen: this routine finds the symbol table for ld.so.1, and
-       // parses it to find the address of symbol r_debug
-       // it returns false on error
-       bool find_dlopen(int ld_fd, Address ld_base_addr);   
-       
-       // getLinkMapAddrs: returns a vector of addresses corresponding to all 
-       // base addresses in the link maps.  Returns 0 on error.
-       pdvector<Address> *getLinkMapAddrs();
-#endif
-#if defined(os_irix)
-       pdvector<pdElfObjInfo *> getRldMap();
-       pdvector<pdElfObjInfo *> rld_map;
-       pdElfObjInfo *libc_obj;
-#endif
        
     
     

@@ -35,12 +35,13 @@ SRCS =          ../src/linux.C \
                 ../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
-		../src/image-x86.C \
+		../src/parse-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-x86.C\
+		../src/RegisterConversion-x86.C \
+		../src/Relocation/Widgets/CFWidget-x86.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \

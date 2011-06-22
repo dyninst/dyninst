@@ -1,0 +1,28 @@
+#include "DynPointMaker.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/instPoint.h"
+
+
+Point* DynPointMaker::createPoint(Address addr, Point::Type type,
+                                  Address* scope) {
+  instPoint* ret = new instPoint(addr, type, mgr_, scope);
+  return ret;
+}
+
+Point* DynPointMaker::createPoint(Address addr, Point::Type type,
+                                  PatchBlock* scope) {
+  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_BI(scope));
+  return ret;
+}
+
+Point* DynPointMaker::createPoint(Address addr, Point::Type type,
+                                  PatchEdge* scope) {
+  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_EI(scope));
+  return ret;
+}
+
+Point* DynPointMaker::createPoint(Address addr, Point::Type type,
+                                  PatchFunction* scope) {
+  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_FI(scope));
+  return ret;
+}

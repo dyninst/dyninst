@@ -100,6 +100,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 }
 } // anonymous namespace
 
+
 static void 
 getBlockInsns(Block &blk, std::set<Address> &addrs)
 {
@@ -342,7 +343,6 @@ void Parser::ProcessUnresBranchEdge(
     }
     _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
 }
-
 
 /*
  * Extra handling of return instructions

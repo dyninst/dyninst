@@ -874,7 +874,7 @@ bool dynamic_linking::installTracing()
     startup_printf("... Looking for do_dlopen...\n");
     if (proc->findFuncsByMangled("do_dlopen",
                                  do_dlopens)) {
-        Address do_dlopen_addr = do_dlopens[0]->getAddress();
+        Address do_dlopen_addr = do_dlopens[0]->addr();
         startup_printf("... Found do_dlopen at 0x%x\n", do_dlopen_addr);
         pdvector<int_variable *> vars;
         if (proc->findVarsByAll("DYNINST_do_dlopen", vars)) {

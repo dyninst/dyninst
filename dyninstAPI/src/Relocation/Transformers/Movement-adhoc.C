@@ -32,37 +32,39 @@
 #include "Transformer.h"
 #include "Movement-adhoc.h"
 #include "../patchapi_debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/RelDataAtom.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/PCAtom.h"
-#include "../Atoms/Trace.h"
+#include "../Widgets/Widget.h"
+#include "../Widgets/RelDataWidget.h"
+#include "../Widgets/CFWidget.h"
+#include "../Widgets/PCWidget.h"
+#include "../CFG/RelocBlock.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+#include "../CFG/RelocGraph.h"
+
 
 using namespace std;
-using namespace Dyninst;
+using namespace Dyninst; 
 using namespace Relocation;
 using namespace InstructionAPI;
 
 
-bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const TraceMap &) {
+bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
   // Identify PC-relative data accesses
   // and "get PC" operations and replace them
-  // with dedicated Atoms
+  // with dedicated Widgets
 
-   Trace::AtomList &elements = (*b_iter)->elements();
+   RelocBlock::WidgetList &elements = cur->elements();
 
   relocation_cerr << "PCRelTrans: processing block " 
-		  << (*b_iter).get() << " with "
+		  << cur << " with "
 		  << elements.size() << " elements." << endl;
 
-  for (Trace::AtomList::iterator iter = elements.begin();
+  for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
     // Can I do in-place replacement? Apparently I can...
     // first insert new (before iter) and then remove iter
 
-    relocation_cerr << "    "
+    relocation_cerr << "\t"
 		    << std::hex << (*iter)->addr() << std::dec << endl;
 
     if (!((*iter)->insn())) continue;
@@ -71,7 +73,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
     Absloc aloc;
 
     if (isPCDerefCF(*iter, target)) {
-       CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>(*iter);
+       CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
        assert(cf);
        cf->setOrigTarget(target);
     }
@@ -79,9 +81,9 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
       relocation_cerr << "  ... isPCRelData at " 
 		      << std::hex << (*iter)->addr() << std::dec << endl;
       // Two options: a memory reference or a indirect call. The indirect call we 
-      // just want to set target in the CFAtom, as it has the hardware to handle
+      // just want to set target in the CFWidget, as it has the hardware to handle
       // control flow. Generic memory references get their own atoms. How nice. 
-      Atom::Ptr replacement = RelDataAtom::create((*iter)->insn(),
+      Widget::Ptr replacement = RelDataWidget::create((*iter)->insn(),
                                                      (*iter)->addr(),
                                                      target);
       (*iter).swap(replacement);
@@ -89,13 +91,13 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
     }
     else if (isGetPC(*iter, aloc, target)) {
 
-      Atom::Ptr replacement = PCAtom::create((*iter)->insn(),
+      Widget::Ptr replacement = PCWidget::create((*iter)->insn(),
 					       (*iter)->addr(),
 					       aloc,
 					       target);
       // This is kind of complex. We don't want to just pull the getPC
       // because it also might end the basic block. If that happens we
-      // need to pull the fallthough element out of the CFAtom so
+      // need to pull the fallthough element out of the CFWidget so
       // that we don't hork control flow. What a pain.
       if ((*iter) != elements.back()) {
 	// Easy case; no worries.
@@ -104,7 +106,8 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
       else {
          // Remove the taken edge from the trace, as we're removing
          // the call and replacing it with a GetPC operation. 
-         bool removed = (*b_iter)->removeTargets(ParseAPI::CALL);
+         Predicates::Interprocedural pred;
+         bool removed = cfg->removeEdge(pred, cur->outs());
          assert(removed);
             
          // Before we forget: swap in the GetPC for the current element
@@ -116,15 +119,16 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter, const T
   return true;
 }
 
-bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
+bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
                                            Address &target) {
    Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
    if (!cf) return false;
-
-   static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-   static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-   static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-   static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+   
+   Architecture fixme = ptr->insn()->getArch();
+   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
@@ -133,10 +137,8 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(ppcPC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+          exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
@@ -154,21 +156,19 @@ bool adhocMovementTransformer::isPCDerefCF(Atom::Ptr ptr,
 
 
 // We define this as "uses PC and is not control flow"
-bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
+bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
                                            Address &target) {
   target = 0;
   if (ptr->insn()->getControlFlowTarget()) return false;
 
-  // TODO FIXME
-  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+  Architecture fixme = ptr->insn()->getArch();
+  if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
-  if (!ptr->insn()->isRead(x86PC) &&
-      !ptr->insn()->isRead(x86PC64) &&
-      !ptr->insn()->isRead(ppcPC) &&
-      !ptr->insn()->isRead(ppcPC64))
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+  Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+
+  if (!ptr->insn()->isRead(thePC) &&
+      !ptr->insn()->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
@@ -178,10 +178,8 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -205,10 +203,8 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(x86PC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(x86PC64.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC.get(), Result(u32, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(ppcPC64.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -223,13 +219,15 @@ bool adhocMovementTransformer::isPCRelData(Atom::Ptr ptr,
   return true;    
 }
 
-bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
+bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 				       Absloc &aloc,
 				       Address &thunk) {
   // TODO:
   // Check for call + size;
   // Check for call to thunk.
   // TODO: need a return register parameter.
+
+   if (ptr->insn()->getCategory() != InstructionAPI::c_CallInsn) return false;
 
   // Okay: checking for call + size
   Expression::Ptr CFT = ptr->insn()->getControlFlowTarget();
@@ -238,17 +236,15 @@ bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
     return false;
   }
    
-  // Bind current PC
-  static Expression::Ptr x86PC(new RegisterAST(MachRegister::getPC(Arch_x86)));
-  static Expression::Ptr x86PC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
-  static Expression::Ptr ppcPC(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
-  static Expression::Ptr ppcPC64(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+  Architecture fixme = ptr->insn()->getArch();
+   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
+   
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   // Bind the IP, why not...
-  CFT->bind(x86PC.get(), Result(u32, ptr->addr()));
-  CFT->bind(x86PC64.get(), Result(u64, ptr->addr()));
-  CFT->bind(ppcPC.get(), Result(u32, ptr->addr()));
-  CFT->bind(ppcPC64.get(), Result(u64, ptr->addr()));
+  CFT->bind(thePC.get(), Result(u64, ptr->addr()));
+  CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
 
   Result res = CFT->eval();
 

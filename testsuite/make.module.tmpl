@@ -12,12 +12,13 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR)
 
-IFLAGS += ../../../include
+IFLAGS += -I../../../include
 #DYNINST_INCDIR = -I../../dyninstAPI/h
 #SYMTAB_INCDIR = -I../../symtabAPI/h
 #DYNUTIL_INCDIR = -I../../dynutil/h
 #INSTRUCTION_INCDIR = -I../../instructionAPI/h
 #PROCCONTROL_INCDIR = -I../../proccontrol/h
+PATCHAPI_INCDIR = -I../../patchAPI/h
 BOOST_INCDIR = -I../../external
 
 IFLAGS += $(DYNINST_INCDIR)
@@ -25,6 +26,7 @@ IFLAGS += $(DYNUTIL_INCDIR)
 IFLAGS += $(SYMTAB_INCDIR)
 IFLAGS += $(INSTRUCTION_INCDIR)
 IFLAGS += $(PROCCONTROL_INCDIR)
+IFLAGS += $(PATCHAPI_INCDIR)
 IFLAGS += $(BOOST_INCDIR)
 
 #######################################################################
@@ -32,9 +34,10 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR) $(IFLAGS)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
+CXXFLAGS += $(OS_DEF)
 CFLAGS_NATIVE = $(CFLAGS)
 CXXFLAGS_NATIVE = $(CXXFLAGS)
 MUTATEE_CFLAGS_NATIVE ?= $(CFLAGS)
@@ -160,6 +163,36 @@ endif
 dyninst_MUTATOR_LIB = $(LIBDYNINSTCOMP)
 dyninst_COMPONENT_LIB = $(LIBDYNINSTCOMP)
 
+#######################################################
+# PatchAPI infrastructure components
+#######################################################
+SRCS_PATCHAPICOMP_LIB = patchapi/patchapi_comp.C
+OBJS_PATCHAPICOMP_LIB = $(notdir $(SRCS_PATCHAPICOMP_LIB:%.C=%.o))
+SRCS_PATCHAPITESTLIB = patchapi/libtestpatch1.c \
+                       patchapi/libtestpatch2.c \
+
+patchapi_MUTATOR_FLAGS = -L. -ltestpatchapi -ldyninstAPI -lcommon  -linstructionAPI
+
+ifdef M_ABI
+PATCHAPI_TESTLIBS = $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%.so))
+PATCHAPI_STATIC_TESTLIBS = $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%.a))
+PATCHAPI_TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%)))
+PATCHAPI_STATIC_TESTLIBS_ABI = $(addsuffix _$(M_ABI).a, $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%)))
+else
+PATCHAPI_TESTLIBS = $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%.so))
+PATCHAPI_STATIC_TESTLIBS = $(notdir $(SRCS_PATCHAPITESTLIB:%.c=%.a))
+PATCHAPI_TESTLIBS_ABI =
+PATCHAPI_STATIC_TESTLIBS_ABI =
+endif
+
+ifdef USE_LIBTESTSUITE_EXT_A
+LIBPATCHAPICOMP = libtestpatchapi.a
+else
+LIBPATCHAPICOMP = libtestpatchapi.so
+endif
+
+patchapi_MUTATOR_LIB = $(LIBPATCHAPICOMP)
+patchapi_COMPONENT_LIB = $(LIBPATCHAPICOMP)
 
 #######################################################
 # Symtab infrastructure components
@@ -299,6 +332,17 @@ components: $(LIBSYMTABCOMP)
 testlibs:
 endif
 
+ifneq ($(wildcard ../src/patchapi), )
+mutatees: $(filter-out $(BUILD_FILTER), $(patchapi_SOLO_MUTATEES))
+mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(patchapi_SOLO_MUTATEES)))
+mutators: $(patchapi_MUTATORS_SO)
+components: $(LIBPATCHAPICOMP)
+testlibs: $(PATCHAPI_TESTLIBS) $(PATCHAPI_STATIC_TESTLIBS)
+ifndef SKIP_BUILD_RTLIB_32
+testlibs: $(PATCHAPI_TESTLIBS_ABI) $(PATCHAPI_STATIC_TESTLIBS_ABI)
+endif
+endif
+
 ifneq ($(wildcard ../src/instruction), )
 mutatees: $(filter-out $(BUILD_FILTER), $(instruction_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES)))
@@ -334,12 +378,16 @@ clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) $(instruction_SOLO_MUTATEES)
 	@$(RM) $(proccontrol_MUTATORS_SO)
 	@$(RM) $(proccontrol_SOLO_MUTATEES)
+	@$(RM) $(patchapi_MUTATORS_SO)
+	@$(RM) $(patchapi_SOLO_MUTATEES)
 	@$(RM) $(OUTPUT_DRIVERS)
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
+	@$(RM) $(LIBPATCHAPICOMP)
 	@$(RM) $(LIBINSTRUCTIONCOMP)
 	@$(RM) $(LIBPROCCONTROLCOMP)
 	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
+	@$(RM) $(PATCHAPI_TESTLIBS) $(PATCHAPI_STATIC_TESTLIBS) $(PATCHAPI_TESTLIBS_ABI) $(PATCHAPI_STATIC_TESTLIBS_ABI)
 	@$(RM) *.o
 	@$(RM) test11
 	@$(RM) imagefile
@@ -385,6 +433,9 @@ $(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
 $(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
+$(patchapi_OBJS_ALL_MUTATORS): %.o : patchapi/%.C $(DEPENDDIR)/%.dep
+	@echo Compiling $<
+	$(HIDE_COMP)$(CXX) -c -o $@ -fPIC $(CXXFLAGS) $(IFLAGS) -I../src/ -I../src/patchapi ../src/patchapi/$*.C
 
 TESTLIB_CC ?= $(CC)
 
@@ -413,15 +464,46 @@ else
 	@echo Compiling $<
 	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
-
-ifdef cap_instruction_api
-    INSNAPI_LINK = -linstructionAPI
-endif
-
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(HIDE_COMP)$(AR) rcs $@ $*.o
+endif
+
+
+$(PATCHAPI_TESTLIBS): %.so : patchapi/%.c $(DEPENDDIR)/%.dep
+ifdef MAKE_SHARED_LIB
+	@echo Compiling $<
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+else
+	@echo Compiling $<
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+endif
+
+$(PATCHAPI_STATIC_TESTLIBS): %.a : patchapi/%.c $(DEPENDDIR)/%.dep
+	@echo Compiling $<
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(AR) rcs $@ $*.o
+
+ifdef M_ABI
+$(PATCHAPI_TESTLIBS_ABI): %_$(M_ABI).so : patchapi/%.c $(DEPENDDIR)/%.dep
+ifdef MAKE_SHARED_LIB
+	@echo Compiling $<
+	$(HIDE_COMP)$(TESTLIB_CC) $(LDFLAGS) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(MAKE_SHARED_LIB) $(LDFLAGS) $(TESTLIB_FLAGS) $*.o -o $@
+else
+	@echo Compiling $<
+	$(HIDE_COMP)$(CC) $(M_ABI_FLAG) $(LDFLAGS) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+endif
+$(PATCHAPI_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : patchapi/%.c $(DEPENDDIR)/%.dep
+	@echo Compiling $<
+	$(HIDE_COMP)$(CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(HIDE_COMP)$(AR) rcs $@ $*.o
+endif
+
+ifdef cap_instruction_api
+      INSNAPI_LINK = -linstructionAPI
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
@@ -439,6 +521,10 @@ $(OBJS_DYNINSTCOMP_LIB): %.o : ../src/dyninst/%.C $(DEPENDDIR)/%.dep
 $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
+
+$(OBJS_PATCHAPICOMP_LIB): %.o : ../src/patchapi/%.C $(DEPENDDIR)/%.dep
+	@echo Compiling $<
+	$(HIDE_COMP)$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) $(IFLAGS) -I../src/ ../src/patchapi/$*.C
 
 $(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
@@ -460,6 +546,10 @@ $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
 	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
+
+$(LIBPATCHAPICOMP) : $(OBJS_PATCHAPICOMP_LIB) $(LIBTESTSUITE)
+	@echo Compiling $<
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PATCHAPICOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lcommon
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
@@ -604,14 +694,17 @@ DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_INSTRUCTION_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(instruction_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_PROCCONTROL_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(proccontrol_OBJS_ALL_MUTATORS:%.o=%.dep))
+DEPS_PATCHAPI_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(patchapi_OBJS_ALL_MUTATORS:%.o=%.dep))
 
 DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_C)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
 DEPS_DYNINST_TESTLIBS	= $(addprefix $(DEPENDDIR)/,$(DYNINST_TESTLIBS:%.so=%.dep))
+DEPS_PATCHAPI_TESTLIBS  = $(addprefix $(DEPENDDIR)/,$(PATCHAPI_TESTLIBS:%.so=%.dep))
 DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.dep))
 DEPS_DYNINSTCOMP       =  $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.dep)))
 DEPS_SYMTABCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.dep)))
+DEPS_PATCHAPICOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_PATCHAPICOMP_LIB:%.C=%.dep)))
 DEPS_INSTRUCTIONCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.dep)))
 DEPS_PROCCONTROLCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_PROCCONTROLCOMP_LIB:%.C=%.dep)))
 
@@ -671,6 +764,10 @@ $(DEPS_DYNINST_MUTATORS): $(DEPENDDIR)/%.dep : dyninst/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
+$(DEPS_PATCHAPI_MUTATORS): $(DEPENDDIR)/%.dep : patchapi/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(IFLAGS) $(DEPENDFLAGS) $*.o > $@
+
 $(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
 	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@
@@ -715,6 +812,11 @@ $(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/dyninst/lib%.c
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
+$(DEPS_PATCHAPI_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/patchapi/lib%.c 
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
+
+
 $(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
@@ -734,6 +836,10 @@ $(DEPS_INSTRUCTIONCOMP): $(DEPENDDIR)/%.dep : instruction/%.C
 $(DEPS_PROCCONTROLCOMP): $(DEPENDDIR)/%.dep : proccontrol/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src -I../src/proccontrol $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+
+$(DEPS_PATCHAPICOMP): $(DEPENDDIR)/%.dep : patchapi/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) -I../src -I../src/patchapi $< $(IFLAGS) $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 # do not include dep files for "clean" targets
 ifneq ($(MAKECMDGOALS),clean)

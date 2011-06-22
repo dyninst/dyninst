@@ -79,9 +79,6 @@
                                                                -1, true))
 
 // naxses
-#ifdef sparc_sun_solaris2_4_test
-const unsigned int naxses = 26;
-#endif
 
 #ifdef rs6000_ibm_aix4_1_test
 const unsigned int naxses = 73;
@@ -93,10 +90,6 @@ const unsigned int naxses = 95;
 #else
 const unsigned int naxses = 91;
 #endif
-#endif
-
-#ifdef ia64_unknown_linux2_4_test
-const unsigned int naxses = 12;
 #endif
 
 #ifdef x86_64_unknown_linux2_4_test

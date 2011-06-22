@@ -239,24 +239,14 @@ class Elf_X_Data {
 
     // Data Interface
     const char *get_string() const;
-#if !defined(os_solaris)
     Elf_X_Dyn get_dyn();
     Elf_X_Versym get_versyms();
     Elf_X_Verneed *get_verNeedSym();
     Elf_X_Verdef *get_verDefSym();
-#endif
-
-#if defined(arch_mips)
-    Elf_X_RegInfo get_regInfo();
-#endif
 
     Elf_X_Rel get_rel();
     Elf_X_Rela get_rela();
     Elf_X_Sym get_sym();
-
-#if defined(arch_mips)
-    Elf_X_Options get_options();
-#endif
 
     bool isValid() const;
 
@@ -265,7 +255,6 @@ class Elf_X_Data {
     bool is64;
 };
 
-#if !defined(os_solaris)
 // ------------------------------------------------------------------------
 // Class Elf_X_Versym simulates the SHT_GNU_versym structure.
 class Elf_X_Versym {
@@ -387,35 +376,7 @@ class Elf_X_Verneed {
     Elf64_Verneed *verneed64;
     bool is64;
 };
-#endif
 
-#if defined(arch_mips)
-// ------------------------------------------------------------------------
-// Class Elf_X_Options simulates the Elf_Options structure.
-class Elf_X_Options {
-  public:
-    Elf_X_Options(Elf_Data *input);
-
-    // Read Interface
-    unsigned char kind(int i) const;
-    unsigned char size(int i) const;
-    unsigned short section(int i) const;
-    unsigned long info(int i) const;
-
-    // Write Interface
-    unsigned char kind(int i, unsigned char input);
-    unsigned char size(int i, unsigned char input);
-    unsigned short section(int i, unsigned short input);
-    unsigned long info(int i, unsigned long input);
-
-    // Meta-Info Interface
-    unsigned long count() const;
-
-  private:
-    Elf_Data *data;
-    Elf_Options *opt;
-};
-#endif
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Sym simulates the Elf(32|64)_Sym structure.
@@ -514,57 +475,6 @@ class Elf_X_Rela {
     bool is64;
 };
 
-#if defined(arch_mips)
-// ------------------------------------------------------------------------
-// Class Elf_X_RegInfo simulates the Elf(32|64)_RegInfo structure.
-class Elf_X_RegInfo {
-  public:
-    unsigned long ri_gprmask() const = 0;
-    unsigned long ri_gprmask(unsigned long input) = 0;
-    unsigned long ri_cprmask(int i) const = 0;
-    unsigned long ri_cprmask(int i, unsigned long input) = 0;
-    unsigned long ri_gp_value() const = 0;
-    unsigned long ri_gp_value(unsigned long input) = 0;
-};
-
-class Elf_32_RegInfo : public Elf_X_RegInfo {
-  public:
-    Elf_32_RegInfo(Elf_Data *input);
-
-    // Read Interface
-    unsigned long ri_gprmask() const;
-    unsigned long ri_cprmask(int i) const;
-    unsigned long ri_gp_value() const;
-
-    // Write Interface
-    unsigned long ri_gprmask(unsigned long input);
-    unsigned long ri_cprmask(int i, unsigned long input);
-    unsigned long ri_gp_value(unsigned long input);
-
-  private:
-    Elf32_RegInfo *reg;
-};
-
-class Elf_64_RegInfo : public Elf_X_RegInfo {
-  public:
-    Elf_64_RegInfo(Elf_Data *input);
-
-    // Read Interface
-    unsigned long ri_gprmask() const;
-    unsigned long ri_cprmask(int i) const;
-    unsigned long ri_gp_value() const;
-
-    // Write Interface
-    unsigned long ri_gprmask(unsigned long input);
-    unsigned long ri_cprmask(int i, unsigned long input);
-    unsigned long ri_gp_value(unsigned long input);
-
-  private:
-    Elf64_RegInfo *reg;
-};
-#endif
-
-#if !defined(os_solaris)
 // ------------------------------------------------------------------------
 // Class Elf_X_Dyn simulates the Elf(32|64)_Dyn structure.
 class Elf_X_Dyn {
@@ -592,6 +502,5 @@ class Elf_X_Dyn {
     Elf64_Dyn *dyn64;
     bool is64;
 };
-#endif
 
 #endif

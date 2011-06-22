@@ -45,6 +45,19 @@
 #include <stdio.h>
 #include <signal.h>
 
+// PatchAPI stuffs
+//#include "Command.h"
+
+namespace Dyninst {
+namespace PatchAPI { 
+  class PatchMgr;
+  class DynAddrSpace;
+  class Patcher;
+  typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+  typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+}
+}
+
 class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
@@ -175,7 +188,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-  
+
  public:
 
   BPatch_addressSpace();
@@ -278,6 +291,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+
+    // Look, ma, I rock
+
+    API_EXPORT(Int, (oldFunc, newFunc),
+    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
     //  BPatch_addressSpace::getSourceLines
     //  
@@ -392,6 +410,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // statically-linked executable, false otherwise
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
+
 };
 
 #endif 

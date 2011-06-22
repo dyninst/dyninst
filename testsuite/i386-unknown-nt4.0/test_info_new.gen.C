@@ -1,42 +1,13 @@
-/*
- * Copyright (c) 1996-2011 Barton P. Miller
- * 
- * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
- * validity or performance.  We reserve the right to update, modify,
- * or discontinue this software at any time.  We shall have no
- * obligation to supply such updates or modifications or any other
- * form of support to you.
- * 
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
 /* This file automatically generated from test specifications.  See
  * specification/spec.pl and specification/makemake.py
  */
 
 #include "test_info_new.h"
 void initialize_mutatees_dyninst(std::vector<RunGroup *> &tests);
+void initialize_mutatees_patchapi(std::vector<RunGroup *> &tests);
 void initialize_mutatees_symtab(std::vector<RunGroup *> &tests);
 void initialize_mutatees_instruction(std::vector<RunGroup *> &tests);
-void initialize_mutatees(std::vector<RunGroup *> &tests) {  initialize_mutatees_dyninst(tests);  initialize_mutatees_symtab(tests);  initialize_mutatees_instruction(tests);}
+void initialize_mutatees(std::vector<RunGroup *> &tests) {  initialize_mutatees_dyninst(tests);  initialize_mutatees_patchapi(tests);  initialize_mutatees_symtab(tests);  initialize_mutatees_instruction(tests);}
 // Now we insert the test lists into the run groups
 void initialize_mutatees_dyninst(std::vector<RunGroup *> &tests) {
 	unsigned int group_count = 0;
@@ -1554,6 +1525,106 @@ struct {
 }
 
 // Now we insert the test lists into the run groups
+void initialize_mutatees_patchapi(std::vector<RunGroup *> &tests) {
+	unsigned int group_count = 0;
+	// Keep track of which element each test is, for later use with the resumelog
+	unsigned int test_count;
+	RunGroup *rg;
+struct {
+
+    char * mutatee_name;
+    start_state_t state_init;
+    create_mode_t attach_init;
+    bool ex;
+    bool presencevar;
+    char* module;
+    char* compiler;
+    char* optimization;
+    char* abi;
+    test_pictype_t pic;
+  } rungroup_params[] = { {"patchapi_group_test_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, false, true, "patchapi", "VC", "none", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, false, true, "patchapi", "VC", "low", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC_32_high.exe", STOPPED, CREATE, false, true, "patchapi", "VC", "high", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC_32_max.exe", STOPPED, CREATE, false, true, "patchapi", "VC", "max", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, false, true, "patchapi", "VC++", "none", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, false, true, "patchapi", "VC++", "low", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "patchapi", "VC++", "high", "32", nonPIC},
+ {"patchapi_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "patchapi", "VC++", "max", "32", nonPIC} };
+
+  struct {
+    bool endrungroup;
+    const char * iname;
+    const char * mrname;
+    const char * isoname;
+	bool serialize_enable;
+    const char * ilabel;
+  } test_params[] = { {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_1", "patch1_1", "patch1_1.dll", false, "{test: patch1_1, mutator: patch1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch1_2", "patch1_2", "patch1_2.dll", false, "{test: patch1_2, mutator: patch1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch2_1", "patch2_1", "patch2_1.dll", false, "{test: patch2_1, mutator: patch2_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_1", "patch3_1", "patch3_1.dll", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {false, "patch3_2", "patch3_2", "patch3_2.dll", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {true, "patch4_1", "patch4_1", "patch4_1.dll", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"} };
+
+  int tp_index = -1;
+  for (int i = 0; i < 8; i++) {
+    test_count = 0;
+    rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
+			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi);
+    
+    do {
+      tp_index++;
+      rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
+    } while (tp_index < 48 && test_params[tp_index].endrungroup == false);
+
+    rg->index = group_count++;
+    tests.push_back(rg);
+  }
+}
+
+// Now we insert the test lists into the run groups
 void initialize_mutatees_symtab(std::vector<RunGroup *> &tests) {
 	unsigned int group_count = 0;
 	// Keep track of which element each test is, for later use with the resumelog
@@ -1692,6 +1763,7 @@ struct {
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
+ {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC} };
 
   struct {
@@ -1706,10 +1778,11 @@ struct {
  {true, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.dll", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
  {true, "power_decode", "power_decode", "power_decode.dll", false, "{test: power_decode, mutator: power_decode, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
  {true, "power_cft", "power_cft", "power_cft.dll", false, "{test: power_cft, mutator: power_cft, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
- {true, "fucompp", "fucompp", "fucompp.dll", false, "{test: fucompp, mutator: fucompp, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
+ {true, "fucompp", "fucompp", "fucompp.dll", false, "{test: fucompp, mutator: fucompp, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
+ {true, "mov_size_details", "mov_size_details", "mov_size_details.dll", false, "{test: mov_size_details, mutator: mov_size_details, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 7; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
@@ -1718,7 +1791,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 6 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 7 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

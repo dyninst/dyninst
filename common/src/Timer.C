@@ -187,35 +187,6 @@ timer::get_current(double& u, double& s, double& w) {
 
 
 
-#if defined(os_solaris)
-#if !defined(HAVE_GET_CURRENT_DEFINITION)
-#define HAVE_GET_CURRENT_DEFINITION
-
-#include <sys/time.h>
-#include <sys/times.h>
-
-void
-timer::get_current(double& u, double& s, double& w) {
-    timer t;
-    u = gethrvtime() / t.NANOSECS_PER_SEC();
-
-    struct tms tb;
-    if (times(&tb) == -1) {
-      P_perror("times");
-      P_abort();
-    }
-    s = tb.tms_stime / t.CYCLES_PER_SEC();
-
-    w = gethrtime() / t.NANOSECS_PER_SEC();
-}
-
-#endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
-#endif /* defined(os_solaris) */
-
-
-
-
-
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 
@@ -223,7 +194,7 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
-#if !defined(os_aix) && !defined(os_linux) && !defined(os_solaris)
+#if !defined(os_aix) && !defined(os_linux)
 extern "C" int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
 

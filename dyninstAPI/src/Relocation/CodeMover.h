@@ -55,19 +55,17 @@ namespace Dyninst {
 
 namespace Relocation {
 
-class Trace;
+class RelocBlock;
 class Transformer;
 class CodeMover;
 class CodeTracker;
+class RelocGraph;
 
 typedef std::map<block_instance *, Priority> PriorityMap;
 
 class CodeMover {
  public:
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
-  typedef dyn_detail::boost::shared_ptr<Trace> TracePtr;
-  typedef std::list<TracePtr> TraceList;
-  typedef std::map<block_instance *, TracePtr> TraceMap;
   typedef std::set<func_instance *> FuncSet;
   typedef std::set<block_instance *> BlockSet;
 
@@ -86,6 +84,7 @@ class CodeMover {
   // have to copy it on output; CodeMovers are designed to be discarded
   // while CodeTrackers survive.
   static Ptr create(CodeTracker *);
+  ~CodeMover();
 
   bool addFunctions(FuncSet::const_iterator begin, FuncSet::const_iterator end);
 
@@ -114,11 +113,6 @@ class CodeMover {
   typedef std::map<Address, Address> EntryMap;
   const EntryMap &entryMap() { return entryMap_; }
 
-  // Some things (LocalCFTransformer) require the
-  // map of (original) addresses to TracePtrs
-  // so they can refer to blocks other than those
-  // they are transforming.
-  const TraceMap &blockMap() const { return blockMap_; }
   // Not const so we can add others to it. 
   SpringboardMap &sBoardMap(AddressSpace *as);
   // Not const so that Transformers can modify it...
@@ -135,22 +129,19 @@ class CodeMover {
 
  private:
     
-  CodeMover(CodeTracker *t) : addr_(0), tracker_(t), tracesFinalized_(false) {};
-
+  CodeMover(CodeTracker *t);
   
   void setAddr(Address &addr) { addr_ = addr; }
-  template <typename TraceIter>
-     bool addTraces(TraceIter begin, TraceIter end, func_instance *f);
+  template <typename RelocBlockIter>
+     bool addRelocBlocks(RelocBlockIter begin, RelocBlockIter end, func_instance *f);
 
-  bool addTrace(block_instance *block, func_instance *f);
+  bool addRelocBlock(block_instance *block, func_instance *f);
 
   void createInstrumentationSpringboards(AddressSpace *as);
 
-  void finalizeTraces();
+  void finalizeRelocBlocks();
 
-  TraceList blocks_;
-
-  TraceMap blockMap_;
+  RelocGraph *cfg_;
 
   Address addr_;
 
@@ -165,7 +156,7 @@ class CodeMover {
   CodeBuffer buffer_;
   codeGen &gen();
 
-  bool tracesFinalized_;
+  bool finalized_;
   
 };
 

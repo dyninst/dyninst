@@ -31,7 +31,7 @@
 
 #include "CodeBuffer.h"
 #include "CodeTracker.h"
-#include "Atoms/Atom.h" //  Currently Patch is defined here; we may want to move it.
+#include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.
 
 #include "patchapi_debug.h"
 #include "dyninstAPI/src/codegen.h"
@@ -116,12 +116,11 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
    if (patch_) {
       // Now things get interesting
       if (!patch_->apply(gen, buf)) {
-         cerr << "Error: failed to apply patch!" << endl;
+	relocation_cerr << "Patch failed application, ret false" << endl;
          return false;
       }
    }
    unsigned newSize = gen.getDisplacement(start, gen.getIndex());
-
    if (newSize > size_) {
       shift += newSize - size_;
       size_ = newSize;
@@ -150,7 +149,9 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
 
    for (Trackers::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
-      TrackerElement *e = iter->second; assert(e);
+      TrackerElement *e = iter->second;
+      if (!e) continue; // 0-length "mark me" Widgets may not have trackers
+
       //relocation_cerr << "\t Tracker element: " << *e << endl;
       unsigned size = 0;
       Trackers::iterator next = iter; ++next;
@@ -270,7 +271,7 @@ bool CodeBuffer::generate(Address baseAddr) {
 
       for (Buffers::iterator iter = buffers_.begin();
            iter != buffers_.end(); ++iter) {
-         bool regenerate = false;
+	bool regenerate = false;
          if (!iter->generate(this, gen_, shift_, regenerate)) {
             return false;
          }
@@ -303,7 +304,7 @@ void CodeBuffer::disassemble() const {
 }
 
 void CodeBuffer::updateLabel(unsigned id, Address offset, bool &regenerate) {
-   if (id == -1) return;
+  if (id == (unsigned) -1) return;
 
 
    if (id >= labels_.size()) {

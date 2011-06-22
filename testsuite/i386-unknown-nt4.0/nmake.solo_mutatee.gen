@@ -278,6 +278,22 @@ mutatee_util_mt_VC++_32_none.obj: ../src/mutatee_util_mt.c
 mutatee_util_VC++_32_none.obj: ../src/mutatee_util.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -Dsnprintf=_snprintf -Fo$@ $**
 ######################################################################
+# Mutatees compiled with VC++ for patchapi
+######################################################################
+
+patchapi_SOLO_MUTATEES_native_cxx = patchapi_group_test_mutatee_solo_VC++_32_high.exe patchapi_group_test_mutatee_solo_VC++_32_low.exe patchapi_group_test_mutatee_solo_VC++_32_max.exe patchapi_group_test_mutatee_solo_VC++_32_none.exe 
+
+# Now a list of rules for compiling the mutatees with VC++
+
+patchapi_group_test_mutatee_solo_VC++_32_high.exe: patchapi_group_test_group_VC++_32_high.obj patch1_1_mutatee_solo_VC++_32_high.obj patch1_2_mutatee_solo_VC++_32_high.obj patch2_1_mutatee_solo_VC++_32_high.obj patch3_1_mutatee_solo_VC++_32_high.obj patch3_2_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC++_32_low.exe: patchapi_group_test_group_VC++_32_low.obj patch1_1_mutatee_solo_VC++_32_low.obj patch1_2_mutatee_solo_VC++_32_low.obj patch2_1_mutatee_solo_VC++_32_low.obj patch3_1_mutatee_solo_VC++_32_low.obj patch3_2_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC++_32_max.exe: patchapi_group_test_group_VC++_32_max.obj patch1_1_mutatee_solo_VC++_32_max.obj patch1_2_mutatee_solo_VC++_32_max.obj patch2_1_mutatee_solo_VC++_32_max.obj patch3_1_mutatee_solo_VC++_32_max.obj patch3_2_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC++_32_none.exe: patchapi_group_test_group_VC++_32_none.obj patch1_1_mutatee_solo_VC++_32_none.obj patch1_2_mutatee_solo_VC++_32_none.obj patch2_1_mutatee_solo_VC++_32_none.obj patch3_1_mutatee_solo_VC++_32_none.obj patch3_2_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+######################################################################
 # Mutatees compiled with VC++ for symtab
 ######################################################################
 
@@ -962,6 +978,73 @@ dyninst_group_test_group_VC++_32_low.obj: ../i386-unknown-nt4.0/dyninst_group_te
 
 
 # Generic rules for VC++'s mutatees and varying optimization levels
+patch1_1_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC++_32_high.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cxx) $(patchapi_SOLO_MUTATEE_DEFS) -TP $(CXXFLAGS_NORM) -c  /O2  -DGROUPABLE=1 -Fo$@ $**
+%_VC++_32_high.obj: {../src/patchapi/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -Fo$@ $**
+%_VC++_32_high.obj: {../src/patchapi/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -Fo$@ $**
+patch1_1_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC++_32_max.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cxx) $(patchapi_SOLO_MUTATEE_DEFS) -TP $(CXXFLAGS_NORM) -c  /Ox  -DGROUPABLE=1 -Fo$@ $**
+%_VC++_32_max.obj: {../src/patchapi/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -Fo$@ $**
+%_VC++_32_max.obj: {../src/patchapi/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -Fo$@ $**
+patch1_1_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC++_32_none.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cxx) $(patchapi_SOLO_MUTATEE_DEFS) -TP $(CXXFLAGS_NORM) -c    -DGROUPABLE=1 -Fo$@ $**
+%_VC++_32_none.obj: {../src/patchapi/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -Fo$@ $**
+%_VC++_32_none.obj: {../src/patchapi/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -Fo$@ $**
+patch1_1_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC++_32_low.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cxx) $(patchapi_SOLO_MUTATEE_DEFS) -TP $(CXXFLAGS_NORM) -c  /O1  -DGROUPABLE=1 -Fo$@ $**
+%_VC++_32_low.obj: {../src/patchapi/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -Fo$@ $**
+%_VC++_32_low.obj: {../src/patchapi/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -Fo$@ $**
+
+
+# Generic rules for VC++'s mutatees and varying optimization levels
 test_type_info_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -Fo$@ $**
 test_lookup_var_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1351,6 +1434,22 @@ mutatee_util_VC_32_max.obj: ../src/mutatee_util.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -Dsnprintf=_snprintf -Fo$@ $**
 mutatee_util_VC_32_none.obj: ../src/mutatee_util.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -Dsnprintf=_snprintf -Fo$@ $**
+######################################################################
+# Mutatees compiled with VC for patchapi
+######################################################################
+
+patchapi_SOLO_MUTATEES_native_cc = patchapi_group_test_mutatee_solo_VC_32_high.exe patchapi_group_test_mutatee_solo_VC_32_low.exe patchapi_group_test_mutatee_solo_VC_32_max.exe patchapi_group_test_mutatee_solo_VC_32_none.exe 
+
+# Now a list of rules for compiling the mutatees with VC
+
+patchapi_group_test_mutatee_solo_VC_32_high.exe: patchapi_group_test_group_VC_32_high.obj patch1_1_mutatee_solo_VC_32_high.obj patch1_2_mutatee_solo_VC_32_high.obj patch2_1_mutatee_solo_VC_32_high.obj patch3_1_mutatee_solo_VC_32_high.obj patch3_2_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC_32_low.exe: patchapi_group_test_group_VC_32_low.obj patch1_1_mutatee_solo_VC_32_low.obj patch1_2_mutatee_solo_VC_32_low.obj patch2_1_mutatee_solo_VC_32_low.obj patch3_1_mutatee_solo_VC_32_low.obj patch3_2_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC_32_max.exe: patchapi_group_test_group_VC_32_max.obj patch1_1_mutatee_solo_VC_32_max.obj patch1_2_mutatee_solo_VC_32_max.obj patch2_1_mutatee_solo_VC_32_max.obj patch3_1_mutatee_solo_VC_32_max.obj patch3_2_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+patchapi_group_test_mutatee_solo_VC_32_none.exe: patchapi_group_test_group_VC_32_none.obj patch1_1_mutatee_solo_VC_32_none.obj patch1_2_mutatee_solo_VC_32_none.obj patch2_1_mutatee_solo_VC_32_none.obj patch3_1_mutatee_solo_VC_32_none.obj patch3_2_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 ######################################################################
 # Mutatees compiled with VC for symtab
 ######################################################################
@@ -2028,6 +2127,65 @@ dyninst_group_test_group_VC_32_low.obj: ../i386-unknown-nt4.0/dyninst_group_test
 
 
 # Generic rules for VC's mutatees and varying optimization levels
+patch1_1_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC_32_high.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cc) $(patchapi_SOLO_MUTATEE_DEFS) -TC $(CFLAGS) -c  /O2  -DGROUPABLE=1 -Fo$@ $**
+%_VC_32_high.obj: {../src/patchapi/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -Fo$@ $**
+patch1_1_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC_32_max.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cc) $(patchapi_SOLO_MUTATEE_DEFS) -TC $(CFLAGS) -c  /Ox  -DGROUPABLE=1 -Fo$@ $**
+%_VC_32_max.obj: {../src/patchapi/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -Fo$@ $**
+patch1_1_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC_32_none.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cc) $(patchapi_SOLO_MUTATEE_DEFS) -TC $(CFLAGS) -c    -DGROUPABLE=1 -Fo$@ $**
+%_VC_32_none.obj: {../src/patchapi/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -Fo$@ $**
+patch1_1_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -Fo$@ $**
+patch3_1_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -Fo$@ $**
+patch3_2_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -Fo$@ $**
+patch2_1_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -Fo$@ $**
+patch1_2_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -Fo$@ $**
+patchapi_group_test_group_VC_32_low.obj: ../i386-unknown-nt4.0/patchapi_group_test_group.c
+	$(M_native_cc) $(patchapi_SOLO_MUTATEE_DEFS) -TC $(CFLAGS) -c  /O1  -DGROUPABLE=1 -Fo$@ $**
+%_VC_32_low.obj: {../src/patchapi/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -Fo$@ $**
+
+
+# Generic rules for VC's mutatees and varying optimization levels
 test_type_info_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -Fo$@ $**
 test_lookup_var_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -2166,6 +2324,26 @@ dyninst_SOLO_MUTATEES = $(dyninst_SOLO_MUTATEES_native_cxx) $(dyninst_SOLO_MUTAT
 COMPILER_CONTROL_DEFS =
 
 # And a rule to build all of the mutatees
+.PHONY: patchapi_solo_mutatees
+patchapi_solo_mutatees: $(patchapiSOLO_MUTATEES_native_cxx) $(patchapiSOLO_MUTATEES_native_cc) 
+
+.PHONY: clean_solo_mutatees
+patchapi_clean_solo_mutatees:
+	-$(RM) $(patchapi_SOLO_MUTATEES_native_cxx)
+	-$(RM) $(patchapi_SOLO_MUTATEES_native_cc)
+	-$(RM) *_none.obj
+	-$(RM) *_low.obj
+	-$(RM) *_high.obj
+	-$(RM) *_max.obj
+
+
+patchapi_SOLO_MUTATEES = $(patchapi_SOLO_MUTATEES_native_cxx) $(patchapi_SOLO_MUTATEES_native_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
 .PHONY: symtab_solo_mutatees
 symtab_solo_mutatees: $(symtabSOLO_MUTATEES_native_cxx) $(symtabSOLO_MUTATEES_native_cc) 
 
@@ -2205,4 +2383,4 @@ instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_native_cxx) $(instructio
 ### when compiling the list of mutatees to test against
 COMPILER_CONTROL_DEFS =
 
-mutatees: $(dyninst_SOLO_MUTATEES) $(symtab_SOLO_MUTATEES) $(instruction_SOLO_MUTATEES) 
+mutatees: $(dyninst_SOLO_MUTATEES) $(patchapi_SOLO_MUTATEES) $(symtab_SOLO_MUTATEES) $(instruction_SOLO_MUTATEES) 

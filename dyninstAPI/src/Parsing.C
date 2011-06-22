@@ -30,12 +30,8 @@
  */
 #include <stdio.h>
 
-#if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 
 #include "symtab.h"
 #include "parse-cfg.h"
@@ -46,7 +42,7 @@
 #include "process.h"
 #include "mapped_object.h"
 
-#if defined(os_aix) || defined(os_solaris)
+#if defined(os_aix)
 #include "parRegion.h"
 #endif
 
@@ -151,12 +147,7 @@ DynCFGFactory::mkfunc(
     /*
      * OMP parallel regions support
      */
-#if defined(os_solaris)
-    if(strstr(stf->getAllMangledNames()[0].c_str(), "_$") != NULL){
-        image_parRegion * pR = new image_parRegion(stf->getOffset(),ret);
-        _img->parallelRegions.push_back(pR);
-    }
-#elif defined(os_aix)
+#if defined(os_aix)
     if(strstr(stf->getAllMangledNames()[0].c_str(), "@OL@") != NULL){
         image_parRegion * pR = new image_parRegion(stf->getOffset(),ret);
         _img->parallelRegions.push_back(pR);

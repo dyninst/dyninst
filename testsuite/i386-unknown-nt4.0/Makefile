@@ -17,7 +17,7 @@ DEFCFLAGS = $(DEFCFLAGS) -MDd # ccw 12 july 2001
 LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 
-CXXFLAGS = $(CXXFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test
+CXXFLAGS = $(CXXFLAGS) -Dos_windows -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test
 CFLAGS = $(CFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test
 
 #Support for GNU compilers is being dropped since it seems to be rarely used.

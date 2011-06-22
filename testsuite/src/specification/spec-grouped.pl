@@ -66,6 +66,7 @@ module('symtab').
 module('stackwalker').
 module('instruction').
 module('proccontrol').
+module('patchapi').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -85,6 +86,17 @@ mutatee_comp('').
 mutatee_link_options('', '').
 comp_std_flags_str('', '').
 comp_mutatee_flags_str('', '').
+
+mutatee('patchapi_group_test', [
+   'patch1_1_mutatee.c',
+   'patch1_2_mutatee.c',
+   'patch2_1_mutatee.c',
+   'patch3_1_mutatee.c',
+   'patch3_2_mutatee.c'
+   ]).
+compiler_for_mutatee('patchapi_group_test', Compiler) :-
+    comp_lang(Compiler, 'c').
+mutatee_format('patchapi_group_test', 'staticMutatee').
 
 mutatee('dyninst_group_test', ['test1_1_mutatee.c', 
 	'test1_2_mutatee.c',
@@ -584,8 +596,6 @@ test_description('test1_35', 'Function Relocation').
 test_platform('test1_35', 'i386-unknown-linux2.4').
 test_platform('test1_35', 'i386-unknown-linux2.6').
 test_platform('test1_35', 'x86_64-unknown-linux2.4').
-test_platform('test1_35', 'sparc-sun-solaris2.8').
-test_platform('test1_35', 'sparc-sun-solaris2.9').
 test_platform('test1_35', 'i386-unknown-freebsd7.2').
 test_platform('test1_35', 'amd64-unknown-freebsd7.2').
 groupable_test('test1_35').
@@ -593,8 +603,6 @@ mutator('test1_35', ['test1_35.C']).
 mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
     current_platform(Plat), platform(Arch, OS, _, Plat),
     (
-        (Arch = 'sparc', OS = 'solaris') ->
-            Sources = ['call35_1_sparc_solaris.s'];
         (Arch = 'x86_64', OS = 'linux') ->
             Sources = ['call35_1_x86_64_linux.s'];
         (Arch = 'i386', OS = 'linux') ->
@@ -603,19 +611,8 @@ mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
             Sources = ['call35_1_x86_linux.s'];
         (Arch = 'x86_64', OS = 'freebsd') ->
             Sources = ['call35_1_x86_64_linux.s'];
-        (Arch = 'i386', OS = 'solaris') ->
-            Sources = ['call35_1_x86_solaris.s'];
         Sources = ['call35_1.c']
     ).
-% Special flags for building the assembly file on Solaris
-spec_object_file(OFile, 'gcc',
-                 ['call35_1_sparc_solaris.s'], [], [],
-                 ['-P -Wa,-xarch=v8plus']) :-
-    current_platform('sparc-sun-solaris2.8'),
-    member(OFile, ['call35_1_sparc_solaris_gcc_none',
-                   'call35_1_sparc_solaris_gcc_low',
-                   'call35_1_sparc_solaris_gcc_high',
-                   'call35_1_sparc_solaris_gcc_max']).
 % test1_35s mutatee can be compiled with any C compiler
 compiler_for_mutatee('test1_35', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -670,7 +667,6 @@ test_description('test1_40', 'Verify that we can monitor call sites').
 % test1_40 should not run on Windows or IA64 Linux
 test_platform('test1_40', Platform) :-
         platform(Platform),
-        \+ platform('ia64', 'linux', _, Platform),
         \+ platform(_, 'windows', _, Platform),
         \+ platform(_, 'bluegene', _, Platform).
 groupable_test('test1_40').
@@ -704,9 +700,6 @@ test_platform('test_write_param', 'i386-unknown-linux2.4').
 test_platform('test_write_param', 'x86_64-unknown-linux2.4').
 test_platform('test_write_param', 'i386-unknown-nt4.0').
 test_platform('test_write_param', 'rs6000-ibm-aix5.1').
-test_platform('test_write_param', 'ia64-unknown-linux2.4').
-% Theoretically implemented on Solaris, but test doesn't pass, so disabling until/unless we decide it's worth fixing.
-% test_platform('test_write_param', 'sparc-sun-solaris2.9').
 groupable_test('test_write_param').
 mutator('test_write_param', ['test_write_param.C']).
 test_runmode('test_write_param', 'staticdynamic').
@@ -796,7 +789,7 @@ test_description('test2_7', '').
 % test2_7 runs on Solaris, Linux, AIX, and Windows
 test_platform('test2_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['solaris', 'linux', 'aix', 'windows']).
+    member(OS, ['linux', 'aix', 'windows']).
 mutator('test2_7', ['test2_7.C']).
 test_runmode('test2_7', 'dynamic').
 test_start_state('test2_7', 'stopped').
@@ -812,16 +805,6 @@ compiler_for_mutatee('test2_8', Compiler) :-
 test_runmode('test2_8', 'dynamic').
 test_start_state('test2_8', 'stopped').
 tests_module('test2_8', 'dyninst').
-
-test('test2_9', 'test2_9', 'dyninst_group_test').
-% test2_9 only runs on Sparc Solaris
-test_platform('test2_9', Platform) :-
-    platform('sparc', 'solaris', _, Platform).
-mutator('test2_9', ['test2_9.C']).
-test_runmode('test2_9', 'dynamic'). % Is this correct?
-test_start_state('test2_9', 'stopped').
-groupable_test('test2_9').
-tests_module('test2_9', 'dyninst').
 
 test('test2_11', 'test2_11', 'dyninst_group_test').
 test_runs_everywhere('test2_11').
@@ -982,7 +965,7 @@ test('test5_1', 'test5_1', 'dyninst_cxx_group_test').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_1', ['test5_1.C']).
 test_runmode('test5_1', 'staticdynamic').
 test_start_state('test5_1', 'stopped').
@@ -994,7 +977,7 @@ test('test5_2', 'test5_2', 'dyninst_cxx_group_test').
 % test5_2 only runs on Linux, Solaris, and Windows
 test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_2', ['test5_2.C']).
 test_runmode('test5_2', 'staticdynamic').
 test_start_state('test5_2', 'stopped').
@@ -1015,7 +998,7 @@ test('test5_4', 'test5_4', 'dyninst_cxx_group_test').
 % test5_4 only runs on Linux, Solaris, and Windows
 test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_4', ['test5_4.C']).
 test_runmode('test5_4', 'staticdynamic').
 test_start_state('test5_4', 'stopped').
@@ -1027,7 +1010,7 @@ test('test5_5', 'test5_5', 'dyninst_cxx_group_test').
 % test5_5 only runs on Linux, Solaris, and Windows
 test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_5', ['test5_5.C']).
 test_runmode('test5_5', 'staticdynamic').
 test_start_state('test5_5', 'stopped').
@@ -1051,7 +1034,7 @@ test('test5_7', 'test5_7', 'dyninst_cxx_group_test').
 % test5_7 only runs on Linux, Solaris, and Windows
 test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_7', ['test5_7.C']).
 test_runmode('test5_7', 'staticdynamic').
 test_start_state('test5_7', 'stopped').
@@ -1064,7 +1047,7 @@ test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
 test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_8', ['test5_8.C']).
 test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
@@ -1077,7 +1060,7 @@ test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
 % test5_9 only runs on Linus, Solaris, and Windows
 test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd', 'bluegene']).
+    member(OS, ['linux', 'windows', 'aix', 'freebsd', 'bluegene']).
 mutator('test5_9', ['test5_9.C']).
 test_runmode('test5_9', 'staticdynamic').
 test_start_state('test5_9', 'stopped').
@@ -1090,16 +1073,12 @@ test_exclude_compiler('test5_9', 'pgCC').
 % Convenience rule for mapping platforms to the asm sources for test_mem
 test_mem_mutatee_aux(P, Aux) :-
     (
-        platform('sparc', 'solaris', _, P) -> Aux = ['test_mem_util.c',
-                                                     'test6LS-sparc.S'];
         platform('power32', 'aix', _, P) -> Aux = ['test_mem_util.c',
                                                  'test6LS-power.s'];
         platform('i386', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                   'test6LS-x86.asm'];
         platform('i386', 'windows', _, P) -> Aux = ['test_mem_util.c',
                                                     'test6LS-masm.asm'];
-        platform('ia64', 'linux', _, P) -> Aux = ['test_mem_util.c',
-                                                  'test6LS-ia64.s'];
         platform('x86_64', 'linux', _, P) -> Aux = ['test_mem_util.c',
                                                     'test6LS-x86_64.s'];
         platform('power32', 'linux', _, P) -> Aux = ['test_mem_util.c',
@@ -1110,25 +1089,11 @@ test_mem_mutatee_aux(P, Aux) :-
 
 % Convenience rule for checking platforms for test_mem_*
 test_mem_platform(Platform) :-
-        platform('sparc', 'solaris', _, Platform);
         platform('power32', 'aix', _, Platform);
         platform('i386', 'linux', _, Platform);
         platform('i386', 'windows', _, Platform);
-        platform('ia64', 'linux', _, Platform);
         platform('x86_64', 'linux', _, Platform).
 
-% Special flags for asm files on Solaris
-spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
-                 ['-P -Wa,-xarch=v8plus']) :-
-    current_platform('sparc-sun-solaris2.8'),
-    member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
-                   'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
-
-spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
-                 ['-P -Wa,-xarch=v8plus']) :-
-    current_platform('sparc-sun-solaris2.9'),
-    member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
-                   'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
 
 spec_object_file(OFile, 'ibm_as', ['dyninst/test6LS-power.s'], [], [], []) :-
         current_platform(P),
@@ -1468,7 +1433,6 @@ mutatee_requires_libs('test_thread_1', Libs) :-
     current_platform(P),
     platform(_, OS, _, P),
     (
-        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
         OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
@@ -1486,7 +1450,6 @@ mutatee_requires_libs('test_thread_2', Libs) :-
     current_platform(P),
     platform(_, OS, _, P),
     (
-        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
         OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
@@ -1510,7 +1473,6 @@ mutatee_requires_libs('test_thread_3', Libs) :-
     current_platform(P),
     platform(_, OS, _, P),
     (
-        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
         OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
@@ -1533,7 +1495,6 @@ mutatee_requires_libs('test_thread_5', Libs) :-
     current_platform(P),
     platform(_, OS, _, P),
     (
-        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
         OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
@@ -1557,7 +1518,6 @@ mutatee_requires_libs('test_thread_6', Libs) :-
     platform(_, OS, _, Platform),
     (
         OS = 'windows' -> Libs = [];
-        OS = 'solaris' -> Libs = ['pthread', 'rt'];
         Libs = ['pthread']
     ).
 test('test_thread_6', 'test_thread_6', 'test_thread_6').
@@ -1587,7 +1547,6 @@ mutatee_requires_libs('test_thread_7', Libs) :-
     platform(_, OS, _, Platform),
     (
         OS = 'windows' -> Libs = [];
-        OS = 'solaris' -> Libs = ['pthread', 'rt'];
         Libs = ['pthread']
     ).
 test('test_thread_7', 'test_thread_7', 'test_thread_7').
@@ -1609,7 +1568,6 @@ mutatee_requires_libs('test_thread_8', Libs) :-
     platform(_, OS, _, Platform),
     (
         OS = 'windows' -> Libs = [];
-        OS = 'solaris' -> Libs = ['pthread', 'rt'];
         Libs = ['pthread']
     ).
 test('test_thread_8', 'test_thread_8', 'test_thread_8').
@@ -2176,57 +2134,63 @@ test_start_state('test1_36F', 'stopped').
 groupable_test('test1_36F').
 tests_module('test1_36F', 'dyninst').
 
-% test_sparc_1, formerly test10_1
-test('test_sparc_1', 'test_sparc_1', 'test_sparc_1').
-mutator('test_sparc_1', ['test_sparc_1.C']).
-mutatee('test_sparc_1', ['test_sparc_1_mutatee.c']).
-compiler_for_mutatee('test_sparc_1', 'gcc').
-optimization_for_mutatee('test_sparc_1', 'gcc', 'none').
-test_platform('test_sparc_1', Platform) :-
-        platform('sparc', _, _, Platform).
-test_runmode('test_sparc_1', 'dynamic').
-test_start_state('test_sparc_1', 'stopped').
-groupable_test('test_sparc_1').
-tests_module('test_sparc_1', 'dyninst').
 
-% test_sparc_2, formerly test10_2
-test('test_sparc_2', 'test_sparc_2', 'test_sparc_2').
-mutator('test_sparc_2', ['test_sparc_2.C']).
-mutatee('test_sparc_2', ['test_sparc_2_mutatee.c']).
-compiler_for_mutatee('test_sparc_2', 'gcc').
-optimization_for_mutatee('test_sparc_2', 'gcc', 'none').
-test_platform('test_sparc_2', Platform) :-
-        platform('sparc', _, _, Platform).
-test_runmode('test_sparc_2', 'dynamic').
-test_start_state('test_sparc_2', 'stopped').
-groupable_test('test_sparc_2').
-tests_module('test_sparc_2', 'dyninst').
+% patchAPI tests
 
-% test_sparc_3, formerly test10_3
-test('test_sparc_3', 'test_sparc_3', 'test_sparc_3').
-mutator('test_sparc_3', ['test_sparc_3.C']).
-mutatee('test_sparc_3', ['test_sparc_3_mutatee.c']).
-compiler_for_mutatee('test_sparc_3', 'gcc').
-optimization_for_mutatee('test_sparc_3', 'gcc', 'none').
-test_platform('test_sparc_3', Platform) :-
-        platform('sparc', _, _, Platform).
-test_runmode('test_sparc_3', 'dynamic').
-test_start_state('test_sparc_3', 'stopped').
-groupable_test('test_sparc_3').
-tests_module('test_sparc_3', 'dyninst').
+test('patch1_1', 'patch1_1', 'patchapi_group_test').
+test_description('patch1_1', 'insert snippets at entry, exit, and call points').
+test_runs_everywhere('patch1_1').
+groupable_test('patch1_1').
+mutator('patch1_1', ['patch1_1.C']).
+%test_runmode('patch1_1', 'staticdynamic').
+test_runmode('patch1_1', 'createProcess').
+test_start_state('patch1_1', 'stopped').
+tests_module('patch1_1', 'patchapi').
 
-% test_sparc_4, formerly test10_4
-test('test_sparc_4', 'test_sparc_4', 'test_sparc_4').
-mutator('test_sparc_4', ['test_sparc_4.C']).
-mutatee('test_sparc_4', ['test_sparc_4_mutatee.c']).
-compiler_for_mutatee('test_sparc_4', 'gcc').
-optimization_for_mutatee('test_sparc_4', 'gcc', 'none').
-test_platform('test_sparc_4', Platform) :-
-        platform('sparc', _, _, Platform).
-test_runmode('test_sparc_4', 'dynamic').
-test_start_state('test_sparc_4', 'stopped').
-groupable_test('test_sparc_4').
-tests_module('test_sparc_4', 'dyninst').
+test('patch1_2', 'patch1_2', 'patchapi_group_test').
+test_description('patch1_2', 'insert snippet order').
+test_runs_everywhere('patch1_2').
+groupable_test('patch1_2').
+mutator('patch1_2', ['patch1_2.C']).
+test_runmode('patch1_2', 'createProcess').
+test_start_state('patch1_2', 'stopped').
+tests_module('patch1_2', 'patchapi').
+
+test('patch2_1', 'patch2_1', 'patchapi_group_test').
+test_description('patch2_1', 'remove snippets at function entry').
+test_runs_everywhere('patch2_1').
+groupable_test('patch2_1').
+mutator('patch2_1', ['patch2_1.C']).
+test_runmode('patch2_1', 'createProcess').
+test_start_state('patch2_1', 'stopped').
+tests_module('patch2_1', 'patchapi').
+
+test('patch3_1', 'patch3_1', 'patchapi_group_test').
+test_description('patch3_1', 'function call replacement / removal').
+test_runs_everywhere('patch3_1').
+groupable_test('patch3_1').
+mutator('patch3_1', ['patch3_1.C']).
+test_runmode('patch3_1', 'createProcess').
+test_start_state('patch3_1', 'stopped').
+tests_module('patch3_1', 'patchapi').
+
+test('patch3_2', 'patch3_2', 'patchapi_group_test').
+test_description('patch3_2', 'replace function').
+test_runs_everywhere('patch3_2').
+groupable_test('patch3_2').
+mutator('patch3_2', ['patch3_2.C']).
+test_runmode('patch3_2', 'createProcess').
+test_start_state('patch3_2', 'stopped').
+tests_module('patch3_2', 'patchapi').
+
+test('patch4_1', 'patch4_1', 'patchapi_group_test').
+test_description('patch4_1', 'transactional semantics').
+test_runs_everywhere('patch4_1').
+groupable_test('patch4_1').
+mutator('patch4_1', ['patch4_1.C']).
+test_runmode('patch4_1', 'createProcess').
+test_start_state('patch4_1', 'stopped').
+tests_module('patch4_1', 'patchapi').
 
 % SymtabAPI tests
 
@@ -2432,6 +2396,19 @@ test_start_state('fucompp', 'stopped').
 tests_module('fucompp', 'instruction').
 
 
+test('mov_size_details', 'mov_size_details', none).                                                 
+test_description('mov_size_details', 'Tests the sizes of mov AST elements.').                          
+test_platform('mov_size_details', Platform) :-                                                                 
+        platform(Platform),                                                                                               
+        platform('i386', _, _, Platform);                                                                                
+        platform('x86_64', _, _, Platform).                                                                              
+mutator('mov_size_details', ['mov_size_details.C']).                                                
+test_runmode('mov_size_details', 'createProcess').                                                             
+test_start_state('mov_size_details', 'stopped').                                                               
+tests_module('mov_size_details', 'instruction').                                                             
+
+
+
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
@@ -2447,7 +2424,6 @@ pcMutateeLibs(Libs) :-
    current_platform(P),
    platform(_, OS, _, P),
    (
-       OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
        OS = 'freebsd' -> Libs = ['pthread'];
        Libs = ['dl', 'pthread']
    ).
@@ -2607,13 +2583,10 @@ library('testSuite', ['test_lib.C',
 % platform(?Arch, ?OS_general, ?OS_specific, ?Platform)
 platform('i386', 'linux', 'linux2.4', 'i386-unknown-linux2.4').
 platform('i386', 'linux', 'linux2.6', 'i386-unknown-linux2.6').
-platform('sparc', 'solaris', 'solaris2.8', 'sparc-sun-solaris2.8').
-platform('sparc', 'solaris', 'solaris2.9', 'sparc-sun-solaris2.9').
 platform('i386', 'windows', 'nt4.0', 'i386-unknown-nt4.0').
 platform('i386', 'windows', 'winXP', 'i386-unknown-winXP').
 platform('power32', 'aix', 'aix5.1', 'rs6000-ibm-aix5.1').
 platform('power32', 'aix', 'aix5.2', 'rs6000-ibm-aix64-5.2').
-platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power64', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power32', 'linux', 'linux2.6', 'ppc32_linux').
@@ -2642,6 +2615,8 @@ mutatee_abi(64).
 platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'bluegene', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
@@ -2650,6 +2625,8 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
+compiler_format('bgxlc++', 'staticMutatee').
+compiler_format('bgxlc', 'staticMutatee').
 compiler_format('gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
@@ -2669,12 +2646,10 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
 % All platforms support 32-bit mutatees except ia64, ppc64, and freebsd.
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
-    Arch \= 'ia64',
     \+ member(Platform, ['amd64-unknown-freebsd7.2',
                          'ppc64_linux']).
 
 % A smaller list of platforms with for 64-bit mutatees
-platform_abi('ia64-unknown-linux2.4', 64).
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
@@ -2741,15 +2716,9 @@ compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', 
 compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
 compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
 compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
-% Alphas native compilers are cc & cxx
-compiler_platform('cc', 'alpha-dec-osf5.1').
-compiler_platform('cxx', 'alpha-dec-osf5.1').
 % AIXs native compilers are xlc & xlC
 compiler_platform('xlc', 'rs6000-ibm-aix5.1').
 compiler_platform('xlC', 'rs6000-ibm-aix5.1').
-% Solariss native compilers are cc & CC
-compiler_platform('sun_cc', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
-compiler_platform('CC', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
 % Intel cc on Linux/x86 and Linux/x86_64
 compiler_platform('icc', Plat) :- 
     platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
@@ -2792,8 +2761,6 @@ aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     \+ member(OS, ['windows', 'aix', 'bluegene']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
         platform('power32', 'aix', _, Platform).
-aux_compiler_for_platform(Platform, 'sparc_asm', 'gcc') :-
-        platform('sparc', 'solaris', _, Platform).
 
 % mcomp_plat/2
 % mcomp_plat(?Compiler, ?Platform)
@@ -2816,7 +2783,6 @@ lang('att_asm').
 lang('masm_asm').
 lang('nasm_asm').
 lang('power_asm').
-lang('sparc_asm').
 
 % Language-file extension mappings
 lang_ext('fortran', '.F').
@@ -2827,7 +2793,6 @@ lang_ext('att_asm', '.S').
 lang_ext('power_asm', '.s'). % On POWER/AIX
 lang_ext('masm_asm', '.asm').
 lang_ext('nasm_asm', '.asm').
-lang_ext('sparc_asm', '.s').
 
 % lang_ext sanity checking
 % No platform should have compilers defined for multiple languages that share
@@ -2853,10 +2818,10 @@ insane('Too many compilers on platform P1 for extension P2',
 % Compiler/language constraints
 comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
-    member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc', 'bgxlc']);
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC', 'bgxlc++']).
+    member(Compiler, ['gcc', 'pgcc', 'VC', 'xlc', 'icc', 'bgxlc']);
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bgxlc++']).
 comp_lang(Compiler, 'c++') :-
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC', 'bgxlc++']).
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bgxlc++']).
 comp_lang('gcc', 'att_asm') :-
     % We dont use gcc for assembly files on AIX
     current_platform(Platform),
@@ -2871,10 +2836,6 @@ mutatee_comp('pgcc').
 mutatee_comp('pgCC').
 mutatee_comp('VC').
 mutatee_comp('VC++').
-mutatee_comp('sun_cc').
-mutatee_comp('cc').
-mutatee_comp('cxx').
-mutatee_comp('CC').
 mutatee_comp('xlc').
 mutatee_comp('xlC').
 mutatee_comp('icc').
@@ -2900,13 +2861,10 @@ compiler_define_string('gcc', 'gnu_cc').
 compiler_define_string('g++', 'gnu_cxx').
 compiler_define_string('pgcc', 'pg_cc').
 compiler_define_string('VC', 'native_cc').
-compiler_define_string('cc', 'native_cc').
-compiler_define_string('sun_cc', 'native_cc').
 compiler_define_string('xlc', 'native_cc').
 compiler_define_string('pgCC', 'pg_cxx').
 compiler_define_string('VC++', 'native_cxx').
 compiler_define_string('cxx', 'native_cxx').
-compiler_define_string('CC', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
@@ -2925,13 +2883,12 @@ compiler_s(Comp, Comp) :-
     % The next line contains a list of compilers whose executable names are
     % different from the name of the compiler that is used in this
     % specification system.
-    \+ member(Comp, ['sun_cc', 'ibm_as', 'masm', 'VC', 'VC++']),
+    \+ member(Comp, ['ibm_as', 'masm', 'VC', 'VC++']),
     findall(C, mutatee_comp(C), Me_comp),
     findall(C, mutator_comp(C), Mr_comp),
     findall(C, (member(C, Me_comp); member(C, Mr_comp)), All_comp),
     sort(All_comp, Comps),
     member(Comp, Comps).
-compiler_s('sun_cc', 'cc').
 compiler_s('VC', 'cl').
 compiler_s('VC++', 'cl').
 compiler_s('icc', 'icc').
@@ -2945,23 +2902,17 @@ compiler_s('iCC', 'icpc').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
-compiler_opt_trans(SunWorkshop, 'low', '-O') :-
-    member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
-compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
-    member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'high', '-O3') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
-    member(Comp, ['gcc', 'g++', 'cc', 'cxx', 'icc', 'iCC']).
-compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
-    member(SunWorkshop, ['sun_cc', 'CC']).
+    member(Comp, ['gcc', 'g++', 'icc', 'iCC']).
 compiler_opt_trans(IBM, 'max', '-O5') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
@@ -2974,7 +2925,7 @@ compiler_pic_trans(Comp, 'pic', '-KPIC') :-
 compiler_pic_trans(Comp, 'pic', '-qpic') :-
     member(Comp, ['bgxlc', 'bgxlc++']).
 compiler_pic_trans(Comp, 'pic', '') :-
-        member(Comp, ['cc', 'cxx', 'VC++', 'VC']).
+        member(Comp, ['VC++', 'VC']).
 
 compiler_pic('g++', 'pic').
 compiler_pic('gcc', 'pic').
@@ -2998,24 +2949,22 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % Translation for parameter flags
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'gfortran', 'VC', 'VC++', 'icc', 'iCC', 'bgxlc', 'bgxlc++']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 
+                  'xlc', 'xlC', 'gfortran', 'VC', 'VC++', 'icc', 'iCC', 'bgxlc', 'bgxlc++']).
 
 % Mutator compiler defns
 mutator_comp('g++').
 mutator_comp('pgCC').
 mutator_comp('VC++').
-mutator_comp('cxx').
-mutator_comp('CC').
 mutator_comp('xlC').
 mutator_comp('bgxlc++').
 
 % Per-compiler link options for building mutatees
 mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
-    member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc']).
+    member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
-    member(Native_cxx, ['cxx', 'CC', 'xlC', 'pgCC']).
+    member(Native_cxx, ['xlC', 'pgCC']).
 mutatee_link_options('VC', '$(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 mutatee_link_options('bgxlc', '$(MUTATEE_LDFLAGS_NATIVE)').
@@ -3026,34 +2975,31 @@ compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
-compiler_dynamic_link(_, _, '').
+compiler_static_link('bgxlc++', P, '') :- platform(_,'bluegene', _, P).
+compiler_static_link('bgxlc', P, '') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link(_, _, '') :- platform(_, OS, _, P),
+	OS \= 'bluegene'.
+compiler_dynamic_link('bgxlc++', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link('bgxlc', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
-comp_std_flags_str('cc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('sun_cc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('CC', '$(CXXFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '-qnostaticlink').
-comp_std_flags_str('bgxlc++', '-qnostaticlink').
+comp_std_flags_str('bgxlc', '').
+comp_std_flags_str('bgxlc++', '').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
-comp_std_flags_str('cxx', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
 % FIXME Tear out the '-DSOLO_MUTATEE' from these and make it its own thing
 comp_mutatee_flags_str('gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
 comp_mutatee_flags_str('g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
-comp_mutatee_flags_str('cc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
-comp_mutatee_flags_str('sun_cc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('xlc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('pgcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src').
-comp_mutatee_flags_str('CC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('bgxlc', '$(CFLAGS)').
 comp_mutatee_flags_str('bgxlc++', '$(CXXFLAGS)').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
-comp_mutatee_flags_str('cxx', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('xlC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('pgCC', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 % FIXME What do I specify for the Windows compilers, if anything?
@@ -3199,6 +3145,7 @@ all_mutators_require_libs(['testSuite']).
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
+module_required_libs('patchapi', ['patchAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instruction', ['instructionAPI']).
 module_required_libs('proccontrol', ['pcontrol']).

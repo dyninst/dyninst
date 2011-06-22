@@ -35,16 +35,15 @@
 #include "Transformer.h"
 #include "dyninstAPI/src/instPoint.h"
 
+class edge_instance;
+
 namespace Dyninst {
 namespace Relocation {
 
 class Instrumenter : public Transformer {
  public:
-  // Mirrors definition in CodeMover
-  typedef std::map<block_instance *, TracePtr> TraceMap;
-   
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
-  virtual bool postprocess(TraceList &);
+
+  virtual bool process(RelocBlock *cur, RelocGraph *);
   
   Instrumenter() {};
   
@@ -55,21 +54,34 @@ class Instrumenter : public Transformer {
     Before,
     After } When;
     
-  typedef std::pair<TracePtr, When> InsertPoint;  
-  typedef std::map<InsertPoint, TraceList> EdgeTraces;
-  typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
+  typedef std::pair<RelocBlock *, When> InsertPoint;  
+  typedef std::map<InsertPoint, std::list<RelocBlock *> > EdgeRelocBlocks;
+  typedef dyn_detail::boost::shared_ptr<CFWidget> CFWidgetPtr;
 
-  bool funcEntryInstrumentation(TracePtr trace);
-  bool funcExitInstrumentation(TracePtr trace);
-  bool blockEntryInstrumentation(TracePtr trace);
-  bool edgeInstrumentation(TracePtr trace, const TraceMap &map);
-  bool preCallInstrumentation(TracePtr trace);
-  bool postCallInstrumentation(TracePtr trace);
-  bool insnInstrumentation(TracePtr trace);
+  // The instrumenters that can add new RelocBlocks have the CFG as an
+  // argument
+  bool funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg);
 
-  EdgeTraces edgeTraces_;
+  bool funcExitInstrumentation(RelocBlock *trace);
+  bool blockEntryInstrumentation(RelocBlock *trace);
+  bool preCallInstrumentation(RelocBlock *trace);
+  bool insnInstrumentation(RelocBlock *trace);
 
-  AtomPtr makeInstrumentation(instPoint *point);
+  WidgetPtr makeInstrumentation(instPoint *point);
+
+  struct CallFallthroughPredicate {
+     bool operator()(RelocEdge *e);
+  };
+
+  struct EdgePredicate {
+
+	EdgePredicate(edge_instance *e) : e_(e) {}
+    bool operator()(RelocEdge *e);
+    edge_instance *e_;
+  };
+
 };
 
 };

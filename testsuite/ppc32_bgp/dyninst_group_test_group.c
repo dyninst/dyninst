@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 1996-2011 Barton P. Miller
- * 
- * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
- * validity or performance.  We reserve the right to update, modify,
- * or discontinue this software at any time.  We shall have no
- * obligation to supply such updates or modifications or any other
- * form of support to you.
- * 
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,7 +15,7 @@ extern int test1_9_mutatee();
 extern int test1_8_mutatee();
 extern int test2_5_mutatee();
 extern int snip_change_shlib_var_mutatee();
-extern int test1_18_mutatee();
+extern int test1_32_mutatee();
 extern int test1_28_mutatee();
 extern int test1_26_mutatee();
 extern int test1_27_mutatee();
@@ -59,7 +29,7 @@ extern int test1_13_mutatee();
 extern int test1_31_mutatee();
 extern int test1_30_mutatee();
 extern int test1_33_mutatee();
-extern int test1_32_mutatee();
+extern int test1_18_mutatee();
 extern int test1_34_mutatee();
 extern int test1_37_mutatee();
 extern int test1_36_mutatee();
@@ -83,7 +53,7 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_8", test1_8_mutatee, GROUPED, "test1_8"},
   {"test2_5", test2_5_mutatee, GROUPED, "test2_5"},
   {"snip_change_shlib_var", snip_change_shlib_var_mutatee, GROUPED, "snip_change_shlib_var"},
-  {"test1_18", test1_18_mutatee, GROUPED, "test1_18"},
+  {"test1_32", test1_32_mutatee, GROUPED, "test1_32"},
   {"test1_28", test1_28_mutatee, GROUPED, "test1_28"},
   {"test1_26", test1_26_mutatee, GROUPED, "test1_26"},
   {"test1_27", test1_27_mutatee, GROUPED, "test1_27"},
@@ -97,7 +67,7 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_31", test1_31_mutatee, GROUPED, "test1_31"},
   {"test1_30", test1_30_mutatee, GROUPED, "test1_30"},
   {"test1_33", test1_33_mutatee, GROUPED, "test1_33"},
-  {"test1_32", test1_32_mutatee, GROUPED, "test1_32"},
+  {"test1_18", test1_18_mutatee, GROUPED, "test1_18"},
   {"test1_34", test1_34_mutatee, GROUPED, "test1_34"},
   {"test1_37", test1_37_mutatee, GROUPED, "test1_37"},
   {"test1_36", test1_36_mutatee, GROUPED, "test1_36"},

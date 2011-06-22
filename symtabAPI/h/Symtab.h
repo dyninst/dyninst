@@ -130,7 +130,7 @@ class Symtab : public LookupInterface,
    // Symbol
 
    SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
-                                         const std::string name,
+                                         const std::string& name,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                          NameType nameType = anyName,
                                          bool isRegex = false, 
@@ -293,6 +293,8 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
    SYMTAB_EXPORT bool addTrapHeader_win(Address ptr);
+
+   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
    SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
@@ -608,7 +610,7 @@ class Symtab : public LookupInterface,
    
    SYMTAB_EXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string name,
+                                               const std::string& name,
                                                Symbol::SymbolType sType, 
                                                bool isMangled = false,
                                                bool isRegex = false, 
