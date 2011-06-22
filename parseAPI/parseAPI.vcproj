@@ -469,18 +469,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\ParseCallback.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\ParseData.C"
 				>
 				<FileConfiguration

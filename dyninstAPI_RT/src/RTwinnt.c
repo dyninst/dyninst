@@ -109,7 +109,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
                   libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
 
 #if defined(cap_mutatee_traps)
-   fprintf(stderr,"RTLIB: cap_mutatee_traps\n");
    if (DYNINSTstaticMode) {
       DYNINSTinitializeTrapHandler();
    }
@@ -440,8 +439,6 @@ int DYNINSTinitializeTrapHandler()
    return fake_AVEH_handle != 0;
 }
 
-// fake version of the Windows API function that makes sure our 
-// exception handler gets invoked first
 PVOID dyn_AddVectoredExceptionHandler
 (ULONG isFirst, PVECTORED_EXCEPTION_HANDLER handler)
 {

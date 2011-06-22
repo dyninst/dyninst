@@ -451,15 +451,3 @@ SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,
    return true;
 }
 
-
-
-SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,
-                                             Address end,
-                                             Symbol *oldsym,
-                                             Symbol *newsym) {
-   for (unsigned i = 0; i < codeRegions_.size(); ++i) {
-      codeRegions_[i]->updateRelocations(start, end, oldsym, newsym);
-   }
-   return true;
-}
-
