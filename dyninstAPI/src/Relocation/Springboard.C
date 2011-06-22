@@ -404,7 +404,7 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 
   insnCodeGen::generateBranch(gen, from, to);
 
-  springboard_cerr << "Springboard branch " << hex << from << "->" << to << dec << endl;
+  springboard_cerr << "Generated springboard branch " << hex << from << "->" << to << dec << endl;
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {

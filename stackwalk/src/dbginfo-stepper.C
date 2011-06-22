@@ -86,9 +86,14 @@ DwarfSW *getDwarfInfo(std::string s)
    Elf_X *elfx = getElfHandle(s);
    Elf *elf = elfx->e_elfp();
    Dwarf_Debug dbg;
-   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, NULL);
-   if (status != DW_DLV_OK)
+   Dwarf_Error err;
+   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, &err);
+   if (status != DW_DLV_OK) {
+      sw_printf("Error opening dwarf information %u (0x%x): %s\n",
+                (unsigned) dwarf_errno(err), (unsigned) dwarf_errno(err),
+                dwarf_errmsg(err));
       goto done;
+   }
    ret = new DwarfSW(dbg, elfx->wordSize());
 
   done:

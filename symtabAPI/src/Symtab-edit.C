@@ -256,9 +256,9 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
 
 bool Symtab::addSymbol(Symbol *newSym) 
 {
-    if (!newSym)
+   if (!newSym) {
     	return false;
-
+   }
     // Expected default behavior: if there is no
     // module use the default.
     if (newSym->getModule() == NULL) {
@@ -440,6 +440,17 @@ Variable *Symtab::createVariable(std::string name,
     
     return var;
 }
+
+SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,
+                                             Address end,
+                                             Symbol *oldsym,
+                                             Symbol *newsym) {
+   for (unsigned i = 0; i < codeRegions_.size(); ++i) {
+      codeRegions_[i]->updateRelocations(start, end, oldsym, newsym);
+   }
+   return true;
+}
+
 
 
 SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,

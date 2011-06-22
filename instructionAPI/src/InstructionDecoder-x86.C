@@ -118,7 +118,6 @@ namespace Dyninst
       InstructionDecoderImpl(a),
     locs(NULL),
     decodedInstruction(NULL),
-    is32BitMode(true),
     sizePrefixPresent(false)
     {
     }
@@ -617,7 +616,7 @@ namespace Dyninst
             case op_v:
             case op_lea:
             case op_z:
-                if(is32BitMode ^ sizePrefixPresent)
+	      if(!ia32_is_mode_64() ^ sizePrefixPresent)
                 {
                     return u32;
                 }
@@ -628,7 +627,7 @@ namespace Dyninst
                 break;
             case op_p:
                 // book says operand size; arch-x86 says word + word * operand size
-                if(is32BitMode ^ sizePrefixPresent)
+                if(!ia32_is_mode_64() ^ sizePrefixPresent)
                 {
                     return u48;
                 }

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -868,8 +868,6 @@ Optional Packages:
   --with-libdwarf-libdir  LIBDWARF library directory
   --with-libxml2-incdir   LIBXML2 include directory
   --with-libxml2-libdir   LIBXML2 library directory
-  --with-libunwind-incdir LIBUNWIND include directory
-  --with-libunwind-libdir LIBUNWIND library directory
   --with-libflex-libdir   Absolute path to flex library
 
 Some influential environment variables:
@@ -2185,8 +2183,6 @@ if test "${with_package_base+set}" = set; then
             ARG_WRAPPER_LIBS="";
             LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
             LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib";
-            LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include";
-            LIBUNWIND_LIB_DIR="${PACKAGE_BASE}/libunwind/lib";
             LIBFLEX_LIB_DIR="${PACKAGE_BASE}/libflex/lib";
 
 else
@@ -2202,8 +2198,6 @@ else
             LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
             LIBXML2_LIB_DIR="/usr/lib";
-            LIBUNWIND_INC_DIR="/usr/include";
-            LIBUNWIND_LIB_DIR="/usr/lib";
             LIBFLEX_LIB_DIR="/usr/lib";
 
 fi;
@@ -5007,87 +5001,6 @@ fi
 
 
 
-if test "$host_cpu" != "ia64" ; then
-   { echo "$as_me:$LINENO: Not IA-64, skipping libunwind..." >&5
-echo "$as_me: Not IA-64, skipping libunwind..." >&6;}
-else
-
-# Check whether --with-libunwind-incdir or --without-libunwind-incdir was given.
-if test "${with_libunwind_incdir+set}" = set; then
-  withval="$with_libunwind_incdir"
-  LIBUNWIND_INC_DIR="${withval}";
-fi;
-
-# Check whether --with-libunwind-libdir or --without-libunwind-libdir was given.
-if test "${with_libunwind_libdir+set}" = set; then
-  withval="$with_libunwind_libdir"
-  LIBUNWIND_LIB_DIR="${withval}";
-fi;
-
-
-  CXXFLAGS_HOLD=$CXXFLAGS
-  if test "${LIBUNWIND_INC_DIR}" != "" ; then
-    echo "$as_me:$LINENO: checking for libunwind.h in ${LIBUNWIND_INC_DIR}" >&5
-echo $ECHO_N "checking for libunwind.h in ${LIBUNWIND_INC_DIR}... $ECHO_C" >&6
-    CXXFLAGS="$CXXFLAGS -I${LIBUNWIND_INC_DIR}"
-  else
-    echo "$as_me:$LINENO: checking for libunwind.h" >&5
-echo $ECHO_N "checking for libunwind.h... $ECHO_C" >&6
-  fi
-  cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include "libunwind.h"
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest.$ac_objext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-{ { echo "$as_me:$LINENO: error: libunwind.h not found in ${LIBUNWIND_INC_DIR}" >&5
-echo "$as_me: error: libunwind.h not found in ${LIBUNWIND_INC_DIR}" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
-  CXXFLAGS=$CXXFLAGS_HOLD
-
-fi
-
-
-
 
 # Check whether --with-libflex-libdir or --without-libflex-libdir was given.
 if test "${with_libflex_libdir+set}" = set; then
@@ -6203,8 +6116,6 @@ s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
 s,@LIBDWARF_HAS_SET_FRAME@,$LIBDWARF_HAS_SET_FRAME,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
-s,@LIBUNWIND_INC_DIR@,$LIBUNWIND_INC_DIR,;t t
-s,@LIBUNWIND_LIB_DIR@,$LIBUNWIND_LIB_DIR,;t t
 s,@LIBFLEX_LIB_DIR@,$LIBFLEX_LIB_DIR,;t t
 s,@NASM@,$NASM,;t t
 s,@STACKPROT@,$STACKPROT,;t t

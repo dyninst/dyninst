@@ -88,7 +88,7 @@ class EmitterPOWER : public Emitter {
     virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
     virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
-    virtual void emitMovPCToReg(Register, codeGen& gen);
+    virtual Address emitMovePCToReg(Register, codeGen& gen);
 
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
@@ -135,11 +135,6 @@ class EmitterPOWERStat : public EmitterPOWER {
  public:
     virtual ~EmitterPOWERStat() {};
 
-    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
-    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
-
-    bool emitPLTCommon(func_instance *dest, codeGen &gen);
-
  protected:
     virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
                                  bool noCost, func_instance *callee);
@@ -154,6 +149,12 @@ class EmitterPOWER32Stat : public EmitterPOWERStat {
  public:
     virtual ~EmitterPOWER32Stat() {}
 
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+
+    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
+
+
  protected:
     virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
 };
@@ -162,11 +163,22 @@ class EmitterPOWER64Dyn : public EmitterPOWERDyn {
  public:
     virtual ~EmitterPOWER64Dyn() {}
 
+    virtual bool emitTOCCommon(block_instance *, bool call, codeGen &);
+
+    virtual bool emitTOCJump(block_instance *, codeGen &);
+    virtual bool emitTOCCall(block_instance *, codeGen &);
+
 };
 
 class EmitterPOWER64Stat : public EmitterPOWERStat {
  public:
     virtual ~EmitterPOWER64Stat() {}
+
+    virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
+    virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
+
+    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
+
 
  protected:
     virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);

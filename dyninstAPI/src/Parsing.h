@@ -132,8 +132,8 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
   virtual void add_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
-#if defined(arch_power) || defined(arch_sparc)
-  void instruction_cb(ParseAPI::Function*, ParseAPI::Block *,Address,insn_details*);
+#if defined(arch_power)
+  void instruction_cb(ParseAPI::Function*,ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;

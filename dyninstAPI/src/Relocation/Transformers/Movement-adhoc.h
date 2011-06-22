@@ -43,23 +43,23 @@ namespace Dyninst {
 namespace Relocation {
 class RelocInsn;
 // Identify PC-relative memory accesses and replace
-// them with a dedicated Atom
+// them with a dedicated Widget
 class adhocMovementTransformer : public Transformer {
   typedef dyn_detail::boost::shared_ptr<RelocInsn> RelocInsnPtr;
  public:
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+  virtual bool process(RelocBlock *, RelocGraph *);
 
   adhocMovementTransformer(AddressSpace *as) : addrSpace(as) {};
 
   virtual ~adhocMovementTransformer() {};
 
  private:
-  bool isPCDerefCF(AtomPtr ptr,
+  bool isPCDerefCF(WidgetPtr ptr,
                    Address &destPtr);
-  bool isPCRelData(AtomPtr ptr,
+  bool isPCRelData(WidgetPtr ptr,
 		   Address &target);
   // Records where PC was stored
-  bool isGetPC(AtomPtr ptr,
+  bool isGetPC(WidgetPtr ptr,
 	       Absloc &aloc,
 	       Address &thunkAddr);
 

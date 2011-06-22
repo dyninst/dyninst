@@ -100,22 +100,6 @@ string symt_current_func_name;
 string symt_current_mangled_func_name;
 Symbol *symt_current_func = NULL;
 
-#if defined(os_solaris)
-#include <dlfcn.h>
-#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-int (*P_native_demangle)(const char *, char *, size_t);
-
-void loadNativeDemangler() {
-
-  P_native_demangle = NULL;
-  void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
-  if (hDemangler != NULL)
-    P_native_demangle = (int (*) (const char *, char *, size_t))
-      dlsym(hDemangler, "cplus_demangle");
-}
-		
-#endif
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
@@ -286,14 +270,12 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
     return Region::RT_DYNAMIC;
   case SHT_HASH:
     return Region::RT_HASH;
-#if !defined(os_solaris)            
   case SHT_GNU_versym:
     return Region::RT_SYMVERSIONS;
   case SHT_GNU_verdef:
     return Region::RT_SYMVERDEF;
   case SHT_GNU_verneed:
     return Region::RT_SYMVERNEEDED;
-#endif
   default:
     return Region::RT_OTHER;
   }
@@ -520,7 +502,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }	
   }
 
-#if !defined(os_solaris)
   if (dynamic_section_index != -1) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
     Elf_X_Data data = scnp->get_data();
@@ -608,7 +589,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       it++;
     }
   }
-#endif 
    
   isBlueGene_ = false;
   hasNoteSection_ = false;
@@ -779,7 +759,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       stabstrscnp = scnp;
       stabstr_off_ = scnp->sh_offset();
     } 
-#if defined(os_solaris) || defined(os_vxworks)
+#if defined(os_vxworks)
     else if ((strcmp(name, REL_PLT_NAME) == 0) || 
              (strcmp(name, REL_PLT_NAME2) == 0)) {
       rel_plt_scnp = scnp;
@@ -893,8 +873,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         }
      }
 
-#if !defined(os_solaris)
-    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
+    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) &&
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
       is_dynamic_ = true;
       dynsym_scnp = scnp;
@@ -906,18 +885,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       dynstr_scnp = scnp;
       dynstr_addr_ = scnp->sh_addr();
     }
-#else
-    else if (strcmp(name, DYNSYM_NAME) == 0) {
-      is_dynamic_ = true;
-      dynsym_scnp = scnp;
-      dynsym_addr_ = scnp->sh_addr();
-      dynsym_size_ = scnp->sh_size()/scnp->sh_entsize();
-    } else if (strcmp(name, DYNSTR_NAME) == 0) {
-      dynstr_scnp = scnp;
-      dynstr_addr_ = scnp->sh_addr();
-    }
-
-#endif
     else if (strcmp(name, ".debug_info") == 0) {
       dwarvenDebugInfo = true;
     }
@@ -969,13 +936,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   // sort the section headers by base address
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
-#if !defined(os_solaris)
   for (unsigned j = 0 ; j < regions_.size() ; j++) {
     if (secAddrTagMapping.find(regions_[j]->getRegionAddr()) != secAddrTagMapping.end()) {
       secTagRegionMapping[secAddrTagMapping[regions_[j]->getRegionAddr()]] = regions_[j];
     }
   }
-#endif
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -999,7 +964,6 @@ bool Object::is_offset_in_plt(Offset offset) const
   return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
-#if !defined(os_solaris)
 void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
 			  Elf_X_Shdr *&dynstr_scnp)
 {
@@ -1044,12 +1008,6 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
   if (rel_scnp_index  != -1)
     get_relocationDyn_entries(rel_scnp_index, dynsym_scnp, dynstr_scnp);
 }
-#else
-void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
-                          Elf_X_Shdr *&)
-{
-}
-#endif
 
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
@@ -2119,10 +2077,8 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 // Parsing the dynamic symbols lazily would certainly 
 // not increase the overhead of the entire parse
 void Object::parse_dynamicSymbols (Elf_X_Shdr *&
-#if !defined(os_solaris)
                                    dyn_scnp
-#endif 
-                                   , Elf_X_Data &symdata, 
+                                   , Elf_X_Data &symdata,
                                    Elf_X_Data &strdata,
                                    bool /*shared*/, 
                                    std::string smodule)
@@ -2134,7 +2090,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 
   Elf_X_Sym syms = symdata.get_sym();
   const char *strs = strdata.get_string();
-#if !defined(os_solaris)
   Elf_X_Shdr *versymSec = NULL, *verneedSec = NULL, *verdefSec = NULL;
   Elf_X_Data data = dyn_scnp->get_data();
   Elf_X_Dyn dyns = data.get_dyn();
@@ -2200,9 +2155,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
     symVersionNeeds = symVersionNeedsnext;
   }
    
-#endif
-
-  if(syms.isValid()) { 
+  if(syms.isValid()) {
     for (unsigned i = 0; i < syms.count(); i++) {
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
@@ -2247,7 +2200,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       if (stype == Symbol::ST_UNKNOWN)
          newsym->setInternalType(etype);
       
-#if !defined(os_solaris)
       if(versymSec) {
 	unsigned short raw = symVersions.get(i);
 	bool hidden = raw >> 15;
@@ -2268,7 +2220,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 	   newsym->setVersionHidden();
 	 }
       }
-#endif
       // register symbol in dictionary
       symbols_[sname].push_back(newsym);
       symsByOffset_[newsym->getOffset()].push_back(newsym);
@@ -3105,15 +3056,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		for (unsigned i = 0; i < symsByOffset_[entryAddr].size(); i++) {
 		  symsToModules_[symsByOffset_[entryAddr][i]] = module;
 		}
-#if !defined (os_solaris)
-		//  This is definitely triggered on mutatees compiled with
-		//  the solaris compilers -- the fix seems tricky and
-		//  possibly not worth the time and energy to restructure
-		//  and/or add sufficient further nuance to go back to the
-		//  symbol table to infer which nearly identical symbol belongs
-		//  to which modules
-#endif
-	      }
+      }
 	    break;
 	  }
 
@@ -3236,9 +3179,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
 #endif
-#if defined(os_solaris)
-  loadNativeDemangler();
-#endif    
   is_aout_ = false;
   did_open = false;
   interpreter_name_ = NULL;
@@ -3296,9 +3236,6 @@ Object::Object(const Object& obj)
     dwarf(this),
     EEL(false)
 {
-#if defined(os_solaris)
-  loadNativeDemangler();
-#endif    
   interpreter_name_ = obj.interpreter_name_;
   isStripped = obj.isStripped;
   loadAddress_ = obj.loadAddress_;
@@ -3483,14 +3420,6 @@ bool parseCompilerType(Object *objPtr)
       break;
 
     case N_OPT: /* Compiler options */
-#if defined(os_solaris) 
-      if (strstr(stabptr->name(i), "Sun") != NULL ||
-	  strstr(stabptr->name(i), "Forte") != NULL)
-	{
-	  delete stabptr;
-	  return true;
-	}
-#endif
       delete stabptr;
       return false;
     }
@@ -4549,14 +4478,12 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 		continue;
 	      }
 
-#if !defined (os_solaris)
-	    if (funcs.size() > 1) 
+	    if (funcs.size() > 1)
 	      {
 			  //  we see a lot of these on solaris (solaris only)
 		fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s (stringbuf %s)\n", 
 			FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i), stringbuf);
 	      }
-#endif
 
 	    currentFunction = funcs[0];
 	    currentLineBase = stabEntry->desc(i);

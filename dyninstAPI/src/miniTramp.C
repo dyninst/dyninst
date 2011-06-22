@@ -44,6 +44,13 @@
 // for AIX
 #include "function.h"
 
+#include "Relocation/DynInstrumenter.h"
+#include "Command.h"
+
+using Dyninst::PatchAPI::DynRemoveSnipCommand;
+using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::PatcherPtr;
+
 int miniTramp::_id = 1;
 
 miniTramp::miniTramp(AstNodePtr ast, instPoint *point, bool recursive)
@@ -56,6 +63,7 @@ miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
    instPoint *cPoint = instPoint::fork(point_, childProc);
    // Find the equivalent miniTramp...
    assert(point_->size() == cPoint->size());
+/*
    instPoint::iterator c_iter = cPoint->begin();
    for (instPoint::iterator iter = point_->begin();
         iter != point_->end();
@@ -63,12 +71,27 @@ miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
       if (*iter == this) return *c_iter;
       ++c_iter;
    }
+*/
+   instPoint::instance_iter c_iter = cPoint->begin();
+   for (instPoint::instance_iter iter = point_->begin();
+        iter != point_->end();
+        ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+     if (mini == this) {
+       miniTramp* c_mini = GET_MINI(*c_iter);
+       return c_mini;
+     }
+     ++c_iter;
+   }
 
    assert(0);
    return NULL;
 }
 
 bool miniTramp::uninstrument() {
-   point_->erase(this);
-   return true;
+  /* PatchAPI stuffs */
+  DynRemoveSnipCommand::Ptr rm_snip = DynRemoveSnipCommand::create(this);
+  instP()->proc()->patcher()->add(rm_snip);
+  /* end of PatchAPI stuffs */
+  return true;
 }

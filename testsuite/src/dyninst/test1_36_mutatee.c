@@ -126,12 +126,7 @@ int test1_36_func1() {
    if(test1_36_globalVariable10 != 10) {
       logerror("   for test 36, expecting arg10 value of 10, got %d\n",
               test1_36_globalVariable10);
-#if defined(sparc_sun_solaris2_4_test)
-      logerror("   not marking as an error since this needs "
-              "to be implemented for sparc-sol\n");
-#else
       failure = 1;
-#endif
    }
 
    if(failure == 0) {

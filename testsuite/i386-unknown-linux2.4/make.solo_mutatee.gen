@@ -1,8 +1,8 @@
 # Define variables for our compilers, if they aren't already defined
+M_gnu_cc ?= gcc
 ifdef ICC
 M_intel_CC ?= icpc
 endif
-M_gnu_cc ?= gcc
 M_gnu_fc ?= gfortran
 ifdef ICC
 M_intel_cc ?= icc
@@ -1012,6 +1012,46 @@ test_thread_8.mutatee_solo_dynamic_g++_32_none_none: test_thread_8_mutatee_solo_
 	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_g++_32_pic_none: test_thread_8_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
+######################################################################
+# Mutatees compiled with g++ for patchapi
+######################################################################
+
+patchapi_SOLO_MUTATEES_gnu_cxx = patchapi_group_test.mutatee_solo_dynamic_g++_32_none_high patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_high patchapi_group_test.mutatee_solo_static_g++_32_none_high patchapi_group_test.mutatee_solo_static_g++_32_pic_high patchapi_group_test.mutatee_solo_dynamic_g++_32_none_low patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_low patchapi_group_test.mutatee_solo_static_g++_32_none_low patchapi_group_test.mutatee_solo_static_g++_32_pic_low patchapi_group_test.mutatee_solo_dynamic_g++_32_none_max patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_max patchapi_group_test.mutatee_solo_static_g++_32_none_max patchapi_group_test.mutatee_solo_static_g++_32_pic_max patchapi_group_test.mutatee_solo_dynamic_g++_32_none_none patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_none patchapi_group_test.mutatee_solo_static_g++_32_none_none patchapi_group_test.mutatee_solo_static_g++_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with g++
+
+patchapi_group_test.mutatee_solo_dynamic_g++_32_none_high: patchapi_group_test_group_g++_32_none_high.o patch1_1_mutatee_solo_g++_32_none_high.o patch1_2_mutatee_solo_g++_32_none_high.o patch2_1_mutatee_solo_g++_32_none_high.o patch3_1_mutatee_solo_g++_32_none_high.o patch3_2_mutatee_solo_g++_32_none_high.o mutatee_util_g++_32_none_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_high: patchapi_group_test_group_g++_32_pic_high.o patch1_1_mutatee_solo_g++_32_pic_high.o patch1_2_mutatee_solo_g++_32_pic_high.o patch2_1_mutatee_solo_g++_32_pic_high.o patch3_1_mutatee_solo_g++_32_pic_high.o patch3_2_mutatee_solo_g++_32_pic_high.o mutatee_util_g++_32_pic_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_g++_32_none_high: patchapi_group_test_group_g++_32_none_high.o patch1_1_mutatee_solo_g++_32_none_high.o patch1_2_mutatee_solo_g++_32_none_high.o patch2_1_mutatee_solo_g++_32_none_high.o patch3_1_mutatee_solo_g++_32_none_high.o patch3_2_mutatee_solo_g++_32_none_high.o mutatee_util_g++_32_none_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_g++_32_pic_high: patchapi_group_test_group_g++_32_pic_high.o patch1_1_mutatee_solo_g++_32_pic_high.o patch1_2_mutatee_solo_g++_32_pic_high.o patch2_1_mutatee_solo_g++_32_pic_high.o patch3_1_mutatee_solo_g++_32_pic_high.o patch3_2_mutatee_solo_g++_32_pic_high.o mutatee_util_g++_32_pic_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_g++_32_none_low: patchapi_group_test_group_g++_32_none_low.o patch1_1_mutatee_solo_g++_32_none_low.o patch1_2_mutatee_solo_g++_32_none_low.o patch2_1_mutatee_solo_g++_32_none_low.o patch3_1_mutatee_solo_g++_32_none_low.o patch3_2_mutatee_solo_g++_32_none_low.o mutatee_util_g++_32_none_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_low: patchapi_group_test_group_g++_32_pic_low.o patch1_1_mutatee_solo_g++_32_pic_low.o patch1_2_mutatee_solo_g++_32_pic_low.o patch2_1_mutatee_solo_g++_32_pic_low.o patch3_1_mutatee_solo_g++_32_pic_low.o patch3_2_mutatee_solo_g++_32_pic_low.o mutatee_util_g++_32_pic_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_g++_32_none_low: patchapi_group_test_group_g++_32_none_low.o patch1_1_mutatee_solo_g++_32_none_low.o patch1_2_mutatee_solo_g++_32_none_low.o patch2_1_mutatee_solo_g++_32_none_low.o patch3_1_mutatee_solo_g++_32_none_low.o patch3_2_mutatee_solo_g++_32_none_low.o mutatee_util_g++_32_none_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_g++_32_pic_low: patchapi_group_test_group_g++_32_pic_low.o patch1_1_mutatee_solo_g++_32_pic_low.o patch1_2_mutatee_solo_g++_32_pic_low.o patch2_1_mutatee_solo_g++_32_pic_low.o patch3_1_mutatee_solo_g++_32_pic_low.o patch3_2_mutatee_solo_g++_32_pic_low.o mutatee_util_g++_32_pic_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_g++_32_none_max: patchapi_group_test_group_g++_32_none_max.o patch1_1_mutatee_solo_g++_32_none_max.o patch1_2_mutatee_solo_g++_32_none_max.o patch2_1_mutatee_solo_g++_32_none_max.o patch3_1_mutatee_solo_g++_32_none_max.o patch3_2_mutatee_solo_g++_32_none_max.o mutatee_util_g++_32_none_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_max: patchapi_group_test_group_g++_32_pic_max.o patch1_1_mutatee_solo_g++_32_pic_max.o patch1_2_mutatee_solo_g++_32_pic_max.o patch2_1_mutatee_solo_g++_32_pic_max.o patch3_1_mutatee_solo_g++_32_pic_max.o patch3_2_mutatee_solo_g++_32_pic_max.o mutatee_util_g++_32_pic_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_g++_32_none_max: patchapi_group_test_group_g++_32_none_max.o patch1_1_mutatee_solo_g++_32_none_max.o patch1_2_mutatee_solo_g++_32_none_max.o patch2_1_mutatee_solo_g++_32_none_max.o patch3_1_mutatee_solo_g++_32_none_max.o patch3_2_mutatee_solo_g++_32_none_max.o mutatee_util_g++_32_none_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_g++_32_pic_max: patchapi_group_test_group_g++_32_pic_max.o patch1_1_mutatee_solo_g++_32_pic_max.o patch1_2_mutatee_solo_g++_32_pic_max.o patch2_1_mutatee_solo_g++_32_pic_max.o patch3_1_mutatee_solo_g++_32_pic_max.o patch3_2_mutatee_solo_g++_32_pic_max.o mutatee_util_g++_32_pic_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_g++_32_none_none: patchapi_group_test_group_g++_32_none_none.o patch1_1_mutatee_solo_g++_32_none_none.o patch1_2_mutatee_solo_g++_32_none_none.o patch2_1_mutatee_solo_g++_32_none_none.o patch3_1_mutatee_solo_g++_32_none_none.o patch3_2_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_g++_32_pic_none: patchapi_group_test_group_g++_32_pic_none.o patch1_1_mutatee_solo_g++_32_pic_none.o patch1_2_mutatee_solo_g++_32_pic_none.o patch2_1_mutatee_solo_g++_32_pic_none.o patch3_1_mutatee_solo_g++_32_pic_none.o patch3_2_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_g++_32_none_none: patchapi_group_test_group_g++_32_none_none.o patch1_1_mutatee_solo_g++_32_none_none.o patch1_2_mutatee_solo_g++_32_none_none.o patch2_1_mutatee_solo_g++_32_none_none.o patch3_1_mutatee_solo_g++_32_none_none.o patch3_2_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_g++_32_pic_none: patchapi_group_test_group_g++_32_pic_none.o patch1_1_mutatee_solo_g++_32_pic_none.o patch1_2_mutatee_solo_g++_32_pic_none.o patch2_1_mutatee_solo_g++_32_pic_none.o patch3_1_mutatee_solo_g++_32_pic_none.o patch3_2_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
 ######################################################################
 # Mutatees compiled with g++ for symtab
 ######################################################################
@@ -3292,6 +3332,137 @@ dyninst_group_test_group_g++_32_pic_low.o: dyninst_group_test_group.c
 %_g++_32_pic_low.o: ../src/dyninst/%.C
 	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
+# Generic rules for g++'s mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_g++_32_none_high.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_pic_high.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_none_max.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_pic_max.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_none_none.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_pic_none.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_none_low.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_g++_32_pic_low.o: patchapi_group_test_group.c
+	$(M_gnu_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_g++_32_none_high.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_none_high.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_pic_high.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_pic_high.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_none_max.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_none_max.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_pic_max.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_pic_max.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_none_none.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_none_none.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_pic_none.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_pic_none.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_none_low.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_none_low.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_pic_low.o: ../src/patchapi/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_pic_low.o: ../src/patchapi/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
 # Generic rules for g++'s mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -4693,6 +4864,33 @@ test_thread_8.mutatee_solo_dynamic_icpc_32_none_none: test_thread_8_mutatee_solo
 	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_icpc_32_pic_none: test_thread_8_mutatee_solo_icpc_32_pic_none.o mutatee_util_icpc_32_pic_none.o mutatee_util_mt_icpc_32_pic_none.o mutatee_driver_solo_icpc_32.o
 	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
+######################################################################
+# Mutatees compiled with iCC for patchapi
+######################################################################
+
+ifdef ICC
+# We only want to build these targets if the compiler exists
+patchapi_SOLO_MUTATEES_intel_CC = patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_high patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_high patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_low patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_low patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_max patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_max patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_none patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_none 
+endif
+
+# Now a list of rules for compiling the mutatees with iCC
+
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_high: patchapi_group_test_group_icpc_32_none_high.o patch1_1_mutatee_solo_icpc_32_none_high.o patch1_2_mutatee_solo_icpc_32_none_high.o patch2_1_mutatee_solo_icpc_32_none_high.o patch3_1_mutatee_solo_icpc_32_none_high.o patch3_2_mutatee_solo_icpc_32_none_high.o mutatee_util_icpc_32_none_high.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_high: patchapi_group_test_group_icpc_32_pic_high.o patch1_1_mutatee_solo_icpc_32_pic_high.o patch1_2_mutatee_solo_icpc_32_pic_high.o patch2_1_mutatee_solo_icpc_32_pic_high.o patch3_1_mutatee_solo_icpc_32_pic_high.o patch3_2_mutatee_solo_icpc_32_pic_high.o mutatee_util_icpc_32_pic_high.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_low: patchapi_group_test_group_icpc_32_none_low.o patch1_1_mutatee_solo_icpc_32_none_low.o patch1_2_mutatee_solo_icpc_32_none_low.o patch2_1_mutatee_solo_icpc_32_none_low.o patch3_1_mutatee_solo_icpc_32_none_low.o patch3_2_mutatee_solo_icpc_32_none_low.o mutatee_util_icpc_32_none_low.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_low: patchapi_group_test_group_icpc_32_pic_low.o patch1_1_mutatee_solo_icpc_32_pic_low.o patch1_2_mutatee_solo_icpc_32_pic_low.o patch2_1_mutatee_solo_icpc_32_pic_low.o patch3_1_mutatee_solo_icpc_32_pic_low.o patch3_2_mutatee_solo_icpc_32_pic_low.o mutatee_util_icpc_32_pic_low.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_max: patchapi_group_test_group_icpc_32_none_max.o patch1_1_mutatee_solo_icpc_32_none_max.o patch1_2_mutatee_solo_icpc_32_none_max.o patch2_1_mutatee_solo_icpc_32_none_max.o patch3_1_mutatee_solo_icpc_32_none_max.o patch3_2_mutatee_solo_icpc_32_none_max.o mutatee_util_icpc_32_none_max.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_max: patchapi_group_test_group_icpc_32_pic_max.o patch1_1_mutatee_solo_icpc_32_pic_max.o patch1_2_mutatee_solo_icpc_32_pic_max.o patch2_1_mutatee_solo_icpc_32_pic_max.o patch3_1_mutatee_solo_icpc_32_pic_max.o patch3_2_mutatee_solo_icpc_32_pic_max.o mutatee_util_icpc_32_pic_max.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_none_none: patchapi_group_test_group_icpc_32_none_none.o patch1_1_mutatee_solo_icpc_32_none_none.o patch1_2_mutatee_solo_icpc_32_none_none.o patch2_1_mutatee_solo_icpc_32_none_none.o patch3_1_mutatee_solo_icpc_32_none_none.o patch3_2_mutatee_solo_icpc_32_none_none.o mutatee_util_icpc_32_none_none.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icpc_32_pic_none: patchapi_group_test_group_icpc_32_pic_none.o patch1_1_mutatee_solo_icpc_32_pic_none.o patch1_2_mutatee_solo_icpc_32_pic_none.o patch2_1_mutatee_solo_icpc_32_pic_none.o patch3_1_mutatee_solo_icpc_32_pic_none.o patch3_2_mutatee_solo_icpc_32_pic_none.o mutatee_util_icpc_32_pic_none.o mutatee_driver_solo_icpc_32.o
+	$(M_intel_CC) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 ######################################################################
 # Mutatees compiled with iCC for symtab
 ######################################################################
@@ -6947,6 +7145,137 @@ dyninst_group_test_group_icpc_32_pic_low.o: dyninst_group_test_group.c
 %_icpc_32_pic_low.o: ../src/dyninst/%.C
 	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
+# Generic rules for iCC's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icpc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icpc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icpc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icpc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icpc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_icpc_32_none_high.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_pic_high.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_none_max.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_pic_max.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_none_none.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_pic_none.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_none_low.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icpc_32_pic_low.o: patchapi_group_test_group.c
+	$(M_intel_CC) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_icpc_32_none_high.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_icpc_32_none_high.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_icpc_32_pic_high.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_icpc_32_pic_high.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_icpc_32_none_max.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_icpc_32_none_max.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_icpc_32_pic_max.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_icpc_32_pic_max.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_icpc_32_none_none.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_icpc_32_none_none.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_icpc_32_pic_none.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_icpc_32_pic_none.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_icpc_32_none_low.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_icpc_32_none_low.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_icpc_32_pic_low.o: ../src/patchapi/%.c
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_icpc_32_pic_low.o: ../src/patchapi/%.C
+	$(M_intel_CC) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
 # Generic rules for iCC's mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_icpc_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_intel_CC) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -8120,6 +8449,29 @@ test_thread_8.mutatee_solo_dynamic_pgCC_32_none_none: test_thread_8_mutatee_solo
 	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_pgCC_32_pic_none: test_thread_8_mutatee_solo_pgCC_32_pic_none.o mutatee_util_pgCC_32_pic_none.o mutatee_util_mt_pgCC_32_pic_none.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -lpthread 
+######################################################################
+# Mutatees compiled with pgCC for patchapi
+######################################################################
+
+ifdef PGI
+# We only want to build these targets if the compiler exists
+patchapi_SOLO_MUTATEES_pg_cxx = patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_high patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_high patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_low patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_low patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_none patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_none 
+endif
+
+# Now a list of rules for compiling the mutatees with pgCC
+
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_high: patchapi_group_test_group_pgCC_32_none_high.o patch1_1_mutatee_solo_pgCC_32_none_high.o patch1_2_mutatee_solo_pgCC_32_none_high.o patch2_1_mutatee_solo_pgCC_32_none_high.o patch3_1_mutatee_solo_pgCC_32_none_high.o patch3_2_mutatee_solo_pgCC_32_none_high.o mutatee_util_pgCC_32_none_high.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_high: patchapi_group_test_group_pgCC_32_pic_high.o patch1_1_mutatee_solo_pgCC_32_pic_high.o patch1_2_mutatee_solo_pgCC_32_pic_high.o patch2_1_mutatee_solo_pgCC_32_pic_high.o patch3_1_mutatee_solo_pgCC_32_pic_high.o patch3_2_mutatee_solo_pgCC_32_pic_high.o mutatee_util_pgCC_32_pic_high.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_low: patchapi_group_test_group_pgCC_32_none_low.o patch1_1_mutatee_solo_pgCC_32_none_low.o patch1_2_mutatee_solo_pgCC_32_none_low.o patch2_1_mutatee_solo_pgCC_32_none_low.o patch3_1_mutatee_solo_pgCC_32_none_low.o patch3_2_mutatee_solo_pgCC_32_none_low.o mutatee_util_pgCC_32_none_low.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_low: patchapi_group_test_group_pgCC_32_pic_low.o patch1_1_mutatee_solo_pgCC_32_pic_low.o patch1_2_mutatee_solo_pgCC_32_pic_low.o patch2_1_mutatee_solo_pgCC_32_pic_low.o patch3_1_mutatee_solo_pgCC_32_pic_low.o patch3_2_mutatee_solo_pgCC_32_pic_low.o mutatee_util_pgCC_32_pic_low.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_none_none: patchapi_group_test_group_pgCC_32_none_none.o patch1_1_mutatee_solo_pgCC_32_none_none.o patch1_2_mutatee_solo_pgCC_32_none_none.o patch2_1_mutatee_solo_pgCC_32_none_none.o patch3_1_mutatee_solo_pgCC_32_none_none.o patch3_2_mutatee_solo_pgCC_32_none_none.o mutatee_util_pgCC_32_none_none.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgCC_32_pic_none: patchapi_group_test_group_pgCC_32_pic_none.o patch1_1_mutatee_solo_pgCC_32_pic_none.o patch1_2_mutatee_solo_pgCC_32_pic_none.o patch2_1_mutatee_solo_pgCC_32_pic_none.o patch3_1_mutatee_solo_pgCC_32_pic_none.o patch3_2_mutatee_solo_pgCC_32_pic_none.o mutatee_util_pgCC_32_pic_none.o mutatee_driver_solo_pgCC_32.o
+	$(M_pg_cxx) $(CXXFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 ######################################################################
 # Mutatees compiled with pgCC for symtab
 ######################################################################
@@ -9806,6 +10158,105 @@ dyninst_group_test_group_pgCC_32_pic_low.o: dyninst_group_test_group.c
 %_pgCC_32_pic_low.o: ../src/dyninst/%.C
 	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -o $@ $<
 
+# Generic rules for pgCC's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgCC_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgCC_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgCC_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgCC_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgCC_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgCC_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgCC_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgCC_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgCC_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_pgCC_32_none_high.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgCC_32_pic_high.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgCC_32_none_none.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgCC_32_pic_none.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgCC_32_none_low.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgCC_32_pic_low.o: patchapi_group_test_group.c
+	$(M_pg_cxx) $(patchapi_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -DGROUPABLE=1 -o $@ $<
+
+%_pgCC_32_none_high.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -o $@ $<
+%_pgCC_32_none_high.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -o $@ $<
+%_pgCC_32_pic_high.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -o $@ $<
+%_pgCC_32_pic_high.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -KPIC -o $@ $<
+%_pgCC_32_none_none.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -o $@ $<
+%_pgCC_32_none_none.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c    -o $@ $<
+%_pgCC_32_pic_none.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -o $@ $<
+%_pgCC_32_pic_none.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -KPIC -o $@ $<
+%_pgCC_32_none_low.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -o $@ $<
+%_pgCC_32_none_low.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1  -o $@ $<
+%_pgCC_32_pic_low.o: ../src/patchapi/%.c
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -o $@ $<
+%_pgCC_32_pic_low.o: ../src/patchapi/%.C
+	$(M_pg_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -KPIC -o $@ $<
+
 # Generic rules for pgCC's mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_pgCC_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_pg_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -11132,6 +11583,46 @@ test_thread_8.mutatee_solo_dynamic_gcc_32_none_none: test_thread_8_mutatee_solo_
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_gcc_32_pic_none: test_thread_8_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
+######################################################################
+# Mutatees compiled with gcc for patchapi
+######################################################################
+
+patchapi_SOLO_MUTATEES_gnu_cc = patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_high patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_high patchapi_group_test.mutatee_solo_static_gcc_32_none_high patchapi_group_test.mutatee_solo_static_gcc_32_pic_high patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_low patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_low patchapi_group_test.mutatee_solo_static_gcc_32_none_low patchapi_group_test.mutatee_solo_static_gcc_32_pic_low patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_max patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_max patchapi_group_test.mutatee_solo_static_gcc_32_none_max patchapi_group_test.mutatee_solo_static_gcc_32_pic_max patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_none patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_none patchapi_group_test.mutatee_solo_static_gcc_32_none_none patchapi_group_test.mutatee_solo_static_gcc_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with gcc
+
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_high: patchapi_group_test_group_gcc_32_none_high.o patch1_1_mutatee_solo_gcc_32_none_high.o patch1_2_mutatee_solo_gcc_32_none_high.o patch2_1_mutatee_solo_gcc_32_none_high.o patch3_1_mutatee_solo_gcc_32_none_high.o patch3_2_mutatee_solo_gcc_32_none_high.o mutatee_util_gcc_32_none_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_high: patchapi_group_test_group_gcc_32_pic_high.o patch1_1_mutatee_solo_gcc_32_pic_high.o patch1_2_mutatee_solo_gcc_32_pic_high.o patch2_1_mutatee_solo_gcc_32_pic_high.o patch3_1_mutatee_solo_gcc_32_pic_high.o patch3_2_mutatee_solo_gcc_32_pic_high.o mutatee_util_gcc_32_pic_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_gcc_32_none_high: patchapi_group_test_group_gcc_32_none_high.o patch1_1_mutatee_solo_gcc_32_none_high.o patch1_2_mutatee_solo_gcc_32_none_high.o patch2_1_mutatee_solo_gcc_32_none_high.o patch3_1_mutatee_solo_gcc_32_none_high.o patch3_2_mutatee_solo_gcc_32_none_high.o mutatee_util_gcc_32_none_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_gcc_32_pic_high: patchapi_group_test_group_gcc_32_pic_high.o patch1_1_mutatee_solo_gcc_32_pic_high.o patch1_2_mutatee_solo_gcc_32_pic_high.o patch2_1_mutatee_solo_gcc_32_pic_high.o patch3_1_mutatee_solo_gcc_32_pic_high.o patch3_2_mutatee_solo_gcc_32_pic_high.o mutatee_util_gcc_32_pic_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_low: patchapi_group_test_group_gcc_32_none_low.o patch1_1_mutatee_solo_gcc_32_none_low.o patch1_2_mutatee_solo_gcc_32_none_low.o patch2_1_mutatee_solo_gcc_32_none_low.o patch3_1_mutatee_solo_gcc_32_none_low.o patch3_2_mutatee_solo_gcc_32_none_low.o mutatee_util_gcc_32_none_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_low: patchapi_group_test_group_gcc_32_pic_low.o patch1_1_mutatee_solo_gcc_32_pic_low.o patch1_2_mutatee_solo_gcc_32_pic_low.o patch2_1_mutatee_solo_gcc_32_pic_low.o patch3_1_mutatee_solo_gcc_32_pic_low.o patch3_2_mutatee_solo_gcc_32_pic_low.o mutatee_util_gcc_32_pic_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_gcc_32_none_low: patchapi_group_test_group_gcc_32_none_low.o patch1_1_mutatee_solo_gcc_32_none_low.o patch1_2_mutatee_solo_gcc_32_none_low.o patch2_1_mutatee_solo_gcc_32_none_low.o patch3_1_mutatee_solo_gcc_32_none_low.o patch3_2_mutatee_solo_gcc_32_none_low.o mutatee_util_gcc_32_none_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_gcc_32_pic_low: patchapi_group_test_group_gcc_32_pic_low.o patch1_1_mutatee_solo_gcc_32_pic_low.o patch1_2_mutatee_solo_gcc_32_pic_low.o patch2_1_mutatee_solo_gcc_32_pic_low.o patch3_1_mutatee_solo_gcc_32_pic_low.o patch3_2_mutatee_solo_gcc_32_pic_low.o mutatee_util_gcc_32_pic_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_max: patchapi_group_test_group_gcc_32_none_max.o patch1_1_mutatee_solo_gcc_32_none_max.o patch1_2_mutatee_solo_gcc_32_none_max.o patch2_1_mutatee_solo_gcc_32_none_max.o patch3_1_mutatee_solo_gcc_32_none_max.o patch3_2_mutatee_solo_gcc_32_none_max.o mutatee_util_gcc_32_none_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_max: patchapi_group_test_group_gcc_32_pic_max.o patch1_1_mutatee_solo_gcc_32_pic_max.o patch1_2_mutatee_solo_gcc_32_pic_max.o patch2_1_mutatee_solo_gcc_32_pic_max.o patch3_1_mutatee_solo_gcc_32_pic_max.o patch3_2_mutatee_solo_gcc_32_pic_max.o mutatee_util_gcc_32_pic_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_gcc_32_none_max: patchapi_group_test_group_gcc_32_none_max.o patch1_1_mutatee_solo_gcc_32_none_max.o patch1_2_mutatee_solo_gcc_32_none_max.o patch2_1_mutatee_solo_gcc_32_none_max.o patch3_1_mutatee_solo_gcc_32_none_max.o patch3_2_mutatee_solo_gcc_32_none_max.o mutatee_util_gcc_32_none_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_gcc_32_pic_max: patchapi_group_test_group_gcc_32_pic_max.o patch1_1_mutatee_solo_gcc_32_pic_max.o patch1_2_mutatee_solo_gcc_32_pic_max.o patch2_1_mutatee_solo_gcc_32_pic_max.o patch3_1_mutatee_solo_gcc_32_pic_max.o patch3_2_mutatee_solo_gcc_32_pic_max.o mutatee_util_gcc_32_pic_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_none_none: patchapi_group_test_group_gcc_32_none_none.o patch1_1_mutatee_solo_gcc_32_none_none.o patch1_2_mutatee_solo_gcc_32_none_none.o patch2_1_mutatee_solo_gcc_32_none_none.o patch3_1_mutatee_solo_gcc_32_none_none.o patch3_2_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_gcc_32_pic_none: patchapi_group_test_group_gcc_32_pic_none.o patch1_1_mutatee_solo_gcc_32_pic_none.o patch1_2_mutatee_solo_gcc_32_pic_none.o patch2_1_mutatee_solo_gcc_32_pic_none.o patch3_1_mutatee_solo_gcc_32_pic_none.o patch3_2_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_static_gcc_32_none_none: patchapi_group_test_group_gcc_32_none_none.o patch1_1_mutatee_solo_gcc_32_none_none.o patch1_2_mutatee_solo_gcc_32_none_none.o patch2_1_mutatee_solo_gcc_32_none_none.o patch3_1_mutatee_solo_gcc_32_none_none.o patch3_2_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
+patchapi_group_test.mutatee_solo_static_gcc_32_pic_none: patchapi_group_test_group_gcc_32_pic_none.o patch1_1_mutatee_solo_gcc_32_pic_none.o patch1_2_mutatee_solo_gcc_32_pic_none.o patch2_1_mutatee_solo_gcc_32_pic_none.o patch3_1_mutatee_solo_gcc_32_pic_none.o patch3_2_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) -static 
 ######################################################################
 # Mutatees compiled with gcc for symtab
 ######################################################################
@@ -13464,6 +13955,153 @@ dyninst_group_test_group_gcc_32_pic_low.o: dyninst_group_test_group.c
 %_gcc_32_pic_low.o: ../src/dyninst/%.s
 	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
+# Generic rules for gcc's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_gcc_32_none_high.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_pic_high.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_none_max.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_pic_max.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_none_none.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_pic_none.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_none_low.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gcc_32_pic_low.o: patchapi_group_test_group.c
+	$(M_gnu_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_gcc_32_none_high.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_pic_high.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_none_max.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_pic_max.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_none_none.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_pic_none.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_none_low.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_pic_low.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
 # Generic rules for gcc's mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -14913,6 +15551,33 @@ test_thread_8.mutatee_solo_dynamic_icc_32_none_none: test_thread_8_mutatee_solo_
 	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_icc_32_pic_none: test_thread_8_mutatee_solo_icc_32_pic_none.o mutatee_util_icc_32_pic_none.o mutatee_util_mt_icc_32_pic_none.o mutatee_driver_solo_icc_32.o
 	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
+######################################################################
+# Mutatees compiled with icc for patchapi
+######################################################################
+
+ifdef ICC
+# We only want to build these targets if the compiler exists
+patchapi_SOLO_MUTATEES_intel_cc = patchapi_group_test.mutatee_solo_dynamic_icc_32_none_high patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_high patchapi_group_test.mutatee_solo_dynamic_icc_32_none_low patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_low patchapi_group_test.mutatee_solo_dynamic_icc_32_none_max patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_max patchapi_group_test.mutatee_solo_dynamic_icc_32_none_none patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_none 
+endif
+
+# Now a list of rules for compiling the mutatees with icc
+
+patchapi_group_test.mutatee_solo_dynamic_icc_32_none_high: patchapi_group_test_group_icc_32_none_high.o patch1_1_mutatee_solo_icc_32_none_high.o patch1_2_mutatee_solo_icc_32_none_high.o patch2_1_mutatee_solo_icc_32_none_high.o patch3_1_mutatee_solo_icc_32_none_high.o patch3_2_mutatee_solo_icc_32_none_high.o mutatee_util_icc_32_none_high.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_high: patchapi_group_test_group_icc_32_pic_high.o patch1_1_mutatee_solo_icc_32_pic_high.o patch1_2_mutatee_solo_icc_32_pic_high.o patch2_1_mutatee_solo_icc_32_pic_high.o patch3_1_mutatee_solo_icc_32_pic_high.o patch3_2_mutatee_solo_icc_32_pic_high.o mutatee_util_icc_32_pic_high.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_none_low: patchapi_group_test_group_icc_32_none_low.o patch1_1_mutatee_solo_icc_32_none_low.o patch1_2_mutatee_solo_icc_32_none_low.o patch2_1_mutatee_solo_icc_32_none_low.o patch3_1_mutatee_solo_icc_32_none_low.o patch3_2_mutatee_solo_icc_32_none_low.o mutatee_util_icc_32_none_low.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_low: patchapi_group_test_group_icc_32_pic_low.o patch1_1_mutatee_solo_icc_32_pic_low.o patch1_2_mutatee_solo_icc_32_pic_low.o patch2_1_mutatee_solo_icc_32_pic_low.o patch3_1_mutatee_solo_icc_32_pic_low.o patch3_2_mutatee_solo_icc_32_pic_low.o mutatee_util_icc_32_pic_low.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_none_max: patchapi_group_test_group_icc_32_none_max.o patch1_1_mutatee_solo_icc_32_none_max.o patch1_2_mutatee_solo_icc_32_none_max.o patch2_1_mutatee_solo_icc_32_none_max.o patch3_1_mutatee_solo_icc_32_none_max.o patch3_2_mutatee_solo_icc_32_none_max.o mutatee_util_icc_32_none_max.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_max: patchapi_group_test_group_icc_32_pic_max.o patch1_1_mutatee_solo_icc_32_pic_max.o patch1_2_mutatee_solo_icc_32_pic_max.o patch2_1_mutatee_solo_icc_32_pic_max.o patch3_1_mutatee_solo_icc_32_pic_max.o patch3_2_mutatee_solo_icc_32_pic_max.o mutatee_util_icc_32_pic_max.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_none_none: patchapi_group_test_group_icc_32_none_none.o patch1_1_mutatee_solo_icc_32_none_none.o patch1_2_mutatee_solo_icc_32_none_none.o patch2_1_mutatee_solo_icc_32_none_none.o patch3_1_mutatee_solo_icc_32_none_none.o patch3_2_mutatee_solo_icc_32_none_none.o mutatee_util_icc_32_none_none.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+patchapi_group_test.mutatee_solo_dynamic_icc_32_pic_none: patchapi_group_test_group_icc_32_pic_none.o patch1_1_mutatee_solo_icc_32_pic_none.o patch1_2_mutatee_solo_icc_32_pic_none.o patch2_1_mutatee_solo_icc_32_pic_none.o patch3_1_mutatee_solo_icc_32_pic_none.o patch3_2_mutatee_solo_icc_32_pic_none.o mutatee_util_icc_32_pic_none.o mutatee_driver_solo_icc_32.o
+	$(M_intel_cc) $(CFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 ######################################################################
 # Mutatees compiled with icc for symtab
 ######################################################################
@@ -17135,6 +17800,121 @@ dyninst_group_test_group_icc_32_pic_low.o: dyninst_group_test_group.c
 %_icc_32_pic_low.o: ../src/dyninst/%.c
 	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
+# Generic rules for icc's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_icc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_icc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_icc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_icc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_icc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_icc_32_none_high.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_pic_high.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_none_max.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_pic_max.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_none_none.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_pic_none.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_none_low.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_icc_32_pic_low.o: patchapi_group_test_group.c
+	$(M_intel_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_icc_32_none_high.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_icc_32_pic_high.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_icc_32_none_max.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_icc_32_pic_max.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_icc_32_none_none.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_icc_32_pic_none.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_icc_32_none_low.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_icc_32_pic_low.o: ../src/patchapi/%.c
+	$(M_intel_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
 # Generic rules for icc's mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_icc_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_intel_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -18232,6 +19012,29 @@ test_thread_8.mutatee_solo_dynamic_pgcc_32_none_none: test_thread_8_mutatee_solo
 	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -lpthread 
 test_thread_8.mutatee_solo_dynamic_pgcc_32_pic_none: test_thread_8_mutatee_solo_pgcc_32_pic_none.o mutatee_util_pgcc_32_pic_none.o mutatee_util_mt_pgcc_32_pic_none.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -lpthread 
+######################################################################
+# Mutatees compiled with pgcc for patchapi
+######################################################################
+
+ifdef PGI
+# We only want to build these targets if the compiler exists
+patchapi_SOLO_MUTATEES_pg_cc = patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_high patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_high patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_low patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_low patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_none patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_none 
+endif
+
+# Now a list of rules for compiling the mutatees with pgcc
+
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_high: patchapi_group_test_group_pgcc_32_none_high.o patch1_1_mutatee_solo_pgcc_32_none_high.o patch1_2_mutatee_solo_pgcc_32_none_high.o patch2_1_mutatee_solo_pgcc_32_none_high.o patch3_1_mutatee_solo_pgcc_32_none_high.o patch3_2_mutatee_solo_pgcc_32_none_high.o mutatee_util_pgcc_32_none_high.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_high: patchapi_group_test_group_pgcc_32_pic_high.o patch1_1_mutatee_solo_pgcc_32_pic_high.o patch1_2_mutatee_solo_pgcc_32_pic_high.o patch2_1_mutatee_solo_pgcc_32_pic_high.o patch3_1_mutatee_solo_pgcc_32_pic_high.o patch3_2_mutatee_solo_pgcc_32_pic_high.o mutatee_util_pgcc_32_pic_high.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_low: patchapi_group_test_group_pgcc_32_none_low.o patch1_1_mutatee_solo_pgcc_32_none_low.o patch1_2_mutatee_solo_pgcc_32_none_low.o patch2_1_mutatee_solo_pgcc_32_none_low.o patch3_1_mutatee_solo_pgcc_32_none_low.o patch3_2_mutatee_solo_pgcc_32_none_low.o mutatee_util_pgcc_32_none_low.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_low: patchapi_group_test_group_pgcc_32_pic_low.o patch1_1_mutatee_solo_pgcc_32_pic_low.o patch1_2_mutatee_solo_pgcc_32_pic_low.o patch2_1_mutatee_solo_pgcc_32_pic_low.o patch3_1_mutatee_solo_pgcc_32_pic_low.o patch3_2_mutatee_solo_pgcc_32_pic_low.o mutatee_util_pgcc_32_pic_low.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_none_none: patchapi_group_test_group_pgcc_32_none_none.o patch1_1_mutatee_solo_pgcc_32_none_none.o patch1_2_mutatee_solo_pgcc_32_none_none.o patch2_1_mutatee_solo_pgcc_32_none_none.o patch3_1_mutatee_solo_pgcc_32_none_none.o patch3_2_mutatee_solo_pgcc_32_none_none.o mutatee_util_pgcc_32_none_none.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+patchapi_group_test.mutatee_solo_dynamic_pgcc_32_pic_none: patchapi_group_test_group_pgcc_32_pic_none.o patch1_1_mutatee_solo_pgcc_32_pic_none.o patch1_2_mutatee_solo_pgcc_32_pic_none.o patch2_1_mutatee_solo_pgcc_32_pic_none.o patch3_1_mutatee_solo_pgcc_32_pic_none.o patch3_2_mutatee_solo_pgcc_32_pic_none.o mutatee_util_pgcc_32_pic_none.o mutatee_driver_solo_pgcc_32.o
+	$(M_pg_cc) $(CFLAGS_NATIVE) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 ######################################################################
 # Mutatees compiled with pgcc for symtab
 ######################################################################
@@ -19904,6 +20707,93 @@ dyninst_group_test_group_pgcc_32_pic_low.o: dyninst_group_test_group.c
 %_pgcc_32_none_low.o: ../src/dyninst/%.c
 	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -o $@ $<
 %_pgcc_32_pic_low.o: ../src/dyninst/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -o $@ $<
+
+# Generic rules for pgcc's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_pgcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_pgcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_pgcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_pgcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_pgcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_pgcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_pgcc_32_none_high.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgcc_32_pic_high.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgcc_32_none_none.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgcc_32_pic_none.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgcc_32_none_low.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_pgcc_32_pic_low.o: patchapi_group_test_group.c
+	$(M_pg_cc) $(patchapi_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -DGROUPABLE=1 -o $@ $<
+
+%_pgcc_32_none_high.o: ../src/patchapi/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2  -o $@ $<
+%_pgcc_32_pic_high.o: ../src/patchapi/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -KPIC -o $@ $<
+%_pgcc_32_none_none.o: ../src/patchapi/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c    -o $@ $<
+%_pgcc_32_pic_none.o: ../src/patchapi/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -KPIC -o $@ $<
+%_pgcc_32_none_low.o: ../src/patchapi/%.c
+	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1  -o $@ $<
+%_pgcc_32_pic_low.o: ../src/patchapi/%.c
 	$(M_pg_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -KPIC -o $@ $<
 
 # Generic rules for pgcc's mutatees and varying optimization levels for symtab
@@ -21960,6 +22850,93 @@ dyninst_group_test_group_gfortran_32_pic_low.o: dyninst_group_test_group.c
 %_gfortran_32_pic_low.o: ../src/dyninst/%.F
 	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -o $@ $<
 
+# Generic rules for gfortran's mutatees and varying optimization levels for patchapi
+patch1_1_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gfortran_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gfortran_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gfortran_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gfortran_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patch1_1_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_1_mutatee.c -o $@ $<
+patch3_1_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_1_mutatee.c -o $@ $<
+patch3_2_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch3_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch3_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch3_2_mutatee.c -o $@ $<
+patch2_1_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch2_1_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch2_1 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch2_1_mutatee.c -o $@ $<
+patch1_2_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/patchapi/patch1_2_mutatee.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -I../src/patchapi -DTEST_NAME=patch1_2 -DGROUPABLE=1 -DMUTATEE_SRC=../src/patchapi/patch1_2_mutatee.c -o $@ $<
+patchapi_group_test_group_gfortran_32_none_high.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gfortran_32_pic_high.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gfortran_32_none_none.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gfortran_32_pic_none.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gfortran_32_none_low.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -DGROUPABLE=1 -o $@ $<
+patchapi_group_test_group_gfortran_32_pic_low.o: patchapi_group_test_group.c
+	$(M_gnu_fc) $(patchapi_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_gfortran_32_none_high.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -o $@ $<
+%_gfortran_32_pic_high.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -o $@ $<
+%_gfortran_32_none_none.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c    -o $@ $<
+%_gfortran_32_pic_none.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -o $@ $<
+%_gfortran_32_none_low.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -o $@ $<
+%_gfortran_32_pic_low.o: ../src/patchapi/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -o $@ $<
+
 # Generic rules for gfortran's mutatees and varying optimization levels for symtab
 test_exception_mutatee_solo_gfortran_32_none_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
 	$(M_gnu_fc) $(symtab_SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
@@ -22457,6 +23434,195 @@ pc_fork_mutatee_solo_gfortran_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
 %_gcc_32_pic_low.o: ../src/dyninst/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+%_gfortran_32_none_high.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -o $@ $<
+
+%_gfortran_32_none_high.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O2  -o $@ $<
+
+%_gfortran_32_pic_high.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -o $@ $<
+
+%_gfortran_32_pic_high.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -fPIC -o $@ $<
+
+%_gfortran_32_none_none.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c    -o $@ $<
+
+%_gfortran_32_none_none.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c    -o $@ $<
+
+%_gfortran_32_pic_none.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -o $@ $<
+
+%_gfortran_32_pic_none.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c   -fPIC -o $@ $<
+
+%_gfortran_32_none_low.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -o $@ $<
+
+%_gfortran_32_none_low.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O1  -o $@ $<
+
+%_gfortran_32_pic_low.o: ../src/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -o $@ $<
+
+%_gfortran_32_pic_low.o: ../src/patchapi/%.F
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/patchapi/%.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_nasm_32_none_none.o: ../src/%.asm
+	$(M_nasm) -f elf -dPLATFORM=$(PLATFORM)      -o $@ $<
+
+%_nasm_32_none_none.o: ../src/patchapi/%.asm
+	$(M_nasm) -f elf -dPLATFORM=$(PLATFORM)      -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/patchapi/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/patchapi/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/patchapi/%.s
 	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
 
 
@@ -23235,6 +24401,43 @@ dyninst_clean_solo_mutatees:
 
 
 dyninst_SOLO_MUTATEES = $(dyninst_SOLO_MUTATEES_gnu_cxx) $(dyninst_SOLO_MUTATEES_intel_CC) $(dyninst_SOLO_MUTATEES_pg_cxx) $(dyninst_SOLO_MUTATEES_gnu_cc) $(dyninst_SOLO_MUTATEES_intel_cc) $(dyninst_SOLO_MUTATEES_pg_cc) $(dyninst_SOLO_MUTATEES_gnu_fc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+ifdef ICC # Is iCC present?
+COMPILER_CONTROL_DEFS += -DICC
+endif
+ifdef PGI # Is pgCC present?
+COMPILER_CONTROL_DEFS += -DPGI
+endif
+ifdef ICC # Is icc present?
+COMPILER_CONTROL_DEFS += -DICC
+endif
+ifdef PGI # Is pgcc present?
+COMPILER_CONTROL_DEFS += -DPGI
+endif
+
+# And a rule to build all of the mutatees
+.PHONY: patchapi_solo_mutatees
+patchapi_solo_mutatees: $(patchapiSOLO_MUTATEES_gnu_cxx) $(patchapiSOLO_MUTATEES_intel_CC) $(patchapiSOLO_MUTATEES_pg_cxx) $(patchapiSOLO_MUTATEES_gnu_cc) $(patchapiSOLO_MUTATEES_intel_cc) $(patchapiSOLO_MUTATEES_pg_cc) $(patchapiSOLO_MUTATEES_gnu_fc) 
+
+.PHONY: clean_solo_mutatees
+patchapi_clean_solo_mutatees:
+	-$(RM) $(patchapi_SOLO_MUTATEES_gnu_cxx)
+	-$(RM) $(patchapi_SOLO_MUTATEES_intel_CC)
+	-$(RM) $(patchapi_SOLO_MUTATEES_pg_cxx)
+	-$(RM) $(patchapi_SOLO_MUTATEES_gnu_cc)
+	-$(RM) $(patchapi_SOLO_MUTATEES_intel_cc)
+	-$(RM) $(patchapi_SOLO_MUTATEES_pg_cc)
+	-$(RM) $(patchapi_SOLO_MUTATEES_gnu_fc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+patchapi_SOLO_MUTATEES = $(patchapi_SOLO_MUTATEES_gnu_cxx) $(patchapi_SOLO_MUTATEES_intel_CC) $(patchapi_SOLO_MUTATEES_pg_cxx) $(patchapi_SOLO_MUTATEES_gnu_cc) $(patchapi_SOLO_MUTATEES_intel_cc) $(patchapi_SOLO_MUTATEES_pg_cc) $(patchapi_SOLO_MUTATEES_gnu_fc)
 
 ### COMPILER_CONTROL_DEFS is used to determine which compilers are present
 ### when compiling the list of mutatees to test against

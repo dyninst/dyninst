@@ -174,7 +174,7 @@ class Edge : public allocatable {
     /* removes from blocks & finalized source functions if of type CALL */
     PARSER_EXPORT void uninstall();
 
-    static void destroy(Edge *);
+    PARSER_EXPORT static void destroy(Edge *);
 
  friend class CFGFactory;
  friend class Parser;

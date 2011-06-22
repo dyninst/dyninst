@@ -139,8 +139,6 @@ class Region : public Serializable, public AnnotatableSparse {
 
    SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
-
-
    SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);
 

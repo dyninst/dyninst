@@ -94,6 +94,7 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "inst" { return(INST); }
 "inf" { return(INF); }
 "inferior" { return(INF); }
+"reg" { return(REGISTER); }
 "NULL" {return (NILL); }
 
 [A-Za-z][A-Za-z0-9_]* {yylval.sval = strdup(yytext); if(lexVerbose) printf("ID: %s\n", yytext); return(IDENTIFIER); }

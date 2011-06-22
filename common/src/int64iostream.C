@@ -42,7 +42,7 @@
 ostream&
 operator<<( ostream& s, int64_t val )
 {
-    char buffer[32];
+    char buffer[32] = "";
 
     _i64toa( val, buffer, 10 );
     s << buffer << std::ends;
@@ -53,7 +53,7 @@ operator<<( ostream& s, int64_t val )
 ostream&
 operator<<( ostream& s, uint64_t val )
 {
-    char buffer[32];
+    char buffer[32] = "";
 
     _i64toa( val, buffer, 10 );
     s << buffer << std::ends;

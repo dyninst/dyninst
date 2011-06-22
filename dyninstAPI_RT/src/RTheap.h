@@ -36,14 +36,7 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" /* RT_Boolean, Address */
 
-#if defined(sparc_sun_solaris2_4)    \
- || defined(i386_unknown_solaris2_5) 
-
-/* SVR4 */
-#include <sys/procfs.h>
-typedef prmap_t dyninstmm_t;
-
-#elif defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
 
 /* LINUX */
 typedef struct {

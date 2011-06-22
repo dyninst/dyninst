@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -39,6 +39,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
+#include "dyninstAPI/src/Relocation/DynObject.h"
 
 class block_instance;
 class func_instance;
@@ -48,6 +49,7 @@ class edge_instance;
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 
 using namespace Dyninst;
+using Dyninst::PatchAPI::DynCFGMaker;
 
 class mapped_module;
 
@@ -75,7 +77,7 @@ class int_variable {
  private:
     int_variable() {};
  public:
-    int_variable(image_variable *var, 
+    int_variable(image_variable *var,
                  Address base,
                  mapped_module *mod);
 
@@ -99,7 +101,7 @@ class int_variable {
 };
 
 struct edgeStub {
-    edgeStub(block_instance *s, Address t, EdgeTypeEnum y) 
+    edgeStub(block_instance *s, Address t, EdgeTypeEnum y)
     { src = s; trg = t; type = y; }
     block_instance* src;
     Address trg;
@@ -108,8 +110,8 @@ struct edgeStub {
 
 
 /*
- * A class for link map information about a shared object that is mmapped 
- * by the dynamic linker into the applications address space at runtime. 
+ * A class for link map information about a shared object that is mmapped
+ * by the dynamic linker into the applications address space at runtime.
  */
 #define 	SHAREDOBJECT_NOCHANGE	0
 #define 	SHAREDOBJECT_ADDED	1
@@ -123,15 +125,15 @@ struct edgeStub {
 // basically, the mapped_object "wins" if it can return useful
 // information without having to allocate memory.
 
-class mapped_object : public codeRange {
+class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     friend class mapped_module; // for findFunction
     friend class func_instance;
     friend class block_instance; // Adds to codeRangesByAddr_
     friend class edge_instance;
-
+    friend class DynCFGMaker;
  private:
     mapped_object();
-    mapped_object(fileDescriptor fileDesc, 
+    mapped_object(fileDescriptor fileDesc,
                   image *img,
                   AddressSpace *proc,
                   BPatch_hybridMode mode = BPatch_normalMode);
@@ -146,7 +148,7 @@ class mapped_object : public codeRange {
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);
 
-    // Will delete all func_instances which were originally part of this object; including 
+    // Will delete all func_instances which were originally part of this object; including
     // any that were relocated (we can always follow the "I was relocated" pointer).
     ~mapped_object();
 
@@ -204,13 +206,13 @@ class mapped_object : public codeRange {
     bool findBlocksByAddr(const Address addr, std::set<block_instance *> &blocks);
     block_instance *findBlockByEntry(const Address addr);
     block_instance *findOneBlockByAddr(const Address addr);
-    
+
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
 
     // Try to avoid using these if you can, since they'll trigger
-    // parsing and allocation. 
+    // parsing and allocation.
     bool getAllFunctions(pdvector<func_instance *> &funcs);
     bool getAllVariables(pdvector<int_variable *> &vars);
 
@@ -260,21 +262,22 @@ public:
     // we've lost the module name.
 
     const pdvector<func_instance *> *findFuncVectorByPretty(const std::string &funcname);
-    const pdvector<func_instance *> *findFuncVectorByMangled(const std::string &funcname); 
+    const pdvector<func_instance *> *findFuncVectorByMangled(const std::string &funcname);
 
     bool findFuncsByAddr(std::vector<func_instance *> &funcs);
     bool findBlocksByAddr(std::vector<block_instance *> &blocks);
 
     const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
-    const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
+    const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname);
     const int_variable *getVariable(const std::string &varname);
-    
+
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
     func_instance *findFunction(ParseAPI::Function *img_func);
+
     int_variable *findVariable(image_variable *img_var);
 
     block_instance *findBlock(ParseAPI::Block *);
@@ -298,14 +301,13 @@ public:
   private:
     //
     //     PRIVATE DATA MEMBERS
-    //				
-private:
+    //
     fileDescriptor desc_; // full file descriptor
 
     string  fullName_;	// full file name of the shared object
     string  fileName_; // name of shared object as it should be identified
 			//  in mdl, e.g. as used for "exclude"....
-    Address   codeBase_; // The OS offset where the text segment is loaded;
+    // Address   codeBase_; // The OS offset where the text segment is loaded;
     // there is a corresponding codeOffset_ in the image class.
 
     // For example, an a.out often has a codeBase of 0, and a
@@ -318,21 +320,9 @@ private:
     void set_short_name();
 
     pdvector<mapped_module *> everyModule;
-
-    typedef std::map<const ParseAPI::Block *, block_instance *> BlockMap;
-    BlockMap blocks_;
-    
-    typedef std::map<const ParseAPI::Edge *, edge_instance *> EdgeMap;
-    EdgeMap edges_;
-
-    typedef std::map<const ParseAPI::Function *, func_instance *> FuncMap;
-    FuncMap everyUniqueFunction;
-
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
-
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByMangledName;
     dictionary_hash< std::string, pdvector<func_instance *> * > allFunctionsByPrettyName;
-
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
     dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
 
@@ -349,10 +339,10 @@ private:
         typedName = 4 } nameType_t;
     void addFunctionName(func_instance *func, const std::string newName, nameType_t nameType);
 
-    bool dirty_; // marks the shared object as dirty 
+    bool dirty_; // marks the shared object as dirty
     bool dirtyCalled_;//see comment for setDirtyCalled
-    
-    image  *image_; // pointer to image if processed is true 
+
+    image  *image_; // pointer to image if processed is true
     bool dlopenUsed; //mark this shared object as opened by dlopen
     AddressSpace *proc_; // Parent process
 
@@ -384,9 +374,10 @@ private:
     bool memoryImg_;
 
     std::map<block_instance *, std::string> calleeNames_;
+
 };
 
-// Aggravation: a mapped object might very well occupy multiple "ranges". 
+// Aggravation: a mapped object might very well occupy multiple "ranges".
 class mappedObjData : public codeRange {
  public:
     mappedObjData(mapped_object *obj_) : obj(obj_) {};

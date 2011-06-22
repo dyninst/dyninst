@@ -218,7 +218,7 @@ void BinaryEdit::inferiorFree(Address item)
   memoryTracker_->find(item, obj);
   
   delete obj;
-
+  
   memoryTracker_->remove(item);
 }
 
@@ -382,7 +382,7 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
    return true;
 }
 
-#if !defined(os_linux) && !defined(os_solaris) && !defined(os_freebsd)
+#if !defined(os_linux) && !defined(os_freebsd)
 std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
     /*
      * Note: this does not actually do any library name resolution, as that is OS-dependent
@@ -395,6 +395,9 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
     std::map<std::string, BinaryEdit *> retMap;
 
     BinaryEdit *temp = BinaryEdit::openFile(filename);
+
+    temp->setMgr(mgr());
+
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
         retMap.insert(std::make_pair(filename, temp));
         return retMap;
@@ -410,7 +413,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 }
 #endif
 
-#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64))) 
+#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power))) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }
@@ -465,7 +468,9 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 {
    // Step 1: changes. 
 
+
       inst_printf(" writing %s ... \n", newFileName.c_str());
+
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
@@ -476,15 +481,16 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
 
       if( symObj->isStaticBinary() && isDirty() ) {
-          if( !doStaticBinarySpecialCases() ) {
-              return false;
-          }
+         if( !doStaticBinarySpecialCases() ) {
+            return false;
+         }
       }
 
+   delayRelocation_ = false;
+      relocate();
+      
       vector<Region*> oldSegs;
       symObj->getAllRegions(oldSegs);
-
-      //vector<Region*> newSegs = oldSegs;
 
       //Write any traps to the mutatee
       trapMapping.shouldBlockFlushes(false);
@@ -779,71 +785,52 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-#if 0
-    pdvector<codeRange *> ranges;
-    // FIXME: fill this in
-    // Should just check each relocated function and add a symbol
-    // for it, since this is now totally broken.
+   if (relocatedCode_.empty()) return;
 
-    func_instance *currFunc = NULL;
-    codeRange *startRange = NULL;
-
-    Address startAddr = 0;
-    unsigned size = 0;
-
-    for (unsigned i = 0; i < ranges.size(); i++) {
-        block_instance *bbl = ranges[i]->is_basicBlockInstance();
-
-        bool finishCurrentRegion = false;
-        bool startNewRegion = false;
-        bool extendCurrentRegion = false;
-
-        if (bbl) {
-           if (bbl->func() != currFunc) {
-                finishCurrentRegion = true;
-                startNewRegion = true;
+   for (CodeTrackers::iterator i = relocatedCode_.begin();
+        i != relocatedCode_.end(); ++i) {
+      Relocation::CodeTracker *CT = *i;
+      func_instance *currFunc = NULL;
+      Address start = 0;
+      unsigned size = 0;
+      
+      for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
+           iter != CT->trackers().end(); ++iter) {
+         const Relocation::TrackerElement *tracker = *iter;
+         
+         func_instance *tfunc = tracker->func();
+         
+         if (currFunc != tfunc) {
+            // Starting a new function
+            if (currFunc) {
+               // Record the old one
+               // currfunc set
+               // start set
+               size = tracker->reloc() - start;
+               
+               std::string name = currFunc->prettyName();
+               name.append("_dyninst");
+               
+               Symbol *newSym = new Symbol(name.c_str(),
+                                           Symbol::ST_FUNCTION,
+                                           Symbol::SL_GLOBAL,
+                                           Symbol::SV_DEFAULT,
+                                           start,
+                                           newMod,
+                                           newSec,
+                                           size);                                        
+               newSyms.push_back(newSym);
             }
-            else {
-                extendCurrentRegion = true;
-            }
-        }
-        else
-            continue;
-
-        if (finishCurrentRegion && (currFunc != NULL)) {
-            std::string name = currFunc->prettyName();
-            name.append("_dyninst");
-
-            Symbol *newSym = new Symbol(name.c_str(),
-                                        Symbol::ST_FUNCTION,
-                                        Symbol::SL_GLOBAL,
-                                        Symbol::SV_DEFAULT,
-                                        startAddr,
-                                        newMod,
-                                        newSec,
-                                        size);
-                                        
-            newSyms.push_back(newSym);
-
-            currFunc = NULL;
-            startAddr = 0;
+            currFunc = tfunc;
+            start = tracker->reloc();
             size = 0;
-            startRange = NULL;
-        }
-        if (startNewRegion) {
-            assert(currFunc == NULL);
-            
-            currFunc = bbl->func();
-            assert(currFunc != NULL);
-            startRange = ranges[i];
-            startAddr = ranges[i]->get_address();
-            size = ranges[i]->get_size();
-        }
-        if (extendCurrentRegion) {
-            size += ranges[i]->get_size() + (ranges[i]->get_address() - (startAddr + size));
-        }
-    }
-#endif
+         }
+         else {
+            // Accumulate size
+            size = tracker->reloc() - start;
+         }
+      }
+   }
 }
     
 void BinaryEdit::markDirty()
@@ -996,6 +983,11 @@ bool BinaryEdit::replaceTrapHandler() {
         } // for each sigaction-equivalent function to replace
     }
     return true;
+
+    /* PatchAPI stuffs */
+    return AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+    // return relocate();
 }
 
 bool BinaryEdit::needsPIC()

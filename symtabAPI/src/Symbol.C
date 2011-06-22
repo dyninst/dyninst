@@ -587,7 +587,7 @@ Symbol::Symbol () :
 {
 }
 
-Symbol::Symbol(const std::string name,
+Symbol::Symbol(const std::string& name,
 	       SymbolType t,
 	       SymbolLinkage l,
 	       SymbolVisibility v,

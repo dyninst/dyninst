@@ -738,22 +738,20 @@ unsigned dyninst_maxNumOfThreads()
 #endif
 }
 
-#if !(os_solaris==8)
 int rtdebug_printf(char *format, ...)
 {
   int ret;
   va_list va;
   if (!DYNINSTdebugRTlib) return 0;
   if (NULL == format) return DYNINST_PRINTF_ERRVAL;
-
+   
   fprintf(stderr, "[RTLIB]");
   va_start(va, format);
   ret = vfprintf(stderr, format, va);
   va_end(va);
-
+   
   return ret;
 }
-#endif
 
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x

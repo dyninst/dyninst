@@ -35,13 +35,7 @@
 // simple handling of architecture-specific forward declarations
 // from common/h/arch-*.h
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
-namespace NS_sparc {
-    class instruction;
-}
-using namespace NS_sparc;
-#elif defined(arch_power)
+#if defined(arch_power)
 namespace NS_power {
     class instruction;
 }

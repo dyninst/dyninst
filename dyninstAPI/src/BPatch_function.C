@@ -56,10 +56,12 @@
 #include "hybridAnalysis.h"
 
 #include "common/h/Types.h"
-#if !defined(cap_instruction_api)
-#include "InstrucIter-Function.h"
-#endif
 
+#include "Point.h"
+#include "PatchMgr.h"
+
+using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::Point;
 
 
 
@@ -420,14 +422,14 @@ void BPatch_function::getUnresolvedControlTransfers
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-   
+  cerr << "getAbruptEndPoints\n";
+
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
       instPoint *point = instPoint::blockEntry(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locInstruction);
-      
       abruptEnds.push_back(curPoint);
    }
 }
@@ -435,7 +437,8 @@ void BPatch_function::getAbruptEndPoints
 // This one is interesting - get call points for everywhere that _calls_ us. 
 // That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
-{   
+{
+  // TODO (wenbin) add PreCaller point and PostCaller point types
    std::vector<block_instance *> callerBlocks;
    func->getCallerBlocks(std::back_inserter(callerBlocks));
    for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
@@ -443,46 +446,36 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
       instPoint *point = instPoint::preCall(func, *iter);
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
          (this, point, BPatch_locSubroutine);
-      
       callerPoints.push_back(curPoint);
    }
 }
 
-void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints)
-{
-   const func_instance::BlockSet &blocks = func->callBlocks();
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = instPoint::preCall(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locSubroutine);
-      
-      callPoints.push_back(curPoint);
-   }
+void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
+  const func_instance::BlockSet &blocks = func->callBlocks();
+  for (func_instance::BlockSet::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+    instPoint *point = instPoint::preCall(func, *iter);
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
+                                                           BPatch_locSubroutine);
+    callPoints.push_back(curPoint);
+  }
 }
 
-void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/)
-{
-   BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, 
+void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/) {
+   BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
                                                           instPoint::funcEntry(func),
                                                           BPatch_locEntry);
    entryPoints.push_back(curPoint);
 }
 
-
-void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints)
-{
-   
-   const func_instance::BlockSet &blocks = func->exitBlocks();
-
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      // We just want to know if this code is executed, so use a "start of block" point.
-      instPoint *point = instPoint::funcExit(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locExit);
-      
-      exitPoints.push_back(curPoint);
-   }
+void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints) {
+  func_instance::Points pts;
+  func->funcExitPoints(&pts);
+  for (func_instance::Points::iterator i = pts.begin(); i != pts.end(); i++) {
+    instPoint *point = *i;
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point, BPatch_locExit);
+    exitPoints.push_back(curPoint);
+  }
 }
 
 
@@ -582,6 +575,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
           delete result;
           return NULL;
     }
+
     return result;
 }
 

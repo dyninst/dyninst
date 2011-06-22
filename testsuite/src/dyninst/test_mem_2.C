@@ -55,30 +55,6 @@ extern "C" DLLEXPORT TestMutator *test_mem_2_factory() {
   return new test_mem_2_Mutator();
 }
 
-#ifdef arch_sparc_test
-static const unsigned int nstores = 13;
-static BPatch_memoryAccess* storeList[nstores];
-
-static void init_test_data()
-{
-  int k=-1;
-
-  storeList[++k] = MK_LS(3,17,-1,1); // ldstub
-  storeList[++k] = MK_LS(0,17,-1,4); // cas
-  storeList[++k] = MK_LS(0,17,-1,8); // casx
-  storeList[++k] = MK_LS(0,17,0,4);  // swap
-
-  storeList[++k] = MK_ST(7,21,-1,1);
-  storeList[++k] = MK_ST(6,21,-1,2);
-  storeList[++k] = MK_ST(4,21,-1,4);
-  storeList[++k] = MK_ST(0,21,0,8);
-  storeList[++k] = MK_ST(0,17,0,4);
-  storeList[++k] = MK_ST(0,17,0,8);
-  storeList[++k] = MK_ST(0,18,0,16);
-  storeList[++k] = MK_ST(4,21,-1,4);
-  storeList[++k] = MK_ST(0,21,0,8);
-}
-#endif
 
 #ifdef arch_power_test
 static const unsigned int nstores = 32;
@@ -216,17 +192,6 @@ static void init_test_data()
 }
 #endif
 
-#ifdef arch_ia64_test
-static const unsigned int nstores = 3;
-static BPatch_memoryAccess* storeList[nstores];
-static void init_test_data() {
-	storeList[0] = MK_ST( 0, 14, -1, 8 );
-	storeList[1] = MK_ST( 0, 14, -1, 8 );
-	storeList[2] = MK_ST( 0, 14, -1, 8 );
-}
-#endif
-
-
 #ifdef arch_x86_64_test
 static const unsigned int nstores = 28;
 
@@ -295,7 +260,7 @@ static void init_test_data()
 test_results_t test_mem_2_Mutator::executeTest() {
   int testnum = 2;
   const char* testdesc = "store instrumentation";
-#if !defined(arch_sparc_test) && !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test) && !defined(arch_ia64_test)
+#if !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else

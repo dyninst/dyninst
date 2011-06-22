@@ -106,6 +106,7 @@ void mapped_module::addFunction(func_instance *func)
 {
    // Just the everything vector... the by-name lists are
    // kept in the mapped_object and filtered if we do a lookup.
+  if (std::find(everyUniqueFunction.begin(), everyUniqueFunction.end(), func) != everyUniqueFunction.end()) return;
    everyUniqueFunction.push_back(func);
 }
 

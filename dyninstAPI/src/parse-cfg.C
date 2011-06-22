@@ -34,9 +34,7 @@
 #include "function.h"
 #include "instPoint.h"
 
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
-#endif //defined(cap_instruction_api)
 
 #include "symtab.h"
 #include "debug.h"
@@ -417,6 +415,7 @@ void parse_block::getInsns(Insns &insns, Address base) {
    Offset off = firstInsnOffset();
    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
    if (ptr == NULL) return;
+
    InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
 
    while (off < endOffset()) {

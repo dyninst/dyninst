@@ -32,9 +32,11 @@ SRCS =		../src/linux.C \
 		../src/inst-power.C \
 		../src/unix.C \
 		../src/codegen-power.C \
-		../src/image-power.C \
+		../src/parse-power.C \
 		../src/syscall-linux.C \
-		../src/BPatch_memoryAccessAdapter.C
+		../src/BPatch_memoryAccessAdapter.C \
+		../src/Relocation/Widgets/CFWidget-ppc.C \
+		../src/RegisterConversion-ppc.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \

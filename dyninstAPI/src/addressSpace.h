@@ -48,6 +48,9 @@
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
 
+#include "PatchMgr.h"
+#include "Command.h"
+
 class codeRange;
 class replacedFunctionCall;
 
@@ -117,8 +120,8 @@ class AddressSpace : public InstructionSource {
    //   ... if F_c is not specified, we use NULL
    // F specifies the replacement callee; if we want to remove the call entirely,
    // also use NULL
-   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
-   typedef std::map<func_instance *, func_instance *> FuncReplaceMap;
+   //typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   //typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
     process *proc();
@@ -317,6 +320,7 @@ class AddressSpace : public InstructionSource {
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
     func_instance *isFunctionReplaced(func_instance *func) const;
@@ -465,6 +469,7 @@ class AddressSpace : public InstructionSource {
     MemoryEmulator *getMemEm();
     void invalidateMemory(Address base, Address size);
 
+    bool delayRelocation() const { return delayRelocation_; }
  protected:
 
     // inferior malloc support functions
@@ -515,8 +520,9 @@ class AddressSpace : public InstructionSource {
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
-    CallModMap callModifications_;
-    FuncReplaceMap functionReplacements_;
+    // CallModMap callModifications_;
+    // FuncModMap functionReplacements_;
+    // FuncModMap functionWraps_;
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);
@@ -526,6 +532,18 @@ class AddressSpace : public InstructionSource {
     bool emulateMem_;
     bool emulatePC_;
 
+    bool delayRelocation_;
+  // PatchAPI stuffs
+  public:
+    Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
+    void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
+    void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
+    void initPatchAPI();
+    Dyninst::PatchAPI::PatcherPtr patcher() { return patcher_; }
+    static bool patch(AddressSpace*);
+  protected:
+    Dyninst::PatchAPI::PatchMgrPtr mgr_;
+    Dyninst::PatchAPI::PatcherPtr patcher_;
 };
 
 

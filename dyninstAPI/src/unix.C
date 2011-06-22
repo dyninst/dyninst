@@ -1133,7 +1133,7 @@ bool forkNewProcess_real(std::string file,
          num_envs_entries = envp->size();
          envs[num_envs_entries] = NULL;
       }
-#if (defined(os_linux) || defined(os_solaris))
+#if defined(os_linux)
       // Platforms that use LD_PRELOAD. We exclude x86_64 since we do
       // not yet know which kind of the RT lib to load (we determine
       // whether the mutatee is 32 or 64-bit only after starting it).
@@ -1634,7 +1634,7 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
    return (ev.proc->last_single_step == af.getPC() - 1);
 }
 
-#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"
@@ -1661,6 +1661,10 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
                 BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
+
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
                     return retMap;
@@ -1691,6 +1695,10 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                              ++member_it) 
                         {
                             BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
+
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
                             if (temp && temp->getAddressWidth() == getAddressWidth()) {
                                 std::string mapName = *pathIter + string(":") +
                                     (*member_it)->memberName();
@@ -1710,6 +1718,11 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
                     BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+
+                /* PatchAPI stuffs */
+                temp->setMgr(mgr());
+                /* End of PatchAPI stuffs */
+
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 
@@ -1771,6 +1784,7 @@ bool process::hideDebugger()
 // FURTHER HACK: made a block_instance method so we can share blocks
 
 func_instance *block_instance::callee() {
+
    // See if we've already done this
    edge_instance *tEdge = getTarget();
    if (!tEdge) {
@@ -1780,7 +1794,7 @@ func_instance *block_instance::callee() {
    if (!tEdge->sinkEdge()) {
       return obj()->findFuncByEntry(tEdge->trg());
    }
-   
+
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
