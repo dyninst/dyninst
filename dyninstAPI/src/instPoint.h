@@ -105,22 +105,14 @@ class instPoint : public Dyninst::PatchAPI::Point {
     ~instPoint();
 
   private:
-    instPoint(Address,
-              Type,
-              PatchMgrPtr,
-              func_instance*);
-    instPoint(Address,
-              Type,
-              PatchMgrPtr,
-              block_instance*);
-    instPoint(Address,
-              Type,
-              PatchMgrPtr,
-              Address*);
-    instPoint(Address       addr,
-              Type          t,
-              PatchMgrPtr   mgr,
-              edge_instance *e);
+    instPoint(Type, PatchMgrPtr, func_instance *);
+    // Call/exit site
+    instPoint(Type, PatchMgrPtr, func_instance *, block_instance *);
+    // (possibly func context) block
+    instPoint(Type, PatchMgrPtr, block_instance *, func_instance *);
+    // Insn
+    instPoint(Type, PatchMgrPtr, block_instance *, Address, InstructionAPI::Instruction::Ptr, func_instance *);
+    instPoint(Type, PatchMgrPtr, edge_instance *, func_instance *);
 
   public:
     baseTramp *tramp();
@@ -173,32 +165,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
 };
 #define GET_MINI(i) (Dyninst::PatchAPI::Snippet<miniTramp*>::get((i)->snippet())->rep())
 
-typedef std::map<Address, instPoint *> InsnInstpoints;
-
-struct BlockInstpoints {
-   instPoint *entry;
-   instPoint *exit;
-   InsnInstpoints preInsn;
-   InsnInstpoints postInsn;
-   instPoint *preCall;
-   instPoint *postCall;
-BlockInstpoints() : entry(NULL), exit(NULL), preCall(NULL), postCall(NULL) {};
-   ~BlockInstpoints();
-};
-
-struct EdgeInstpoints {
-   instPoint *point;
-EdgeInstpoints() : point(NULL) {};
-   ~EdgeInstpoints() { if (point) delete point; };
-};
-
-struct FuncInstpoints {
-   instPoint *entry;
-   std::map<block_instance *, instPoint *> exits;
-  FuncInstpoints() : entry(NULL) {};
-   ~FuncInstpoints();
-};
-
-
+#define IPCONV(p) (static_cast<instPoint *>(p))
 
 #endif /* _INST_POINT_H_ */

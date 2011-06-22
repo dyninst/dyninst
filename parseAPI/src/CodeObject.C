@@ -46,10 +46,6 @@ namespace {
         if(fact) return fact;
         return new CFGFactory();
     }
-    static inline ParseCallback * __pcb_init(ParseCallback * cb) {
-        if(cb) return cb;
-        return new ParseCallback();
-    }
 }
 
 static const int ParseAPI_major_version = 1;
@@ -70,10 +66,9 @@ CodeObject::CodeObject(CodeSource *cs,
                        bool defMode) :
     _cs(cs),
     _fact(__fact_init(fact)),
-    _pcb(__pcb_init(cb)),
+    _pcb(new ParseCallbackManager(cb)),
     parser(new Parser(*this,*_fact,*_pcb) ),
     owns_factory(fact == NULL),
-    owns_pcb(cb == NULL),
     defensive(defMode),
     flist(parser->sorted_funcs)
 {
@@ -105,8 +100,7 @@ CodeObject::process_hints()
 CodeObject::~CodeObject() {
     if(owns_factory)
         delete _fact;
-    if(owns_pcb)
-        delete _pcb;
+    delete _pcb;
     if(parser)
         delete parser;
 }
@@ -162,6 +156,15 @@ CodeObject::parse(Address target, bool recursive) {
         return;
     }
     parser->parse_at(target,recursive,ONDEMAND);
+}
+
+void
+CodeObject::parse(CodeRegion *cr, Address target, bool recursive) {
+   if (!parser) {
+      fprintf(stderr, "FATAL: internal parser undefined\n");
+      return;
+   }
+   parser->parse_at(cr, target, recursive, ONDEMAND);
 }
 
 void

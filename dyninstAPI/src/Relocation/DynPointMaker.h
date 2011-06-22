@@ -16,15 +16,14 @@ class DynPointMaker : public Dyninst::PatchAPI::PointMaker {
   public:
     DynPointMaker() {}
     virtual ~DynPointMaker() {}
+  protected:
+    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *);
+    virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *, PatchBlock *);
+    virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, PatchFunction *context);
+    virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address, 
+                               InstructionAPI::Instruction::Ptr, PatchFunction *context);
+    virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *f);
 
-    virtual Point* createPoint(Address addr, Point::Type type,
-                               Address* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
-                               PatchBlock* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
-                               PatchEdge* scope);
-    virtual Point* createPoint(Address addr, Point::Type type,
-                               PatchFunction* scope);
 };
 typedef dyn_detail::boost::shared_ptr<DynPointMaker> DynPointMakerPtr;
 

@@ -33,6 +33,7 @@
 
 #include <set>
 #include <vector>
+#include <queue>
 
 #include "dyntypes.h"
 #include "IBSTree.h"

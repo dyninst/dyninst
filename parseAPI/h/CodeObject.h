@@ -52,8 +52,11 @@ namespace ParseAPI {
 
 class Parser;   // internals
 class ParseCallback;
+class ParseCallbackManager;
+class CFGModifier;
 
 class CodeObject {
+   friend class CFGModifier;
  public:
     PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef ContainerWrapper<
@@ -63,9 +66,9 @@ class CodeObject {
     > funclist;
 
     PARSER_EXPORT CodeObject(CodeSource * cs, 
-               CFGFactory * fact = NULL, 
-               ParseCallback * cb = NULL,
-               bool defensiveMode = false);
+                             CFGFactory * fact = NULL, 
+                             ParseCallback * cb = NULL,
+                             bool defensiveMode = false);
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/
@@ -75,6 +78,9 @@ class CodeObject {
     
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
+
+    // `even-more-exact-target' parsing; optinally recursive
+    PARSER_EXPORT void parse(CodeRegion *cr, Address target, bool recursive);
 
     // parses new edges in already parsed functions
 	struct NewEdgeToParse {
@@ -121,6 +127,8 @@ class CodeObject {
 
     PARSER_EXPORT void startCallbackBatch();
     PARSER_EXPORT void finishCallbackBatch();
+    PARSER_EXPORT void registerCallback(ParseCallback *cb);
+    PARSER_EXPORT void unregisterCallback(ParseCallback *cb);
 
     /*
      * Calling finalize() forces completion of all on-demand
@@ -145,15 +153,14 @@ class CodeObject {
     // allows Function entry blocks to be moved to new regions
     friend void Function::setEntryBlock(Block *);
 
- private:
+  private:
     CodeSource * _cs;
     CFGFactory * _fact;
-    ParseCallback * _pcb;
+    ParseCallbackManager * _pcb;
 
     Parser * parser; // parser implementation
 
     bool owns_factory;
-    bool owns_pcb;
     bool defensive;
     funclist flist;
 };

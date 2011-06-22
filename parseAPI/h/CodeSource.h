@@ -45,6 +45,8 @@
 namespace Dyninst {
 namespace ParseAPI {
 
+class CFGModifier;
+
 /** A CodeSource is a very simple contract that allows a
     CodeObject to get the information it needs to pull code
     from some binary source
@@ -89,6 +91,7 @@ struct Hint {
 };
 
 class CodeSource : public Dyninst::InstructionSource {
+   friend class CFGModifier;
  private:
     bool _regions_overlap;
 

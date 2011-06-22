@@ -107,45 +107,56 @@ instPoint *instPoint::postInsn(func_instance *f,
   return f->postInsnPoint(b, a, ptr, trusted, true);
 }
 
-
-instPoint::instPoint(Address       addr,
-                     Type          t,
-                     PatchMgrPtr   mgr,
+instPoint::instPoint(Type t, 
+                     PatchMgrPtr mgr,
                      func_instance *f) :
-  Point(addr, t, mgr, f),
-  baseTramp_(NULL) {
+   Point(t, mgr, f),
+   baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
   edge_ = SCAST_EI(the_edge_);
 };
 
-instPoint::instPoint(Address       addr,
-                     Type          t,
+instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
+                     func_instance *f,
                      block_instance *b) :
-  Point(addr, t, mgr, b),
+   Point(t, mgr, f, b),
   baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
   edge_ = SCAST_EI(the_edge_);
 };
 
-instPoint::instPoint(Address       addr,
-                     Type          t,
+instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
-                     Address*      scope) :
-  Point(addr, t, mgr, scope),
+                     block_instance *b,
+                     func_instance *f) :
+   Point(t, mgr, b, f),
   baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
   edge_ = SCAST_EI(the_edge_);
 };
 
-instPoint::instPoint(Address       addr,
-                     Type          t,
+instPoint::instPoint(Type          t,
                      PatchMgrPtr   mgr,
-                     edge_instance *e) :
-  Point(addr, t, mgr, e),
+                     block_instance *b,
+                     Address a,
+                     InstructionAPI::Instruction::Ptr i,
+                     func_instance *f) :
+   Point(t, mgr, b, a, i, f),
+  baseTramp_(NULL) {
+  func_ = SCAST_FI(the_func_);
+  block_ = SCAST_BI(the_block_);
+  edge_ = SCAST_EI(the_edge_);
+};
+
+instPoint::instPoint(Type          t,
+                     PatchMgrPtr   mgr,
+                     edge_instance *e,
+                     func_instance *f) :
+   Point(t, mgr, e, f),
   baseTramp_(NULL) {
   func_ = SCAST_FI(the_func_);
   block_ = SCAST_BI(the_block_);
@@ -232,7 +243,7 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
          point = postCall(f, b);
          break;
       case OtherPoint:
-   case InsnTaken:
+         //case InsnTaken:
    case BlockDuring:
    case FuncDuring:
    case LoopStart:
@@ -400,31 +411,6 @@ Address instPoint::nextExecutedAddr() const {
 
 void instPoint::markModified() {
    proc()->addModifiedFunction(func());
-}
-
-BlockInstpoints::~BlockInstpoints() {
-   if (entry) delete entry;
-   if (exit) delete exit;
-   if (preCall) delete preCall;
-   if (postCall) delete postCall;
-   for (InsnInstpoints::iterator iter = preInsn.begin();
-        iter != preInsn.end(); ++iter) {
-      if (iter->second) delete iter->second;
-   }
-
-   for (InsnInstpoints::iterator iter = postInsn.begin();
-        iter != postInsn.end(); ++iter) {
-      if (iter->second) delete iter->second;
-   }
-}
-
-FuncInstpoints::~FuncInstpoints() {
-  if (entry) delete entry;
-  for (std::map<block_instance *, instPoint *>::iterator iter = exits.begin();
-        iter != exits.end(); ++iter) {
-      if (iter->second) delete iter->second;
-  }
-
 }
 
 std::string instPoint::format() const {

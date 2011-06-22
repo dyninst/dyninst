@@ -35,19 +35,28 @@ class PatchObject {
     void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
 
     // Function
-    PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *);
+    PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
     PATCHAPI_EXPORT void addFunc(PatchFunction*);
     PATCHAPI_EXPORT void removeFunc(PatchFunction*);
-
+    PATCHAPI_EXPORT void removeFunc(ParseAPI::Function *);
+    template <class Iter>
+       PATCHAPI_EXPORT void funcs(Iter iter); 
     // Block
-    PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*);
+    PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
     PATCHAPI_EXPORT void addBlock(PatchBlock*);
     PATCHAPI_EXPORT void removeBlock(PatchBlock*);
+    PATCHAPI_EXPORT void removeBlock(ParseAPI::Block*);
+    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
+    template <class Iter>
+       PATCHAPI_EXPORT void blocks(Iter iter); 
 
     // Edge
-    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*);
+    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, bool create = true);
     PATCHAPI_EXPORT void addEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
+    PATCHAPI_EXPORT void removeEdge(ParseAPI::Edge*);
+    template <class Iter>
+       PATCHAPI_EXPORT void edges(Iter iter); 
 
   protected:
     ParseAPI::CodeObject* co_;
@@ -63,6 +72,32 @@ class PatchObject {
     PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a);
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
 };
+
+template <class Iter>
+   void PatchObject::funcs(Iter iter) {
+   for (FuncMap::iterator tmp = funcs_.begin(); tmp != funcs_.end(); ++tmp) {
+      *iter = tmp->second;
+      ++iter;
+   }
+}
+
+template <class Iter>
+   void PatchObject::blocks(Iter iter) {
+   for (BlockMap::iterator tmp = blocks_.begin(); tmp != blocks_.end(); ++tmp) {
+      *iter = tmp->second;
+      ++iter;
+   }
+}
+
+template <class Iter>
+   void PatchObject::edges(Iter iter) {
+   for (EdgeMap::iterator tmp = edges_.begin(); tmp != edges_.end(); ++tmp) {
+      *iter = tmp->second;
+      ++iter;
+   }
+}
+
+
 
 }
 }

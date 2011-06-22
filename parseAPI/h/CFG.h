@@ -47,6 +47,8 @@
 namespace Dyninst {
 namespace ParseAPI {
 
+class CFGModifier;
+
 enum EdgeTypeEnum {
     CALL = 0,
     COND_TAKEN,
@@ -126,6 +128,7 @@ class allocatable {
 
 class Block;
 class Edge : public allocatable {
+   friend class CFGModifier;
  protected:
     Block * _source;
     Block * _target;
@@ -272,6 +275,7 @@ class CodeObject;
 class CodeRegion;
 class Block : public Dyninst::interval<Address>, 
               public allocatable {
+    friend class CFGModifier;
  public:
     typedef ContainerWrapper<
         std::vector<Edge*>,
@@ -413,6 +417,7 @@ class CodeObject;
 class CodeRegion;
 class FuncExtent;
 class Function : public allocatable, public AnnotatableSparse {
+   friend class CFGModifier;
  protected:
     Address _start;
     CodeObject * _obj;
