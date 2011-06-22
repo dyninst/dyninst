@@ -30,9 +30,9 @@
  */
 
 
-#include "dyninstAPI/src/Relocation/Atoms/Atom.h"
-#include "dyninstAPI/src/Relocation/Atoms/Target.h"
-#include "dyninstAPI/src/Relocation/Atoms/CFAtom.h" // CFPatch
+#include "dyninstAPI/src/Relocation/Widgets/Widget.h"
+#include "dyninstAPI/src/Relocation/CFG/RelocTarget.h"
+#include "dyninstAPI/src/Relocation/Widgets/CFWidget.h" // CFPatch
 
 // For our horribly horked memory effective address system
 // Which I'm not fixing here. 
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/Relocation/CodeBuffer.h"
 #include "common/h/arch-x86.h"
 
-#include "memEmulatorAtom.h"
+#include "memEmulatorWidget.h"
 
 #include "dyninstAPI/src/RegisterConversion.h"
 
@@ -74,7 +74,7 @@ MemEmulator::Ptr MemEmulator::create(Instruction::Ptr insn,
 const int ESI_SHIFT_REG = REGNUM_EBP;
 const int EDI_SHIFT_REG = REGNUM_EBX;
 
-bool MemEmulator::initialize(const codeGen &templ, const Trace *t) {
+bool MemEmulator::initialize(const codeGen &templ, const RelocBlock *t) {
 	// Number chosen arbitrarily
 	scratch.allocate(128);
 	scratch.applyTemplate(templ);
@@ -136,7 +136,7 @@ bool MemEmulator::initialize(const codeGen &templ, const Trace *t) {
  */
 
 bool MemEmulator::generate(const codeGen &templ,
-                           const Trace *t,
+                           const RelocBlock *t,
                            CodeBuffer &buffer) 
 {
 	if (!initialize(templ, t)) return false;
@@ -1166,7 +1166,7 @@ bool MemEmulator::emitCallToTranslator(CodeBuffer &) {
    
 
 
-bool MemEmulator::generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+bool MemEmulator::generateImplicit(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer) {
 
 
    codeGen prepatch(128);
@@ -1376,7 +1376,7 @@ TrackerElement *MemEmulatorTranslator::tracker() const {
 }
 
 bool MemEmulatorTranslator::generate(const codeGen &templ,
-                                     const Trace *,
+                                     const RelocBlock *,
                                      CodeBuffer &buffer) {
   DecisionTree dt(reg_);
   codeGen gen;

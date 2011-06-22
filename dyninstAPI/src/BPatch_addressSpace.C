@@ -274,6 +274,7 @@ BPatch_image * BPatch_addressSpace::getImageInt()
  */
 
 bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
+{
    mal_printf("deleting snippet handle %p\n",handle);
    if (getTerminated()) return true;
 

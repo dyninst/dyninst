@@ -40,7 +40,7 @@
 
 #include "common/h/IntervalTree.h"
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h"
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 
 class AddressSpace;
 class mapped_object;

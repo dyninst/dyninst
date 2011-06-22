@@ -37,7 +37,7 @@
 #if !defined (_R_E_MEM_EMULATOR_H_)
 #define _R_E_MEM_EMULATOR_H_
 
-#include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include "dyninstAPI/src/Relocation/Widgets/Widget.h"
 #include "dyninstAPI/src/codegen.h"
 #include <stack>
 class registerSlot;
@@ -48,9 +48,9 @@ namespace Relocation {
 
 class MemEmulatorTranslator;
 
-class MemEmulator : public Atom {
+class MemEmulator : public Widget {
   friend class MemEmulatorTranslator;
-  typedef std::map<Register, TracePtr> TranslatorMap;
+  typedef std::map<Register, RelocBlockPtr> TranslatorMap;
  public:
    typedef dyn_detail::boost::shared_ptr<MemEmulator> Ptr;
    
@@ -58,7 +58,7 @@ class MemEmulator : public Atom {
 		     Address addr,
 		     instPoint *point);
 
-   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
+   virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 
    virtual ~MemEmulator() {};
    virtual std::string format() const;
@@ -77,7 +77,7 @@ class MemEmulator : public Atom {
       {};
 
    // Set up the codeGen structures we use to hold code. 
-   bool initialize(const codeGen &templ, const Trace *);
+   bool initialize(const codeGen &templ, const RelocBlock *);
 
    // Handle a0-a3 implicit EAX uses, or ESI/EDI instructions
    bool generateViaOverride(CodeBuffer &buffer);
@@ -149,8 +149,8 @@ class MemEmulator : public Atom {
 
 
 
-   bool generateViaModRM(const codeGen &gen, const Trace *, CodeBuffer &buffer);
-   bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
+   bool generateViaModRM(const codeGen &gen, const RelocBlock *, CodeBuffer &buffer);
+   bool generateViaOverride(const codeGen &gen, const RelocBlock *, CodeBuffer &buffer);
 
    bool initialize(codeGen &gen);
    bool checkLiveness(codeGen &gen);   
@@ -186,8 +186,8 @@ class MemEmulator : public Atom {
 
 
 
-   bool generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
-   bool generateEAXMove(int opcode, const codeGen &templ, const Trace *t, CodeBuffer &buffer);
+   bool generateImplicit(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer);
+   bool generateEAXMove(int opcode, const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer);
 #endif
 
    /// Members

@@ -44,7 +44,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="./h;..;../external;../symtabAPI/h;../dynutil/h;../instructionAPI/h;../dataflowAPI/h"
+				AdditionalIncludeDirectories="./h;..;../external;../symtabAPI/h;../dynutil/h;../instructionAPI/h;../parseAPI/h;../patchAPI/h;../dataflowAPI/h"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_mem_emulation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_mutatee_traps;cap_noaddr_gen;cap_tramp_liveness;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib libsymtabAPI.lib"
+				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib libsymtabAPI.lib libpatchAPI.lib"
 				OutputFile="$(OutDir)\libdyninstAPI.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -188,27 +188,6 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
-			<File
-				RelativePath=".\src\addLibrary.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
 			<File
 				RelativePath=".\src\addressSpace.C"
 				>
@@ -930,6 +909,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Widgets\CallbackWidget.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Widgets\CFWidget-x86.C"
 				>
 				<FileConfiguration
@@ -1174,6 +1165,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynAddrSpace.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\dynamiclinking.C"
 				>
 				<FileConfiguration
@@ -1190,6 +1193,54 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynCFGMaker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynInstrumenter.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynObject.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynPointMaker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1504,18 +1555,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\instPoint.C"
 				>
 				<FileConfiguration
@@ -1558,6 +1597,18 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1664,27 +1715,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MapSymbols.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\MemoryEmulator\memEmulator.C"
 				>
 				<FileConfiguration
@@ -1697,7 +1727,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MemoryEmulator\memEmulatorWidget.C"
+				RelativePath=".\src\MemoryEmulator\memEmulatorTransformer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1709,7 +1739,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MemoryEmulator\memEmulatorTransformer.C"
+				RelativePath=".\src\MemoryEmulator\memEmulatorWidget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1808,20 +1838,20 @@
 						CompileAs="2"
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\parse-x86.C"
-				>
 				<FileConfiguration
-					Name="Debug|Win32"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\parse-x86.C"
+				>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1993,27 +2023,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr-lwp.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
 				>
 				<FileConfiguration
@@ -2057,6 +2066,27 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\rpcMgr-lwp.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2219,18 +2249,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Target.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\templates-nt.C"
 				>
 				<FileConfiguration
@@ -2251,7 +2269,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Trace.C"
+				RelativePath=".\src\Relocation\Transformers\Transformer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2328,10 +2346,6 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Widgets\ASTWidget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File
@@ -2487,6 +2501,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Widgets\CallbackWidget.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Widgets\CFWidget.h"
 				>
 			</File>
@@ -2547,11 +2565,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynAddrSpace.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\dynamiclinking.h"
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\DynCommon.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\dyninst.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynObject.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\DynPointMaker.h"
 				>
 			</File>
 			<File
@@ -2631,10 +2665,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\instP.h"
 				>
 			</File>
@@ -2656,6 +2686,10 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2688,6 +2722,10 @@
 			</File>
 			<File
 				RelativePath=".\src\MemoryEmulator\memEmulatorTransformer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\MemoryEmulator\memEmulatorWidget.h"
 				>
 			</File>
 			<File
@@ -2848,6 +2886,10 @@
 			</File>
 			<File
 				RelativePath=".\src\w32CONTEXT.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File

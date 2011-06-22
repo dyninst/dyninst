@@ -1497,21 +1497,13 @@ void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
   addModifiedFunction(oldfunc);
 }
 
-func_instance *AddressSpace::isFunctionReplaced(func_instance *func) const
+const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
 {
-    FuncReplaceMap::const_iterator frit = functionReplacements_.find(func);
-    if (frit != functionReplacements_.end()) {
-        return frit->second;
-    }
-    return NULL;
-}
-
-func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
-{
-    FuncReplaceMap::const_iterator frit = functionReplacements_.begin();
-    for (; frit != functionReplacements_.end(); frit++) {
+    PatchAPI::FuncModMap repFuncs = mgr_->instrumenter()->funcRepMap();
+    PatchAPI::FuncModMap::const_iterator frit = repFuncs.begin();
+    for (; frit != repFuncs.end(); frit++) {
         if (func == frit->second) {
-            return frit->first;
+            return static_cast<const func_instance*>(frit->first);
         }
     }
     return NULL;

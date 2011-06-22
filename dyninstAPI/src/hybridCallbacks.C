@@ -535,9 +535,9 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
        bit++) 
    {
       if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
-          func_instance *origF = llproc->isFunctionReplacement(retFunc);
+          const func_instance *origF = llproc->isFunctionReplacement(retFunc);
           if (origF) {
-              retFunc = origF;
+              retFunc = const_cast<func_instance*>(origF);
           }
       }
 

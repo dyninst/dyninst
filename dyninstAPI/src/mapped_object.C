@@ -271,10 +271,10 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
 mapped_object::mapped_object(const mapped_object *s, process *child) :
    codeRange(),
+   DynObject(s, child, s->codeBase_),
    desc_(s->desc_),
    fullName_(s->fullName_),
    fileName_(s->fileName_),
-   codeBase_(s->codeBase_),
    dataBase_(s->dataBase_),
    everyUniqueVariable(imgVarHash),
    allFunctionsByMangledName(::Dyninst::stringhash),
@@ -2215,8 +2215,8 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(ParseAPI::Block */*first*/, 
-                               ParseAPI::Block */*second*/) 
+void mapped_object::splitBlock(const ParseAPI::Block * /*first*/, 
+                               const ParseAPI::Block * /*second*/) 
 {
     assert(0 && "KEVINTODO: needs to update the block-based maps in the the function class too");
 }

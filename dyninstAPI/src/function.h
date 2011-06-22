@@ -293,20 +293,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   mapped_module *mod_; // This is really a dodge; translate a list of
   // parse_funcs to int_funcs
 
-   // Function wrapping
-   bool callWrappedFunction(func_instance *target);
-   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
-                               Dyninst::SymtabAPI::Symbol *newsym);
-   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
-   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
-   void createWrapperSymbol(Address entry);
-
-   static void destroy(func_instance *f);
-
-   void destroyBlock(block_instance *block);
-
- private:
-
   BlockSet blocks_;
   BlockSet callBlocks_;
   BlockSet exitBlocks_;
@@ -337,8 +323,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 #endif
 
    Dyninst::SymtabAPI::Symbol *wrapperSym_;
-
-   SymtabAPI::Symbol *wrapperSym_;
 };
 
 template <class OutputIterator>

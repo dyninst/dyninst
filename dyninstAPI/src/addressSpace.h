@@ -323,8 +323,7 @@ class AddressSpace : public InstructionSource {
     bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
-    func_instance *isFunctionReplaced(func_instance *func) const;
-    func_instance *isFunctionReplacement(func_instance *func) const;
+    const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
     typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
