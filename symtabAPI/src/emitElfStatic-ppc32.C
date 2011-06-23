@@ -142,9 +142,9 @@ bool emitElfStatic::archSpecificRelocation(char *targetData, relocationEntry &re
 {
 	rewrite_printf(" archSpecificRelocation %s  \n",  rel.name().c_str());
     if( PPC32_WIDTH == addressWidth_ ) {
-	int relocation_size = sizeof(Elf32_Word);
 	int relocation_length = sizeof(Elf32_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
+	int branch_pred = -1;
         /*
          * Referring to the SYSV 386 supplement:
          *
@@ -178,146 +178,307 @@ bool emitElfStatic::archSpecificRelocation(char *targetData, relocationEntry &re
         stringstream tmp;
 
         switch(rel.getRelType()) {
-	    case R_PPC_ADDR16_HA:
-		//relocation_size = 2;
-		relocation_length = 16;
-		relocation_pos = 0;
-                relocation = symbolOffset + addend;
-	        relocation = (((relocation >> 16) + ((relocation & 0x8000)? 1:0)) & 0xffff);
-		break;
-	    case R_PPC_ADDR16_LO:
-		//relocation_size = 2;
-		relocation_length = 16;
-		relocation_pos = 0;
-		relocation = symbolOffset + addend;
-		relocation = (relocation & 0xffff);
-		break;
-	    case R_PPC_ADDR32:
-                relocation = symbolOffset + addend;
-		break;
-            case R_PPC_GLOB_DAT:
-                rewrite_printf("relocation R_PPC_GLOB_DAT for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx\n",
-                rel.name().c_str(), 
-                relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
-                rel.getRelType(), symbolOffset, addend, relOffset);
- 
-                relocation = symbolOffset + addend;
-		break;
-            case R_PPC_GOT_TPREL16:
-		//relocation_size = 2;
-		relocation_length = 16;
-		relocation_pos = 16;
-                rewrite_printf("relocation R_PPC_GOT_TPREL16 for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx\n",
-                rel.name().c_str(), 
-                relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
-                rel.getRelType(), symbolOffset, addend, relOffset);
-                relocation = symbolOffset + addend;
-		break;
-	    case R_PPC_LOCAL24PC:
-		relocation_length = 24;
-		relocation_pos = 2;
-                rewrite_printf("relocation R_PPC_LOCAL24PC for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx\n",
-                rel.name().c_str(), 
-                relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
-                rel.getRelType(), symbolOffset, addend, relOffset);
-                relocation = (symbolOffset + addend - relOffset) >> 2;
-		break;
-	
-            case R_PPC_REL24:
-		relocation_length = 24;
-		relocation_pos = 2;
-                relocation = (symbolOffset + addend - relOffset) >> 2;
-		break;
-            case R_PPC_REL32:
-                relocation = symbolOffset + addend - relOffset;
-		break;
-            case R_PPC_TLS:
-                rewrite_printf("relocation R_PPC_TLS for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx\n",
-                rel.name().c_str(), 
-                relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
-                rel.getRelType(), symbolOffset, addend, relOffset);
- 
-                relocation = symbolOffset + addend;
-		break;
-/*
-            case R_386_32:
-                relocation = symbolOffset + addend;
-                break;
-            case R_386_PLT32: // this works because the address of the symbol is known at link time
-            case R_386_PC32:
-                relocation = symbolOffset + addend - relOffset;
-                break;
-            case R_386_TLS_LE: // The necessary value is set during storage allocation
-            case R_386_GLOB_DAT:
-            case R_386_JMP_SLOT:
-                relocation = symbolOffset;
-                break;
-            case R_386_TLS_GD: // The address is computed when the GOT is built
-            case R_386_GOT32: 
-            case R_386_TLS_GOTIE:
-                result = lmap.gotSymbols.find(rel.getDynSym());
-                if( result == lmap.gotSymbols.end() ) {
-                    errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
-                    return false;
-                }
 
-                relocation = result->second;
-                break;
-            case R_386_GOTOFF:
-                relocation = symbolOffset + addend - (lmap.gotRegionOffset + globalOffset);
-                break;
-            case R_386_GOTPC:
-                relocation = globalOffset + lmap.gotRegionOffset + addend - relOffset;
-                break;
-            case R_386_TLS_IE:
-                result = lmap.gotSymbols.find(rel.getDynSym());
-                if( result == lmap.gotSymbols.end() ) {
-                    errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
-                    return false;
-                }
+/* PowerPC relocations defined by the ABIs */
+case R_PPC_NONE:/*            0 */
+	break;
+case R_PPC_ADDR32:/*          1        32bit absolute address */
+	relocation = symbolOffset + addend;
+	break;
+case R_PPC_ADDR24:/*          2        26bit address, 2 bits ignored.  */
+      	relocation_length = 26;
+      	relocation_pos = 2;
+	relocation = (symbolOffset + addend) >> 2;
+	break;
+case R_PPC_ADDR16:/*          3        16bit absolute address */
+      	relocation_length = 16;
+      	relocation_pos = 16;
+	relocation = symbolOffset + addend;
+	break;
+case R_PPC_ADDR16_LO:/*       4        lower 16bit of absolute address */
+      	relocation_length = 16;
+      	relocation_pos = 0;
+      	relocation = symbolOffset + addend;
+	relocation = (relocation & 0xffff);
+	break;
+case R_PPC_ADDR16_HI:/*       5        high 16bit of absolute address */
+	relocation_length = 16;
+     	relocation_pos = 0;
+      	relocation = symbolOffset + addend;
+	relocation = ((relocation >> 16) & 0xffff);
+	break;
+case R_PPC_ADDR16_HA:/*       6        adjusted high 16bit */
+	relocation_length = 16;
+     	relocation_pos = 0;
+        relocation = symbolOffset + addend;
+        relocation = (((relocation >> 16) + ((relocation & 0x8000)? 1:0)) & 0xffff);
+      	break;
+case R_PPC_ADDR14:/*          7        16bit address, 2 bits ignored */
+	relocation_length = 14;
+     	relocation_pos = 16;
+	relocation = (symbolOffset + addend) >> 2;
+	break;
+case R_PPC_ADDR14_BRTAKEN:/*  8 */
+	relocation_length = 14;
+     	relocation_pos = 16;
+	relocation = (symbolOffset + addend) >> 2;
+	// bit 10 is set
+	branch_pred = 1;
+	break;
+case R_PPC_ADDR14_BRNTAKEN:/* 9 */
+	relocation_length = 14;
+     	relocation_pos = 16;
+	relocation = (symbolOffset + addend) >> 2;
+	// bit 10 is set
+	branch_pred = 0;
+	break;
+case R_PPC_REL24:/*           10       PC relative 26 bit */
+	relocation_length = 24;
+      	relocation_pos = 2;
+        relocation = (symbolOffset + addend - relOffset) >> 2;
+      	break;
+case R_PPC_REL14:/*           11       PC relative 16 bit */
+	relocation_length = 14;
+     	relocation_pos = 16;
+        relocation = (symbolOffset + addend - relOffset) >> 2;
+      	break;
+case R_PPC_REL14_BRTAKEN:/*   12*/
+	relocation_length = 14;
+     	relocation_pos = 16;
+        relocation = (symbolOffset + addend - relOffset) >> 2;
+	branch_pred = 1;
+      	break;
+case R_PPC_REL14_BRNTAKEN:/*  13*/
+	relocation_length = 14;
+     	relocation_pos = 16;
+        relocation = (symbolOffset + addend - relOffset) >> 2;
+	branch_pred = 0;
+      	break;
+case R_PPC_GOT16:/*           14*/
+        result = lmap.gotSymbols.find(rel.getDynSym());
+        if( result == lmap.gotSymbols.end() ) {
+            errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
+            return false;
+        }
+        relocation = result->second;
+	relocation = (relocation) >> 16;
+      	relocation_length = 16;
+      	relocation_pos = 16;
+        break;
+case R_PPC_GOT16_LO:/*        15*/
+        result = lmap.gotSymbols.find(rel.getDynSym());
+        if( result == lmap.gotSymbols.end() ) {
+            errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
+            return false;
+        }
+        relocation = result->second;
+	relocation = (relocation & 0xffff);
+      	relocation_length = 16;
+      	relocation_pos = 0;
+        break;
+case R_PPC_GOT16_HI:/*        16*/
+        result = lmap.gotSymbols.find(rel.getDynSym());
+        if( result == lmap.gotSymbols.end() ) {
+            errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
+            return false;
+        }
+        relocation = result->second;
+	relocation = ((relocation >> 16) & 0xffff);
+      	relocation_length = 16;
+      	relocation_pos = 0;
+        break;
+case R_PPC_GOT16_HA:/*        17*/
+        result = lmap.gotSymbols.find(rel.getDynSym());
+        if( result == lmap.gotSymbols.end() ) {
+            errMsg = "Expected GOT symbol does not exist in GOT symbol mapping";
+            return false;
+        }
+        relocation = result->second;
+        relocation = (((relocation >> 16) + ((relocation & 0x8000)? 1:0)) & 0xffff);
+      	relocation_length = 16;
+      	relocation_pos = 0;
+        break;
+case R_PPC_PLTREL24:/*        18*/
+	relocation_length = 24;
+      	relocation_pos = 2;
+	relocation = (symbolOffset + addend - relOffset) >> 2;
+	break;
+case R_PPC_COPY:/*            19*/
+	break;
+case R_PPC_GLOB_DAT:/*        20*/
+	relocation = symbolOffset + addend;
+	break;
+case R_PPC_JMP_SLOT:/*        21*/
+	break;
+case R_PPC_RELATIVE:/*        22*/
+       	tmp << "ERROR: encountered relocation type(" << rel.getRelType() << 
+                ") that is meant for use during dynamic linking";
+        errMsg = tmp.str();
+        return false;
+case R_PPC_LOCAL24PC:/*       23*/
+	relocation_length = 24;
+      	relocation_pos = 2;
+	relocation = (symbolOffset + addend - relOffset) >> 2;
+	break;
+case R_PPC_UADDR32:/*         24*/
+	relocation = symbolOffset + addend ;
+	break;
+case R_PPC_UADDR16:/*         25*/
+      	relocation_length = 16;
+      	relocation_pos = 16;
+	relocation = symbolOffset + addend;
+	break;
+case R_PPC_REL32:/*           26*/
+	relocation = symbolOffset + addend - relOffset;
+        break;
+case R_PPC_PLT32:/*           27*/
+	relocation = symbolOffset + addend;
+        break;
+case R_PPC_PLTREL32:/*        28*/
+	relocation = symbolOffset + addend - relOffset;
+        break;
+case R_PPC_PLT16_LO:/*        29*/
+	relocation = symbolOffset + addend;
+	relocation = (relocation & 0xffff);
+        break;
+case R_PPC_PLT16_HI:/*        30*/
+	relocation = symbolOffset + addend;
+	relocation = ((relocation >> 16) & 0xffff);
+        break;
+case R_PPC_PLT16_HA:/*        31*/
+	relocation = symbolOffset + addend;
+        relocation = (((relocation >> 16) + ((relocation & 0x8000)? 1:0)) & 0xffff);
+        break;
+case R_PPC_SDAREL16:/*        32*/
+case R_PPC_SECTOFF:/*         33*/
+case R_PPC_SECTOFF_LO:/*      34*/
+case R_PPC_SECTOFF_HI:/*      35*/
+case R_PPC_SECTOFF_HA:/*      36*/
+        tmp << "Relocation type " << rel.getRelType() 
+            << " currently unimplemented";
+        errMsg = tmp.str();
+      rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+      fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+        return false;
 
-                relocation = result->second + lmap.gotRegionOffset + globalOffset;
-                break;
-            case R_386_COPY:
-            case R_386_RELATIVE:
-                tmp << "ERROR: encountered relocation type(" << rel.getRelType() << 
-                       ") that is meant for use during dynamic linking";
-                errMsg = tmp.str();
-                return false;
-*/
-            default:
-                tmp << "Relocation type " << rel.getRelType() 
-                    << " currently unimplemented";
-                errMsg = tmp.str();
-                return false;
+/* PowerPC relocations defined for the TLS access ABI.  */
+case R_PPC_TLS:/*             67  none      (sym+add)@tls */
+case R_PPC_DTPMOD32:/*        68  word32    (sym+add)@dtpmod */
+case R_PPC_TPREL16:/*         69  half16*   (sym+add)@tprel */
+case R_PPC_TPREL16_LO:/*      70  half16    (sym+add)@tprel@l */
+case R_PPC_TPREL16_HI:/*      71  half16    (sym+add)@tprel@h */
+case R_PPC_TPREL16_HA:/*      72  half16    (sym+add)@tprel@ha */
+case R_PPC_TPREL32:/*         73  word32    (sym+add)@tprel */
+case R_PPC_DTPREL16:/*        74  half16*   (sym+add)@dtprel */
+case R_PPC_DTPREL16_LO:/*     75  half16    (sym+add)@dtprel@l */
+case R_PPC_DTPREL16_HI:/*     76  half16    (sym+add)@dtprel@h */
+case R_PPC_DTPREL16_HA:/*     77  half16    (sym+add)@dtprel@ha */
+case R_PPC_DTPREL32:/*        78  word32    (sym+add)@dtprel */
+case R_PPC_GOT_TLSGD16:/*     79  half16*   (sym+add)@got@tlsgd */
+case R_PPC_GOT_TLSGD16_LO:/*  80  half16    (sym+add)@got@tlsgd@l */
+case R_PPC_GOT_TLSGD16_HI:/*  81  half16    (sym+add)@got@tlsgd@h */
+case R_PPC_GOT_TLSGD16_HA:/*  82  half16    (sym+add)@got@tlsgd@ha */
+case R_PPC_GOT_TLSLD16:/*     83  half16*   (sym+add)@got@tlsld */
+case R_PPC_GOT_TLSLD16_LO:/*  84  half16    (sym+add)@got@tlsld@l */
+case R_PPC_GOT_TLSLD16_HI:/*  85  half16    (sym+add)@got@tlsld@h */
+case R_PPC_GOT_TLSLD16_HA:/*  86  half16    (sym+add)@got@tlsld@ha */
+case R_PPC_GOT_TPREL16:/*     87  half16*   (sym+add)@got@tprel */
+case R_PPC_GOT_TPREL16_LO:/*  88  half16    (sym+add)@got@tprel@l */
+case R_PPC_GOT_TPREL16_HI:/*  89  half16    (sym+add)@got@tprel@h */
+case R_PPC_GOT_TPREL16_HA:/*  90  half16    (sym+add)@got@tprel@ha */
+case R_PPC_GOT_DTPREL16:/*    91  half16*   (sym+add)@got@dtprel */
+case R_PPC_GOT_DTPREL16_LO:/* 92  half16*   (sym+add)@got@dtprel@l */
+case R_PPC_GOT_DTPREL16_HI:/* 93  half16*   (sym+add)@got@dtprel@h */
+case R_PPC_GOT_DTPREL16_HA:/* 94  half16*   (sym+add)@got@dtprel@ha */
+      relocation_length = 16;
+      relocation_pos = 16;
+      relocation = symbolOffset + addend;
+      rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+      fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+      break;
+
+/* GNU relocs used in PIC code sequences.  */
+case R_PPC_REL16:/*           249      word32   (sym-.) */
+	relocation_length = 16;
+     	relocation_pos = 16;
+        relocation = symbolOffset + addend - relOffset ;
+      	break;
+case R_PPC_REL16_LO:/*        250      half16   (sym-.)@l */
+	relocation_length = 16;
+     	relocation_pos = 16;
+        relocation = symbolOffset + addend - relOffset ;
+	relocation = (relocation & 0xffff);
+      	break;
+case R_PPC_REL16_HI:/*        251      half16   (sym-.)@h */
+	relocation_length = 16;
+     	relocation_pos = 16;
+        relocation = symbolOffset + addend - relOffset ;
+	relocation = ((relocation >> 16) & 0xffff);
+      	break;
+case R_PPC_REL16_HA:/*        252      half16   (sym-.)@ha */
+	relocation_length = 16;
+     	relocation_pos = 16;
+        relocation = symbolOffset + addend - relOffset ;
+        relocation = (((relocation >> 16) + ((relocation & 0x8000)? 1:0)) & 0xffff);
+      	break;
+/* This is a phony reloc to handle any old fashioned TOC16 references
+   that may still be in object files.  */
+case R_PPC_TOC16: /*             255*/
+      	break;
+
+default:
+     tmp << "Relocation type " << rel.getRelType() 
+         << " currently unimplemented";
+     rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+     fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
+     errMsg = tmp.str();
+     return false;
         }
 
-        rewrite_printf(" relocation = 0x%lx @ 0x%lx %d target data 0x%lx %lx %lx %lx \n", relocation, relOffset, relocation_size, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx %lx %lx %lx \n", relocation, relOffset, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 	if (rel.getRelType() == R_PPC_REL24) {
 	unsigned int *td = (unsigned int *) targetData;
 	unsigned int target;
 	target = td[dest/4];
 	target = setBits(target, relocation_pos, relocation_length, relocation);
-        memcpy(&targetData[dest], &target, relocation_size);
+        memcpy(&targetData[dest], &target, sizeof(Elf32_Word));
 	} else {
 	unsigned int *td = (unsigned int *) targetData;
 	unsigned int target;
 	target = td[dest/4];
 	target = setBits(target, relocation_pos, relocation_length, relocation);
-        memcpy(&td[dest/4], &target, relocation_size);
+        memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
 //        memcpy(&targetData[dest], r+2, relocation_size);
-        rewrite_printf(" relocation = 0x%lx @ 0x%lx %d target data 0x%lx %lx %lx %lx \n", relocation, relOffset, relocation_size, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+        rewrite_printf(" relocation = 0x%lx @ 0x%lx target data 0x%lx %lx %lx %lx \n", relocation, relOffset, targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
 	}
+    if (branch_pred >= 0) {
+	unsigned int *td = (unsigned int *) targetData;
+	unsigned int target;
+	target = td[dest/4];
+	target = setBits(target, 10, 1, branch_pred);
+        memcpy(&td[dest/4], &target, sizeof(Elf32_Word));
+    } 
+
     } else{
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
     }
-
     return true;
 }
 
 bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
     return true;
 }
+
+/* The TLS implementation on ppc is Variant 1 */
+
+Offset emitElfStatic::layoutTLSImage(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap) {
+    return tlsLayoutVariant1(globalOffset, dataTLS, bssTLS, lmap);
+}
+
+Offset emitElfStatic::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
+    return curOffset;
+}
+
 char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
     const char PPC32_NOP = 0x60000000;
 
@@ -328,21 +489,12 @@ char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
 
     return retChar;
 }
-/*
-Offset emitElfStatic::layoutTLSImage(Offset, Region *, Region *, LinkMap &) {
-    return 0;
-}
 
-Offset emitElfStatic::adjustTLSOffset(Offset, Offset) {
-    return 0;
-}
-
-void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &,
-        Region *, Region *)
+void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
+        Region *dataTLS, Region *bssTLS) 
 {
+    tlsCleanupVariant2(regionAllocs, dataTLS, bssTLS);
 }
-*/
-
 
 static const string CTOR_NAME(".ctors");
 static const string DTOR_NAME(".dtors"); 
