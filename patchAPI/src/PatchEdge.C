@@ -7,8 +7,8 @@ using namespace PatchAPI;
 
 PatchEdge*
 PatchEdge::create(ParseAPI::Edge *ie, PatchBlock *src, PatchBlock *trg) {
-  PatchFunction *indexFunc = (src ? src->function() : trg->function());
-  return indexFunc->object()->getEdge(ie, src, trg);
+  PatchObject *obj = (src ? src->object() : trg->object());
+  return obj->getEdge(ie, src, trg);
 }
 
 PatchEdge::PatchEdge(ParseAPI::Edge *internalEdge,

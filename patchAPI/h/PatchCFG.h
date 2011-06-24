@@ -75,8 +75,6 @@ class PatchBlock {
     PATCHAPI_EXPORT std::string format() const;
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
-    // Difference between this layer and ParseAPI: per-function blocks.
-    PATCHAPI_EXPORT PatchFunction *function() const;
     PATCHAPI_EXPORT ParseAPI::Block *block() const;
     PATCHAPI_EXPORT PatchObject* object() const;
     PATCHAPI_EXPORT edgelist &getSources();
@@ -94,7 +92,6 @@ class PatchBlock {
     void removeTargetEdge(PatchEdge *e);
 
     ParseAPI::Block *block_;
-    PatchFunction *function_;
     edgelist srclist_;
     edgelist trglist_;
     PatchObject* obj_;

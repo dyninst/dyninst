@@ -14,26 +14,10 @@ PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
 
 PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
   : block_(blk),   obj_(obj) {
-  ParseAPI::CodeObject::funclist& all = obj->co()->funcs();
-  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
-       fit != all.end(); ++fit) {
-    if ((*fit)->contains(blk)) {
-      function_ = obj->getFunc(*fit);
-      break;
-    }
-  }
 }
 
 PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
   : block_(parent->block_), obj_(child) {
-  ParseAPI::CodeObject::funclist& all = child->co()->funcs();
-  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
-       fit != all.end(); ++fit) {
-    if ((*fit)->contains(block_)) {
-      function_ = child->getFunc(*fit);
-      break;
-    }
-  }
 }
 
 void
@@ -191,11 +175,8 @@ PatchBlock::format() const {
 
 PatchFunction*
 PatchBlock::getFunction(ParseAPI::Function* f) {
-  return function()->object()->getFunc(f);
+  return obj_->getFunc(f);
 }
-
-PatchFunction*
-PatchBlock::function() const { return function_; }
 
 ParseAPI::Block*
 PatchBlock::block() const { return block_; }
@@ -209,7 +190,8 @@ PatchBlock::getCallee() {
   for (; it != getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
-      return trg->function();
+      return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
+                                                       trg->start()));
     }
   }
   return NULL;
