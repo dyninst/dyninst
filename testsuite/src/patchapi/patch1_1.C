@@ -177,14 +177,14 @@ test_results_t patch1_1_Mutator::executeTest() {
     logerror(" FuncEntry point should be at %x, but in fact %x\n", func->addr(), func_entry->address());
     return FAILED;
   }
-  const PatchFunction::blocklist& exit_blks = func->getExitBlocks();
-  if (exit_blks[0]->last() != func_exit->address()) {
-    logerror(" FuncExit point should be at %x, but in fact %x\n", exit_blks[0]->last(), func_exit->address());
+  const PatchFunction::blockset& exit_blks = func->getExitBlocks();
+  if ((*exit_blks.begin())->last() != func_exit->address()) {
+    logerror(" FuncExit point should be at %x, but in fact %x\n", (*exit_blks.begin())->last(), func_exit->address());
     return FAILED;
   }
-  const PatchFunction::blocklist& call_blks = func->getCallBlocks();
-  if (call_blks[0]->last() != pre_call->address()) {
-    logerror(" PreCall point should be at %x, but in fact %x\n", call_blks[0]->last(), pre_call->address());
+  const PatchFunction::blockset& call_blks = func->getCallBlocks();
+  if ((*call_blks.begin())->last() != pre_call->address()) {
+    logerror(" PreCall point should be at %x, but in fact %x\n", (*call_blks.begin())->last(), pre_call->address());
     return FAILED;
   }
   if (pre_call->address() != post_call->address()) {
