@@ -323,11 +323,15 @@ void func_instance::getCallerBlocks(OutputIterator result)
 {
   if(!ifunc() || !ifunc()->entryBlock())
     return;
-
+  /*
   const block_instance::edgelist &ins = entryBlock()->sources();
   for (block_instance::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) {
-    *result = (*iter)->src();
+  */
+  const PatchBlock::edgelist &ins = entryBlock()->getSources();
+  for (PatchBlock::edgelist::const_iterator iter = ins.begin();
+       iter != ins.end(); ++iter) {
+    *result = SCAST_EI(*iter)->src();
     ++result;
   }
 }

@@ -55,8 +55,8 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
   friend class mapped_object;
 
   public:
-    typedef std::vector<edge_instance *> edges;
-    typedef std::vector<edge_instance *> edgelist;
+  //typedef std::vector<edge_instance *> edges;
+  //typedef std::vector<edge_instance *> edgelist;
 
     block_instance(ParseAPI::Block *ib, mapped_object *obj);
     block_instance(const block_instance *parent, mapped_object *child);
@@ -74,8 +74,8 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     parse_block * llb() const { return SCAST_PB(block_); }
     void *getPtrToInstruction(Address addr) const;
 
-    const edgelist &sources();
-    const edgelist &targets();
+    //const edgelist &sources();
+    //const edgelist &targets();
 
     // Shortcuts
     edge_instance *getTarget();
@@ -100,8 +100,8 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     void updateCallTarget(func_instance *func);
     func_instance *findFunction(ParseAPI::Function *);
 
-    edges srcs_;
-    edges trgs_;
+    // edges srcs_;
+    // edges trgs_;
 
     BlockInstpoints points_;
 };
