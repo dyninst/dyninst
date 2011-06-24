@@ -277,8 +277,8 @@ PatchMgr::findPointsByType(PatchFunction* func,
   Address addr = func->addr();
   getPointsByType(type_pt_map, types, Point::FuncEntry, addr, func, points);
 
-  const  PatchFunction::blocklist& retblks = func->getExitBlocks();
-  for (PatchFunction::blocklist::const_iterator bi = retblks.begin();
+  const  PatchFunction::blockset& retblks = func->getExitBlocks();
+  for (PatchFunction::blockset::const_iterator bi = retblks.begin();
        bi != retblks.end(); bi++) {
     PatchBlock* blk = *bi;
     addr = blk->last();
@@ -290,8 +290,8 @@ PatchMgr::findPointsByType(PatchFunction* func,
 
   // Find block specific points, including:
   // BLOCK_ENTRY, BLOCK_EXIT, BLOCK_DURING
-  const PatchFunction::blocklist& blks = func->getAllBlocks();
-  PatchFunction::blocklist::const_iterator bit = blks.begin();
+  const PatchFunction::blockset& blks = func->getAllBlocks();
+  PatchFunction::blockset::const_iterator bit = blks.begin();
   for (; bit != func->getAllBlocks().end(); ++bit) {
     PatchBlock* blk = *bit;
     PointSet blk_points;

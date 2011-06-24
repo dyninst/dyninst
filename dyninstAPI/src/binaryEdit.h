@@ -44,6 +44,7 @@
 #include "ast.h"
 
 #include "parseAPI/h/InstructionSource.h"
+#include "PatchMgr.h"
 
 class fileDescriptor;
 class func_instance;
@@ -105,7 +106,6 @@ class BinaryEdit : public AddressSpace {
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
-
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
@@ -143,7 +143,9 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file, const std::string &member = "");
+    static BinaryEdit *openFile(const std::string &file,
+                                Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
+                                const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
     

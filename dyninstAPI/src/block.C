@@ -45,18 +45,18 @@ using namespace Dyninst::ParseAPI;
 
 block_instance::block_instance(ParseAPI::Block *ib,
                                mapped_object *obj)
-      : PatchBlock(ib, obj) {
-   // We create edges lazily
+  : PatchBlock(ib, obj) {
+  // We create edges lazily
 };
 
 // Fork constructor
 block_instance::block_instance(const block_instance *parent,
-			       mapped_object *childObj)
+                               mapped_object *childObj)
   : PatchBlock(parent, childObj) {
-   // We also need to copy edges.
-   // Thing is, those blocks may not exist yet...
-   // So we wait, and do edges after all blocks have
-   // been created
+  // We also need to copy edges.
+  // Thing is, those blocks may not exist yet...
+  // So we wait, and do edges after all blocks have
+  // been created
 }
 
 // Edges are deleted at the mapped_object layer
@@ -65,122 +65,104 @@ block_instance::~block_instance()
 }
 
 AddressSpace *block_instance::addrSpace() const {
-    return obj()->proc();
+  return obj()->proc();
 }
 
 edge_instance *block_instance::getFallthrough() {
-   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
-      if ((*iter)->type() == FALLTHROUGH ||
-          (*iter)->type() == CALL_FT ||
-          (*iter)->type() == COND_NOT_TAKEN) {
-         return *iter;
-      }
-   }
-   return NULL;
+  for (edgelist::const_iterator iter = getTargets().begin(); iter != getTargets().end(); ++iter) {
+    if ((*iter)->type() == FALLTHROUGH ||
+        (*iter)->type() == CALL_FT ||
+        (*iter)->type() == COND_NOT_TAKEN) {
+      return SCAST_EI(*iter);
+    }
+  }
+  return NULL;
 }
 
 block_instance *block_instance::getFallthroughBlock() {
-   edge_instance *ft = getFallthrough();
-   if (ft &&
-       !ft->sinkEdge())
-      return ft->trg();
-   else
-      return NULL;
+  edge_instance *ft = getFallthrough();
+  if (ft &&
+      !ft->sinkEdge())
+    return ft->trg();
+  else
+    return NULL;
 }
 
 edge_instance *block_instance::getTarget() {
-   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
-      if ((*iter)->type() == CALL ||
-          (*iter)->type() == DIRECT ||
-          (*iter)->type() == COND_TAKEN) {
-         return *iter;
-      }
-   }
-   return NULL;
+  for (edgelist::const_iterator iter = getTargets().begin(); iter != getTargets().end(); ++iter) {
+    if ((*iter)->type() == CALL ||
+        (*iter)->type() == DIRECT ||
+        (*iter)->type() == COND_TAKEN) {
+      return SCAST_EI(*iter);
+    }
+  }
+  return NULL;
 }
 
 block_instance *block_instance::getTargetBlock() {
-   edge_instance *t = getFallthrough();
-   if (t &&
-       !t->sinkEdge())
-      return t->trg();
-   else
-      return NULL;
+  edge_instance *t = getFallthrough();
+  if (t &&
+      !t->sinkEdge())
+    return t->trg();
+  else
+    return NULL;
 }
 
 int block_instance::id() const {
-    return llb()->id();
+  return llb()->id();
 }
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {
-    // Relocation info caching...
-   //PCSensitiveTransformer::invalidateCache(this);
-}
-
-const block_instance::edgelist &block_instance::sources() {
-  if (srcs_.empty()) {
-    PatchBlock::edgelist& s = getSources();
-    for (PatchBlock::edgelist::iterator i = s.begin(); i != s.end(); i++)
-      srcs_.push_back(SCAST_EI(*i));
-  };
-  return srcs_;
-}
-
-const block_instance::edgelist &block_instance::targets() {
-  if (trgs_.empty()) {
-    PatchBlock::edgelist& s = getTargets();
-    for (PatchBlock::edgelist::iterator i = s.begin(); i != s.end(); i++)
-      trgs_.push_back(SCAST_EI(*i));
-  };
-  return trgs_;
+  // Relocation info caching...
+  //PCSensitiveTransformer::invalidateCache(this);
 }
 
 std::string block_instance::calleeName() {
-   // How the heck do we do this again?
-   return obj()->getCalleeName(this);
+  // How the heck do we do this again?
+  return obj()->getCalleeName(this);
 }
 
 void block_instance::updateCallTarget(func_instance *func) {
-   // Update a sink-typed call edge to
-   // have an inter-module target
-   edge_instance *e = getTarget();
-   assert(e->sinkEdge());
-   e->trg_ = func->entryBlock();
+  // Update a sink-typed call edge to
+  // have an inter-module target
+  edge_instance *e = getTarget();
+  assert(e->sinkEdge());
+  e->trg_ = func->entryBlock();
 }
 
 func_instance *block_instance::entryOfFunc() const {
-   parse_block *b = SCAST_PB(llb());
-   parse_func *e = b->getEntryFunc();
-   if (!e) return NULL;
-   return obj()->findFunction(e);
+  parse_block *b = SCAST_PB(llb());
+  parse_func *e = b->getEntryFunc();
+  if (!e) return NULL;
+  return obj()->findFunction(e);
 }
 
 bool block_instance::isFuncExit() const {
-   parse_block *b = SCAST_PB(llb());
-   return b->isExitBlock();
+  parse_block *b = SCAST_PB(llb());
+  return b->isExitBlock();
 }
 
 func_instance *block_instance::findFunction(ParseAPI::Function *p) {
-   return obj()->findFunction(p);
+  return obj()->findFunction(p);
 }
 
 
 void *block_instance::getPtrToInstruction(Address addr) const {
-    if (addr < start()) return NULL;
-    if (addr > end()) return NULL;
-    return obj()->getPtrToInstruction(addr);
+  if (addr < start()) return NULL;
+  if (addr > end()) return NULL;
+  return obj()->getPtrToInstruction(addr);
 }
 
 void block_instance::destroy(block_instance *b) {
-   // Put things here that should go away when we destroy a block. 
-   // Iterate through functions...
+  // Put things here that should go away when we destroy a block.
+  // Iterate through functions...
 
-   std::vector<ParseAPI::Function *> pFuncs;
-   b->llb()->getFuncs(pFuncs);
-   for (unsigned i = 0; i < pFuncs.size(); ++i) {
-      func_instance *func = b->findFunction(pFuncs[i]);
-      func->destroyBlock(b);
-   }
-   delete b;
+  std::vector<ParseAPI::Function *> pFuncs;
+  b->llb()->getFuncs(pFuncs);
+  for (unsigned i = 0; i < pFuncs.size(); ++i) {
+    func_instance *func = b->findFunction(pFuncs[i]);
+    func->destroyBlock(b);
+  }
+  delete b;
 }

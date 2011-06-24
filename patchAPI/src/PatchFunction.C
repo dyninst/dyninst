@@ -17,13 +17,13 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::blocklist&
+const PatchFunction::blockset&
 PatchFunction::getAllBlocks() {
   if (!all_blocks_.empty()) return all_blocks_;
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
        iter != func_->blocks().end(); ++iter) {
-    all_blocks_.push_back(object()->getBlock(*iter));
+    all_blocks_.insert(object()->getBlock(*iter));
   }
   return all_blocks_;
 }
@@ -43,19 +43,19 @@ PatchFunction::getEntryBlock() {
   return object()->getBlock(ientry);
 }
 
-const PatchFunction::blocklist&
+const PatchFunction::blockset&
 PatchFunction::getExitBlocks() {
   if (!exit_blocks_.empty()) return exit_blocks_;
 
   for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
        iter != func_->returnBlocks().end(); ++iter) {
     PatchBlock* pblk = object()->getBlock(*iter);
-    exit_blocks_.push_back(pblk);
+    exit_blocks_.insert(pblk);
   }
   return exit_blocks_;
 }
 
-const PatchFunction::blocklist&
+const PatchFunction::blockset&
 PatchFunction::getCallBlocks() {
   // Check the list...
   if (call_blocks_.empty()) {
@@ -65,7 +65,7 @@ PatchFunction::getCallBlocks() {
       ParseAPI::Block *src = (*iter)->src();
       PatchBlock *block = object()->getBlock(src);
       assert(block);
-      call_blocks_.push_back(block);
+      call_blocks_.insert(block);
     }
   }
   return call_blocks_;

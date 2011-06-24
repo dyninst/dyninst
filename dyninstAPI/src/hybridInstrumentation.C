@@ -1143,9 +1143,10 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
 // 0. first see if the edge needs to be parsed
 
    block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
-   const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
-      if ((*iter)->trg()->start() == target)
+   const PatchBlock::edgelist &targets = block->getTargets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+
+      if (SCAST_EI(*iter)->trg()->start() == target)
          return true;
    }
    return false;

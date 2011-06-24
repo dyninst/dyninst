@@ -101,13 +101,23 @@ class PatchBlock {
 };
 
 
+
 class PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
    friend class PatchObject;
 
    public:
-     typedef std::vector<PatchBlock *> blocklist;
+     struct compare {
+       bool operator()(PatchBlock * const &b1,
+                       PatchBlock * const &b2) const {
+         if(b1->start() < b2->start())
+           return true;
+         else
+           return false;
+       }
+     };
+     typedef std::set<PatchBlock *, compare> blockset;
 
      PATCHAPI_EXPORT static PatchFunction *create(ParseAPI::Function *, PatchObject*);
      PATCHAPI_EXPORT PatchFunction(ParseAPI::Function *f, PatchObject* o);
@@ -119,19 +129,19 @@ class PatchFunction {
      ParseAPI::Function *function() { return func_; }
      PatchObject* object() { return obj_; }
 
-     PATCHAPI_EXPORT const blocklist &getAllBlocks();
+     PATCHAPI_EXPORT const blockset &getAllBlocks();
      PATCHAPI_EXPORT PatchBlock *getEntryBlock();
-     PATCHAPI_EXPORT const blocklist &getExitBlocks();
-     PATCHAPI_EXPORT const blocklist &getCallBlocks();
+     PATCHAPI_EXPORT const blockset &getExitBlocks();
+     PATCHAPI_EXPORT const blockset &getCallBlocks();
 
    protected:
      ParseAPI::Function *func_;
      PatchObject* obj_;
      Address addr_;
 
-     blocklist all_blocks_;
-     blocklist exit_blocks_;
-     blocklist call_blocks_;
+     blockset all_blocks_;
+     blockset exit_blocks_;
+     blockset call_blocks_;
 };
 
 template <class OutputIterator>

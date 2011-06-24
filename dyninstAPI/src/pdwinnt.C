@@ -3111,7 +3111,8 @@ mapped_object *process::createObjectNoFile(Address addr)
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
             obj->setMemoryImg();
-            mapped_objects.push_back(obj);
+            //mapped_objects.push_back(obj);
+	    addMappedObject(obj);
 
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());

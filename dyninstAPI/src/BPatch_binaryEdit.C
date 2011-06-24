@@ -112,16 +112,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   }
   std::map<std::string, BinaryEdit*>::iterator i, j;
 
-  /* PatchAPI stuffs */
-  origBinEdit->initPatchAPI();
-  DynAddrSpacePtr addrSpace = DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as());
-  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
-     addrSpace->loadLibrary((*i).second->getAOut());
-     (*i).second->setMgr(origBinEdit->mgr());
-     (*i).second->setPatcher(origBinEdit->patcher());
-  }
-  /* End of PatchAPI stuffs */
-
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
 
@@ -240,6 +230,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     }
     /* end of PatchAPI stuffs */
 
+
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.
    replaceTrapHandler();
@@ -249,6 +240,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
    {
       (*i).second->trapMapping.flush();
    }
+
 
    if( !origBinEdit->writeFile(outFile) ) return false;
 

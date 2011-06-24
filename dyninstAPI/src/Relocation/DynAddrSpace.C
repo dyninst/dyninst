@@ -10,8 +10,8 @@ using Dyninst::PatchAPI::DynObject;
 using Dyninst::PatchAPI::PatchObject;
 
 bool DynAddrSpace::loadLibrary(DynObject* obj) {
-  loadObject(obj);
   if (obj) {
+    loadObject(obj);
     as_set_.insert(obj->as());
     return false;
   }

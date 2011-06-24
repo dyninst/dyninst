@@ -289,20 +289,21 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    assert(trace->type() == RelocBlock::Relocated);
    block_instance *block = trace->block();
    assert(block);
-   const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin();
+   const PatchBlock::edgelist &targets = block->getTargets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
       instPoint *point = NULL;
+      edge_instance* iedge = SCAST_EI(*iter);
       if (trace->func()) {
         // point = trace->func()->findPoint(instPoint::EdgeDuring, *iter, false);
-        point = trace->func()->edgePoint(*iter, false);
+        point = trace->func()->edgePoint(iedge, false);
       }
       if (!point || point->empty()) continue;
 
-      RelocBlock *instRelocBlock = RelocBlock::createInst(point, (*iter)->trg()->start(), (*iter)->trg(), trace->func());
+      RelocBlock *instRelocBlock = RelocBlock::createInst(point, iedge->trg()->start(), iedge->trg(), trace->func());
       cfg->addRelocBlockAfter(trace, instRelocBlock);
 
-      Predicates::Edge pred(*iter);
+      Predicates::Edge pred(iedge);
       if (!cfg->interpose(pred, trace->outs(), instRelocBlock)) return false;
    }
    return true;
