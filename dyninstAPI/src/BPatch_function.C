@@ -451,10 +451,16 @@ void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 }
 
 void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
+  /*
   const func_instance::BlockSet &blocks = func->callBlocks();
   for (func_instance::BlockSet::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {
-    instPoint *point = instPoint::preCall(func, *iter);
+*/
+  const PatchFunction::blockset &blocks = func->getCallBlocks();
+  for (PatchFunction::blockset::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+    block_instance* iblk = SCAST_BI(*iter);
+    instPoint *point = instPoint::preCall(func, iblk);
     BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
                                                            BPatch_locSubroutine);
     callPoints.push_back(curPoint);

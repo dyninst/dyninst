@@ -330,9 +330,11 @@ BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
 bool 
 BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
-   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
-        iter != ll_func()->exitBlocks().end(); ++iter) {
-      nbb.push_back(findBlock(*iter));
+  /*   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
+       iter != ll_func()->exitBlocks().end(); ++iter) { */
+   for (PatchFunction::blockset::const_iterator iter = ll_func()->getExitBlocks().begin();
+        iter != ll_func()->getExitBlocks().end(); ++iter) {
+     nbb.push_back(findBlock(SCAST_BI(*iter)));
    }
    return true;
 }

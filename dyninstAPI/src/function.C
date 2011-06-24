@@ -56,7 +56,6 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
-  entry_(NULL),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -83,7 +82,6 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
-  entry_(NULL),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -293,28 +291,6 @@ void print_func_vector_by_pretty_name(std::string prefix,
 mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
-const func_instance::BlockSet &func_instance::callBlocks() {
-  // Check the list...
-  if (callBlocks_.empty()) {
-    for (PatchFunction::blockset::const_iterator i = getCallBlocks().begin();
-         i != getCallBlocks().end(); i++) {
-      callBlocks_.insert(SCAST_BI(*i));
-    }
-  }
-  return callBlocks_;
-}
-
-const func_instance::BlockSet &func_instance::exitBlocks() {
-  // Check the list...
-  if (exitBlocks_.empty()) {
-    for (PatchFunction::blockset::const_iterator i = getExitBlocks().begin();
-         i != getExitBlocks().end(); i++) {
-      exitBlocks_.insert(SCAST_BI(*i));
-    }
-  }
-  return exitBlocks_;
-}
-
 const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty()) {
       // A block has unresolved control flow if it has an indirect
@@ -344,24 +320,18 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
 }
 
 block_instance *func_instance::entryBlock() {
-  if (!entry_) {
-    entry_ = SCAST_BI(getEntryBlock());
-    if (!entry_) {
-      cerr << "ERROR: Couldn't find entry block for " << name() << endl;
-    }
-  }
-  return entry_;
+  return SCAST_BI(getEntryBlock());
 }
 
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (BlockSet::const_iterator iter = callBlocks().begin(); iter != callBlocks().end(); ++iter) {
-      if ((*iter)->containsDynamicCall()) {
+   for (blockset::const_iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
+     block_instance* iblk = SCAST_BI(*iter);
+      if (iblk->containsDynamicCall()) {
          count++;
       }
    }
-
    return count;
 }
 
@@ -568,16 +538,16 @@ bool func_instance::isInstrumentable() {
 
    // Hack: avoid things that throw exceptions
    // Make sure we parsed calls
-   callBlocks();
-   for (BlockSet::iterator iter = callBlocks_.begin(); iter != callBlocks_.end(); ++iter) {
-      if ((*iter)->calleeName().find("cxa_throw") != std::string::npos) {
+   for (blockset::iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
+      block_instance* iblk = SCAST_BI(*iter);
+      if (iblk->calleeName().find("cxa_throw") != std::string::npos) {
          cerr << "Func " << symTabName() << " found exception ret false" << endl;
          return false;
       }
-      func_instance *callee = (*iter)->callee();
+      func_instance *callee = iblk->callee();
 
       cerr << "Func " << symTabName() << " @ " << hex
-           << (*iter)->start() << ", callee " << (*iter)->calleeName() << dec << endl;
+           << iblk->start() << ", callee " << iblk->calleeName() << dec << endl;
 
       if (!callee) {
          cerr << "Warning: null callee" << endl;
@@ -596,10 +566,8 @@ bool func_instance::isInstrumentable() {
          cerr << "Func " << symTabName() << " found exception ret false" << endl;
          return false;
       }
-
    }
    return true;
-
 }
 
 block_instance *func_instance::getBlock(const Address addr) {

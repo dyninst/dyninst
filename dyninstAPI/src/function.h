@@ -127,11 +127,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   ////////////////////////////////////////////////
   typedef AddrOrderedBlockSet BlockSet;
 
-  // const BlockSet &blocks();
-
   block_instance *entryBlock();
-  const BlockSet &callBlocks();
-  const BlockSet &exitBlocks();
 
   // Kevin's defensive mode shtuff
   // Blocks that have a sink target, essentially.
@@ -293,11 +289,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // parse_funcs to int_funcs
 
   ///////////////////// CFG and function body
-
-  // BlockSet blocks_;
-  BlockSet callBlocks_;
-  BlockSet exitBlocks_;
-  block_instance *entry_;
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
