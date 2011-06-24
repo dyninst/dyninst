@@ -295,7 +295,7 @@ AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::blocks() {
   if (blocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getAllBlocks().begin();
+    for (PatchFunction::blockset::const_iterator i = getAllBlocks().begin();
          i != getAllBlocks().end(); i++) {
       blocks_.insert(SCAST_BI(*i));
     }
@@ -306,7 +306,7 @@ const func_instance::BlockSet &func_instance::blocks() {
 const func_instance::BlockSet &func_instance::callBlocks() {
   // Check the list...
   if (callBlocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getCallBlocks().begin();
+    for (PatchFunction::blockset::const_iterator i = getCallBlocks().begin();
          i != getCallBlocks().end(); i++) {
       callBlocks_.insert(SCAST_BI(*i));
     }
@@ -317,7 +317,7 @@ const func_instance::BlockSet &func_instance::callBlocks() {
 const func_instance::BlockSet &func_instance::exitBlocks() {
   // Check the list...
   if (exitBlocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getExitBlocks().begin();
+    for (PatchFunction::blockset::const_iterator i = getExitBlocks().begin();
          i != getExitBlocks().end(); i++) {
       exitBlocks_.insert(SCAST_BI(*i));
     }

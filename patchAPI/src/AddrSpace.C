@@ -34,7 +34,6 @@ AddrSpace::loadObject(PatchObject* obj) {
 AddrSpace::~AddrSpace() {
   std::cerr << obj_set_.size() << " objects\n";
   for (ObjSet::iterator i = obj_set_.begin(); i != obj_set_.end(); i++) {
-    fprintf(stderr, "%x\n", *i);
     PatchObject* obj = *i;
     delete obj;
   }
