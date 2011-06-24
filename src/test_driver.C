@@ -771,7 +771,6 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    for (size_t i = 0; i < group->tests.size(); i++) {
       executeTest(tester, group, group->tests[i], param);
    }
-
    log_teststart(groupnum, 0, group_teardown_rs);
    result = tester->group_teardown(group, param);
    log_testresult(result);

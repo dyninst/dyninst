@@ -278,7 +278,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       char *humanlogname = params["humanlogname"]->getString();
       bool noClean = (bool) params["noClean"]->getInt();
       int unique_id = params["unique_id"]->getInt();
-      
+
       test_results_t test_result;
       runBinaryTest(bpatch, group, appBinEdit,
                     logfilename, humanlogname, verboseFormat, printLabels,
@@ -323,6 +323,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    parse_mutateelog(group, mutatee_resumelog);
+
 
    return UNKNOWN;
 }
