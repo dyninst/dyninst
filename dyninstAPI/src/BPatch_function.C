@@ -914,10 +914,11 @@ bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Addre
    
    // end is a little tougher
    end = func->addr();
-   for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
-        iter != func->blocks().end(); ++iter) {
+   for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+        iter != func->getAllBlocks().end(); ++iter) {
       end = (end < (*iter)->end()) ? (*iter)->end() : end;
    }
+
    return true;
 }
 

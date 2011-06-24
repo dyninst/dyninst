@@ -194,7 +194,7 @@ void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/) {
 void func_instance::removeFromAll()
 {
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
-               blocks_.size(), addr());
+               all_blocks_.size(), addr());
 
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
@@ -293,16 +293,6 @@ void print_func_vector_by_pretty_name(std::string prefix,
 mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
-const func_instance::BlockSet &func_instance::blocks() {
-  if (blocks_.empty()) {
-    for (PatchFunction::blockset::const_iterator i = getAllBlocks().begin();
-         i != getAllBlocks().end(); i++) {
-      blocks_.insert(SCAST_BI(*i));
-    }
-  }
-  return blocks_;
-}
-
 const func_instance::BlockSet &func_instance::callBlocks() {
   // Check the list...
   if (callBlocks_.empty()) {
@@ -329,10 +319,10 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
-      blocks();
-      for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
-         if ((*iter)->llb()->unresolvedCF()) {
-            unresolvedCF_.insert(*iter);
+     for (blockset::iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
+       block_instance* iblk = SCAST_BI(*iter);
+         if (iblk->llb()->unresolvedCF()) {
+            unresolvedCF_.insert(iblk);
          }
       }
    }
@@ -343,10 +333,10 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
    if (abruptEnds_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
-      blocks();
-      for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
-         if ((*iter)->llb()->abruptEnd()) {
-            abruptEnds_.insert(*iter);
+     for (blockset::iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
+       block_instance* iblk = SCAST_BI(*iter);
+         if (iblk->llb()->abruptEnd()) {
+            abruptEnds_.insert(iblk);
          }
       }
    }
@@ -397,12 +387,12 @@ void func_instance::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (BlockSet::const_iterator
-             cb = blocks_.begin();
-         cb != blocks_.end();
+    for (blockset::const_iterator
+         cb = all_blocks_.begin();
+         cb != all_blocks_.end();
          cb++)
     {
-        block_instance* orig = (*cb);
+        block_instance* orig = SCAST_BI(*cb);
         fprintf(stderr, "  Block start 0x%lx, end 0x%lx\n", orig->start(),
                 orig->end());
     }
@@ -453,13 +443,12 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
-    blocks();
-
-    BlockSet::iterator bIter;
-    for (bIter = blocks_.begin();
-         bIter != blocks_.end();
+    blockset::iterator bIter;
+    for (bIter = getAllBlocks().begin();
+         bIter != getAllBlocks().end();
          bIter++) {
-       if (getSharingFuncs(*bIter,funcs))
+      block_instance* iblk = SCAST_BI(*bIter);
+       if (getSharingFuncs(iblk,funcs))
           ret = true;
     }
 
@@ -493,12 +482,12 @@ bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
     bool ret = false;
 
     // Create the block list.
-    blocks();
-    BlockSet::iterator bIter;
-    for (bIter = blocks_.begin();
-         bIter != blocks_.end();
+    blockset::iterator bIter;
+    for (bIter = getAllBlocks().begin();
+         bIter != getAllBlocks().end();
          bIter++) {
-       if (getOverlappingFuncs(*bIter,funcs))
+      block_instance* iblk = SCAST_BI(*bIter);
+       if (getOverlappingFuncs(iblk,funcs))
           ret = true;
     }
 
@@ -536,12 +525,12 @@ bool func_instance::consistency() const {
    //    correct block.
 
    const ParseAPI::Function::blocklist &img_blocks = ifunc()->blocks();
-   assert(img_blocks.size() == blocks_.size());
+   assert(img_blocks.size() == all_blocks_.size());
    for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
-      assert(blocks_.find(b_inst) != blocks_.end());
+      assert(all_blocks_.find(b_inst) != all_blocks_.end());
    }
 
    return true;
@@ -656,8 +645,8 @@ bool func_instance::callWrappedFunction(func_instance *target) {
 }
 
 bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
-   for (BlockSet::const_iterator iter = blocks().begin();
-        iter != blocks().end(); ++iter) {
+   for (blockset::const_iterator iter = getAllBlocks().begin();
+        iter != getAllBlocks().end(); ++iter) {
       obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
    }
    return true;

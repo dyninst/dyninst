@@ -951,22 +951,25 @@ bool BinaryEdit::replaceTrapHandler() {
     for (unsigned i = 0; i < allFuncs.size(); i++) {
         func_instance *func = allFuncs[i];        
         assert(func);
-        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
-             iter != func->blocks().end(); ++iter) {
-           if ((*iter)->containsCall()) {
-              std::string calleeName = (*iter)->calleeName();
+	//        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
+	//   iter != func->blocks().end(); ++iter) {
+        for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+             iter != func->getAllBlocks().end(); ++iter) {
+	  block_instance* iblk = SCAST_BI(*iter);
+           if (iblk->containsCall()) {
+              std::string calleeName = iblk->calleeName();
               
               if ((calleeName == "sigaction") ||
                   (calleeName == "_sigaction") ||
                   (calleeName == "__sigaction")) {
-                 modifyCall(*iter, dyn_sigaction, func);
+                 modifyCall(iblk, dyn_sigaction, func);
                  replaced = true;
               }
               else if ((calleeName == "signal") ||
                        (calleeName == "_signal") ||
                        (calleeName == "__signal"))
               {
-                 modifyCall(*iter, dyn_sigaction, func);
+                 modifyCall(iblk, dyn_sigaction, func);
                  replaced = true;
               }
            }

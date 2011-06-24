@@ -79,7 +79,8 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
          continue;
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
-      if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
+      //if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
+      if (!addRelocBlocks(func->getAllBlocks().begin(), func->getAllBlocks().end(), func)) {
          return false;
       }
     
@@ -94,7 +95,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
 template <typename RelocBlockIter>
 bool CodeMover::addRelocBlocks(RelocBlockIter begin, RelocBlockIter end, func_instance *f) {
    for (; begin != end; ++begin) {
-      addRelocBlock(*begin, f);
+     addRelocBlock(SCAST_BI(*begin), f);
    }
    return true;
 }

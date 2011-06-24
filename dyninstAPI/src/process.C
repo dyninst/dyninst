@@ -4100,15 +4100,24 @@ static void otherFuncBlocks(func_instance *func,
                             const set<block_instance*> &blks, 
                             set<block_instance*> &otherBlks)
 {
+  /*
     const func_instance::BlockSet &allBlocks = 
         func->blocks();
     for (func_instance::BlockSet::const_iterator bit =
          allBlocks.begin();
          bit != allBlocks.end(); 
          bit++) 
+  */
+  const PatchFunction::blockset &allBlocks = 
+        func->getAllBlocks();
+    for (PatchFunction::blockset::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
     {
-        if (blks.end() == blks.find((*bit))) {
-            otherBlks.insert((*bit));
+      block_instance* iblk = SCAST_BI(*bit);
+        if (blks.end() == blks.find(iblk)) {
+            otherBlks.insert(iblk);
         }
     }
 }

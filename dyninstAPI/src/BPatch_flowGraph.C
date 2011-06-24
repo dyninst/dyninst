@@ -531,19 +531,21 @@ bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
     // create blocks from block_instances
-    const func_instance::BlockSet&
-        iblocks = ll_func()->blocks();
-    func_instance::BlockSet::const_iterator ibIter;
+    const PatchFunction::blockset&
+        iblocks = ll_func()->getAllBlocks();
+    PatchFunction::blockset::const_iterator ibIter;
     //for( unsigned int i = 0; i < iblocks.size(); i++ )
     for (ibIter = iblocks.begin(); 
          ibIter != iblocks.end(); 
          ibIter++) 
     {
-       BPatch_basicBlock *newblock = findBlock(*ibIter);
+      block_instance* iblk = SCAST_BI(*ibIter);
+       BPatch_basicBlock *newblock = findBlock(iblk);
        allBlocks.insert(newblock);
 
        // Insert source/target edges
-       const block_instance::edgelist &srcs = (*ibIter)->sources();
+       const block_instance::edgelist &srcs = iblk->sources();
+       //const block_instance::edgelist &srcs = (*ibIter)->sources();
        for (block_instance::edgelist::const_iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
@@ -551,7 +553,8 @@ bool BPatch_flowGraph::createBasicBlocks()
           newblock->incomingEdges.insert(e);
        }
        // Insert source/target edges
-       const block_instance::edgelist &trgs = (*ibIter)->targets();
+       //const block_instance::edgelist &trgs = (*ibIter)->targets();
+       const block_instance::edgelist &trgs = iblk->targets();
        for (block_instance::edgelist::const_iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
           // Skip interprocedural edges
           if ((*iter)->interproc()) continue;
@@ -903,11 +906,12 @@ void BPatch_flowGraph::createLoopHierarchy()
 
    dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-   const func_instance::BlockSet &blocks = ll_func()->blocks();
-   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      func_instance *callee = (*iter)->callee();
+   const PatchFunction::blockset &blocks = ll_func()->getAllBlocks();
+   for (PatchFunction::blockset::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+     block_instance* iblk = SCAST_BI(*iter);
+      func_instance *callee = iblk->callee();
       if (callee) {
-         insertCalleeIntoLoopHierarchy(callee, (*iter)->last());
+         insertCalleeIntoLoopHierarchy(callee, iblk->last());
       }
    }
 }

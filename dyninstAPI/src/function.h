@@ -127,7 +127,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   ////////////////////////////////////////////////
   typedef AddrOrderedBlockSet BlockSet;
 
-  const BlockSet &blocks();
+  // const BlockSet &blocks();
 
   block_instance *entryBlock();
   const BlockSet &callBlocks();
@@ -294,7 +294,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   ///////////////////// CFG and function body
 
-  BlockSet blocks_;
+  // BlockSet blocks_;
   BlockSet callBlocks_;
   BlockSet exitBlocks_;
   block_instance *entry_;

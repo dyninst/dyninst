@@ -64,7 +64,8 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   int id = UnallocatedStart;
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
-     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
+     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
+     if (!ret->addBlocks(func->getAllBlocks().begin(), func->getAllBlocks().end(), func, id++)) {
         return Ptr();
      }
   }
@@ -139,7 +140,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   // can do our thang.
   for (; begin != end; ++begin) {
     bool useBlock = true;
-    block_instance *bbl = (*begin);
+    block_instance *bbl = SCAST_BI(*begin);
 
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
@@ -196,7 +197,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
            (bbl->end() - bbl->start()) < 5 &&
            f &&
            *begin == f->entryBlock() &&
-           f->blocks().size() == 1) {
+           f->getAllBlocks().size() == 1) {
           //cerr << "Overriding small function of size " << bbl->end() - bbl->start() << " to 5 bytes" << endl;
           validRanges_.insert(bbl->start(), bbl->start() + 5, funcID);
        }
