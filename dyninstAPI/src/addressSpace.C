@@ -118,19 +118,23 @@ void AddressSpace::copyAddressSpace(process *parent) {
 
     assert(proc());
 
+    mapped_object *par_aout = parent->getAOut();
+    mapped_object *child_aout = new mapped_object(par_aout, proc());
+    initPatchAPI(child_aout);
+    addMappedObject(child_aout);
+
     // Mapped objects first
     for (unsigned i = 0; i < parent->mapped_objects.size(); i++) {
         mapped_object *par_obj = parent->mapped_objects[i];
-        mapped_object *child_obj = new mapped_object(par_obj, proc());
-        assert(child_obj);
-        
-        mapped_objects.push_back(child_obj);
-        
+        if (parent->getAOut() != par_obj) {
+          mapped_object *child_obj = new mapped_object(par_obj, proc());
+          assert(child_obj);
+          addMappedObject(child_obj);
+        }
         // This clones funcs, which then clone instPoints, which then 
         // clone baseTramps, which then clones miniTramps.
     }
 
-    initPatchAPI();
 
     // Clone the tramp guard base
     trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
@@ -215,7 +219,6 @@ void AddressSpace::deleteAddressSpace() {
 
     heapInitialized_ = false;
     heap_.clear();
-
     for (unsigned i = 0; i < mapped_objects.size(); i++) 
         delete mapped_objects[i];
 
@@ -1516,7 +1519,13 @@ using namespace Relocation;
 bool AddressSpace::relocate() {
    if (delayRelocation()) return true;
 
+
   relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
+  if (!mapped_objects.size()) {
+    relocation_cerr << "WARNING: No mapped_object in this addressSpace!\n";
+    return false;
+  }
+
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
@@ -2067,21 +2076,12 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 }
 
 /* PatchAPI Stuffs */
-void AddressSpace::initPatchAPI() {
-   DynAddrSpacePtr addr_space = DynAddrSpace::create(getAOut());
+void AddressSpace::initPatchAPI(mapped_object* aout) {
+   DynAddrSpacePtr addr_space = DynAddrSpace::create(aout);
    mgr_ = PatchMgr::create(addr_space,
                            DynPointMakerPtr(new DynPointMaker),
                            DynInstrumenterPtr(new DynInstrumenter));
    patcher_ = Patcher::create(mgr_);
-
-   // load in shared libraries
-   const pdvector<mapped_object*>& mobjs = mappedObjects();
-   for (pdvector<mapped_object*>::const_iterator i = mobjs.begin();
-        i != mobjs.end(); i++) {
-     if (*i != getAOut()) {
-       addr_space->loadLibrary(*i);
-     }
-   }
 
    assert(mgr());
    mgr()->instrumenter()->callModMap().clear();
@@ -2091,4 +2091,9 @@ void AddressSpace::initPatchAPI() {
 
 bool AddressSpace::patch(AddressSpace* as) {
   return as->patcher()->commit();
+}
+
+void AddressSpace::addMappedObject(mapped_object* obj) {
+  mapped_objects.push_back(obj);
+  DYN_CAST(DynAddrSpace, mgr_->as())->loadLibrary(obj);
 }

@@ -245,17 +245,15 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
 }
 
 Architecture BinaryEdit::getArch() const {
-    assert(mapped_objects.size());
-   
+  assert(mapped_objects.size());
     // XXX presumably all of the objects in the BinaryEdit collection
     //     must be the same architecture.
-    return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+  return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
 unsigned BinaryEdit::getAddressWidth() const {
-    assert(mapped_objects.size());
-    
-    return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+  assert(mapped_objects.size());
+  return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
 }
 Address BinaryEdit::offset() const {
     fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
@@ -302,7 +300,7 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &member) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -335,7 +333,14 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
         return NULL;
     }
 
-    newBinaryEdit->mapped_objects.push_back(newBinaryEdit->mobj);
+    /* PatchAPI stuffs */
+    if (!mgr) {
+      newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
+    } else {
+      newBinaryEdit->setMgr(mgr);
+    }
+    newBinaryEdit->addMappedObject(newBinaryEdit->mobj);
+    /* End of PatchAPI stuffs */
 
     // We now need to access the start of the new section we're creating.
 
@@ -343,7 +348,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
     Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
-  
     Region *newSec = NULL;
     linkedFile->findRegion(newSec, ".dyninstInst");
     if (newSec) {
@@ -351,7 +355,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", file.c_str());
          return NULL;
     }
-       
     newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
@@ -393,10 +396,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
      * if library name resolution has been implemented on a platform.
      */
     std::map<std::string, BinaryEdit *> retMap;
-
-    BinaryEdit *temp = BinaryEdit::openFile(filename);
-
-    temp->setMgr(mgr());
+    assert(mgr());
+    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr());
 
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
         retMap.insert(std::make_pair(filename, temp));
@@ -470,7 +471,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
 
       inst_printf(" writing %s ... \n", newFileName.c_str());
-
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
@@ -574,6 +574,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
+
       
       if (mobj == getAOut()) {
          // Add dynamic symbol relocations
@@ -946,7 +947,8 @@ bool BinaryEdit::replaceTrapHandler() {
 
     pdvector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
-
+    
+    bool replaced = false;
     for (unsigned nidx = 0; nidx < sigaction_names.size(); nidx++) 
     {
         // find replacement function
@@ -960,21 +962,22 @@ bool BinaryEdit::replaceTrapHandler() {
             func_instance *func = allFuncs[i];        
             assert(func);
 
-            for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
-                 iter != func->blocks().end(); ++iter) 
-            {
-                if ((*iter)->containsCall()) {
-
+            for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+                 iter != func->getAllBlocks().end(); ++iter) {
+                block_instance* iblk = SCAST_BI(*iter);
+                if (iblk->containsCall()) {
+                    
                     // the function name could have up to two underscores
                     // prepended (e.g., sigaction, _sigaction, __sigaction),
                     // try all three possibilities for each name
-                    std::string calleeName = (*iter)->calleeName();
+                    std::string calleeName = iblk->calleeName();
                     std::string sigactName = sigaction_names[nidx];
                     for (int num_s=0; 
                          num_s <= 2; 
                          num_s++, sigactName.append(string("_"),0,1)) {
                         if (calleeName == sigactName) {
-                            modifyCall(*iter, repfunc, func);
+                            modifyCall(iblk, repfunc, func);
+                            replaced = true;
                             break;
                         }
                     }
@@ -982,7 +985,8 @@ bool BinaryEdit::replaceTrapHandler() {
             } // for each func in the rewritten binary
         } // for each sigaction-equivalent function to replace
     }
-    return true;
+
+    if (!replaced) return true;
 
     /* PatchAPI stuffs */
     return AddressSpace::patch(this);

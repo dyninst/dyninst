@@ -145,16 +145,18 @@ void RelocBlock::getSuccessors(RelocGraph *cfg) {
    // Edges to a block that does not correspond to a RelocBlock (BlockEdges)
    // Edges to a raw address, caused by representing inter-CodeObject edges
    //   -- this last is a Defensive mode special.
-   const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
-      processEdge(OutEdge, *iter, cfg);
+  /*   const block_instance::edgelist &targets = block_->targets();
+       for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   const PatchBlock::edgelist &targets = block_->getTargets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+     processEdge(OutEdge, SCAST_EI(*iter), cfg);
    }
 }
 
 void RelocBlock::getPredecessors(RelocGraph *cfg) {
-   const block_instance::edgelist &edges = block_->sources();
-   for (block_instance::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      processEdge(InEdge, *iter, cfg);
+   const PatchBlock::edgelist &edges = block_->getSources();
+   for (PatchBlock::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+     processEdge(InEdge, SCAST_EI(*iter), cfg);
    }
 
 }
@@ -316,14 +318,16 @@ void RelocBlock::createCFWidget() {
 #endif
 
 void RelocBlock::preserveBlockGap() {
-   const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+  /*   const block_instance::edgelist &targets = block_->targets();
+       for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   const PatchBlock::edgelist &targets = block_->getTargets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
           (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
          // Okay, I admit - I want to see this code trigger in the
          // fallthrough or cond_not_taken cases...
-         block_instance *target = (*iter)->trg();
+         block_instance *target = SCAST_EI(*iter)->trg();
          if (target) {
             cfWidget()->setGap(target->start() - block_->end());
             return;

@@ -1735,9 +1735,12 @@ bool process::initMT()
    {
       pdvector<AstNodePtr> args;
       AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
-      const func_instance::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
-      for (func_instance::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
-         instPoint::funcExit(thread_dest_funcs[i], *iter)->push_front(ast, false);
+      /*      const func_instance::BlockSet &exits = thread_dest_funcs[i]->exitBlocks();
+	      for (func_instance::BlockSet::iterator iter = exits.begin(); iter != exits.end(); ++iter) {*/
+      const PatchFunction::blockset &exits = thread_dest_funcs[i]->getExitBlocks();
+      for (PatchFunction::blockset::iterator iter = exits.begin(); iter != exits.end(); ++iter) {
+	block_instance* iblk = SCAST_BI(*iter);
+         instPoint::funcExit(thread_dest_funcs[i], iblk)->push_front(ast, false);
       }
    }
      

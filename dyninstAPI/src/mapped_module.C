@@ -344,9 +344,12 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
     int pageSize = proc()->proc()->getMemoryPageSize();
     const pdvector<func_instance *> funcs = getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-        const func_instance::BlockSet&
+      /*        const func_instance::BlockSet&
             blocks = funcs[fidx]->blocks();
-        func_instance::BlockSet::const_iterator bIter;
+	    func_instance::BlockSet::const_iterator bIter;*/
+      const PatchFunction::blockset&
+            blocks = funcs[fidx]->getAllBlocks();
+      PatchFunction::blockset::const_iterator bIter;
         for (bIter = blocks.begin(); 
             bIter != blocks.end(); 
             bIter++) 
@@ -361,7 +364,6 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
             }
         }
     }
-    
 }
 
 

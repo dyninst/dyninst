@@ -126,11 +126,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   ////////////////////////////////////////////////
   typedef AddrOrderedBlockSet BlockSet;
 
-  const BlockSet &blocks();
-
   block_instance *entryBlock();
-  const BlockSet &callBlocks();
-  const BlockSet &exitBlocks();
 
   // Kevin's defensive mode shtuff
   // Blocks that have a sink target, essentially.
@@ -294,10 +290,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   mapped_module *mod_; // This is really a dodge; translate a list of
   // parse_funcs to int_funcs
 
-  BlockSet blocks_;
-  BlockSet callBlocks_;
-  BlockSet exitBlocks_;
-
+  ///////////////////// CFG and function body
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
@@ -331,11 +324,15 @@ void func_instance::getCallerBlocks(OutputIterator result)
 {
   if(!ifunc() || !ifunc()->entryBlock())
     return;
-
+  /*
   const block_instance::edgelist &ins = entryBlock()->sources();
   for (block_instance::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) {
-    *result = (*iter)->src();
+  */
+  const PatchBlock::edgelist &ins = entryBlock()->getSources();
+  for (PatchBlock::edgelist::const_iterator iter = ins.begin();
+       iter != ins.end(); ++iter) {
+    *result = SCAST_EI(*iter)->src();
     ++result;
   }
 }

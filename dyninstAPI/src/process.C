@@ -1414,8 +1414,9 @@ bool process::setAOut(fileDescriptor &desc)
        startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
     }
-    
-    mapped_objects.push_back(aout);
+
+    initPatchAPI(aout);
+    addMappedObject(aout);
 
    startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
     findSignalHandler(aout);
@@ -1768,6 +1769,7 @@ process *ll_attachProcess(const std::string &progpath, int pid, void *container_
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
+
    startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
    // Wait for the process to get to an initialized (dlopen exists)
    // state
@@ -1863,14 +1865,13 @@ bool process::loadDyninstLib() {
       }
    }
 
+
    // And get the list of all shared objects in the process. More properly,
    // get the address of dlopen.
    if (!processSharedObjects()) {
       startup_printf("Failed to get initial shared objects\n");
       return false;
    }
-
-   initPatchAPI();
 
    startup_printf("Processed initial shared objects:\n");
 
@@ -3251,7 +3252,8 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Add to codeRange tree
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
-    mapped_objects.push_back(new_obj);
+
+    addMappedObject(new_obj);
 
     findSignalHandler(new_obj);
     std::string msg;
@@ -4093,15 +4095,24 @@ static void otherFuncBlocks(func_instance *func,
                             const set<block_instance*> &blks, 
                             set<block_instance*> &otherBlks)
 {
+  /*
     const func_instance::BlockSet &allBlocks = 
         func->blocks();
     for (func_instance::BlockSet::const_iterator bit =
          allBlocks.begin();
          bit != allBlocks.end(); 
          bit++) 
+  */
+  const PatchFunction::blockset &allBlocks = 
+        func->getAllBlocks();
+    for (PatchFunction::blockset::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
     {
-        if (blks.end() == blks.find((*bit))) {
-            otherBlks.insert((*bit));
+      block_instance* iblk = SCAST_BI(*bit);
+        if (blks.end() == blks.find(iblk)) {
+            otherBlks.insert(iblk);
         }
     }
 }
@@ -4657,9 +4668,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             switch ( ( req->where & 0x7) ) {
             case FUNC_EXIT:
                 {
-                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
-                        iter != func->exitBlocks().end(); ++iter) {
-                      miniTramp *mt = instPoint::funcExit(func, *iter)->insert(req->order, ast, req->useTrampGuard);
+		  /*                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
+				       iter != func->exitBlocks().end(); ++iter) {*/
+                   for (PatchFunction::blockset::const_iterator iter = func->getExitBlocks().begin();
+                        iter != func->getExitBlocks().end(); ++iter) {
+		     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
                          minis.push_back(mt);
                       else {
@@ -4680,10 +4693,12 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 break;
             case FUNC_CALL:
                 {
-		  cerr << "BPatch::interrequest\n";
-                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
-                        iter != func->callBlocks().end(); ++iter) {
-                      miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);
+		  /*                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
+                        iter != func->callBlocks().end(); ++iter) {*/
+                   for (PatchFunction::blockset::const_iterator iter = func->getCallBlocks().begin();
+                        iter != func->getCallBlocks().end(); ++iter) {
+		     block_instance* iblk = SCAST_BI(*iter);
+                      miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
                          minis.push_back(mt);
                       else {

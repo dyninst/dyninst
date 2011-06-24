@@ -1656,14 +1656,11 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                        FILE__, __LINE__, filename.c_str());
 
         Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-
+	assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
-                /* PatchAPI stuffs */
-                temp->setMgr(mgr());
-                /* End of PatchAPI stuffs */
+	      BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
 
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
@@ -1694,11 +1691,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                            BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
+                          BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
 
-                /* PatchAPI stuffs */
-                temp->setMgr(mgr());
-                /* End of PatchAPI stuffs */
                             if (temp && temp->getAddressWidth() == getAddressWidth()) {
                                 std::string mapName = *pathIter + string(":") +
                                     (*member_it)->memberName();
@@ -1717,11 +1711,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-                    BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+		  BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
 
-                /* PatchAPI stuffs */
-                temp->setMgr(mgr());
-                /* End of PatchAPI stuffs */
 
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||

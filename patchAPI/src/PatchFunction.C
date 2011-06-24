@@ -17,7 +17,7 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::BlockSet&
+const PatchFunction::blockset&
 PatchFunction::getAllBlocks() {
   if (!all_blocks_.empty()) return all_blocks_;
   // Otherwise we need to create them
@@ -43,7 +43,7 @@ PatchFunction::getEntryBlock() {
   return object()->getBlock(ientry);
 }
 
-const PatchFunction::BlockSet&
+const PatchFunction::blockset&
 PatchFunction::getExitBlocks() {
   if (!exit_blocks_.empty()) return exit_blocks_;
 
@@ -55,7 +55,7 @@ PatchFunction::getExitBlocks() {
   return exit_blocks_;
 }
 
-const PatchFunction::BlockSet&
+const PatchFunction::blockset&
 PatchFunction::getCallBlocks() {
   // Check the list...
   if (call_blocks_.empty()) {

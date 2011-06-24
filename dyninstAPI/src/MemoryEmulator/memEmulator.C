@@ -472,10 +472,10 @@ void MemoryEmulator::removeSpringboards(func_instance * func)
 {
    malware_cerr << "untracking springboards from deadfunc " << hex << func->addr() << dec << endl;
 
-   const func_instance::BlockSet & blocks = func->blocks();
-   func_instance::BlockSet::const_iterator bit = blocks.begin();
+   const PatchFunction::blockset & blocks = func->getAllBlocks();
+   PatchFunction::blockset::const_iterator bit = blocks.begin();
    for (; bit != blocks.end(); bit++) {
-      removeSpringboards((*bit));
+      removeSpringboards(SCAST_BI(*bit));
    }
 }
 

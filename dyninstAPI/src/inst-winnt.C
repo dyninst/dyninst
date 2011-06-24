@@ -136,7 +136,7 @@ bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	if (cFunc == NULL) return false;
 
 	// 1)
-	if (cFunc->blocks().size() > 1) return false;
+	if (cFunc->getAllBlocks().size() > 1) return false;
 
 	// 2)
 	block_instance *cBlock = cFunc->entryBlock();

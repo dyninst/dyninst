@@ -1992,8 +1992,8 @@ void BPatch_process::overwriteAnalysisUpdate
         }
  
         // add blocks to deadBlockAddrs 
-        const func_instance::BlockSet& deadBs = (*fit)->blocks();
-        func_instance::BlockSet::const_iterator bIter= deadBs.begin();
+        const PatchFunction::blockset& deadBs = (*fit)->getAllBlocks();
+        PatchFunction::blockset::const_iterator bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
             deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
                                                    (*bIter)->size()));
@@ -2241,6 +2241,7 @@ void BPatch_process::printDefensiveStatsInt()
 
         // foreach function
         using namespace ParseAPI;
+        using namespace PatchAPI;
         mapped_object *obj = *oit;
         vector<func_instance*> funcs;
 		obj->getAllFunctions(funcs);
@@ -2250,13 +2251,13 @@ void BPatch_process::printDefensiveStatsInt()
         {
             //foreach block
             func_instance *func = *fit;
-            const func_instance::BlockSet & blocks = func->blocks();
+            const PatchFunction::blockset & blocks = func->getAllBlocks();
             bool sharedFunc = false;
-            for (func_instance::BlockSet::const_iterator bit = blocks.begin();
+            for (PatchFunction::blockset::const_iterator bit = blocks.begin();
                  bit != blocks.end();
                  bit++) 
             {
-                block_instance *block = *bit;
+                block_instance *block = SCAST_BI(*bit);
 
                 if (block->isShared()) {
                     sharedFunc = true;
@@ -2347,8 +2348,8 @@ void BPatch_process::printDefensiveStatsInt()
                 }
                 // non-returning calls that we identified as such at parse-time
                 // and therefore labeled as jumps instead of calls
-                if (1 == block->targets().size() &&
-                    ParseAPI::DIRECT == (*block->targets().begin())->type() &&
+                if (1 == block->getTargets().size() &&
+                    ParseAPI::DIRECT == (*block->getTargets().begin())->type() &&
                     InstructionAPI::c_CallInsn == iit->second->getCategory())
                 {
                     nonCallCalls++;
