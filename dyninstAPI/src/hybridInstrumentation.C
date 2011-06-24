@@ -301,18 +301,6 @@ bool HybridAnalysis::canUseCache(BPatch_point *pt)
         }
     }
 
-#if 0
-    if (ret && proc()->lowlevel_process()->isMemoryEmulated()) {
-        vector<Address> targs;
-        getCallAndBranchTargets(pt->block(),targs);
-        if (1 == targs.size() && 
-            pt->llpoint()->func()->obj() == 
-            proc()->lowlevel_process()->findObject(targs[0]))
-        {
-            ret = false;
-        }
-    }
-#endif
     return ret;
 }
 
@@ -676,29 +664,6 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
             hybridOW()->deleteLoop(*lIter,false);
         }
     }
-#if 0
-        assert(1 == loops.size());
-        mal_printf("Removing loop instrumentation for func "
-                  "%lx [%d]\n", func->getBaseAddr(), __LINE__);
-        std::set<HybridAnalysisOW::owLoop*>::iterator lIter= loops.begin();
-        for(; lIter != loops.end(); lIter++) {
-            //if ((*lIter)->isActive()) {
-                set<BPatchSnippetHandle*>::iterator sit = 
-                     (*lIter)->snippets.begin();
-                while (sit != (*lIter)->snippets.end()) {
-                    if ((*sit)->getFunc() == func) {
-                        //proc()->deleteSnippet(*sit);
-                        sit = (*lIter)->snippets.erase(sit);
-                    } else {
-                        sit++;
-                    }
-                }
-            //}
-            //else {
-            //    hybridOW()->deleteLoop(*lIter,false);
-            //}
-        }
-#endif
 
     // 1. Remove elements from instrumentedFuncs
     if (instrumentedFuncs->end() != instrumentedFuncs->find(func)) {
@@ -755,7 +720,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
 // Protects the code in the module
 bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet) 
 {
-	cerr << "HybridAnalysis (" << hex << this << "), instrumenting mod " << mod << dec << endl;
+	malware_cerr << "HybridAnalysis (" << hex << this << "), instrumenting mod " << mod << dec << endl;
     assert(proc() && mod);
     if (false == mod->isExploratoryModeOn()) {
         return true;

@@ -145,50 +145,6 @@ class MemEmulator : public Widget {
    bool pop(Register);
    Address getTranslatorAddr(bool wantShiftFunc);
 
-#if 0
-
-
-
-   bool generateViaModRM(const codeGen &gen, const RelocBlock *, CodeBuffer &buffer);
-   bool generateViaOverride(const codeGen &gen, const RelocBlock *, CodeBuffer &buffer);
-
-   bool initialize(codeGen &gen);
-   bool checkLiveness(codeGen &gen);   
-   bool setupFrame(bool, codeGen &gen);
-   bool computeEffectiveAddress(codeGen &gen);
-   bool teardownFrame(codeGen &gen);
-   bool trailingTeardown(codeGen &gen);
-
-   bool saveFlags(codeGen &gen);
-
-   bool restoreFlags(codeGen &gen);
-
-   bool preCallSave(codeGen &gen);
-   bool emitCallToTranslator(CodeBuffer &buffer);
-   bool postCallRestore(codeGen &gen);
-
-
-   bool pushRegIfLive(registerSlot *reg, codeGen &gen);
-   bool popRegIfSaved(registerSlot *reg, codeGen &gen);
-   Address getTranslatorAddr(bool wantShift);
-   
-   bool generateOrigAccess(codeGen &gen); 
-
-   bool stealEffectiveAddr(Register &ret, codeGen &gen);
-
-   bool usesESP();
-   bool emulateESPUse(codeGen &gen);
-
-   std::pair<bool, bool> getImplicitRegs(codeGen &gen);
-   bool emulateCommon(codeGen &gen);
-   bool emulatePush(codeGen &gen);
-   bool emulatePop(codeGen &gen);
-
-
-
-   bool generateImplicit(const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer);
-   bool generateEAXMove(int opcode, const codeGen &templ, const RelocBlock *t, CodeBuffer &buffer);
-#endif
 
    /// Members
    Register effAddr;

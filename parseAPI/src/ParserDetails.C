@@ -329,7 +329,7 @@ void Parser::ProcessUnresBranchEdge(
        frame.func->isrc()->getPtrToInstruction(ah.getAddr());
     det.isize = ah.getSize();
     det.data.unres.target = target;
-    det.type = ParseCallback::interproc_details::unres_branch;
+    det.type = ParseCallback::interproc_details::unresolved;
     det.data.unres.target = target;
 
     bool valid; Address addr;
@@ -392,7 +392,7 @@ void Parser::ProcessCallInsn(
         if (likely(isResolved))
             det.type = ParseCallback::interproc_details::call; 
         else
-            det.type = ParseCallback::interproc_details::unres_call; 
+            det.type = ParseCallback::interproc_details::unresolved; 
     }
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
@@ -586,7 +586,7 @@ void Parser::ProcessCFInsn(
                frame.func->isrc()->getPtrToInstruction(ah.getAddr());
             det.isize = ah.getSize();
             det.data.unres.target = curEdge->first;
-            det.type = ParseCallback::interproc_details::unres_branch;
+            det.type = ParseCallback::interproc_details::unresolved;
             if (-1 == (long)det.data.unres.target) {
                 det.data.unres.target = 0;
             }

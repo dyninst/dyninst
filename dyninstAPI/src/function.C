@@ -56,7 +56,6 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
-  entry_(NULL),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -94,7 +93,6 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
-  entry_(NULL),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -120,42 +118,58 @@ func_instance::~func_instance() {
       delete parallelRegions_[i];
 }
 
-// finds new entry point, sets entry block to the new entry
-block_instance * func_instance::setNewEntryPoint()
+// the original entry block is gone, we choose a new entry block from the
+// function, whichever block we can find that has no intraprocedural incoming 
+// edges
+block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
 {
     block_instance *newEntry = NULL;
+    assert(!all_blocks_.empty());
 
-    // find block with no intraprocedural entry edges
-    assert(blocks_.size());
-    BlockSet::iterator bIter;
-    for (bIter = blocks_.begin(); 
-         bIter != blocks_.end(); 
+    // choose block with no intraprocedural incoming edges
+    PatchFunction::BlockSet::iterator bIter;
+    for (bIter = all_blocks_.begin(); 
+         bIter != all_blocks_.end(); 
          bIter++) 
     {
+        block_instance *block = static_cast<block_instance*>(*bIter);
         ParseAPI::Intraproc epred;
-        Block::edgelist & ib_ins = (*bIter)->llb()->sources();
+        Block::edgelist & ib_ins = block->llb()->sources();
         Block::edgelist::iterator eit = ib_ins.begin(&epred);
         if (eit == ib_ins.end()) {
             if (NULL != newEntry) {
-                fprintf(stderr,"ERROR: multiple blocks in function %lx "
-                    "have no incoming edges: [%lx %lx) and [%lx %lx)\n",
+                fprintf(stderr,"WARNING: multiple blocks in function %lx "
+                    "with overwritten entry point have no incoming edges: "
+                    "[%lx %lx) and [%lx %lx) %s[%d]\n",
                     addr_, newEntry->llb()->start(),
                     newEntry->llb()->start() + newEntry->llb()->end(),
-                    (*bIter)->llb()->start(),
-                    (*bIter)->llb()->start() + (*bIter)->llb()->end());
+                    block->llb()->start(),
+                    block->llb()->start() + block->llb()->end(),
+                    FILE__,__LINE__);
             } else {
-                newEntry = *bIter;
+                newEntry = block;
             }
         }
     }
+    // if all blocks have incoming edges, choose the default block
     if( ! newEntry ) {
-        newEntry = *blocks_.begin();
+        newEntry = defaultBlock;
+        mal_printf("Setting new entry block for func at 0x%lx to "
+                "actively executing block [%lx %lx), as none of the function "
+                "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
+                defaultBlock->start(), defaultBlock->end(), FILE__,__LINE__);
     }
+
+    // set the new entry block
     ifunc()->setEntryBlock(newEntry->llb());
-    this->addr_ = newEntry->start();
+    addr_ = newEntry->start();
 
-    assert(!newEntry->llb()->isShared()); //KEVINTODO: unimplemented case
-
+    // debug output
+    if (newEntry->isShared()) {
+        mal_printf("New entry block chosen for func 0x%lx is shared\n",addr_);
+    }
+    mal_printf("Func has new entry block [%lx %lx)\n",addr_, 
+               newEntry->start(), newEntry->end());
     return newEntry;
 }
 
@@ -207,13 +221,55 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
 void func_instance::removeFromAll()
 {
     mal_printf("purging blocks_ of size = %d from func at %lx\n",
-               blocks_.size(), addr());
+               all_blocks_.size(), addr());
 
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
     mod()->removeFunction(this);
 
     delete(this);
+}
+
+/* Find image_basicBlocks that are missing from these datastructures and add
+ * them.  The int_block constructor does pretty much all of the work in
+ * a chain of side-effects extending all the way into the mapped_object class
+ * 
+ * We have to take into account that additional parsing may cause basic block splitting,
+ * in which case it is necessary not only to add new int-level blocks, but to update 
+ * int_block and BPatch_basicBlock objects. 
+ */
+void func_instance::addMissingBlocks()
+{
+    cerr << "addMissingBlocks for function " << hex << this << dec << endl; //KEVINTODO: testme
+
+    // Be sure that we've re-checked the blocks in the image_func as well
+    ifunc()->invalidateCache();
+
+    // clear out all block lists
+    call_blocks_.clear();
+    exit_blocks_.clear();
+    all_blocks_.clear();
+
+    // reconstruct block list
+    getAllBlocks();
+
+    // sanity check
+    assert(ifunc()->blocks().size() == all_blocks_.size());
+}
+
+/* trigger search in image_layer points vectors to be added to int_level 
+ * datastructures  
+ */ 
+#if 0
+void func_instance::addMissingPoints() // KEVINTODO: make sure we re-instate this function or add equivalent
+{
+    // the "true" parameter causes the helper functions to search for new 
+    // points in the image, bypassing cached points
+    funcEntries();
+    funcExits();
+    funcCalls();
+    funcUnresolvedControlFlow();
+    funcAbruptEnds();
 }
 
 /* Find parse_blocks that are missing from these datastructures and add
@@ -228,15 +284,39 @@ void func_instance::addMissingBlocks()
 {
    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
 
-   assert(0 && "KEVINTODO: need to clear block set, or add missing blocks, but getNewBlocks would have to be a func->block map"); 
+   assert(0 && "KEVINTODO: testme, probably missing datastructres"); 
 
    // A bit of a hack, but be sure that we've re-checked the blocks in the
    // parse_func as well.
    ifunc()->invalidateCache();
+   blocks();
 
    // Add new blocks
-   //const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
+   const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
+   // add blocks by looking up new blocks, if it promises to be more 
+   // efficient than looking through all of the llfunc's blocks
+   vector<parse_block*>::const_iterator nit = nblocks.begin();
+   for( ; nit != nblocks.end(); ++nit) {
+       if (ifunc()->contains(*nit)) {
+           addMissingBlock(*nit);
+       }
+   }
+
+   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
+       // we may have parsed into an existing function and added its blocks 
+       // to ours, or this may just be a more efficient lookup method
+       Function::BlockSet & iblks = ifunc()->blocks();
+       for (Function::BlockSet::iterator bit = iblks.begin(); 
+            bit != iblks.end(); 
+            bit++) 
+       {
+           if (!findBlock(*bit)) {
+               addMissingBlock(static_cast<image_basicBlock*>(*bit));
+           }
+       }
+   }
 }
+#endif 
 
 void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
                                       const list<block_instance*> &seedBlocks,
@@ -284,7 +364,7 @@ AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::blocks() {
   if (blocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getAllBlocks().begin();
+    for (PatchFunction::BlockSet::const_iterator i = getAllBlocks().begin();
          i != getAllBlocks().end(); i++) {
       blocks_.insert(SCAST_BI(*i));
     }
@@ -295,7 +375,7 @@ const func_instance::BlockSet &func_instance::blocks() {
 const func_instance::BlockSet &func_instance::callBlocks() {
   // Check the list...
   if (callBlocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getCallBlocks().begin();
+    for (PatchFunction::BlockSet::const_iterator i = getCallBlocks().begin();
          i != getCallBlocks().end(); i++) {
       callBlocks_.insert(SCAST_BI(*i));
     }
@@ -304,9 +384,9 @@ const func_instance::BlockSet &func_instance::callBlocks() {
 }
 
 const func_instance::BlockSet &func_instance::exitBlocks() {
-  // Check the list...
+    // Check the list...
   if (exitBlocks_.empty()) {
-    for (PatchFunction::blocklist::const_iterator i = getExitBlocks().begin();
+    for (PatchFunction::BlockSet::const_iterator i = getExitBlocks().begin();
          i != getExitBlocks().end(); i++) {
       exitBlocks_.insert(SCAST_BI(*i));
     }
@@ -315,7 +395,7 @@ const func_instance::BlockSet &func_instance::exitBlocks() {
 }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (unresolvedCF_.empty()) {
+   if (unresolvedCF_.empty() || obj()->isExploratoryModeOn()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
       blocks();
@@ -329,9 +409,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-   if (abruptEnds_.empty()) {
-      // A block has unresolved control flow if it has an indirect
-      // out-edge.
+   if (abruptEnds_.empty() || obj()->isExploratoryModeOn()) {
       blocks();
       for (BlockSet::iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
          if ((*iter)->llb()->abruptEnd()) {
@@ -343,13 +421,11 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
 }
 
 block_instance *func_instance::entryBlock() {
-  if (!entry_) {
-    entry_ = SCAST_BI(getEntryBlock());
-    if (!entry_) {
-      cerr << "ERROR: Couldn't find entry block for " << name() << endl;
+    block_instance *entry = SCAST_BI(getEntryBlock());
+    if (!entry) {
+        cerr << "ERROR: Couldn't find entry block for " << name() << endl;
     }
-  }
-  return entry_;
+    return entry;
 }
 
 unsigned func_instance::getNumDynamicCalls()
@@ -534,6 +610,10 @@ bool func_instance::consistency() const {
    }
 
    return true;
+}
+
+void func_instance::triggerModified() {
+    assert(0 && "KEVINTODO: implement this");
 }
 
 Address func_instance::get_address() const { assert(0); return 0; }

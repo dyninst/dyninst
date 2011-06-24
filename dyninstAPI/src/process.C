@@ -4110,7 +4110,7 @@ static void otherFuncBlocks(func_instance *func,
 /* Summary
  * Given a list of overwritten blocks, find blocks that are unreachable,
  * functions that have been overwritten at their entry points and can go away,
- * and new function entry for functions that are being overwritten while still
+ * and new function entries for functions that are being overwritten while still
  * executing
  *
  * variables
@@ -4123,16 +4123,17 @@ static void otherFuncBlocks(func_instance *func,
  *         at seed blocks s.
  * B(f):   the blocks pertaining to function f
  * EP(f):  the entry point of function f
- * 
+ * F(b):   functions containing block b
+ *
  * calculations
  * Elim(f): the set of blocks to eliminate from function f.
  *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
  * New(f):  new function entry candidates for f's surviving blocks.
  *          If EB(f) not in ow(f), empty set
- *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Else, all blocks b such that ( b in ex AND b in Elim(f) )
  *          Eliminate New(f) elements that have ancestors in New(f)
- * Del(f):  Blocks that can be deleted altogether
- *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
+ * Del:     A block can be deleted altogether if
+ *          forall f in F(b): B(f) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
  *          EP(f) in ow(f) AND ex(f) is empty
@@ -4144,9 +4145,7 @@ bool process::getDeadCode
   std::list<func_instance*> &deadFuncs, //output: DeadF
   std::map<func_instance*,block_instance*> &newFuncEntries) //output: newF
 {
-   assert(0 && "TODO");
-   return false;
-#if 0
+    //KEVINTODO: test
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
     pdvector<Address> pcs;
@@ -4169,15 +4168,23 @@ bool process::getDeadCode
     std::map<func_instance*,set<block_instance*> > deadMap;
     std::set<func_instance*> deadEntryFuncs;
     std::set<Address> owBlockAddrs;
+    std::map<block_instance*,vector<func_instance*> > deletableBlocks;
     for (list<block_instance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
     {
-       deadMap[(*bIter)->func()].insert(*bIter);
-       owBlockAddrs.insert((*bIter)->start());
-       if ((*bIter)->llb() == (*bIter)->func()->ifunc()->entry()) {
-          deadEntryFuncs.insert((*bIter)->func());
+       vector<func_instance*> funcs;
+       (*bIter)->getFuncs(std::inserter(funcs, funcs.end()));
+       for (vector<func_instance*>::iterator fit = funcs.begin(); 
+            fit != funcs.end(); 
+            fit++) 
+       {
+           deadMap[*fit].insert(*bIter);
+           if ((*bIter) == (*fit)->entryBlock()) {
+              deadEntryFuncs.insert(*fit);
+           }
        }
+       owBlockAddrs.insert((*bIter)->start());
     }
 
     // for each modified function, calculate ex, ElimF, NewF, DelF
@@ -4190,7 +4197,7 @@ bool process::getDeadCode
         set<block_instance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             std::set<block_instance *> candidateBlocks;
-            fit->first->findBlocksByAddr(pcs[pidx], candidateBlocks);
+            fit->first->obj()->findBlocksByAddr(pcs[pidx], candidateBlocks);
             for (std::set<block_instance *>::iterator cb_iter = candidateBlocks.begin();
                 cb_iter != candidateBlocks.end(); ++cb_iter) {
                 block_instance *exB = *cb_iter;
@@ -4237,27 +4244,45 @@ bool process::getDeadCode
         // calculate Del(f)
         seedBs.clear();
         if (deadEntryFuncs.end() == deadEntryFuncs.find(fit->first)) {
-            seedBs.push_back(fit->first->entryBlock());
+            seedBs.push_back(fit->first->entryBlock()); // add non-overwritten function entry blocks
         }
         else if (newFuncEntries.end() != newFuncEntries.find(fit->first)) {
-            seedBs.push_back(newFuncEntries[fit->first]);
+            seedBs.push_back(newFuncEntries[fit->first]); // add new function entry blocks
         }
         for (set<block_instance*>::iterator xit = execBlocks.begin();
              xit != execBlocks.end();
              xit++) 
         {
             if (elimMap[fit->first].end() != elimMap[fit->first].find(*xit)) {
-                seedBs.push_back(*xit);
+                seedBs.push_back(*xit); // add executing blocks, but only need
+                                        // to add them if they aren't reachable
+                                        // after removing overwritten blocks
             }
         }
         keepF.clear();
         fit->first->getReachableBlocks(fit->second, seedBs, keepF);
-        otherFuncBlocks(fit->first, keepF, delBlocks);
-        
+        set<block_instance*> delBlocks_f;
+        otherFuncBlocks(fit->first, keepF, delBlocks_f);
+        for (set<block_instance*>::iterator bit = delBlocks_f.begin();
+            bit != delBlocks_f.end();
+            bit++)
+        {
+            deletableBlocks[*bit].push_back(fit->first);
+        }
+    }
+
+    // can delete a block only if it's deletable in each function that it 
+    // appears in, i.e., reachable only from overwritten blocks in each func
+    for (map<block_instance*,vector<func_instance*> >::iterator bit = deletableBlocks.begin();
+         bit != deletableBlocks.end();
+         bit++) 
+    {
+        if (bit->first->containingFuncs() == bit->second.size()) {
+            delBlocks.insert(bit->first);
+        }
     }
 
     return true;
-#endif
 }
 
 
@@ -4448,7 +4473,6 @@ bool process::patchPostCallArea(instPoint *callPt)
 bool process::generateRequiredPatches(instPoint *callPoint, 
                                       AddrPairSet &patchAreas)
 {
-#if 0 //KEVINTODO: re-design the datastructures used by getAddrInfo to return patch areas
     // We need to figure out where this patch should branch to.
     // To do that, we're going to:
     // 1) Forward map the entry of the ft block to
@@ -4466,41 +4490,25 @@ bool process::generateRequiredPatches(instPoint *callPoint,
     {
         func_instance *callF = findFunction((parse_func*)*fit);
         block_instance *callB = callPoint->block();
-        instPoint *callP = callF->findInstPByAddr(callPoint->addr());
-        assert(callP && callP->insnAddr() < callB->end());
-        block_instance *ftBlk = callB->getFallthrough();
+        instPoint *callP = instPoint::postCall(callF, callB);
+        block_instance *ftBlk = callB->getFallthrough()->trg();
         if (!ftBlk) {
             // find the block at the next address, if there's no fallthrough block
-            set<block_instance*> blks;
-            callF->obj()->findBlocksByEntry(callB->end(),blks);
-             assert(!blks.empty());
-            ftBlk = *blks.begin();
-            if (blks.size() > 1) {
-                // if there's more than one block (i.e., it's shared), pick 
-                // the one that's the entry block of its function
-                for (set<block_instance*>::iterator bit = blks.begin(); 
-                     bit != blks.end(); 
-                     bit++) 
-                {
-                    if ((*bit)->start() == (*bit)->func()->getAddress()) {
-                        ftBlk = *bit;
-                        break;
-                    }
-                }
-            }
+            ftBlk = callF->obj()->findBlockByEntry(callB->end());
+            assert(ftBlk);
         }
         Relocation::CodeTracker::RelocatedElements reloc;
         CodeTrackers::reverse_iterator rit;
         for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
         {
-            if ((*rit).origToReloc(ftBlk->start(), ftBlk->func(), reloc)) {
+            if ((*rit)->origToReloc(ftBlk->start(), ftBlk, callF, reloc)) {
                 break;
             }
         }
         if (rit == relocatedCode_.rend()) {
             mal_printf("WARNING: no relocs of call-fallthrough at %lx "
                        "in func at %lx, will not patch its post-call "
-                       "padding\n", callP->addr(),callF->getAddress());
+                       "padding\n", callP->address(),callF->addr());
             continue;
         }
         
@@ -4519,9 +4527,8 @@ bool process::generateRequiredPatches(instPoint *callPoint,
         }
     }
     if (patchAreas.empty()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
+       mal_printf("no relocs to patch for call at %lx\n", callPoint->nextExecutedAddr());
     }
-#endif
     return ! patchAreas.empty();
 }
 

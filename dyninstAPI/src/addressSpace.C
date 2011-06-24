@@ -1999,28 +1999,29 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 
 
 // create stub edge set which is: all edges such that: 
-//     e->trg() in owBBIs and
-//     while e->src() in delBlocks try e->src()->sources()
+//     e->trg() in owBlocks and e->src() not in delBlocks, 
+//     in which case, choose stub from among e->src()->sources()
+// KEVINTODO: this should keep crawling farther and farther back until it hits a dead end or finds a valid stub, but only goes 2 levels
 std::map<func_instance*,vector<edgeStub> > 
-AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
-                       const std::set<block_instance*> &delBBIs,
+AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
+                       const std::set<block_instance*> &delBlocks,
                        const std::list<func_instance*> &deadFuncs)
 {
     std::map<func_instance*,vector<edgeStub> > stubs;
-    assert(0 && "TODO");
-#if 0
+    //KEVINTODO: test
 
-    std::list<edgeStub> deadStubs;
-    
-    for (list<block_instance*>::const_iterator deadIter = owBBIs.begin();
-         deadIter != owBBIs.end(); 
-         deadIter++) 
+    for (list<block_instance*>::const_iterator bit = owBlocks.begin();
+         bit != owBlocks.end(); 
+         bit++) 
     {
+        // if the overwritten block is in a dead func, we won't find a stub
         bool inDeadFunc = false;
+        set<func_instance*> bFuncs;
+        (*bit)->getFuncs(std::inserter(bFuncs,bFuncs.end()));
         for (list<func_instance*>::const_iterator dfit = deadFuncs.begin();
              dfit != deadFuncs.end(); dfit++) 
         {
-           if ((*deadIter)->func() == *dfit) {
+           if (bFuncs.end() != bFuncs.find(*dfit)) {
               inDeadFunc = true;
               break;
            }
@@ -2028,32 +2029,40 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
         if (inDeadFunc) {
             continue;
         }
-             
+
+        // search for stubs in all functions containing the overwritten block
         using namespace ParseAPI;
-        SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
-        Intraproc epred(&epred_);
-        parse_block *curImgBlock = (*deadIter)->llb();
-        ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
-        ParseAPI::Block::edgelist::iterator eit = sourceEdges.begin(&epred);
-        Address baseAddr = (*deadIter)->start() 
-            - curImgBlock->firstInsnOffset();
+        bool foundStub = false;
+        for (set<func_instance*>::iterator fit = bFuncs.begin();
+             !foundStub && fit != bFuncs.end();
+             fit++)
+        {
+            SingleContext epred_((*fit)->ifunc(),true,true);
+            Intraproc epred(&epred_);
+            parse_block *curImgBlock = (*bit)->llb();
+            ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
+            Address baseAddr = (*bit)->start() - curImgBlock->firstInsnOffset();
+            ParseAPI::Block::edgelist::iterator eit;
 
-        // find all stub blocks for this edge
-        for( ; eit != sourceEdges.end(); ++eit) {
-            parse_block *sourceBlock = 
-                static_cast<parse_block*>((*eit)->src());
-            block_instance *src = (*deadIter)->func()->findBlockByEntry(baseAddr + sourceBlock->start());
-            assert(src);
+            // find all stub blocks for this edge
+            for(eit = sourceEdges.begin(&epred); 
+                eit != sourceEdges.end(); 
+                ++eit) 
+            {
+                parse_block *sourceBlock = (parse_block*)((*eit)->src());
+                block_instance *src = (*fit)->obj()->
+                    findBlockByEntry(baseAddr + sourceBlock->start());
+                assert(src);
 
-            edgeStub st(src, 
-                    curImgBlock->start() + baseAddr, 
-                    (*eit)->type());
-            if (delBBIs.end() == delBBIs.find(src) ) {
-                stubs[src->func()].push_back(st);
-            } 
+                edgeStub st(src, 
+                            curImgBlock->start() + baseAddr, 
+                            (*eit)->type());
+                if (delBlocks.end() == delBlocks.find(src) ) {
+                    stubs[*fit].push_back(st);
+                } 
+            }
         }
     }
-#endif
     return stubs;
 }
 

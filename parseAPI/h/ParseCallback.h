@@ -71,8 +71,7 @@ class ParseCallback {
         call,
         branch_interproc, // tail calls, branches to plts
         syscall,
-        unres_call,
-        unres_branch
+        unresolved
     } type_t;
     unsigned char * ibuf;
     size_t isize;

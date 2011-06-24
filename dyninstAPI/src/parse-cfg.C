@@ -224,7 +224,9 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
-    canBeRelocated_(true)
+    canBeRelocated_(true),
+    unresolvedCF_(false),
+    abruptEnd_(false)
 { 
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();

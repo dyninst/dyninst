@@ -1323,11 +1323,8 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
  * 4. fix up mapping of split blocks with points
  * 5. Add image points, as instPoints
 */
-bool mapped_object::parseNewEdges(const std::vector<edgeStub> &/*stubs*/ )
+bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 {
-   assert(0 && "TODO");
-   return false;
-#if 0
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
@@ -1337,22 +1334,22 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &/*stubs*/ )
 
     // Do various checks and set edge types, if necessary
     for (unsigned idx=0; idx < stubs.size(); idx++) {
-       mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
-       assert(targ_obj);
+        mapped_object *targ_obj = proc()->findObject(stubs[idx].trg);
+        assert(targ_obj);
 
-       // update target region if needed
-       if (BPatch_defensiveMode == hybridMode())
-       {
+        // update target region if needed
+        if (BPatch_defensiveMode == hybridMode())
+        {
           targ_obj->updateCodeBytesIfNeeded(stubs[idx].trg);
-       }
+        }
 
-       EdgeTypeEnum edgeType = stubs[idx].type;
+        EdgeTypeEnum edgeType = stubs[idx].type;
 
-       // Determine if this stub already has been parsed
-       // Which means looking up a block at the target address
-       if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
+        // Determine if this stub already has been parsed
+        // Which means looking up a block at the target address
+        if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
           continue;
-       }
+        }
 
         // Otherwise we don't have a target block, so we need to make one.
         if (stubs[idx].type == ParseAPI::NOEDGE)
@@ -1467,7 +1464,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &/*stubs*/ )
     }
 
     return true;
-#endif
 }
 
 

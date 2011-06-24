@@ -324,16 +324,13 @@ BPatch_type *BPatch_function::getReturnTypeInt()
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
-   assert(0 && "TODO");
-   return false;
-#if 0
     // mark code bytes as needing an update
     if (BPatch_defensiveMode == func->obj()->hybridMode()) {
         func->obj()->setCodeBytesUpdated(false);
     }
 
     // set up arguments to lower level parseNewEdges and call it
-    block_instance *sblock = func->findBlockByEntry(source);
+    block_instance *sblock = func->obj()->findBlockByEntry(source);
     assert(sblock);
     vector<edgeStub> stubs;
     stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
@@ -346,7 +343,6 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     }
 
     return true;
-#endif
 }
 
 // Removes all instrumentation and relocation from the function and 
@@ -400,7 +396,7 @@ void BPatch_function::getUnresolvedControlTransfers
       // We want to instrument before the last instruction, since we can pull out
       // the target at that point. Technically, we want to instrument the sink edge;
       // but we can't do that yet. 
-      instPoint *point = instPoint::preInsn(func, *iter, (*iter)->last());
+      instPoint *point = instPoint::preCall(func, *iter);
       BPatch_procedureLocation ptType = 
          BPatch_point::convertInstPointType_t(point->type());
       if (ptType == BPatch_locInstruction) {

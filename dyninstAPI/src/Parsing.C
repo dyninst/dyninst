@@ -262,9 +262,11 @@ DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_detail
         parse_func * ifunc = static_cast<parse_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);
     }
-#else
-    f = f; // compiler warning
 #endif
+    f = f; // compiler warning
+    if (det->type == ParseCallback::interproc_details::unresolved) {
+        static_cast<parse_block*>(b)->setUnresolvedCF(true);
+    }
 }
 
 void

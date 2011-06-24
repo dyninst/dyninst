@@ -138,13 +138,14 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
                                 // parsing because things looked weird.
   void addMissingBlocks();
-  block_instance * setNewEntryPoint();
+  block_instance * setNewEntryPoint(block_instance *defaultNewEntryBlock);
   // kevin signal-handler information
   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
   Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
   void setHandlerFaultAddr(Address fa);
   void setHandlerFaultAddrAddr(Address faa, bool set);
+  void triggerModified();
 
   block_instance *getBlock(const Address addr);
 
@@ -296,7 +297,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   BlockSet blocks_;
   BlockSet callBlocks_;
   BlockSet exitBlocks_;
-  block_instance *entry_;
+
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
