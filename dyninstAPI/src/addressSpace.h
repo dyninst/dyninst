@@ -93,7 +93,6 @@ namespace Dyninst {
    namespace InstructionAPI {
       class Instruction;
    }
-   
 };
 
 // This file serves to define an "address space", a set of routines that 
@@ -535,7 +534,8 @@ class AddressSpace : public InstructionSource {
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
-    void initPatchAPI();
+    void initPatchAPI(mapped_object* aout);
+    void addMappedObject(mapped_object* obj);
     Dyninst::PatchAPI::PatcherPtr patcher() { return patcher_; }
     static bool patch(AddressSpace*);
   protected:

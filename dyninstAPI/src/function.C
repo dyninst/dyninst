@@ -749,7 +749,7 @@ instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
   assert(pts.size() > 0);
   iter = points_.exits.find(b);
   if (iter != points_.exits.end()) return iter->second;
-  assert(0);
+  assert(0 && "Should never reach here!");
   return NULL;
 }
 

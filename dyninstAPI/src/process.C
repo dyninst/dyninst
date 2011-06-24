@@ -1414,8 +1414,9 @@ bool process::setAOut(fileDescriptor &desc)
        startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
     }
-    
-    mapped_objects.push_back(aout);
+
+    initPatchAPI(aout);
+    addMappedObject(aout);
 
    startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
     findSignalHandler(aout);
@@ -1776,6 +1777,7 @@ process *ll_attachProcess(const std::string &progpath, int pid, void *container_
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
+
    startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
    // Wait for the process to get to an initialized (dlopen exists)
    // state
@@ -1871,14 +1873,13 @@ bool process::loadDyninstLib() {
       }
    }
 
+
    // And get the list of all shared objects in the process. More properly,
    // get the address of dlopen.
    if (!processSharedObjects()) {
       startup_printf("Failed to get initial shared objects\n");
       return false;
    }
-
-   initPatchAPI();
 
    startup_printf("Processed initial shared objects:\n");
 
@@ -3259,7 +3260,8 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Add to codeRange tree
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
-    mapped_objects.push_back(new_obj);
+
+    addMappedObject(new_obj);
 
     findSignalHandler(new_obj);
     std::string msg;
