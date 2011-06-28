@@ -690,7 +690,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      * The other side of the coin, if working with a binary that does have pthreads
      * support, pthreads needs to be loaded.
      */
-/*
+
     bool isMTCapable = isMultiThreadCapable();
     bool foundPthreads = false;
 
@@ -720,7 +720,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
             "behavior may occur because some pthreads routines are\n"
             "unavailable in the original binary\n");
     }
-*/
+
     /* 
      * Special Case 3:
      * The RT library has some dependencies -- Symtab always needs to know
@@ -728,8 +728,6 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      * loaded, load them.
      */
     bool loadLibc = true;
-    vector<Archive *> libs;
-    vector<Archive *>::iterator libIter;
     for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
         if( (*libIter)->name().find("libc.a") != std::string::npos ) {
             loadLibc = false;

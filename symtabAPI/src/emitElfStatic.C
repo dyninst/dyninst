@@ -656,7 +656,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -919,7 +919,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.dataSize),
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) 
 
     if( lmap.gotSize > 0 ) {
         buildGOT(lmap);
@@ -929,7 +929,8 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.gotSize),
                 GOT_NAME, Region::RT_DATA, true, lmap.gotRegionAlign);
     }
-
+#endif
+#if defined(arch_x86) || defined(arch_x86_64)  || define(arch_power)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
