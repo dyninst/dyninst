@@ -6,6 +6,187 @@
 #include <cerrno>
 #include <cstring>
 
+
+#if !defined(os_windows_test)
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+struct socket_types
+{
+	typedef sockaddr_un sockaddr_t;
+	static SOCKET socket()
+	{
+		return socket(AF_UNIX, SOCK_STREAM, 0);
+	}
+	static sockaddr_t make_addr()
+	{
+	   sockaddr_t addr;
+	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
+	   addr.sun_family = AF_UNIX;
+	   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
+	   return addr;
+	}
+	static bool recv(unsigned char *msg, unsigned msg_size, int sfd)
+	{
+	   int result;
+	   for (;;) {
+		  int nfds = sfd > notification_fd ? sfd : notification_fd;
+		  nfds++;
+		  fd_set readset; FD_ZERO(&readset);
+		  fd_set writeset; FD_ZERO(&writeset);
+		  fd_set exceptset; FD_ZERO(&exceptset);
+		  FD_SET(sfd, &readset);
+		  FD_SET(notification_fd, &readset);
+		  struct timeval timeout;
+		  timeout.tv_sec = 15;
+		  timeout.tv_usec = 0;
+		  do {
+			 result = select(nfds, &readset, &writeset, &exceptset, &timeout);
+		  } while (result == -1 && errno == EINTR);
+	      
+		  if (result == 0) {
+			 logerror("Timeout while waiting for communication\n");
+			 return false;
+		  }
+		  if (result == -1) {
+			 char error_str[1024];
+			 snprintf(error_str, 1024, "Error calling select: %s\n", strerror(errno));
+			 logerror(error_str);
+			 return false;
+		  }
+	      
+		  if (FD_ISSET(notification_fd, &readset)) {
+			 bool result = Process::handleEvents(true);
+			 if (!result) {
+				logerror("Failed to handle process events\n");
+				return false;
+			 }
+		  }
+		  if (FD_ISSET(sfd, &readset)) {
+			 break;
+		  }
+	   } 
+	                          
+	   result = recv(sfd, (char *)(msg), msg_size, MSG_WAITALL);
+	   if (result == -1) {
+		  char error_str[1024];
+		  snprintf(error_str, 1024, "Unable to recieve message: %s\n", strerror(errno));
+		  logerror(error_str);
+		  return false;
+	   }
+	   return true;
+	}
+
+	static int close(SOCKET s)
+	{
+		return ::close(s);
+	}
+	typedef ::socklen_t socklen_t;
+};
+
+#else
+
+#include <process.h>
+#include <winsock2.h>
+#if !defined(MSG_WAITALL)
+#define MSG_WAITALL 8
+#endif
+#define MSG_NOSIGNAL 0 // override unix-ism
+
+struct socket_types
+{
+	typedef sockaddr_in sockaddr_t;
+	static SOCKET socket()
+	{
+		return ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	}
+	static sockaddr_t make_addr()
+	{
+	   sockaddr_t addr;
+	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
+	   addr.sin_family = AF_INET;
+	   addr.sin_port = htons(_getpid()); // FIXME: this will break parallel test_drivers on Windows, but better than a poor PID->port mapping
+	   return addr;
+	}
+	static bool recv(unsigned char *msg, unsigned msg_size, int sfd, HANDLE winsock_event, HANDLE notification_event)
+	{
+		//logerror("begin socket_types::recv()\n");
+	   int result;
+	   SOCKET sockfd = (SOCKET)(sfd);
+	   int bytes_to_get = msg_size;
+	   for (;;) {
+			::WSAEventSelect(sockfd, winsock_event, FD_READ);
+			HANDLE wait_events[2];
+			wait_events[0] = winsock_event;
+			wait_events[1] = notification_event;
+			// 30 second timeout
+			int result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
+	      
+	if(result == WAIT_TIMEOUT) {
+		logerror("WaitForMultipleObjects timed out");
+		return false;
+	}
+	if(result == WAIT_FAILED || result == WAIT_ABANDONED) {
+		logerror("WaitForMultipleObjects failed");
+		return false;
+	}
+	int which_event = (result - WAIT_OBJECT_0);
+	switch(which_event)
+	{
+		// notification
+	case 1:
+		{
+			 bool result = Process::handleEvents(true);
+			 if (!result) {
+				logerror("Failed to handle process events\n");
+				return false;
+			 }
+		   logerror("handled events\n");
+			}
+		 break;
+	case 0:
+		{
+				//logerror("recv() looking for %d bytes\n", bytes_to_get);
+			   result = ::recv(sockfd, (char *)(msg), bytes_to_get, 0);
+			   if(result > 0)
+			   {
+				  // logerror("got %d bytes\n", result);
+					bytes_to_get -= result;
+					msg += result;
+			   }
+			   else if (result == SOCKET_ERROR) {
+				   int e = WSAGetLastError();
+				   if(e != WSAEWOULDBLOCK)
+				   {
+					  logerror("unable to receive message: %d\n", e);
+					  return false;
+				   }
+			   } else {
+			   //logerror("socket closed\n", msg);
+				break;
+			   }
+			if(bytes_to_get == 0)
+			{
+			   //logerror("received message: %s\n", msg);
+			   return true;
+			}
+		}
+		break;
+   }
+	   } 
+	                          
+	}
+	static int close(SOCKET s)
+	{
+		return closesocket(s);
+	}
+	typedef int socklen_t;
+};
+#endif
+
+
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
    return (ComponentTester *) new ProcControlComponent();
@@ -33,10 +214,17 @@ test_results_t ProcControlMutator::pre_init(ParameterDict &param)
 ProcControlComponent::ProcControlComponent() :
    sockfd(0),
    sockname(NULL),
-   notification_fd(-1)
-   
+   notification_fd(-1),
+   num_processes(0),
+   num_threads(0)
 {
    notification_fd = evNotify()->getFD();
+#if defined(os_windows_test)
+   WORD wsVer = MAKEWORD(2,2);
+   WSAData ignored;
+   ::WSAStartup(wsVer, &ignored);
+   winsock_event = ::CreateEvent(NULL, FALSE, FALSE, NULL);
+#endif
 }
 
 static ProcControlComponent *pccomp = NULL;
@@ -171,7 +359,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
    bool result = setupServerSocket();
    if (!result) {
       logerror("Failed to setup server side socket\n");
-      return FAILED;
+      return false;
    }
    
    num_processes = 0;
@@ -215,6 +403,8 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
 #elif defined(os_freebsd_test)
       support_user_threads = true;
       support_lwps = false;
+#elif defined(os_windows_test)
+	  support_user_threads = true;
 #endif
       assert(support_user_threads || support_lwps);
 
@@ -363,7 +553,8 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
             bool result = block_for_events();
             if (!result) {
                logerror("Process failed to handle events\n");
-               return FAILED;
+			   error = true;
+			   continue;
             }
             if (!p->isTerminated()) {
                hasRunningProcs = true;
@@ -398,14 +589,10 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    procs.clear();
 
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
-#if !defined(os_windows_test)
-	   if( close(i->second) == -1 ) {
+	   if( socket_types::close(i->second) == SOCKET_ERROR ) {
            logerror("Could not close connected socket\n");
            error = true;
        }
-#else
-	   assert(!"implement socket close correctly");
-#endif
    }
 
    return error ? FAILED : PASSED;
@@ -428,101 +615,59 @@ std::string ProcControlComponent::getLastErrorMsg()
 
 ProcControlComponent::~ProcControlComponent()
 {
+#if defined(os_windows_test)
+	::WSACleanup();
+	::CloseHandle(winsock_event);
+#endif
 }
 
-#if !defined(os_windows_test)
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 
-struct socket_types
+void handleError(const char* msg)
 {
-	typedef sockaddr_un sockaddr_t;
-	static int socket()
-	{
-		return socket(AF_UNIX, SOCK_STREAM, 0);
-	}
-	static sockaddr_t make_addr()
-	{
-	   sockaddr_t addr;
-	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
-	   addr.sun_family = AF_UNIX;
-	   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
-	   return addr;
-	}
-	static int close(SOCKET s)
-	{
-		return ::close(s);
-	}
-	typedef ::socklen_t socklen_t;
-};
-
+	char details[1024];
+#if defined(os_windows_test)
+	int err = WSAGetLastError();
+    ::FormatMessage(0, NULL, err, 0, details, 1024, NULL);
 #else
-
-#include <process.h>
-#include <winsock2.h>
-#if !defined(MSG_WAITALL)
-#define MSG_WAITALL 8
+	details = strerror(errno);		
 #endif
-#define MSG_NOSIGNAL 0 // override unix-ism
-
-struct socket_types
-{
-	typedef sockaddr_in sockaddr_t;
-	static int socket()
-	{
-		return ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	}
-	static sockaddr_t make_addr()
-	{
-	   sockaddr_t addr;
-	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
-	   addr.sin_family = AF_INET;
-	   addr.sin_port = _getpid();
-	   return addr;
-	}
-	static int close(SOCKET s)
-	{
-		return closesocket(s);
-	}
-	typedef int socklen_t;
-};
-#endif
+	logerror(msg, details);
+}
 
 
 #if 1 // !windows
 bool ProcControlComponent::setupServerSocket()
 {
-	int fd = socket_types::socket();
-   if (fd == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to create socket: %s\n", strerror(errno));
-      logerror(error_str);
+	SOCKET fd = socket_types::socket();
+   if (fd == INVALID_SOCKET) {
+	   handleError("Failed to create socket: %s\n");
       return false;
    }
    socket_types::sockaddr_t addr = socket_types::make_addr();
+   //logerror("Preparing to bind socket on localhost:%d\n", addr.sin_port);
    
    int result = bind(fd, (sockaddr *) &addr, sizeof(socket_types::sockaddr_t));
    if (result != 0){
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to bind socket: %s\n", strerror(errno));
-      logerror(error_str);
+      handleError("Unable to bind socket: %s\n");
+	  closesocket(fd);
+	  return false;
    }
+   //logerror("Bound socket on localhost:%d\n", addr.sin_port);
 
    result = listen(fd, 512);
    if (result == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to listen on socket: %s\n", strerror(errno));
-      logerror(error_str);
+	   handleError("Unable to listen on socket: %s\n");
+	  closesocket(fd);
       return false;
    }
 
-   sockfd = fd;   
-   snprintf(sockname, sizeof(sockname)-1, "/tmp/pct%d", getpid());
+   sockfd = fd;
+   sockname = new char[1024];
+   snprintf(sockname, 1023, "/tmp/pct%d", addr.sin_port);
    return true;
 }
 
+#if !defined(os_windows_test)
 bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
    std::vector<int> socks;
@@ -546,7 +691,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          return false;
       }
       if (result == -1) {
-         perror("Error in select");
+         handleError("Error in select");
          return false;
       }
 
@@ -598,17 +743,101 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 
    return true;
 }
+#else
+bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
+{
+   std::vector<int> socks;
+   assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
+
+   while (socks.size() < num) {
+	HANDLE notification_event = (HANDLE) notification_fd;
+
+	::WSAEventSelect(sockfd, winsock_event, FD_ACCEPT);
+	HANDLE wait_events[2];
+	wait_events[0] = winsock_event;
+	wait_events[1] = notification_event;
+	// 30 second timeout
+	int result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
+
+	if(result == WAIT_TIMEOUT) {
+		handleError("WaitForMultipleObjects timed out");
+		return false;
+	}
+	if(result == WAIT_FAILED || result == WAIT_ABANDONED) {
+		handleError("WaitForMultipleObjects failed");
+		return false;
+	}
+	int which_event = (result - WAIT_OBJECT_0);
+	switch(which_event)
+	{
+		// notification
+	case 1:
+		{
+			 bool result = Process::handleEvents(true);
+			 if (!result) {
+				handleError("Failed to handle process events\n");
+				return false;
+			 }
+			}
+		 break;
+	case 0:
+		{
+		  socket_types::sockaddr_t addr;
+         socket_types::socklen_t addr_size = sizeof(socket_types::sockaddr_t);
+         int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
+         if (newsock == -1) {
+            char error_str[1024];
+            snprintf(error_str, 1024, "Unable to accept socket: %s\n", strerror(errno));
+            logerror(error_str);
+            return false;
+         }
+         socks.push_back(newsock);
+		}
+		break;
+	}
+   }
+   for (unsigned i=0; i<num; i++) {
+      send_pid msg;
+      bool result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
+      if (!result) {
+         logerror("Could not receive handshake pid\n");
+         return false;
+      }
+      if (msg.code != SEND_PID_CODE)
+      {
+         logerror("Received bad code in handshake message\n");
+         return false;
+      }
+      std::map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(msg.pid);
+      if (j == process_pids.end()) {
+         if (attach_sock) {
+            *attach_sock = socks[i];
+            return true;
+         }
+         logerror("Recieved unexpected PID in handshake message\n");
+         return false;
+      }
+      process_socks[j->second] = socks[i];
+   }
+
+	return true;
+}
+
+#endif
 
 bool ProcControlComponent::cleanSocket()
 {
    if (!sockname)
       return false;
 
-   int result = unlink(sockname);
+   int result;
+#if !defined(os_windows_test)
+   result = unlink(sockname);
    if (result == -1) {
       logerror("Could not clean socket\n");
       return false;
    }
+#endif
    free(sockname);
    sockname = NULL;
    result = socket_types::close(sockfd);
@@ -631,53 +860,11 @@ bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, P
 
 bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
-   int result;
-   for (;;) {
-      int nfds = sfd > notification_fd ? sfd : notification_fd;
-      nfds++;
-      fd_set readset; FD_ZERO(&readset);
-      fd_set writeset; FD_ZERO(&writeset);
-      fd_set exceptset; FD_ZERO(&exceptset);
-      FD_SET(sfd, &readset);
-      FD_SET(notification_fd, &readset);
-      struct timeval timeout;
-      timeout.tv_sec = 15;
-      timeout.tv_usec = 0;
-      do {
-         result = select(nfds, &readset, &writeset, &exceptset, &timeout);
-      } while (result == -1 && errno == EINTR);
-      
-      if (result == 0) {
-         logerror("Timeout while waiting for communication\n");
-         return false;
-      }
-      if (result == -1) {
-         char error_str[1024];
-         snprintf(error_str, 1024, "Error calling select: %s\n", strerror(errno));
-         logerror(error_str);
-         return false;
-      }
-      
-      if (FD_ISSET(notification_fd, &readset)) {
-         bool result = Process::handleEvents(true);
-         if (!result) {
-            logerror("Failed to handle process events\n");
-            return false;
-         }
-      }
-      if (FD_ISSET(sfd, &readset)) {
-         break;
-      }
-   } 
-                          
-   result = recv(sfd, (char *)(msg), msg_size, MSG_WAITALL);
-   if (result == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to recieve message: %s\n", strerror(errno));
-      logerror(error_str);
-      return false;
-   }
-   return true;
+#if defined(os_windows_test)
+	return socket_types::recv(msg, msg_size, sfd, winsock_event, (HANDLE)(notification_fd));
+#else
+	return socket_types::recv(msg, msg_size, sfd);
+#endif
 }
 
 bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
@@ -694,6 +881,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
+	//logerror("mutator sending %d bytes\n", msg_size);
    int result = send(sfd, (char*)(msg), msg_size, MSG_NOSIGNAL);
    if (result == -1) {
       char error_str[1024];
@@ -717,7 +905,8 @@ bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::block_for_events()
 {
-   int nfds = notification_fd+1;
+#if !defined(os_windows_test)
+	int nfds = notification_fd+1;
    fd_set readset; FD_ZERO(&readset);
    fd_set writeset; FD_ZERO(&writeset);
    fd_set exceptset; FD_ZERO(&exceptset);
@@ -749,6 +938,23 @@ bool ProcControlComponent::block_for_events()
       return false;
    }
    return true;
+#else
+	int result = ::WaitForSingleObject((HANDLE)(notification_fd), 15000);
+	if(result == WAIT_TIMEOUT) {
+        logerror("Timeout while waiting for event\n");
+		return false;
+	}
+	if(result != WAIT_OBJECT_0) {
+		logerror("Error waiting for notify\n");
+		return false;
+	}
+	bool proc_result = Process::handleEvents(true);
+	if(!proc_result) {
+		logerror("Error waiting for events\n");
+		return false;
+	}
+	return true;
+#endif
 }
 #else
 

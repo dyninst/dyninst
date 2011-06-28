@@ -545,6 +545,7 @@ bool int_process::continueProcess() {
 bool syncRunState(int_process *p, void *r)
 {
    int_threadPool *tp = p->threadPool();
+   ProcPool()->condvar()->lock();
    syncRunStateRet_t *ret = (syncRunStateRet_t *) r;
    assert(ret);
    
@@ -561,7 +562,8 @@ bool syncRunState(int_process *p, void *r)
    }
 
    if (dyninst_debug_proccontrol) {
-      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+	   int_threadPool::iterator i = tp->begin();
+      while(i != tp->end())
       {
          int_thread *thr = *i;
          pthrd_printf("Pre-Thread %d/%d is in handler state %s with internal state %s (user is %s)\n",
@@ -569,6 +571,7 @@ bool syncRunState(int_process *p, void *r)
                       int_thread::stateStr(thr->getHandlerState()),
                       int_thread::stateStr(thr->getInternalState()),
                       int_thread::stateStr(thr->getUserState()));
+		 ++i;
       }
    }
 
@@ -672,9 +675,11 @@ bool syncRunState(int_process *p, void *r)
    }
 
    if( useHybridLWPControl() ) {
-       return p->continueProcess();
+	   ProcPool()->condvar()->unlock();
+	   return p->continueProcess();
    }
 
+   ProcPool()->condvar()->unlock();
    return true;
 }
 
@@ -881,7 +886,8 @@ bool int_process::waitAndHandleEvents(bool block)
 bool int_process::detach(bool &should_delete)
 {
    should_delete = false;
-   bool had_error = false;
+   // had_error cleared at end
+   bool had_error = true;
    bool result;
    int_threadPool *tp = threadPool();
    pthrd_printf("Detach requested on %d\n", getPid());
@@ -922,9 +928,10 @@ bool int_process::detach(bool &should_delete)
       goto done;
    }
 
+#if !defined(os_windows)
    setState(int_process::exited);
    ProcPool()->rmProcess(this);
-
+#endif
    had_error = false;
   done:
    ProcPool()->condvar()->signal();
@@ -932,7 +939,9 @@ bool int_process::detach(bool &should_delete)
 
    if (had_error) 
       return false;
+#if !defined(os_windows)
    should_delete = true;
+#endif
    return true;
 }
 
@@ -1548,17 +1557,22 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          pthrd_printf("Event %s is process synchronous, marking process %d stopped\n", 
                       etype.name().c_str(), getPid());
          int_threadPool *tp = threadPool();
-         for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+		 ProcPool()->condvar()->lock();
+		 for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
             int_thread *thrd = *i;
             int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
             if (old_state != int_thread::running &&
                 old_state != int_thread::neonatal_intermediate)
                continue;
-            if (gen)
+			if (gen) {
                thrd->setGeneratorState(int_thread::stopped);
-            else
-               thrd->setHandlerState(int_thread::stopped);
-         }
+			}
+			else {
+				thrd->setHandlerState(int_thread::stopped);
+			}
+		 }
+		 ProcPool()->condvar()->signal();
+		 ProcPool()->condvar()->unlock();
          break;
       }
       case Event::unset: {
@@ -2399,10 +2413,10 @@ bool int_thread::setAnyState(int_thread::State *from, int_thread::State to)
                 stateStr(*from), stateStr(to));
    *from = to;
 
-   if (internal_state == stopped)  assert(handler_state == stopped || handler_state == exited );
-   if (handler_state == stopped)   assert(generator_state == stopped || generator_state == exited);
-   if (generator_state == running) assert(handler_state == running);
-   if (handler_state == running)   assert(internal_state == running);
+   if (internal_state == int_thread::stopped)  assert((handler_state == int_thread::stopped) || (handler_state == int_thread::exited ));
+   if (handler_state == int_thread::stopped)  { assert((generator_state == int_thread::stopped) || (generator_state == int_thread::exited)); }
+   if (generator_state == int_thread::running) assert(handler_state == int_thread::running);
+   if (handler_state == int_thread::running)   assert(internal_state == int_thread::running);
    return true;
 }
 
@@ -2535,6 +2549,11 @@ int_thread *int_thread::createThread(int_process *proc,
                                      bool initial_thrd)
 {
    int_thread *newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
+   if(!newthr)
+   {
+	   pthrd_printf("Creating thread failed in createThreadPlat, returning NULL\n");
+	   return NULL;
+   }
    pthrd_printf("Creating %s thread %d/%d, thr_id = %lu\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
@@ -3158,7 +3177,9 @@ void int_threadPool::addThread(int_thread *thrd)
 
 void int_threadPool::rmThread(int_thread *thrd)
 {
-   assert(thrd != initial_thread);
+#if !defined(os_windows)
+	assert(thrd != initial_thread);
+#endif
    Dyninst::LWP lwp = thrd->getLWP();
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
    assert (i != thrds_by_lwp.end());
@@ -3710,14 +3731,6 @@ void mem_state::rmProc(int_process *p, bool &should_clean)
 
 int_notify *int_notify::the_notify = NULL;
 int_notify::int_notify() :
-#if !defined(os_windows)
-	pipe_in(-1),
-   pipe_out(-1),
-#else
-	pipe_in(INVALID_HANDLE_VALUE),
-   pipe_out(INVALID_HANDLE_VALUE),
-#endif
-   pipe_count(0),
    events_noted(0)
 {
    the_notify = this;
@@ -3743,7 +3756,7 @@ void int_notify::noteEvent()
 {
    assert(isHandlerThread());
    assert(events_noted == 0);
-   writeToPipe();
+   my_internals.noteEvent();
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
    set<EventNotify::notify_cb_t>::iterator i;
@@ -3765,7 +3778,7 @@ void int_notify::clearEvent()
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
    assert(events_noted == 0);
-   readFromPipe();
+   my_internals.clearEvent();
 }
 
 bool int_notify::hasEvents()
@@ -3786,11 +3799,13 @@ void int_notify::removeCB(EventNotify::notify_cb_t cb)
    cbs.erase(i);
 }
 
-int_notify::pipe_t int_notify::getPipeIn()
+int_notify::wait_object_t int_notify::getWaitable()
 {
-   if (!pipesValid())
-      createPipe();
-   return pipe_in;
+	if(!my_internals.internalsValid())
+	{
+		my_internals.createInternals();
+	}
+	return my_internals.getWaitObject();
 }
 
 Decoder::Decoder()
@@ -5536,7 +5551,7 @@ EventNotify::~EventNotify()
 
 int EventNotify::getFD()
 {
-   return (int)(llnotify->getPipeIn());
+   return (int)(llnotify->getWaitable());
 }
 
 void EventNotify::registerCB(notify_cb_t cb)
@@ -5729,8 +5744,10 @@ void MTManager::evhandler_main()
 
     
       pending_event_lock.lock();
-      if (should_exit)
+	  if (should_exit) {
+	      pending_event_lock.unlock();
          return;
+	  }
       if (!have_queued_events) {
          pending_event_lock.wait();
       }

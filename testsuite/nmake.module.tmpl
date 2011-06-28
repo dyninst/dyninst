@@ -115,7 +115,7 @@ clean:
 # -$(MKDIR) $(DEST)
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
-LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
+LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib ws2_32.lib
 LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib proccontrol.lib stackwalk.lib libcommon.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h

@@ -67,8 +67,10 @@ bool Generator::isExitingState()
    return (state == error || state == exiting);
 }
 
+
 void Generator::setState(Generator::state_t new_state)
 {
+	pthrd_printf("Setting generator state: %d\n", new_state);
    if (isExitingState())
       return;
    state = new_state;
@@ -88,10 +90,12 @@ bool Generator::getAndQueueEventInt(bool block)
       goto done;
    }
    if (!result) {
+	   pthrd_printf("Generator exiting after processWait returned false\n");
       goto done;
    }
    
    setState(system_blocked);
+   pthrd_printf("About to getEvent()\n");
    arch_event = getEvent(block);
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
@@ -114,7 +118,8 @@ bool Generator::getAndQueueEventInt(bool block)
    }
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
-      event->getProcess()->llproc()->updateSyncState(event, true);
+	  if(event)
+	      event->getProcess()->llproc()->updateSyncState(event, true);
    }
    ProcPool()->condvar()->unlock();
 
@@ -127,6 +132,7 @@ bool Generator::getAndQueueEventInt(bool block)
       }
       Generator::cb_lock->unlock(); 
    }
+   plat_continue(arch_event);
 
    result = true;
  done:
@@ -198,6 +204,14 @@ GeneratorMT::GeneratorMT(std::string name_) :
    sync = new GeneratorMTInternals();
 }
 
+void GeneratorMT::lock()
+{
+   sync->init_cond.lock();
+}
+void GeneratorMT::unlock()
+{
+   sync->init_cond.unlock();
+}
 void GeneratorMT::launch()
 {
    sync->init_cond.lock();
@@ -241,6 +255,7 @@ void GeneratorMT::start()
    else {
       setState(none);
    }
+   plat_start();
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
@@ -273,6 +288,7 @@ bool GeneratorMT::processWait(bool block)
       pp->condvar()->wait();
    }
    pp->condvar()->unlock();
+   pthrd_printf("processWait returning true\n");
    return true;
 }
 

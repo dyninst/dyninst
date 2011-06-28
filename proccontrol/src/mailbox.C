@@ -58,18 +58,18 @@ void MailboxMT::enqueue(Event::ptr ev, bool priority)
 
    message_cond.broadcast();
    pthrd_printf("Added event %s to mailbox, size = %lu + %lu = %lu\n", 
-                ev->name().c_str(), 
+	   ev ? ev->name().c_str() : "(NULL)", 
                 (unsigned long) message_queue.size(),
                 (unsigned long) priority_message_queue.size(),
                 (unsigned long) (message_queue.size() + priority_message_queue.size()));
 
-   if( ev->userEvent() ) {
+   if( ev && ev->userEvent() ) {
       numUserEvents++;
    }
      
    message_cond.unlock();
 
-   if( ev->userEvent() ) {
+   if( ev && ev->userEvent() ) {
        MTManager::eventqueue_cb_wrapper();
    }
 }
@@ -107,12 +107,12 @@ Event::ptr MailboxMT::dequeue(bool block)
    Event::ptr ret = r.front();
    r.pop();
 
-   if( ret->userEvent() ) {
+   if( ret && ret->userEvent() ) {
        numUserEvents--;
    }
 
    message_cond.unlock();
-   pthrd_printf("Returning event %s from mailbox\n", ret->name().c_str());
+   pthrd_printf("Returning event %s from mailbox\n", ret ? ret->name().c_str() : "(NULL)");
    return ret;
 }
 

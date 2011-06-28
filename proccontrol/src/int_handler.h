@@ -58,6 +58,17 @@ class HandlerPool
    static Mutex asyncPendingLock;
 };
 
+class HandlePreBootstrap : public Handler
+{
+ public:
+   HandlePreBootstrap();
+   virtual ~HandlePreBootstrap();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+
 class HandleBootstrap : public Handler
 {
  public:
@@ -281,6 +292,16 @@ class HandleCallbacks : public Handler
   bool requiresCB(Event::const_ptr ev);
 
   static void getRealEvents(EventType ev, std::vector<EventType> &out_evs);
+};
+
+class WinHandleThreadStop : public Handler
+{
+    public:
+        WinHandleThreadStop();
+        ~WinHandleThreadStop();
+		virtual int getPriority() const;
+        virtual handler_ret_t handleEvent(Event::ptr ev);
+        virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 #endif

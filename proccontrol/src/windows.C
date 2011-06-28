@@ -31,6 +31,8 @@
 
 #include <assert.h>
 #include <time.h>
+#include <numeric>
+
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
@@ -53,78 +55,10 @@
 
 #include "common/h/parseauxv.h"
 
-using namespace Dyninst;
-using namespace std;
+#include <sstream>
+#include <iostream>
 
-static GeneratorWindows *gen = NULL;
 
-Generator *Generator::getDefaultGenerator()
-{
-   if (!gen) {
-      gen = new GeneratorWindows();
-      assert(gen);
-      gen->launch();
-   }
-   return static_cast<Generator *>(gen);
-}
-
-void Generator::stopDefaultGenerator()
-{
-    if(gen) delete gen;
-}
-
-bool GeneratorWindows::initialize()
-{
-   return true;
-}
-
-bool GeneratorWindows::canFastHandle()
-{
-   return false;
-}
-
-ArchEvent *GeneratorWindows::getEvent(bool block)
-{
-	assert(!"Not implemented");
-	return NULL;
-}
-
-GeneratorWindows::GeneratorWindows() :
-   GeneratorMT(std::string("Windows Generator"))
-{
-   decoders.insert(new DecoderWindows());
-}
-
-GeneratorWindows::~GeneratorWindows()
-{
-}
-
-DecoderWindows::DecoderWindows()
-{
-}
-
-DecoderWindows::~DecoderWindows()
-{
-}
-
-unsigned DecoderWindows::getPriority() const 
-{
-   return Decoder::default_priority;
-}
-
-Dyninst::Address DecoderWindows::adjustTrapAddr(Dyninst::Address addr, Dyninst::Architecture arch)
-{
-  if (arch == Dyninst::Arch_x86 || arch == Dyninst::Arch_x86_64) {
-    return addr-1;
-  }
-  return addr;
-}
-
-bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
-{
-	assert(!"Not implemented");
-	return false;
-}
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
@@ -132,11 +66,15 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 	return NULL;
 }
 
+std::string concatArgs(const std::string& lhs, const std::string& rhs)
+{
+	return lhs + " " + rhs;
+}
+
 int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
         std::map<int,int> f)
 {
-	assert(!"Not implemented");
-	return NULL;
+	return new windows_process(0, e, a, envp, f);
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
@@ -154,13 +92,15 @@ Dyninst::Architecture windows_process::getTargetArch()
 windows_process::windows_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                              std::vector<std::string> envp,  std::map<int,int> f) :
    int_process(p, e, a, envp, f),
-   arch_process(p, e, a, envp, f)
+   arch_process(p, e, a, envp, f),
+   pendingDetach(false)
 {
 }
 
 windows_process::windows_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
-   arch_process(pid_, p)
+   arch_process(pid_, p),
+   pendingDetach(false)
 {
 }
 
@@ -168,15 +108,63 @@ windows_process::~windows_process()
 {
 }
 
+
 bool windows_process::plat_create()
 {
-	assert(!"Not implemented");
-	return false;
+	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	gen->enqueue_event(GeneratorWindows::create, this);
+	gen->launch();
+	return true;
+}
+
+HANDLE windows_process::plat_getHandle()
+{
+	return hproc;
 }
 
 bool windows_process::plat_create_int()
 {
-	assert(!"Not implemented");
+	std::string args = std::accumulate(argv.begin(), argv.end(), std::string(), &concatArgs);
+//	std::string env_str = std::accumulate(env.begin(), env.end(), std::string(), &concatArgs);
+//	if(env_str == "")
+//	{
+		LPCH mutator_env = ::GetEnvironmentStrings();
+		//env_str = std::string(mutator_env);
+//	}
+	static const int dir_size = 1024;
+	char directory[dir_size];
+	::GetCurrentDirectory(dir_size, directory);
+	STARTUPINFO startupInfo;
+	PROCESS_INFORMATION procInfo;
+	memset(&startupInfo, 0, sizeof(STARTUPINFO));
+	startupInfo.cb = sizeof(STARTUPINFO);
+	bool result = ::CreateProcess(executable.c_str(), const_cast<char*>(args.c_str()), NULL, NULL, TRUE, 
+		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS,
+		mutator_env, 
+		directory,
+		&startupInfo,
+		&procInfo);
+	if(result)
+	{
+		pid = procInfo.dwProcessId;
+		hproc = procInfo.hProcess;
+		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
+			(Dyninst::LWP)procInfo.dwThreadId, false);
+		threadPool()->setInitialThread(initialThread);
+		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
+		wThread->setHandle(procInfo.hThread);
+	}
+	return result;
+}
+
+void windows_thread::setHandle(HANDLE h)
+{
+	hthread = h;
+}
+
+bool windows_process::plat_attach_int()
+{
+	assert(!"not implemented");
 	return false;
 }
 
@@ -210,24 +198,22 @@ bool windows_process::plat_forked()
 	return false;
 }
 
+// FIXME: partial reads/writes!
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
                                  Dyninst::Address remote, size_t size)
 {
-	assert(!"Not implemented");
-	return false;
+	return ::ReadProcessMemory(hproc, (void*)remote, local, size, NULL);
 }
 
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
                                   Dyninst::Address remote, size_t size)
 {
-	assert(!"Not implemented");
-	return false;
+	return ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
 }
 
 
 bool windows_process::needIndividualThreadAttach()
 {
-	assert(!"Not implemented");
 	return false;
 }
 
@@ -250,8 +236,11 @@ int_process::ThreadControlMode int_process::getThreadControlMode()
 
 bool windows_thread::plat_cont()
 {
-	assert(!"Not implemented");
-	return false;
+	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	::ResumeThread(hthread);
+	wGen->wake(llproc()->getPid());
+	wGen->wait(llproc()->getPid());
+	return true;
 }
 
 SymbolReaderFactory *windows_process::plat_defaultSymReader()
@@ -267,12 +256,17 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
                                          Dyninst::LWP lwp_id,
                                          bool initial_thrd)
 {
-	assert(!"Not implemented");
-	return NULL;
+   if (initial_thrd) {
+	   return NULL;
+   }
+   windows_thread *wthrd = new windows_thread(proc, thr_id, lwp_id);
+   assert(wthrd);
+   return static_cast<int_thread *>(wthrd);
 }
 
 windows_thread::windows_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   int_thread(p, t, l),
+	   hthread(INVALID_HANDLE_VALUE)
 {
 }
 
@@ -282,13 +276,19 @@ windows_thread::~windows_thread()
 
 bool windows_thread::plat_stop()
 {
-	assert(!"Not implemented");
-	return false;
+	pthrd_printf("Stopping thread %d (0x%lx)\n", getLWP(),
+		hthread);
+	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
+	int result = ::DebugBreakProcess(wproc->plat_getHandle());
+	if(result == -1) {
+		int err = ::GetLastError();
+	}
+	return result != -1;
 }
 
 void windows_thread::setOptions()
 {
-	assert(!"Not implemented");
+	// Should be a no-op on Windows...
 }
 
 bool windows_process::plat_individualRegAccess()
@@ -298,8 +298,14 @@ bool windows_process::plat_individualRegAccess()
 
 bool windows_process::plat_detach()
 {
-	assert(!"Not implemented");
-	return false;
+	int result = ::DebugBreakProcess(hproc);
+	if(!result)
+	{
+		int error = ::GetLastError();
+		pthrd_printf("Error in plat_detach: %d\n", error);
+	}
+	pendingDetach = true;
+	return result;
 }
 
 bool windows_process::plat_terminate(bool &needs_sync)
@@ -317,8 +323,37 @@ Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, un
 
 bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
-	assert(!"Not implemented");
-	return false;
+	CONTEXT c;
+	if(::GetThreadContext(hthread, &c))
+	{
+		regpool.regs[x86::eax] = c.Eax;
+		regpool.regs[x86::ebx] = c.Ebx;
+		regpool.regs[x86::ecx] = c.Ecx;
+		regpool.regs[x86::edx] = c.Edx;
+		regpool.regs[x86::esp] = c.Esp;
+		regpool.regs[x86::ebp] = c.Ebp;
+		regpool.regs[x86::esi] = c.Esi;
+		regpool.regs[x86::edi] = c.Edi;
+		regpool.regs[x86::flags] = c.ContextFlags;
+		regpool.regs[x86::dr0] = c.Dr0;
+		regpool.regs[x86::dr1] = c.Dr1;
+		regpool.regs[x86::dr2] = c.Dr2;
+		regpool.regs[x86::dr3] = c.Dr3;
+		regpool.regs[x86::dr6] = c.Dr6;
+		regpool.regs[x86::dr7] = c.Dr7;
+		regpool.regs[x86::cs] = c.SegCs;
+		regpool.regs[x86::ds] = c.SegDs;
+		regpool.regs[x86::es] = c.SegEs;
+		regpool.regs[x86::fs] = c.SegFs;
+		regpool.regs[x86::gs] = c.SegGs;
+		regpool.regs[x86::ss] = c.SegSs;
+		regpool.regs[x86::eip] = c.Eip;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
@@ -329,8 +364,31 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
-	assert(!"Not implemented");
-	return false;
+	CONTEXT c;
+	c.Eax = regpool.regs[x86::eax];
+	c.Ebx = regpool.regs[x86::ebx];
+	c.Ecx = regpool.regs[x86::ecx];
+	c.Edx = regpool.regs[x86::edx];
+	c.Esp = regpool.regs[x86::esp];
+	c.Ebp = regpool.regs[x86::ebp];
+	c.Esi = regpool.regs[x86::esi];
+	c.Edi = regpool.regs[x86::edi];
+	c.ContextFlags = regpool.regs[x86::flags];
+	c.Dr0 = regpool.regs[x86::dr0];
+	c.Dr1 = regpool.regs[x86::dr1];
+	c.Dr2 = regpool.regs[x86::dr2];
+	c.Dr3 = regpool.regs[x86::dr3];
+	c.Dr6 = regpool.regs[x86::dr6];
+	c.Dr7 = regpool.regs[x86::dr7];
+	c.SegCs = regpool.regs[x86::cs];
+	c.SegDs = regpool.regs[x86::ds];
+	c.SegEs = regpool.regs[x86::es];
+	c.SegFs = regpool.regs[x86::fs];
+	c.SegGs = regpool.regs[x86::gs];
+	c.SegSs = regpool.regs[x86::ss];
+	c.Eip = regpool.regs[x86::eip];
+	return ::SetThreadContext(hthread, &c);
+
 }
 
 bool windows_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) 
@@ -347,8 +405,9 @@ bool windows_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 
 bool windows_thread::attach()
 {
-	assert(!"Not implemented");
-	return false;
+	// All threads on windows are attached automatically.
+	assert(getInternalState() == neonatal);
+	return true;
 }
 
 bool windows_thread::plat_getThreadArea(int val, Dyninst::Address &addr)
@@ -357,15 +416,8 @@ bool windows_thread::plat_getThreadArea(int val, Dyninst::Address &addr)
 	return false;
 }
 
-ArchEventWindows::ArchEventWindows(bool inter_)
-{
-}
-
-ArchEventWindows::ArchEventWindows(pid_t p, int s)
-{
-}
-
-ArchEventWindows::ArchEventWindows(int e)
+ArchEventWindows::ArchEventWindows(DEBUG_EVENT e) :
+evt(e)
 {
 }
       
@@ -397,8 +449,26 @@ WindowsHandleNewThr::~WindowsHandleNewThr()
 
 Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 {
-	assert(!"Not implemented");
-	return ret_success;
+   windows_thread *thr = NULL;
+   if (ev->getEventType().code() == EventType::Bootstrap) {
+	  int_thread* tmp = ev->getThread()->llthrd();
+	  thr = static_cast<windows_thread*>(tmp);
+   }
+   else {
+      Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
+      ProcPool()->condvar()->lock();
+	  int_thread* tmp = ProcPool()->findThread(lwp);
+	  thr = static_cast<windows_thread*>(tmp);
+      ProcPool()->condvar()->unlock();
+   }
+   assert(thr);
+                                        
+   WinEventNewThread::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventNewThread>(ev);
+   if(we)
+   {
+	   thr->setHandle(we->getHandle());
+   }
+   return ret_success;
 }
 
 int WindowsHandleNewThr::getPriority() const
@@ -406,9 +476,17 @@ int WindowsHandleNewThr::getPriority() const
    return PostPlatformPriority;
 }
 
+int WinHandleThreadStop::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+
 void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-	assert(!"Not implemented");
+   etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
+   etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
+   etypes.push_back(EventType(EventType::None, EventType::LWPCreate));
 }
 
 WindowsHandleLWPDestroy::WindowsHandleLWPDestroy()
@@ -438,67 +516,27 @@ void WindowsHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etype
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 {
-	assert(!"Not implemented");
-	return NULL;
+   static bool initialized = false;
+   static WindowsHandleNewThr *wbootstrap = NULL;
+   static WindowsHandleLWPDestroy* wthreaddestroy = NULL;
+   static WinHandleThreadStop* winthreadstop = NULL;
+   if (!wbootstrap) {
+      wbootstrap = new WindowsHandleNewThr();
+      wthreaddestroy = new WindowsHandleLWPDestroy();
+	  winthreadstop = new WinHandleThreadStop();
+      initialized = true;
+   }
+   hpool->addHandler(wbootstrap);
+   hpool->addHandler(wthreaddestroy);
+   hpool->addHandler(winthreadstop);
+   return hpool;
 }
 
 bool ProcessPool::LWPIDsAreUnique()
 {
-	assert(!"Not implemented");
-	return false;
-}
-
-void int_notify::readFromPipe()
-{
-   if (!pipesValid())
-      return;
-
-   char c;
-   BOOL result;
-   DWORD bytes_read;
-   int error;
-   do {
-	   result = ::ReadFile(pipe_in, &c, 1, &bytes_read, NULL);
-      error = errno;
-   } while (result == TRUE);
-
-   assert(result == TRUE && c == 'e');
-   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
-}
-
-bool int_notify::pipesValid()
-{
-	return (pipe_in != INVALID_HANDLE_VALUE) &&
-		(pipe_out != INVALID_HANDLE_VALUE);
-}
-
-void int_notify::writeToPipe()
-{
-   if (!pipesValid()) 
-      return;
-
-   char c = 'e';
-   DWORD bytes_written;
-   BOOL result = ::WriteFile(pipe_out, &c, 1, &bytes_written, NULL);
-   if (result == FALSE) {
-      int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
-      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
-      return;
-   }
-   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
-}
-
-bool int_notify::createPipe()
-{
-	::CreatePipe(&pipe_in, &pipe_out, NULL, 0);
-	if(!pipesValid())
-	{
-		pthrd_printf("Error creating pipes\n");
-		return false;
-	}
 	return true;
 }
+
 
 bool windows_process::plat_convertToBreakpointAddress(Dyninst::psaddr_t& addr)
 {
@@ -508,13 +546,115 @@ bool windows_process::plat_convertToBreakpointAddress(Dyninst::psaddr_t& addr)
 
 bool windows_thread::plat_needsPCSaveBeforeSingleStep()
 {
-	assert(!"Not implemented");
+	// FIXME: is this actually right?
 	return false;
 }
 
 bool windows_thread::plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result)
 {
-	assert(!"Not implemented");
+	// NOTE: this modifies the vector of addresses with locations that need emulation.
+	// true/false is an error return, not a "do we need emulation" return!
+	return true;
+}
+
+bool windows_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr,
+												   unsigned long size, void*& buffer, unsigned long& buffer_size,
+												   unsigned long& start_offset)
+{
+	assert(!"not implemented");
 	return false;
 }
 
+unsigned int windows_process::getTargetPageSize()
+{
+	assert(!"not implemented");
+	return 0;
+}
+
+bool windows_process::plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size,
+													 void*& buffer, unsigned long& buffer_size,
+													 unsigned long& start_offset)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_process::plat_collectAllocationResult(int_thread* thr, reg_response::ptr resp)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_process::refresh_libraries(std::set<int_library *> &added_libs,
+                                  std::set<int_library *> &rmd_libs,
+                                  std::set<response::ptr> &async_responses)
+{
+	// no-op on Windows; this is handled at event time
+	return true;
+}
+
+int_library* windows_process::getExecutableLib()
+{
+	assert(!"not implemented");
+	return NULL;
+}
+
+bool windows_process::initLibraryMechanism()
+{
+	// Not needed on Windows
+	return true;
+}
+
+bool windows_process::plat_isStaticBinary()
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::plat_suspend()
+{
+	int result = ::SuspendThread(hthread);
+	return result != -1;
+}
+
+bool windows_thread::plat_resume()
+{
+	int result = ::ResumeThread(hthread);
+	return result != -1;
+}
+
+bool windows_thread::haveUserThreadInfo()
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::getTID(Dyninst::THR_ID& tid)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::getStackBase(Dyninst::Address& stack_base)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::getStackSize(unsigned long& stack_size)
+{
+	assert(!"not implemented");
+	return false;
+}
+
+bool windows_thread::getTLSPtr(Dyninst::Address& tls_ptr)
+{
+	assert(!"not implemented");
+	return false;
+}

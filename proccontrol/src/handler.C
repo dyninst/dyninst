@@ -9,6 +9,8 @@
 #include "proccontrol/src/int_event.h"
 #include "dynutil/h/dyn_regs.h"
 
+#include "windows.h"
+
 using namespace Dyninst;
 
 #include <assert.h>
@@ -396,6 +398,33 @@ bool HandlerPool::hasProcAsyncPending()
    return result;
 }
 
+HandlePreBootstrap::HandlePreBootstrap() :
+Handler(std::string("Pre-bootstrap"))
+{
+}
+HandlePreBootstrap::~HandlePreBootstrap()
+{
+}
+
+void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+	etypes.push_back(EventType(EventType::None, EventType::PreBootstrap));
+}
+
+Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
+{
+	int_process* p = ev->getProcess()->llproc();
+	p->threadPool()->intCont();
+	GeneratorWindows* winGen = dynamic_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	if(winGen)
+	{
+		winGen->wake(p->getPid());
+		winGen->wait(p->getPid());
+	}
+	return ret_success;
+}
+
+
 HandleBootstrap::HandleBootstrap() :
    Handler(std::string("Bootstrap"))
 {
@@ -657,13 +686,15 @@ void HandleThreadCreate::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   Thread::const_ptr hl_thrd = ev->getThread();
+   int_thread* thrd = NULL;
+   if(hl_thrd) thrd = hl_thrd->llthrd();
    EventNewThread *threadev = static_cast<EventNewThread *>(ev.get());
 
    pthrd_printf("Handle thread create for %d/%d with new thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1), threadev->getLWP());
 
-   if (ev->getEventType().code() == EventType::UserThreadCreate)  {
+   if ((ev->getEventType().code() == EventType::UserThreadCreate))  {
       //If we support both user and LWP thread creation, and we're doing a user
       // creation, then the Thread object may already exist.  Do nothing.
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadev->getLWP());
@@ -673,8 +704,18 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       }
    }
    ProcPool()->condvar()->lock();
-   
+   if(!thrd)
+   {
+	   thrd = proc->threadPool()->initialThread();
+   }
+#if defined (os_windows)   
+   int_thread *newthr = int_thread::createThread(proc, threadev->getLWP(), threadev->getLWP(), false);
+   // On Windows, pending stops need to be inherited.
+   newthr->setPendingStop(thrd->hasPendingStop());
+   newthr->setPendingUserStop(thrd->hasPendingUserStop());
+#else
    int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
+#endif
    newthr->setGeneratorState(int_thread::stopped);
    newthr->setHandlerState(int_thread::stopped);
 
@@ -699,6 +740,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
        newthr->setInternalState(thrd->getUserState());
    }
    newthr->setUserState(thrd->getUserState());
+   ev->setThread(newthr->thread());
    
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -780,7 +822,8 @@ void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 {
-   int_thread *thrd = ev->getThread()->llthrd();
+	ProcPool()->condvar()->lock();
+	int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    pthrd_printf("Handling thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
 
@@ -792,9 +835,40 @@ Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
       thrd->setUserState(int_thread::stopped);
       thrd->setPendingUserStop(false);
    }
+   	ProcPool()->condvar()->signal();
+	ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
+
+WinHandleThreadStop::WinHandleThreadStop() :
+   Handler(std::string("Windows Specific Thread Stop"))
+{
+}
+
+WinHandleThreadStop::~WinHandleThreadStop()
+{
+}
+
+void WinHandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Stop));
+}
+
+Handler::handler_ret_t WinHandleThreadStop::handleEvent(Event::ptr ev)
+{
+	ProcPool()->condvar()->lock();
+   int_thread *thrd = ev->getThread()->llthrd();
+   int_process *proc = ev->getProcess()->llproc();
+   pthrd_printf("Handling windows-specific thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
+
+   bool ok = thrd->plat_suspend();
+   	ProcPool()->condvar()->signal();
+	ProcPool()->condvar()->unlock();
+   if(!ok) return ret_error;
+   return ret_success;
+}
+
 
 HandlePostFork::HandlePostFork() :
    Handler("Post Fork")
@@ -1376,6 +1450,11 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling library load/unload\n");
    EventLibrary *lev = static_cast<EventLibrary *>(ev.get());
+   if(!lev->libsAdded().empty() || !lev->libsRemoved().empty())
+   {
+	   // this happens on Windows, where we already did the decode when we got the event
+	   return ret_success;
+   }
 
    int_process *proc = ev->getProcess()->llproc();
    set<int_library *> ll_added, ll_rmd;
@@ -1894,6 +1973,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleForceTerminate *hforceterm = NULL;
    static HandlePrepSingleStep *hprepsinglestep = NULL;
    static iRPCHandler *hrpc = NULL;
+   static HandlePreBootstrap* hprebootstrap = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
       hsignal = new HandleSignal();
@@ -1915,6 +1995,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hrpcinternal = new HandleRPCInternal();
       hforceterm = new HandleForceTerminate();
       hprepsinglestep = new HandlePrepSingleStep();
+	  hprebootstrap = new HandlePreBootstrap();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -1938,6 +2019,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hasync);
    hpool->addHandler(hforceterm);
    hpool->addHandler(hprepsinglestep);
+   hpool->addHandler(hprebootstrap);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }

@@ -94,7 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include"
+				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -181,6 +181,18 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\src\DecoderWindows.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\event.C"
 				>
 				<FileConfiguration
@@ -194,6 +206,18 @@
 			</File>
 			<File
 				RelativePath=".\src\generator.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\GeneratorWindows.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -323,6 +347,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\DecoderWindows.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\Event.h"
 				>
 			</File>
@@ -335,7 +363,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\GeneratorWindows.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\Handler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\int_event.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\int_handler.h"
 				>
 			</File>
 			<File

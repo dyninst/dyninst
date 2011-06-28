@@ -53,6 +53,7 @@ class EventRPCInternal;
 class EventAsync;
 class EventChangePCStop;
 class EventPrepSingleStep;
+class EventPreBootstrap;
 
 class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -142,6 +143,9 @@ class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventBootstrap> getEventBootstrap();
    dyn_detail::boost::shared_ptr<const EventBootstrap> getEventBootstrap() const;
+
+   dyn_detail::boost::shared_ptr<EventPreBootstrap> getEventPreBootstrap();
+   dyn_detail::boost::shared_ptr<const EventPreBootstrap> getEventPreBootstrap() const;
 
    dyn_detail::boost::shared_ptr<EventRPC> getEventRPC();
    dyn_detail::boost::shared_ptr<const EventRPC> getEventRPC() const;
@@ -383,6 +387,18 @@ class PC_EXPORT EventBootstrap : public Event
    EventBootstrap();
    virtual ~EventBootstrap();
 };
+
+class PC_EXPORT EventPreBootstrap : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventPreBootstrap>(EventPreBootstrap *);
+   friend void dyn_detail::boost::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventPreBootstrap> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventPreBootstrap> const_ptr;
+   EventPreBootstrap();
+   virtual ~EventPreBootstrap();
+};
+
 
 class int_eventRPC;
 class PC_EXPORT EventRPC : public Event

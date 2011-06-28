@@ -37,6 +37,14 @@
 #include <errno.h>
 #include <assert.h>
 
+#if defined(os_windows_test)
+#include <winsock2.h>
+#include <windows.h>
+#if !defined(MSG_WAITALL)
+#define MSG_WAITALL 8
+#endif
+#endif
+
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
@@ -90,6 +98,9 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    int i, j;
    int is_mt = 0;
    num_threads = 0;
+
+   //fprintf(stderr, "starting MultiThreadInit\n");
+
    for (i = 0; i < gargc; i++) {
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
          is_mt = 1;
@@ -144,12 +155,14 @@ int handshakeWithServer()
    int result;
    send_pid spid;
    handshake shake;
+
+  // fprintf(stderr, "starting handshakeWithServer\n");
+
    spid.code = SEND_PID_CODE;
 #if !defined(os_windows_test)
    spid.pid = getpid();
 #else
-   assert(!"substitute for getpid here");
-   spid.pid = 0;
+   spid.pid = GetCurrentProcessId();
 #endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
@@ -183,7 +196,16 @@ int releaseThreads()
 
 int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 {
+   WORD wsVer = MAKEWORD(2,0);
    int result = 0;
+   WSADATA ignored;
+   //fprintf(stderr, "starting initProcControlTest\n");
+   result = WSAStartup(wsVer, &ignored);
+   if(result)
+   {
+	   fprintf(stderr, "error in WSAStartup: %d\n", result);
+	   return -1;
+   }
 
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
@@ -232,6 +254,10 @@ int finiProcControlTest(int expected_ret_code)
          has_error = 1;
       }
    }
+
+#if defined(os_windows_test)
+   WSACleanup();
+#endif
    return has_error ? -1 : 0;
 }
 
@@ -311,22 +337,82 @@ int recv_message(unsigned char *msg, size_t msg_size)
 }
 #else // windows
 
+
 int initMutatorConnection()
 {
-	assert(!"not implemented");
-	return -1;
+   int result;
+   char *un_socket = NULL;
+   int i, pid;
+   struct sockaddr_in server_addr;
+
+	//fprintf(stderr, "begin initMutatorConnection()\n");
+
+   for (i = 0; i < gargc; i++) {
+      if (strcmp(gargv[i], "-un_socket") == 0) {
+         un_socket = gargv[i+1];
+		 //fprintf(stderr, "found un_socket: %s\n", un_socket);
+         break;
+      }
+   }
+   if(!un_socket)
+   {
+	   fprintf(stderr, "no -un_socket argument, bailing\n");
+	   return 0;
+   }
+   sscanf(un_socket, "/tmp/pct%d", &pid);
+   
+   if (un_socket) {
+      sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+      if (sockfd == INVALID_SOCKET) {
+		  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
+         perror("Failed to create socket");
+         return -1;
+      }
+      
+      memset(&server_addr, 0, sizeof(struct sockaddr_in));
+      server_addr.sin_family = AF_INET;
+	  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	  server_addr.sin_port = (USHORT)(pid);
+
+      result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in));
+      if (result != 0) {
+		  fprintf(stderr, "connect() to 127.0.0.1:%d failed: %d\n", server_addr.sin_port, WSAGetLastError());
+         perror("Failed to connect to server");
+//		 assert(!"connect failed");
+         return -1;
+      }
+   }
+
+   return 0;
 }
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
-	assert(!"not implemented");
-	return -1;
+   int result;
+   //fprintf(stderr, "sending %d bytes...\n", msg_size);
+   result = send(sockfd, (char*)msg, msg_size, 0);
+   if (result == -1) {
+	   fprintf(stderr, "Mutatee unable to send message\n");
+      return -1;
+   }
+   return 0;
 }
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
-	assert(!"not implemented");
-	return -1;
+   int result = -1;
+   int bytes_remaining = msg_size;
+   while( (bytes_remaining > 0) && (result != 0) ) {
+       result = recv(sockfd, (char*)msg, bytes_remaining, 0);
+
+       if (result == -1) {
+		   fprintf(stderr, "recv() failed: %d\n", WSAGetLastError());
+          perror("Mutatee unable to recieve message");
+          return -1;
+       }
+	   bytes_remaining -= result;
+   }
+   return 0;
 }
 
 

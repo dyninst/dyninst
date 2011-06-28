@@ -11,11 +11,11 @@ DThread::~DThread()
 
 long DThread::self()
 {
-	return ::GetCurrentThreadId();
+	return (long)::GetCurrentThread();
 }
 bool DThread::spawn(DThread::initial_func_t func, void *param)
 {
-	thrd = ::CreateThread(NULL, 0, func, param, 0, &tid);
+	thrd = ::CreateThread(NULL, 0, func, param, 0, NULL);
 	live = (thrd != INVALID_HANDLE_VALUE);
 	return live;
 }
@@ -28,7 +28,7 @@ bool DThread::join()
 
 long DThread::id()
 {
-	return tid;
+	return (long)thrd;
 }
 
 
@@ -44,15 +44,11 @@ Mutex::~Mutex()
 
 bool Mutex::lock()
 {
-//	fprintf(stderr, "[%d]: Mutex::lock() waiting for 0x%lx\n", ::GetCurrentThreadId(), mutex);
-	bool ok = (::WaitForSingleObject(mutex, INFINITE) == WAIT_OBJECT_0);
-//	fprintf(stderr, "[%d]: Mutex::lock() holding 0x%lx\n", ::GetCurrentThreadId(), mutex);
-	return ok;
+	return (::WaitForSingleObject(mutex, INFINITE) == WAIT_OBJECT_0);
 }
 
 bool Mutex::unlock()
 {
-//	fprintf(stderr, "[%d]: Mutex::unlock() for 0x%lx\n", ::GetCurrentThreadId(), mutex);
 	return ::ReleaseMutex(mutex);
 }
 
@@ -79,42 +75,40 @@ CondVar::~CondVar()
 	}
 	::CloseHandle(wait_sema);
 	::CloseHandle(wait_done);
-	::DeleteCriticalSection(&numWaitingLock);
 }
 
 bool CondVar::unlock()
 {
-	bool ret = mutex->unlock();
-	return ret;
+	mutex->unlock();
+	return true;
 }
 bool CondVar::lock()
 {
-	bool ret = mutex->lock();
-	return ret;	
+	mutex->lock();
+	return true;
 }
 bool CondVar::signal()
 {
+	mutex->lock();
 	::EnterCriticalSection(&numWaitingLock);
 	bool waitingThreads = (numWaiting > 0);
 	::LeaveCriticalSection(&numWaitingLock);
 	if(waitingThreads)
 	{
-		long prev_count;
-		::ReleaseSemaphore(wait_sema, 1, &prev_count);
-//		fprintf(stderr, "[%d]: CondVar::signal() signaled 0x%lx, prev_count = %d\n", ::GetCurrentThreadId(), wait_sema, prev_count);
+		::ReleaseSemaphore(wait_sema, 1, 0);
 	}
+	mutex->unlock();
 	return true;
 }
 bool CondVar::broadcast()
 {
+	mutex->lock();
 	::EnterCriticalSection(&numWaitingLock);
 	bool waitingThreads = (numWaiting > 0);
 	was_broadcast = true;
 	if(waitingThreads)
 	{
-		long prev_count;
-		::ReleaseSemaphore(wait_sema, 1, &prev_count);
-//		fprintf(stderr, "[%d]: CondVar::broadcast() signaled 0x%lx, prev_count = %d\n", ::GetCurrentThreadId(), wait_sema, prev_count);
+		::ReleaseSemaphore(wait_sema, 1, 0);
 		::LeaveCriticalSection(&numWaitingLock);
 		::WaitForSingleObject(wait_done, INFINITE);
 		was_broadcast = false;
@@ -123,29 +117,28 @@ bool CondVar::broadcast()
 	{
 		::LeaveCriticalSection(&numWaitingLock);
 	}
+	mutex->unlock();
 	return true;
 }
 bool CondVar::wait()
 {
+	mutex->lock();
 	::EnterCriticalSection(&numWaitingLock);
 	numWaiting++;
 	::LeaveCriticalSection(&numWaitingLock);
-//	fprintf(stderr, "[%d]: CondVar::wait() signalling for 0x%lx, waiting for 0x%lx\n", ::GetCurrentThreadId(), mutex->mutex, wait_sema);
-	unsigned long result = ::SignalObjectAndWait(mutex->mutex, wait_sema, INFINITE, FALSE);
-	assert(result != WAIT_TIMEOUT);
+	::SignalObjectAndWait(mutex->mutex, wait_sema, INFINITE, FALSE);
 	::EnterCriticalSection(&numWaitingLock);
 	numWaiting--;
 	bool last_waiter = (was_broadcast && (numWaiting == 0));
 	::LeaveCriticalSection(&numWaitingLock);
 	if(last_waiter)
 	{
-//		fprintf(stderr, "[%d]: CondVar::wait() waiting for 0x%lx, signaling 0x%lx\n", ::GetCurrentThreadId(), mutex->mutex, wait_done);
-		result = ::SignalObjectAndWait(wait_done, mutex->mutex, INFINITE, FALSE);
-		assert(result != WAIT_TIMEOUT);
+		::SignalObjectAndWait(wait_done, mutex->mutex, INFINITE, FALSE);
 	}
 	else
 	{
 		::WaitForSingleObject(mutex->mutex, INFINITE);
 	}
+	mutex->unlock();
 	return true;
 }

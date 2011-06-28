@@ -743,6 +743,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\dthread.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dynutil\h\dyn_regs.h"
 				>
 			</File>

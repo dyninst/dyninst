@@ -252,6 +252,7 @@ class int_process
    static bool isInCallback();
 
    static int_process *in_waitHandleProc;
+   virtual bool hasPendingDetach() const { return false; }
  protected:
    State state;
    Dyninst::PID pid;
@@ -764,34 +765,75 @@ class emulated_singlestep {
 
 class int_notify {
 #if defined(os_windows)
-	typedef HANDLE pipe_t;
+	class windows_details
+	{
+		HANDLE evt;
+	public:
+		windows_details() : evt(INVALID_HANDLE_VALUE)
+		{
+		}
+		typedef HANDLE wait_object_t;
+		void noteEvent()
+		{
+			::SetEvent(evt);
+		}
+		void clearEvent()
+		{
+			::ResetEvent(evt);
+		}
+
+		void createInternals()
+		{
+			evt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+		}
+		bool internalsValid()
+		{
+			return evt != INVALID_HANDLE_VALUE;
+		}
+		wait_object_t getWaitObject()
+		{
+			return evt;
+		}
+	};
+	typedef windows_details details_t;
 #else
-	typedef int pipe_t;
+	class unix_details
+	{
+		friend class int_notify;
+		int pipe_in;
+		int pipe_out;
+		int pipe_count;
+		void writeToPipe();
+		void readFromPipe();
+	public:
+		typedef int wait_object_t;
+		void noteEvent();
+		void clearEvent();
+		void createInternals();
+		bool internalsValid();
+		wait_object_t getWaitObject();
+	};
+	typedef unix_details details_t;
 #endif
 
+	typedef details_t::wait_object_t wait_object_t;
    friend int_notify *notify();
    friend EventNotify *Dyninst::ProcControlAPI::evNotify();
  private:
    static int_notify *the_notify;
    EventNotify *up_notify;
    std::set<EventNotify::notify_cb_t> cbs;
-   pipe_t pipe_in;
-   pipe_t pipe_out;
-   int pipe_count;
    int events_noted;
-   void writeToPipe();
-   void readFromPipe();
-   bool createPipe();
-   bool pipesValid();
+   details_t my_internals;
  public:
    int_notify();
-   
    void noteEvent();
    void clearEvent();
+   
    void registerCB(EventNotify::notify_cb_t cb);
    void removeCB(EventNotify::notify_cb_t cb);
    bool hasEvents();
-   pipe_t getPipeIn();
+   details_t::wait_object_t getWaitable();
 };
 int_notify *notify();
 

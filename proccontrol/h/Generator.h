@@ -57,7 +57,7 @@ class PC_EXPORT Generator
    decoder_set_t decoders;
 
    //Misc
-   bool hasLiveProc();
+   virtual bool hasLiveProc();
    std::string name;
    Generator(std::string name_);
    bool getAndQueueEventInt(bool block);
@@ -72,6 +72,7 @@ class PC_EXPORT Generator
    virtual ArchEvent *getEvent(bool block) = 0;
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
+   virtual void plat_continue(ArchEvent* evt) {}
 };
 
 class PC_EXPORT GeneratorMT : public Generator
@@ -79,13 +80,17 @@ class PC_EXPORT GeneratorMT : public Generator
  private:
    GeneratorMTInternals *sync;
    void main();
+protected:
+	void lock();
+	void unlock();
 
  public:
    void launch(); //Launch thread
    void start(); //Startup function for new thread
+   virtual void plat_start() {}
+   virtual void plat_continue(ArchEvent* evt) {}
    GeneratorMT(std::string name_);
    virtual ~GeneratorMT();
-   
    virtual bool processWait(bool block);
    virtual bool getAndQueueEvent(bool block);
 };

@@ -82,7 +82,7 @@ public:
    init_debug_channel() 
    {
       pctrl_err_out = stderr;
-      if (getenv("DYNINST_DEBUG_PROCCONTROL")) {
+      if (strcmp(getenv("DYNINST_DEBUG_PROCCONTROL"), "1") == 0) {
          setDebug(true);
       }
    }

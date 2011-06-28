@@ -38,6 +38,8 @@
 #if !defined(os_windows)
 #define cap_pthreads
 #include <pthread.h>
+#else
+#include <common/h/ntheaders.h>
 #endif
 
 #if !defined(WINAPI)
@@ -51,6 +53,7 @@ class COMMON_EXPORT DThread {
    typedef void dthread_ret_t;
 #else
 	HANDLE thrd;
+	DWORD tid;
 	typedef LPTHREAD_START_ROUTINE initial_func_t;
 	typedef int dthread_ret_t;
 #endif
@@ -83,6 +86,13 @@ class COMMON_EXPORT Mutex {
 class COMMON_EXPORT CondVar {
 #if defined(cap_pthreads)
    pthread_cond_t cond;
+#else
+	int numWaiting;
+	CRITICAL_SECTION numWaitingLock;
+	HANDLE wait_sema;
+	HANDLE wait_done;
+	bool was_broadcast;
+	Mutex sync_cv_ops;
 #endif
    Mutex *mutex;
    bool created_mutex;

@@ -186,6 +186,7 @@ std::string EventType::name() const
       STR_CASE(ChangePCStop);
       STR_CASE(ForceTerminate);
       STR_CASE(PrepSingleStep);
+	  STR_CASE(PreBootstrap);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -371,6 +372,16 @@ EventBootstrap::EventBootstrap() :
 EventBootstrap::~EventBootstrap()
 {
 }
+
+EventPreBootstrap::EventPreBootstrap() :
+   Event(EventType(EventType::None, EventType::PreBootstrap))
+{
+}
+
+EventPreBootstrap::~EventPreBootstrap()
+{
+}
+
 
 EventNewThread::EventNewThread(EventType et) : 
    Event(et)
@@ -777,4 +788,5 @@ DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
+DEFN_EVENT_CAST(EventPreBootstrap, PreBootstrap)
 
