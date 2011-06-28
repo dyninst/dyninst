@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -50,11 +50,6 @@
 #define TEST_PTR_SIZE	4
 #define TEST_PTR	TEST_PTR_32BIT
 #endif
-
-#elif defined(ia64_unknown_linux2_4_test)
-#define	TEST_PTR_SIZE	8
-#define	TEST_PTR		TEST_PTR_64BIT
-#define TEST_VAL     TEST_VAL_64BIT
 
 #elif defined(i386_unknown_linux2_4)
 #define TEST_PTR_SIZE	4

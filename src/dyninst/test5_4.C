@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,6 +42,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_point.h"
 
 #include "test_lib.h"
 
@@ -94,6 +95,7 @@ test_results_t test5_4_Mutator::executeTest() {
       found_func = true;
       BPatch_Vector<BPatch_point *> *point4_2 = func->findPoint(BPatch_exit);
       assert(point4_2);
+      assert(!point4_2->empty());
       
       // use getComponent to access this "count". However, getComponent is
       // causing core dump at this point

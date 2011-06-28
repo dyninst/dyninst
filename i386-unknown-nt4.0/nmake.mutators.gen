@@ -6,11 +6,11 @@
 # A list of all the mutators to be compiled
 ######################################################################
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc pc_detach pc_terminate pc_terminate_stopped 
+proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc pc_detach pc_temp_detach pc_terminate pc_terminate_stopped 
 
-proccontrol_MUTATORS_SO = pc_launch.dll pc_thread_cont.dll pc_breakpoint.dll pc_library.dll pc_singlestep.dll pc_thread.dll pc_irpc.dll pc_detach.dll pc_terminate.dll pc_terminate_stopped.dll 
+proccontrol_MUTATORS_SO = pc_launch.dll pc_thread_cont.dll pc_breakpoint.dll pc_library.dll pc_singlestep.dll pc_thread.dll pc_irpc.dll pc_detach.dll pc_temp_detach.dll pc_terminate.dll pc_terminate_stopped.dll 
 
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.obj pc_thread_cont.obj pc_breakpoint.obj pc_library.obj pc_singlestep.obj pc_thread.obj pc_irpc.obj pc_detach.obj pc_terminate.obj pc_terminate_stopped.obj 
+proccontrol_OBJS_ALL_MUTATORS = pc_launch.obj pc_thread_cont.obj pc_breakpoint.obj pc_library.obj pc_singlestep.obj pc_thread.obj pc_irpc.obj pc_detach.obj pc_temp_detach.obj pc_terminate.obj pc_terminate_stopped.obj 
 
 dyninst_MUTATORS = test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_21 test1_22 snip_ref_shlib_var snip_change_shlib_var test_snip_remove test1_23 test1_24 test1_25 test1_26 test1_27 test1_28 test1_29 test1_30 test1_31 test1_32 test1_33 test1_34 test1_36 test1_37 test1_38 test_write_param test2_1 test2_2 test2_3 test2_4 test2_5 test2_7 test2_8 test2_11 test2_12 test2_13 test2_14 test3_1 test3_2 test3_3 test3_4 test3_7 test4_1 test5_1 test5_2 test5_3 test5_4 test5_5 test5_7 test5_8 test5_9 test_mem_1 test_mem_2 test_mem_3 test_mem_4 test_mem_5 test_mem_6 test_mem_7 test_mem_8 test_stack_1 test_stack_3 test_thread_6 test_thread_7 test_thread_8 test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_25 test1_29 test1_31 test1_32 test1_34 test1_36 
 
@@ -18,11 +18,11 @@ dyninst_MUTATORS_SO = test1_1.dll test1_2.dll test1_3.dll test1_4.dll test1_5.dl
 
 dyninst_OBJS_ALL_MUTATORS = test1_1.obj test1_2.obj test1_3.obj test1_4.obj test1_5.obj test1_6.obj test1_7.obj test1_8.obj test1_9.obj test1_10.obj test1_11.obj test1_12.obj test1_13.obj test1_14.obj test1_15.obj test1_16.obj test1_17.obj test1_18.obj test1_19.obj test1_20.obj test1_21.obj test1_22.obj snip_ref_shlib_var.obj snip_change_shlib_var.obj test_snip_remove.obj test1_23.obj test1_24.obj test1_25.obj test1_26.obj test1_27.obj test1_28.obj test1_29.obj test1_30.obj test1_31.obj test1_32.obj test1_33.obj test1_34.obj test1_36.obj test1_37.obj test1_38.obj test_write_param.obj test2_1.obj test2_2.obj test2_3.obj test2_4.obj test2_5.obj test2_7.obj test2_8.obj test2_11.obj test2_12.obj test2_13.obj test2_14.obj test3_1.obj test3_2.obj test3_3.obj test3_4.obj test3_7.obj test4_1.obj test5_1.obj test5_2.obj test5_3.obj test5_4.obj test5_5.obj test5_7.obj test5_8.obj test5_9.obj test_mem_1.obj test_mem_2.obj test_mem_3.obj test_mem_4.obj test_mem_5.obj test_mem_6.obj test_mem_7.obj test_mem_8.obj test_stack_1.obj test_stack_3.obj test_thread_6.obj test_thread_7.obj test_thread_8.obj test1_1.obj test1_2.obj test1_3.obj test1_4.obj test1_5.obj test1_6.obj test1_7.obj test1_8.obj test1_9.obj test1_10.obj test1_11.obj test1_12.obj test1_13.obj test1_14.obj test1_15.obj test1_16.obj test1_17.obj test1_18.obj test1_19.obj test1_20.obj test1_25.obj test1_29.obj test1_31.obj test1_32.obj test1_34.obj test1_36.obj 
 
-instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval power_decode power_cft fucompp 
+instruction_MUTATORS = test_instruction_read_write test_instruction_farcall test_instruction_bind_eval power_decode power_cft fucompp mov_size_details 
 
-instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farcall.dll test_instruction_bind_eval.dll power_decode.dll power_cft.dll fucompp.dll 
+instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farcall.dll test_instruction_bind_eval.dll power_decode.dll power_cft.dll fucompp.dll mov_size_details.dll 
 
-instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj test_instruction_bind_eval.obj power_decode.obj power_cft.obj fucompp.obj 
+instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj test_instruction_bind_eval.obj power_decode.obj power_cft.obj fucompp.obj mov_size_details.obj 
 
 symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
 
@@ -66,6 +66,12 @@ pc_singlestep.dll: pc_singlestep.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_singlestep.obj $(MUTATOR_LIBS)
 
 pc_singlestep.obj: ../src/proccontrol/pc_singlestep.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+pc_temp_detach.dll: pc_temp_detach.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_temp_detach.obj $(MUTATOR_LIBS)
+
+pc_temp_detach.obj: ../src/proccontrol/pc_temp_detach.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 pc_terminate.dll: pc_terminate.obj $(LIBTESTSUITE)
@@ -570,6 +576,12 @@ fucompp.dll: fucompp.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ fucompp.obj $(MUTATOR_LIBS)
 
 fucompp.obj: ../src/instruction/fucompp.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+mov_size_details.dll: mov_size_details.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ mov_size_details.obj $(MUTATOR_LIBS)
+
+mov_size_details.obj: ../src/instruction/mov_size_details.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 power_cft.dll: power_cft.obj $(LIBTESTSUITE)

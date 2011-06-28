@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,7 +40,6 @@
 #include "ResumeLog.h"
 #include <stdlib.h>
 
-
 BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
 {
    BPatch_process *appProc;
@@ -65,7 +64,7 @@ BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, co
        if (appProc != NULL) {
            int pid = appProc->getPid();
            registerPID(pid); // Register PID for cleanup
-      }
+       }
    }
 
    return appProc;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -36,14 +36,6 @@ bool TestMutator::hasCustomExecutionPath() {
   return false;
 }
 
-TestMutator::TestMutator() 
-{
-}
-
-TestMutator::~TestMutator() 
-{
-}
-
 test_results_t TestMutator::setup(ParameterDict &param) {
    return PASSED;
 }
@@ -54,8 +46,8 @@ test_results_t TestMutator::executeTest() {
   return SKIPPED;
 }
 
-// I'd like this method to look into the mutatee and determine whether or not it
-// passed, rather than depending on the mutatee to do the right thing.
+// I'd like this method to look into the mutatee and determine whether or not
+// it passed, rather than depending on the mutatee to do the right thing.
 test_results_t TestMutator::postExecution() {
   return PASSED;
 }
