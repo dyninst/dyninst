@@ -71,6 +71,11 @@ public:
 
    ParamPtr me;
 
+//#if defined(os_windows_test)
+   HANDLE winsock_event;
+//#endif
+
+
    ProcControlComponent();
    virtual ~ProcControlComponent();
 

@@ -181,8 +181,11 @@ int main(int iargc, char *argv[])
    gargc = argc;
    gargv = argv;
 
+	//fprintf(stderr, "starting mutatee main()\n");
+
    initOutputDriver();
 
+	//fprintf(stderr, "finished initOutputDriver()\n");
    /* Extract the name of the mutatee binary from argv[0] */
    /* Find the last '/' in argv[0]; we want everything after that */
    mutatee_name = strrchr(argv[0], '/');
@@ -285,6 +288,7 @@ int main(int iargc, char *argv[])
           */
       }
    }
+	//fprintf(stderr, "parsed command line args\n");
 
    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
@@ -304,8 +308,10 @@ int main(int iargc, char *argv[])
    if ((argc==1) || debugPrint)
       logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
-   if (argc==1) exit(0);
-
+   if (argc==1) {
+		fprintf(stderr, "no tests specified, exiting\n");
+	   exit(0);
+   }
    /* see if we should wait for the attach */
    if (useAttach) {
 #ifndef i386_unknown_nt4_0_test
@@ -439,6 +445,6 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-   
+   //fprintf(stderr, "exiting mutatee\n");
    exit( retval);
 }
