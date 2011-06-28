@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -85,14 +85,10 @@ int test1_24_mutatee() {
     int i, j;
     int retval;
 
-#if !defined(sparc_sun_solaris2_4_test) \
- && !defined(rs6000_ibm_aix4_1_test) \
- && !defined(alpha_dec_osf4_0_test) \
+#if !defined(rs6000_ibm_aix4_1_test) \
  && !defined(i386_unknown_linux2_0_test) \
  && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_solaris2_5_test) \
  && !defined(i386_unknown_nt4_0_test) \
- && !defined(ia64_unknown_linux2_4_test) \
  && !defined(os_freebsd_test) \
  && !defined(os_linux_test) /* Use OS #define instead of platform - Greg */
 
@@ -208,11 +204,7 @@ void call24_2() {
 }
 
 void test1_24_call1() {
-#ifdef sparc_sun_solaris2_4_test
-  unsigned i=0; /* hack to prevent g++'s optimizer making func uninstr'uble */
-#else
   unsigned i;
-#endif
 
     int localVariable24_1[100];
 

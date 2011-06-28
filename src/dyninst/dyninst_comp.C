@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -41,9 +41,11 @@
 #include "BPatch_process.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_point.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
+
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
@@ -99,6 +101,8 @@ DyninstComponent::DyninstComponent() :
 
 test_results_t DyninstComponent::program_setup(ParameterDict &params)
 {
+   if (measure) um_program.start();  // Measure resource usage.
+
    bpatch = new BPatch();
    if (!bpatch)
       return FAILED;
@@ -107,6 +111,8 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    setBPatch(bpatch);
 
    bpatch->registerErrorCallback(errorFunc);
+
+   if (measure) um_program.end();  // Measure resource usage.
 
    ParamInt *debugprint = dynamic_cast<ParamInt *>(params["debugPrint"]);
    if (debugprint) {
@@ -173,6 +179,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 
    if (group->mutatee && group->state != SELFSTART)
    {
+      if (measure) um_group.start(); // Measure resource usage.
+
       // If test requires mutatee, start it up for the test
       // The mutatee doesn't need to print a test label for complex tests
       if (group->useAttach != DISK)
@@ -191,6 +199,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
                                       verboseFormat, printLabels, debugPrint,
                                       getPIDFilename(),
                                       mutatee_resumelog, uniqueid);
+
          if (!appProc) {
             getOutput()->log(STDERR, "Skipping test because startup failed\n");
             err_msg = std::string("Unable to run test program: ") + 
@@ -219,6 +228,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
          appProc = NULL;
          appAddrSpace = (BPatch_addressSpace*) appBinEdit;         
       }
+
+      if (measure) um_group.end(); // Measure resource usage.
 
       bp_appThread.setPtr(appThread);
       params["appThread"] = &bp_appThread;
@@ -387,9 +398,10 @@ DyninstComponent::~DyninstComponent()
 }
 
 // All the constructor does is set the instance fields to NULL
-DyninstMutator::DyninstMutator() {
-  appThread = NULL;
-  appImage = NULL;
+DyninstMutator::DyninstMutator() :
+    appThread(NULL),
+    appImage(NULL)
+{
 }
 
 DyninstMutator::~DyninstMutator() {
@@ -1256,11 +1268,7 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 #endif
                 BPatch_Vector<BPatch_snippet*> listArgs;
                 BPatch_effectiveAddressExpr eae;
-#if defined(cap_instruction_api_test)                
                 BPatch_constExpr insn_str((*res)[i]->getInsnAtPoint()->format().c_str());
-#else
-                BPatch_constExpr insn_str("(unknown insn, no IAPI support here)");
-#endif
                 listArgs.push_back(&insn_str);
                 listArgs.push_back(&eae);
                 BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
@@ -1285,11 +1293,7 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
             for(int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
-#if defined(cap_instruction_api_test)
                 BPatch_constExpr insn_str2((*res2)[i]->getInsnAtPoint()->format().c_str());
-#else
-                BPatch_constExpr insn_str2("(unknown insn, no IAPI support here)");
-#endif
                 listArgs2.push_back(&insn_str2);
                 listArgs2.push_back(&eae2);
                 BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
@@ -1301,11 +1305,7 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
             for(int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
-#if defined(cap_instruction_api_test)
                 std::string insn = (*res2)[i]->getInsnAtPoint()->format();
-#else
-                std::string insn = "(unknown insn, no IAPI support here)";
-#endif
                 BPatch_constExpr insn_str2(insn.c_str());
                 listArgs2.push_back(&insn_str2);
                 listArgs2.push_back(&eae2);
@@ -1352,11 +1352,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
 #endif
                 BPatch_bytesAccessedExpr bae;
-#if defined(cap_instruction_api_test)
                 std::string insn = (*res)[i]->getInsnAtPoint()->format();
-#else
-                std::string insn = "(unknown insn, no IAPI support here)";
-#endif
                 BPatch_constExpr insn_str(insn.c_str());
                 listArgs.push_back(&insn_str);
                 listArgs.push_back(&bae);
@@ -1381,11 +1377,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
             for(int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
-#if defined(cap_instruction_api_test)
                 std::string insn2 = (*res2)[i]->getInsnAtPoint()->format();
-#else
-                std::string insn2 = "(unknown insn, no IAPI support here)";
-#endif
                 BPatch_constExpr insn_str2(insn2.c_str());
                 listArgs2.push_back(&insn_str2);
                 listArgs2.push_back(&bae2);
@@ -1398,11 +1390,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
             for(int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
-#if defined(cap_instruction_api_test)
                 std::string insn = (*res2)[i]->getInsnAtPoint()->format();
-#else
-                std::string insn = "(unknown insn, no IAPI support here)";
-#endif
                 BPatch_constExpr insn_str2(insn.c_str());
                 listArgs2.push_back(&insn_str2);
                 listArgs2.push_back(&bae2);

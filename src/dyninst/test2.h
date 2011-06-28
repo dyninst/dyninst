@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,8 +32,7 @@
 #ifndef _test2_h_
 #define _test2_h_
 
-#if defined(i386_unknown_linux2_0_test) \
- || defined(ia64_unknown_linux2_4_test)
+#if defined(i386_unknown_linux2_0_test)
 #define	TEST_DYNAMIC_LIB	"libX11.so"
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
@@ -59,6 +58,9 @@
 #define TEST_DYNAMIC_LIB_NOPATH  "libtesta.dll"
 #define TEST_DYNAMIC_LIB2        "libtestb.dll"
 #define TEST_DYNAMIC_LIB2_NOPATH "libtestb.dll"
+#elif defined(os_freebsd_test)
+#define TEST_DYNAMIC_LIB        "libutil.so"
+#define TEST_DYNAMIC_LIB2       "libm.so"
 #else
 #define	TEST_DYNAMIC_LIB	"libX11.so.4"
 #define TEST_DYNAMIC_LIB2	"libXt.so.4"
