@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,14 +42,6 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/pcProcess.h"
 
-multiTramp *codeRange::is_multitramp() {
-    if (dynamic_cast<multiTramp *>(this))
-        return dynamic_cast<multiTramp *>(this);
-    else if (dynamic_cast<instArea *>(this))
-        return (dynamic_cast<instArea *>(this))->multi;
-    return NULL;
-}
-
 inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 	return dynamic_cast< inferiorRPCinProgress * >( this );
 	}
@@ -57,49 +49,21 @@ inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 // This is a special case... the multitramp is the thing in the
 // codeRange tree, but people think of baseTramps.
 // So this is dangerous to use, actually.
-baseTrampInstance *codeRange::is_basetramp_multi() {
-   return dynamic_cast<baseTrampInstance *>(this);
+block_instance *codeRange::is_basicBlockInstance() {
+    return dynamic_cast<block_instance *>(this);
 }
 
-miniTrampInstance *codeRange::is_minitramp() {
-   return dynamic_cast<miniTrampInstance *>(this);
+func_instance *codeRange::is_function() {
+   return NULL;
 }
 
-bblInstance *codeRange::is_basicBlockInstance() {
-    return dynamic_cast<bblInstance *>(this);
+parse_func *codeRange::is_parse_func() {
+   return dynamic_cast<parse_func *>(this);
 }
 
-int_basicBlock *codeRange::is_basicBlock() {
-    bblInstance *block = dynamic_cast<bblInstance *>(this);
-    if (block)
-        return block->block();
-    return NULL;
+parse_block *codeRange::is_parse_block() {
+    return dynamic_cast<parse_block *>(this);
 }
-
-int_function *codeRange::is_function() {
-    bblInstance *block = dynamic_cast<bblInstance *>(this);
-    if (block)
-        return block->func();
-    return NULL;
-}
-
-image_func *codeRange::is_image_func() {
-    fprintf(stderr, "ZOMG ZOMG ZOMG!\n");
-   return dynamic_cast<image_func *>(this);
-}
-
-image_basicBlock *codeRange::is_image_basicBlock() {
-    return dynamic_cast<image_basicBlock *>(this);
-}
-
-replacedFunctionCall *codeRange::is_replaced_call() {
-    return dynamic_cast<replacedFunctionCall *>(this);
-}
-
-functionReplacement *codeRange::is_function_replacement() {
-    return dynamic_cast<functionReplacement *>(this);
-}
-
 
 image *codeRange::is_image() {
    return dynamic_cast<image *>(this);
@@ -310,8 +274,8 @@ void codeRangeTree::insert(codeRange *value) {
     //assert(value->get_size());
  	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
-            entry* x = find_internal(value->get_address());
-            assert(value->get_size() == x->value->get_size());
+         entry* x = find_internal(value->get_address());
+         assert(value->get_size() == x->value->get_size());
          // We're done.
          return;
     }
@@ -361,8 +325,8 @@ void codeRangeTree::insert(codeRange *value) {
 	entry* z = find_internal(key);
 	if(!z)
             return;
-        if (z->key != key)
-            return;
+    if (z->key != key)
+        return;
 
 	entry* y=((z->left == nil)||(z->right == nil)) ? z : treeSuccessor(z);
 	entry* x=(y->left != nil) ? y->left : y->right;
@@ -378,8 +342,10 @@ void codeRangeTree::insert(codeRange *value) {
 		z->value = y->value;
         z->key = y->key;
     }
-	if(y->color == TREE_BLACK)
+
+    if(y->color == TREE_BLACK) {
 		deleteFixup(x);
+    }
 	setSize--;
 	delete y;
 }
@@ -516,15 +482,12 @@ void codeRangeTree::clear() {
 }
 
 #define PRINT_COMMA if (print_comma) fprintf(stderr, ", "); print_comma = true
-void codeRange::print_range(Address addr) {
+void codeRange::print_range(Address) {
    bool print_comma = false;
    image *img_ptr = is_image();
    mapped_object *mapped_ptr = is_mapped_object();
-	int_function *func_ptr = is_function();
-   functionReplacement *reloc_ptr = is_function_replacement();
-   multiTramp *multi_ptr = is_multitramp();
-   baseTrampInstance *base_ptr = NULL;
-	miniTrampInstance *mini_ptr = is_minitramp();
+	func_instance *func_ptr = is_function();
+   baseTramp *base_ptr = NULL;
    inferiorRPCinProgress *rpc_ptr = is_inferior_rpc();
 
    /**
@@ -532,16 +495,8 @@ void codeRange::print_range(Address addr) {
     * (i.e the fact we have a function pointer, doesn't mean we have a 
     * mapped_object pointer).  Build up more information from what we have
     **/
-   if (mini_ptr && !base_ptr) 
-      base_ptr = mini_ptr->baseTI;
-   if (base_ptr && !multi_ptr)
-      multi_ptr = base_ptr->multiT;
-   if (multi_ptr && !func_ptr) 
-      func_ptr = multi_ptr->func();
-   if (multi_ptr && !base_ptr && addr) 
-      base_ptr = multi_ptr->getBaseTrampInstanceByAddr(addr);
-   if (reloc_ptr && !func_ptr)
-      func_ptr = reloc_ptr->source()->func();
+   //if (base_ptr && !func_ptr) 
+   //   func_ptr = base_ptr->func();
    if (func_ptr && !mapped_ptr)
       mapped_ptr = func_ptr->obj();
    if (mapped_ptr && !img_ptr)
@@ -561,25 +516,9 @@ void codeRange::print_range(Address addr) {
       PRINT_COMMA;
       fprintf(stderr, "func:%s", func_ptr->prettyName().c_str());
    }
-   if (reloc_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "reloc:%x", 
-              reloc_ptr->targetVersion());
-   }
-   if (multi_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "multi:%p->%p+%u", (void *)multi_ptr->instAddr(), 
-              (void *)multi_ptr->get_address(), multi_ptr->get_size());
-   }
    if (base_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "base:%p+%u", (void *)multi_ptr->get_address(),
-              multi_ptr->get_size());
-   }
-   if (mini_ptr) {
-      PRINT_COMMA;
-      fprintf(stderr, "mini:%p+%u", (void *)multi_ptr->get_address(),
-              multi_ptr->get_size());
+      fprintf(stderr, "base"); 
    }
    if (rpc_ptr) {
       PRINT_COMMA;

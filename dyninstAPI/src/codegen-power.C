@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -48,22 +48,27 @@ codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
     return (instructUnion *)gen.cur_ptr();
 }
 
+#if 0
 // Same as above, but increment offset to point at the next insn.
 codeBuf_t *insnCodeGen::ptrAndInc(codeGen &gen) {
-    instructUnion *ret = insnPtr(gen);
-    gen.moveIndex(instruction::size());
-    return ret;
+  // MAKE SURE THAT ret WILL STAY VALID!
+  gen.realloc(gen.used() + sizeof(instruction));
+
+  instructUnion *ret = insnPtr(gen);
+  gen.moveIndex(instruction::size());
+  return ret;
 }
+#endif
 
 void insnCodeGen::generate(codeGen &gen, instruction&insn) {
-    instructUnion *ptr = ptrAndInc(gen);
-
 #if defined(endian_mismatch)
-    // Writing an instruction.  Convert byte order if necessary.
-    (*ptr).raw = swapBytesIfNeeded(insn.asInt());
+  // Writing an instruction.  Convert byte order if necessary.
+  unsigned raw = swapBytesIfNeeded(insn.asInt());
 #else
-    (*ptr).raw = insn.asInt();
+  unsigned raw = insn.asInt();
 #endif
+  
+  gen.copy(&raw, sizeof(unsigned));
 }
 
 void insnCodeGen::generateIllegal(codeGen &gen) { // instP.h
@@ -132,7 +137,7 @@ void insnCodeGen::generateInterFunctionBranch(codeGen &gen,
         return generateBranchViaTrap(gen, from, to, false);
     }
     assert(point);
-    bitArray liveRegs = point->liveRegisters(callPreInsn);
+    bitArray liveRegs = point->liveRegisters();
     if (liveRegs[registerSpace::ctr] == true) 
     {
 	fprintf(stderr, " COUNT REGISTER NOT AVAILABLE. We cannot insterument this point. skipping ...\n");
@@ -162,7 +167,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     // Let's see if we can grab a free GPregister...
     instPoint *point = gen.point();
     if (!point) {
-        fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
+        // fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
     }
 
@@ -170,8 +175,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     
     // Could see if the codeGen has it, but right now we have assert
     // code there and we don't want to hit that.
-    registerSpace *rs = registerSpace::actualRegSpace(point,
-                                                      callPreInsn);
+    registerSpace *rs = registerSpace::actualRegSpace(point);
     gen.setRegisterSpace(rs);
     
     Register scratch = rs->getScratchRegister(gen, true);
@@ -201,7 +205,7 @@ void insnCodeGen::generateLongBranch(codeGen &gen,
     insnCodeGen::loadImmIntoReg(gen, scratch, to);
     
     // Find out whether the LR or CTR is "dead"...
-    bitArray liveRegs = point->liveRegisters(callPreInsn);
+    bitArray liveRegs = point->liveRegisters();
     unsigned branchRegister = 0;
     if (liveRegs[registerSpace::lr] == false) {
         branchRegister = registerSpace::lr;
@@ -634,6 +638,9 @@ bool insnCodeGen::generate(codeGen &gen,
                            Address relocAddr,
                            patchTarget *fallthroughOverride,
                            patchTarget *targetOverride) {
+  assert(0 && "Deprecated!");
+  return false;
+#if 0
     assert(fallthroughOverride == NULL);
 
     Address targetAddr = targetOverride ? targetOverride->get_address() : 0;
@@ -641,71 +648,6 @@ bool insnCodeGen::generate(codeGen &gen,
     Address to;
 
     if (insn.isThunk()) {
-      // This is actually a "get PC" operation, and we want
-      // to handle it as such. 
-     
-      
-      	instPoint *point = gen.point();
-      // If we do not have a point then we have to invent one
-      	if (!point || (point->addr() != origAddr))
-		point = instPoint::createArbitraryInstPoint(origAddr,
-						    gen.addrSpace(),
-						    gen.func());
-        assert(point);
-       
-	registerSpace *rs = registerSpace::actualRegSpace(point,
-							callPreInsn);
-	gen.setRegisterSpace(rs);
-	
-	int stackSize = 0;
-	pdvector<Register> freeReg;
-      	pdvector<Register> excludeReg;
-
-	if(gen.addrSpace()->proc()){
-	        Address origRet = origAddr + 4;
-        	Register scratch = gen.rs()->getScratchRegister(gen, true);
-		if (scratch == REG_NULL) {
-	      	 	stackSize = createStackFrame(gen, 1, freeReg, excludeReg);
-			assert(stackSize == 1);
-		 	scratch = freeReg[0];
-	      	}
-	        insnCodeGen::loadImmIntoReg(gen, scratch, origRet);
-	        insnCodeGen::generateMoveToLR(gen, scratch);
-	} else {
-	      	Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-                excludeReg.push_back(scratchPCReg);
-		Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-
-                if ((scratchPCReg == REG_NULL) && (scratchReg == REG_NULL)) {
-			excludeReg.clear();
-                        stackSize = createStackFrame(gen, 2, freeReg, excludeReg);
-                        assert(stackSize == 2);
-                        scratchPCReg = freeReg[0];
-                        scratchReg = freeReg[1];
-
-                } else if (scratchReg == REG_NULL && scratchPCReg != REG_NULL) {
-                        stackSize = createStackFrame(gen, 1, freeReg, excludeReg);
-                        assert(stackSize == 1);
-                        scratchReg = freeReg[0];
-                } 
-		 
-		//scratchPCReg == NULL && scratchReg != NULL - not a valid case 
-		//since getScratchRegister works in order
-		
-                // relocaAddr may have moved if we added instructions to setup a new stack frame
-                Address newRelocAddr = relocAddr + (stackSize?stackSize+1:0)*(gen.addrSpace()->getAddressWidth());
-
-	       insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
-	       insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
-
-               Address varOffset = origAddr - newRelocAddr;
-	       gen.emitter()->emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
-               insnCodeGen::generateMoveToLR(gen, scratchReg);
-
-	}
-        if( stackSize > 0) {
-		removeStackFrame(gen); 
-        }
     }
     else if (insn.isUncondBranch()) {
         // unconditional pc relative branch.
@@ -755,76 +697,6 @@ bool insnCodeGen::generate(codeGen &gen,
           to = targetAddr;
         }
 
-        if (ABS(newOffset) >= MAX_CBRANCH) {
-            if ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond) {
-                //assert(BFORM_BO(insn) == BALWAYScond);
-
-                bool link = (BFORM_LK(insn) == 1);
-                // Make sure to use the (to, from) version of generateBranch()
-                // in case the branch is too far, and trap-based instrumentation
-                // is needed.
-                insnCodeGen::generateBranch(gen, relocAddr, to, link);
-
-            } else {
-                // Figure out if the original branch was predicted as taken or not
-                // taken.  We'll set up our new branch to be predicted the same way
-                // the old one was.
-                
-		// This makes my brain melt... here's what I think is happening. 
-		// We have two sources of information, the bd (destination) 
-		// and the predict bit. 
-		// The processor predicts the jump as taken if the offset
-		// is negative, and not taken if the offset is positive. 
-		// The predict bit says "invert whatever you decided".
-		// Since we're forcing the offset to positive, we need to
-		// invert the bit if the offset was negative, and leave it
-		// alone if positive.
-              
-		// Get the old flags (includes the predict bit)
-		int flags = BFORM_BO(insn);
-
-		if (BFORM_BD(insn) < 0) {
-		    // Flip the bit.
-		    // xor operator
-		    flags ^= BPREDICTbit;
-		}
-              
-		instruction newCondBranch(insn);
-		BFORM_LK_SET(newCondBranch, 0); // This one is non-linking for sure
-
-		// Set up the flags
-		BFORM_BO_SET(newCondBranch, flags);
-
-		// Change the branch to move one instruction ahead
-		BFORM_BD_SET(newCondBranch, 2);
-
-		generate(gen,newCondBranch);
-
-              // We don't "relocate" the fallthrough target of a conditional
-              // branch; instead relying on a third party to make sure
-              // we go back to where we want to. So in this case we 
-              // generate a "dink" branch to skip past the next instruction.
-              // We could also just invert the condition on the first branch;
-              // but I don't have the POWER manual with me.
-              // -- bernat, 15JUN05
-
-              insnCodeGen::generateBranch(gen,
-                                          2*instruction::size());
-
-              bool link = (BFORM_LK(insn) == 1);
-              // Make sure to use the (to, from) version of generateBranch()
-              // in case the branch is too far, and trap-based instrumentation
-              // is needed.
-              insnCodeGen::generateBranch(gen,
-                                          relocAddr + (2 * instruction::size()),
-                                          to,
-                                          link);
-          }
-      } else {
-          instruction newInsn(insn);
-          BFORM_BD_SET(newInsn, newOffset >> 2);
-          generate(gen,newInsn);
-      }
 #if defined(os_aix)
 	// I don't understand why this is here, so we'll allow relocation
 	// for Linux since it's a new port.
@@ -840,6 +712,7 @@ bool insnCodeGen::generate(codeGen &gen,
         generate(gen,insn);
     }
     return true;
+#endif
 }
                            
 bool insnCodeGen::generateMem(codeGen &,
@@ -881,4 +754,122 @@ void insnCodeGen::generateMoveToCR(codeGen &gen, Register rs) {
     generate(gen,insn);
 }    
 
+bool insnCodeGen::modifyJump(Address target,
+			     NS_power::instruction &insn,
+			     codeGen &gen) {
+  // For now, we're not doing calculated (long)
+  // branches
+  long disp = target - gen.currAddr();
+  if (ABS(disp) > MAX_BRANCH) {
+    generateBranchViaTrap(gen, gen.currAddr(), target, IFORM_LK(insn));
+    return true;
+  }
+
+  generateBranch(gen,
+		 gen.currAddr(),
+		 target,
+		 IFORM_LK(insn));
+  return true;
+}
+
+bool insnCodeGen::modifyJcc(Address target,
+			    NS_power::instruction &insn,
+			    codeGen &gen) {
+  long disp = target - gen.currAddr();
+
+  if (ABS(disp) >= MAX_CBRANCH) {
+    if ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond) {
+      // Make sure to use the (to, from) version of generateBranch()
+      // in case the branch is too far, and trap-based instrumentation
+      // is needed.
+      if (ABS(disp) > MAX_BRANCH) { 
+	return false;
+      }
+      else {
+	insnCodeGen::generateBranch(gen, gen.currAddr(), target, BFORM_LK(insn));
+	return true;
+      }
+    } else {
+      // Figure out if the original branch was predicted as taken or not
+      // taken.  We'll set up our new branch to be predicted the same way
+      // the old one was.
+      
+      // This makes my brain melt... here's what I think is happening. 
+      // We have two sources of information, the bd (destination) 
+      // and the predict bit. 
+      // The processor predicts the jump as taken if the offset
+      // is negative, and not taken if the offset is positive. 
+      // The predict bit says "invert whatever you decided".
+      // Since we're forcing the offset to positive, we need to
+      // invert the bit if the offset was negative, and leave it
+      // alone if positive.
+      
+      // Get the old flags (includes the predict bit)
+      int flags = BFORM_BO(insn);
+      
+      if (BFORM_BD(insn) < 0) {
+	// Flip the bit.
+	// xor operator
+	flags ^= BPREDICTbit;
+      }
+      
+      instruction newCondBranch(insn);
+      BFORM_LK_SET(newCondBranch, 0); // This one is non-linking for sure
+      
+      // Set up the flags
+      BFORM_BO_SET(newCondBranch, flags);
+      
+      // Change the branch to move one instruction ahead
+      BFORM_BD_SET(newCondBranch, 2);
+      
+      generate(gen,newCondBranch);
+      
+      // We don't "relocate" the fallthrough target of a conditional
+      // branch; instead relying on a third party to make sure
+      // we go back to where we want to. So in this case we 
+      // generate a "dink" branch to skip past the next instruction.
+      // We could also just invert the condition on the first branch;
+      // but I don't have the POWER manual with me.
+      // -- bernat, 15JUN05
+      
+      insnCodeGen::generateBranch(gen,
+				  2*instruction::size());
+      
+      bool link = (BFORM_LK(insn) == 1);
+      // Make sure to use the (to, from) version of generateBranch()
+      // in case the branch is too far, and trap-based instrumentation
+      // is needed.
+      insnCodeGen::generateBranch(gen,
+				  gen.currAddr(),
+				  target,
+				  link);
+      return true;
+    }
+  } else {
+    instruction newInsn(insn);
+    BFORM_BD_SET(newInsn, disp >> 2);
+    generate(gen,newInsn);
+    return true;
+  }
+  return false;
+}
+
+bool insnCodeGen::modifyCall(Address target,
+			     NS_power::instruction &insn,
+			     codeGen &gen) {
+  // This is actually a mashup of conditional/unconditional handling
+  if (insn.isUncondBranch())
+    return modifyJump(target, insn, gen);
+  else
+    return modifyJcc(target, insn, gen);
+}
+
+bool insnCodeGen::modifyData(Address target,
+			     NS_power::instruction &insn,
+			     codeGen &gen) {
+  // Only know how to "modify" syscall...
+  if (insn.opcode() != SVCop) return false;
+  gen.copy(insn.ptr(), insn.size());
+  return true;
+}
 

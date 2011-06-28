@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "RegisterConversion-x86.h"
+#include "RegisterConversion.h"
 #include "inst-x86.h"
 
 #include <map>
@@ -137,7 +137,8 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
     map<MachRegister, Register>::const_iterator found =
             reverseRegisterMap.find(baseReg);
     if(found == reverseRegisterMap.end()) {
-      assert(!"Bad register ID");
+      // Yeah, this happens when we analyze trash code. Oops...
+		return REGNUM_IGNORED;
     }
     if(found->second == REGNUM_DUMMYFPR) {
         wasUpcast = true;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -91,10 +91,17 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Symtab();
 
    SYMTAB_EXPORT Symtab(const Symtab& obj);
-   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, bool &err);
+   SYMTAB_EXPORT Symtab(unsigned char *mem_image, size_t image_size, 
+                        const std::string &name, bool defensive_binary, bool &err);
 
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
-   SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
+   typedef enum {
+      NotDefensive,
+      Defensive} def_t; 
+
+   SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename, 
+                                      def_t defensive_binary = NotDefensive);
+   SYMTAB_EXPORT static bool openFile(Symtab *&obj, void *mem_image, size_t size, 
+                                      std::string name, def_t defensive_binary = NotDefensive);
    SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
    SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 
@@ -123,7 +130,7 @@ class Symtab : public LookupInterface,
    // Symbol
 
    SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
-                                         const std::string name,
+                                         const std::string& name,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                          NameType nameType = anyName,
                                          bool isRegex = false, 
@@ -309,6 +316,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getBaseOffset() const;
    SYMTAB_EXPORT Offset getTOCoffset() const;
    SYMTAB_EXPORT Address getLoadAddress();
+   SYMTAB_EXPORT bool isDefensiveBinary() const; 
 
    SYMTAB_EXPORT std::string getDefaultNamespacePrefix() const;
 
@@ -338,7 +346,7 @@ class Symtab : public LookupInterface,
 
    /***** Private Member Functions *****/
    private:
-   SYMTAB_EXPORT Symtab(std::string filename, bool &err); 
+   SYMTAB_EXPORT Symtab(std::string filename, bool defensive_bin, bool &err);
 
    SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
 
@@ -563,6 +571,7 @@ class Symtab : public LookupInterface,
    bool hasRelaplt_;
 
    bool isStaticBinary_;
+   bool isDefensiveBinary_;
 
    //Don't use obj_private, use getObject() instead.
  public:
@@ -595,7 +604,7 @@ class Symtab : public LookupInterface,
    
    SYMTAB_EXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string name,
+                                               const std::string& name,
                                                Symbol::SymbolType sType, 
                                                bool isMangled = false,
                                                bool isRegex = false, 

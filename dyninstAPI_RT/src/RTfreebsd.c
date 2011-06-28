@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -53,8 +53,6 @@
 
 /* FreeBSD libc has stubs so a static version shouldn't need libpthreads */
 #include <pthread.h>
-
-/* TODO mutatee traps */
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
@@ -263,9 +261,11 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 
 #include <ucontext.h>
 
-/* XXX This will compile, but it does not work yet */
-
-/* XXX This current only works for amd64 FreeBSD -- needs some ifdefs for i386 */
+#if defined(arch_x86) || defined(MUTATEE_32)
+#define UC_PC(x) x->uc_mcontext.mc_eip
+#elif defined(arch_x86_64)
+#define UC_PC(x) x->uc_mcontext.mc_rip
+#endif // UC_PC
 
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;
@@ -273,6 +273,8 @@ extern trapMapping_t *dyninstTrapTable;
 extern unsigned long dyninstTrapTableIsSorted;
 
 /**
+ * This comment is now obsolete, left for historic purposes
+ *
  * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
  * closly intwined with dyninstTrapHandler, don't modify one without 
  * understanding the other.
@@ -294,29 +296,15 @@ extern unsigned long dyninstTrapTableIsSorted;
  *      do a popf/ret to restore flags and go to instrumentation.  The 'retPoint'
  *      parameter is the address in dyninstTrapHandler the popf/ret can be found.
  **/
-void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint)
+void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 {
-   ucontext_t newcontext;
-   unsigned long *orig_sp;
    void *orig_ip;
    void *trap_to;
 
-   getcontext(&newcontext);
-   
-   //Set up the 'context' parameter so that when we restore 'context' control
-   // will get transfered to our instrumentation.
-   newcontext.uc_mcontext = context->uc_mcontext;
-
-   orig_sp = (unsigned long *) context->uc_mcontext.mc_rsp;
-   orig_ip = (void *) context->uc_mcontext.mc_rip;
-
+   orig_ip = UC_PC(context);
    assert(orig_ip);
 
-   //Set up the PC to go to the 'ret_point' in RTsignal-x86.s
-   newcontext.uc_mcontext.mc_rip = (unsigned long) retPoint;
-
-   //simulate a "push" of the flags and instrumentation entry points onto
-   // the stack.
+   // Find the new IP we're going to and substitute. Leave everything else untouched
    if (DYNINSTstaticMode) {
       unsigned long zero = 0;
       unsigned long one = 1;
@@ -337,30 +325,10 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
                                      &dyninstTrapTableIsSorted);
                                      
    }
-   *(orig_sp - 1) = (unsigned long) trap_to;
-   *(orig_sp - 2) = flags;
-   unsigned shift = 2;
-#if defined(arch_x86_64) && !defined(MUTATEE_32)
-   *(orig_sp - 3) = context->uc_mcontext.mc_r11;
-   *(orig_sp - 4) = context->uc_mcontext.mc_r10;
-   *(orig_sp - 5) = context->uc_mcontext.mc_rax;
-   shift = 5;
-#else
-#error mutatee traps unavailable on this architecture
-#endif
-   newcontext.uc_mcontext.mc_rsp = (unsigned long) (orig_sp - shift);
-
-   //Restore the context.  This will move all the register values of 
-   // context into the actual registers and transfer control away from
-   // this function.  This function shouldn't actually return.
-   setcontext(&newcontext);
-   assert(0);
+   UC_PC(context) = (long) trap_to;
 }
 
 #if defined(cap_binary_rewriter)
-
-extern struct r_debug _r_debug;
-struct r_debug _r_debug __attribute__ ((weak));
 
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
@@ -373,8 +341,10 @@ static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
 #if !defined(arch_x86_64) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
+typedef Elf32_Ehdr ElfX_Ehdr;
 #else
 typedef Elf64_Dyn ElfX_Dyn;
+typedef Elf64_Ehdr ElfX_Ehdr;
 #endif
 
 static int parse_libs();
@@ -414,11 +384,31 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
    return header;
 }
 
+static struct link_map *getLinkMap() {
+    struct link_map *map = NULL;
+#if !defined(DYNINST_RT_STATIC_LIB)
+    if( dlinfo(RTLD_SELF, RTLD_DI_LINKMAP, &map) ) {
+        return NULL;
+    }
+
+    // Rewind the current link map pointer to find the
+    // start of the list
+    struct link_map *last_map;
+    while( map != NULL ) {
+        last_map = map;
+        map = map->l_prev;
+    }
+
+    map = last_map;
+#endif
+    return map;
+}
+
 static int parse_libs()
 {
    struct link_map *l_current;
 
-   l_current = _r_debug.r_map;
+   l_current = getLinkMap();
    if (!l_current)
       return -1;
 
@@ -455,6 +445,20 @@ static int parse_link_map(struct link_map *l)
    }
 
    header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + l->l_addr);
+
+   caddr_t libAddr = l->l_addr;
+
+   // Executables have an implicit zero load address but the library load address
+   // may be non-zero
+   if( ((ElfX_Ehdr *)libAddr)->e_type == ET_EXEC ) {
+       libAddr = 0;
+   }else if( ((ElfX_Ehdr *)libAddr)->e_type == ET_DYN ) {
+       // Account for library_adjust mechanism which is used for shared libraries
+       // on FreeBSD
+       libAddr += getpagesize();
+   }
+
+   header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + libAddr);
    
    if (header->signature != TRAP_HEADER_SIG)
       return ERROR_INTERNAL;
@@ -466,8 +470,8 @@ static int parse_link_map(struct link_map *l)
  
    for (i = 0; i < header->num_entries; i++)
    {
-      header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + l->l_addr);
-      header->traps[i].target = (void *) (((unsigned long) header->traps[i].target) + l->l_addr);
+      header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + libAddr);
+      header->traps[i].target = (void *) (((unsigned long) header->traps[i].target) + libAddr);
       if (!header->low_entry || header->low_entry > (unsigned long) header->traps[i].source)
          header->low_entry = (unsigned long) header->traps[i].source;
       if (!header->high_entry || header->high_entry < (unsigned long) header->traps[i].source)

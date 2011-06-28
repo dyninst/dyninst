@@ -62,7 +62,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
 
          if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
          {
-           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name());
+           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name().c_str());
            return false;
          }
          entryNumber = segmentSelectorVal / 8;

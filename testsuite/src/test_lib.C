@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -67,8 +67,7 @@ using namespace std;
 
 // Blind inclusion from test9.C
 #if defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
@@ -964,7 +963,7 @@ void reportTestResult(RunGroup *group, TestInfo *test)
    test->result_reported = true;
 }
 
-#if defined(os_solaris_test) || defined(os_linux_test)
+#if defined(os_linux_test)
 #if !defined(cap_gnu_demangler_test)
 /**
  * Many linkers don't want to link the static libiberty.a unless
@@ -987,7 +986,7 @@ void use_liberty()
 #endif
 #endif
 
-#if defined (os_solaris_test) || defined (os_windows_test)
+#if defined (os_windows_test)
 //  solaris does not provide setenv, so we provide an ersatz replacement.
 // yes it's leaky, but we don't plan on using it too much, so who cares?
 int setenv(const char *envname, const char *envval, int)

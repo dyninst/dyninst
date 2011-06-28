@@ -285,11 +285,13 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             bool hasCtrlTransfer = false;
             vector<Breakpoint::ptr> breakpoints;
             evBreak->getBreakpoints(breakpoints);
+            Breakpoint::ptr ctrlTransferPt;
             for(vector<Breakpoint::ptr>::iterator i = breakpoints.begin();
                     i != breakpoints.end(); ++i)
             {
                 if( (*i)->isCtrlTransfer() ) {
                     hasCtrlTransfer = true;
+                    ctrlTransferPt = *i;
                     break;
                 }
 
@@ -316,9 +318,9 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             }
 
             if( hasCtrlTransfer ) {
-                proccontrol_printf("%s[%d]: received control transfer breakpoint on thread %d/%d\n",
-                        FILE__, __LINE__, ev->getProcess()->getPid(),
-                        ev->getThread()->getLWP());
+                proccontrol_printf("%s[%d]: received control transfer breakpoint on thread %d/%d (0x%lx => 0x%lx)\n",
+                        FILE__, __LINE__, ev->getProcess()->getPid(), ev->getThread()->getLWP(),
+                        evBreak->getAddress(), ctrlTransferPt->getToAddress());
                 ret = Process::cb_ret_t(Process::cbProcContinue, Process::cbProcContinue);
                 queueEvent = false;
             }
@@ -1398,7 +1400,6 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
         rpcInProg->isComplete = true;
         evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
-        // evProc->removeOrigRange(rpcInProg);
         delete rpcInProg;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -59,9 +59,7 @@
 extern "C" {
 #if !defined(i386_unknown_nt4_0)
 #if !defined(i386_unknown_linux2_0)
-#if !defined(ia64_unknown_linux2_4)
 	int usleep(useconds_t);
-#endif
 #endif
 #endif
    
@@ -251,13 +249,12 @@ IPListElem::IPListElem(int _number, const char *_function,
 
 IPListElem::~IPListElem()
 {
+   Print();
    free(function);
    free(statement);
    if (handle) {
       if (appProc){
          appProc->deleteSnippet(handle);
-//causes a segfault?
-         delete handle;
       }
    }
 }
@@ -297,7 +294,8 @@ IPListElem *removeIP(int n)
 {
    DynerList<IPListElem *>::iterator i;
    IPListElem *ret = NULL;
-   
+
+
    for (i = iplist.begin(); i != iplist.end(); i++) {
       if ((*i)->number == n) {
          ret = *i;
@@ -305,7 +303,6 @@ IPListElem *removeIP(int n)
          break;
       }
    }
-   
    return ret;
 }
 
@@ -442,7 +439,7 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
       printf("     variables in the target program. Local variables and parameters are\n");
       printf("     searched in the <function>.\n");
    }
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) 
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0) 
    LIMIT_TO("where") {
       printf("where - Print stack trace.\n");
    }
@@ -803,7 +800,6 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    int ret = TCL_OK;
    for (int j = 1; j < argc; j++) {
       int n = atoi(argv[j]);
-      
       IPListElem *i = removeIP(n);
       if (i == NULL) {
          printf("No such intrument point: %d\n", n);
@@ -895,7 +891,7 @@ int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
    return TCL_OK;
 }
 
-#if defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
+#if defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
 
 bool saveWorldStart =false;
 
@@ -1196,7 +1192,7 @@ void exitCallback(BPatch_thread *thread, BPatch_exitType) {
    
    BPatch_snippet *stmt = termStatement;
    termStatement = NULL;
-   thread->oneTimeCode(*stmt);
+   thread->getProcess()->oneTimeCode(*stmt);
    delete stmt;
 }
 
@@ -1312,6 +1308,31 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
      
    return TCL_OK;
 }
+/*
+int instStatementAtPoint(char *stmt, BPatch_point *pt){
+####
+   char *line_buf = getBufferAux(argc, argv, expr_start, true);
+
+   for(unsigned int i = 0; i < points->size(); ++i){
+      std::stringstream snName;
+      snName << "dynerSnippet_" << dynerSnippetNumber;
+      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      if(snippet == NULL){
+         printf("Snippet generation failure for point %d.\n", ipCtr++);
+         continue;
+      }
+      BPatchSnippetHandle *handle =
+         appProc->insertSnippet(*snippet, *(*points)[i], when, BPatch_lastSnippet);
+       if (handle == NULL) {
+         fprintf(stderr, "Error inserting snippet.\n");
+         delete line_buf;
+         return TCL_ERROR;
+      }
+      
+      IPListElem *snl =
+         new IPListElem(ipCtr, argv[1], where, when, line_buf, handle, instType);
+   }
+   }*/
 
 int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
@@ -1397,7 +1418,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
    }
 }
 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  
 void printStackFrame(int index, std::vector<BPatch_frame> &callStack, const char *funcName){
    
 	printf("#%d: (0x%p)\t%s (fp: 0x%p)\n", index, (void *)callStack[index].getPC(),funcName , (void *)callStack[index].getFP());
@@ -1503,7 +1524,7 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 }
 #endif
 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)   
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
 
 BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 {
@@ -1547,43 +1568,7 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 			tmpVar = appImage->findVariable(*targetPoint, name);
 			targetPoint = NULL;
 
-// Not sure what this once did, but it's old and we certainly
-// don't allow the external creation of BPatch_variableExpr's
-// anymore.
-
-#if 0
-			if (tmpVar && 
-#ifdef rs6000_ibm_aix4_1
-             (((int)tmpVar->getBaseAddr()) < 0x1000) ) {
-            
-#else
-				( ((CASTOFFSET) (tmpVar->getBaseAddr())) < 0) ) {
-            
-#endif
-				offset = (CASTOFFSET) (tmpVar->getBaseAddr());
-            
-#ifdef sparc_sun_solaris2_4
-				index ++; /* ccw 9 mar 2004 WHY DO I NEED TO DO THIS ?*/
-#endif
-            
-				/* WARNING: the function BPatch_thread::lowlevel_process() is risky, it should go away
-				   But i need to build a variable that points to a specific address, and I can not find
-				   a better way to do it right now
-				 */	
-//          BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
-//				var = new BPatch_variableExpr(tmpVar->getName(), appProc->getProcess(),
-//					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
-
-#ifdef sparc_sun_solaris2_4 
-				index --;  
-#endif
-				whereAmINow = index; /* set local context just in case */
-            
-				return var;
-			}
-#endif  // End Dead Code
-
-                        if (tmpVar) return tmpVar;
+            if (tmpVar) return tmpVar;
 			
 		}
       
@@ -1600,7 +1585,7 @@ int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
    if (!haveApp()) return TCL_ERROR;
 	bool found = false;
    BPatch_variableExpr *var; 
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  
    
    var = findLocalVariable(argv[1],false);
    
@@ -2700,6 +2685,24 @@ int traceFunc(Tcl_Interp *interp, const char *name)
            "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
    return Tcl_Eval(interp, cmdBuf);
 }
+/*
+int traceBPFunc(BPatch_function *func){
+   if (NULL == func) {
+      printf("Dyner Internal Error: Given NULL function.\n");
+      return TCL_ERROR;
+   }
+      
+   char cmdBuf[1024];
+   sprintf(cmdBuf, 
+           "at %s entry printf(\"Entering function %s\\n\"); } trace", name, name);
+   if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
+      return TCL_ERROR;
+   
+   sprintf(cmdBuf, 
+           "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
+   return Tcl_Eval(interp, cmdBuf);
+
+   }*/
 
 /*
  * Trace all the function in a module
@@ -3051,7 +3054,7 @@ int Tcl_AppInit(Tcl_Interp *interp)
    Tcl_CreateCommand(interp, "listinst", (Tcl_CmdProc*)listInstrument, NULL, NULL);
    Tcl_CreateCommand(interp, "deleteinst", (Tcl_CmdProc*)deleteInstrument, NULL, NULL);
    Tcl_CreateCommand(interp, "debugparse", (Tcl_CmdProc*)debugParse, NULL, NULL);
-#if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
+#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
    
    Tcl_CreateCommand(interp, "where", (Tcl_CmdProc*)where, NULL, NULL);
    Tcl_CreateCommand(interp, "up", (Tcl_CmdProc*)whereUp, NULL, NULL);

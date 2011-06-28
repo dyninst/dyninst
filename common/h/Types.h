@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -155,13 +155,6 @@ typedef long double double128_t;
 /* FreeBSD doesn't define this */
 typedef int64_t off64_t;
 
-#elif defined(os_irix)
-#define TYPE64BIT
-#include <inttypes.h>
-
-#elif defined(os_solaris)
-#include <inttypes.h>
-
 #elif defined(os_vxworks)
 #if !defined(__STDC_CONSTANT_MACROS)
 #define __STDC_CONSTANT_MACROS
@@ -212,7 +205,7 @@ typedef int64_t off64_t;
 #endif
 
                                    /* solaris, aix4.{23}, osf -------- */
-#if defined(os_solaris) || defined(os_aix) || defined(os_osf)
+#if defined(os_aix)
 /* see note (*) above */
 #define I32_MAX    INT32_MAX
 #define UI32_MAX   UINT32_MAX

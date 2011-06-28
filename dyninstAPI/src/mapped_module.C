@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -36,14 +36,16 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/pcProcess.h"
 #include <iomanip>
 #include <string>
 
 bool mapped_module::truncateLineFilenames = true;
 
-const pdvector<int_function *> &mapped_module::getAllFunctions() 
+const pdvector<func_instance *> &mapped_module::getAllFunctions() 
 {
-   pdvector<image_func *> pdfuncs;
+   pdvector<parse_func *> pdfuncs;
    internal_mod_->getFunctions(pdfuncs);
 
    if (everyUniqueFunction.size() == pdfuncs.size())
@@ -68,7 +70,7 @@ const pdvector<int_function *> &mapped_module::getAllFunctions()
             fprintf(stderr,"%u %s 0x%lx\n",
                 i,
                 everyUniqueFunction[i]->symTabName().c_str(),
-                everyUniqueFunction[i]->getAddress());
+                everyUniqueFunction[i]->addr());
         }
         fprintf(stderr,"pdfuncs[]:\n");
         for(unsigned i=0;i<pdfuncs.size();++i) {
@@ -101,7 +103,7 @@ const pdvector<int_variable *> &mapped_module::getAllVariables()
 }
 
 // We rely on the mapped_object for pretty much everything...
-void mapped_module::addFunction(int_function *func) 
+void mapped_module::addFunction(func_instance *func) 
 {
    // Just the everything vector... the by-name lists are
    // kept in the mapped_object and filtered if we do a lookup.
@@ -114,7 +116,7 @@ void mapped_module::addVariable(int_variable *var)
 }
 
 // We rely on the mapped_object for pretty much everything...
-void mapped_module::removeFunction(int_function *func) 
+void mapped_module::removeFunction(func_instance *func) 
 {
    for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {
        if (everyUniqueFunction[fIdx] == func) {
@@ -125,6 +127,7 @@ void mapped_module::removeFunction(int_function *func)
            return;
        }
    }
+   assert(0 && "Tried to remove function that's not in the module");
 }
 
 const string &mapped_module::fileName() const 
@@ -155,7 +158,7 @@ SymtabAPI::supportedLanguages mapped_module::language() const
 }
 
 bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
-      pdvector<int_function *> &funcs)
+      pdvector<func_instance *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
    // functions we want.
@@ -163,7 +166,7 @@ bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
    // the problem is that BPatch goes by module and internal goes by image. 
    unsigned orig_size = funcs.size();
 
-   const pdvector<int_function *> *obj_funcs = obj()->findFuncVectorByMangled(funcname);
+   const pdvector<func_instance *> *obj_funcs = obj()->findFuncVectorByMangled(funcname);
    if (!obj_funcs) {
       return false;
    }
@@ -177,7 +180,7 @@ bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
 }
 
 bool mapped_module::findFuncVectorByPretty(const std::string &funcname,
-      pdvector<int_function *> &funcs)
+      pdvector<func_instance *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
    // functions we want.
@@ -185,7 +188,7 @@ bool mapped_module::findFuncVectorByPretty(const std::string &funcname,
    // the problem is that BPatch goes by module and internal goes by image. 
    unsigned orig_size = funcs.size();
 
-   const pdvector<int_function *> *obj_funcs = obj()->findFuncVectorByPretty(funcname);
+   const pdvector<func_instance *> *obj_funcs = obj()->findFuncVectorByPretty(funcname);
    if (!obj_funcs) return false;
 
    for (unsigned i = 0; i < obj_funcs->size(); i++) {
@@ -225,18 +228,6 @@ mapped_module *mapped_module::createMappedModule(mapped_object *obj,
    // Do things?
 
    return mod;
-}
-
-// BPatch loves the mapped_module, but we pass it up to the image (since
-// that occupies a range of memory; modules can be scattered all around it).
-codeRange *mapped_module::findCodeRangeByAddress(const Address &addr)  
-{
-   return obj()->findCodeRangeByAddress(addr);
-}
-
-int_function *mapped_module::findFuncByAddr(const Address &addr)  
-{
-   return obj()->findFuncByAddr(addr);
 }
 
 
@@ -319,4 +310,58 @@ int_variable* mapped_module::createVariable(std::string name, Address addr, int 
   obj()->addVariable(ret);
   return ret;
 }
+
+bool mapped_module::findFuncsByAddr(const Address addr,
+                                    std::set<func_instance *> &funcs) {
+   std::set<func_instance *> allFuncs;
+   unsigned size = funcs.size();
+   if (!obj()->findFuncsByAddr(addr, allFuncs)) return false;
+   for (std::set<func_instance *>::iterator iter = allFuncs.begin();
+        iter != allFuncs.end(); ++iter) {
+      if ((*iter)->mod() == this) funcs.insert(*iter);
+   }
+   return (funcs.size() > size);
+}
+
+#if 0
+bool mapped_module::findBlocksByAddr(const Address addr,
+                                     std::set<block_instance *> &blocks) {
+   std::set<block_instance *> allBlocks;
+   unsigned size = blocks.size();
+   if (!obj()->findBlocksByAddr(addr, allBlocks)) return false;
+   for (std::set<block_instance *>::iterator iter = allBlocks.begin();
+        iter != allBlocks.end(); ++iter) {
+      if ((*iter)->func()->mod() == this) blocks.insert(*iter);
+   }
+   return (blocks.size() > size);
+}
+#endif
+
+void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
+{
+    assert(proc()->proc());
+    using namespace ParseAPI;
+    int pageSize = proc()->proc()->getMemoryPageSize();
+    const pdvector<func_instance *> funcs = getAllFunctions();
+    for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
+        const func_instance::BlockSet&
+            blocks = funcs[fidx]->blocks();
+        func_instance::BlockSet::const_iterator bIter;
+        for (bIter = blocks.begin(); 
+            bIter != blocks.end(); 
+            bIter++) 
+        {
+            Address bStart, bEnd, page;
+            bStart = (*bIter)->start();
+            bEnd = (*bIter)->end();
+            page = bStart - (bStart % pageSize);
+            while (page < bEnd) { // account for blocks spanning multiple pages
+                pages.insert(page);
+                page += pageSize;
+            }
+        }
+    }
+    
+}
+
 

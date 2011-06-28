@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -110,12 +110,6 @@ dynHandle *mutatorInit(void)
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_PASS,
 		    dh->proc->getPid());
 	}
-    }
-
-    if (config.use_save_world) {
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO);
-	dh->proc->enableDumpPatchedImage();
-	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO, ID_PASS);
     }
 
     sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO);

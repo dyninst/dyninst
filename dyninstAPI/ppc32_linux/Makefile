@@ -29,11 +29,12 @@ SRCS =          ../src/linux.C \
 		../src/inst-power.C \
 		../src/unix.C \
 		../src/codegen-power.C \
-		../src/image-power.C \
+		../src/parse-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-power.C \
+		../src/RegisterConversion-ppc.C \
 		../src/stackwalk-ppc.C \
+		../src/Relocation/Widgets/CFWidget-ppc.C \
 		../src/frameChecker.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

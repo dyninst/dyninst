@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -68,9 +68,11 @@ class SymtabReader : public SymReader {
    int ref_count;
    std::vector<Region *> *mapped_regions;
    DwarfHandle *dwarf_handle;
+   bool ownsSymtab;
   public:
    SymtabReader(std::string file_);
    SymtabReader(const char *buffer, unsigned long size);
+   SymtabReader(Symtab *s);
    virtual ~SymtabReader();
 
    virtual Symbol_t getSymbolByName(std::string symname);

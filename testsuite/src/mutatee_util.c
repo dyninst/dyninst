@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -688,4 +688,126 @@ void log_testresult(int passed)
    }
    fprintf(f, "%d\n", passed ? 1 : 0);
    fclose(f);
+}
+
+/* high precision timer */
+
+#if defined(os_linux_test) || defined(os_freebsd_test)
+#define _POSIX_C_SOURCE 199309 
+#include <time.h>
+#include <errno.h>
+#endif
+
+int precisionSleep(int milliseconds) {
+#if defined(os_linux_test) || defined(os_freebsd_test)
+    struct timespec req;
+    struct timespec rem;
+
+    if( milliseconds >= 1000 ) return 0;
+
+    memset(&rem, 0, sizeof(struct timespec));
+    req.tv_sec = 0;
+    req.tv_nsec = milliseconds*1000*1000;
+
+    int result;
+    do{
+        result = nanosleep(&req, &rem);
+        req = rem;
+    }while(result == -1 && errno == EINTR);
+
+    if( result == -1 ) return 0;
+    return 1;
+#elif defined(os_windows)
+    Sleep(milliseconds);
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+/* Event source interface */
+
+static uint64_t eventCounter = 0;
+
+#if defined(os_linux_test) || defined(os_freebsd_test)
+#include <signal.h>
+#include <sys/time.h>
+
+
+/* 
+ * headers define: 
+ *
+ * typedef struct event_source_struct event_source
+ *
+ * but the actual definition needs to be opaque due to platform dependent internals
+ */
+struct event_source_struct {
+    struct itimerval timer;
+    struct sigaction action;
+    struct sigaction old_action;
+};
+
+void handler(int sig, siginfo_t *siginfo, void *context) {
+    eventCounter++;
+}
+
+#else
+struct event_source_struct {
+    int unused;
+};
+#endif
+
+event_source *startEventSource() {
+    event_source *retVal = NULL;
+#if defined(os_linux_test) || defined(os_freebsd_test)
+    retVal = (event_source *)malloc(sizeof(struct event_source_struct));
+
+    /* First, register the signal handler */
+    memset(&(retVal->action), 0, sizeof(retVal->action));
+    retVal->action.sa_sigaction = handler;
+    retVal->action.sa_flags = SA_SIGINFO;
+    if( sigaction(SIGALRM, &(retVal->action), &(retVal->old_action)) ) {
+        free(retVal);
+        return NULL;
+    }
+
+    /* Next, setup the profiling timer (every 10ms) */
+    retVal->timer.it_interval.tv_sec = 0;
+    retVal->timer.it_interval.tv_usec = 10000;
+    retVal->timer.it_value = retVal->timer.it_interval;
+    if( setitimer(ITIMER_REAL, &(retVal->timer), NULL) == -1 ) {
+        free(retVal);
+        return NULL;
+    }
+#endif
+    return retVal;
+}
+
+uint64_t getEventCounter() {
+    return eventCounter;
+}
+
+int stopEventSource(event_source *eventSource) {
+    int retVal = 0;
+#if defined(os_linux_test) || defined(os_freebsd_test)
+    /* First, turn off the timer */
+    eventSource->timer.it_value.tv_sec = 0;
+    eventSource->timer.it_value.tv_usec = 0;
+    eventSource->timer.it_interval.tv_sec = 0;
+    eventSource->timer.it_interval.tv_usec = 0;
+    if( setitimer(ITIMER_PROF, &(eventSource->timer), NULL) == -1 ) {
+        return 0;
+    }
+
+    /* Next, unregister the signal handler */
+    if( sigaction(SIGPROF, &(eventSource->old_action), NULL) ) {
+        return 0;
+    }
+
+    free(eventSource);
+    retVal = 1;
+#else
+    eventSource = eventSource;
+#endif
+    return retVal;
 }

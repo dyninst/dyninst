@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -908,6 +908,7 @@ bool linux_thread::plat_cont()
       case running:
       case exited:
       case errorstate:
+      case detached:
          perr_printf("Continue attempted on thread in invalid state %s\n", 
                      int_thread::stateStr(handler_state));
          return false;
@@ -1075,6 +1076,19 @@ void linux_thread::setOptions()
    }   
 }
 
+bool linux_thread::unsetOptions()
+{
+    long options = 0;
+
+    int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
+            (void *) options);
+    if (result == -1) {
+        pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        return false;
+    }
+    return true;
+}
+
 bool linux_process::plat_individualRegAccess()
 {
    return true;
@@ -1119,6 +1133,47 @@ bool linux_process::plat_terminate(bool &needs_sync)
 
    needs_sync = true;
    return true;
+}
+
+bool linux_process::preTerminate() {
+#if defined(bug_force_terminate_failure)
+    // On some Linux versions (currently only identified on our power platform),
+    // a force terminate can fail to actually kill a process due to some OS level
+    // race condition. The result is that some threads in a process are stopped
+    // instead of exited and for some reason, continues will not continue the 
+    // process. This can be detected because some OS level structures (such as pipes)
+    // still exist for the terminated process
+
+    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
+    // events being delivered to the debugger, so we stop the process and disable these
+    // events for all threads in the process
+
+    if( !threadPool()->allStopped() ) {
+        pthrd_printf("Stopping process %d for pre-terminate handling\n",
+                getPid());
+        if( !threadPool()->userStop() ) {
+            perr_printf("Failed to stop process %d for pre-terminate handling\n",
+                    getPid());
+            return false;
+        }
+    }
+
+
+    for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end();
+            ++i)
+    {
+        linux_thread *thr = static_cast<linux_thread *>(*i);
+        pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
+                getPid(), thr->getLWP());
+        if( !thr->unsetOptions() ) {
+            perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
+                    getPid(), thr->getLWP());
+            return false;
+        }
+    }
+#endif
+
+    return true;
 }
 
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
@@ -1682,7 +1737,7 @@ bool linux_thread::attach()
                    "be auto-attached.\n", llproc()->getPid(), lwp);
       return true;
    }
-   assert(getInternalState() == neonatal);
+   assert(getInternalState() == neonatal || getInternalState() == neonatal_intermediate);
 
    pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n", 
                 llproc()->getPid(), lwp);

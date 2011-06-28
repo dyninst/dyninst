@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -77,25 +77,12 @@ int test2_6_mutatee() {
 }
 
 void func1() {
-/* #if defined(sparc_sun_solaris2_4_test) \ */
-/*  || defined(i386_unknown_solaris2_5_test) \ */
-/*  || defined(i386_unknown_linux2_0_test) \ */
-/*  || defined(x86_64_unknown_linux2_4_test) /\* Blind duplication - Ray *\/ \ */
-/*  || defined(mips_sgi_irix6_4_test) \ */
-/*  || defined(alpha_dec_osf4_0_test) \ */
-/*  || defined(rs6000_ibm_aix4_1_test) \ */
-/*  || defined(ia64_unknown_linux2_4_test) */
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */
-#if defined(alpha_dec_osf4_0_test)
-    ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
-#else
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
-#endif
 
     if (!ref) {
 	logerror("%s[%d]: %s\n", __FILE__, __LINE__, dlerror() );
     }
-/* #endif */
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -117,7 +117,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Return a printable string representation of the operand
       /// \return The operand in a disassembly format
-      INSTRUCTION_EXPORT std::string format() const;
+      INSTRUCTION_EXPORT std::string format(Architecture arch, Address addr = 0) const;
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,14 +52,21 @@
 #include "boost/assign/std/set.hpp"
 
 #include "common/h/arch-x86.h"
-#include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"
+
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace std;
 using namespace boost::assign;
-using namespace Dyninst::InstructionAPI;
 
 namespace NS_x86 {
+
+unsigned int swapBytesIfNeeded(unsigned int i)
+{
+    return i;
+}
 
 // groups
 enum {
@@ -283,8 +290,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_addps, "addps")
   (e_addsd, "addsd")
   (e_addss, "addss")
-  (e_addsubpd, "addsubpd")
-  (e_addsubps, "addsubps")
   (e_and, "and")
   (e_andnpd, "andnpd")
   (e_andnps, "andnps")
@@ -372,29 +377,13 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_extrq, "extrq")
   (e_fadd, "fadd")
   (e_faddp, "faddp")
-  (e_f2xm1, "f2xm1")
   (e_fbld, "fbld")
   (e_fbstp, "fbstp")
-  (e_fchs, "fchs")
-  (e_fcmovb, "fcmovb")
-  (e_fcmovbe, "fcmovbe")
-  (e_fcmove, "fcmove")
-  (e_fcmovne, "fcmovne")
-  (e_fcmovu, "fcmovu")
-  (e_fcmovnu, "fcmovnu")
-  (e_fcmovnb, "fcmovnb")
-  (e_fcmovnbe, "fcmovnbe")
   (e_fcom, "fcom")
-  (e_fcomi, "fcomi")
-  (e_fcomip, "fcomip")
   (e_fcomp, "fcomp")
-  (e_fcompp, "fcompp")
   (e_fdiv, "fdiv")
-  (e_fdivp, "fdivp")
   (e_fdivr, "fdivr")
-  (e_fdivrp, "fdivrp")
   (e_femms, "femms")
-  (e_ffree, "ffree")
   (e_fiadd, "fiadd")
   (e_ficom, "ficom")
   (e_ficomp, "ficomp")
@@ -408,13 +397,10 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fisub, "fisub")
   (e_fisubr, "fisubr")
   (e_fld, "fld")
-  (e_fld1, "fld1")
   (e_fldcw, "fldcw")
   (e_fldenv, "fldenv")
   (e_fmul, "fmul")
-  (e_fmulp, "fmulp")
   (e_fnop, "fnop")
-  (e_fprem, "fprem")
   (e_frstor, "frstor")
   (e_fsave, "fsave")
   (e_fst, "fst")
@@ -423,15 +409,9 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_fstp, "fstp")
   (e_fstsw, "fstsw")
   (e_fsub, "fsub")
-  (e_fsubp, "fsubp")
   (e_fsubr, "fsubr")
-  (e_fsubrp, "fsubrp")
-  (e_fucom, "fucom")
   (e_fucomp, "fucomp")
-  (e_fucomi, "fucomi")
-  (e_fucomip, "fucomip")
   (e_fucompp, "fucompp")
-  (e_fxch, "fxch")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
   (e_haddpd, "haddpd")
@@ -462,7 +442,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_jl, "jl")
   (e_jle, "jle")
   (e_jmp, "jmp")
-  (e_jmpe, "jmpe")
   (e_jnb, "jnb")
   (e_jnb_jae_j, "jnb/jae/j")
   (e_jnbe, "jnbe")
@@ -478,7 +457,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_jz, "jz")
   (e_lahf, "lahf")
   (e_lar, "lar")
-  (e_lddqu, "lddqu")
   (e_ldmxcsr, "ldmxcsr")
   (e_lds, "lds")
   (e_lea, "lea")
@@ -533,14 +511,10 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movntpd, "movntpd")
   (e_movntps, "movntps")
   (e_movntq, "movntq")
-  (e_movntsd, "movntsd")
-  (e_movntss, "movntss")
   (e_movq, "movq")
   (e_movq2dq, "movq2dq")
   (e_movsb, "movsb")
   (e_movsd, "movsd")
-  (e_movshdup, "movshdup")
-  (e_movsldup, "movsldup")
   (e_movss, "movss")
   (e_movsw, "movsw")
   (e_movsx, "movsx")
@@ -601,7 +575,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_popad, "popad")
   (e_popf, "popf")
   (e_popfd, "popfd")
-  (e_popcnt, "popcnt")
   (e_por, "por")
   (e_prefetch, "prefetch")
   (e_prefetchNTA, "prefetchNTA")
@@ -718,7 +691,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_test, "test")
   (e_ucomisd, "ucomisd")
   (e_ucomiss, "ucomiss")
-  (e_ud, "ud")
   (e_ud2, "ud2")
   (e_ud2grp10, "ud2grp10")
   (e_unpckhpd, "unpckhpd")
@@ -727,9 +699,6 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_unpcklps, "unpcklps")
   (e_verr, "verr")
   (e_verw, "verw")
-  (e_vmread, "vmread")
-  (e_vmwrite, "vmwrite")
-  (e_vsyscall, "vsyscall")
   (e_wait, "wait")
   (e_wbinvd, "wbinvd")
   (e_wrmsr, "wrmsr")
@@ -1610,7 +1579,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fcmovne,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcmovnbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcmovnu,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
-        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // FIXME: needs FCLEX and FINIT in group
+        { e_fp_generic,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // FIXME: needs FCLEX and FINIT in group
         { e_fucomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcomi,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
@@ -2788,8 +2757,6 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 	*gotit_ptr == &oneByteMap[0x62] || // bound gv, ma
 	*gotit_ptr == &oneByteMap[0x82] || // group 1 eb/ib
 	*gotit_ptr == &oneByteMap[0x9A] || // call ap
-	*gotit_ptr == &oneByteMap[0x9E] || // sahf
-	*gotit_ptr == &oneByteMap[0x9F] || // lahf
 	*gotit_ptr == &oneByteMap[0xC4] || // les gz, mp
 	*gotit_ptr == &oneByteMap[0xC5] || // lds gz, mp
 	*gotit_ptr == &oneByteMap[0xCE] || // into
@@ -2881,7 +2848,14 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       break;
     case t_prefixedSSE:
       sseidx = gotit->tabidx;
-      assert(addr[0] == 0x0F);
+      if(addr[0] != 0x0F)
+      {
+          // all valid SSE insns will have 0x0F as their first byte after prefix
+          instruct.size += 1;
+          addr += 1;
+          instruct.entry = &invalid;
+          return instruct;
+      }
       idx = addr[1];
       gotit = &twoByteMap[idx];
       nxtab = gotit->otable;
@@ -3325,7 +3299,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	    break;
 	  case 7:
 	    mac->size = 8;
-	    mac->write = true;
+	    mac->write = true; 
 	    break;
 	  }
 	  break; }
@@ -3487,8 +3461,8 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     }
   }
   else { // 32-bit or 64-bit, may have SIB
-    if(mod == 3)
-      return 0; // only registers, no SIB
+     if(mod == 3)
+        return 0; // only registers, no SIB
     bool hassib = rm == 4;
     unsigned int nsib = 0;
     unsigned char sib;
@@ -3741,8 +3715,8 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       //assert(i<2 || op.admet == am_reg || op.admet == am_I);
       switch(op.admet) {
       case am_A: /* address = segment + offset (word or dword or qword) */
-        nib += wordSzB * addrSzAttr;
-	nib += dwordSzB;
+		nib += wordSzB; // segment
+        nib += wordSzB * addrSzAttr;  // + offset (1 or 2 words, depending on prefix)
 	break;
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;
@@ -3894,9 +3868,17 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
   }
   if((gotit.id == e_call) && mac)
   {
-      mac[0].set(mESP, -2 * addrSzAttr, addrSzAttr);
-      mac[0].size = type2size(op_v, addrSzAttr);
-      mac[0].write = true;
+	int index = 0;
+	while((mac[index].regs[0] != -1) ||
+		  (mac[index].regs[1] != -1) ||
+		  (mac[index].scale != 0) ||
+		  (mac[index].imm != 0)) {
+		index++;
+		assert(index < 3);
+	}
+	mac[index].set(mESP, -2 * addrSzAttr, addrSzAttr);
+      mac[index].size = type2size(op_v, addrSzAttr);
+      mac[index].write = true;
             
   }
   
@@ -4105,6 +4087,12 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
+#if defined(os_vxworks)
+    Address ret;
+    // FIXME requires vxworks in Dyninst
+    if (relocationTarget(addr+1, &ret))
+        return ret;
+#endif
   int disp = displacement(instr, type);
   return (Address)(addr + size + disp);
 }
@@ -4656,7 +4644,7 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
-	using namespace Dyninst::InstructionAPI;
+	//using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
              case x86::iah:   

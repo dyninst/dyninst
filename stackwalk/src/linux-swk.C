@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -283,8 +283,8 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
       }
       if (libpthread) {
          libpthread_restore = libpthread->getSymbolByName("__restore_rt");
-         if (!result) {
-            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+         if (!libpthread->isValidSymbol(libpthread_restore)) {
+            sw_printf("[%s:%u] - Unable to find restore_rt in libpthread\n",
                       __FILE__, __LINE__);
          }
          else {

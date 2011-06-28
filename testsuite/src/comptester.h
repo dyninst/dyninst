@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,7 @@
 
 class ComponentTester {
  public:
+  ComponentTester() : measure(false) {};
    virtual test_results_t program_setup(ParameterDict &params) = 0;
    virtual test_results_t program_teardown(ParameterDict &params) = 0;
    virtual test_results_t group_setup(RunGroup *group, ParameterDict &params) = 0;
@@ -47,6 +48,17 @@ class ComponentTester {
    virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms) = 0;
    virtual std::string getLastErrorMsg() = 0;
    virtual ~ComponentTester() { };
+
+   virtual void measure_usage() { measure = true; };
+   virtual UsageMonitor usage_info() { return um_program + um_group; };
+   virtual void clear_program_usage() { um_program.clear(); };
+   virtual void clear_group_usage() { um_group.clear(); };
+
+ protected:
+   bool measure;
+   UsageMonitor um_program;
+   UsageMonitor um_group;
+
 };
 
 #endif

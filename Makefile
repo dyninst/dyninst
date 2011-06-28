@@ -147,4 +147,4 @@ umd-nightly:
 	$(MAKE) nightly
 
 # Used for UW nightly builds
-nightly: $(Everything_install) parseThat_install testsuite-nightly
+nightly: ready $(Everything_install) parseThat_install testsuite-nightly

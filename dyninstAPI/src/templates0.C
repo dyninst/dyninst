@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -54,19 +54,6 @@
 #pragma implementation "Vector.h"
 #endif
 #include "common/h/Vector.h"
-
-#if 0
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation("Symbol.h")
-#else
-#pragma implementation "Symbol.h"
-#endif
-#include "symtabAPI/h/Symbol.h"
-// Included above
-template class  pdvector<Symbol>;
-template class  pdvector<Symbol*>;
-
-#endif
 
 #include <string>
 #include "dyninstAPI/src/inst.h"
@@ -127,8 +114,8 @@ template class  pdvector<codeRange *>;
 class pdmodule;
 template class  pdvector<pdmodule *>;
 
-class int_function;
-template class  pdvector<int_function*>;
+class func_instance;
+template class  pdvector<func_instance*>;
 class int_variable;
 template class  pdvector<int_variable*>;
 class int_basicBlock;
@@ -153,20 +140,16 @@ template class  pdvector<miniTrampInstance *>;
 class generatedCodeObject;
 template class  pdvector<generatedCodeObject *>;
 
-class image_func;
-class image_basicBlock;
+class parse_func;
+class parse_block;
 class image_variable;
-template class  pdvector<image_func *>;
-template class  pdvector<pdvector<image_func *> *>;
-template class  pdvector<image_basicBlock *>;
+template class  pdvector<parse_func *>;
+template class  pdvector<pdvector<parse_func *> *>;
+template class  pdvector<parse_block *>;
 template class  pdvector<image_variable *>;
 
 #include "symtabAPI/h/Symtab.h"
 template class  pdvector<relocationEntry>;
-
-#include "imageUpdate.h"
-template class pdvector<imageUpdate*>;//ccw 28 oct 2001
-template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 
 class instMapping;
 template class pdvector<instMapping *>;
@@ -188,10 +171,4 @@ template class pdvector<fileOpener *>;
 
 class funcMod;
 template class pdvector<funcMod *>;
-
-// Clean this up...
-#if defined(cap_relocation)
-#include "dyninstAPI/src/function.h"
-template class pdvector<bblInstance::reloc_info_t::relocInsn *>;
-#endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -55,17 +55,6 @@ extern "C" DLLEXPORT TestMutator *test_mem_3_factory() {
   return new test_mem_3_Mutator();
 }
 
-#ifdef arch_sparc_test
-static const unsigned int nprefes = 2;
-static BPatch_memoryAccess* prefeList[nprefes];
-
-static void init_test_data()
-{
-  int k=-1;
-  prefeList[++k] = MK_PF(0,17,0,2);
-  prefeList[++k] = MK_PF(0,20,0,0);
-}
-#endif
 
 #ifdef arch_power_test
 static const unsigned int nprefes = 0;
@@ -118,16 +107,6 @@ static void init_test_data()
 }
 #endif
 
-#ifdef arch_ia64_test
-static const unsigned int nprefes = 3;
-static BPatch_memoryAccess* prefeList[nprefes];
-static void init_test_data() {
-	prefeList[0] = MK_PF( 0, 14, -1, 0 );
-	prefeList[1] = MK_PF( 0, 14, -1, 0 );
-	prefeList[2] = MK_PF( 0, 14, -1, 0 );
-}
-
-#endif
 
 #ifdef arch_x86_64_test
 static const unsigned int nprefes = 2;
@@ -149,7 +128,7 @@ static void init_test_data()
 test_results_t test_mem_3_Mutator::executeTest() {
   int testnum = 3;
   const char* testdesc = "prefetch instrumentation";
-#if !defined(arch_sparc_test) && !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test) && !defined(arch_ia64_test)
+#if !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else

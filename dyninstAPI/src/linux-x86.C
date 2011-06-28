@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -110,7 +110,7 @@ Address PCProcess::getTOCoffsetInfo(Address) {
     return 0;
 }
 
-Address PCProcess::getTOCoffsetInfo(int_function *) {
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
     assert(!"This function is unimplemented");
     return 0;
 }
@@ -142,7 +142,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
 
     // mprotect READ/WRITE __stack_prot
     pdvector<int_variable *> vars;
-    pdvector<int_function *> funcs;
+    pdvector<func_instance *> funcs;
 
     Address var_addr;
     int size;
@@ -174,7 +174,7 @@ AstNodePtr PCProcess::createUnprotectStackAST() {
     }
 
     // mprotect: int mprotect(const void *addr, size_t len, int prot);
-    int_function *mprot = funcs[0];
+    func_instance *mprot = funcs[0];
     
     pdvector<AstNodePtr> args;
     args.push_back(AstNode::operandNode(AstNode::Constant, (void *)page_start));
@@ -210,7 +210,7 @@ bool PCProcess::instrumentLibcStartMain()
     addASharedObject(libc);
 
     // find __libc_startmain
-    const pdvector<int_function*> *funcs;
+    const pdvector<func_instance*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -223,7 +223,7 @@ bool PCProcess::instrumentLibcStartMain()
         logLine( "__libc_start_main is not instrumentable\n");
         return false;
     }
-    Address addr = (*funcs)[0]->getAddress();
+    Address addr = (*funcs)[0]->addr();
     startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
                    FILE__, __LINE__, (int)addr);
 

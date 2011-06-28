@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -77,6 +77,8 @@ const err_t err_notrunning     = 0x10012;
 const err_t err_noevents       = 0x10013;
 const err_t err_incallback     = 0x10014;
 const err_t err_nouserthrd     = 0x10015;
+const err_t err_detached       = 0x10016;
+const err_t err_pendingirpcs    = 0x10017;
 
 err_t getLastError();
 void clearLastError();

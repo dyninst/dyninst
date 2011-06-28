@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -33,8 +33,7 @@
 
 /* ccw 21 nov 2001 */
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 #ifndef ELF_Section__

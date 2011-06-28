@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -287,6 +287,7 @@ class Process
    bool isTerminated() const;
    bool isExited() const;
    bool isCrashed() const;
+   bool isDetached() const;
    int getExitCode() const;
    int getCrashSignal() const;
 
@@ -305,6 +306,8 @@ class Process
    bool stopProc();
    bool detach();
    bool terminate();
+   bool temporaryDetach();
+   bool reAttach();
 
    /**
     * Memory management
@@ -358,6 +361,7 @@ class Thread
    bool isStopped() const;
    bool isRunning() const;
    bool isLive() const;
+   bool isDetached() const;
    bool isInitialThread() const;
 
    bool stopThread();

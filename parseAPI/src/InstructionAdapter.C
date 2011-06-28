@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,6 +35,7 @@
 #include "debug_parse.h"
 
 #include "parseAPI/h/CodeObject.h"
+#include "external/boost/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace Dyninst::InsnAdapter;
@@ -86,9 +87,10 @@ void InstructionAdapter::advance()
 
 }
 
-void InstructionAdapter::retreat()
+bool InstructionAdapter::retreat()
 {
     // anything? FIXME
+    return false;
 }
 
 Address InstructionAdapter::getAddr() const
@@ -111,8 +113,9 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
 {
     // Branch that's not resolvable by binding IP,
     // therefore indirect...
-    if(isBranch() &&
-       getCFT() == 0)
+   bool valid; Address addr;
+   boost::tie(valid, addr) = getCFT();
+   if(isBranch() && !valid)
     {
         if(num_insns == 2)
         {
@@ -142,6 +145,8 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(Function * context ,
     return UNSET;
 }
 
+/* Returns true for indirect calls and unresolved indirect branches 
+ */
 bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned int num_insns) const
 {
     if(isDynamicCall())
@@ -149,7 +154,7 @@ bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned in
         return true;
     }
     if(getReturnStatus(context, num_insns) == UNKNOWN)
-    {
+    { // true for indirect branches
         return true;
     }
     return false;
@@ -157,8 +162,9 @@ bool InstructionAdapter::hasUnresolvedControlFlow(Function* context, unsigned in
 
 InstrumentableLevel InstructionAdapter::getInstLevel(Function * context, unsigned int num_insns) const
 {
-    if(isBranch() &&
-       getCFT() == 0)
+   bool valid; Address target;
+   boost::tie(valid, target) = getCFT();
+   if(isBranch() && !valid)
     {
         if(num_insns == 2)
         {

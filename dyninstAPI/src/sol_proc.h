@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -44,28 +44,7 @@
  * This section defines macros to deal with this
  */
 
-#if defined(os_solaris) && defined(arch_sparc)
-#define GETREG_nPC(regs)      (regs[R_nPC])
-#define GETREG_PC(regs)       (regs[R_PC])
-#define GETREG_FP(regs)       (regs[R_O6])
-#define GETREG_INFO(regs)     (regs[R_O0])
-#define GETREG_GPR(regs, reg) (regs[reg])
-// Solaris uses the same operators on all set datatypes
-#define prfillsysset(x)       prfillset(x)
-#define premptysysset(x)      premptyset(x)
-#define praddsysset(x,y)      praddset(x,y)
-#define prdelsysset(x,y)      prdelset(x,y)
-#define prissyssetmember(x,y) prismember(x,y)
-#define proc_sigset_t         sigset_t
-#define SYSSET_DECLAREPID(x,y) {}
-#define SYSSET_ALLOC(x)     ((sysset_t *)malloc(sizeof(sysset_t)))
-#define SYSSET_FREE(x)      (free(x))
-#define SYSSET_SIZE(x)      (sizeof(sysset_t))
-#elif defined(os_solaris) && defined(arch_x86)
-#define REG_PC(regs) (regs->theIntRegs[EIP])
-#define REG_FP(regs) (regs->theIntRegs[EBP])
-#define REG_SP(regs) (regs->theIntRegs[UESP])
-#elif defined(os_aix)
+#if defined(os_aix)
 #define GETREG_nPC(regs)       (regs.__iar)
 #define GETREG_PC(regs)        (regs.__iar)
 #define GETREG_FP(regs)        (regs.__gpr[1])

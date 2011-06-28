@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,7 +38,6 @@
 
 #include "symtab.h"
 #include "common/h/arch.h"
-#include "instPoint.h"
 #include "parRegion.h"
 #include "util.h"
 #include "inst.h"
@@ -71,7 +70,7 @@
 
 #if defined(i386_unknown_nt4_0)
 #include <dbghelp.h>
-#include <cvconst.h>
+//#include <cvconst.h>
 #endif
 
 #if defined(os_vxworks)
@@ -79,7 +78,7 @@
 #endif
 
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
-AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
+AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
 
 using namespace std;
@@ -747,6 +746,7 @@ void image::findMain()
        vector <Symbol *>syms;
        vector<SymtabAPI::Function *> funcs;
        Address eAddr = linkedFile->getEntryOffset();
+       Region *eReg = linkedFile->findEnclosingRegion(eAddr);
        
        bool found_main = false;
        for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
@@ -765,11 +765,12 @@ void image::findMain()
                                               Symbol::SV_DEFAULT, 
                                               eAddr ,
                                               linkedFile->getDefaultModule(),
-                                              NULL,
+                                              eReg,
                                               UINT_MAX );
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
+#if 0 //KEVIN: this makes no sense, why would we parse at arbitrary locations?
            if(!linkedFile->findSymbol(syms,"winStart",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //make up a func name for the start of the text section
                Symbol *sSym = new Symbol( "winStart", 
@@ -778,23 +779,26 @@ void image::findMain()
                                           Symbol::SV_DEFAULT, 
                                           imageOffset_,
                                           linkedFile->getDefaultModule(),
-                                          NULL, 
+                                          linkedFile->findEnclosingRegion(imageOffset_), 
                                           UINT_MAX );
                linkedFile->addSymbol(sSym);
            }
            syms.clear();
            if(!linkedFile->findSymbol(syms,"winFini",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //make up one for the end of the text section
+               Address end_text = imageOffset_ + linkedFile->imageLength() - 1;
                Symbol *fSym = new Symbol( "winFini", 
                                           Symbol::ST_FUNCTION,
                                           Symbol::SL_GLOBAL, 
                                           Symbol::SV_DEFAULT, 
-                                          imageOffset_ + linkedFile->imageLength() - 1, 
+                                          end_text, 
                                           linkedFile->getDefaultModule(),
-                                          NULL, 
+                                          linkedFile->findEnclosingRegion(end_text),
                                           UINT_MAX );
                linkedFile->addSymbol(fSym);
            }
+           syms.clear();
+#endif
            // add entry point as main given that nothing else was found
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",
@@ -804,7 +808,8 @@ void image::findMain()
                                             Symbol::SL_GLOBAL, 
                                             Symbol::SV_DEFAULT,
                                             eAddr,
-                                            linkedFile->getDefaultModule()));
+                                            linkedFile->getDefaultModule(),
+                                            eReg));
        }
    }
 #endif
@@ -975,38 +980,6 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    }
 
    return NULL;
-}
-
-image_instPoint *
-image::getInstPoint(Address addr)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.find(addr);
-    if(iit != inst_pts_.end())
-        return iit->second;
-    return NULL;
-}
-void
-image::getInstPoints(Address start, Address end,
-    pdvector<image_instPoint *> & points)
-{
-    analyzeIfNeeded();
-    instp_map_t::iterator iit = inst_pts_.lower_bound(start);
-    while(iit != inst_pts_.end() && iit->second->offset() < end) {
-        points.push_back(iit->second);
-        ++iit;
-    }
-}
-bool
-image::addInstPoint(image_instPoint *p)
-{
-    if(inst_pts_.find(p->offset()) != inst_pts_.end()) {   
-        parsing_printf("  attempt to add duplicate instpoint at %lx\n",
-            p->offset());
-        return false;
-    }
-    inst_pts_[p->offset()] = p;
-    return true;
 }
 
 CodeObject::funclist &
@@ -1251,36 +1224,8 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::removeInstPoint(image_instPoint *p)
+void image::deleteFunc(parse_func *func)
 {
-    instp_map_t::iterator iit = inst_pts_.find(p->offset());
-    if(iit != inst_pts_.end())
-        inst_pts_.erase(iit);
-}
-
-void image::deleteFunc(image_func *func)
-{
-    // Remove the function's points, but not points that are shared
-    // with other functions since they might not be going away. 
-    vector<FuncExtent *>::const_iterator eit = func->extents().begin();
-    set<ParseAPI::Function *> pt_funcs;
-    for( ; eit != func->extents().end(); ++eit) {
-        FuncExtent * fe = *eit;
-        pdvector<image_instPoint *> pts;
-        getInstPoints(fe->start(),fe->end(),pts);
-        for(unsigned i=0;i<pts.size();++i) {
-            image_instPoint *p = pts[i];
-            findFuncs(p->offset(), pt_funcs);
-            if ( 1 == pt_funcs.size() )
-                removeInstPoint(p);
-            pt_funcs.clear();
-        }
-    }
-    // Remove the function's entry point whether it is shared or not
-    image_instPoint *p = getInstPoint(func->getOffset());
-    if (p) 
-        removeInstPoint(p);
-
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;
     getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
@@ -1293,48 +1238,16 @@ void image::deleteFunc(image_func *func)
 
 }
 
-extern void codeBytesUpdateCB(void *objCB, Region *reg, Address addr);
-void image::call_codeBytesUpdateCB(Region *reg, Address addr)
-{
-    assert(BPatch_normalMode != mode_);
-    codeBytesUpdateCB(cb_arg0_, reg, addr + desc().loadAddr());
-}
-
-
-#if 0   // FIXME ensure all necessary functionality preserved
-// Enter a function in all the appropriate tables
-void image::enterFunctionInTables(image_func *func) {
-    if (!func) return;
-
-    parsing_printf("[%s:%u] entering function at %lx (%s) in tables\n",
-        FILE__,__LINE__,func->getOffset(),func->symTabName().c_str());
-
-    funcsByEntryAddr[func->getOffset()] = func;
-   
-    // XXX the origin & meaning of the following comment is unknown; preserving.
-    // TODO: out-of-line insertion here
-    if(func->get_size()) {
-        funcsByRange.insert(func);
-    }
-
-    // This has already been done for symtab functions
-    if(func->src() != HINT) {
-        Symbol *sym = func->getSymtabFunction()->getFirstSymbol();
-        getObject()->addSymbol(sym);
-    }
-   
-    if(func->src() == HINT)
-        exportedFunctions.push_back(func);
-    else
-        createdFunctions.push_back(func);
-}  
-#endif
-
 void image::analyzeIfNeeded() {
   if (parseState_ == symtab) {
       parsing_printf("ANALYZING IMAGE %s\n",
               file().c_str());
       analyzeImage();
+	  // For defensive mode: we only care about incremental splitting and block
+	  // creation, not ones noted during parsing (as we haven't created the int
+	  // layer yet, so no harm no foul)
+	  clearSplitBlocks();
+	  clearNewBlocks();
   }
 }
 
@@ -1343,7 +1256,7 @@ void image::analyzeImage() {
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-
+    mal_printf("parsing %s loaded at %lx\n", name().c_str(),desc().loadAddr());
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
 // FIXME necessary?
@@ -1360,7 +1273,7 @@ void image::analyzeImage() {
 
     obj_->parse();
 
-#if defined(os_solaris) || defined(os_aix)
+#if defined(os_aix)
   {
   image_parRegion *parReg;
   int currentSectionNum = 0;
@@ -1374,13 +1287,13 @@ void image::analyzeImage() {
     continue;
       else
     {
-      // Every parallel region has the image_func that contains the
+      // Every parallel region has the parse_func that contains the
       //   region associated with it 
-            image_func * imf = const_cast<image_func*>(parReg->getAssociatedFunc());
+            parse_func * imf = const_cast<parse_func*>(parReg->getAssociatedFunc());
       
-      // Returns pointers to all potential image_funcs that correspond
+      // Returns pointers to all potential parse_funcs that correspond
       //   to what could be the parent OpenMP function for the region 
-      const pdvector<image_func *> *prettyNames =
+      const pdvector<parse_func *> *prettyNames =
         findFuncVectorByPretty(imf->calcParentFunc(imf, parallelRegions));
       
       //There may be more than one (or none) functions with that name, we take the first 
@@ -1448,6 +1361,7 @@ image::image(fileDescriptor &desc,
    nativeCompiler(false),    
    obj_(NULL),
    cs_(NULL),
+   filt(NULL),
    img_fact_(NULL),
    parse_cb_(NULL),
    nextBlockID_(0),
@@ -1477,7 +1391,7 @@ image::image(fileDescriptor &desc,
       else
       {
          startup_printf("%s[%d]:  opening file (not archive)\n", FILE__, __LINE__);
-         if (!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+         if (!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
          {
             startup_printf("%s[%d]:  opening file (not archive) failed\n", FILE__, __LINE__);
             err = true;
@@ -1505,11 +1419,11 @@ image::image(fileDescriptor &desc,
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
+#elif defined(os_linux) || defined(os_freebsd)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-       if( !SymtabAPI::Symtab::openFile(linkedFile, file) ) {
+       if( !SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode ? Symtab::Defensive : Symtab::NotDefensive)) ) {
            err = true;
            return;
        }
@@ -1541,12 +1455,16 @@ image::image(fileDescriptor &desc,
    fixup_offsets(file, linkedFile);
 
 #else
-   string file = desc_.file();
+	std::string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
-       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
+       linkedFile = new SymtabAPI::Symtab((unsigned char*)desc.rawPtr(), 
+                                          desc.length(), 
+                                          desc.file(), 
+                                          BPatch_defensiveMode == mode,
+                                          err);
    } 
-   else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode) ? SymtabAPI::Symtab::Defensive : SymtabAPI::Symtab::NotDefensive))
    {
       err = true;
       return;
@@ -1592,6 +1510,10 @@ image::image(fileDescriptor &desc,
       return;
    }
 
+   //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
+   findMain();
+
    // Initialize ParseAPI 
    filt = NULL;
 
@@ -1611,9 +1533,6 @@ image::image(fileDescriptor &desc,
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
-   // XXX FIXME having this static member in instPointBase
-   //     prevents support of multiple architectures simultaneously
-   instPointBase::setArch(cs_->getArch(), (getObject()->getAddressWidth() == 8));
 
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
@@ -1661,12 +1580,6 @@ image::~image()
       delete parallelRegions[i];
     parallelRegions.clear();
 
-    // free instPoints
-    instp_map_t::iterator iit = inst_pts_.begin();
-    for( ; iit != inst_pts_.end(); ++iit) {
-        delete iit->second;
-    }
-    
     // Finally, remove us from the image list.
     for (i = 0; i < allImages.size(); i++) {
         if (allImages[i] == this)
@@ -1690,14 +1603,14 @@ image::~image()
 #endif
 }
 
-bool pdmodule::findFunction( const std::string &name, pdvector<image_func *> &found ) {
+bool pdmodule::findFunction( const std::string &name, pdvector<parse_func *> &found ) {
     if (findFunctionByMangled(name, found))
         return true;
     return findFunctionByPretty(name, found);
 }
 
 bool pdmodule::findFunctionByMangled( const std::string &name,
-                                      pdvector<image_func *> &found)
+                                      pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1705,7 +1618,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByMangled(name.c_str());
     if (!obj_funcs) {
         return false;
     }
@@ -1723,7 +1636,7 @@ bool pdmodule::findFunctionByMangled( const std::string &name,
 
 
 bool pdmodule::findFunctionByPretty( const std::string &name,
-                                     pdvector<image_func *> &found)
+                                     pdvector<parse_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
     // functions we want.
@@ -1731,7 +1644,7 @@ bool pdmodule::findFunctionByPretty( const std::string &name,
     // the problem is that BPatch goes by module and internal goes by image. 
     unsigned orig_size = found.size();
     
-    const pdvector<image_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
+    const pdvector<parse_func *> *obj_funcs = imExec()->findFuncVectorByPretty(name);
     if (!obj_funcs) {
         return false;
     }
@@ -1754,7 +1667,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
   CodeObject::funclist::iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
-      image_func * pdf = (image_func*)*fit;
+      parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
 
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
@@ -1767,7 +1680,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
   cerr << endl;
 }
 
-image_func *image::addFunction(Address functionEntryAddr, const char *fName)
+parse_func *image::addFunction(Address functionEntryAddr, const char *fName)
  {
      set<CodeRegion *> regions;
      CodeRegion * region;
@@ -1808,7 +1721,7 @@ image_func *image::addFunction(Address functionEntryAddr, const char *fName)
      // Parse, but not recursively
      codeObject()->parse(functionEntryAddr, false); 
 
-     image_func * func = static_cast<image_func*>(
+     parse_func * func = static_cast<parse_func*>(
             codeObject()->findFuncByEntry(region,functionEntryAddr));
 
      if(NULL == func) {
@@ -1932,7 +1845,7 @@ image::findFuncs(const Address offset, set<Function *> & funcs) {
 #endif 
 }
 
-image_func *image::findFuncByEntry(const Address &entry) {
+parse_func *image::findFuncByEntry(const Address &entry) {
     analyzeIfNeeded();
 
     set<CodeRegion *> match;
@@ -1940,7 +1853,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     if(cnt == 0)
         return 0;
     else if(cnt == 1)
-        return (image_func*)obj_->findFuncByEntry(*match.begin(),entry);
+        return (parse_func*)obj_->findFuncByEntry(*match.begin(),entry);
 
 #if !defined(os_aix)
     fprintf(stderr,"[%s:%d] image::findFuncByEntry(entry) called on "
@@ -1950,7 +1863,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
     return 0;
 #else
     CodeRegion * single = aix_region_hack(match,entry);
-    return (image_func*)obj_->findFuncByEntry(single,entry);
+    return (parse_func*)obj_->findFuncByEntry(single,entry);
 #endif 
 }
 
@@ -1981,16 +1894,16 @@ image::findBlocksByAddr(const Address addr, set<ParseAPI::Block *> & blocks )
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &name) {
+const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::prettyName);
 
     for(unsigned index=0; index < funcs.size(); index++)
     {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
@@ -2014,16 +1927,16 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string &name)
+const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
-    pdvector<image_func *>* res = new pdvector<image_func *>;
+    pdvector<parse_func *>* res = new pdvector<parse_func *>;
 
     vector<SymtabAPI::Function *> funcs;
     linkedFile->findFunctionsByName(funcs, name.c_str(), SymtabAPI::mangledName);
 
     for(unsigned index=0; index < funcs.size(); index++) {
         SymtabAPI::Function *symFunc = funcs[index];
-        image_func *imf = NULL;
+        parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
             fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__, name.c_str());
@@ -2109,13 +2022,13 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
   return NULL;*/
 }
 
-bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
+bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
     unsigned curFuncSize = funcs.size();
 
     CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
     CodeObject::funclist::iterator fit = allFuncs.begin();
     for( ; fit != allFuncs.end(); ++fit) {
-        image_func *f = (image_func*)*fit;
+        parse_func *f = (parse_func*)*fit;
         if (f->pdmod() == this)
             funcs.push_back(f);
     }
@@ -2252,8 +2165,14 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
+void image::addSplitBlock(parse_block *first, parse_block *second) {
 
-const set<image_basicBlock*> & image::getSplitBlocks() const
+    std::list<Address> toRemove;
+	splitBlocks_.insert(make_pair(first, second));
+}
+
+
+const image::SplitBlocks & image::getSplitBlocks() const
 {
     return splitBlocks_;
 }
@@ -2261,7 +2180,7 @@ void image::clearSplitBlocks()
 {
     splitBlocks_.clear();
 }
-const vector<image_basicBlock*> & image::getNewBlocks() const
+const vector<parse_block*> & image::getNewBlocks() const
 {
     return newBlocks_;
 }
@@ -2270,3 +2189,7 @@ void image::clearNewBlocks()
     newBlocks_.clear();
 }
 
+void image::setImageLength(Address newlen)
+{
+    imageLen_ = newlen; 
+}

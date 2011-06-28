@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -38,7 +38,7 @@ class codeGen;
 class insnCodeGen {
  public:
     static instructUnion *insnPtr(codeGen &gen);
-    static instructUnion *ptrAndInc(codeGen &gen);
+    //static instructUnion *ptrAndInc(codeGen &gen);
 
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
@@ -133,6 +133,20 @@ class insnCodeGen {
    // Routines to create/remove a new stack frame for getting scratch registers
    static int createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg,  pdvector<Register>& excludeReg);
    static void removeStackFrame(codeGen &gen);
+
+
+  static bool modifyJump(Address target,
+                         NS_power::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyJcc(Address target,
+                        NS_power::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyCall(Address target,
+                         NS_power::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyData(Address target,
+                         NS_power::instruction &insn, 
+                         codeGen &gen);
 };
 
 
