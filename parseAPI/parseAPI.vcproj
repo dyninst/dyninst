@@ -597,6 +597,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\StackTamperVisitor.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\src\SymbolicExpansion.C"
 				>
 				<FileConfiguration
@@ -723,6 +735,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\IA_platformDetails.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\IA_powerDetails.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\IA_x86Details.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\InstructionAdapter.h"
 				>
 			</File>
@@ -771,6 +795,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\StackTamperVisitor.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\h\SymEval.h"
 				>
 			</File>
@@ -784,6 +812,10 @@
 			</File>
 			<File
 				RelativePath=".\src\util.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\rose\x86InstructionSemantics.h"
 				>
 			</File>
 		</Filter>

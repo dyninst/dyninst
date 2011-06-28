@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -215,6 +215,8 @@ int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_springboard = 0;
+int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
 int dyn_debug_mutex = 0;
 int dyn_debug_dwarf = 0;
@@ -228,17 +230,24 @@ int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
-int dyn_debug_relocation = 0;
 int dyn_debug_disassemble = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
+  static bool init = false;
+  if (init) return true;
+  init = true;
+
   char *p;
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
+    fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
+    dyn_debug_springboard = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_STARTUP"))) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
@@ -284,6 +293,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_RELOCATION"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+    fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
+    dyn_debug_sensitivity = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
@@ -336,15 +349,10 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if ((p=getenv("DYNINST_DEBUG_RELOCATION"))) {
-    fprintf(stderr, "Enabling DyninstAPI relocation debugging\n");
-    dyn_debug_relocation = 1;
-  }
   if ((p=getenv("DYNINST_DEBUG_DISASS"))) {
       fprintf(stderr, "Enabling DyninstAPI instrumentation disassembly debugging\n");
       dyn_debug_disassemble = 1;
   }
-
   debugPrintLock = new eventLock();
 
   return true;
@@ -607,7 +615,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (!dyn_debug_write) return 0;
+  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

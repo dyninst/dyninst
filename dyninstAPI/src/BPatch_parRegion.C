@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -32,7 +32,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "miniTramp.h"
 
@@ -44,12 +44,8 @@
 #include "BPatch_function.h"
 #include "BPatch_parRegion.h"
 #include "addressSpace.h"
-#if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#else
-#include "parseAPI/src/InstrucIter.h"
-#endif
 
 BPatch_parRegion::BPatch_parRegion(int_parRegion * _parReg, BPatch_function * _func)
 {
@@ -67,30 +63,9 @@ void BPatch_parRegion::printDetails()
 }
 BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
 
-#if defined(cap_instruction_api)
 	return NULL;
-#else
-  if (!instructions) {
-
-    instructions = new BPatch_Vector<BPatch_instruction*>;
-
-    InstrucIter ii(getStartAddress(),size(),
-        lowlevel_region()->intFunc()->proc());
-    
-    while(ii.hasMore()) {
-
-      BPatch_instruction *instr = ii.getBPInstruction();
-      instructions->push_back(instr);
-      ii++;
-    }
-    
-  }
-
-  return instructions;
-#endif
 }
 
-#if defined(cap_instruction_api)
 bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
   const unsigned char* buffer = 
@@ -107,11 +82,6 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   return !insns.empty();
   
 }
-#else
-bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>&) {
-  return false;
-}
-#endif // defined(cap_instruction_api)
 
 unsigned long BPatch_parRegion::getStartAddressInt() CONST_EXPORT 
 {

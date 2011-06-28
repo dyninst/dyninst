@@ -2,7 +2,7 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT([Dyninst], [6.1], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [7.0], [bugs@dyninst.org], [dyninst])
 
 AC_PREFIX_DEFAULT(`pwd`/..)
 
@@ -35,8 +35,6 @@ AC_ARG_WITH(package-base,
             ARG_WRAPPER_LIBS="";
             LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
             LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib";
-            LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include";
-            LIBUNWIND_LIB_DIR="${PACKAGE_BASE}/libunwind/lib";
             LIBFLEX_LIB_DIR="${PACKAGE_BASE}/libflex/lib";
            ],[
             # We fall back on these defaults if both --with-package-base and
@@ -50,8 +48,6 @@ AC_ARG_WITH(package-base,
             LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
             LIBXML2_LIB_DIR="/usr/lib";
-            LIBUNWIND_INC_DIR="/usr/include";
-            LIBUNWIND_LIB_DIR="/usr/lib";
             LIBFLEX_LIB_DIR="/usr/lib";
            ])
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
@@ -331,30 +327,6 @@ PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
 PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
-
-if test "$host_cpu" != "ia64" ; then
-   AC_MSG_NOTICE([Not IA-64, skipping libunwind...])
-else
-   AC_ARG_WITH(libunwind-incdir,
-            [AS_HELP_STRING([--with-libunwind-incdir],[LIBUNWIND include directory])],
-            [LIBUNWIND_INC_DIR="${withval}";],)
-   AC_ARG_WITH(libunwind-libdir,
-            [AS_HELP_STRING([--with-libunwind-libdir],[LIBUNWIND library directory])],
-            [LIBUNWIND_LIB_DIR="${withval}";],)
-
-   PD_CHECK_INC_DIR(${LIBUNWIND_INC_DIR}, [libunwind.h])
-fi
-AC_SUBST(LIBUNWIND_INC_DIR)
-AC_SUBST(LIBUNWIND_LIB_DIR)
-
-AC_ARG_WITH(launchmon-incdir,
-            [AS_HELP_STRING([--with-launchmon-incdir],[Launchmon include directory])],
-            [LAUNCHMON_INC_DIR="${withval}";],)
-AC_ARG_WITH(launchmon-libdir,
-            [AS_HELP_STRING([--with-launchmon-libdir],[Launchmon library directory])],
-            [LAUNCHMON_LIB_DIR="${withval}";],)
-AC_SUBST(LAUNCHMON_INC_DIR)
-AC_SUBST(LAUNCHMON_LIB_DIR)
 
 AC_ARG_WITH(libflex-libdir,
             [AS_HELP_STRING([--with-libflex-libdir],[Absolute path to flex library])],

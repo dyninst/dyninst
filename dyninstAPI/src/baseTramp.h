@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,285 +39,103 @@
 #include "common/h/Types.h"
 #include "inst.h" // callWhen
 #include "dyninstAPI/src/codeRange.h"
-#include "instPoint.h"
 //#include "arch.h"
-#include "multiTramp.h" // generatedCodeObject
 #include "ast.h"
 
-class multiTramp;
+#include <list>
+
 class miniTramp;
-class miniTrampInstance;
 class baseTramp;
-class instPointInstance;
+class AddressSpace;
 
-class generatedCodeObject;
+// Encapsulates the code generation techniques for a series
+// of minitramps. 
 
-// Todo: make things private/protected
+class baseTramp { 
+    baseTramp();
 
-// A baseTrampInstance represents a particular version of an
-// overwritten instruction. Due to re+location and function cloning,
-// there may be multiple baseTrampInstances for a particular logical
-// baseTramp. This allows us to minimize the confusion of the
-// necessary many:many mappings.
-
-class baseTrampInstance : public generatedCodeObject { 
-    friend class baseTramp;
  public:
-    baseTrampInstance(baseTramp *tramp,
-                      multiTramp *multi);
-    // FORK!
-    baseTrampInstance(const baseTrampInstance *pI,
-                      baseTramp *cBT,
-                      multiTramp *cMT,
-                      AddressSpace *child);
+    static baseTramp *create(instPoint *p);
+    static baseTramp *createForIRPC(AddressSpace *as);
+    static baseTramp *fork(baseTramp *parBT, AddressSpace *child);
 
-
-    Address trampAddr_;
-    unsigned trampSize_;
-    unsigned trampPostOffset;
-    unsigned saveStartOffset;
-    unsigned saveEndOffset;
-    unsigned restoreStartOffset;
-    unsigned restoreEndOffset;
-    Address trampPreAddr() const;
-    Address trampPostAddr() const;
-    //bool empty;
-    
-    baseTramp *baseT;
-    multiTramp *multiT;
-
-    bool isInInstance(Address pc);
-    bool isInInstru(Address pc);
-    
-    // codeRange...
-    Address get_address() const;
-    unsigned get_size() const; 
-    void *getPtrToInstruction(Address addr) const;
-    virtual std::string getTypeString() const;
-    
-
-    Address uninstrumentedAddr() const;
-
+    func_instance *func() const;
+    instPoint *point() const { return point_; }
+    instPoint *instP() const { return point(); }
     AddressSpace *proc() const;
     
-    unsigned maxSizeRequired();
-    //const pdvector<instruction> &getCode();
-    bool shouldGenerate();
+    void initializeFlags();
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee,
-                      UNW_INFO_TYPE * * unwindInformation);
+                      Address baseInMutatee);
 
     bool generateCodeInlined(codeGen &gen,
-                             Address baseInMutatee,
-                             UNW_INFO_TYPE **unwindInformation);
-
-    bool installCode();
-
-    // Displacement is platform-independent; from start
-    // of branch insn to start of target insn.
-    bool finalizeGuardBranch(codeGen &gen,
-                             int displacement);
-
-    
-    void invalidateCode();
-    
-    // Patch in jumps
-    bool linkCode();
-
-    generatedCodeObject *replaceCode(generatedCodeObject *newParent);
-
-    // The subObject wants to be gone, do we delete us as well?
-    void removeCode(generatedCodeObject *subObject);
-
-    // Given the current range, can we safely clean up this
-    // area?
-    bool safeToFree(codeRange *range);
-
-    // Update the list of miniTrampInstances
-    void updateMTInstances();
+                             Address baseInMutatee);
 
     bool checkForFuncCalls();
-    cfjRet_t checkForFuncJumps();
 
-    // Null out an MTI pointer
-    void deleteMTI(miniTrampInstance *mti);
-
-    ~baseTrampInstance();
-
-    int numDefinedRegs();
-    Address miniTrampReturnAddr();
-
-    bool isEmpty() const;
-
-    void updateTrampCost(unsigned cost);
-
-    instPoint *findInstPointByAddr(Address addr);
-
-    bool shouldRegenBaseTramp(registerSpace *rs);
-
-    unsigned genVersion;
-
-    pdvector<miniTrampInstance *> mtis;
-
-    // We need to keep these around to tell whether it's
-    // safe to delete yet.
-    pdvector<miniTrampInstance *> deletedMTIs;
-
-    // We may remove ourselves from the baseTramp's list of instances
-    // either directly (via removeCode) or during deletion -- but
-    // don't do it twice!!!
-    bool alreadyDeleted_;
-
-    SymtabAPI::Symbol *createBTSymbol();
- private:
-    //Information about code generated in this tramp
-    bool hasOptInfo_;
-    bool spilledRegisters_;
-    bool hasLocalSpace_;
-    bool hasStackFrame_;
-    bool flags_saved_;
-    bool saved_fprs_;
-    bool saved_orig_addr_;
-    bool aligned_stack_;
-    cfjRet_t hasFuncJump_;
-    int trampStackHeight_;
- public:
-    bitArray definedRegs;
-    bool hasOptInfo() { return hasOptInfo_; } 
-    bool spilledRegisters() { assert(hasOptInfo_); return spilledRegisters_; }
-    bool hasLocalSpace() { return hasLocalSpace_; }
-    bool hasStackFrame() { return hasStackFrame_; }
-    bool flagsSaved() { return flags_saved_; }
-    bool savedFPRs() { return saved_fprs_; }
-    bool savedOrigAddr() { return saved_orig_addr_; }
-    bool alignedStack() { return aligned_stack_; }
-    cfjRet_t hasFuncJump() { return hasFuncJump_; }
-    int trampStackHeight() { return trampStackHeight_; }
-    void setHasOptInfo(bool v) { hasOptInfo_ = v; } 
-    void setSpilledRegisters(bool v) { spilledRegisters_ = v; }
-    void setHasLocalSpace(bool v) { hasLocalSpace_ = v; }
-    void setHasStackFrame(bool v) { hasStackFrame_ = v; }
-    void setFlagsSaved(bool v) { flags_saved_ = v; }
-    void setSavedFPRs(bool v) { saved_fprs_ = v; }
-    void setSavedOrigAddr(bool v) { saved_orig_addr_ = v; }
-    void setHasFuncJump(cfjRet_t v) { hasFuncJump_ = v; }
-    void setAlignedStack(bool v) { aligned_stack_ = v; }
-    void setTrampStackHeight(int v) { trampStackHeight_ = v; }
-    int funcJumpSlotSize();
-};
-
-class baseTramp {
-    friend class baseTrampInstance;
- public:
-#if defined( cap_unwind )
-   unw_dyn_region_info_t * baseTrampRegion;
-#endif
-    Address origInstAddr(); // For faking an in-function address
-
-    // Our instPoint
-    instPoint *instP_;
-
-    instPoint *instP() const { return instP_; }
-
-    AddressSpace *proc() const;
-
-    bool isIRPCTramp() const  { return isIRPCTramp_; }
-    void setIRPCTramp(bool b) { isIRPCTramp_ = b; }
-
-    void invalidateBT() { valid = false; };
-
-    bool doOptimizations();
-    bool generateSaves(codeGen &,
-                       registerSpace *,
-                       baseTrampInstance *inst);
-    bool generateRestores(codeGen &,
-                          registerSpace *,
-                          baseTrampInstance *inst);
-
-    bool isConservative();
-    bool isCallsite();
-    bool isEntryExit();
-
-    void setCreateFrame(bool frame);
-    bool createFrame();
-
-    unsigned getBTCost();
-
-    bool inBasetramp( Address addr );
-    bool inSavedRegion( Address addr );
-
-    miniTramp *firstMini;
-    miniTramp *lastMini;
-
-    // Normal constructor
-    baseTramp(instPoint *iP, callWhen when);
-    // Fork constructor
-    baseTramp(const baseTramp *parentT, AddressSpace *proc);
-
-    // destructor
     ~baseTramp();
 
-    pdvector<baseTrampInstance *> instances;
+    int numDefinedRegs();
 
-    // Hooks the minitramp into the appropriate place in the chains 'o minis,
-    // and sets the miniTramp next and prev members
-    bool addMiniTramp(miniTramp *newMT, callOrder order);
 
-    bool removeMiniTramp(miniTramp *oldMT);
+  private:
+    instPoint *point_;
+    AddressSpace *as_;
 
-    // Remove the instrumentation skip jumps if necessary
-    bool clearBaseBranch();
+    AstNodePtr ast_;
     
-    // Logic to correct all basetramp jumps.
-    // Unused?
-    //bool correctBTJumps();
-
-    // If all our minitramps are gone, clean up
-    void deleteIfEmpty();
-
-    // Get an instance (takes a multiTramp, looks up 
-    // or makes a new one);
-    baseTrampInstance *findOrCreateInstance(multiTramp *multi);
-
-    // Remove an instance
-    void unregisterInstance(baseTrampInstance *inst);
-
-    // Generated base tramp...
-    // Recursively create miniTramps... as a result, we need to 
-    // split the generated code for a baseT in half as there
-    // may be an arbitrary amount of space in between.
-
-    bool valid;
-    bool optimized_out_guards;
-
-    typedef enum {unset_BTR, recursive_BTR, guarded_BTR} guardState_t;
-    guardState_t guardState_;
-
-    bool suppress_threads_;
-    bool threaded() const;
-    void setThreaded(bool new_val);
-
-    void setRecursive(bool trampRecursive, bool force = false);
-    bool getRecursive() const;
-
-    // Easier to do logic this way...
-    bool guarded() const { return (guardState_ == guarded_BTR); }
-
-    // tells us how far up the stack to look for
-    // saved register addresses 
-    unsigned savedFlagSize;
+    bool shouldRegenBaseTramp(registerSpace *rs); 
 
  private:
-    
-    bool createFrame_;
-    unsigned instVersion_;
-    callWhen when_;
-    bool isIRPCTramp_;
-    AddressSpace *rpcProc_;
-};
+    // We keep two sets of flags. The first controls which features
+    // we enable in the base tramp, including:
+    // multithread support, which classes of registers are saved, etc.
 
-extern baseTramp baseTemplate;
+    // The second records (during code gen) what has been done so we
+    // can undo it later. 
+    
+    cfjRet_t funcJumpState_;
+    bool needsStackFrame_;
+    bool threaded_;
+    bool optimizationInfo_;
+
+  public:    
+    // Tracking the results of code generation.
+    bool savedFPRs;
+    bool createdFrame;
+    bool savedOrigAddr;
+    bool createdLocalSpace;
+    bool alignedStack;
+    bool savedFlags;
+    bool optimizedSavedRegs;
+    bool suppressGuards;
+    bool suppressThreads;
+    bool spilledRegisters;
+    int  stackHeight;
+    bool skippedRedZone;
+    
+    bool validOptimizationInfo() { return optimizationInfo_; }
+    bool hasFuncJump();
+
+ public:
+    // Code generation methods
+    bool generateSaves(codeGen &gen, registerSpace *);
+    bool generateRestores(codeGen &gen, registerSpace *);
+    
+    // Generated state methods
+    bitArray definedRegs;
+
+    int funcJumpSlotSize();
+    bool guarded() const;
+    bool threaded() const;
+    bool doOptimizations();
+    bool makesCall();
+    bool needsFrame() { return needsStackFrame_; }
+
+    bool saveFPRs();
+    void setNeedsFrame(bool);
+};
 
 #define X86_REGS_SAVE_LIMIT 3
 

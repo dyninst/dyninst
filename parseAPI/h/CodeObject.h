@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -76,10 +76,15 @@ class CodeObject {
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
 
-    // adds new edges to parsed functions
-    PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
-                                      vector<Address> & targets, 
-                                      vector<EdgeTypeEnum> & edge_types);
+    // parses new edges in already parsed functions
+	struct NewEdgeToParse {
+		Block *source;
+		Address target;
+		EdgeTypeEnum edge_type;
+		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c) {};
+	};
+
+    PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
     PARSER_EXPORT void parseGaps(CodeRegion *cr);
@@ -101,6 +106,7 @@ class CodeObject {
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
+    PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 
     /* Misc */
     PARSER_EXPORT CodeSource * cs() const { return _cs; }
@@ -118,11 +124,13 @@ class CodeObject {
     void process_hints();
     void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
     // allows Function to (re-)finalize
-    friend void Function::deleteBlocks(vector<Block*> &, Block *);
+    friend void Function::deleteBlocks(vector<Block*>);
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
     friend void Function::finalize();
+    // allows Function entry blocks to be moved to new regions
+    friend void Function::setEntryBlock(Block *);
 
  private:
     CodeSource * _cs;

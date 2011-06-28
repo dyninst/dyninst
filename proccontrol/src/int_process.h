@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -104,9 +104,10 @@ class int_process
    virtual bool post_create();
 
    bool attach();
+   bool reattach();
    virtual bool plat_attach(bool allStopped) = 0;
    bool attachThreads();
-   virtual bool post_attach();
+   virtual bool post_attach(bool wasDetached);
 
   public:
    void setContSignal(int sig);
@@ -138,6 +139,7 @@ class int_process
    typedef enum {
       neonatal = 0,
       neonatal_intermediate,
+      detached,
       running,
       exited,
       errorstate
@@ -151,7 +153,8 @@ class int_process
    Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   bool detach(bool &should_clean);
+   bool detach(bool &should_clean, bool temporary);
+   virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
    virtual Dyninst::Architecture getTargetArch() = 0;
@@ -400,6 +403,7 @@ class int_thread
       running,
       stopped,
       exited,
+      detached,
       errorstate
    } State;
 

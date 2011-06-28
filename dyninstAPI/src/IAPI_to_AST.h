@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -51,12 +51,14 @@ namespace Dyninst
 
 class ASTFactory : public Dyninst::InstructionAPI::Visitor
 {
-    public:
-        void visit(Dyninst::InstructionAPI::BinaryFunction* b);
-        void visit(Dyninst::InstructionAPI::Dereference* d);
-        void visit(Dyninst::InstructionAPI::Immediate* i);
-        void visit(Dyninst::InstructionAPI::RegisterAST* r);
-        std::deque<AstNodePtr> m_stack;
+ public:
+  virtual void visit(Dyninst::InstructionAPI::BinaryFunction* b);
+  virtual void visit(Dyninst::InstructionAPI::Dereference* d);
+  virtual void visit(Dyninst::InstructionAPI::Immediate* i);
+  virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);
+  std::deque<AstNodePtr> m_stack;
+  virtual ~ASTFactory() {}
+  ASTFactory() {}
 };
 
 #endif //!defined(IAPI_TO_AST_H)

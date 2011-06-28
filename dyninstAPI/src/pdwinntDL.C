@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "process.h"
+#include "dynamiclinking.h"
 #include "signalhandler.h"
 #include "dyn_lwp.h"
 #include "mapped_object.h"
@@ -115,7 +115,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
      BPatch_hybridMode mode = proc->getHybridMode();
-     if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
+     //KEVINTODO: re-enable this // if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
          mode = BPatch_normalMode;
      mapped_object *newobj = mapped_object::createMappedObject(desc, proc, mode);
      if (!newobj) {

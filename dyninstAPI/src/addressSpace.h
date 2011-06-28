@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,15 +39,26 @@
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
+#include <list>
 
+#include "common/h/IntervalTree.h"
+
+#include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/InstructionSource.h"
+#include "Relocation/Relocation.h"
+#include "Relocation/CodeTracker.h"
 
 class codeRange;
-class multiTramp;
 class replacedFunctionCall;
-class functionReplacement;
 
-class int_function;
+class func_instance;
+class block_instance;
+class edge_instance;
+
+class parse_func;
+class parse_block;
+
+struct edgeStub;
 class int_variable;
 class mapped_module;
 class mapped_object;
@@ -58,19 +69,29 @@ class BPatch_function;
 class BPatch_point;
 
 class Emitter;
-class generatedCodeObject;
 class fileDescriptor;
 
 using namespace Dyninst;
 //using namespace SymtabAPI;
 
-class int_function;
+class func_instance;
 class int_symbol;
 
 class Dyn_Symbol;
 class BinaryEdit;
 class PCProcess;
 class trampTrapMappings;
+
+class baseTramp;
+
+namespace Dyninst {
+   class MemoryEmulator;
+
+   namespace InstructionAPI {
+      class Instruction;
+   }
+   
+};
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -88,6 +109,16 @@ class trampTrapMappings;
 
 class AddressSpace : public InstructionSource {
  public:
+
+   // This is a little complex, so let me explain my logic
+   // Map from B -> F_c -> F
+   // B identifies a call site
+   // F_c identifies an (optional) function context for the replacement
+   //   ... if F_c is not specified, we use NULL
+   // F specifies the replacement callee; if we want to remove the call entirely,
+   // also use NULL
+   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
     PCProcess *proc();
@@ -141,6 +172,8 @@ class AddressSpace : public InstructionSource {
     // instrumentation is incredibly wasteful.
     virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
     bool inferiorReallocInternal(Address item, unsigned newSize);
+    bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
+    bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
 
     bool isInferiorAllocated(Address block);
 
@@ -149,27 +182,12 @@ class AddressSpace : public InstructionSource {
     virtual bool registerTrapMapping(Address from, Address to) = 0;
     virtual bool unregisterTrapMapping(Address from) = 0;
 
-    // We need a mechanism to track what exists at particular addresses in the
-    // address space - both for lookup and to ensure that there are no collisions.
-    // We have a multitude of ways to "muck with" the application (function replacement,
-    // instrumentation, function relocation, ...) and they can all stomp on each
-    // other. 
-
-    void addOrigRange(codeRange *range);
-    void addModifiedRange(codeRange *range);
-
-    void removeOrigRange(codeRange *range);
-    void removeModifiedRange(codeRange *range);
-
-    codeRange *findOrigByAddr(Address addr);
-    codeRange *findModByAddr(Address addr);
-
     bool getDyninstRTLibName();
 
     // InstructionSource 
     virtual bool isValidAddress(const Address) const;
     virtual void *getPtrToInstruction(const Address) const;
-    virtual void *getPtrToData(const Address) const;
+    virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
     virtual unsigned getAddressWidth() const = 0;
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
@@ -180,26 +198,6 @@ class AddressSpace : public InstructionSource {
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;
     
-    // Should return iterators
-    bool getOrigRanges(pdvector<codeRange *> &);
-    bool getModifiedRanges(pdvector<codeRange *> &);
-
-    // Multitramp convenience functions
-    multiTramp *findMultiTrampByAddr(Address addr);
-    multiTramp *findMultiTrampById(unsigned int id);
-    void addMultiTramp(multiTramp *multi);
-    void removeMultiTramp(multiTramp *multi);
-
-    // Function replacement (or relocated, actually) convenience functions
-    functionReplacement *findFuncReplacement(Address addr);
-    void addFuncReplacement(functionReplacement *funcrep);
-    void removeFuncReplacement(functionReplacement *funcrep);
-
-    // Function call replacement convenience functions
-    replacedFunctionCall *findReplacedCall(Address addr);
-    void addReplacedCall(replacedFunctionCall *rep);
-    void removeReplacedCall(replacedFunctionCall *rep);
-
     //////////////////////////////////////////////////////////////
     // Function/variable lookup code
     // Turns out that instrumentation needs this... so the 
@@ -209,18 +207,18 @@ class AddressSpace : public InstructionSource {
     // findFuncByName: returns function associated with "func_name"
     // This routine checks both the a.out image and any shared object images 
     // for this function
-    //int_function *findFuncByName(const std::string &func_name);
+    //func_instance *findFuncByName(const std::string &func_name);
     
     bool findFuncsByAll(const std::string &funcname,
-                        pdvector<int_function *> &res,
+                        pdvector<func_instance *> &res,
                         const std::string &libname = "");
     
     // Specific versions...
     bool findFuncsByPretty(const std::string &funcname,
-                           pdvector<int_function *> &res,
+                           pdvector<func_instance *> &res,
                            const std::string &libname = "");
     bool findFuncsByMangled(const std::string &funcname, 
-                            pdvector<int_function *> &res,
+                            pdvector<func_instance *> &res,
                             const std::string &libname = "");
     
     bool findVarsByAll(const std::string &varname,
@@ -229,7 +227,7 @@ class AddressSpace : public InstructionSource {
     
     // And we often internally want to wrap the above to return one
     // and only one func...
-    virtual int_function *findOnlyOneFunction(const std::string &name,
+    virtual func_instance *findOnlyOneFunction(const std::string &name,
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
 
@@ -242,21 +240,29 @@ class AddressSpace : public InstructionSource {
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects
-    void getAllFunctions(pdvector<int_function *> &);
+    void getAllFunctions(pdvector<func_instance *> &);
     
     // Find the code sequence containing an address
-    // Note: fix the name....
-    int_function *findFuncByAddr(Address addr);
-    bool findFuncsByAddr(Address addr, std::vector<int_function *> &funcs);
+    bool findFuncsByAddr(Address addr, std::set<func_instance *> &funcs, bool includeReloc = false);
+    bool findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc = false);
+    // Don't use this...
+    // I take it back. Use it when you _know_ that you want one function,
+    // picked arbitrarily, from the possible functions.
+    func_instance *findOneFuncByAddr(Address addr);
+    // And the one thing that is unique: entry address!
+    func_instance *findFuncByEntry(Address addr);
 
-    int_basicBlock *findBasicBlockByAddr(Address addr);
-    
     // And a lookup by "internal" function to find clones during fork...
-    int_function *findFuncByInternalFunc(image_func *ifunc);
-    
+    func_instance *findFunction(parse_func *ifunc);
+    block_instance *findBlock(parse_block *iblock);
+    edge_instance *findEdge(ParseAPI::Edge *iedge);
+
+	// Fast lookups across all mapped_objects
+	func_instance *findFuncByEntry(const block_instance *block);
+
     //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
     // checks if 'addr' is a jump to a function.
-    int_function *findJumpTargetFuncByAddr(Address addr);
+    func_instance *findJumpTargetFuncByAddr(Address addr);
     
     // true if the addrs are in the same object and region within the object
     bool sameRegion(Dyninst::Address addr1, Dyninst::Address addr2);
@@ -272,9 +278,10 @@ class AddressSpace : public InstructionSource {
     mapped_module *findModule(const std::string &mod_name, bool wildcard = false);
     // And the same for objects
     // Wildcard: handles "*" and "?"
-    mapped_object *findObject(const std::string &obj_name, bool wildcard = false);
-    mapped_object *findObject(Address addr);
-    mapped_object *findObject(fileDescriptor desc);
+    mapped_object *findObject(const std::string &obj_name, bool wildcard = false) const;
+    mapped_object *findObject(Address addr) const;
+    mapped_object *findObject(fileDescriptor desc) const;
+    mapped_object *findObject(const ParseAPI::CodeObject *co) const;
 
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
@@ -310,15 +317,22 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
-    bool replaceFunctionCall(instPoint *point,const int_function *newFunc);
-    
+    void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
+    void revertCall(block_instance *callBlock, func_instance *context = NULL);
+    void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
+    void revertReplacedFunction(func_instance *oldfunc);
+    void removeCall(block_instance *callBlock, func_instance *context = NULL);
+
     // And this....
-    bool getDynamicCallSiteArgs(instPoint *callSite, 
+    typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
+    bool getDynamicCallSiteArgs(InstructionPtr insn,
+                                Address addr,
                                 pdvector<AstNodePtr> &args);
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
-                              int_function *&, 
+                              func_instance *&, 
                               Address) { return false; }
     
     // Trampoline guard get/set functions
@@ -328,16 +342,12 @@ class AddressSpace : public InstructionSource {
     // Get the current code generator (or emitter)
     Emitter *getEmitter();
 
-    // Should be easy if the process isn't _executing_ where
-    // we're deleting...
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
-
     //True if any reference to this address space needs PIC
     virtual bool needsPIC() = 0;
     //True if we need PIC to reference the given variable or function
     // from this addressSpace.
     bool needsPIC(int_variable *v); 
-    bool needsPIC(int_function *f);
+    bool needsPIC(func_instance *f);
     bool needsPIC(AddressSpace *s);
     
     //////////////////////////////////////////////////////
@@ -346,21 +356,21 @@ class AddressSpace : public InstructionSource {
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
  private:
-    BPatch_function *(*new_func_cb)(AddressSpace *a, int_function *f);
-    BPatch_point *(*new_instp_cb)(AddressSpace *a, int_function *f, instPoint *ip, 
+    BPatch_function *(*new_func_cb)(AddressSpace *a, func_instance *f);
+    BPatch_point *(*new_instp_cb)(AddressSpace *a, func_instance *f, instPoint *ip, 
                                   int type);
  public:
     //Trigger the callbacks from a lower level
-    BPatch_function *newFunctionCB(int_function *f) 
+    BPatch_function *newFunctionCB(func_instance *f) 
         { assert(new_func_cb); return new_func_cb(this, f); }
-    BPatch_point *newInstPointCB(int_function *f, instPoint *pt, int type)
+    BPatch_point *newInstPointCB(func_instance *f, instPoint *pt, int type)
         { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
     
     //Register callbacks from the higher level
     void registerFunctionCallback(BPatch_function *(*f)(AddressSpace *p, 
-                                                        int_function *f))
+                                                        func_instance *f))
         { new_func_cb = f; };
-    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, int_function *f,
+    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, func_instance *f,
                                                       instPoint *ip, int type))
         { new_instp_cb = f; }
     
@@ -395,6 +405,68 @@ class AddressSpace : public InstructionSource {
     bool canUseTraps();
     void setUseTraps(bool usetraps);
 
+    //////////////////////////////////////////////////////
+    // The New Hotness
+    //////////////////////////////////////////////////////
+    //
+    // This is the top interface for the new (experimental)
+    // (probably not working) code generation interface. 
+    // The core idea is to feed a set of func_instances 
+    // (actually, a set of blocks, but functions are convenient)
+    // into a CodeMover class, let it chew on the code, and 
+    // spit out a buffer of moved code. 
+    // We also get a priority list of patches; (origAddr,
+    // movedAddr) pairs. We then get to decide what we want
+    // to do with those patches: put in a branch or say to 
+    // heck with it.
+    
+    bool relocate();
+		   
+
+    // Get the list of addresses an address (in a block) 
+    // has been relocated to.
+    void getRelocAddrs(Address orig,
+                       block_instance *block,
+                       func_instance *func,
+                       std::list<Address> &relocs,
+                       bool getInstrumentationAddrs) const;
+
+
+    bool getAddrInfo(Address relocAddr,//input
+					  Address &origAddr,
+                     std::vector<func_instance *> &origFuncs,
+                     baseTramp *&baseTramp);
+    typedef Relocation::CodeTracker::RelocInfo RelocInfo;
+    bool getRelocInfo(Address relocAddr,
+                      RelocInfo &relocInfo);
+    // defensive mode code // 
+
+    void causeTemplateInstantiations();
+
+    // Debugging method
+    bool inEmulatedCode(Address addr);
+
+    std::map<func_instance*,std::vector<edgeStub> > 
+    getStubs(const std::list<block_instance *> &owBBIs,
+             const std::set<block_instance*> &delBBIs,
+             const std::list<func_instance*> &deadFuncs);
+
+    void addDefensivePad(block_instance *callBlock, Address padStart, unsigned size);
+
+    void getPreviousInstrumentationInstances(baseTramp *bt,
+					     std::set<Address>::iterator &b,
+					     std::set<Address>::iterator &e);
+    void addInstrumentationInstance(baseTramp *bt, Address addr);
+
+    void addModifiedFunction(func_instance *func);
+    void addModifiedBlock(block_instance *block);
+
+    void updateMemEmulator();
+    bool isMemoryEmulated() { return emulateMem_; }
+    bool emulatingPC() { return emulatePC_; }
+    MemoryEmulator *getMemEm();
+    void invalidateMemory(Address base, Address size);
+
  protected:
 
     // inferior malloc support functions
@@ -412,16 +484,6 @@ class AddressSpace : public InstructionSource {
     bool useTraps_;
     inferiorHeap heap_;
 
-    // Text sections (including added - instrumentation)
-    codeRangeTree textRanges_;
-    // Data sections
-    codeRangeTree dataRanges_;
-    // And address-space-wide patches that we've dropped in
-    codeRangeTree modifiedRanges_;
-
-    // We label multiTramps by ID
-    dictionary_hash<int, multiTramp *> multiTrampsById_;
-
     // Loaded mapped objects (may be just 1)
     pdvector<mapped_object *> mapped_objects;
 
@@ -431,7 +493,44 @@ class AddressSpace : public InstructionSource {
     void *up_ptr_;
 
     Address costAddr_;
+
+    /////// New instrumentation system
+    typedef std::list<Relocation::CodeTracker *> CodeTrackers;
+    CodeTrackers relocatedCode_;
+
+    bool transform(Dyninst::Relocation::CodeMoverPtr cm);
+    Address generateCode(Dyninst::Relocation::CodeMoverPtr cm, Address near);
+    bool patchCode(Dyninst::Relocation::CodeMoverPtr cm,
+		   Dyninst::Relocation::SpringboardBuilderPtr spb);
+
+    typedef std::set<func_instance *> FuncSet;
+    std::map<mapped_object *, FuncSet> modifiedFunctions_;
+
+    bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
+
+    // defensive mode code
+    typedef std::pair<Address, unsigned> DefensivePad;
+    std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
+    IntervalTree<Address, instPoint *> reverseDefensiveMap_;
+
+    // Tracking instrumentation for fast removal
+    std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
+
+    // Track desired function replacements/removals/call replacements
+    CallModMap callModifications_;
+    FuncModMap functionReplacements_;
+    FuncModMap functionWraps_;
+
+    void addAllocatedRegion(Address start, unsigned size);
+    void addModifiedRegion(mapped_object *obj);
+
+    MemoryEmulator *memEmulator_;
+
+    bool emulateMem_;
+    bool emulatePC_;
+
 };
+
 
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 

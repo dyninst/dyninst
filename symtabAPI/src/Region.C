@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -276,9 +276,14 @@ void Region::setMemOffset(Offset newoff)
     memOff_ = newoff;
 }
 
-void Region::setMemSize(long newsize)
+void Region::setMemSize(unsigned long newsize)
 {
     memSize_ = newsize;
+}
+
+void Region::setDiskSize(unsigned long newsize)
+{
+    diskSize_ = newsize;
 }
 
 void *Region::getPtrToRawData() const
@@ -316,7 +321,7 @@ bool Region::isTLS() const
 
 bool Region::isOffsetInRegion(const Offset &offset) const 
 {
-    return (offset >= diskOff_ && offset<=(diskOff_+diskSize_));
+    return (offset >= diskOff_ && offset<(diskOff_+diskSize_));
 }
 
 bool Region::isLoadable() const

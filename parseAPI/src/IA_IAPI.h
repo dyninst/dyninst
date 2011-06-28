@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -46,8 +46,7 @@
 namespace Dyninst {
 namespace InsnAdapter {
 
-class IA_IAPI : public InstructionAdapter
-{
+class IA_IAPI : public InstructionAdapter {
     friend class image_func;
     friend class IA_platformDetails;
     friend class IA_x86Details;
@@ -59,8 +58,7 @@ class IA_IAPI : public InstructionAdapter
                 Dyninst::ParseAPI::CodeRegion* r,
                 Dyninst::InstructionSource *isrc,
 		Dyninst::ParseAPI::Block * curBlk_);
-
-        // We have a iterator, and so can't use the implicit copiers
+                // We have a iterator, and so can't use the implicit copiers
 		IA_IAPI(const IA_IAPI &); 
 		IA_IAPI &operator=(const IA_IAPI &r);
 
@@ -70,12 +68,13 @@ class IA_IAPI : public InstructionAdapter
           Address start, ParseAPI::CodeObject *o,
           ParseAPI::CodeRegion *r, InstructionSource *isrc, ParseAPI::Block *);
 
-        Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
+        virtual Dyninst::InstructionAPI::Instruction::Ptr getInstruction() const;
     
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;
         virtual bool isAbortOrInvalidInsn() const;
+        virtual bool isGarbageInsn() const; //true for insns indicative of bad parse, for defensive mode
         virtual void
                 getNewEdges(std::vector<std::pair< Address, 
                                 Dyninst::ParseAPI::EdgeTypeEnum> >&outEdges, 
@@ -88,13 +87,13 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isAbsoluteCall() const;
         virtual bool simulateJump() const;
         virtual void advance();
-        virtual void retreat();
+        virtual bool retreat();
         virtual bool isNop() const;
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
         virtual bool isTailCall(Dyninst::ParseAPI::Function *,unsigned int) const;
-        virtual Address getCFT() const;
+        virtual std::pair<bool, Address> getCFT() const;
         virtual bool isStackFramePreamble() const;
         virtual bool savesFP() const;
         virtual bool cleansStack() const;
@@ -104,9 +103,9 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isSyscall() const;
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
-        virtual bool isReturnAddrSave(Address &) const;
+        virtual bool isReturnAddrSave(Address &ret_addr) const;
+        virtual bool isNopJump() const;
 	virtual bool sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Function * func) const;
-        virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, Address &retAddr) const;
 private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
@@ -116,7 +115,7 @@ private:
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn(Dyninst::ParseAPI::Function *, Dyninst::ParseAPI::Block* currBlk) const;
         bool isFakeCall() const;
-        bool isIATcall() const;
+        const char *isIATcall() const;
         bool isLinkerStub() const;
 
 
@@ -141,7 +140,7 @@ private:
         allInsns_t::iterator curInsnIter;
 
         mutable bool validCFT;
-        mutable Address cachedCFT;
+        mutable std::pair<bool, Address> cachedCFT;
         mutable bool validLinkerStubState;
         mutable bool cachedLinkerStubState;
         mutable std::pair<bool, bool> hascftstatus;

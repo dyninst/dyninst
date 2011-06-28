@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 1996-2009 Barton P. Miller
-*
-* We provide the Paradyn Parallel Performance Tools (below
-* described as "Paradyn") on an AS IS basis, and do not warrant its
-* validity or performance.  We reserve the right to update, modify,
-* or discontinue this software at any time.  We shall have no
-* obligation to supply such updates or modifications or any other
-* form of support to you.
-*
-* By your use of Paradyn, you understand and agree that we (or any
-* other person or entity with proprietary rights in Paradyn) are
-* under no obligation to provide either maintenance services,
-* update services, notices of latent defects, or correction of
-* defects for Paradyn.
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #define INSIDE_INSTRUCTION_API
 
@@ -37,7 +37,7 @@
 #include "common/h/arch-x86.h"
 #include "Register.h"
 #include "Dereference.h"
-#include "Immediate.h"
+#include "Immediate.h" 
 #include "BinaryFunction.h"
 #include "common/h/singleton_object_pool.h"
 
@@ -118,7 +118,6 @@ namespace Dyninst
       InstructionDecoderImpl(a),
     locs(NULL),
     decodedInstruction(NULL),
-    is32BitMode(true),
     sizePrefixPresent(false)
     {
     }
@@ -203,7 +202,7 @@ namespace Dyninst
       Expression::Ptr InstructionDecoder_x86::makeModRMExpression(const InstructionDecoder::buffer& b,
 								  unsigned int opType)
     {
-        unsigned int regType = op_d;
+       unsigned int regType = op_d;
         Result_Type aw = ia32_is_mode_64() ? u32 : u64;
         if(ia32_is_mode_64())
         {
@@ -368,8 +367,13 @@ namespace Dyninst
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s16,
                                            *((const dword_t*)(b.start + disp_pos)))));
                     }
-                    else
-                    {
+                    // TODO FIXME; this was decoding wrong, but I'm not sure
+                    // why...
+                    else if (locs->modrm_rm == 5) {
+                        assert(b.start + disp_pos + 4 <= b.end);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+                                           *((const dword_t*)(b.start + disp_pos)))));
+                    } else {
                         assert(b.start + disp_pos + 1 <= b.end);
                         return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
                     }
@@ -612,7 +616,7 @@ namespace Dyninst
             case op_v:
             case op_lea:
             case op_z:
-                if(is32BitMode ^ sizePrefixPresent)
+	      if(!ia32_is_mode_64() ^ sizePrefixPresent)
                 {
                     return u32;
                 }
@@ -623,7 +627,7 @@ namespace Dyninst
                 break;
             case op_p:
                 // book says operand size; arch-x86 says word + word * operand size
-                if(is32BitMode ^ sizePrefixPresent)
+                if(!ia32_is_mode_64() ^ sizePrefixPresent)
                 {
                     return u48;
                 }
@@ -660,7 +664,7 @@ namespace Dyninst
 						  const Instruction* insn_to_complete, 
 						  bool isRead, bool isWritten)
     {
-      bool isCFT = false;
+       bool isCFT = false;
       bool isCall = false;
       bool isConditional = false;
       InsnCategory cat = insn_to_complete->getCategory();
@@ -699,8 +703,7 @@ namespace Dyninst
                     {
                         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
                         Expression::Ptr addr(decodeImmediate(optype, b.start + 1));
-                        Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(optype)));
-                        insn_to_complete->addSuccessor(op, isCall, false, false, false);
+                        insn_to_complete->addSuccessor(addr, isCall, false, false, false);
                     }
                     break;
                     case am_C:
@@ -1072,7 +1075,7 @@ namespace Dyninst
     
       bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
     {
-        int imm_index = 0; // handle multiple immediate operands
+       int imm_index = 0; // handle multiple immediate operands
         if(!decodedInstruction) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
 	InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());

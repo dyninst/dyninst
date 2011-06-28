@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,16 +42,17 @@
 #include <string>
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/ast.h"
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
-template class dictionary_hash<unsigned int, int_function *>;
-class image_func;
-template class pdvector<image_func *>;
-template class dictionary_hash<std::string, pdvector<image_func *> *>;
-template class dictionary_hash<Address, image_func *>;
-template class dictionary_hash<const image_func *, int_function *>;
+template class dictionary_hash<unsigned int, func_instance *>;
+class parse_func;
+template class pdvector<parse_func *>;
+template class dictionary_hash<std::string, pdvector<parse_func *> *>;
+template class dictionary_hash<Address, parse_func *>;
+template class dictionary_hash<const parse_func *, func_instance *>;
 
 class int_variable;
 template class pdvector<int_variable *>;
@@ -81,8 +82,9 @@ template class dictionary_hash<Address, relocatedInstruction *>;
 class BPatch_point;
 template class dictionary_hash<const instPoint *, BPatch_point *>;
 
-class image_basicBlock;
-template class dictionary_hash<Address, image_basicBlock *>;
+class parse_block;
+template class dictionary_hash<Address, parse_block *>;
+template class  BPatch_Set<parse_block *>;
 
 class fileDescriptor;
 template class pdvector<fileDescriptor>;
@@ -91,14 +93,21 @@ template class dictionary_hash<std::string, unsigned int>;
 template class dictionary_hash<std::string, std::string>;
 template class dictionary_hash<std::string, SymtabAPI::Symbol>;
 template class dictionary_hash<std::string, pdmodule *>;
-template class dictionary_hash<std::string, int_function *>;
+template class dictionary_hash<std::string, func_instance *>;
 //template class dictionary_hash<std::string, internalSym *>;
 
 template class dictionary_hash<std::string, pdvector<std::string> *>;
-template class dictionary_hash<std::string, pdvector<int_function *> *>;
+template class dictionary_hash<std::string, pdvector<func_instance *> *>;
 
 class BPatch_typeCollection;
 template class dictionary_hash<std::string, BPatch_typeCollection *>;
+
+#include "dyninstAPI/src/rpcMgr.h"
+template class  dictionary_hash<unsigned, rpcLWP *>;
+template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
+template class  pdvector<rpcThr *>;
+template class pdvector<inferiorRPCtoDo *>;
+template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
 template class List<miniTramp*>;
@@ -112,16 +121,18 @@ template class dictionary_hash<std::string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<int, BPatch_type *>;
 template class dictionary_hash<std::string, BPatch_localVar *>;
-template class dictionary_hash<int_function*, BPatch_function*>;
+template class dictionary_hash<func_instance*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
 
 template class dictionary_hash<u_int, Address>;
 template class dictionary_hash<Address, Address>;
 template class dictionary_hash<Address, heapItem *>;
-template class dictionary_hash<Address, int_function *>;
+template class dictionary_hash<Address, func_instance *>;
 template class dictionary_hash<Address, unsigned>;
 
+#include "dyn_lwp.h"
+template class dictionary_hash<unsigned, dyn_lwp *>;
 
 class BPatch_basicBlock;
 
@@ -142,8 +153,8 @@ template class dictionary_hash< std::string, pdvector< SymtabAPI::Symbol > >;
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
 
-template class dictionary_hash<const int_function *, BPatch_function *>;
-template class pdvector<dictionary_hash <const int_function *, BPatch_function *>::entry>;
+template class dictionary_hash<const func_instance *, BPatch_function *>;
+template class pdvector<dictionary_hash <const func_instance *, BPatch_function *>::entry>;
 
 class replacedFunctionCall;
 template class pdvector<replacedFunctionCall *>;
@@ -154,15 +165,27 @@ template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
 template class  BPatch_Set<dominatorBB *>;
 
+#include "callbacks.h"
+#include "signalhandler.h"
+#include "mailbox.h"
+template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
+template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
 
-class image_edge;
-template class  pdvector<image_edge*>;
+class EventGate;
+
+template class pdvector<CallbackBase *>;
+template class pdvector<eventLock::lock_stack_elem>;
+template class pdvector<EventGate *>;
+template class pdvector<SignalHandler *>;
 
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash<int,int>::entry >;
 
 template class  dictionary_hash <unsigned long, std::string>;
 template class  pdvector<dictionary_hash<unsigned long,std::string>::entry >;
+
+template class dictionary_hash<Address, threadmap_t *>;
+template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
 
 class relocatedCode;
 template class dictionary_hash<Address, relocatedCode *>;
@@ -176,3 +199,10 @@ template class dictionary_hash<std::string, Statistic *>;
 
 class registerSlot;
 template class dictionary_hash<unsigned, registerSlot *>;
+
+#include "dyninstAPI/src/block.h"
+template class ParseAPI::ContainerWrapper<
+       std::vector<edge_instance *>,
+       edge_instance *,
+       edge_instance *,
+       EdgePredicateAdapter>;

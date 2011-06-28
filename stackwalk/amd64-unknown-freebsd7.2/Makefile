@@ -21,7 +21,8 @@ SRCS = 	../src/freebsd-swk.C \
 	../src/analysis_stepper.C \
 	../src/linuxbsd-swk.C \
 	../src/linuxbsd-x86-swk.C \
-        ../src/freebsd-x86-swk.C
+        ../src/freebsd-x86-swk.C \
+	../../common/src/Elf_X.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -53,3 +54,6 @@ MYFLAGS 	+= -I../../parseAPI/h -I../../symtabAPI/h -I../../symEval/h
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

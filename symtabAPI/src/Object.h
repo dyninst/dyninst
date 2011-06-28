@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -208,14 +208,12 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+#if defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
 #include "Object-elf.h"
 #elif defined(os_aix)
 #include "Object-xcoff.h"
 #elif defined(os_windows)
 #include "Object-nt.h"
-#elif defined(os_osf)
-#include "Object-coff.h"
 #else
 #error "unknown platform"
 #endif

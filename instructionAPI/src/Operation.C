@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -176,22 +176,21 @@ namespace Dyninst
     
     const Operation::registerSet&  Operation::implicitReads() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       
       return otherRead;
     }
     const Operation::registerSet&  Operation::implicitWrites() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
 
       return otherWritten;
     }
     bool Operation::isRead(Expression::Ptr candidate) const
     {
-      if(!doneOtherSetup)
-      {
+     
 	SetUpNonOperandData(candidate->isFlag());
-      }
+     
       for(registerSet::const_iterator r = otherRead.begin();
 	  r != otherRead.end();
 	  ++r)
@@ -214,21 +213,20 @@ namespace Dyninst
     }
     const Operation::VCSet& Operation::getImplicitMemReads() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
     const Operation::VCSet& Operation::getImplicitMemWrites() const
     {
-      if(!doneOtherSetup) SetUpNonOperandData(true);
+      SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
     bool Operation::isWritten(Expression::Ptr candidate) const
     {
-      if(!doneOtherSetup)
-      {
+     
 	SetUpNonOperandData(candidate->isFlag());
-      }
+      
       for(registerSet::const_iterator r = otherWritten.begin();
 	  r != otherWritten.end();
 	  ++r)
@@ -337,8 +335,12 @@ namespace Dyninst
         nonOperandRegisterWrites[e_js] = thePC;
         nonOperandRegisterWrites[e_jz] = thePC;
 	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
-	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
-        nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
+    nonOperandMemoryReads[e_popa] = stackPointerAsExpr;
+    nonOperandMemoryReads[e_popad] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_pusha] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_pushad] = stackPointerAsExpr;
+    nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
 	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
@@ -518,7 +520,7 @@ namespace Dyninst
 	      break;
 	    default:
                fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
-	      assert(0);
+	       assert(0);
 	    }
 	  }
 	}

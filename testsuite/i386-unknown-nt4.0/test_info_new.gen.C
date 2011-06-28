@@ -1663,6 +1663,7 @@ struct {
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
+ {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32", nonPIC} };
 
   struct {
@@ -1677,10 +1678,11 @@ struct {
  {true, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.dll", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
  {true, "power_decode", "power_decode", "power_decode.dll", false, "{test: power_decode, mutator: power_decode, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
  {true, "power_cft", "power_cft", "power_cft.dll", false, "{test: power_cft, mutator: power_cft, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
- {true, "fucompp", "fucompp", "fucompp.dll", false, "{test: fucompp, mutator: fucompp, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
+ {true, "fucompp", "fucompp", "fucompp.dll", false, "{test: fucompp, mutator: fucompp, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
+ {true, "mov_size_details", "mov_size_details", "mov_size_details.dll", false, "{test: mov_size_details, mutator: mov_size_details, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 7; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
@@ -1689,7 +1691,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 6 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 7 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);
@@ -1842,6 +1844,22 @@ struct {
  {"pc_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_temp_detach_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_terminate_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
  {"pc_terminate_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
  {"pc_terminate_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
@@ -2010,6 +2028,22 @@ struct {
  {true, "pc_detach", "pc_detach", "pc_detach.dll", false, "{test: pc_detach, mutator: pc_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_detach", "pc_detach", "pc_detach.dll", false, "{test: pc_detach, mutator: pc_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_detach", "pc_detach", "pc_detach.dll", false, "{test: pc_detach, mutator: pc_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_temp_detach", "pc_temp_detach", "pc_temp_detach.dll", false, "{test: pc_temp_detach, mutator: pc_temp_detach, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_temp_detach, optimization: none, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_terminate", "pc_terminate", "pc_terminate.dll", false, "{test: pc_terminate, mutator: pc_terminate, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_terminate, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "pc_terminate", "pc_terminate", "pc_terminate.dll", false, "{test: pc_terminate, mutator: pc_terminate, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, pic: none, mutatee: pc_terminate, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "pc_terminate", "pc_terminate", "pc_terminate.dll", false, "{test: pc_terminate, mutator: pc_terminate, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_terminate, optimization: none, compiler: VC, run_mode: createProcess}"},
@@ -2044,7 +2078,7 @@ struct {
  {true, "pc_terminate_stopped", "pc_terminate_stopped", "pc_terminate_stopped.dll", false, "{test: pc_terminate_stopped, mutator: pc_terminate_stopped, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, pic: none, mutatee: pc_terminate_stopped, optimization: none, compiler: VC++, run_mode: useAttach}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 160; i++) {
+  for (int i = 0; i < 176; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
@@ -2053,7 +2087,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 160 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 176 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

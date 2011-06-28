@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -52,16 +52,18 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 Aggregate::Aggregate() :
-    module_(NULL)
+    module_(NULL), firstSymbol(NULL), offset_(0L)
 {
 }
 
 Aggregate::Aggregate(Symbol *sym) :
-    module_(NULL)
+    module_(NULL), firstSymbol(NULL), offset_(0L)
 {
     assert(sym);
     module_ = sym->getModule();
     symbols_.push_back(sym);
+    firstSymbol = symbols_[0];
+    offset_ = firstSymbol->getOffset();
     mangledNames_.push_back(sym->getMangledName());
     prettyNames_.push_back(sym->getPrettyName());
     typedNames_.push_back(sym->getTypedName());
@@ -70,35 +72,32 @@ Aggregate::Aggregate(Symbol *sym) :
 
 Offset Aggregate::getOffset() const 
 { 
-	Symbol *s = getFirstSymbol();
-	if (!s)
+	if (!firstSymbol)
 	{
 		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (Offset) 0L;
 	}
-	return s->getOffset();
+	return offset_;
 }
 
 unsigned Aggregate::getSize() const 
 { 
-	Symbol *s = getFirstSymbol();
-	if (!s)
+	if (!firstSymbol)
 	{
 		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return (unsigned) 0;
 	}
-	return s->getSize(); 
+	return firstSymbol->getSize(); 
 }
 
 Region * Aggregate::getRegion() const
 {
-	Symbol *s = getFirstSymbol();
-	if (!s)
+	if (!firstSymbol)
 	{
 		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
 		return NULL;
 	}
-   	return s->getRegion();
+   	return firstSymbol->getRegion();
 }
 
 const vector<std::string> &Aggregate::getAllMangledNames() 
@@ -132,6 +131,8 @@ bool Aggregate::addSymbol(Symbol *sym) {
         if (sym == symbols_[i]) return true;
 
     symbols_.push_back(sym);
+    firstSymbol = symbols_[0];
+    offset_ = firstSymbol->getOffset();
 
     // We need to add the symbol names (if they aren't there already)
     // We can have multiple identical names - for example, there are
@@ -176,6 +177,13 @@ bool Aggregate::removeSymbolInt(Symbol *sym) {
             break;
         }
     }
+    if (symbols_.size() > 0) {
+        firstSymbol = symbols_[0];
+        offset_ = firstSymbol->getOffset();
+    } else {
+        firstSymbol = NULL;
+        offset_ = 0L;
+    }
     return true;
 }
 
@@ -187,9 +195,7 @@ bool Aggregate::getSymbols(std::vector<Symbol *> &syms) const
 
 Symbol * Aggregate::getFirstSymbol() const
 {
-    if (!symbols_.size())
-		return NULL;
-    return symbols_[0];
+    return firstSymbol;
 }
 
 SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
@@ -286,6 +292,8 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
         // This was the only one; so add it back in and update our address
         // in the Symtab.
         symbols_.push_back(sym);
+        firstSymbol = symbols_[0];
+        offset_ = firstSymbol->getOffset();
         module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
 
     } else {
@@ -425,6 +433,8 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &
 		}
 
 		symbols_.push_back(sym);
+        firstSymbol = symbols_[0];
+        offset_ = firstSymbol->getOffset();
 
 		//  sanity check to make sure that all our symbols share the same offset
 		if (serializer_debug_flag())

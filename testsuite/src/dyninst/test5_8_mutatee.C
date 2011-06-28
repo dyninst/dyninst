@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -65,7 +65,7 @@ void decl_test::func_cpp()
    if ( 1024 != ::CPP_DEFLT_ARG )
      logerror("::CPP_DEFLT_ARG init value wrong\n");
    if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
-     logerror("cpp_test_util::CPP_TEST_UTIL_VAR int value wrong\n");
+       logerror("cpp_test_util::CPP_TEST_UTIL_VAR int value wrong, expected %d, got %d\n", 0, cpp_test_util::CPP_TEST_UTIL_VAR);
 }
 
 // A call to this is inserted by the mutator when its analysis succeeds (test

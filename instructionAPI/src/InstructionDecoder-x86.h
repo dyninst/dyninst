@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -98,7 +98,6 @@ namespace Dyninst
       
                 ia32_locations* locs;
                 NS_x86::ia32_instruction* decodedInstruction;
-                bool is32BitMode;
                 bool sizePrefixPresent;
                 bool addrSizePrefixPresent;
         };

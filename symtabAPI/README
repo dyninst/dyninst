@@ -1,0 +1,84 @@
+        *** Symtab 7.0 Release Notes ***
+
+This is the version 7.0 release of the SymtabAPI.  Currently, the API
+library is available for ELF platforms (Linux, Solaris, BlueGene), ECOFF (AIX)
+and PE platforms (Windows).
+
+Documentation for the Symtab API can be found at:
+
+    http://www.dyninst.org/
+
+
+Prerequisites
+-------------
+
+On Linux, Symtab requires some libraries that are not installed by default
+in most distributions.  The first is libelf, which is included with most
+distributions and can be installed using the distribution's package manager.
+The second is libdwarf.  You can get the latest source code distribution
+of libdwarf from http://reality.sgiweb.org/davea/.  RPM files for libdwarf
+are also available from various sites.  
+
+Building the SymtabAPI from source
+------------------------------------
+
+If you downloaded the source distribution of this package, you can
+build the SymtabAPI libraries by running "make" in the core directory
+(one level up from where this README file is located).  On Unix
+platforms, you must use GNU make.  The top-level makefile contains
+directives for compiling the Paradyn parallel performance tool, from
+which the SymtabAPI was derived.  If you have downloaded only the
+SymtabAPI, you will see a number of messages about missing
+directories.  These directories are needed only for making Paradyn, so
+you should ignore these messages.  If you downloaded the entire
+Paradyn distribution, you can make only the API libraries by running
+"make SymtabAPI" in the core directory.
+
+
+Changes since 6.1
+-----------------
+- Support for rewriting dynamic binaries on PowerPC/32, PowerPC/64 and BlueGene/P platforms
+- Support for rewriting static binaries on x86 and x86_64 platforms
+- Speed and space optimizations
+
+
+-----------------------------------------------------------------------------
+This software is derived from the Paradyn system and therefore subject to
+the same copyright.  A copy of the Paradyn copyright appears at the end of
+this file.
+
+   The Dyninst API Team
+   5/17/2011
+
+----------------------- Start of Paradyn Copyright --------------------------
+Copyright (c) 1996-2011 Barton P. Miller
+
+We provide the Paradyn Parallel Performance Tools (below
+described as "Paradyn") on an AS IS basis, and do not warrant its
+validity or performance.  We reserve the right to update, modify,
+or discontinue this software at any time.  We shall have no
+obligation to supply such updates or modifications or any other
+form of support to you.
+
+By your use of Paradyn, you understand and agree that we (or any
+other person or entity with proprietary rights in Paradyn) are
+under no obligation to provide either maintenance services,
+update services, notices of latent defects, or correction of
+defects for Paradyn.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+-----------------------------------------------------------------------------
+

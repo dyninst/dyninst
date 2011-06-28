@@ -21,25 +21,26 @@ CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-VPATH = ../../common/src
 
 SRCS = ../src/ppc-swk.C \
 		 ../src/bg_firstparty.C \
-       ../src/firstparty.C \
-		 dyn_regs.C \
-		 addrtranslate.C \
-		 addrtranslate-sysv.C \
-		 addrtranslate-bluegenep.C \
-		 bluegeneKludges.C \
-		 string-regex.C
+		 ../src/firstparty.C \
+		 ../../common/src/dyn_regs.C \
+		 ../../common/src/addrtranslate.C \
+		 ../../common/src/addrtranslate-sysv.C \
+		 ../../common/src/addrtranslate-bluegenep.C \
+       ../../common/src/Elf_X.C \
+		 ../../common/src/bluegeneKludges.C \
+		 ../../common/src/string-regex.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
 endif
 
 ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB) -lelf
+LIBS += -L$(LIBELF_LIB)
 endif
+LIBS += -lelf
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -50,3 +51,6 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+VPATH += ../../common/src

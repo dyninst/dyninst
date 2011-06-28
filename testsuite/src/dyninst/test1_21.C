@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,6 +39,7 @@
  */
 
 #include "BPatch.h"
+#include "BPatch_point.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
@@ -82,8 +83,6 @@ extern "C" DLLEXPORT  TestMutator *test1_21_factory()
 test_results_t test1_21_Mutator::mutatorTest21() 
 {
 #if defined(os_aix_test) \
-	|| defined(os_osf_test) \
-	|| defined(os_solaris_test) \
 	|| defined(os_linux_test) \
 	|| defined(os_windows_test) \
         || defined(os_freebsd_test)

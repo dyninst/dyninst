@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -112,10 +112,11 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT unsigned long getMemSize() const;
    SYMTAB_EXPORT unsigned long getMemAlignment() const;
    SYMTAB_EXPORT void setMemOffset(Offset);
-   SYMTAB_EXPORT void setMemSize(long);
+   SYMTAB_EXPORT void setMemSize(unsigned long);
+   SYMTAB_EXPORT void setDiskSize(unsigned long);
 
    SYMTAB_EXPORT void *getPtrToRawData() const;
-   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long); 
+   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long);//also sets diskSize
 
    SYMTAB_EXPORT bool isBSS() const;
    SYMTAB_EXPORT bool isText() const;

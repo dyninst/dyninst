@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -189,7 +189,7 @@ inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE)
 inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
   return (accept(SOCK, ADDR, (int*) LENGTH_PTR));}
 inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
-  return (bind(socket, addr, len));}
+  return (::bind(socket, addr, len));}
 inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
   return (connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {

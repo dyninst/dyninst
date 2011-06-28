@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -134,7 +134,7 @@ class Module : public LookupInterface,
 
 	// Symbol output methods
 	SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-			const std::string name,
+			const std::string& name,
 			Symbol::SymbolType sType, 
 			NameType nameType = anyName,
 			bool isRegex = false, 
@@ -147,14 +147,14 @@ class Module : public LookupInterface,
 	// Function based methods
 	SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
 	SYMTAB_EXPORT bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
-	SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+	SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string& name,
 			NameType nameType = anyName, 
 			bool isRegex = false,
 			bool checkCase = true);
 
 	// Variable based methods
 	SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
-	SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+	SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
 			NameType nameType = anyName, 
 			bool isRegex = false, 
 			bool checkCase = true);
@@ -188,7 +188,7 @@ class Module : public LookupInterface,
 
    // Deprecated methods
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string name,
+                                               const std::string& name,
                                                Symbol::SymbolType sType, 
                                                bool isMangled = false,
                                                bool isRegex = false, 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -58,16 +58,12 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_function.h"
-
-// FIXME remove and remove InstrucIter references
-#include "parseAPI/src/InstrucIter.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -78,28 +74,11 @@
 #include <sys/procfs.h>
 #endif
 
-#include "writeBackXCOFF.h"
-
 #include "dyninstAPI/src/debug.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
 };
-
-bool PCProcess::skipHeap(const heapDescriptor &heap) {
-    // MT: I've seen problems writing into a "found" heap that
-    // is in the application heap (IE a dlopen'ed
-    // library). Since we don't have any problems getting
-    // memory there, I'm skipping any heap that is in 0x2.....
-
-    if ((infHeaps[j].addr() > 0x20000000) &&
-        (infHeaps[j].addr() < 0xd0000000) &&
-        (infHeaps[j].type() == uncopiedHeap)) {
-        infmalloc_printf("... never mind, AIX skipped heap\n");
-        return true;
-    }
-    return false;
-}
 
 bool Frame::setPC(Address newpc) 
 {
@@ -348,355 +327,6 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
 
 #define DEBUG_MSG 0 
 #define _DEBUG_MSG 0
-void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
-   int startPage, stopPage;
-   imageUpdate *patch;
-   //this function now returns only ONE section that is loadable.
-   int pageSize = getpagesize();
-
-   imageUpdate *curr, *next;
-   bool foundDup=true;
-   unsigned int j;
-
-   VECTOR_SORT(imagePatches, imageUpdateSort);
-
-   while(foundDup){
-      foundDup = false;
-      j =0;
-      while(imagePatches[j]->address==0 && j < imagePatches.size()){
-         j++;
-      }
-      curr = imagePatches[j];
-
-      for(j++;j<imagePatches.size();j++){
-         next = imagePatches[j];		
-         if(curr->address == next->address){
-            //duplicate
-            //find which is bigger and save that one.
-            if(curr->size > next->size){
-               next->address=0;
-            }else{
-               curr->address=0;
-               curr=next;
-            }
-            foundDup =true;
-         }else{
-            curr=next;
-         }
-
-      }
-      VECTOR_SORT(imagePatches, imageUpdateSort);
-   }
-
-
-	for(unsigned int i=0;i<imagePatches.size();i++){
-		if(imagePatches[i]->address!=0){
-			imagePatches[i]->startPage = imagePatches[i]->address- imagePatches[i]->address%pageSize;
-			imagePatches[i]->stopPage = imagePatches[i]->address + imagePatches[i]->size- 
-					(imagePatches[i]->address + imagePatches[i]->size )%pageSize;
-
-		}
-	}
-
-	foundDup = true;
-
-   while (foundDup){
-		foundDup = false;
-
-                j =0;
-
-      while (imagePatches[j]->address==0 && j < imagePatches.size()){
-                        j++;
-                }
-
-		VECTOR_ERASE(imagePatches,0,j-1);
-		j=0;
-
-      for (;j<imagePatches.size()-1;j++){
-         if (imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
-				foundDup = true;
-
-            if (imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
-               imagePatches[j+1]->address = 0;	
-            } else {
-               imagePatches[j]->size = 
-                  (imagePatches[j+1]->address + imagePatches[j+1]->size) -
-						imagePatches[j]->address;
-					imagePatches[j+1]->address = 0; 
-					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
-                                        	(imagePatches[j]->address + imagePatches[j]->size )%pageSize;		
-				}
-			}  
-		}
-      
-		VECTOR_SORT(imagePatches, imageUpdateSort);
-	}
-
-	unsigned int k=0;
-
-   while (imagePatches[k]->address==0 && k < imagePatches.size()){
-	        k++;
-        }
-
-	startPage = imagePatches[k]->startPage;
-	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
-	int startIndex=k, stopIndex=imagePatches.size()-1;
-
-	/*if(DEBUG_MSG){
-		bperr("COMPACTING....\n");	
-		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
-	}
-	patch = new imageUpdate;
-        patch->address = imagePatches[startIndex]->address;
-        patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
-                                   imagePatches[stopIndex]->size;
-        newPatches.push_back(patch);
-	if(DEBUG_MSG){
-		bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-	}*/
-
-	bool finished = false;
-
-	if(_DEBUG_MSG){
-		bperr("COMPACTING....\n");	
-		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
-	}
-
-   for (;k<imagePatches.size();k++){
-      if (imagePatches[k]->address!=0){
-         if (_DEBUG_MSG){
-				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
-					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
-			}
-         if (imagePatches[k]->startPage <= (unsigned int)stopPage){
-				stopIndex = k;
-				stopPage = imagePatches[k]->stopPage;
-         } else {
-
-				patch = new imageUpdate;
-				patch->address = imagePatches[startIndex]->address;
-				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
-						imagePatches[stopIndex]->size;
-				newPatches.push_back(patch);
-
-            if (_DEBUG_MSG){
-					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
-						patch->address, patch->size, startPage,  stopPage);
-				}
-				finished = true;
-
-				//was k+1	
-            if (k < imagePatches.size()){
-               while (imagePatches[k]->address==0 && k < imagePatches.size()){
-						k++;
-					}
-
-					startIndex = k;
-					stopIndex = k;
-					startPage = imagePatches[k]->startPage;
-					stopPage  = imagePatches[k]->stopPage;
-					finished = false;
-
-               if (k == imagePatches.size()){
-						finished = true;
-					}
-				} 
-			}
-		}
-
-	}
-
-   if (!finished) {
-		patch = new imageUpdate;
-                patch->address = imagePatches[startIndex]->address;
-                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
-                                   imagePatches[stopIndex]->size;
-                newPatches.push_back(patch);
-
-      if (_DEBUG_MSG){
-			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-			fflush(stdout);
-		}
-	}	
-
-	
-}
-
-void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
-
-	unsigned startPage, stopPage;
-	imageUpdate *patch;
-
-	int pageSize = getpagesize();
-
-	imageUpdate *curr, *next;
-	bool foundDup=true;
-	unsigned int j;
-
-	VECTOR_SORT(imagePatches, imageUpdateSort);
-
-   while (foundDup){
-		foundDup = false;
-		j =0;
-      while (imagePatches[j]->address==0 && j < imagePatches.size()){
-       	        	j++;
-        	}
-		curr = imagePatches[j];
-
-      for (j++;j<imagePatches.size();j++){
-			next = imagePatches[j];		
-         if (curr->address == next->address){
-				//duplicate
-				//find which is bigger and save that one.
-            if (curr->size > next->size){
-					next->address=0;
-				}else{
-					curr->address=0;
-					curr=next;
-				}
-				foundDup =true;
-			}else{
-				curr=next;
-			}
-
-		}
-
-		VECTOR_SORT(imagePatches, imageUpdateSort);
-	}
-
-   if (DEBUG_MSG){
-		bperr(" SORT 1 %d \n", imagePatches.size());
-	
-		for(unsigned int kk=0;kk<imagePatches.size();kk++){
-			bperr("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
-		}
-		fflush(stdout);
-	}
-
-	unsigned int endAddr;
-   for (unsigned int i=0;i<imagePatches.size();i++){
-      if (imagePatches[i]->address!=0){
-			imagePatches[i]->startPage = imagePatches[i]->address- (imagePatches[i]->address%pageSize);
-				
-			endAddr = imagePatches[i]->address + imagePatches[i]->size;
-			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
-
-         if (DEBUG_MSG){
-				bperr("%d address %x end addr %x : start page %x stop page %x \n",
-					i,imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
-					imagePatches[i]->startPage, imagePatches[i]->stopPage);
-			}
-		}
-	
-	}
-	foundDup = true;
-
-   while (foundDup){
-		foundDup = false;
-                j =0;
-      while (imagePatches[j]->address==0 && j < imagePatches.size()){
-                        j++;
-                }
-
-		//imagePatches.erase(0,j-1); //is it correct to erase here? 
-		//j = 0;
-      for (;j<imagePatches.size()-1;j++){ 
-         if (imagePatches[j]->address!=0 && imagePatches[j]->stopPage >= imagePatches[j+1]->startPage){
-				foundDup = true;
-            if (imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
-					imagePatches[j+1]->address = 0;	
-				}else{
-					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
-						imagePatches[j]->address;
-					imagePatches[j+1]->address = 0; 
-					endAddr = imagePatches[j]->address + imagePatches[j]->size;
-					imagePatches[j]->stopPage =  endAddr - (endAddr % pageSize);
-				}
-			}  
-		}
-
-		VECTOR_SORT(imagePatches, imageUpdateSort);
-	}
-
-	unsigned int k=0;
-
-   if (DEBUG_MSG){
-		bperr(" SORT 3 %d \n", imagePatches.size());
-
-      for (unsigned int kk=0;kk<imagePatches.size();kk++){
-			bperr("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
-		}
-		fflush(stdout);
-	}
-   while (imagePatches[k]->address==0 && k < imagePatches.size()){
-	        k++;
-        }
-
-	startPage = imagePatches[k]->startPage;
-	stopPage = imagePatches[k]->stopPage;
-	int startIndex=k, stopIndex=k;
-	bool finished = false;
-   if (DEBUG_MSG){
-		bperr("COMPACTING....\n");	
-		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
-	}
-
-   for (;k<imagePatches.size();k++){
-      if (imagePatches[k]->address!=0){
-         if (DEBUG_MSG){
-				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
-					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
-			}
-         if (imagePatches[k]->startPage <= (unsigned int) stopPage){
-				stopIndex = k;
-				stopPage = imagePatches[k]->stopPage;
-         } else {
-
-				patch = new imageUpdate;
-				patch->address = imagePatches[startIndex]->address;
-				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
-						imagePatches[stopIndex]->size;
-				newPatches.push_back(patch);
-
-            if (DEBUG_MSG){
-					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
-						patch->address, patch->size, startPage,  stopPage);
-				}
-
-				finished = true;
-
-				//was k+1	
-            if (k < imagePatches.size()){
-               while (imagePatches[k]->address==0 && k < imagePatches.size()){
-						k++;
-					}
-					startIndex = k;
-					stopIndex = k;
-					startPage = imagePatches[k]->startPage;
-					stopPage  = imagePatches[k]->stopPage;
-					finished = false;
-               if (k == imagePatches.size()){
-						finished = true;
-					}
-				} 
-			}
-		}
-
-	}
-
-   if (!finished){
-		patch = new imageUpdate;
-                patch->address = imagePatches[startIndex]->address;
-                patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
-                                   imagePatches[stopIndex]->size;
-                newPatches.push_back(patch);
-
-      if (DEBUG_MSG){
-			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
-		}
-	}	
-	
-}
 
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
 bool process::instrumentLibcStartMain() { assert(0); return false; }
@@ -784,8 +414,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-    int_function *f_main = NULL;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = NULL;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("main", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -892,7 +522,7 @@ bool process::loadDYNINSTlib()
     //        Write the library name somewhere where dlopen can find it.
     // Actually, why not write the library name first?
 
-    int_function *scratch = findOnlyOneFunction("main");
+    func_instance *scratch = findOnlyOneFunction("main");
     if (!scratch) return false;
 
 
@@ -925,7 +555,7 @@ bool process::loadDYNINSTlib()
 
     scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
 
-    int_function *dlopen_func = findOnlyOneFunction("dlopen");
+    func_instance *dlopen_func = findOnlyOneFunction("dlopen");
     if (!dlopen_func) {
         fprintf(stderr, "%s[%d]: ERROR: unable to find dlopen!\n",
                 __FILE__, __LINE__);
@@ -997,7 +627,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *lwp)
     savedRegs = NULL;
     // We was never here.... 
 
-    int_function *scratch = findOnlyOneFunction("main");
+    func_instance *scratch = findOnlyOneFunction("main");
     if (!scratch) return false;
     // Testing...
     // Round it up to the nearest instruction. 
@@ -1172,117 +802,6 @@ bool process::dumpCore_(const std::string coreFile)
     
     continueProc();
     return true;
-}
-
-bool process::dumpImage(const std::string outFile)
-{
-    // formerly OS::osDumpImage()
-    const string &imageFileName = getAOut()->fullName();
-
-	
-    // const Address codeOff = symbols->codeOffset();
-    int i;
-    int rd;
-    int ifd;
-    int ofd;
-    int cnt;
-    int total;
-    int length;
-
-    char buffer[4096];
-    struct filehdr hdr;
-    struct stat statBuf;
-    struct aouthdr aout;
-    struct scnhdr *sectHdr;
-    bool needsCont = false;
-
-    ifd = open(imageFileName.c_str(), O_RDONLY, 0);
-    if (ifd < 0) {
-      sprintf(errorLine, "Unable to open %s\n", imageFileName.c_str());
-      logLine(errorLine);
-      showErrorCallback(41, (const char *) errorLine);
-      perror("open");
-      return true;
-    }
-
-    rd = fstat(ifd, &statBuf);
-    if (rd != 0) {
-      perror("fstat");
-      sprintf(errorLine, "Unable to stat %s\n", imageFileName.c_str());
-      logLine(errorLine);
-      showErrorCallback(72, (const char *) errorLine);
-      return true;
-    }
-    length = statBuf.st_size;
-    ofd = open(outFile.c_str(), O_WRONLY|O_CREAT, 0777);
-    if (ofd < 0) {
-      perror("open");
-      exit(-1);
-    }
-
-    /* read header and section headers */
-    cnt = read(ifd, &hdr, sizeof(struct filehdr));
-    if (cnt != sizeof(struct filehdr)) {
-	sprintf(errorLine, "Error reading header\n");
-	logLine(errorLine);
-	showErrorCallback(44, (const char *) errorLine);
-	return false;
-    }
-
-    cnt = read(ifd, &aout, sizeof(struct aouthdr));
-
-    sectHdr = (struct scnhdr *) calloc(sizeof(struct scnhdr), hdr.f_nscns);
-    cnt = read(ifd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
-    if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns) {
-	sprintf(errorLine, "Section headers\n");
-	logLine(errorLine);
-	return false;
-    }
-
-    /* now copy the entire file */
-    lseek(ofd, 0, SEEK_SET);
-    lseek(ifd, 0, SEEK_SET);
-    for (i=0; i < length; i += 4096) {
-        rd = read(ifd, buffer, 4096);
-        write(ofd, buffer, rd);
-        total += rd;
-    }
-
-    if (!stopped) {
-        // make sure it is stopped.
-        pause();
-        needsCont = true;
-    }
-    
-    Address baseAddr = getAOut()->codeAbs();
-
-    sprintf(errorLine, "seeking to 0x%lx as the offset of the text segment \n",
-            baseAddr);
-    logLine(errorLine);
-    sprintf(errorLine, "Code offset = 0x%lx\n", baseAddr);
-    logLine(errorLine);
-    
-
-    lseek(ofd, aout.text_start, SEEK_SET);
-    
-    /* Copy the text segment over */
-    for (i = 0; i < aout.tsize; i += 4096) {
-        length = ((i + 4096) < aout.tsize) ? 4096 : aout.tsize-i;
-        readDataSpace((void *) (baseAddr+i), length, (void *)buffer, false);
-
-        
-        write(ofd, buffer, length);
-    }
-    
-    if (needsCont) {
-        continueProc();
-    }
-    
-    P_close(ofd);
-    P_close(ifd);
-    
-    return true;
-
 }
 
 bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
@@ -1472,7 +991,7 @@ void process::copyDanglingMemory(process *parent) {
 
 
 // findCallee
-int_function *instPoint::findCallee() {
+func_instance *instPoint::findCallee() {
     if (callee_) {
         return callee_;
     }
@@ -1487,11 +1006,11 @@ int_function *instPoint::findCallee() {
 
     // Check if we parsed an intra-module static call
     assert(img_p_);
-    image_func *icallee = img_p_->getCallee();
+    parse_func *icallee = img_p_->getCallee();
     if (icallee) {
       // Now we have to look up our specialized version
       // Can't do module lookup because of DEFAULT_MODULE...
-      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+      const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
       if (!possibles) {
           return NULL;
       }
@@ -1520,15 +1039,6 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
         
-#if !defined(cap_instruction_api)
-    InstrucIter targetIter(callTarget(), proc());
-    if (!targetIter.getInstruction().valid()) {
-        return NULL;
-    }
-    Address toc_offset = 0;
-
-    if (targetIter.isInterModuleCallSnippet(toc_offset)) {
-#else
     using namespace Dyninst::InstructionAPI;
     const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
     parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
@@ -1552,7 +1062,6 @@ int_function *instPoint::findCallee() {
         assert(child_as_expr);
         child_as_expr->bind(r2.get(), Result(u32, 0));
         toc_offset = child_as_expr->eval().convert<Address>();
-#endif
         Address TOC_addr = (func()->obj()->parse_img()->getObject())->getTOCoffset();
         
         // We need to read out of memory rather than disk... so this is a call to
@@ -1579,7 +1088,7 @@ int_function *instPoint::findCallee() {
 
         // Again, by definition, the function is not in owner.
         // So look it up.
-        int_function *pdf = proc()->findFuncByAddr(linkageTarget);
+        func_instance *pdf = proc()->findFuncByAddr(linkageTarget);
 
         if (pdf) {
             callee_ = pdf;
@@ -1596,7 +1105,7 @@ int_function *instPoint::findCallee() {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(process *p, std::string func, 
-                            pdvector<int_function *> &result)
+                            pdvector<func_instance *> &result)
 {
    bool found = false;
    mapped_module *lpthread = p->findModule("libpthread.a", true);
@@ -1629,7 +1138,7 @@ static bool initWrapperFunction(process *p, std::string symbol_name, std::string
    Address sym_addr = dyn_syms[0]->getAddress();
 
    //Find func_name
-   pdvector<int_function *> funcs;
+   pdvector<func_instance *> funcs;
    findThreadFuncs(p, func_name, funcs);   
    if (funcs.size() != 1)
    {
@@ -1648,11 +1157,11 @@ static bool initWrapperFunction(process *p, std::string symbol_name, std::string
    return true;
 }
 
-static bool instrumentThrdFunc(int_function *dummy_create, std::string func_name, 
+static bool instrumentThrdFunc(func_instance *dummy_create, std::string func_name, 
                                process *proc) 
 {
    //Find create_thread
-   pdvector<int_function *> thread_init_funcs;
+   pdvector<func_instance *> thread_init_funcs;
    findThreadFuncs(proc, func_name.c_str(), thread_init_funcs);
    //findThreadFuncs(this, "init_func", &thread_init_funcs);
    if (!thread_init_funcs.size()) {
@@ -1699,8 +1208,8 @@ bool process::initMT()
     * Instrument thread_create with calls to DYNINST_dummy_create
     **/
    //Find DYNINST_dummy_create
-   pdvector<int_function *> dummy_create_funcs;
-   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   pdvector<func_instance *> dummy_create_funcs;
+   func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
    if (!dummy_create)
    {
       fprintf(stderr, "[%s:%d] - Could not find DYNINST_dummy_create\n",

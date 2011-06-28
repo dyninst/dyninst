@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,11 +39,7 @@
 #include "dyntypes.h"
 #include "IBSTree.h"
 
-#if defined(cap_instruction_api)
 #include "IA_IAPI.h"
-#else
-#include "IA_InstrucIter.h"
-#endif
 #include "InstructionAdapter.h"
 
 #include "CodeObject.h"
@@ -54,11 +50,7 @@
 
 using namespace std;
 
-#if defined(cap_instruction_api)
-    typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
-#else
-    typedef Dyninst::InsnAdapter::IA_InstrucIter InstructionAdapter_t;
-#endif
+typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 
 namespace Dyninst {
 namespace ParseAPI {
@@ -121,6 +113,7 @@ class Parser {
     // blocks
     Block * findBlockByEntry(CodeRegion * cr, Address entry);
     int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
+    Block * findNextBlock(CodeRegion * cr, Address addr);
 
     void parse();
     void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
@@ -133,6 +126,7 @@ class Parser {
     // removal
     void remove_func(Function *);
     void remove_block(Block *);
+    void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
  public: 
     /** XXX all strictly internals below this point **/
@@ -176,12 +170,20 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+    ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
+    void ProcessUnresBranchEdge(
+        ParseFrame&,
+        Block*,
+        InstructionAdapter_t&,
+        Address target,
+        EdgeTypeEnum etype);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,
         InstructionAdapter_t&,
+        bool,
         bool,
         bool,
         Address);

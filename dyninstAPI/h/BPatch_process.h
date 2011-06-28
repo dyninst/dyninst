@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -35,11 +35,10 @@
 #include "BPatch_snippet.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_image.h"
+//#include "BPatch_image.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 
 #include "BPatch_callbacks.h"
 
@@ -56,9 +55,10 @@ class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
+class BPatch_point;
 class BPatch_funcMap;
 class BPatch_instpMap;
-class int_function;
+class func_instance;
 class rpcMgr;
 class HybridAnalysis;
 struct batchInsertionRecord;
@@ -230,12 +230,12 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // this function should go away as soon as Paradyn links against Dyninst
     PCProcess *lowlevel_process() { return llproc; }
     // These internal funcs trigger callbacks registered to matching events
-    bool triggerStopThread(instPoint *intPoint, int_function *intFunc, 
+    bool triggerStopThread(instPoint *intPoint, func_instance *intFunc, 
                             int cb_ID, void *retVal);
-    bool triggerSignalHandlerCB(instPoint *point, int_function *func, long signum, 
+    bool triggerSignalHandlerCB(instPoint *point, func_instance *func, long signum, 
                                BPatch_Vector<Dyninst::Address> *handlers); 
-    bool triggerCodeOverwriteCB(Dyninst::Address fault_instruc, 
-                                Dyninst::Address viol_target); 
+    bool triggerCodeOverwriteCB(instPoint * faultPoint,
+                                Dyninst::Address faultTarget); 
     bool setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, 
                                int rights);
     unsigned char *makeShadowPage(Dyninst::Address pageAddress);
@@ -243,13 +243,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
         ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
           std::vector<Dyninst::Address>& deadBlockAddrs, //output
           std::vector<BPatch_function*>& owFuncs,     //output
+          std::set<BPatch_function *> &monitorFuncs, //output
           bool &changedPages, bool &changedCode ); //output
-    // take a function and split off the blocks that correspond to the range
-    bool removeFunctionSubRange
-        (BPatch_function &curFunc, 
-         Dyninst::Address startAddr, 
-         Dyninst::Address endAddr, 
-         std::vector<Dyninst::Address> &blockAddrs);
     HybridAnalysis *getHybridAnalysis() { return hybridAnalysis_; }
     bool protectAnalyzedCode();
     // DO NOT USE
@@ -411,14 +406,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
     API_EXPORT(Int, (file),
     bool,dumpImage,(const char *file));
-
-    //  BPatch_process::dumpPatchedImage
-    //  
-    //  Write executable image of mutatee, including runtime modifications, to <file>
-
-    API_EXPORT(Int, (file),
-    char *,dumpPatchedImage,(const char* file));
-
 
     //  BPatch_process::getInheritedVariable
     //  

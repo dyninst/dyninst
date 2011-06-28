@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -143,6 +143,24 @@ class region_data {
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
 
+    /* 
+     * Look up the next block for detection of straight-line
+     * fallthrough edges into existing blocks.
+     */
+    inline std::pair<Address, Block*> get_next_block(Address addr)
+    {
+        Block * nextBlock = NULL;
+        Address nextBlockAddr = numeric_limits<Address>::max();
+
+        if((nextBlock = blocksByRange.successor(addr)) &&
+           nextBlock->start() > addr)
+        {
+            nextBlockAddr = nextBlock->start();   
+        }
+
+        return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
+    }
+    
 	 // Find functions within [start,end)
 	 int findFuncs(Address start, Address end, set<Function *> & funcs);
 };

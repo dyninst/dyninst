@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,6 +40,7 @@
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
+#include "BPatch_point.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 
@@ -184,17 +185,10 @@ test_results_t test1_36_Mutator::executeTest()
 	snippet_seq.push_back(makeTest36paramExpr(expr36_6, 5));
 	snippet_seq.push_back(makeTest36paramExpr(expr36_7, 6));
 	snippet_seq.push_back(makeTest36paramExpr(expr36_8, 7));
-
-	// Solaris Fortran skips 9th paramter
-#if defined(sparc_sun_solaris2_4_test) 
-	if (!isMutateeFortran(appImage))
-#endif
-		snippet_seq.push_back(makeTest36paramExpr(expr36_9, 8));
-
-#if !defined(sparc_sun_solaris2_4_test)
+	snippet_seq.push_back(makeTest36paramExpr(expr36_9, 8));
 	snippet_seq.push_back(makeTest36paramExpr(expr36_10, 9));
-#endif
-	BPatch_sequence seqExpr(snippet_seq);
+	
+    BPatch_sequence seqExpr(snippet_seq);
 
 	checkCost(seqExpr);
 	appAddrSpace->insertSnippet(seqExpr, *point36_1);

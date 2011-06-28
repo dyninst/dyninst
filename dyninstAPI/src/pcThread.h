@@ -68,7 +68,7 @@ public:
 
     // Thread info
     dynthread_t getTid() const;
-    int_function *getStartFunc();
+    func_instance *getStartFunc();
     Address getStackAddr();
 
     void clearStackwalk();
@@ -92,7 +92,7 @@ protected:
     int index_;
     Address stackAddr_;
     Address startFuncAddr_;
-    int_function *startFunc_;
+    func_instance *startFunc_;
 
     // When we run an inferior RPC we cache the stackwalk of the
     // process and return that if anyone asks for a stack walk

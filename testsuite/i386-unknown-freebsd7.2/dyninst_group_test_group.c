@@ -14,6 +14,7 @@ extern int test1_6_mutatee();
 extern int test1_9_mutatee();
 extern int test1_8_mutatee();
 extern int test2_5_mutatee();
+extern int test2_7_mutatee();
 extern int snip_change_shlib_var_mutatee();
 extern int test1_13_mutatee();
 extern int test1_18_mutatee();
@@ -56,6 +57,7 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_9", test1_9_mutatee, GROUPED, "test1_9"},
   {"test1_8", test1_8_mutatee, GROUPED, "test1_8"},
   {"test2_5", test2_5_mutatee, GROUPED, "test2_5"},
+  {"test2_7", test2_7_mutatee, GROUPED, "test2_7"},
   {"snip_change_shlib_var", snip_change_shlib_var_mutatee, GROUPED, "snip_change_shlib_var"},
   {"test1_13", test1_13_mutatee, GROUPED, "test1_13"},
   {"test1_18", test1_18_mutatee, GROUPED, "test1_18"},
@@ -87,9 +89,9 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test1_16", test1_16_mutatee, GROUPED, "test1_16"}
 };
 
-int max_tests = 40;
-int runTest[40];
-int passedTest[40];
+int max_tests = 41;
+int runTest[41];
+int passedTest[41];
 #ifdef __cplusplus
 }
 #endif

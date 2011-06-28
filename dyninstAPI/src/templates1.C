@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -83,21 +83,21 @@ class pdmodule;
 template class  dictionary_hash <std::string, pdmodule *>;
 template class  pdvector<dictionary_hash <std::string, pdmodule *>::entry>;
 
-class int_function;
-template class  dictionary_hash <std::string, pdvector<int_function*>*>;
-template class  pdvector<dictionary_hash <std::string, pdvector<int_function*>*>::entry>;
+class func_instance;
+template class  dictionary_hash <std::string, pdvector<func_instance*>*>;
+template class  pdvector<dictionary_hash <std::string, pdvector<func_instance*>*>::entry>;
 
 class int_variable;
 template class  dictionary_hash <std::string, pdvector<int_variable*>*>;
 template class  pdvector<dictionary_hash <std::string, pdvector<int_variable*> *>::entry>;
 
-class image_func;
-template class  dictionary_hash <std::string, pdvector<image_func*> *>;
-template class  pdvector<dictionary_hash <std::string, pdvector<image_func*> *>::entry>;
-template class  dictionary_hash <Address, image_func*>;
-template class  pdvector<dictionary_hash <Address, image_func*>::entry>;
-template class  dictionary_hash<const image_func *, int_function *>;
-template class  pdvector<dictionary_hash<const image_func *, int_function *>::entry>;
+class parse_func;
+template class  dictionary_hash <std::string, pdvector<parse_func*> *>;
+template class  pdvector<dictionary_hash <std::string, pdvector<parse_func*> *>::entry>;
+template class  dictionary_hash <Address, parse_func*>;
+template class  pdvector<dictionary_hash <Address, parse_func*>::entry>;
+template class  dictionary_hash<const parse_func *, func_instance *>;
+template class  pdvector<dictionary_hash<const parse_func *, func_instance *>::entry>;
 
 class image_variable;
 template class  dictionary_hash <Address, image_variable*>;
@@ -116,10 +116,10 @@ template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
 
 class BPatch_function;
-template class dictionary_hash<const int_function *, BPatch_function *>;
-template class pdvector<dictionary_hash <const int_function *, BPatch_function *>::entry>;
-template class  dictionary_hash <int_function*, BPatch_function*>;
-template class  pdvector<dictionary_hash<int_function*, BPatch_function*>::entry>;
+template class dictionary_hash<const func_instance *, BPatch_function *>;
+template class pdvector<dictionary_hash <const func_instance *, BPatch_function *>::entry>;
+template class  dictionary_hash <func_instance*, BPatch_function*>;
+template class  pdvector<dictionary_hash<func_instance*, BPatch_function*>::entry>;
 
 class BPatch_variableExpr;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
@@ -143,17 +143,14 @@ template class  dictionary_hash <Address, Address>;
 template class  pdvector<dictionary_hash <Address, Address>::entry>;
 template class  dictionary_hash_iter <Address, Address>;
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) \
- || defined(i386_unknown_solaris2_4) \
- || defined(sparc_sun_solaris2_4)
+#if defined(os_linux) || defined(os_bgp)
 class Elf_X_Shdr;
 template class pdvector<Elf_X_Shdr *>;
 #endif
 
-class image_basicBlock;
-template class dictionary_hash<Address, image_basicBlock *>;
-template class pdvector<dictionary_hash<Address, image_basicBlock *>::entry>;
+class parse_block;
+template class dictionary_hash<Address, parse_block *>;
+template class pdvector<dictionary_hash<Address, parse_block *>::entry>;
 
 class relocatedCode;
 template class dictionary_hash<Address, relocatedCode *>;
@@ -168,8 +165,8 @@ template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
 template class  BPatch_Set<dominatorBB *>;
 
-class image_basicBlock;
-template class  BPatch_Set<image_basicBlock *>;
+class parse_block;
+template class  BPatch_Set<parse_block *>;
 
 class image_edge;
 template class  pdvector<image_edge*>;
