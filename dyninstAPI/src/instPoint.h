@@ -119,8 +119,8 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     AddressSpace *proc() const;
     func_instance *func() const;
-    block_instance *block() const { return block_; }
-    edge_instance *edge()  { return edge_; }
+    block_instance *block() const;
+    edge_instance *edge() const;
 
     // I'm commenting this out so that we don't reinvent the wheel.
     // instPoints have two types of addresses. The first is "instrument
@@ -149,10 +149,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
  private:
     void markModified();
-
-    func_instance *func_;
-    block_instance *block_;
-    edge_instance *edge_;
 
     bitArray liveRegs_;
     void calcLiveness();

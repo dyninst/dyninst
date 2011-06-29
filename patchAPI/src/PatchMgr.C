@@ -33,8 +33,9 @@ initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, InstrumenterPtr inst, PatchCallback *cb)
-  : point_maker_(pt), as_(as), batch_mode_(0) {
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, 
+                   InstrumenterPtr inst, PatchCallback *cb)
+  : point_maker_(pt), as_(as) {
   if (inst == InstrumenterPtr()) {
     instor_ = Instrumenter::create(as);
   } else {
@@ -60,17 +61,6 @@ PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst, PatchC
   patch_cerr << "PatchAPI starts.\n";
   patch_cerr << ws2 << "Glue Instrumenter and Linker ot PatchMgr.\n";
   return ret;
-}
-
-bool
-PatchMgr::batchStart() {
-  patch_cerr << ws2 << "Batch Start.\n";
-  if (batch_mode_ != 0) {
-    return false;
-  }
-
-  batch_mode_++;
-  return true;
 }
 
 /* Return false if no point is found */
@@ -130,21 +120,6 @@ Point *PatchMgr::findPoint(Location loc,
       default:
          return NULL;
    }
-}
-         
-
-/* Start instrumentation */
-bool
-PatchMgr::patch() {
-  patch_cerr << ws4 << "Relocation and Generation Start.\n";
-
-  if (!instor_->run()) {
-    std::cerr << "ERROR: instrumenter process failed!\n";
-    return false;
-  }
-
-  patch_cerr << ws2 << "Batch Finish.\n";
-  return true;
 }
 
 PatchMgr::~PatchMgr() {
