@@ -4,15 +4,9 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#USES_SHM_SAMPLING = true
-#USES_PAPI = true
-#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-
-# For debugging.
-NO_OPT_FLAG = true
 
 STATIC_COMPS = true
 
@@ -26,13 +20,13 @@ include ../../make.config
 SRCS =          ../src/Object-elf.C \
 		../../common/src/Elf_X.C \
 		../src/Archive.C \
-		../src/Archive-elf.C\
+		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
 		../src/emitElf-64.C \
 		../src/emitElfStatic.C \
-		../src/emitElfStatic-stub.C \
+		../src/emitElfStatic-x86.C \
 		../src/LinkMap.C \
 		../src/relocationEntry-elf-x86.C
 
@@ -58,8 +52,15 @@ TFLAGS          += $(MYFLAGS)
 #TFLAGS		+= -g
 
 LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+
+ifndef LIBDWARF_STATIC
 LIBS += -ldwarf
+endif
+ifndef LIBELF_STATIC
 LIBS += -lelf
+endif
+
+
 
 AS		= /usr/bin/as
 
