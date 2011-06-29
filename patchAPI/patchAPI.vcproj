@@ -265,7 +265,47 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\ParseCallbacks.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\PatchBlock.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\PatchCallbacks.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -428,6 +468,14 @@
 			</File>
 			<File
 				RelativePath=".\h\Instrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ParseCallbacks.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\PatchCallbacks.h"
 				>
 			</File>
 			<File
