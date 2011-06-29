@@ -2,6 +2,7 @@
 
 #include "PatchCFG.h"
 #include "PatchMgr.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -81,7 +82,8 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    all_blocks_.erase(b);
    exit_blocks_.erase(b);
    call_blocks_.erase(b);
-   // TODO callback
+
+   cb()->remove_block(this, b);
 }
 
 void PatchFunction::addBlock(PatchBlock *b) {
@@ -108,7 +110,7 @@ void PatchFunction::addBlock(PatchBlock *b) {
       }
    }
 
-   // TODO callback
+   cb()->add_block(this, b);
 }
    
 Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
@@ -264,4 +266,47 @@ bool PatchFunction::findInsnPoints(Point::Type type,
       return (start != end);
    }
    else return false;
+}
+
+void PatchFunction::destroy(Point *p) {
+   assert(p->getFunction() == this);
+
+   switch(p->type()) {
+      case Point::PreInsn:
+         delete blockPoints_[p->getBlock()].preInsn[p->address()];
+         break;
+      case Point::PostInsn:
+         delete blockPoints_[p->getBlock()].postInsn[p->address()];
+         break;
+      case Point::BlockEntry:
+         delete blockPoints_[p->getBlock()].entry;
+         break;
+      case Point::BlockExit:
+         delete blockPoints_[p->getBlock()].exit;
+         break;
+      case Point::BlockDuring:
+         delete blockPoints_[p->getBlock()].during;
+         break;
+      case Point::FuncEntry:
+         delete points_.entry;
+         break;
+      case Point::FuncExit:
+         delete points_.exits[p->getBlock()];
+         break;
+      case Point::FuncDuring:
+         delete points_.during;
+         break;
+      case Point::PreCall:
+         delete points_.preCalls[p->getBlock()];
+         break;
+      case Point::PostCall:
+         delete points_.postCalls[p->getBlock()];
+         break;
+      default:
+         break;
+   }
+}
+
+PatchCallback *PatchFunction::cb() const {
+   return obj_->cb();
 }

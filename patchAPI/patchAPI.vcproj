@@ -265,7 +265,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\ParseCallbacks.C"
+				RelativePath=".\src\ParseCallback.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -305,7 +305,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\PatchCallbacks.C"
+				RelativePath=".\src\PatchCallback.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -471,11 +471,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ParseCallbacks.h"
+				RelativePath=".\ParseCallback.h"
 				>
 			</File>
 			<File
-				RelativePath=".\h\PatchCallbacks.h"
+				RelativePath=".\h\PatchCallback.h"
 				>
 			</File>
 			<File

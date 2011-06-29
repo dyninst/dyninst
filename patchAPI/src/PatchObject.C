@@ -4,6 +4,7 @@
 #include "PatchCFG.h"
 #include "AddrSpace.h"
 #include "PatchMgr.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -64,6 +65,7 @@ void
 PatchObject::addFunc(PatchFunction* f) {
   assert(f);
   funcs_[f->function()] = f;
+  cb()->create(f);
 }
 
 void
@@ -75,7 +77,7 @@ void
 PatchObject::removeFunc(ParseAPI::Function* f) {
    FuncMap::iterator iter = funcs_.find(f);
    if (iter == funcs_.end()) return;
-   delete iter->second;
+   cb()->destroy(iter->second);
    funcs_.erase(iter);
 }
 
@@ -99,6 +101,7 @@ void
 PatchObject::addBlock(PatchBlock* b) {
   assert(b);
   blocks_[b->block()] = b;
+  cb()->create(b);
 }
 
 void
@@ -110,7 +113,7 @@ void
 PatchObject::removeBlock(ParseAPI::Block* b) {
    BlockMap::iterator iter = blocks_.find(b);
    if (iter == blocks_.end()) return;
-   delete iter->second;
+   cb()->destroy(iter->second);
    blocks_.erase(iter);
 }
 
@@ -129,6 +132,7 @@ void
 PatchObject::addEdge(PatchEdge* e) {
   assert(e);
   edges_[e->edge()] = e;
+  cb()->create(e);
 }
 
 void
@@ -140,7 +144,7 @@ void
 PatchObject::removeEdge(ParseAPI::Edge *e) {
    EdgeMap::iterator iter = edges_.find(e);
    if (iter == edges_.end()) return;
-   delete iter->second;
+   cb()->destroy(iter->second);
    edges_.erase(iter);
 }
 
@@ -198,5 +202,12 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    // we go there. 
    addrSpace()->mgr()->updatePointsForBlockSplit(p1, p2);   
 
+   // 5) ??
+   cb()->split_block(p1, p2);
+
    return true;
+}
+
+PatchCallback *PatchObject::cb() const {
+   return addrSpace()->mgr()->cb();
 }

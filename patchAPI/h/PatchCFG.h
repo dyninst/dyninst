@@ -15,6 +15,7 @@ class PatchParseCallback;
 class PatchEdge;
 class PatchBlock;
 class PatchFunction;
+class PatchCallback;
 
 class PatchEdge {
    friend class PatchBlock;
@@ -42,6 +43,9 @@ class PatchEdge {
    PATCHAPI_EXPORT ParseAPI::EdgeTypeEnum type() const;
    PATCHAPI_EXPORT bool sinkEdge() const;
    PATCHAPI_EXPORT bool interproc() const;
+
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
 
  protected:
     ParseAPI::Edge *edge_;
@@ -95,6 +99,9 @@ class PatchBlock {
     void getFunctions(OutputIterator result);
 
     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
 
   protected:
     typedef enum {
@@ -167,6 +174,9 @@ class PatchFunction {
      PATCHAPI_EXPORT bool findInsnPoints(Point::Type type, PatchBlock *block,
                                          InsnPoints::const_iterator &start,
                                          InsnPoints::const_iterator &end);
+
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
                                          
 
    protected:

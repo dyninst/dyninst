@@ -9,6 +9,8 @@
 namespace Dyninst {
 namespace PatchAPI {
 
+   class PatchCallback;
+
 struct EntrySite {
    PatchFunction *func;
    PatchBlock *block;
@@ -167,9 +169,6 @@ class Point {
     Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
-    typedef std::set<PatchFunction*> FuncSet;
-    typedef std::set<PatchBlock*> BlockSet;
-    const Point::FuncSet& getInstFuncs() const { return inst_funcs_; }
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
     const ParseAPI::CodeObject* co() const { return co_; }
@@ -190,7 +189,8 @@ class Point {
     // Remove a specific type from a set of types
     PATCHAPI_EXPORT static void RemoveType(Point::Type& types, Point::Type trg);
 
-
+    PATCHAPI_EXPORT PatchCallback *cb() const;
+    
   protected:
     bool destroy();
     void initCodeStructure();
@@ -208,7 +208,6 @@ class Point {
     ParseAPI::CodeObject* co_;
     ParseAPI::CodeSource* cs_;
     PatchObject* obj_;
-    Point::FuncSet inst_funcs_;
 };
 
 inline Point::Type operator|(Point::Type a, Point::Type b) {

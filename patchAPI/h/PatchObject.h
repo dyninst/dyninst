@@ -10,6 +10,7 @@ namespace Dyninst {
 namespace PatchAPI {
 
 class PatchFunction;
+class PatchCallback;
 
 /* PatchObject represents a binary object, which could be either a library or
    executable. It is also an instrumentation  unit. */
@@ -58,6 +59,8 @@ class PatchObject {
     template <class Iter>
        PATCHAPI_EXPORT void edges(Iter iter); 
 
+    PATCHAPI_EXPORT PatchCallback *cb() const;
+    
   protected:
     ParseAPI::CodeObject* co_;
     //ParseAPI::CodeSource* cs_;

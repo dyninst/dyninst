@@ -4,6 +4,7 @@
 #include "PatchObject.h"
 #include "PatchCFG.h"
 #include "Point.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -32,7 +33,7 @@ initDebugFlag() {
     debug_patchapi_flag = true;
 }
 
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, InstrumenterPtr inst)
+PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, InstrumenterPtr inst, PatchCallback *cb)
   : point_maker_(pt), as_(as), batch_mode_(0) {
   if (inst == InstrumenterPtr()) {
     instor_ = Instrumenter::create(as);
@@ -40,11 +41,18 @@ PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, InstrumenterPtr inst)
     inst->setAs(as);
     instor_ = inst;
   }
+  if (!cb) {
+     cb_ = new PatchCallback();
+  }
+  else {
+     cb_ = cb;
+  }
+
 }
 
 PatchMgrPtr
-PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst) {
-  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst));
+PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst, PatchCallback *cb) {
+   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst, cb));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
@@ -141,6 +149,7 @@ PatchMgr::patch() {
 
 PatchMgr::~PatchMgr() {
    // TODO: do we delete PatchObjects, etc?
+   delete cb_;
 }
 
 template <class A>
@@ -439,4 +448,6 @@ void PatchMgr::enumerateTypes(Point::Type types, EnumeratedTypes &out) {
 };
 
 
-
+void PatchMgr::destroy(Point *p) {
+   cb()->destroy(p);
+}

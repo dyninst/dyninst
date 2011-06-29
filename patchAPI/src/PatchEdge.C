@@ -1,6 +1,7 @@
 /* Public Interface */
 
 #include "PatchCFG.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -68,4 +69,13 @@ PatchEdge::interproc() const {
   return edge_->interproc() ||
          (edge_->type() == ParseAPI::CALL) ||
          (edge_->type() == ParseAPI::RET);
+}
+
+void PatchEdge::destroy(Point *p) {
+   assert(p->getEdge() == this);
+   delete points_.during;
+}
+
+PatchCallback *PatchEdge::cb() const {
+   return src_->object()->cb();
 }

@@ -4,6 +4,7 @@
 #include "PatchMgr.h"
 #include "PatchObject.h"
 #include "PatchCFG.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace Dyninst::PatchAPI;
@@ -63,26 +64,8 @@ Point::getCallee() {
 void
 Point::initCodeStructure() {
   assert(mgr_);
-  // walk through all code objects
-  for (AddrSpace::ObjSet::iterator ci = mgr_->as()->objSet().begin();
-       ci != mgr_->as()->objSet().end(); ci++) {
-    PatchObject* obj = *ci;
-    CodeObject* co = obj->co();
-    CodeSource* cs = co->cs();
-    Address relative_addr = addr_ - obj->codeBase();
-    vector<CodeRegion*> regions = cs->regions();
-    for (vector<CodeRegion*>::iterator ri = regions.begin(); ri != regions.end(); ri++) {
-      std::set<ParseAPI::Function*> parseapi_funcs;
-      co->findFuncs(*ri, relative_addr, parseapi_funcs);
 
-      for (std::set<ParseAPI::Function*>::iterator fi = parseapi_funcs.begin();
-           fi != parseapi_funcs.end(); fi++) {
-        PatchFunction* func = obj->getFunc(*fi);
-        inst_funcs_.insert(func);
-      } // Function
-    } // Region
-  }
-  if (!the_func_) the_func_ = *inst_funcs_.begin();
+  cb()->create(this);
 }
 
 /* for single instruction */
@@ -195,62 +178,7 @@ Point::clear() {
 bool
 Point::destroy() {
   clear();
-  // TODO: this makes a copy of the point map whenever we call this function;
-  // that is an enormous amount of copying.  
-  // Also, it won't modify the PatchMgr data structure since we first made
-  // a copy. Please fix. 
-#if 0
-  PatchMgr::TypePtMap type_pt_map;
-  switch (type_) {
-    case Point::PreInsn:
-    case Point::PostInsn:
-       //case Point::InsnTaken:
-    case Point::PreCall:
-    case Point::PostCall:
-    {
-       type_pt_map = mgr_->addr_type_pt_map_[addr_];
-       break;
-    }
-    case Point::BlockEntry:
-    case Point::BlockExit:
-    case Point::BlockDuring:
-    {
-      type_pt_map = mgr_->blk_type_pt_map_[the_block_];
-      break;
-    }
-    case Point::FuncEntry:
-    case Point::FuncExit:
-    case Point::FuncDuring:
-    {
-      type_pt_map = mgr_->func_type_pt_map_[the_func_];
-      break;
-    }
-    case Point::EdgeDuring:
-    {
-      type_pt_map = mgr_->edge_type_pt_map_[the_edge_];
-      break;
-    }
-    case Point::LoopStart:
-    case Point::LoopEnd:
-    case Point::LoopIterStart:
-    case Point::LoopIterEnd:
-    {
-      return false;
-    }
-    case Point::InsnTypes:
-    case Point::LoopTypes:
-    case Point::BlockTypes:
-    case Point::CallTypes:
-    case Point::FuncTypes:
-    case Point::OtherPoint:
-    case Point::None:
-    {
-      return false;
-    }
-  }
-  PointSet& points = type_pt_map[type_];
-  points.erase(this);
-#endif
+
   return true;
 }
 
@@ -261,7 +189,9 @@ Point::~Point() {
 
 void Point::changeBlock(PatchBlock *block) {
    // TODO: callback from here
+   PatchBlock *old = the_block_;
    the_block_ = block;
+   cb()->change(this, old, block);
 }
 
 FuncPoints::~FuncPoints() {
@@ -291,4 +221,11 @@ BlockPoints::~BlockPoints() {
    for (InsnPoints::iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
       delete iter->second;
    }
+}
+
+PatchCallback *Point::cb() const { 
+   if (the_func_) return the_func_->cb();
+   else if (the_block_) return the_block_->cb();
+   else if (the_edge_) return the_edge_->cb();
+   else return NULL;
 }

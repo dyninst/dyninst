@@ -5,6 +5,7 @@
 #include "AddrSpace.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -82,14 +83,16 @@ void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
    if (!addIfEmpty && srclist_.empty()) return;
 
    srclist_.push_back(e);
-   // TODO callback
+
+  cb()->add_edge(this, e, PatchCallback::source);
 }
 
 void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {
    if (!addIfEmpty && trglist_.empty()) return;
 
    trglist_.push_back(e);
-   // TODO callback
+   
+   cb()->add_edge(this, e, PatchCallback::target);
 }
 
 
@@ -101,7 +104,8 @@ PatchBlock::removeSourceEdge(PatchEdge *e) {
   if ((iter = std::find(srclist_.begin(), srclist_.end(), e)) != srclist_.end()) {
     srclist_.erase(iter);
   }
-  // TODO callback
+
+  cb()->remove_edge(this, e, PatchCallback::source);
 }
 
 void
@@ -112,7 +116,7 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
     trglist_.erase(iter);
   }
-  // TODO callback
+  cb()->remove_edge(this, e, PatchCallback::target);
 }
 
 
@@ -296,4 +300,34 @@ Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
          return NULL;
    }
 }
+
+
+void PatchBlock::destroy(Point *p) {
+   assert(p->getBlock() == this);
+
+   switch(p->type()) {
+      case Point::PreInsn:
+         delete points_.preInsn[p->address()];
+         break;
+      case Point::PostInsn:
+         delete points_.postInsn[p->address()];
+         break;
+      case Point::BlockEntry:
+         delete points_.entry;
+         break;
+      case Point::BlockExit:
+         delete points_.exit;
+         break;
+      case Point::BlockDuring:
+         delete points_.during;
+         break;
+      default:
+         break;
+   }
+}
+
+PatchCallback *PatchBlock::cb() const {
+   return obj_->cb();
+}
+
 
