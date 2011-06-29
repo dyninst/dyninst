@@ -77,7 +77,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
                    bool create = true);
 
     // Group interface with one degree of freedom: the Type can be a composition.
-    template <class FilterFunc, class FilterArgument, class OutputIterator> 
+    template <class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Location loc,
                     Point::Type types,
                     FilterFunc filter_func,
@@ -85,46 +85,29 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
                     OutputIterator outputIter,
                     bool create = true);
 
-    template <class OutputIterator> 
+    template <class OutputIterator>
     bool findPoints(Location loc,
                     Point::Type types,
                     OutputIterator outputIter,
                     bool create = true);
 
     // Group interface with two degrees of freedom: Locations are wildcarded
-    // and Type can be a composition. Instead, users provide a Scope and a 
-    // FilterFunc that guide which Locations will be considered. 
+    // and Type can be a composition. Instead, users provide a Scope and a
+    // FilterFunc that guide which Locations will be considered.
     template <class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Scope scope,
                     Point::Type types,
                     FilterFunc filter_func,
                     FilterArgument filter_arg,
-                    OutputIterator output_iter, 
+                    OutputIterator output_iter,
                     bool create = true);
 
     // Use default identity filter function
     template <class OutputIterator>
     bool findPoints(Scope scope,
                     Point::Type types,
-                    OutputIterator output_iter, 
+                    OutputIterator output_iter,
                     bool create = true);
-
-    // Explicit batch mode for snippet insertion and removal.
-    // TODO(wenbin): Transactional semantics -- all succeed, or all fail
-
-    // Return false on failure:
-    //   Nested batchStart/batchFinish
-    PATCHAPI_EXPORT bool batchStart();
-
-    // Return false on failure:
-    //   1) Broken batchStart/batchFinish pair
-    //   2) Some insertion/removal fails
-    template <class OutputIterator>
-    bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
-      if (batch_mode_ != 1) return false;
-      batch_mode_--;
-      return patch();
-    }
 
     // Snippet instance removal
     // Return false if no point if found
@@ -159,12 +142,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
     PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
     PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; }
-    //----------------------------------------------------
-    // Mapping order: Scope -> Type -> Point Set
-    //   The Scope x Type provides us a list of matching locations;
-    //   we then filter those locations. Points are stored in
-    //   their contexts (e.g., Functions or Blocks). 
-    //----------------------------------------------------
 
   private:
     bool getCandidates(Scope &, Point::Type types, Candidates &ret);
@@ -207,17 +184,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
-    // Core instrumentation function!
-    PATCHAPI_EXPORT bool patch();
-
     bool match(Point *, Location *);
     void updatePointsForBlockSplit(PatchBlock *oldBlock, PatchBlock *newBlock);
     PointMakerPtr point_maker_;
     InstrumenterPtr instor_;
     AddrSpacePtr as_;
-
-    typedef int BatchMode;
-    BatchMode batch_mode_;
 };
 
 
@@ -226,7 +197,7 @@ bool PatchMgr::findPoints(Scope scope,
                           Point::Type types,
                           FilterFunc filter_func,
                           FilterArgument filter_arg,
-                          OutputIterator output_iter, 
+                          OutputIterator output_iter,
                           bool create) {
    Candidates candidates;
    if (!getCandidates(scope, types, candidates)) return false;
@@ -241,7 +212,7 @@ bool PatchMgr::findPoints(Scope scope,
    return true;
 };
 
-template <class FilterFunc, class FilterArgument, class OutputIterator> 
+template <class FilterFunc, class FilterArgument, class OutputIterator>
 bool PatchMgr::findPoints(Location loc, Point::Type types,
                 FilterFunc filter_func, FilterArgument filter_arg,
                 OutputIterator outputIter, bool create) {
@@ -268,7 +239,7 @@ bool PatchMgr::findPoints(Location loc, Point::Type types,
 template <class OutputIterator>
 bool PatchMgr::findPoints(Scope scope,
                           Point::Type types,
-                          OutputIterator output_iter, 
+                          OutputIterator output_iter,
                           bool create) {
    IdentityFilterFunc<char*> filter_func;
    char* dummy = NULL;
@@ -287,7 +258,7 @@ bool PatchMgr::findPoint(Location loc, Point::Type type,
    }
    return (!create || p);
 };
-            
+
 
 };
 };
