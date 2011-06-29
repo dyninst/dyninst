@@ -248,18 +248,18 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 
    if (func_ &&
        func_->entryBlock() == block_) {
-      p[block_] = Required;
+      p[block_] = std::make_pair(Required,func_);
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
-      p[block_] = Required;
+      p[block_] = std::make_pair(Required, func_);
       return true;
    }
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
-         p[block_] = Required;
+         p[block_] = std::make_pair(Required, func_);
          return true;
       }
    }

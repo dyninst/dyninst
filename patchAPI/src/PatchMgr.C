@@ -34,7 +34,7 @@ initDebugFlag() {
 }
 
 PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, 
-                   InstrumenterPtr inst, PatchCallback *cb)
+                   InstrumenterPtr inst)
   : point_maker_(pt), as_(as) {
   if (inst == InstrumenterPtr()) {
     instor_ = Instrumenter::create(as);
@@ -42,18 +42,11 @@ PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt,
     inst->setAs(as);
     instor_ = inst;
   }
-  if (!cb) {
-     cb_ = new PatchCallback();
-  }
-  else {
-     cb_ = cb;
-  }
-
 }
 
 PatchMgrPtr
-PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst, PatchCallback *cb) {
-   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst, cb));
+PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst) {
+   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst));
   if (!ret) return PatchMgrPtr();
   initDebugFlag();
   ret->as_->mgr_ = ret;
@@ -124,7 +117,6 @@ Point *PatchMgr::findPoint(Location loc,
 
 PatchMgr::~PatchMgr() {
    // TODO: do we delete PatchObjects, etc?
-   delete cb_;
 }
 
 template <class A>
@@ -424,5 +416,5 @@ void PatchMgr::enumerateTypes(Point::Type types, EnumeratedTypes &out) {
 
 
 void PatchMgr::destroy(Point *p) {
-   cb()->destroy(p);
+   p->obj()->cb()->destroy(p);
 }

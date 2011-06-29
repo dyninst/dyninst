@@ -18,7 +18,6 @@ class PatchObject;
 class PatchMgr;
 class PatchFunction;
 class PatchBlock;
-class PatchCallback;
 
 struct Scope {
    PatchObject *obj;
@@ -50,12 +49,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   typedef std::pair<Location, Point::Type> Candidate;
   typedef std::vector<Candidate> Candidates;
 
-  PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst, PatchCallback *);
+  PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst);
     PATCHAPI_EXPORT virtual ~PatchMgr();
     PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpacePtr as,
                                               PointMakerPtr pf = PointMakerPtr(new PointMaker),
-                                              InstrumenterPtr inst = InstrumenterPtr(),
-                                              PatchCallback *cb = NULL);
+                                              InstrumenterPtr inst = InstrumenterPtr());
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
@@ -146,7 +144,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
     PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
     PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; }
-    PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
     //   The Scope x Type provides us a list of matching locations;
@@ -201,7 +198,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     InstrumenterPtr instor_;
     AddrSpacePtr as_;
 
-    PatchCallback *cb_;
 };
 
 

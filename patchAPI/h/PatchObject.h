@@ -19,14 +19,18 @@ class PatchObject {
 
   public:
     PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker));
-    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base);
+                                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker), 
+                                               PatchCallback *cb = NULL);
+
+    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base, PatchCallback *cb);
     PATCHAPI_EXPORT virtual ~PatchObject();
 
     typedef std::vector<PatchFunction *> funclist;
     typedef std::map<const ParseAPI::Function*, PatchFunction*> FuncMap;
     typedef std::map<const ParseAPI::Block*, PatchBlock*> BlockMap;
     typedef std::map<const ParseAPI::Edge*, PatchEdge*> EdgeMap;
+
+    std::string format() const;
 
     // Getters and setter
     Address codeBase() { return codeBase_; }
@@ -59,7 +63,7 @@ class PatchObject {
     template <class Iter>
        PATCHAPI_EXPORT void edges(Iter iter); 
 
-    PATCHAPI_EXPORT PatchCallback *cb() const;
+    PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
     
   protected:
     ParseAPI::CodeObject* co_;
@@ -71,9 +75,11 @@ class PatchObject {
     EdgeMap edges_;
     CFGMakerPtr cfg_maker_;
 
-    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm);
-    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a);
+    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb = NULL);
+    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
+
+    PatchCallback *cb_;
 };
 
 template <class Iter>

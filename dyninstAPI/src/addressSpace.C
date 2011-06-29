@@ -2054,7 +2054,9 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBBIs,
 /* PatchAPI Stuffs */
 void AddressSpace::initPatchAPI(mapped_object* aout) {
    DynAddrSpacePtr addr_space = DynAddrSpace::create(aout);
-   mgr_ = PatchMgr::create(addr_space,
+   assert(addr_space);
+
+  mgr_ = PatchMgr::create(addr_space,
                            DynPointMakerPtr(new DynPointMaker),
                            DynInstrumenterPtr(new DynInstrumenter));
    patcher_ = Patcher::create(mgr_);

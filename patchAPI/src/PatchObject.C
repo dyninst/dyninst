@@ -11,26 +11,38 @@ using namespace PatchAPI;
 
 
 PatchObject*
-PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm) {
-  PatchObject* obj = new PatchObject(co, base, cm);
+PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm, PatchCallback *cb) {
+   PatchObject* obj = new PatchObject(co, base, cm, cb);
   return obj;
 }
 
 PatchObject*
-PatchObject::clone(PatchObject* par_obj, Address base) {
-  PatchObject* obj = new PatchObject(par_obj, base);
-  obj->copyCFG(par_obj);
-  return obj;
+PatchObject::clone(PatchObject* par_obj, Address base, PatchCallback *cb) {
+   PatchObject* obj = new PatchObject(par_obj, base, cb);
+   obj->copyCFG(par_obj);
+   return obj;
 }
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm)
+PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb)
   // : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
   : co_(o), codeBase_(a), cfg_maker_(cm) {
+   if (!cb) { 
+      cb_ = new PatchCallback();
+   }
+   else {
+      cb_ = cb;
+   }
 }
 
-PatchObject::PatchObject(const PatchObject* parObj, Address a)
+PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
   // : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
   : co_(parObj->co()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
+   if (!cb) {
+      cb_ = new PatchCallback();
+   }
+   else  {
+      cb_ = cb;
+   }
 }
 
 PatchObject::~PatchObject() {
@@ -43,6 +55,7 @@ PatchObject::~PatchObject() {
   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
     delete iter->second;
   }
+  delete cb_;
 }
 
 PatchFunction*
@@ -208,6 +221,16 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    return true;
 }
 
-PatchCallback *PatchObject::cb() const {
-   return addrSpace()->mgr()->cb();
+std::string PatchObject::format() const {
+   ParseAPI::CodeSource *cs = co()->cs();
+   ParseAPI::SymtabCodeSource *symtab = dynamic_cast<ParseAPI::SymtabCodeSource *>(cs);
+   stringstream ret;
+
+   if (symtab) {
+      ret << symtab->getSymtabObject()->name();
+   }
+
+   ret << hex << "(" << this << ")" << dec << endl;
+   return ret.str();
+
 }
