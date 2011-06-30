@@ -119,53 +119,6 @@ PatchMgr::~PatchMgr() {
    // TODO: do we delete PatchObjects, etc?
 }
 
-template <class A>
-struct SplitPredicate {
-   bool operator()(const Point::Type &t, const Location &l, A a) {
-      // Check block
-      if (l.block != a.first) return false;
-      // Exit points get moved
-      if (t == Point::BlockExit) return true;
-      // Check address
-      if ((t || Point::InsnTypes) &&
-          (l.addr >= a.first->end())) return true;
-      return false;
-   }
-};
-
-void PatchMgr::updatePointsForBlockSplit(PatchBlock *oldBlock, PatchBlock *newBlock) {
-   SplitPredicate<std::pair<PatchBlock *, PatchBlock *> > pred;
-
-   std::pair<PatchBlock *, PatchBlock *> blocks(oldBlock, newBlock);
-   // Move any Points that were in the old block and should be in the new block over.
-   std::set<Point *> points;
-   findPoints(Scope(oldBlock),
-              Point::BlockExit | Point::InsnTypes,
-              pred,
-              blocks,
-              std::inserter(points, points.begin()),
-              false); 
-
-   std::vector<PatchFunction *> funcs; 
-   oldBlock->getFunctions(std::back_inserter(funcs));
-   for (std::vector<PatchFunction *>::iterator tmp = funcs.begin();
-        tmp != funcs.end(); ++tmp) {
-      std::vector<Point *> funcPoints;
-      findPoints(Scope(*tmp, oldBlock),
-                 Point::BlockExit | Point::InsnTypes,
-                 pred,
-                 blocks,
-                 std::inserter(points, points.begin()),
-                 false); 
-   }
-
-   for (std::set<Point *>::iterator iter = points.begin();
-        iter != points.end(); ++iter) {
-      (*iter)->changeBlock(newBlock);
-   }
-   
-}
-
 bool PatchMgr::getCandidates(Scope &scope,
                              Point::Type types,
                              Candidates &ret) {

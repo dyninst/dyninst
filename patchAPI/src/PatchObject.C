@@ -211,9 +211,10 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    getEdge(ft, p1, p2);
 
    // 4) We need to reassign any Points that were in the first block and are
-   // now in the second. Since Points are stored at the patch manager level
-   // we go there. 
-   addrSpace()->mgr()->updatePointsForBlockSplit(p1, p2);   
+   // now in the second. This can also include points in any function that
+   // contained p1, but the following call handles that. 
+   p1->splitPoints(p2);
+
 
    // 5) ??
    cb()->split_block(p1, p2);

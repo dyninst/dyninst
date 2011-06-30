@@ -313,4 +313,35 @@ PatchCallback *PatchBlock::cb() const {
    return obj_->cb();
 }
 
+void PatchBlock::splitPoints(PatchBlock *succ) {
+   // Check our points. 
+   // Entry stays here
+   // During stays here
+   if (points_.exit) {
+      succ->points_.exit = points_.exit;
+      points_.exit = NULL;
+      succ->points_.exit->changeBlock(succ);
+   }
 
+   InsnPoints::iterator pre = points_.preInsn.lower_bound(succ->start());
+   for (InsnPoints::iterator tmp = pre; tmp != points_.preInsn.end(); ++tmp) {
+      tmp->second->changeBlock(succ);
+      succ->points_.preInsn[tmp->first] = tmp->second;
+   }
+   points_.preInsn.erase(pre, points_.preInsn.end());
+
+   InsnPoints::iterator post = points_.postInsn.lower_bound(succ->start());
+   for (InsnPoints::iterator tmp = post; tmp != points_.postInsn.end(); ++tmp) {
+      tmp->second->changeBlock(succ);
+      succ->points_.postInsn[tmp->first] = tmp->second;
+   }
+   points_.postInsn.erase(post, points_.postInsn.end());
+
+   std::vector<PatchFunction *> funcs;
+   getFunctions(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->splitPoints(this, succ);
+   }
+}
+
+   

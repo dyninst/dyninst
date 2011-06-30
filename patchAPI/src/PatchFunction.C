@@ -311,3 +311,34 @@ void PatchFunction::destroy(Point *p) {
 PatchCallback *PatchFunction::cb() const {
    return obj_->cb();
 }
+
+void PatchFunction::splitPoints(PatchBlock *first, PatchBlock *second) {
+   std::map<PatchBlock *, BlockPoints>::iterator iter = blockPoints_.find(first);
+   if (iter == blockPoints_.end()) return;
+
+   BlockPoints &points = iter->second;
+   BlockPoints &succ = blockPoints_[second];
+
+   // Check our points. 
+   // Entry stays here
+   // During stays here
+   if (points.exit) {      
+      succ.exit = points.exit;
+      points.exit = NULL;
+      succ.exit->changeBlock(second);
+   }
+
+   InsnPoints::iterator pre = points.preInsn.lower_bound(second->start());
+   for (InsnPoints::iterator tmp = pre; tmp != points.preInsn.end(); ++tmp) {
+      tmp->second->changeBlock(second);
+      succ.preInsn[tmp->first] = tmp->second;
+   }
+   points.preInsn.erase(pre, points.preInsn.end());
+
+   InsnPoints::iterator post = points.postInsn.lower_bound(second->start());
+   for (InsnPoints::iterator tmp = post; tmp != points.postInsn.end(); ++tmp) {
+      tmp->second->changeBlock(second);
+      succ.postInsn[tmp->first] = tmp->second;
+   }
+   points.postInsn.erase(post, points.postInsn.end());
+}
