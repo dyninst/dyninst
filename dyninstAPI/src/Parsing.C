@@ -38,9 +38,6 @@
 #include "instPoint.h"
 #include "Parsing.h"
 #include "debug.h"
-#include "BPatch.h"
-#include "process.h"
-#include "mapped_object.h"
 
 #if defined(os_aix)
 #include "parRegion.h"
@@ -211,7 +208,10 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::split_block_cb(Block *first, Block *second)
 {
-   // KEVINTODO
+    std::pair<Block*,Block*> split;
+    split.first = first;
+    split.second = second;
+   _img->addSplitBlock(split);
 }
 
 void DynParseCallback::destroy_cb(Block *b) {
@@ -291,28 +291,6 @@ DynParseCallback::updateCodeBytes(Address target)
 // KEVINTODO: add callback for deleted blocks and functions that 
 // trigger deletions at the int-layer.  Also make sure that the places
 // from which we were deleting blocks allow this to happen correctly. 
-
-bool 
-DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co) 
-{ 
-    //KEVINTODO: assumes that there is only one process that contains _img
-    // and that that is the process in which the absolute address is
-    // defined
-    std::vector<BPatch_process*> * procs = BPatch::bpatch->getProcesses();
-    for (unsigned pidx=0; pidx < procs->size(); pidx++) {
-        if ((*procs)[pidx]->lowlevel_process()->findObject(_img->desc())) {
-            mapped_object * obj = (*procs)[pidx]->lowlevel_process()->
-                findObject(absoluteAddr);
-            if (obj) {
-                load = obj->codeBase();
-                co = obj->parse_img()->codeObject();
-                return true;
-            }
-            return false;
-        }
-    }
-    return false; 
-}
 
 bool
 DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const

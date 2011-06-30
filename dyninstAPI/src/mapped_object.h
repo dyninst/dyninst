@@ -232,7 +232,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     void removeEmptyPages();
     void removeFunction(func_instance *func);
     bool splitIntLayer();
-    void splitBlock(const ParseAPI::Block *first, const ParseAPI::Block *second);
+    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<block_instance*> &pageBlocks);

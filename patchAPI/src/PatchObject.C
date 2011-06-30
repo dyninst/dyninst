@@ -182,7 +182,8 @@ PatchObject::copyCFG(PatchObject* parObj) {
 
 bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    PatchBlock *p2 = getBlock(second, false);
-   if (p2) return true; // ???
+   if (p2) 
+       return true; // ???
    p2 = getBlock(second);
 
    // Okay, get our edges right and stuff. 
@@ -211,8 +212,8 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    getEdge(ft, p1, p2);
 
    // 4) We need to reassign any Points that were in the first block and are
-   // now in the second. Since Points are stored at the patch manager level
-   // we go there. 
+   // now in the second. Since Points are also stored at the patch manager 
+   // level we also go there. 
    addrSpace()->mgr()->updatePointsForBlockSplit(p1, p2);   
 
    // 5) ??

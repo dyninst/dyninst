@@ -2209,10 +2209,18 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(const ParseAPI::Block * /*first*/, 
-                               const ParseAPI::Block * /*second*/) 
+void mapped_object::splitBlock(ParseAPI::Block * first, 
+                               ParseAPI::Block * second) 
 {
-    assert(0 && "KEVINTODO: needs to update the block-based maps in the the function class too");
+    // fix block mappings in: map<block_instance *, std::string> calleeNames_
+    block_instance *b1 = SCAST_BI(getBlock(first));
+    block_instance *b2 = SCAST_BI(getBlock(second));
+    map<block_instance *, std::string>::iterator nit = calleeNames_.find(b1);
+    if (calleeNames_.end() != nit) {
+        string name = nit->second;
+        calleeNames_.erase(nit);
+        calleeNames_[b2] = name;
+    }
 }
 
 func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {

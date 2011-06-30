@@ -118,10 +118,6 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
   virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
   virtual bool updateCodeBytes(Address target); // updates if needed
-  // returns the load address of the code object containing an absolute address
-  virtual bool absAddr(Address absolute, 
-                       Address & loadAddr, 
-                       ParseAPI::CodeObject *& containerObject);
 
   virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Block *);

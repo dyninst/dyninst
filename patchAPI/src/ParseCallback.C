@@ -1,6 +1,7 @@
 #include "ParseCallback.h"
 #include "PatchObject.h"
 #include "PatchCFG.h"
+#include "AddrSpace.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -73,4 +74,25 @@ void PatchParseCallback::add_block_cb(ParseAPI::Function *func, ParseAPI::Block 
    pf->addBlock(pb);
 }
 
+// returns the load address of the code object containing an absolute address
+bool PatchParseCallback::absAddr(Address absolute, 
+                                 Address & loadAddr, 
+                                 ParseAPI::CodeObject *& codeObj)
+{
+    AddrSpace::ObjSet objs = _obj->addrSpace()->objSet();
+    AddrSpace::ObjSet::iterator oit = objs.begin();
+    for (; oit != objs.end(); oit++) {
+        if (absolute > (*oit)->codeBase()) {
+            ParseAPI::CodeSource *cs = (*oit)->co()->cs();
+            set<ParseAPI::CodeRegion*> regs;
+            cs->findRegions(absolute - (*oit)->codeBase(), regs);
+            if (1 == regs.size()) {
+                loadAddr = (*oit)->codeBase();
+                codeObj = (*oit)->co();
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
