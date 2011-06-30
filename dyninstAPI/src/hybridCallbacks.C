@@ -439,6 +439,7 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
+    point->llpoint()->block()->setNotAbruptEnd();
     getCFTargets(point,*targets);
     assert(!targets->empty());
     nextInsn = (*targets)[0];
@@ -840,72 +841,71 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 3. return
         return;
     }
-    else {
+
     // 4. else case: the point is a jump/branch 
-        proc()->beginInsertionSet();
-        // 4.1 if the point is a direct branch, remove any instrumentation
-        if (!point->llpoint()->block() &&
-            !point->llpoint()->block()->containsDynamicCall()) {
-            BPatch_function *func = point->getFunction();
-            if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
-                &&
-                (*instrumentedFuncs)[func]->end() != 
-                (*instrumentedFuncs)[func]->find(point))
-            {
-                proc()->deleteSnippet(
-                    (*(*instrumentedFuncs)[func])[point] );
-                (*instrumentedFuncs)[func]->erase(point);
-            }
-            //point is set to resolved in handleStopThread
-        } 
-
-        bool newParsing;
-        vector<BPatch_function*> targFuncs;
-        proc()->findFunctionsByAddr(target, targFuncs);
-        if ( 0 == targFuncs.size() ) { 
-            newParsing = true;
-            mal_printf("stopThread instrumentation found jump "
-                    "at 0x%lx leading to an unparsed target at 0x%lx\n",
-                    (long)point->getAddress(), target);
-        } else {
-            newParsing = false;
-            mal_printf("stopThread instrumentation added an edge for jump "
-                    " at 0x%lx leading to a previously parsed target at 0x%lx\n",
-                    (long)point->getAddress(), target);
-        }
-
-        // add the new edge to the program, parseNewEdgeInFunction will figure
-        // out whether to extend the current function or parse as a new one. 
-        if (targMod != point->getFunction()->getModule()) {
-            // Don't put in inter-module branches
-            if (newParsing)
-                analyzeNewFunction(point, target, true, false);
-        }
-        else
+    proc()->beginInsertionSet();
+    // 4.1 if the point is a direct branch, remove any instrumentation
+    if (!point->llpoint()->block() &&
+        !point->llpoint()->block()->containsDynamicCall()) {
+        BPatch_function *func = point->getFunction();
+        if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
+            &&
+            (*instrumentedFuncs)[func]->end() != 
+            (*instrumentedFuncs)[func]->find(point))
         {
-            parseNewEdgeInFunction(point, target, false);
+            proc()->deleteSnippet(
+                (*(*instrumentedFuncs)[func])[point] );
+            (*instrumentedFuncs)[func]->erase(point);
         }
+        //point is set to resolved in handleStopThread
+    } 
 
-        if (0 == targFuncs.size()) {
-            proc()->findFunctionsByAddr( target, targFuncs );
-        }
-
-        // manipulate init_retstatus so that we will instrument the function's 
-        // return addresses, since this jump might be a tail call
-        for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-            parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
-            FuncReturnStatus initStatus = imgfunc->init_retstatus();
-            if (ParseAPI::RETURN == initStatus) {
-                imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
-                removeInstrumentation(targFuncs[tidx],false,false);
-                instrumentFunction(targFuncs[tidx],false,true);
-            } 
-        }
-
-        // re-instrument the function or the whole module, as needed
-        if (newParsing) {
-            instrumentModules(false);
-        }
-        proc()->finalizeInsertionSet(false);
+    bool newParsing;
+    vector<BPatch_function*> targFuncs;
+    proc()->findFunctionsByAddr(target, targFuncs);
+    if ( 0 == targFuncs.size() ) { 
+        newParsing = true;
+        mal_printf("stopThread instrumentation found jump "
+                "at 0x%lx leading to an unparsed target at 0x%lx\n",
+                (long)point->getAddress(), target);
+    } else {
+        newParsing = false;
+        mal_printf("stopThread instrumentation added an edge for jump "
+                " at 0x%lx leading to a previously parsed target at 0x%lx\n",
+                (long)point->getAddress(), target);
     }
+
+    // add the new edge to the program, parseNewEdgeInFunction will figure
+    // out whether to extend the current function or parse as a new one. 
+    if (targMod != point->getFunction()->getModule()) {
+        // Don't put in inter-module branches
+        if (newParsing)
+            analyzeNewFunction(point, target, true, false);
+    }
+    else
+    {
+        parseNewEdgeInFunction(point, target, false);
+    }
+
+    if (0 == targFuncs.size()) {
+        proc()->findFunctionsByAddr( target, targFuncs );
+    }
+
+    // manipulate init_retstatus so that we will instrument the function's 
+    // return addresses, since this jump might be a tail call
+    for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
+        parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+        FuncReturnStatus initStatus = imgfunc->init_retstatus();
+        if (ParseAPI::RETURN == initStatus) {
+            imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
+            removeInstrumentation(targFuncs[tidx],false,false);
+            instrumentFunction(targFuncs[tidx],false,true);
+        } 
+    }
+
+    // re-instrument the function or the whole module, as needed
+    if (newParsing) {
+        instrumentModules(false);
+    }
+    proc()->finalizeInsertionSet(false);
 } // end badTransferCB

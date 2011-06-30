@@ -1603,7 +1603,7 @@ void mapped_object::updateCodeBytes(const list<pair<Address,Address> > &owRanges
     {
         Region *curreg = allregions[ridx];
         if (expandRegs.end() == expandRegs.find(curreg)) {
-            updateCodeBytes(curreg); // KEVINTODO: major overkill here, only update regions that had unprotected pages
+            updateCodeBytes(curreg); // KEVINOPTIMIZE: major overkill here, only update regions that had unprotected pages
         }
     }
 
@@ -2060,9 +2060,7 @@ bool mapped_object::isSystemLib(const std::string &objname)
        std::string::npos != lowname.find(".dll"))
       return true;
    if (std::string::npos != lowname.find(".dll"))
-       return true; // Anything that's a library is a-ok with us! KEVINTODO
-
-
+       return true; //KEVINTODO: find a reliable way of detecting windows system libraries
 #endif
 
    return false;

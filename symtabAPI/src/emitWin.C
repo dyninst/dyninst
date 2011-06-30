@@ -411,11 +411,20 @@ bool emitWin::driver(Symtab *obj, std::string fName){
                secHdrs[i]->Misc.VirtualSize);
     }
 
-    //calculate size of file
+    //resize the last section to fit label and trap table pointer
+    PIMAGE_SECTION_HEADER lastSec = secHdrs[secHdrs.size()-1];
     const int REWRITE_LABEL_SIZE = obj->getAddressWidth() + 16;
-    DWORD dwFileSize = secHdrs[secHdrs.size()-1]->PointerToRawData 
-       + secHdrs[secHdrs.size()-1]->SizeOfRawData
-       + REWRITE_LABEL_SIZE;
+    if (obj->getObject()->trapHeader()) {
+        lastSec->SizeOfRawData = PEAlign(
+            lastSec->SizeOfRawData + REWRITE_LABEL_SIZE, 
+            pehdr->OptionalHeader.FileAlignment);
+        lastSec->Misc.VirtualSize = PEAlign(
+            lastSec->SizeOfRawData + REWRITE_LABEL_SIZE, 
+            pehdr->OptionalHeader.SectionAlignment);
+    }
+
+    //calculate size of file
+    DWORD dwFileSize = lastSec->PointerToRawData + lastSec->SizeOfRawData;
     //printf("size of file=%x", dwFileSize);
 
     //open a file to write the image to disk
@@ -505,14 +514,13 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     }
 
     // copy trap-table header & DYNINST_REWRITE to end of last section
-    PIMAGE_SECTION_HEADER lastSec = secHdrs.back();
     Address trapHead = obj->getObject()->trapHeader();
-    memcpy(pMem + lastSec->PointerToRawData + lastSec->SizeOfRawData, 
-           (void*) &trapHead, 
-           obj->getAddressWidth());
-    memcpy(pMem + lastSec->PointerToRawData + lastSec->SizeOfRawData + obj->getAddressWidth(), 
-           "DYNINST_REWRITE", 
-           16);
+    Address writeTarg = (Address) (pMem 
+        + lastSec->PointerToRawData 
+        + lastSec->SizeOfRawData 
+        - REWRITE_LABEL_SIZE);
+    memcpy((void*)writeTarg, (void*) &trapHead, obj->getAddressWidth());
+    memcpy((void*)(writeTarg + obj->getAddressWidth()), "DYNINST_REWRITE", 16);
 
     //write bound import table info
     if(bit_addr != 0){

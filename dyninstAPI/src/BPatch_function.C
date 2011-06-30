@@ -418,7 +418,7 @@ void BPatch_function::getUnresolvedControlTransfers
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-  cerr << "getAbruptEndPoints\n";
+   malware_cerr << "getAbruptEndPoints\n";
 
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
@@ -434,15 +434,24 @@ void BPatch_function::getAbruptEndPoints
 // That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 {
-  // TODO (wenbin) add PreCaller point and PostCaller point types
    std::vector<block_instance *> callerBlocks;
    func->getCallerBlocks(std::back_inserter(callerBlocks));
    for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
-        iter != callerBlocks.end(); ++iter) {
-      instPoint *point = instPoint::preCall(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locSubroutine);
-      callerPoints.push_back(curPoint);
+        iter != callerBlocks.end(); ++iter) 
+   {
+      vector<func_instance*> callerFuncs;
+      (*iter)->getFuncs(std::back_inserter(callerFuncs));
+      for (vector<func_instance*>::iterator fit = callerFuncs.begin();
+           fit != callerFuncs.end();
+           fit++)
+      {
+          instPoint *point = instPoint::preCall(*fit, *iter);
+          BPatch_function *callerFunc = addSpace->findOrCreateBPFunc
+             (*fit, NULL);
+          BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+             (callerFunc, point, BPatch_locSubroutine);
+          callerPoints.push_back(curPoint);
+      }
    }
 }
 

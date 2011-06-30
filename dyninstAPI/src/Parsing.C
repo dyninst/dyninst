@@ -198,7 +198,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 
 void
 DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
-{ //KEVINTODO: unset abruptEnd flag in parse_block if we hit it during instrumentation
+{
   static_cast<parse_block*>(b)->setAbruptEnd(true);
 }
 

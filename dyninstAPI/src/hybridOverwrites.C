@@ -1394,7 +1394,7 @@ void HybridAnalysisOW::overwriteSignalCB
                     if (writeTarget >= faultBlocks[bidx]->getStartAddress() && 
                         writeTarget < faultBlocks[bidx]->getEndAddress()) 
                     {
-                        assert(0 && "KEVINTODO: test what happens when "
+                        assert(0 && "KEVINTEST: test what happens when "
                                "program writes to its own basic block");
                         // change PC and context to next instruction to be
                         // executed, then single step the write instruction 
@@ -1405,7 +1405,7 @@ void HybridAnalysisOW::overwriteSignalCB
         } 
         else { 
             // clear out loop block datastructures
-            // KEVINTODO: shift to instrumenting a smaller loop if there are 
+            // KEVINOPTIMIZE: shift to instrumenting a smaller loop if there are 
             // any and they don't contain indirect ctrl flow, instead of
             // reverting to single block instrumentation, as we currently are
             mal_printf("Found loop, but it contains unresolved control flow "

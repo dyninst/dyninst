@@ -1657,8 +1657,6 @@ bool BPatch_process::hideDebuggerInt()
     // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
 
-    return true; // KEVINTODO: remove this return statement
-
     // disable API calls //
     vector<pair<BPatch_function *,BPatch_function *> > disabledFuncs;
     BPatch_module *user = image->findModule("user32.dll",true);
@@ -1840,7 +1838,7 @@ void BPatch_process::overwriteAnalysisUpdate
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
-    assert(0 && "KEVINTODO: FIXME!");
+    //KEVINTEST: step through this rewritten overwrite update function
 
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
@@ -1917,14 +1915,9 @@ void BPatch_process::overwriteAnalysisUpdate
         bit++)
     {
         mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
-#if 0  //KEVINTODO: ask Drew about how we should clean bpatchBlock->block_instance edges
-        if ((*bit)->getHighLevelBlock()) {
-            ((BPatch_basicBlock*)(*bit)->getHighLevelBlock())
-                ->setlowlevel_block(NULL);
-        }
-#endif
         deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
-        assert(0 && "KEVINTODO delete by calling patchmanager->removeBlock");
+        //KEVINTODO delete by calling patchmanager->removeBlock: llproc->mgr()->removeBlock(*bit);
+        assert(0);
     }
     mal_printf("Done deleting blocks\n"); 
 

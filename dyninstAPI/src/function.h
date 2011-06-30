@@ -282,6 +282,9 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
  private:
 
+  // helper func for block_instance::setNotAbruptEnd(), do not call directly 
+  void removeAbruptEnd(const block_instance *); 
+
   ///////////////////// Basic func info
   //Address addr_; // Absolute address of the start of the function
   Address ptrAddr_; // Absolute address of the function descriptor, if exists

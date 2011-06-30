@@ -311,8 +311,6 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        bPoint->removeSnippet(handle);
      }
 
-   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
-
    handle->mtHandles_.clear();
 
    if (pendingInsertions == NULL) {
@@ -907,7 +905,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
    if (pendingInsertions == NULL) {
      // There's no insertion set, instrument now
      bool tmp;
-     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
+     finalizeInsertionSet(false, &tmp);
    }   
 
    return retHandle;

@@ -119,6 +119,18 @@ void block_instance::triggerModified() {
    //PCSensitiveTransformer::invalidateCache(this);
 }
 
+void block_instance::setNotAbruptEnd()
+{
+    llb()->setAbruptEnd(false);
+    vector<func_instance*> funcs;
+    getFuncs(std::back_inserter(funcs));
+    for (vector<func_instance*>::iterator fit = funcs.begin();
+         fit != funcs.end(); fit++)
+    {
+        (*fit)->removeAbruptEnd(this);
+    }
+}
+
 std::string block_instance::calleeName() {
   // How the heck do we do this again?
   return obj()->getCalleeName(this);

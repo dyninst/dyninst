@@ -86,9 +86,6 @@ unsigned func_instance::footprint() {
     return totalSize;
 }
 
-//KEVINTODO: add parse-level to int-level callbacks to update instpoint lists 
-// of callBlock, exitBlock, entryBlock, etc.  
-
 func_instance::func_instance(const func_instance *parFunc,
                              mapped_module *childMod) :
   PatchFunction(parFunc->ifunc(), childMod->obj()),
@@ -241,7 +238,7 @@ void func_instance::removeFromAll()
  */
 void func_instance::addMissingBlocks()
 {
-    cerr << "addMissingBlocks for function " << hex << this << dec << endl; //KEVINTODO: testme
+    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
 
     // Be sure that we've re-checked the blocks in the image_func as well
     ifunc()->invalidateCache();
@@ -258,11 +255,14 @@ void func_instance::addMissingBlocks()
     assert(ifunc()->blocks().size() == all_blocks_.size());
 }
 
+//KEVINTODO: add parse-level to int-level callbacks to update instpoint lists 
+// of callBlock, exitBlock, entryBlock, etc.  
+
 /* trigger search in image_layer points vectors to be added to int_level 
  * datastructures  
  */ 
 #if 0
-void func_instance::addMissingPoints() // KEVINTODO: make sure we re-instate this function or add equivalent
+void func_instance::addMissingPoints() 
 {
     // the "true" parameter causes the helper functions to search for new 
     // points in the image, bypassing cached points
@@ -273,50 +273,6 @@ void func_instance::addMissingPoints() // KEVINTODO: make sure we re-instate thi
     funcAbruptEnds();
 }
 
-/* Find parse_blocks that are missing from these datastructures and add
- * them.  The block_instance constructor does pretty much all of the work in
- * a chain of side-effects extending all the way into the mapped_object class
- *
- * We have to take into account that additional parsing may cause basic block splitting,
- * in which case it is necessary not only to add new int-level blocks, but to update
- * block_instance and BPatch_basicBlock objects.
- */
-void func_instance::addMissingBlocks()
-{
-   cerr << "addMissingBlocks for function " << hex << this << dec << endl;
-
-   assert(0 && "KEVINTODO: testme, probably missing datastructres"); 
-
-   // A bit of a hack, but be sure that we've re-checked the blocks in the
-   // parse_func as well.
-   ifunc()->invalidateCache();
-   blocks();
-
-   // Add new blocks
-   const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
-   // add blocks by looking up new blocks, if it promises to be more 
-   // efficient than looking through all of the llfunc's blocks
-   vector<parse_block*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-       if (ifunc()->contains(*nit)) {
-           addMissingBlock(*nit);
-       }
-   }
-
-   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
-       // we may have parsed into an existing function and added its blocks 
-       // to ours, or this may just be a more efficient lookup method
-       Function::BlockSet & iblks = ifunc()->blocks();
-       for (Function::BlockSet::iterator bit = iblks.begin(); 
-            bit != iblks.end(); 
-            bit++) 
-       {
-           if (!findBlock(*bit)) {
-               addMissingBlock(static_cast<image_basicBlock*>(*bit));
-           }
-       }
-   }
-}
 #endif 
 
 void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
@@ -390,6 +346,19 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
     }
     return abruptEnds_;
 }
+
+void func_instance::removeAbruptEnd(const block_instance *block)
+{
+    if (abruptEnds_.empty()) {
+        return;
+    }
+
+    BlockSet::iterator bit = abruptEnds_.find(const_cast<block_instance*>(block));
+    if (abruptEnds_.end() != bit) {
+        abruptEnds_.erase(bit);
+    }
+}
+
 
 block_instance *func_instance::entryBlock() {
   return SCAST_BI(getEntryBlock());
@@ -581,7 +550,7 @@ bool func_instance::consistency() const {
 }
 
 void func_instance::triggerModified() {
-    assert(0 && "KEVINTODO: implement this");
+    // KEVINTODO: implement this
 }
 
 Address func_instance::get_address() const { assert(0); return 0; }

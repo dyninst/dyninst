@@ -71,6 +71,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
        void getFuncs(OutputIterator result);
 
     void triggerModified();
+    void setNotAbruptEnd();
     parse_block * llb() const { return SCAST_PB(block_); }
     void *getPtrToInstruction(Address addr) const;
 
