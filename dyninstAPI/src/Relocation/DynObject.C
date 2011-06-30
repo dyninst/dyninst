@@ -14,7 +14,7 @@ using Dyninst::PatchAPI::DynCFGMakerPtr;
 using Dyninst::PatchAPI::DynCFGMaker;
 
 DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
-  : PatchObject(co, base, DynCFGMakerPtr(new DynCFGMaker)), as_(as) {
+   : PatchObject(co, base, DynCFGMakerPtr(new DynCFGMaker)), as_(as) {
 }
 
 DynObject::DynObject(const DynObject* par_obj, process* child, Address base)

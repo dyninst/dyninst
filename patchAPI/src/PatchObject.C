@@ -2,32 +2,47 @@
 
 #include "PatchObject.h"
 #include "PatchCFG.h"
+#include "AddrSpace.h"
+#include "PatchMgr.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
 
 
 PatchObject*
-PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm) {
-  PatchObject* obj = new PatchObject(co, base, cm);
+PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm, PatchCallback *cb) {
+   PatchObject* obj = new PatchObject(co, base, cm, cb);
   return obj;
 }
 
 PatchObject*
-PatchObject::clone(PatchObject* par_obj, Address base) {
-  PatchObject* obj = new PatchObject(par_obj, base);
-  obj->copyCFG(par_obj);
-  return obj;
+PatchObject::clone(PatchObject* par_obj, Address base, PatchCallback *cb) {
+   PatchObject* obj = new PatchObject(par_obj, base, cb);
+   obj->copyCFG(par_obj);
+   return obj;
 }
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm)
+PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb)
   // : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
   : co_(o), codeBase_(a), cfg_maker_(cm) {
+   if (!cb) { 
+      cb_ = new PatchCallback();
+   }
+   else {
+      cb_ = cb;
+   }
 }
 
-PatchObject::PatchObject(const PatchObject* parObj, Address a)
+PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
   // : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
   : co_(parObj->co()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
+   if (!cb) {
+      cb_ = new PatchCallback();
+   }
+   else  {
+      cb_ = cb;
+   }
 }
 
 PatchObject::~PatchObject() {
@@ -40,72 +55,110 @@ PatchObject::~PatchObject() {
   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
     delete iter->second;
   }
+  delete cb_;
 }
 
 PatchFunction*
-PatchObject::getFunc(ParseAPI::Function *f) {
+PatchObject::getFunc(ParseAPI::Function *f, bool create) {
   if (co_ != f->obj()) {
     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
-    exit(0);
+    assert(0);
   }
-  if (funcs_.find(f) != funcs_.end()) return funcs_[f];
-  PatchFunction* newFunc = cfg_maker_->makeFunction(f, this);
-  addFunc(newFunc);
-  return newFunc;
+
+  FuncMap::iterator iter = funcs_.find(f);
+  if (iter != funcs_.end()) return iter->second;
+  else if (!create) return NULL;
+
+  PatchFunction *ret = cfg_maker_->makeFunction(f, this);
+  addFunc(ret);
+  return ret;
 }
 
 void
 PatchObject::addFunc(PatchFunction* f) {
   assert(f);
   funcs_[f->function()] = f;
+  cb()->create(f);
 }
 
 void
 PatchObject::removeFunc(PatchFunction* f) {
-  funcs_.erase(f->function());
+   removeFunc(f->function());
+}
+
+void
+PatchObject::removeFunc(ParseAPI::Function* f) {
+   FuncMap::iterator iter = funcs_.find(f);
+   if (iter == funcs_.end()) return;
+   cb()->destroy(iter->second);
+   funcs_.erase(iter);
 }
 
 PatchBlock*
-PatchObject::getBlock(ParseAPI::Block* b) {
+PatchObject::getBlock(ParseAPI::Block* b, bool create) {
   if (co_ != b->obj()) {
     cerr << "ERROR: block starting at 0x" << b->start()
          << " doesn't exist in this object!\n";
     exit(0);
   }
-  if (blocks_.find(b) != blocks_.end()) return blocks_[b];
-  PatchBlock *new_block = cfg_maker_->makeBlock(b, this);
-  addBlock(new_block);
-  return new_block;
+  BlockMap::iterator iter = blocks_.find(b);
+  if (iter != blocks_.end()) return iter->second;
+  else if (!create) return NULL;
+
+  PatchBlock *ret = cfg_maker_->makeBlock(b, this);
+  addBlock(ret);
+  return ret;
 }
 
 void
 PatchObject::addBlock(PatchBlock* b) {
   assert(b);
   blocks_[b->block()] = b;
+  cb()->create(b);
 }
 
 void
 PatchObject::removeBlock(PatchBlock* b) {
-  blocks_.erase(b->block());
+   removeBlock(b->block());
+}
+
+void
+PatchObject::removeBlock(ParseAPI::Block* b) {
+   BlockMap::iterator iter = blocks_.find(b);
+   if (iter == blocks_.end()) return;
+   cb()->destroy(iter->second);
+   blocks_.erase(iter);
 }
 
 PatchEdge*
-PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg) {
-  if (edges_.find(e) != edges_.end()) return edges_[e];
-  PatchEdge* new_edge = cfg_maker_->makeEdge(e, src, trg, this);
-  addEdge(new_edge);
-  return new_edge;
+PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool create) {
+   EdgeMap::iterator iter = edges_.find(e);
+   if (iter != edges_.end()) return iter->second;
+   else if (!create) return NULL;
+
+   PatchEdge *ret = cfg_maker_->makeEdge(e, src, trg, this);
+   addEdge(ret);
+   return ret;
 }
 
 void
 PatchObject::addEdge(PatchEdge* e) {
   assert(e);
   edges_[e->edge()] = e;
+  cb()->create(e);
 }
 
 void
 PatchObject::removeEdge(PatchEdge* e) {
-  edges_.erase(e->edge());
+   removeEdge(e->edge());
+}
+
+void
+PatchObject::removeEdge(ParseAPI::Edge *e) {
+   EdgeMap::iterator iter = edges_.find(e);
+   if (iter == edges_.end()) return;
+   cb()->destroy(iter->second);
+   edges_.erase(iter);
 }
 
 void
@@ -124,4 +177,60 @@ PatchObject::copyCFG(PatchObject* parObj) {
        iter != parObj->funcs_.end(); ++iter) {
     cfg_maker_->copyFunction(iter->second, this);
   }
+}
+
+
+bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
+   PatchBlock *p2 = getBlock(second, false);
+   if (p2) return true; // ???
+   p2 = getBlock(second);
+
+   // Okay, get our edges right and stuff. 
+   // We want to modify when possible so that we keep Points on affected edges the same. 
+   // Therefore:
+   // 1) Incoming edges are unchanged. 
+   // 2) Outgoing edges from p1 are switched to p2.
+   // 3) An entirely new edge is created between p1 and p2. 
+   // 4) We fix up Points on the block
+
+   // 1)
+   // ...
+
+   // 2)
+   for (PatchBlock::edgelist::iterator iter = p1->trglist_.begin();
+        iter != p1->trglist_.end(); ++iter) {
+      (*iter)->src_ = p2;
+      p2->trglist_.push_back(*iter);
+   }
+   p1->trglist_.clear();
+
+   // 3)
+   ParseAPI::Block::edgelist &tmp = p1->block()->targets();
+   assert(tmp.size() == 1);
+   ParseAPI::Edge *ft = *(tmp.begin());
+   getEdge(ft, p1, p2);
+
+   // 4) We need to reassign any Points that were in the first block and are
+   // now in the second. Since Points are stored at the patch manager level
+   // we go there. 
+   addrSpace()->mgr()->updatePointsForBlockSplit(p1, p2);   
+
+   // 5) ??
+   cb()->split_block(p1, p2);
+
+   return true;
+}
+
+std::string PatchObject::format() const {
+   ParseAPI::CodeSource *cs = co()->cs();
+   ParseAPI::SymtabCodeSource *symtab = dynamic_cast<ParseAPI::SymtabCodeSource *>(cs);
+   stringstream ret;
+
+   //if (symtab) {
+   //   ret << symtab->getSymtabObject()->name();
+   //}
+
+   ret << hex << "(" << this << ")" << dec << endl;
+   return ret.str();
+
 }

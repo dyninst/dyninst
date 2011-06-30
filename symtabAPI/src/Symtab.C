@@ -2746,8 +2746,8 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
     if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
-                symsByMangledName[name].size(), name); // */
+        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
+                (int)symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.
@@ -3722,6 +3722,7 @@ SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
    getObject()->setTrapHeader(ptr);
    return true;
 #else
+   ptr = ptr; //keep compiler happy
    assert(0);
    return false;
 #endif

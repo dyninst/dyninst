@@ -398,24 +398,26 @@ case R_PPC_GOT_DTPREL16_HA:/* 94  half16*   (sym+add)@got@dtprel@ha */
       break;
 
 /* GNU relocs used in PIC code sequences.  */
-case R_PPC_REL16:/*           249      word32   (sym-.) */
+/* NOTE: The following relocations are not defined in some elf.h
+   Hence, using numbers instead of name */
+case 249: /*R_PPC_REL16:           249      word32   (sym-.) */
 	relocation_length = 16;
      	relocation_pos = 16;
         relocation = symbolOffset + addend - relOffset ;
       	break;
-case R_PPC_REL16_LO:/*        250      half16   (sym-.)@l */
+case 250: /*R_PPC_REL16_LO:        250      half16   (sym-.)@l */
 	relocation_length = 16;
      	relocation_pos = 16;
         relocation = symbolOffset + addend - relOffset ;
 	relocation = (relocation & 0xffff);
       	break;
-case R_PPC_REL16_HI:/*        251      half16   (sym-.)@h */
+case 251: /*R_PPC_REL16_HI:        251      half16   (sym-.)@h */
 	relocation_length = 16;
      	relocation_pos = 16;
         relocation = symbolOffset + addend - relOffset ;
 	relocation = ((relocation >> 16) & 0xffff);
       	break;
-case R_PPC_REL16_HA:/*        252      half16   (sym-.)@ha */
+case 252: /*R_PPC_REL16_HA:        252      half16   (sym-.)@ha */
 	relocation_length = 16;
      	relocation_pos = 16;
         relocation = symbolOffset + addend - relOffset ;
@@ -423,7 +425,7 @@ case R_PPC_REL16_HA:/*        252      half16   (sym-.)@ha */
       	break;
 /* This is a phony reloc to handle any old fashioned TOC16 references
    that may still be in object files.  */
-case R_PPC_TOC16: /*             255*/
+case 255: /*R_PPC_TOC16:              255*/
       	break;
 
 default:

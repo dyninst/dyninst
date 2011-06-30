@@ -612,7 +612,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         // at the source blocks
         Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
         Block::edgelist::iterator eit = callEdges.begin();
-        CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
+        //CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
         bool foundSinkEdge = false;
         for( ; eit != callEdges.end(); ++eit) {
             if ( (*eit)->sinkEdge() ) {

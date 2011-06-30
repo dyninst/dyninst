@@ -139,8 +139,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
-    bool useBlock = true;
-    block_instance *bbl = SCAST_BI(*begin);
+     block_instance *bbl = SCAST_BI(*begin);
 
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
@@ -216,14 +215,14 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
    
    bool usedTrap = false;
-   generateBranch(r.from, r.destinations.begin()->second, gen);
+   generateBranch(r.from, r.destinations.begin()->second.second, gen);
 
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      generateTrap(r.from, r.destinations.begin()->second, gen);
+      generateTrap(r.from, r.destinations.begin()->second.second, gen);
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
@@ -337,7 +336,7 @@ void SpringboardBuilder::registerBranch
             dit++)
        {
            relocTraps_.insert(start);
-           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
+           relocTraps_.insert(dit->second.second);// if we relocate again it will need a trap too
        }
    }
     
@@ -419,19 +418,23 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   insnCodeGen::generateTrap(gen);
 }
 
-bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool useTrap, SpringboardMap &input) {
-#if TODO
+bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, 
+                                                 bool useTrap, SpringboardMap &input) {
    assert(!req.fromRelocatedCode);
+
    // Just the requests for now.
    //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
+      block_instance *bbl = b_iter->first;
+      func_instance *func = b_iter->second.first;
+      Address addr = b_iter->second.second;
 
-      addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
-      for (std::list<Address>::const_reverse_iterator addr = relocAddrs.rbegin(); 
-           addr != relocAddrs.rend(); ++addr) { 
-         if (*addr == b_iter->second) continue;
+      addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
+      for (std::list<Address>::const_reverse_iterator a_iter = relocAddrs.rbegin(); 
+           a_iter != relocAddrs.rend(); ++a_iter) { 
+         if (*a_iter == addr) continue;
          Priority newPriority;
          switch(req.priority) {
             case Suggested:
@@ -445,23 +448,22 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool
                break;
          }
          bool curUseTrap = useTrap;
-         if ( !useTrap && relocTraps_.end() != relocTraps_.find(*addr)) {
+         if ( !useTrap && relocTraps_.end() != relocTraps_.find(*a_iter)) {
             springboard_cerr << "Springboard conflict for " << hex 
-                             << req.from << "[" << (*addr) 
+                             << req.from << "[" << (*a_iter) 
                              << "] our previous springboard here needed a trap, "
                              << "but due to overwrites we may (erroneously) think "
                              << "a branch can fit" << dec << endl;
             curUseTrap = true;
          }
          
-         input.addRaw(*addr, b_iter->second, 
-                      newPriority, b_iter->first,
+         input.addRaw(*a_iter, addr, 
+                      newPriority, func, bbl,
                       req.checkConflicts, 
                       false, true, curUseTrap);
          
       }
    }
-#endif         
    return true;
 }
 

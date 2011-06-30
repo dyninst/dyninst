@@ -288,8 +288,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    proc_(child),
    analyzed_(s->analyzed_),
    analysisMode_(s->analysisMode_),
-   codeByteUpdates_(0),
    pagesUpdated_(true),
+   codeByteUpdates_(0),
    memoryImg_(s->memoryImg_)
 {
    image_->addOwner(this);

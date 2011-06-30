@@ -61,3 +61,9 @@ bool
 AddrSpace::free(PatchObject* /*obj*/, Address /*orig*/) {
   return false;
 }
+
+std::string AddrSpace::format() const { 
+   stringstream ret;
+   ret << hex << this << dec << endl;
+   return ret.str();
+}

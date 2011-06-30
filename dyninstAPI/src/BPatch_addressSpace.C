@@ -332,8 +332,8 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
  * snippet     The replacing snippet
  */
 
-bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
-      BPatch_snippet *snippet)
+bool BPatch_addressSpace::replaceCodeInt(BPatch_point * /*point*/,
+                                         BPatch_snippet * /*snippet*/)
 {
    // Need to reevaluate how this code works. I don't think it should be
    // point-based, though.

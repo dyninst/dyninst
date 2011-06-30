@@ -69,7 +69,7 @@ class Instrumenter : public Transformer {
   bool preCallInstrumentation(RelocBlock *trace);
   bool insnInstrumentation(RelocBlock *trace);
 
-  WidgetPtr makeInstrumentation(instPoint *point);
+  WidgetPtr makeInstrumentation(PatchAPI::Point *point);
 
   struct CallFallthroughPredicate {
      bool operator()(RelocEdge *e);

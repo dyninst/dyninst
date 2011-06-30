@@ -282,7 +282,7 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
 #endif
    if (offset == -1) {
          sw_printf("[%s:%u] - Request for unsupported register %s\n",
-                   __FILE__, __LINE__, reg.name());
+                   __FILE__, __LINE__, reg.name().c_str());
          setLastError(err_badparam, "Unknown register passed in reg field");
          return false;
    }

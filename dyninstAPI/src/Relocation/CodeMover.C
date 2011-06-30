@@ -86,7 +86,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
     
       // Add the function entry as Required in the priority map
       block_instance *entry = func->entryBlock();
-      priorityMap_[entry] = Required;
+      priorityMap_[entry] = std::make_pair(Required,func);
    }
 
    return true;
@@ -106,7 +106,7 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
       return false;
    cfg_->addRelocBlock(block);
 
-   priorityMap_[bbl] = Suggested;
+   priorityMap_[bbl] = std::make_pair(Suggested,f);
       
    return true;
 }
@@ -216,7 +216,8 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
          block_instance *bbl = iter->first;
-         const Priority &p = iter->second;
+         const Priority &p = iter->second.first;
+         func_instance *func = iter->second.second;
 
          // the priority map may include things not in the block
          // map...
@@ -225,7 +226,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
          int labelID = trace->getLabel();
          Address to = buffer_.getLabelAddr(labelID);
          
-         sboardMap_.addFromOrigCode(bbl->start(), to, p, bbl);
+         sboardMap_.addFromOrigCode(bbl->start(), to, p, func, bbl);
          //relocation_cerr << "Added map " << hex
 //                            << bbl->firstInsnAddr() << " -> " 
 //                            << to << ", " << p << dec << endl;

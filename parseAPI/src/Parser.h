@@ -55,8 +55,13 @@ typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 namespace Dyninst {
 namespace ParseAPI {
 
+   class CFGModifier;
+
 /** This is the internal parser **/
 class Parser {
+   // The CFG modifier needs to manipulate the lookup structures,
+   // which are internal Parser data. 
+   friend class CFGModifier;
  private:
     // Owning code object
     CodeObject & _obj;
@@ -65,7 +70,7 @@ class Parser {
     CFGFactory & _cfgfact;
 
     // Callback notifications
-    ParseCallback & _pcb;
+    ParseCallbackManager & _pcb;
 
     // region data store
     ParseData * _parse_data;
@@ -99,7 +104,7 @@ class Parser {
     bool _in_finalize;
 
  public:
-    Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb);
+    Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb);
     ~Parser();
 
     /** Initialization & hints **/

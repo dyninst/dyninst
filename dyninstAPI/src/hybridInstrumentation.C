@@ -993,10 +993,9 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
 
         mal_printf("Adding indirect edge %lx->%lx", 
                    (Address)sourcePt->getAddress(), target);
-        func_instance *tFunc = targObj->findFuncByEntry(target);
 
         // edge does not exist, determine desired edge type
-		EdgeTypeEnum etype;
+        EdgeTypeEnum etype;
         if (BPatch_subroutine == sourcePt->getPointType()) {
             etype = CALL;
             mal_printf(" of type CALL\n");

@@ -14,90 +14,100 @@ namespace PatchAPI {
 /* Interfaces for point query, snippet insertion and removal in batch
    mode */
 
+class PatchObject;
+class PatchMgr;
+class PatchFunction;
+class PatchBlock;
+
+struct Scope {
+   PatchObject *obj;
+   PatchFunction *func;
+   PatchBlock *block;
+   bool wholeProgram;
+Scope(PatchBlock *b) : obj(NULL), func(NULL), block(b), wholeProgram(false) {};
+Scope(PatchFunction *f, PatchBlock *b) : obj(NULL), func(f), block(b), wholeProgram(false) {};
+Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {};
+};
+
+
 class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
+  friend class PatchObject; // for splitting blocks as that is _not_ public.
+  typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
+  typedef std::pair<PatchFunction *, InsnLoc> InsnInstance;
+  typedef std::vector<PatchFunction *> Functions;
+  typedef std::vector<PatchBlock *> Blocks;
+  typedef std::vector<PatchEdge *> Edges;
+  typedef std::vector<BlockInstance> BlockInstances;
+  typedef std::vector<InsnInstance> InsnInstances;
+  typedef std::vector<CallSite> CallSites;
+  typedef std::vector<ExitSite> ExitSites;
+  typedef std::vector<InsnLoc> Insns;
+  typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
-    PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst);
+  typedef std::pair<Location, Point::Type> Candidate;
+  typedef std::vector<Candidate> Candidates;
+
+  PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst);
     PATCHAPI_EXPORT virtual ~PatchMgr();
     PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpacePtr as,
-                              PointMakerPtr pf = PointMakerPtr(new PointMaker),
-                              InstrumenterPtr inst = InstrumenterPtr());
+                                              PointMakerPtr pf = PointMakerPtr(new PointMaker),
+                                              InstrumenterPtr inst = InstrumenterPtr());
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
     template <class T>
     class IdentityFilterFunc {
       public:
-        bool operator()(Point*, T) { return true;}
+       bool operator()(Point::Type, Location, T) { return true;}
     };
 
     // Query Points:
-    // users have the illusion that all points are already there, and
-    // they just need to grab some by specifying a scope, one or more
-    // point types, and a user-defined filter function
-    // 1) Scope: a CFG structure that contains the desired points,
-    //          e.g., Function, Block, ...
-    // 2) Point types: We define several types, e.g., block entry, exit ...
-    //                See also Point.h
-    // 3) Filter function: User-defined function that further processes
-    //                the set of condidate points
-    //
-    // return false if no any point found
-    template <class Scope, class FilterFunc, class FilterArgument, class OutputIterator>
-    bool findPoints(Scope* scope,
+
+    // Direct interface; specify a Location and a unique Type, receive a Point.
+    PATCHAPI_EXPORT Point *findPoint(Location loc,
+                     Point::Type type,
+                     bool create = true);
+    // And accumulation version
+    template <class OutputIterator>
+    bool findPoint(Location loc,
+                   Point::Type type,
+                   OutputIterator outputIter,
+                   bool create = true);
+
+    // Group interface with one degree of freedom: the Type can be a composition.
+    template <class FilterFunc, class FilterArgument, class OutputIterator>
+    bool findPoints(Location loc,
                     Point::Type types,
                     FilterFunc filter_func,
                     FilterArgument filter_arg,
-                    OutputIterator output_iter) {
-      patch_cerr << ws2 << "Find points.\n";
+                    OutputIterator outputIter,
+                    bool create = true);
 
-      PointSet candidate_points;
-      if (!findPointsByType(scope, types, candidate_points)) return false;
-      patch_cerr << ws4 << "Get candidate points within Scope: "
-                 << candidate_points.size() << " candidates found" << "\n";
+    template <class OutputIterator>
+    bool findPoints(Location loc,
+                    Point::Type types,
+                    OutputIterator outputIter,
+                    bool create = true);
 
-      int pt_count = 0;
-      for (PointIter p = candidate_points.begin();
-           p != candidate_points.end(); p++) {
-        if (filter_func(*p, filter_arg)) {
-          *output_iter = *p;
-          output_iter++;
-          ++pt_count;
-        }
-      }
-      patch_cerr << ws4 << "Apply the filter function on candidate points, "
-                 <<  pt_count << " found\n";
-      return true;
-    }
+    // Group interface with two degrees of freedom: Locations are wildcarded
+    // and Type can be a composition. Instead, users provide a Scope and a
+    // FilterFunc that guide which Locations will be considered.
+    template <class FilterFunc, class FilterArgument, class OutputIterator>
+    bool findPoints(Scope scope,
+                    Point::Type types,
+                    FilterFunc filter_func,
+                    FilterArgument filter_arg,
+                    OutputIterator output_iter,
+                    bool create = true);
 
     // Use default identity filter function
-    template <class Scope, class OutputIterator>
-    bool findPoints(Scope* scope,
-                    Point::Type types,
-                    OutputIterator output_iter) {
-      IdentityFilterFunc<char*> filter_func;
-      char* dummy = NULL;
-      return findPoints<Scope, IdentityFilterFunc<char*>, char*, OutputIterator>
-             (scope, types, filter_func, dummy, output_iter);
-    }
-
-    // Explicit batch mode for snippet insertion and removal.
-    // TODO(wenbin): Transactional semantics -- all succeed, or all fail
-
-    // Return false on failure:
-    //   Nested batchStart/batchFinish
-    PATCHAPI_EXPORT bool batchStart();
-
-    // Return false on failure:
-    //   1) Broken batchStart/batchFinish pair
-    //   2) Some insertion/removal fails
     template <class OutputIterator>
-    bool batchFinish(OutputIterator /*output_iter_for_failed_instances*/) {
-      if (batch_mode_ != 1) return false;
-      batch_mode_--;
-      return patch();
-    }
+    bool findPoints(Scope scope,
+                    Point::Type types,
+                    OutputIterator output_iter,
+                    bool create = true);
 
     // Snippet instance removal
     // Return false if no point if found
@@ -105,14 +115,14 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     // Delete ALL snippets at certain points.
     // This uses the same filter-based interface as findPoints.
-    template <class Scope, class FilterFunc, class FilterArgument>
-    bool removeSnippets(Scope* scope,
+    template <class FilterFunc, class FilterArgument>
+    bool removeSnippets(Scope scope,
                         Point::Type types,
                         FilterFunc filter_func,
                         FilterArgument filter_arg) {
       PointSet points;
       if (!findPoints(scope, types, filter_func, filter_arg,
-          back_inserter(points) ) ) return false;
+                      inserter(points, points.begin()) ) ) return false;
 
        for (PointIter p = points.begin(); p != points.end(); p++) {
          (*p)->clear();
@@ -120,13 +130,14 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
        return true;
     }
 
+    PATCHAPI_EXPORT void destroy(Point *);
+
     // Use default identity filter function.
-    template <class Scope>
-    bool removeSnippets(Scope* scope,
+    bool removeSnippets(Scope scope,
                         Point::Type types) {
       IdentityFilterFunc<char*> filter_func;
-      return removeSnippets<Scope, IdentityFilterFunc, char*>
-                (scope, types, filter_func);
+      char *foo = NULL;
+      return removeSnippets<IdentityFilterFunc<char *>, char*>(scope, types, filter_func, foo);
     }
 
     // Getters
@@ -135,53 +146,133 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
-    // This order matches out filter sequence:
-    // Apply Scope filter first, Type filter second,
-    // finally filter function.
+    //   The Scope x Type provides us a list of matching locations;
+    //   we then filter those locations. Points are stored in
+    //   their contexts (e.g., Functions or Blocks). 
     //----------------------------------------------------
-
-    // Type -> Point mapping
-    // In a particular scope, a type may have multiple points,
-    // e.g., function exits
-    typedef std::map<Point::Type, PointSet> TypePtMap;
-    typedef std::map<PatchFunction*, TypePtMap> FuncTypePtMap;
-    typedef std::map<PatchBlock*, TypePtMap> BlkTypePtMap;
-    typedef std::map<PatchEdge*, TypePtMap> EdgeTypePtMap;
-    typedef std::map<Address, TypePtMap> AddrTypePtMap;
+    PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
   private:
-    // Return false if no point is found
-    template<class Scope>
-    friend bool findPointsByScopeType(PatchMgrPtr mgr, Scope* scope,
-                                 Point::Type types, PointSet& points);
-    template<class Scope>
-    void getPointsByType(TypePtMap& type_pt_map, Point::Type types,
-                         Point::Type type, Address addr,
-                         Scope* scope, PointSet& points);
-    PATCHAPI_EXPORT bool findPointsByType(Address*, Point::Type, PointSet&);
-    PATCHAPI_EXPORT bool findPointsByType(PatchBlock*, Point::Type, PointSet&);
-    PATCHAPI_EXPORT bool findPointsByType(PatchEdge*, Point::Type, PointSet&);
-    PATCHAPI_EXPORT bool findPointsByType(PatchFunction*, Point::Type, PointSet&);
 
-    // Core instrumentation function!
-    PATCHAPI_EXPORT bool patch();
+    bool findInsnPointsByType(Location *, Point::Type, PointSet&, bool create = true);
+    bool findBlockPointsByType(Location *, Point::Type, PointSet&, bool create = true);
+    bool findEdgePointsByType(Location *, Point::Type, PointSet&, bool create = true);
+    bool findFuncPointsByType(Location *, Point::Type, PointSet&, bool create = true);
+    bool findFuncSitePointsByType(Location *, Point::Type, PointSet&, bool create = true);
 
+    bool wantFuncs(Scope &scope, Point::Type types);
+    bool wantCallSites(Scope &scope, Point::Type types);
+    bool wantExitSites(Scope &scope, Point::Type types);
+    bool wantBlocks(Scope &scope, Point::Type types);
+    bool wantEdges(Scope &scope, Point::Type types);
+    bool wantInsns(Scope &scope, Point::Type types);
+    bool wantBlockInstances(Scope &scope, Point::Type types);
+    //bool wantEdgeInstances(Scope &scope, Point::Type types);
+    bool wantInsnInstances(Scope &scope, Point::Type types);
+
+    void getFuncCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getCallSiteCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getExitSiteCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getBlockCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getEdgeCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getInsnCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getBlockInstanceCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    //bool getEdgeInstanceCandidates(Scope &scope, Point::Type types, Candidates &ret);
+    void getInsnInstanceCandidates(Scope &scope, Point::Type types, Candidates &ret);
+
+    void getFuncs(Scope &scope, Functions &funcs);
+    void getCallSites(Scope &scope, CallSites &Sites);
+    void getExitSites(Scope &scope, ExitSites &Sites);
+    void getBlocks(Scope &scope, Blocks &blocks);
+    void getEdges(Scope &scope, Edges &edges);
+    void getInsns(Scope &scope, Insns &insns);
+    void getBlockInstances(Scope &scope, BlockInstances &blocks);
+    //bool getEdgeInstances(Scope &scope, EdgeCandidates &edges);
+    void getInsnInstances(Scope &scope, InsnInstances &insns);
+
+    void enumerateTypes(Point::Type types, EnumeratedTypes &out);
+
+    bool match(Point *, Location *);
+    void updatePointsForBlockSplit(PatchBlock *oldBlock, PatchBlock *newBlock);
     PointMakerPtr point_maker_;
-
-    BlkTypePtMap blk_type_pt_map_;
-    EdgeTypePtMap edge_type_pt_map_;
-    FuncTypePtMap func_type_pt_map_;
-    AddrTypePtMap addr_type_pt_map_;
-    PointSet del_pt_set_;
-
     InstrumenterPtr instor_;
     AddrSpacePtr as_;
 
-    typedef int BatchMode;
-    BatchMode batch_mode_;
 };
 
-}
+
+template <class FilterFunc, class FilterArgument, class OutputIterator>
+bool PatchMgr::findPoints(Scope scope,
+                          Point::Type types,
+                          FilterFunc filter_func,
+                          FilterArgument filter_arg,
+                          OutputIterator output_iter,
+                          bool create) {
+   Candidates candidates;
+   if (!getCandidates(scope, types, candidates)) return false;
+   for (Candidates::iterator c = candidates.begin();
+        c != candidates.end(); ++c) {
+      if (filter_func(c->second, c->first, filter_arg)) {
+         if (!findPoint(c->first, c->second, output_iter, create)) {
+            return false;
+         }
+      }
+   }
+   return true;
+};
+
+template <class FilterFunc, class FilterArgument, class OutputIterator>
+bool PatchMgr::findPoints(Location loc, Point::Type types,
+                FilterFunc filter_func, FilterArgument filter_arg,
+                OutputIterator outputIter, bool create) {
+   EnumeratedTypes tmp;
+   enumerateTypes(types, tmp);
+   for (EnumeratedTypes::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      if (filter_func(*iter, loc, filter_arg)) {
+         if (!findPoint(loc, *iter, outputIter, create)) return false;
+      }
+   }
+   return true;
 }
 
+template <class OutputIterator>
+bool PatchMgr::findPoints(Location loc, Point::Type types,
+                          OutputIterator outputIter, bool create) {
+   IdentityFilterFunc<char *> filter_func;
+   char *dummy = NULL;
+   return findPoints(loc, types, filter_func, dummy, outputIter, create);
+};
+
+// Use default identity filter function
+template <class OutputIterator>
+bool PatchMgr::findPoints(Scope scope,
+                          Point::Type types,
+                          OutputIterator output_iter,
+                          bool create) {
+   IdentityFilterFunc<char*> filter_func;
+   char* dummy = NULL;
+   return findPoints<IdentityFilterFunc<char*>, char*, OutputIterator>
+      (scope, types, filter_func, dummy, output_iter, create);
+};
+
+template <class OutputIterator>
+bool PatchMgr::findPoint(Location loc, Point::Type type,
+               OutputIterator outputIter,
+               bool create) {
+   Point *p = findPoint(loc, type, create);
+   if (p) {
+      *outputIter = p;
+      ++outputIter;
+   }
+   return (!create || p);
+};
+
+
+};
+};
+
+
+
 #endif  // PATCHAPI_H_PATCHMGR_H_
+

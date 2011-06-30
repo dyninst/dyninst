@@ -41,6 +41,7 @@
 #include "MemoryEmulator/memEmulator.h"
 #include "Relocation/Transformers/Movement-analysis.h"
 
+#include "PatchMgr.h" // Scope
 
 #include "Parsing.h"
 
@@ -48,6 +49,7 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::PatchAPI;
 using namespace Dyninst::Relocation;
+using namespace Dyninst::PatchAPI;
 
 int func_instance_count = 0;
 
@@ -556,27 +558,6 @@ void func_instance::triggerModified() {
 Address func_instance::get_address() const { assert(0); return 0; }
 unsigned func_instance::get_size() const { assert(0); return 0; }
 
-bool func_instance::findInsnPoints(instPoint::Type type,
-                                   block_instance *b,
-                                   InsnInstpoints::const_iterator &begin,
-                                   InsnInstpoints::const_iterator &end) {
-   std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-   if (iter == blockPoints_.end()) return false;
-
-   switch(type) {
-      case instPoint::PreInsn:
-         begin = iter->second.preInsn.begin();
-         end = iter->second.preInsn.end();
-         return true;
-      case instPoint::PostInsn:
-         begin = iter->second.postInsn.begin();
-         end = iter->second.postInsn.end();
-         return true;
-      default:
-         return false;
-   }
-   return false;
-}
 
 bool func_instance::isInstrumentable() {
    return ifunc()->isInstrumentable();
@@ -730,265 +711,105 @@ void func_instance::createWrapperSymbol(Address entry) {
 /* PatchAPI stuffs */
 
 instPoint *func_instance::funcEntryPoint(bool create) {
-   assert(proc()->mgr());
    // Lookup the cached points
-   if (points_.entry) return points_.entry;
-   if (!create) return NULL;
-   // Cache miss, resort to PatchAPI's findPoint
-   std::vector<Point*> pts;
-   proc()->mgr()->findPoints(this, Point::FuncEntry, back_inserter(pts));
-   assert(pts.size() == 1);
-   points_.entry = static_cast<instPoint*>(pts[0]);
-   return points_.entry;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this), Point::FuncEntry, create));
+   return p;
 }
 
 instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
-  assert(proc()->mgr());
-
-  // Lookup the cached points
-  std::map<block_instance *, instPoint *>::iterator iter = points_.exits.find(b);
-  if (iter != points_.exits.end()) return iter->second;
-  if (!create) return NULL;
-  // Cache miss, resort to PatchAPI's findPoint
-  Points pts;
-  funcExitPoints(&pts);
-  assert(pts.size() > 0);
-  iter = points_.exits.find(b);
-  if (iter != points_.exits.end()) return iter->second;
-  assert(0 && "Should never reach here!");
-  return NULL;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::FuncExit, create));
+   return p;
 }
 
 void func_instance::funcExitPoints(Points* pts) {
-  assert(proc()->mgr());
-  // Lookup the cached points
-  if (points_.exits.size() > 0) {
-    for (std::map<block_instance*, instPoint*>::iterator pi = points_.exits.begin();
-         pi != points_.exits.end(); pi++) {
-      pts->push_back(pi->second);
-    }
-    return;
-  }
-  // Cache miss, resort to PatchAPI's findPoint
   std::vector<Point*> points;
-  proc()->mgr()->findPoints(this, Point::FuncExit, back_inserter(points));
+  proc()->mgr()->findPoints(Scope(this), Point::FuncExit, back_inserter(points));
   for (std::vector<Point*>::iterator pi = points.begin(); pi != points.end(); pi++) {
-    instPoint* p = static_cast<instPoint*>(*pi);
+    instPoint* p = IPCONV(*pi);
     pts->push_back(p);
-    points_.exits[p->block()] = p;
+    assert(p->block());
   }
 }
 
 instPoint *func_instance::preCallPoint(block_instance* b, bool create) {
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.preCall) return iter->second.preCall;
-  }
-  if (!create) return NULL;
-  Points pts;
-  callPoints(&pts);
-  iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.preCall) return iter->second.preCall;
-  }
-  return NULL;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PreCall, create));
+  return p;
 }
 
 instPoint *func_instance::postCallPoint(block_instance* b, bool create) {
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.postCall) return iter->second.postCall;
-  }
-  if (!create) return NULL;
-  Points pts;
-  callPoints(&pts);
-  iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.postCall) return iter->second.postCall;
-  }
-  return NULL;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PostCall, create));
+   return p;
 }
 
 void func_instance::callPoints(Points* pts) {
-  assert(proc()->mgr());
-  // Lookup the cached points
-  if (blockPoints_.size() > 0) {
-    bool done = true;
-    for (std::map<block_instance*, BlockInstpoints>::iterator pi = blockPoints_.begin();
-         pi != blockPoints_.end(); pi++) {
-      if (!pi->second.preCall) {
-        done = false;
-        break;
-      }
-      pts->push_back(pi->second.preCall);
-      pts->push_back(pi->second.postCall);
-    }
-    if (done) return;
-  }
-  // Cache miss, resort to PatchAPI's findPoint
   std::vector<Point*> points;
-  proc()->mgr()->findPoints(this, Point::PreCall|Point::PostCall, back_inserter(points));
+  proc()->mgr()->findPoints(Scope(this), Point::PreCall|Point::PostCall, back_inserter(points));
   for (std::vector<Point*>::iterator pi = points.begin(); pi != points.end(); pi++) {
-    instPoint* p = static_cast<instPoint*>(*pi);
-    pts->push_back(p);
-    if (p->type() == Point::PreCall) blockPoints_[p->block()].preCall = p;
-    else blockPoints_[p->block()].postCall = p;
+     instPoint* p = static_cast<instPoint*>(*pi);
+     pts->push_back(p);
   }
 }
 
 instPoint *func_instance::blockEntryPoint(block_instance* b, bool create) {
-  assert(proc()->mgr());
-  // Lookup the cached points
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.entry) return iter->second.entry;
-  }
-  if (!create) return NULL;
-  // Cache miss, resort to PatchAPI's findPoint
-  std::vector<Point*> pts;
-  proc()->mgr()->findPoints(b, Point::BlockEntry, back_inserter(pts));
-  assert(pts.size() == 1);
-  blockPoints_[b].entry = static_cast<instPoint*>(pts[0]);
-  return blockPoints_[b].entry;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockEntry, create));
+   return p;
 }
 
 instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
-  assert(proc()->mgr());
-  // Lookup the cached points
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.exit) return iter->second.exit;
-  }
-  if (!create) return NULL;
-  // Cache miss, resort to PatchAPI's findPoint
-  std::vector<Point*> pts;
-  proc()->mgr()->findPoints(b, Point::BlockExit, back_inserter(pts));
-  assert(pts.size() == 1);
-  blockPoints_[b].exit = static_cast<instPoint*>(pts[0]);
-  return blockPoints_[b].exit;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockExit, create));
+   return p;
 }
 
 instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
                                        InstructionAPI::Instruction::Ptr ptr,
                                        bool trusted, bool create) {
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
-    if (iter2 != iter->second.preInsn.end()) {
-      return iter2->second;
-    }
-  }
-  if (!create) return NULL;
-  if (!trusted || !ptr) {
-    ptr = b->getInsn(a);
-    if (!ptr) return NULL;
-  }
-  Points pts;
-  blockInsnPoints(b, &pts);
-  assert(pts.size() > 0);
-  iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    std::map<Address, instPoint *>::iterator iter2 = iter->second.preInsn.find(a);
-    if (iter2 != iter->second.preInsn.end()) {
-      return iter2->second;
-    }
-  }
-  assert(0);
-  return NULL;
+   Location loc;
+   if (trusted) {
+      loc = Location(this, InsnLoc(b, a, ptr));
+   }
+   else {
+      loc = Location(this, b, a, ptr);
+   }
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PreInsn, create));
+   return p;
 }
 
 instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
                                         InstructionAPI::Instruction::Ptr ptr,
                                         bool trusted, bool create) {
-
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
-    if (iter2 != iter->second.postInsn.end()) {
-      return iter2->second;
-    }
-  }
-  if (!create) return NULL;
-  if (!trusted || !ptr) {
-    ptr = b->getInsn(a);
-    if (!ptr) return NULL;
-  }
-  Points pts;
-  blockInsnPoints(b, &pts);
-  assert(pts.size() > 0);
-  iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    std::map<Address, instPoint *>::iterator iter2 = iter->second.postInsn.find(a);
-    if (iter2 != iter->second.postInsn.end()) {
-      return iter2->second;
-    }
-  }
-  assert(0);
-  return NULL;
+   Location loc;
+   if (trusted) {
+      loc = Location(this, InsnLoc(b, a, ptr));
+   }
+   else {
+      loc = Location(this, b, a, ptr);
+   }
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PostInsn, create));
+   return p;
 }
 
 void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
-  assert(proc()->mgr());
-  // Lookup the cache
-  std::map<block_instance *, BlockInstpoints>::iterator iter = blockPoints_.find(b);
-  if (iter != blockPoints_.end()) {
-    if (iter->second.preInsn.size() > 0 && iter->second.postInsn.size() > 0) {
-      for (std::map<Address, instPoint*>::iterator iter2 = iter->second.preInsn.begin();
-           iter2 != iter->second.preInsn.end(); iter2++) {
-        pts->push_back(iter2->second);
-      }
-      for (std::map<Address, instPoint*>::iterator iter2 = iter->second.postInsn.begin();
-           iter2 != iter->second.postInsn.end(); iter2++) {
-        pts->push_back(iter2->second);
-      }
-      return;
-    }
-  }
-  // Cache miss!
   std::vector<Point*> points;
-  proc()->mgr()->findPoints(b, Point::PreInsn|Point::PostInsn, back_inserter(points));
+  proc()->mgr()->findPoints(Scope(this, b), Point::PreInsn|Point::PostInsn, back_inserter(points));
   assert(points.size() > 0);
   for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
     instPoint* pt = static_cast<instPoint*>(*i);
-    Address a = pt->address();
     pts->push_back(pt);
-    if (pt->type() == Point::PreInsn) blockPoints_[b].preInsn[a] = pt;
-    else blockPoints_[b].postInsn[a] = pt;
   }
 }
 
 instPoint* func_instance::edgePoint(edge_instance* e, bool create) {
-  std::map<edge_instance *, EdgeInstpoints>::iterator iter = edgePoints_.find(e);
-  if (iter != edgePoints_.end()) {
-    if (iter->second.point) return iter->second.point;
-  }
-  if (!create) return NULL;
-  Points pts;
-  edgePoints(&pts);
-  iter = edgePoints_.find(e);
-  if (iter != edgePoints_.end()) {
-    if (iter->second.point) return iter->second.point;
-  }
-  return NULL;
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, e), Point::EdgeDuring, create));
+   return p;
 }
 
 void func_instance::edgePoints(Points* pts) {
-  assert(proc()->mgr());
-  if (edgePoints_.size() > 0) {
-    for (std::map<edge_instance*, EdgeInstpoints>::iterator iter = edgePoints_.begin();
-         iter != edgePoints_.end(); iter++) {
-      pts->push_back(iter->second.point);
-    }
-    return;
-  }
-  std::vector<Point*> points;
-  proc()->mgr()->findPoints(this, Point::EdgeDuring, back_inserter(points));
-  for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
-    instPoint* pt = static_cast<instPoint*>(*i);
-    edge_instance* e = static_cast<edge_instance*>(pt->edge());
-    pts->push_back(pt);
-    edgePoints_[e].point = pt;
-  }
+   std::vector<Point *> points;
+   proc()->mgr()->findPoints(Scope(this), Point::EdgeDuring, back_inserter(points));
+   for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
+      instPoint* pt = static_cast<instPoint*>(*i);
+      pts->push_back(pt);
+   }
 }
 
 void func_instance::destroyBlock(block_instance *block) {

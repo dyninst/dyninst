@@ -32,7 +32,6 @@
 #define _PARSING_H_
 
 #include "parseAPI/h/CFGFactory.h"
-#include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CodeSource.h"
 #include "parseAPI/h/InstructionSource.h"
 #include "parseAPI/h/CFG.h"
@@ -47,6 +46,7 @@ using ParseAPI::FuncSource;
 
 /*** The image_* object factory ***/
 class image;
+class ParseAPI::CodeObject;
 
 class DynCFGFactory : public ParseAPI::CFGFactory {
   public:
@@ -106,21 +106,23 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   DynParseCallback(image * img) : ParseAPI::ParseCallback(), _img(img) { }
   ~DynParseCallback() { }
 
+  protected:
   // defensive and exploratory mode callbacks
-  void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
-  void newfunction_retstatus(ParseAPI::Function*);
-  void patch_nop_jump(Address);
-  bool hasWeirdInsns(const ParseAPI::Function*) const;
-  void foundWeirdInsns(ParseAPI::Function*);
+  virtual void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
+  virtual void newfunction_retstatus(ParseAPI::Function*);
+  virtual void patch_nop_jump(Address);
+  virtual bool hasWeirdInsns(const ParseAPI::Function*) const;
+  virtual void foundWeirdInsns(ParseAPI::Function*);
 
   // other callbacks
-  void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
-  void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
-  bool updateCodeBytes(Address target); // updates if needed
-  bool absAddr(Address addr, Address &loadAddr, ParseAPI::CodeObject *&obj);
-  bool loadAddr(Address absoluteAddr, Address & loadAddr);
+  virtual void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
+  virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
+  virtual bool updateCodeBytes(Address target); // updates if needed
+  // returns the load address of the code object containing an absolute address
+  virtual bool absAddr(Address absolute, 
+                       Address & loadAddr, 
+                       ParseAPI::CodeObject *& containerObject);
 
-  protected:
   virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Edge *);

@@ -62,7 +62,7 @@ namespace {
     };
 }
 
-Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
+Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) :
     _obj(obj),
     _cfgfact(fact),
     _pcb(pcb),

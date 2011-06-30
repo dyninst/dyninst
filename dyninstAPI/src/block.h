@@ -104,7 +104,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     // edges srcs_;
     // edges trgs_;
 
-    BlockInstpoints points_;
 };
 
 template <class OutputIterator>

@@ -1973,7 +1973,7 @@ void BPatch_process::overwriteAnalysisUpdate
                     if ( (*fit)->ifunc()->hasWeirdInsns() ||
                          hasWeirdEntryBytes(*fit) )
                     {  
-                       instPoint *cPoint = cfunc->preCallPoint(cbbi, true);
+                       cfunc->preCallPoint(cbbi, true); // create point
                        cbbi->llb()->setUnresolvedCF(true);
                        monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
                     }
@@ -2052,7 +2052,7 @@ void BPatch_process::overwriteAnalysisUpdate
          nit != newFuncEntries.end();
          nit++)
     {
-        block_instance *entry = nit->first->setNewEntryPoint(nit->second);
+        nit->first->setNewEntryPoint(nit->second);
     }
 
     //3. parse new code, one overwritten function at a time
@@ -2145,7 +2145,6 @@ void BPatch_process::printDefensiveStatsInt()
         using namespace SymtabAPI;
         vector<Region*> regs;
         obj->parse_img()->getObject()->getMappedRegions(regs);
-        Offset endOffset = 0;
         for (vector<Region*>::iterator rit = regs.begin(); 
              rit != regs.end(); 
              rit++) 
@@ -2202,7 +2201,6 @@ void BPatch_process::printDefensiveStatsInt()
             << hex << funcTablePos << dec << endl;
     }
 
-//#if 0
     int calls = 0; //done
     int dynCalls = 0; //done
     int multiTargetCalls = 0; //done
@@ -2411,5 +2409,5 @@ void BPatch_process::printDefensiveStatsInt()
     }
 
     const HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
-//#endif
+    //KEVINTODO: print out overwrite stats
 }

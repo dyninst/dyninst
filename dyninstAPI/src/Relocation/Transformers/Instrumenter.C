@@ -89,10 +89,10 @@ bool Instrumenter::process(RelocBlock *trace,
 bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    // We're going to unify pre- and post- instruction instrumentation
    // into a single pass for efficiency. 
-   InsnInstpoints::const_iterator pre;
-   InsnInstpoints::const_iterator preEnd;
-   InsnInstpoints::const_iterator post;
-   InsnInstpoints::const_iterator postEnd;
+   PatchAPI::InsnPoints::const_iterator pre;
+   PatchAPI::InsnPoints::const_iterator preEnd;
+   PatchAPI::InsnPoints::const_iterator post;
+   PatchAPI::InsnPoints::const_iterator postEnd;
 
    bool instPre = false;
    bool instPost = false;
@@ -121,7 +121,6 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       if (post != postEnd) {
          postAddr = post->first;
       }
-
       assert(elem != trace->elements().end());
 
       Address next;
@@ -134,7 +133,6 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
          ++elem;
          assert(elem != trace->elements().end());
       }
-
       if (preAddr == (*elem)->addr()) {
          if (!pre->second->empty()) {
             Widget::Ptr inst = makeInstrumentation(pre->second);
@@ -309,7 +307,8 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    return true;
 }
 
-Widget::Ptr Instrumenter::makeInstrumentation(instPoint *point) {
+Widget::Ptr Instrumenter::makeInstrumentation(PatchAPI::Point *p) {
+   instPoint *point = IPCONV(p);
    assert(!point->empty());
 
    InstWidget::Ptr inst = InstWidget::create(point);

@@ -34,14 +34,19 @@
 using namespace Dyninst;
 using namespace ParseAPI;
 
-void ParseCallback::batch_begin() {
+ParseCallbackManager::~ParseCallbackManager() {
+   for (iterator iter = begin(); iter != end(); ++iter) {
+      delete *iter;
+   }
+}
+
+void ParseCallbackManager::batch_begin() {
    assert(!inBatch_); // No recursive batches
    inBatch_ = true;
 }
 
-void ParseCallback::batch_end(CFGFactory *fact) {
+void ParseCallbackManager::batch_end(CFGFactory *fact) {
    assert(inBatch_);
-
    // And now we do work. Hard work. 
    // Collect up all the info we've copied and send it up to the user
    for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
@@ -98,9 +103,10 @@ void ParseCallback::batch_end(CFGFactory *fact) {
       fact->destroy_func(*iter);
    }
    destroyedFunctions_.clear();
+   inBatch_ = false;
 }
 
-void ParseCallback::destroy(Block *b, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Block *b, CFGFactory *fact) {
    if (inBatch_) destroyedBlocks_.push_back(b);
    else {
       destroy_cb(b);
@@ -108,7 +114,7 @@ void ParseCallback::destroy(Block *b, CFGFactory *fact) {
    }
 }
 
-void ParseCallback::destroy(Edge *e, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Edge *e, CFGFactory *fact) {
    if (inBatch_) destroyedEdges_.push_back(e);
    else {
       destroy_cb(e);
@@ -116,7 +122,7 @@ void ParseCallback::destroy(Edge *e, CFGFactory *fact) {
    }
 }
 
-void ParseCallback::destroy(Function *f, CFGFactory *fact) {
+void ParseCallbackManager::destroy(Function *f, CFGFactory *fact) {
    if (inBatch_) destroyedFunctions_.push_back(f);
    else {
       destroy_cb(f);
@@ -124,31 +130,127 @@ void ParseCallback::destroy(Function *f, CFGFactory *fact) {
    }
 }
 
-void ParseCallback::removeEdge(Block *b, Edge *e, edge_type_t t) {
+void ParseCallbackManager::removeEdge(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    if (inBatch_) blockMods_.push_back(BlockMod(b, e, t, removed));
    else remove_edge_cb(b, e, t);
 }
 
-void ParseCallback::addEdge(Block *b, Edge *e, edge_type_t t) {
+void ParseCallbackManager::addEdge(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    if (inBatch_) blockMods_.push_back(BlockMod(b, e, t, added));
    else add_edge_cb(b, e, t);
 }
 
-void ParseCallback::removeBlock(Function *f, Block *b) {
+void ParseCallbackManager::removeBlock(Function *f, Block *b) {
    if (inBatch_) funcMods_.push_back(FuncMod(f, b, removed));
    else remove_block_cb(f, b);
 }
 
-void ParseCallback::addBlock(Function *f, Block *b) {
+void ParseCallbackManager::addBlock(Function *f, Block *b) {
    if (inBatch_) funcMods_.push_back(FuncMod(f, b, added));
    else add_block_cb(f, b);
 }
 
-void ParseCallback::splitBlock(Block *o, Block *n) {
+void ParseCallbackManager::splitBlock(Block *o, Block *n) {
    if (inBatch_) blockSplits_.push_back(BlockSplit(o, n));
    else split_block_cb(o, n);
 }
 
-   
-   
-   
+void ParseCallbackManager::interproc_cf(Function *f, Block *b, Address a, ParseCallback::interproc_details *d) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->interproc_cf(f, b, a, d);
+};
+
+void ParseCallbackManager::instruction_cb(Function *f, Block *b, Address a, ParseCallback::insn_details *d) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->instruction_cb(f, b, a, d);
+};
+
+void ParseCallbackManager::overlapping_blocks(Block *a, Block *b) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->overlapping_blocks(a, b);
+};
+
+void ParseCallbackManager::newfunction_retstatus(Function *f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->newfunction_retstatus(f);
+};
+
+void ParseCallbackManager::patch_nop_jump(Address a) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->patch_nop_jump(a);
+};
+
+bool ParseCallbackManager::updateCodeBytes(Address a) {
+   bool ret = true;
+   for (iterator iter = begin(); iter != end(); ++iter)
+      if (!(*iter)->updateCodeBytes(a)) ret = false;
+   return ret;
+};
+
+void ParseCallbackManager::abruptEnd_cf(Address a, Block *b, ParseCallback::default_details *d) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->abruptEnd_cf(a, b, d);
+};
+
+bool ParseCallbackManager::absAddr(Address abs, Address &load, CodeObject *&obj) {
+   bool ret = true;
+   for (iterator iter = begin(); iter != end(); ++iter)
+      if (!(*iter)->absAddr(abs, load, obj)) ret = false;
+   return ret;
+};
+
+bool ParseCallbackManager::hasWeirdInsns(const Function *f) {
+   bool ret = true;
+   for (iterator iter = begin(); iter != end(); ++iter)
+      if (!(*iter)->hasWeirdInsns(f)) ret = false;
+   return ret;
+};
+
+void ParseCallbackManager::foundWeirdInsns(Function *f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->foundWeirdInsns(f);
+};
+
+void ParseCallbackManager::split_block_cb(Block *a, Block *b) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->split_block_cb(a, b);
+};
+
+void ParseCallbackManager::destroy_cb(Block *b) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->destroy_cb(b);
+};
+
+void ParseCallbackManager::destroy_cb(Edge *e) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->destroy_cb(e);
+};
+
+void ParseCallbackManager::destroy_cb(Function *f) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->destroy_cb(f);
+};
+
+void ParseCallbackManager::remove_edge_cb(Block *b, Edge *e, ParseCallback::edge_type_t t) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->remove_edge_cb(b, e, t);
+};
+
+void ParseCallbackManager::add_edge_cb(Block *b, Edge *e, ParseCallback::edge_type_t t) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->add_edge_cb(b, e, t);
+};
+
+void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->remove_block_cb(f, b);
+};
+
+
+void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->remove_block_cb(f, b);
+};
+
+
+

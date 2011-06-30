@@ -65,26 +65,28 @@ typedef enum {
 struct SpringboardReq {
    Address from;
    Priority priority;
-   typedef std::map<block_instance *, Address> Destinations;
+   typedef std::map<block_instance *, std::pair<func_instance *, Address> > Destinations;
    Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
    SpringboardReq(const Address a, const Address b, 
-                  const Priority c, block_instance *d, 
-                  bool e, 
+                  const Priority c, 
+                  func_instance *d,
+                  block_instance *e, 
                   bool f, 
-                  bool g,
+                  bool g, 
+                  bool h,
                   bool i)
    : from(a), 
       priority(c), 
-      checkConflicts(e), 
-      includeRelocatedCopies(f),
-      fromRelocatedCode(g),
+      checkConflicts(f), 
+      includeRelocatedCopies(g),
+      fromRelocatedCode(h),
       useTrap(i) 
    {
-      destinations[d] = b;
+      destinations[e] = make_pair(d, b);
    }
    SpringboardReq() 
    : from(0), priority(NotRequired), 
@@ -93,8 +95,9 @@ struct SpringboardReq {
       fromRelocatedCode(false),
       useTrap(false) {};
     void addReq (const Address a, const Address b,
-                        const Priority c, block_instance *d,
-                        bool e, bool f, bool g, bool i) 
+                        const Priority c, 
+                 func_instance *d, block_instance *e,
+                        bool f, bool g, bool h, bool i) 
     {
         // This mechanism handles overlapping functions, where
         // we might see springboards from the same address to
@@ -106,15 +109,15 @@ struct SpringboardReq {
             assert(destinations.empty()); 
             from = a;
             priority = c;
-            destinations[d] = b;
-            checkConflicts = e;
-            includeRelocatedCopies = f;
-            fromRelocatedCode = g;
+            destinations[e] = make_pair(d,b);
+            checkConflicts = f;
+            includeRelocatedCopies = g;
+            fromRelocatedCode = h;
             useTrap = i;
         }
         else {
             assert(from == a);
-            destinations[d] = b;
+            destinations[e] = make_pair(d, b);
         }
     }
 };
@@ -137,9 +140,9 @@ class SpringboardBuilder;
    }
 
    void addFromOrigCode(Address from, Address to, 
-                        Priority p, block_instance *bbl) {
+                        Priority p, func_instance *func, block_instance *bbl) {
 // This uses the default constructor if it isn't already there.
-      sBoardMap_[p][from].addReq(from, to, p, bbl, true, true, false, false);
+      sBoardMap_[p][from].addReq(from, to, p, func, bbl, true, true, false, false);
    }
 
    void addFromRelocatedCode(Address from, Address to,
@@ -148,15 +151,17 @@ class SpringboardBuilder;
       sBoardMap_[p][from] = SpringboardReq(from, to,
                                            p,
                                            NULL,
+                                           NULL,
                                            true, 
                                            false,
                                            true, false);
    };
    
-   void addRaw(Address from, Address to, Priority p, block_instance *bbl,
+   void addRaw(Address from, Address to, Priority p, 
+               func_instance *func, block_instance *bbl,
                bool checkConflicts, bool includeRelocatedCopies, bool fromRelocatedCode,
                bool useTrap) {
-      sBoardMap_[p][from] = SpringboardReq(from, to, p, bbl,
+      sBoardMap_[p][from] = SpringboardReq(from, to, p, func, bbl,
                                            checkConflicts, includeRelocatedCopies,
                                            fromRelocatedCode, useTrap);
    }
