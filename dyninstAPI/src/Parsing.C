@@ -197,8 +197,8 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
-{ //KEVINTODO: unset abruptEnd flag in parse_block if we hit it during instrumentation
+DynParseCallback::abruptEnd_cf(Address /*addr*/,ParseAPI::Block *b,default_details*)
+{
   static_cast<parse_block*>(b)->setAbruptEnd(true);
 }
 
@@ -255,7 +255,7 @@ DynParseCallback::patch_nop_jump(Address addr)
 }
 
 void
-DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_details*det)
+DynParseCallback::interproc_cf(Function*f,Block *b,Address /*addr*/,interproc_details*det)
 {
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
@@ -312,11 +312,6 @@ DynParseCallback::absAddr(Address absoluteAddr, Address &load, CodeObject *&co)
         }
     }
     return false; 
-}
-
-bool DynParseCallback::loadAddr(Address, Address &) {
-   assert(0 && "Unnecessary?");
-   return true;
 }
 
 bool

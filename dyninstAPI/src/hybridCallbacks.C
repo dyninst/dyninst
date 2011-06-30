@@ -465,8 +465,6 @@ static int getPreCallPoints(ParseAPI::Block* blk,
 
     using namespace ParseAPI;
     process *llproc = proc->lowlevel_process();
-    mapped_object *obj = llproc->findObject(blk->obj());
-    Address ptAddr = blk->lastInsnAddr() + obj->codeBase();
     vector<ParseAPI::Function*> pFuncs;
 
     blk->getFuncs(pFuncs); 

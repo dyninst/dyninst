@@ -3,26 +3,23 @@
 #include "dyninstAPI/src/instPoint.h"
 
 
-Point* DynPointMaker::createPoint(Address addr, Point::Type type,
-                                  Address* scope) {
-  instPoint* ret = new instPoint(addr, type, mgr_, scope);
-  return ret;
+Point *DynPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
+   return new instPoint(t, m, SCAST_FI(f));
 }
 
-Point* DynPointMaker::createPoint(Address addr, Point::Type type,
-                                  PatchBlock* scope) {
-  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_BI(scope));
-  return ret;
+Point *DynPointMaker::mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b) {
+   return new instPoint(t, m, SCAST_FI(f), SCAST_BI(b));
 }
 
-Point* DynPointMaker::createPoint(Address addr, Point::Type type,
-                                  PatchEdge* scope) {
-  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_EI(scope));
-  return ret;
+Point *DynPointMaker::mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context) {
+   return new instPoint(t, m, SCAST_BI(b), SCAST_FI(context));
 }
 
-Point* DynPointMaker::createPoint(Address addr, Point::Type type,
-                                  PatchFunction* scope) {
-  instPoint* ret = new instPoint(addr, type, mgr_, SCAST_FI(scope));
-  return ret;
+Point *DynPointMaker::mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, Address a, 
+                                  InstructionAPI::Instruction::Ptr i, PatchFunction *context) {
+   return new instPoint(t, m, SCAST_BI(b), a, i, SCAST_FI(context));
+}
+
+Point *DynPointMaker::mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *f) {
+   return new instPoint(t, m, SCAST_EI(e), SCAST_FI(f));
 }

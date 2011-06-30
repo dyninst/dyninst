@@ -656,7 +656,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -919,7 +919,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.dataSize),
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64) 
 
     if( lmap.gotSize > 0 ) {
         buildGOT(lmap);
@@ -929,7 +929,8 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 static_cast<unsigned int>(lmap.gotSize),
                 GOT_NAME, Region::RT_DATA, true, lmap.gotRegionAlign);
     }
-
+#endif
+#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power)
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
@@ -1181,10 +1182,58 @@ bool emitElfStatic::hasRewrittenTLS() const {
 
 /* See architecture specific functions that call these for descriptions of function interface */
 
-Offset emitElfStatic::tlsLayoutVariant1(Offset, Region *, Region *, LinkMap &)
+Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap)
 {
-    assert(!"Layout of TLS initialization image, Variant 1, currently not implemented.");
-    return 0;
+    // The original init. image needs to remain in the image 1 slot because
+    // the TLS data references are relative to that position
+    unsigned long tlsBssSize = 0;
+    if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
+    if( bssTLS != NULL ) tlsBssSize = bssTLS->getRegionSize();
+    deque<Region *> tlsRegionsVar;
+
+    deque<Region *>::iterator copyReg_it;
+    for(copyReg_it = lmap.tlsRegions.begin(); copyReg_it != lmap.tlsRegions.end(); ++copyReg_it) {
+         tlsRegionsVar.push_front(*copyReg_it);
+    }
+
+    // Create the image, note new BSS regions are expanded
+    Offset endOffset = layoutRegions(lmap.tlsRegions,
+            lmap.regionAllocs, lmap.tlsRegionOffset, globalOffset);
+    if( endOffset == ~0UL ) return lmap.tlsRegionOffset;
+    Offset adjustedEnd = endOffset - lmap.tlsRegionOffset;
+
+    // This is necessary so the offsets of existing TLS symbols can be updated
+    // in a uniform, architecture independent way
+    if( bssTLS != NULL ) {
+        if( dataTLS != NULL ) {
+            lmap.regionAllocs.insert(make_pair(bssTLS, lmap.regionAllocs[dataTLS]));
+        }else{
+            lmap.regionAllocs.insert(make_pair(bssTLS, make_pair(0, endOffset)));
+        }
+    }
+
+    // Update the symbols with their offsets relative to the TCB address
+    vector<Symbol *>::iterator sym_it;
+    for(sym_it = lmap.tlsSymbols.begin(); sym_it != lmap.tlsSymbols.end(); ++sym_it) {
+        map<Region *, LinkMap::AllocPair>::iterator result;
+        result = lmap.regionAllocs.find((*sym_it)->getRegion());
+
+        // It is a programming error if the region for the symbol
+        // was not passed to this function
+        if( result == lmap.regionAllocs.end() ) {
+            endOffset = lmap.tlsRegionOffset;
+            break;
+        }
+
+        Offset regionOffset = result->second.second;
+        Offset symbolOffset = (*sym_it)->getOffset();
+        lmap.origSymbols.push_back(make_pair((*sym_it), symbolOffset));
+
+        symbolOffset += (regionOffset - lmap.tlsRegionOffset) - (adjustedEnd + tlsBssSize);
+        (*sym_it)->setOffset(symbolOffset);
+    }
+
+    return endOffset;
 }
 
 Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Region *bssTLS,
@@ -1245,10 +1294,11 @@ Offset emitElfStatic::tlsAdjustVariant2(Offset curOffset, Offset tlsSize) {
     return retOffset;
 }
 
-void emitElfStatic::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &,
-        Region *, Region *) 
+void emitElfStatic::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &regionAllocs,
+        Region *, Region *bssTLS) 
 {
-    assert(!"Cleanup of TLS Regions from allocation map currently unimplemented");
+    // Existing BSS TLS region is not copied to the new target data
+    if( bssTLS != NULL ) regionAllocs.erase(bssTLS);
 }
 
 void emitElfStatic::tlsCleanupVariant2(map<Region *, LinkMap::AllocPair> &regionAllocs,

@@ -502,7 +502,7 @@ bool BPatch_point::stopMonitoringInt()
  * insns        A pointer to a buffer in which to return the instructions.
  */
 
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int /*maxSize*/, void* /*insns*/)
 {
    return 0;
 }
@@ -591,7 +591,6 @@ bool BPatchToInternalArgs(BPatch_point *point,
 
 BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
 {
-    BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
     switch((instPoint::Type) intType) {
        case instPoint::FuncEntry:
           return BPatch_locEntry;

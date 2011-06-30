@@ -4,6 +4,10 @@
 #include "PatchMgr.h"
 #include "PatchObject.h"
 #include "PatchCFG.h"
+#include "PatchCallback.h"
+
+using namespace Dyninst;
+using namespace Dyninst::PatchAPI;
 
 using Dyninst::PatchAPI::Instance;
 using Dyninst::PatchAPI::InstancePtr;
@@ -44,8 +48,8 @@ Instance::destroy() {
 PatchFunction*
 Point::getCallee() {
   if (type() != PreCall && type() != PostCall) return NULL;
-  PatchBlock* b = (*(inst_blks_.begin()));
-  PatchBlock::edgelist::iterator it = b->getTargets().begin();
+  PatchBlock* b = the_block_;
+  PatchBlock::edgelist::const_iterator it = b->getTargets().begin();
   for (; it != b->getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
@@ -61,71 +65,43 @@ Point::getCallee() {
 void
 Point::initCodeStructure() {
   assert(mgr_);
-  // walk through all code objects
-  for (AddrSpace::ObjSet::iterator ci = mgr_->as()->objSet().begin();
-       ci != mgr_->as()->objSet().end(); ci++) {
-    PatchObject* obj = *ci;
-    CodeObject* co = obj->co();
-    CodeSource* cs = co->cs();
-    Address relative_addr = addr_ - obj->codeBase();
-    vector<CodeRegion*> regions = cs->regions();
-    for (vector<CodeRegion*>::iterator ri = regions.begin(); ri != regions.end(); ri++) {
-      std::set<ParseAPI::Function*> parseapi_funcs;
-      co->findFuncs(*ri, relative_addr, parseapi_funcs);
-      std::set<ParseAPI::Block*> parseapi_blks;
-      co->findBlocks(*ri, relative_addr, parseapi_blks);
 
-      for (std::set<ParseAPI::Function*>::iterator fi = parseapi_funcs.begin();
-           fi != parseapi_funcs.end(); fi++) {
-        PatchFunction* func = obj->getFunc(*fi);
-        inst_funcs_.insert(func);
-      } // Function
-      for (std::set<ParseAPI::Block*>::iterator bi = parseapi_blks.begin();
-           bi != parseapi_blks.end(); bi++) {
-        PatchBlock* blk = obj->getBlock(*bi);
-        inst_blks_.insert(blk);
-      } // Block
-    } // Region
-    if (inst_blks_.size() > 0) {
-      co_ = co;
-      cs_ = cs;
-      obj_ = obj;
-      InstructionDecoder d(cs_->getPtrToInstruction(relative_addr),
-                          cs_->length(),
-                          cs_->getArch());
-      // Get the instruction that contain this point
-      insn_ = d.decode();
-      break;
-    }
-  }
-  if (!the_block_) the_block_ = *inst_blks_.begin();
-  if (!the_func_) the_func_ = *inst_funcs_.begin();
+  cb()->create(this);
 }
 
 /* for single instruction */
-Point::Point(Address addr, Point::Type type, PatchMgrPtr mgr, Address*)
-  :addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(NULL), the_func_(NULL) {
+Point::Point(Point::Type type, PatchMgrPtr mgr, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, PatchFunction *f)
+   :addr_(a), type_(type), mgr_(mgr), the_block_(b), the_edge_(NULL), the_func_(f), insn_(i) {
+
   initCodeStructure();
 }
 
 /* for a block */
-Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchBlock* blk)
-  : addr_(addr), type_(type), mgr_(mgr), the_block_(blk), the_edge_(NULL), the_func_(NULL) {
+Point::Point(Type type, PatchMgrPtr mgr, PatchBlock* blk, PatchFunction *f)
+  : addr_(0), type_(type), mgr_(mgr), the_block_(blk), the_edge_(NULL), the_func_(f) {
   initCodeStructure();
 }
 
 /* for an edge */
-Point::Point(Address addr, Type type, PatchMgrPtr mgr, PatchEdge* edge)
-  : addr_(addr), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(edge), the_func_(NULL) {
+Point::Point(Type type, PatchMgrPtr mgr, PatchEdge* edge, PatchFunction *f)
+  : addr_(0), type_(type), mgr_(mgr), the_block_(NULL), the_edge_(edge), the_func_(f) {
   initCodeStructure();
 }
 
 /* for a function */
-Point::Point(Address addr, Type type, PatchMgrPtr mgr,
-             PatchFunction* func) : addr_(addr), type_(type), mgr_(mgr),
-                                    the_block_(NULL), the_edge_(NULL), the_func_(func) {
+Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func) : 
+   addr_(0), type_(type), mgr_(mgr),
+   the_block_(NULL), the_edge_(NULL), the_func_(func) {
   initCodeStructure();
 }
+
+/* for a call or exit site */
+Point::Point(Type type, PatchMgrPtr mgr, PatchFunction* func, PatchBlock *b) : 
+   addr_(0), type_(type), mgr_(mgr),
+   the_block_(b), the_edge_(NULL), the_func_(func) {
+  initCodeStructure();
+}
+
 
 /* old_instance, old_instance, <---new_instance */
 InstancePtr
@@ -203,60 +179,54 @@ Point::clear() {
 bool
 Point::destroy() {
   clear();
-  PatchMgr::TypePtMap type_pt_map;
-  switch (type_) {
-    case PreInsn:
-    case PostInsn:
-    case InsnTaken:
-    case PreCall:
-    case PostCall:
-    {
-      type_pt_map = mgr_->addr_type_pt_map_[addr_];
-      break;
-    }
-    case BlockEntry:
-    case BlockExit:
-    case BlockDuring:
-    {
-      type_pt_map = mgr_->blk_type_pt_map_[the_block_];
-      break;
-    }
-    case FuncEntry:
-    case FuncExit:
-    case FuncDuring:
-    {
-      type_pt_map = mgr_->func_type_pt_map_[the_func_];
-      break;
-    }
-    case EdgeDuring:
-    {
-      type_pt_map = mgr_->edge_type_pt_map_[the_edge_];
-      break;
-    }
-    case LoopStart:
-    case LoopEnd:
-    case LoopIterStart:
-    case LoopIterEnd:
-    {
-      return false;
-    }
-    case InsnTypes:
-    case LoopTypes:
-    case BlockTypes:
-    case CallTypes:
-    case FuncTypes:
-    case OtherPoint:
-    case None:
-    {
-      return false;
-    }
-  }
-  PointSet& points = type_pt_map[type_];
-  points.erase(this);
+
   return true;
 }
 
 Point::~Point() {
   // Clear all instances associated with this point
   clear();
+}
+
+void Point::changeBlock(PatchBlock *block) {
+   // TODO: callback from here
+   PatchBlock *old = the_block_;
+   the_block_ = block;
+   cb()->change(this, old, block);
+}
+
+FuncPoints::~FuncPoints() {
+   if (entry) delete entry;
+   if (during) delete during;
+   for (std::map<PatchBlock *, Point *>::iterator iter = exits.begin();
+        iter != exits.end(); ++iter) {
+      delete iter->second;
+   }
+   for (std::map<PatchBlock *, Point *>::iterator iter = preCalls.begin();
+        iter != preCalls.end(); ++iter) {
+      delete iter->second;
+   }
+   for (std::map<PatchBlock *, Point *>::iterator iter = postCalls.begin();
+        iter != postCalls.end(); ++iter) {
+      delete iter->second;
+   }
+}
+
+BlockPoints::~BlockPoints() {
+   if (entry) delete entry;
+   if (during) delete during;
+   if (exit) delete exit;
+   for (InsnPoints::iterator iter = preInsn.begin(); iter != preInsn.end(); ++iter) {
+      delete iter->second;
+   }
+   for (InsnPoints::iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
+      delete iter->second;
+   }
+}
+
+PatchCallback *Point::cb() const { 
+   if (the_func_) return the_func_->cb();
+   else if (the_block_) return the_block_->cb();
+   else if (the_edge_) return the_edge_->cb();
+   else return NULL;
 }

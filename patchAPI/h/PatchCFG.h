@@ -5,18 +5,24 @@
 
 #include "common.h"
 #include "PatchObject.h"
+#include "Point.h"
 
 namespace Dyninst {
 namespace PatchAPI {
 
+class PatchParseCallback;
+
 class PatchEdge;
 class PatchBlock;
 class PatchFunction;
+class PatchCallback;
 
 class PatchEdge {
    friend class PatchBlock;
    friend class PatchFunction;
    friend class PatchObject;
+   friend class Callback;
+   friend class PatchParseCallback;
 
   public:
    PATCHAPI_EXPORT static PatchEdge *create(ParseAPI::Edge *,
@@ -38,16 +44,22 @@ class PatchEdge {
    PATCHAPI_EXPORT bool sinkEdge() const;
    PATCHAPI_EXPORT bool interproc() const;
 
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
+
  protected:
     ParseAPI::Edge *edge_;
     PatchBlock *src_;
     PatchBlock *trg_;
+
+    EdgePoints points_;
 };
 
 class PatchBlock {
   friend class PatchEdge;
   friend class PatchFunction;
   friend class PatchObject;
+   friend class PatchParseCallback;
 
   public:
     typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
@@ -77,11 +89,17 @@ class PatchBlock {
 
     PATCHAPI_EXPORT ParseAPI::Block *block() const;
     PATCHAPI_EXPORT PatchObject* object() const;
-    PATCHAPI_EXPORT edgelist &getSources();
-    PATCHAPI_EXPORT edgelist &getTargets();
+    PATCHAPI_EXPORT const edgelist &getSources();
+    PATCHAPI_EXPORT const edgelist &getTargets();
 
+    PATCHAPI_EXPORT
     template <class OutputIterator>
     void getFunctions(OutputIterator result);
+
+    PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
 
   protected:
     typedef enum {
@@ -91,10 +109,15 @@ class PatchBlock {
     void removeSourceEdge(PatchEdge *e);
     void removeTargetEdge(PatchEdge *e);
 
+    void addSourceEdge(PatchEdge *e, bool addIfEmpty = true);
+    void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
+
     ParseAPI::Block *block_;
     edgelist srclist_;
     edgelist trglist_;
     PatchObject* obj_;
+
+    BlockPoints points_;
 };
 
 
@@ -103,6 +126,7 @@ class PatchFunction {
    friend class PatchEdge;
    friend class PatchBlock;
    friend class PatchObject;
+   friend class PatchParseCallback;
 
    public:
      struct compare {
@@ -115,6 +139,7 @@ class PatchFunction {
        }
      };
      typedef std::set<PatchBlock *, compare> blockset;
+     typedef blockset Blockset;
 
      PATCHAPI_EXPORT static PatchFunction *create(ParseAPI::Function *, PatchObject*);
      PATCHAPI_EXPORT PatchFunction(ParseAPI::Function *f, PatchObject* o);
@@ -131,7 +156,31 @@ class PatchFunction {
      PATCHAPI_EXPORT const blockset &getExitBlocks();
      PATCHAPI_EXPORT const blockset &getCallBlocks();
 
+     // Shorter aliases
+     PATCHAPI_EXPORT const blockset &blocks() { return getAllBlocks(); }
+     PATCHAPI_EXPORT PatchBlock *entry() { return getEntryBlock(); }
+     PATCHAPI_EXPORT const blockset &exits() { return getExitBlocks(); }
+     PATCHAPI_EXPORT const blockset &calls() { return getCallBlocks(); }
+
+     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+
+     bool verifyExit(PatchBlock *block) { return exits().find(block) != exits().end(); }
+     bool verifyCall(PatchBlock *block) { return calls().find(block) != calls().end(); }
+
+     // Fast access to a range of instruction points
+     PATCHAPI_EXPORT bool findInsnPoints(Point::Type type, PatchBlock *block,
+                                         InsnPoints::const_iterator &start,
+                                         InsnPoints::const_iterator &end);
+
+   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT PatchCallback *cb() const;
+                                         
+
    protected:
+     // For callbacks from ParseAPI to PatchAPI
+     void removeBlock(PatchBlock *);
+     void addBlock(PatchBlock *);
+
      ParseAPI::Function *func_;
      PatchObject* obj_;
      Address addr_;
@@ -139,6 +188,11 @@ class PatchFunction {
      blockset all_blocks_;
      blockset exit_blocks_;
      blockset call_blocks_;
+
+     FuncPoints points_;
+     // For context-specific
+     std::map<PatchBlock *, BlockPoints> blockPoints_;
+     std::map<PatchEdge *, EdgePoints> edgePoints_;
 };
 
 template <class OutputIterator>

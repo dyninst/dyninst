@@ -36,6 +36,7 @@ TO_INC   = ../h
 
 PUBLIC_H = \
     CFGFactory.h\
+    CFGModifier.h \
     CFG.h\
     CodeObject.h\
     CodeSource.h\
@@ -58,7 +59,8 @@ SRCS +=	../src/ParserDetails.C \
         ../src/ParseCallback.C \
         ../src/IA_x86Details.C \
         ../src/IA_powerDetails.C \
-        ../src/IA_platformDetailsFactory.C
+        ../src/IA_platformDetailsFactory.C \
+        ../src/CFGModifier.C
         
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/Absloc.C \

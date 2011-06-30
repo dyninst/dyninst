@@ -2,6 +2,10 @@
 
 #include "common.h"
 #include "PatchCFG.h"
+#include "AddrSpace.h"
+#include "PatchObject.h"
+#include "PatchMgr.h"
+#include "PatchCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -35,7 +39,7 @@ PatchBlock::getInsns(Insns &insns) const {
   }
 }
 
-PatchBlock::edgelist&
+const PatchBlock::edgelist&
 PatchBlock::getSources() {
   if (srclist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
@@ -47,7 +51,7 @@ PatchBlock::getSources() {
   return srclist_;
 }
 
-PatchBlock::edgelist&
+const PatchBlock::edgelist&
 PatchBlock::getTargets() {
   if (trglist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
@@ -59,20 +63,44 @@ PatchBlock::getTargets() {
   return trglist_;
 }
 
+void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
+   if (!addIfEmpty && srclist_.empty()) return;
+
+   srclist_.push_back(e);
+
+  cb()->add_edge(this, e, PatchCallback::source);
+}
+
+void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {
+   if (!addIfEmpty && trglist_.empty()) return;
+
+   trglist_.push_back(e);
+   
+   cb()->add_edge(this, e, PatchCallback::target);
+}
+
+
 void
 PatchBlock::removeSourceEdge(PatchEdge *e) {
+   if (srclist_.empty()) return;
+
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(srclist_.begin(), srclist_.end(), e)) != srclist_.end()) {
     srclist_.erase(iter);
   }
+
+  cb()->remove_edge(this, e, PatchCallback::source);
 }
 
 void
 PatchBlock::removeTargetEdge(PatchEdge *e) {
+   if (trglist_.empty()) return;
+
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
     trglist_.erase(iter);
   }
+  cb()->remove_edge(this, e, PatchCallback::target);
 }
 
 
@@ -82,6 +110,8 @@ PatchBlock::isShared() {
 }
 
 PatchBlock::~PatchBlock() {
+#if 0
+   // Our predecessor may be deleted...
   for (std::vector<PatchEdge *>::iterator iter = srclist_.begin();
        iter != srclist_.end(); ++iter) {
     PatchBlock* blk = (*iter)->source();
@@ -92,6 +122,7 @@ PatchBlock::~PatchBlock() {
     PatchBlock* blk = (*iter)->target();
     blk->removeSourceEdge(*iter);
   }
+#endif
 }
 
 Address
@@ -186,7 +217,7 @@ PatchBlock::object() const { return obj_; }
 
 PatchFunction*
 PatchBlock::getCallee() {
-  PatchBlock::edgelist::iterator it = getTargets().begin();
+  PatchBlock::edgelist::const_iterator it = getTargets().begin();
   for (; it != getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
@@ -196,3 +227,90 @@ PatchBlock::getCallee() {
   }
   return NULL;
 }
+
+Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
+   PointMakerPtr maker = obj_->addrSpace()->mgr()->pointMaker();
+   PatchMgrPtr mgr = obj_->addrSpace()->mgr();
+   Point *ret = NULL;
+
+   switch (type) {
+      case Point::BlockEntry:
+         if (!points_.entry && create) {
+            points_.entry = maker->createPoint(loc, type);
+         }
+         return points_.entry;
+         break;
+      case Point::BlockExit:
+         if (!points_.exit && create) {
+            points_.exit = maker->createPoint(loc, type);
+         }
+         return points_.exit;
+         break;
+      case Point::BlockDuring:
+         if (!points_.during && create) {
+            points_.during = maker->createPoint(loc, type);
+         }
+         return points_.during;
+         break;
+      case Point::PreInsn: {
+         if (!loc.addr || !loc.insn) return NULL;
+         InsnPoints::iterator iter2 = points_.preInsn.find(loc.addr);
+         if (iter2 == points_.preInsn.end()) {
+            if (!create) return NULL;
+            ret = maker->createPoint(loc, type);
+            points_.preInsn[loc.addr] = ret;
+            return ret;
+         }
+         else {
+            return iter2->second;
+         }
+         break;
+      }
+      case Point::PostInsn: {
+         if (!loc.addr || !loc.insn) return NULL;
+         InsnPoints::iterator iter2 = points_.postInsn.find(loc.addr);
+         if (iter2 == points_.postInsn.end()) {
+            if (!create) return NULL;
+            ret = maker->createPoint(loc, type);
+            points_.preInsn[loc.addr] = ret;
+            return ret;
+         }
+         else return iter2->second;
+         break;
+      }
+      default:
+         return NULL;
+   }
+   assert(0); return NULL; // unreachable, but keep compiler happy
+}
+
+
+void PatchBlock::destroy(Point *p) {
+   assert(p->getBlock() == this);
+
+   switch(p->type()) {
+      case Point::PreInsn:
+         delete points_.preInsn[p->address()];
+         break;
+      case Point::PostInsn:
+         delete points_.postInsn[p->address()];
+         break;
+      case Point::BlockEntry:
+         delete points_.entry;
+         break;
+      case Point::BlockExit:
+         delete points_.exit;
+         break;
+      case Point::BlockDuring:
+         delete points_.during;
+         break;
+      default:
+         break;
+   }
+}
+
+PatchCallback *PatchBlock::cb() const {
+   return obj_->cb();
+}
+
+

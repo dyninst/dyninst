@@ -263,11 +263,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void blockInsnPoints(block_instance*, Points*);
   void edgePoints(Points*);
 
-  // And the "mass" version of the above
-  bool findInsnPoints(Point::Type type, block_instance *b,
-                      InsnInstpoints::const_iterator &begin,
-                      InsnInstpoints::const_iterator &end);
-
   // Function wrapping
   bool callWrappedFunction(func_instance *target);
   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
@@ -294,11 +289,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
-
-  ///////////////////// Function-level instPoints
-  FuncInstpoints points_;
-  std::map<block_instance *, BlockInstpoints> blockPoints_;
-  std::map<edge_instance *, EdgeInstpoints> edgePoints_;
 
 
   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is

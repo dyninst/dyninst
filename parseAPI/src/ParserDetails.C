@@ -132,23 +132,23 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
     Function * targFunc = NULL;
 
     // get the binary's load address and subtract it
-    Address loadAddr = 0;
-    CodeObject *co = NULL;
-    if ( ! _pcb.absAddr(tamperFunc->_tamper_addr, loadAddr, co) ) {
-        parsing_printf("WARNING: Failed to find object load address "
-                       "for tampered return address 0x%lx\n", 
-                       tamperFunc->_tamper_addr);
-        mal_printf("WARNING: Failed to find object load address "
-                   "for tampered return address 0x%lx\n", 
-                   tamperFunc->_tamper_addr);
-        tamperFunc->_tamper = TAMPER_NONZERO;
-        return NULL; // failed to find object load address
-    }
-    Address target = tamperFunc->_tamper_addr - loadAddr;
+
+    CodeSource *cs = tamperFunc->obj()->cs();
     set<CodeRegion*> targRegs;
-    co->cs()->findRegions(target, targRegs);
+
+    Address loadAddr = cs->loadAddress();
+    Address target = tamperFunc->_tamper_addr - loadAddr;
+    if (loadAddr < tamperFunc->_tamper_addr) {
+        cs->findRegions(target, targRegs);
+    }
+    if (targRegs.empty()) {
+        mal_printf("ERROR: could not create function at tamperAbs "
+                   "addr, which is in another object %lx\n",target);
+        return NULL;
+    }
+        
     assert(1 == targRegs.size()); // we don't do analyze stack tampering on 
-                              // platforms that use archive files
+                                  // platforms that use archive files
     targFunc = _parse_data->get_func
         (*(targRegs.begin()), 
          target, 
@@ -159,8 +159,8 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
     }
 
     if(!targFunc) {
-        mal_printf("ERROR: could not create function at tamper "
-                   "addr %lx\n",target);
+        mal_printf("ERROR: could not create function at tamperAbs addr %lx\n",
+                   tamperFunc->_tamper_addr);
         return NULL;
     }
 

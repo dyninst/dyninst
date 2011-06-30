@@ -4288,7 +4288,7 @@ bool process::getDeadCode
          bit != deletableBlocks.end();
          bit++) 
     {
-        if (bit->first->containingFuncs() == bit->second.size()) {
+        if ((unsigned int)bit->first->containingFuncs() == bit->second.size()) {
             delBlocks.insert(bit->first);
         }
     }

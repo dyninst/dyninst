@@ -21,6 +21,7 @@
 
 #include "test_lib.h"
 #include "patchapi_comp.h"
+using namespace Dyninst;
 
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::Point;
@@ -81,7 +82,7 @@ test_results_t patch1_1_Mutator::executeTest() {
   vector<Point*> pts;
   Point::Type type = Point::FuncEntry | Point::BlockEntry | Point::FuncDuring |
                      Point::PreCall | Point::PostCall | Point::FuncExit;
-  mgr_->findPoints(func, type, back_inserter(pts));
+  mgr_->findPoints(PatchAPI::Scope(func), type, back_inserter(pts));
   // We should have all these point types
   typedef std::map<Point::Type, bool> TypeFound;
   TypeFound type_found;
@@ -148,7 +149,7 @@ test_results_t patch1_1_Mutator::executeTest() {
         break;
       }
       default:
-        logerror("Wrong point type: %x!\n", p->type());
+         logerror("Wrong point type: %s!\n", PatchAPI::type_str(p->type()));
         return FAILED;
     }
   }
@@ -171,20 +172,22 @@ test_results_t patch1_1_Mutator::executeTest() {
   }
   if (failed) return FAILED;
 
+#if 0
+// Removed: abstract points have no address
   // Step 3.2: Points have correct address;
   //           And, different types of points may have the same address
   if (func->addr() != func_entry->address()) {
     logerror(" FuncEntry point should be at %x, but in fact %x\n", func->addr(), func_entry->address());
     return FAILED;
   }
-  const PatchFunction::blocklist& exit_blks = func->getExitBlocks();
-  if (exit_blks[0]->last() != func_exit->address()) {
-    logerror(" FuncExit point should be at %x, but in fact %x\n", exit_blks[0]->last(), func_exit->address());
+  const PatchFunction::blockset& exit_blks = func->getExitBlocks();
+  if ((*exit_blks.begin())->last() != func_exit->address()) {
+    logerror(" FuncExit point should be at %x, but in fact %x\n", (*exit_blks.begin())->last(), func_exit->address());
     return FAILED;
   }
-  const PatchFunction::blocklist& call_blks = func->getCallBlocks();
-  if (call_blks[0]->last() != pre_call->address()) {
-    logerror(" PreCall point should be at %x, but in fact %x\n", call_blks[0]->last(), pre_call->address());
+  const PatchFunction::blockset& call_blks = func->getCallBlocks();
+  if ((*call_blks.begin())->last() != pre_call->address()) {
+    logerror(" PreCall point should be at %x, but in fact %x\n", (*call_blks.begin())->last(), pre_call->address());
     return FAILED;
   }
   if (pre_call->address() != post_call->address()) {
@@ -201,6 +204,7 @@ test_results_t patch1_1_Mutator::executeTest() {
       return FAILED;
     }
   }
+#endif
 
   // Step 3.3: checking snippets
   int entry_vals[1] = {1};
