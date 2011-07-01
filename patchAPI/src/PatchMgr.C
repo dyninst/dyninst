@@ -66,6 +66,11 @@ PatchMgr::removeSnippet(InstancePtr instance) {
 Point *PatchMgr::findPoint(Location loc,
                            Point::Type type,
                            bool create) {
+   // Verify an untrusted Location
+   if (loc.untrusted) {
+      if (!verify(loc)) return NULL;
+   }         
+
    // Not sure if it's better to go by type
    // or location first, so we're running
    // with type...
@@ -370,4 +375,31 @@ void PatchMgr::enumerateTypes(Point::Type types, EnumeratedTypes &out) {
 
 void PatchMgr::destroy(Point *p) {
    p->obj()->cb()->destroy(p);
+}
+
+bool PatchMgr::verify(Location &loc) {
+   switch (loc.type) {
+      case Location::BlockInstance:
+         if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
+         break;
+      case Location::InstructionInstance:
+         if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
+         // Fall through...
+      case Location::Instruction: 
+         if (loc.addr < loc.block->start()) return false;
+         if (loc.addr > loc.block->last()) return false;
+         loc.insn = loc.block->getInsn(loc.addr);
+         if (!loc.insn) return false;
+         break;
+      case Location::EdgeInstance: 
+         if (loc.func->blocks().find(loc.edge->source()) == loc.func->blocks().end()) return false;
+         if (loc.func->blocks().find(loc.edge->target()) == loc.func->blocks().end()) return false;
+         break;
+      default:
+         assert(0);
+         return true;
+   }
+   loc.untrusted = false;
+   return true;
+
 }
