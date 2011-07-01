@@ -1405,8 +1405,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 
        //func->ifunc()->invalidateCache();//KEVINTEST: used to call this, which might have been important
 
-    	modFuncs[fidx]->triggerModified();
-        assert(modFuncs[fidx]->consistency());
+       modFuncs[fidx]->triggerModified();
+       modFuncs[fidx]->getAllBlocks();
+       assert(modFuncs[fidx]->consistency());
     }
 
 /* 5. fix mapping of split blocks that have points */

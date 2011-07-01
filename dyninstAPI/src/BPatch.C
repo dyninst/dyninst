@@ -1175,7 +1175,9 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
     if (!bProc) return; // Done
     BPatch_image *bImage = bProc->getImage();
-    assert(bImage); // This we can assert to be true
+    if (!bImage) { // we got an event during process startup
+        return;
+    }
     
     BPatch_module *bpmod = bImage->findModule(mod);
     if (bpmod == NULL) return;

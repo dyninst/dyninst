@@ -153,7 +153,7 @@ Widget::Ptr MemEmulatorTransformer::createReplacement(InsnWidget::Ptr reloc,
                                                     func_instance *func, 
                                                     block_instance *block) {
   // MemEmulators want instPoints. How unreasonable.
-   instPoint *point = instPoint::preInsn(func, block, reloc->addr());
+   instPoint *point = instPoint::preInsn(func, block, reloc->addr(), reloc->insn(), true);
    if (!point) return Widget::Ptr();
    
    // Replace this instruction with a MemEmulator

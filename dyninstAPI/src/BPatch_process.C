@@ -1948,7 +1948,7 @@ void BPatch_process::overwriteAnalysisUpdate
                     func_instance *cfunc = llproc->findFunction(
                         (parse_func*)(cFuncs[fix]));
                     block_instance *cbbi = cfunc->obj()->findBlock(cBlk);
-                    if (delBlocks.end() != delBlocks.find(cbbi)) {
+                    if (delBlocks.end() != delBlocks.find(cbbi)) { //KEVINTODO: can't do this, delBlocks is full of dead pointers, should we put this ahead of deleting the blocks?
                         continue; 
                     }
 
@@ -1998,7 +1998,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->getModule()->removeFunction(bpfunc,false);
+        bpfunc->getModule()->removeFunction(bpfunc,false); //KEVINTODO: doesn't delete the blocks
         (*fit)->removeFromAll();
     }
     mal_printf("Done deleting functions\n");

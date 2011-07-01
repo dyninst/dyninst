@@ -518,7 +518,7 @@ bool func_instance::consistency() const {
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
-      assert(all_blocks_.find(b_inst) != all_blocks_.end());
+      assert(b_inst->llb() == img_block);
    }
 
    return true;
