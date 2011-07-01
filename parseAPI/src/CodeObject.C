@@ -335,3 +335,12 @@ void CodeObject::destroy(Block *b) {
 void CodeObject::destroy(Function *f) {
    _pcb->destroy(f, _fact);
 }
+
+void CodeObject::registerCallback(ParseCallback *cb) {
+   assert(_pcb);
+   _pcb->registerCallback(cb);
+}
+
+void CodeObject::unregisterCallback(ParseCallback *cb) {
+   assert(0);
+}
