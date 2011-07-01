@@ -111,6 +111,7 @@ class PatchBlock {
     void addSourceEdge(PatchEdge *e, bool addIfEmpty = true);
     void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
 
+    void splitBlock(PatchBlock *b1, PatchBlock *b2);
     void splitPoints(PatchBlock *succ);
 
     ParseAPI::Block *block_;

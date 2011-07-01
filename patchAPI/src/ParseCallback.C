@@ -8,10 +8,7 @@ using namespace PatchAPI;
 
 void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second) {
    PatchBlock *p1 = _obj->getBlock(first, false);
-   if (!p1) {
-       assert(0);//KEVINTEST: isn't this a bad case? 
-       return;
-   }
+   if (!p1) return; // we create blocks lazily, so we might not have to do anything
 
    _obj->splitBlock(p1, second);
 }

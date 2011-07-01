@@ -53,12 +53,13 @@ PatchFunction::getEntryBlock() {
 
 const PatchFunction::blockset&
 PatchFunction::getExitBlocks() {
-  if (!exit_blocks_.empty()) return exit_blocks_;
-
-  for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
-       iter != func_->returnBlocks().end(); ++iter) {
-    PatchBlock* pblk = object()->getBlock(*iter);
-    exit_blocks_.insert(pblk);
+  if (func_->returnBlocks().size() != exit_blocks_.size()) 
+  {
+      for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
+           iter != func_->returnBlocks().end(); ++iter) {
+        PatchBlock* pblk = object()->getBlock(*iter);
+        exit_blocks_.insert(pblk);
+      }
   }
   return exit_blocks_;
 }
@@ -67,8 +68,7 @@ const PatchFunction::blockset&
 PatchFunction::getCallBlocks() {
   // Compute the list if it's empty or if the list of function blocks
   // has grown
-  if (call_blocks_.empty() || 
-      all_blocks_.size() < func_->blocks().size())
+  if (call_blocks_.size() != func_->callEdges().size())
   {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
@@ -101,26 +101,6 @@ void PatchFunction::addBlock(PatchBlock *b) {
 
    all_blocks_.insert(b);
 
-#if 0 //KEVINWRONG can't do this in ParseAPI callback, at least not this way, as it will finalize the parse function prematurely
-   // Check to see if it's call or exit...
-   const ParseAPI::Function::blocklist &retblocks = function()->returnBlocks();
-   for (ParseAPI::Function::blocklist::iterator iter = retblocks.begin();
-        iter != retblocks.end(); ++iter) {
-      if (b->block() == *iter) {
-         exit_blocks_.insert(b);
-         break;
-      }
-   }
-   
-   const ParseAPI::Function::edgelist &calls = function()->callEdges();
-   for (ParseAPI::Function::edgelist::iterator iter = calls.begin();
-        iter != calls.end(); ++iter) {
-      if (b->block() == (*iter)->src()) {
-         call_blocks_.insert(b);
-         break;
-      }
-   }
-#endif
    cb()->add_block(this, b);
 }
    
