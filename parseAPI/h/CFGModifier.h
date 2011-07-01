@@ -70,8 +70,11 @@ class CFGModifier {
                                     unsigned size, Architecture arch);
 
    // Remove a block from the CFG; the block must be unreachable
-   // (that is, have no in-edges). 
-   PARSER_EXPORT static bool remove(Block *);
+   // (that is, have no in-edges) unless force is true.
+   PARSER_EXPORT static bool remove(Block *, bool force = false);
+
+   // As the above, but for functions. 
+   PARSER_EXPORT static bool remove(Function *);
 };
 
 class InsertedRegion : public CodeRegion {

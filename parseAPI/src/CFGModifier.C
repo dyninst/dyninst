@@ -136,9 +136,17 @@ bool CFGModifier::split(Block *b, Address a, bool trust) {
    return true;
 }
 
-bool CFGModifier::remove(Block *b) {
+bool CFGModifier::remove(Block *b, bool force) {
    if (!b) return false;
-   if (!b->_sources.empty()) return false;
+   if (!b->_sources.empty()) {
+      if (!force) return false;
+      for (std::vector<Edge *>::iterator iter = b->_sources.begin();
+           iter != b->_sources.end(); ++iter) {
+         b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::source);
+         b->obj()->_pcb->removeEdge((*iter)->src(), *iter, ParseCallback::source);
+         (*iter)->src()->removeTarget(*iter);
+      }
+   }
 
    // 1) Remove all target edges. 
    // Remove from:
@@ -169,6 +177,44 @@ bool CFGModifier::remove(Block *b) {
    region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
    assert(rd);
    rd->blocksByRange.remove(b);
+
+   // And destroy it.
+   b->obj()->_pcb->destroy(b, b->obj()->fact());
+
+   return true;
+}
+
+bool CFGModifier::remove(Function *f) {
+   // Remove this function and all of its blocks; 
+   // actually refcount the blocks one lower. 
+   
+   // Must have no in-edges. Technically, we can never remove a recursive function :)
+   if (!f->entry()->_sources.empty()) return false;
+
+   for (Function::blocklist::iterator iter = f->blocks().begin(); 
+        iter != f->blocks().end(); ++iter) {
+      (*iter)->removeFunc(f);
+   };
+
+   f->_start = 0;
+   f->_name = "ERASED";
+   f->_entry = NULL;
+
+   f->_parsed = false;
+   f->_cache_valid = false;
+   f->_blocks.clear();
+
+   vector<FuncExtent *>::iterator eit = f->_extents.begin();
+   for( ; eit != f->_extents.end(); ++eit) {
+      delete *eit;
+   }
+
+   f->_extents.clear();
+   f->_bmap.clear();
+   f->_call_edges.clear();
+   f->_return_blocks.clear();
+
+   f->obj()->_pcb->destroy(f, f->obj()->fact());
 
    return true;
 }
