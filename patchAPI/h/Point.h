@@ -52,7 +52,7 @@ Location(PatchFunction *f, InsnLoc l) : func(f), block(l.block), addr(l.addr), i
    // An untrusted (raw) instruction (in a particular function)
 Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : func(f), block(b), addr(a), insn(i), edge(NULL), untrusted(true), type(InstructionInstance) {};
    // An edge (in a particular function)
-Location(PatchFunction *f, PatchEdge *e) : func(f), block(NULL), addr(0), edge(e), untrusted(true), type(Edge) {};
+Location(PatchFunction *f, PatchEdge *e) : func(f), block(NULL), addr(0), edge(e), untrusted(true), type(EdgeInstance) {};
    // A block in general
 Location(PatchBlock *b) : func(NULL), block(b), addr(0), edge(NULL), untrusted(false), type(Block) {};
    // A trusted instruction in general
@@ -69,6 +69,7 @@ Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(fa
       Instruction,
       InstructionInstance,
       Edge,
+      EdgeInstance,
       Entry,
       Call,
       Exit,

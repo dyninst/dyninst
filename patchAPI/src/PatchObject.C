@@ -5,6 +5,7 @@
 #include "AddrSpace.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
+#include "ParseCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -13,7 +14,7 @@ using namespace PatchAPI;
 PatchObject*
 PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm, PatchCallback *cb) {
    PatchObject* obj = new PatchObject(co, base, cm, cb);
-  return obj;
+   return obj;
 }
 
 PatchObject*
@@ -32,6 +33,10 @@ PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, Pat
    else {
       cb_ = cb;
    }
+   // Set up a new callback
+   PatchParseCallback *pcb = new PatchParseCallback(this);
+   co_->registerCallback(pcb);
+
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
@@ -43,6 +48,10 @@ PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb
    else  {
       cb_ = cb;
    }
+
+   // Set up a new callback
+   PatchParseCallback *pcb = new PatchParseCallback(this);
+   co_->registerCallback(pcb);
 }
 
 PatchObject::~PatchObject() {
