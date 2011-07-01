@@ -223,7 +223,6 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     bool isExploratoryModeOn();
     bool parseNewEdges(const std::vector<edgeStub>& sources);
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
-    void registerNewFunctions(); // register funcs found by recursive parsing
     bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
     void updateCodeBytes(const std::list<std::pair<Address,Address> > &owRanges );
     void setCodeBytesUpdated(bool);
@@ -231,8 +230,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     void removeProtectedPage(Address pageAddr);
     void removeEmptyPages();
     void removeFunction(func_instance *func);
-    bool splitIntLayer();
-    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
+    void splitBlock(block_instance *first, block_instance *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<block_instance*> &pageBlocks);

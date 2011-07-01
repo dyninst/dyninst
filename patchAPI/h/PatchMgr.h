@@ -193,7 +193,6 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
     bool match(Point *, Location *);
-    void updatePointsForBlockSplit(PatchBlock *oldBlock, PatchBlock *newBlock);
     PointMakerPtr point_maker_;
     InstrumenterPtr instor_;
     AddrSpacePtr as_;

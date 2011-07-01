@@ -111,6 +111,8 @@ class PatchBlock {
     void addSourceEdge(PatchEdge *e, bool addIfEmpty = true);
     void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
 
+    void splitPoints(PatchBlock *succ);
+
     ParseAPI::Block *block_;
     edgelist srclist_;
     edgelist trglist_;
@@ -179,6 +181,7 @@ class PatchFunction {
      // For callbacks from ParseAPI to PatchAPI
      void removeBlock(PatchBlock *);
      void addBlock(PatchBlock *);
+     void splitPoints(PatchBlock *first, PatchBlock *second);
 
      ParseAPI::Function *func_;
      PatchObject* obj_;

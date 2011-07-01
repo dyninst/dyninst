@@ -205,15 +205,6 @@ DynParseCallback::newfunction_retstatus(Function *func)
     dynamic_cast<parse_func*>(func)->setinit_retstatus( func->retstatus() );
 }
 
-void
-DynParseCallback::split_block_cb(Block *first, Block *second)
-{
-    std::pair<Block*,Block*> split;
-    split.first = first;
-    split.second = second;
-   _img->addSplitBlock(split);
-}
-
 void DynParseCallback::destroy_cb(Block *b) {
    _img->destroy(b);
 }
@@ -230,18 +221,9 @@ void DynParseCallback::remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_
    assert(0 && "Unimplemented!");
 }
 
-void DynParseCallback::add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
-   assert(0 && "Unimplemented!");
-}
-
 void DynParseCallback::remove_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
    assert(0 && "Unimplemented!");
 }
-
-void DynParseCallback::add_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
-   assert(0 && "Unimplemented!");
-}
-
 
 void
 DynParseCallback::patch_nop_jump(Address addr)

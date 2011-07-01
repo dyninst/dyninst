@@ -386,6 +386,8 @@ bool mapped_object::analyze()
 
   analyzed_ = true;
 
+  // TODO: CLEANUP, shouldn't need this for loop, calling findFunction forces 
+  // PatchAPI to create function objects, destroying lazy function creation
   // We already have exported ones. Force analysis (if needed) and get
   // the functions we created via analysis.
   CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
@@ -774,7 +776,6 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
     return vars.size() > start;
 }
 
-// Enter a function in all the appropriate tables
 func_instance *mapped_object::findFunction(ParseAPI::Function *papi_func) {
   return SCAST_FI(getFunc(papi_func));
 }
@@ -1138,27 +1139,6 @@ mapped_module* mapped_object::getDefaultModule()
 }
 
 
-// splits int-layer blocks in response to block-splitting at the image-layer,
-// adds the split image-layer blocks that are newly created,
-// and adjusts point->block pointers accordingly
-// (original block halves are resized in addMissingBlock)
-//
-bool mapped_object::splitIntLayer()
-{
-    set<func_instance*> splitFuncs;
-    using namespace InstructionAPI;
-    const image::SplitBlocks &splits = parse_img()->getSplitBlocks();
-    for (image::SplitBlocks::const_iterator bIter = splits.begin();
-         bIter != splits.end(); bIter++)
-    {
-       // foreach function corresponding to the block
-       // parse_block *splitImgB = bIter->first;
-       splitBlock(bIter->first, bIter->second);
-    }
-
-    return true;
-}
-
 // Grabs all block_instances corresponding to the region, taking special care
 // to get ALL block_instances corresponding to an address if it is shared
 // between multiple functions
@@ -1207,22 +1187,6 @@ void mapped_object::findFuncsByRange(Address startAddr,
    }
 }
 
-// register functions found by recursive traversal parsing from
-// new entry points that are discovered after the initial parse
-void mapped_object::registerNewFunctions()
-{
-    CodeObject::funclist newFuncs = parse_img()->getAllFunctions();
-    CodeObject::funclist::iterator fit = newFuncs.begin();
-    for( ; fit != newFuncs.end(); ++fit) {
-        parse_func *curFunc = (parse_func*) *fit;
-        if (funcs_.find(curFunc) == funcs_.end()) {
-            //if(curFunc->src() == HINT)
-            //    mal_printf("adding function of source type hint\n");
-            findFunction(curFunc); // does all the work
-        }
-    }
-}
-
 /* Re-trigger parsing in the object.  This function should
  * only be invoked if all funcEntryAddrs lie within the boundaries of
  * the object.
@@ -1246,7 +1210,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
         setCodeBytesUpdated(false);
     }
 
-    assert( !parse_img()->hasSplitBlocks() && !parse_img()->hasNewBlocks());
+    assert(!parse_img()->hasNewBlocks());
 
     // update regions if necessary, check that functions not parsed already
     vector<Address>::iterator curEntry = funcEntryAddrs.begin();
@@ -1302,14 +1266,11 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
         curEntry++;
     }
 
-    // add the functions we created to mapped_object datastructures
-    registerNewFunctions();
-
     // split int layer
-    if (parse_img()->hasSplitBlocks()) {
-        splitIntLayer();
-        parse_img()->clearSplitBlocks();
-    }
+    //if (parse_img()->hasSplitBlocks()) {
+    //    splitIntLayer();
+    //    parse_img()->clearSplitBlocks();
+    //}
 
     return reparsedObject;
 }
@@ -1430,9 +1391,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
           would be duplicates at the image-layer */
 	parse_img()->codeObject()->parseNewEdges(edgesInThisObject);
 
-/* 2. Register all newly created parse_funcs as a result of new edge parsing */
-    registerNewFunctions();
-
     // build list of potentially modified functions
     vector<ParseAPI::Function*> modIFuncs;
     vector<func_instance*> modFuncs;
@@ -1445,23 +1403,25 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
        func_instance *func = findFunction(modIFuncs[fidx]);
        modFuncs.push_back(func);
 
-/* 3. Add img-level blocks and points to int-level datastructures */
-       func->addMissingBlocks();
-    }
+       //func->ifunc()->invalidateCache();//KEVINTEST: used to call this, which might have been important
 
-/* 5. fix mapping of split blocks that have points */
-    if (parse_img()->hasSplitBlocks()) {
-        splitIntLayer();
-        parse_img()->clearSplitBlocks();
-    }
-
-    // update the function's liveness and PC sensitivity analysis,
-    // and assert its consistency
-    for (unsigned fidx=0; fidx < modFuncs.size(); fidx++)
-    {
     	modFuncs[fidx]->triggerModified();
         assert(modFuncs[fidx]->consistency());
     }
+
+/* 5. fix mapping of split blocks that have points */
+    //if (parse_img()->hasSplitBlocks()) {
+    //    splitIntLayer();
+    //    parse_img()->clearSplitBlocks();
+    //}
+
+    //// update the function's liveness and PC sensitivity analysis,
+    //// and assert its consistency
+    //for (unsigned fidx=0; fidx < modFuncs.size(); fidx++)
+    //{
+    //	modFuncs[fidx]->triggerModified();
+    //    assert(modFuncs[fidx]->consistency());
+    //}
 
     return true;
 }
@@ -2209,12 +2169,10 @@ block_instance *mapped_object::findOneBlockByAddr(const Address addr) {
    return NULL;
 }
 
-void mapped_object::splitBlock(ParseAPI::Block * first, 
-                               ParseAPI::Block * second) 
+void mapped_object::splitBlock(block_instance * b1, 
+                               block_instance * b2) 
 {
     // fix block mappings in: map<block_instance *, std::string> calleeNames_
-    block_instance *b1 = SCAST_BI(getBlock(first));
-    block_instance *b2 = SCAST_BI(getBlock(second));
     map<block_instance *, std::string>::iterator nit = calleeNames_.find(b1);
     if (calleeNames_.end() != nit) {
         string name = nit->second;

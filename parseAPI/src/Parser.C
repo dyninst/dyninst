@@ -1271,6 +1271,7 @@ Parser::block_at(
     } else {
         ret = factory()._mkblock(owner,cr,addr);
         record_block(ret);
+        _pcb.addBlock(owner, ret);
     }
 
     if(unlikely(inconsistent)) {

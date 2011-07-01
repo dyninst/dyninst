@@ -47,6 +47,7 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
+#include "Patching.h"
 
 #include "PatchMgr.h"
 #include "Command.h"
@@ -84,7 +85,6 @@ class int_symbol;
 class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
-
 class baseTramp;
 
 namespace Dyninst {
@@ -543,6 +543,7 @@ class AddressSpace : public InstructionSource {
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatcherPtr patcher_;
+    DynPatchCallback patchCB_;
 };
 
 

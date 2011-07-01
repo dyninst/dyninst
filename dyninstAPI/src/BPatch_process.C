@@ -2092,8 +2092,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != elimMap.end();
         fit++) 
     {
-        fit->first->ifunc()->blocks(); // force ParseAPI func finalization
-        fit->first->addMissingBlocks();
+        // fit->first->addMissingBlocks();
         assert(fit->first->consistency());
     }
 }

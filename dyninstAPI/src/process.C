@@ -1408,8 +1408,12 @@ bool process::setAOut(fileDescriptor &desc)
    startup_printf("%s[%d]:  enter setAOut\n", FILE__, __LINE__);
     assert(reachedBootstrapState(attached_bs));
     assert(mapped_objects.size() == 0);
+    bool parseGaps = true;
+    if (BPatch_defensiveMode == getHybridMode()) {
+        parseGaps = false;
+    }
     mapped_object *aout = mapped_object::createMappedObject
-        (desc, this, getHybridMode());
+        (desc, this, getHybridMode(), parseGaps);
     if (!aout) {
        startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
@@ -3375,7 +3379,9 @@ bool process::removeASharedObject(mapped_object *obj) {
         }
     }
 	flushAddressCache_RT(obj);
-	getMemEm()->removeRegion(obj);
+    if (isMemoryEmulated()) {
+    	getMemEm()->removeRegion(obj);
+    }
 
     if (runtime_lib.end() != runtime_lib.find(obj)) {
         runtime_lib.erase( runtime_lib.find(obj) );

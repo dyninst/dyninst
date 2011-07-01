@@ -133,7 +133,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
   const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
                                 // parsing because things looked weird.
-  void addMissingBlocks();
   block_instance * setNewEntryPoint(block_instance *defaultNewEntryBlock);
   // kevin signal-handler information
   bool isSignalHandler() {return handlerFaultAddr_ != 0;}

@@ -1182,7 +1182,6 @@ void image::analyzeIfNeeded() {
 	  // For defensive mode: we only care about incremental splitting and block
 	  // creation, not ones noted during parsing (as we haven't created the int
 	  // layer yet, so no harm no foul)
-	  clearSplitBlocks();
 	  clearNewBlocks();
   }
 }
@@ -2098,21 +2097,6 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
 }
 
 
-// KEVINTODO: deleted fixSplitPoints, somewhere those points are being tracked and the split needs to happen, we used to track (point,block) pairs because of overlapping blocks, not sure what that has changed to
-
-void image::addSplitBlock(BlockSplit &split) {
-    splitBlocks_.push_back(split);
-}
-
-
-const image::SplitBlocks& image::getSplitBlocks() const
-{
-   return splitBlocks_;
-}
-void image::clearSplitBlocks()
-{
-    splitBlocks_.clear();
-}
 const vector<parse_block*> & image::getNewBlocks() const
 {
     return newBlocks_;

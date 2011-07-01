@@ -1064,7 +1064,7 @@ bool BPatch_image::parseNewFunctionsInt
     }
 
 
-    if (funcEntryAddrs_.size()) {
+    if (!funcEntryAddrs_.empty()) {
         fprintf(stderr, "%s[%d] parseNewFunctions failed to parse %d "
                 "functions which were not enclosed by known memory regions\n", 
                 __FILE__,__LINE__,(int)funcEntryAddrs_.size());
@@ -1272,7 +1272,6 @@ void BPatch_image::clearNewCodeRegions()
     for (unsigned oix=0; oix < objs.size(); oix++) {
         if (BPatch_normalMode != objs[oix]->hybridMode()) {
             objs[oix]->parse_img()->clearNewBlocks();
-            objs[oix]->parse_img()->clearSplitBlocks();
         }
     }
 }

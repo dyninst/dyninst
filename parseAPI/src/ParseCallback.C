@@ -249,7 +249,7 @@ void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {
 
 void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
-      (*iter)->remove_block_cb(f, b);
+      (*iter)->add_block_cb(f, b);
 };
 
 

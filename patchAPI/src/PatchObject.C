@@ -192,7 +192,9 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    // 1) Incoming edges are unchanged. 
    // 2) Outgoing edges from p1 are switched to p2.
    // 3) An entirely new edge is created between p1 and p2. 
-   // 4) We fix up Points on the block
+   // 4) We fix up Points on the block]
+   // 5) KEVINTODO: Add the new block to the functions that the old block was a part of?
+   // 6) Callback to whatever implements the PatchAPI (probably Dyninst)
 
    // 1)
    // ...
@@ -212,9 +214,9 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    getEdge(ft, p1, p2);
 
    // 4) We need to reassign any Points that were in the first block and are
-   // now in the second. Since Points are also stored at the patch manager 
-   // level we also go there. 
-   addrSpace()->mgr()->updatePointsForBlockSplit(p1, p2);   
+   // now in the second. This can also include points in any function that
+   // contained p1, but the following call handles that. 
+   p1->splitPoints(p2);
 
    // 5) ??
    cb()->split_block(p1, p2);

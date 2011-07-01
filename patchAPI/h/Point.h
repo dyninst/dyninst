@@ -98,6 +98,8 @@ Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(fa
 
 class Point {
   friend class PatchMgr;
+  friend class PatchBlock;
+  friend class PatchFunction;
 
   public:
     // If you want to extend Type, please increment the argument passed

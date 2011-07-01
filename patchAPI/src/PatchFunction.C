@@ -20,7 +20,14 @@ PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
 
 const PatchFunction::blockset&
 PatchFunction::getAllBlocks() {
-  if (!all_blocks_.empty()) return all_blocks_;
+  if (all_blocks_.size() == func_->blocks().size()) 
+      return all_blocks_;
+
+  if (!all_blocks_.empty()) { // recompute other block lists if block list grew
+      if (!call_blocks_.empty()) call_blocks_.clear();
+      if (!exit_blocks_.empty()) exit_blocks_.clear();
+  }
+
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
        iter != func_->blocks().end(); ++iter) {
@@ -58,8 +65,11 @@ PatchFunction::getExitBlocks() {
 
 const PatchFunction::blockset&
 PatchFunction::getCallBlocks() {
-  // Check the list...
-  if (call_blocks_.empty()) {
+  // Compute the list if it's empty or if the list of function blocks
+  // has grown
+  if (call_blocks_.empty() || 
+      all_blocks_.size() < func_->blocks().size())
+  {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
          iter != callEdges.end(); ++iter) {
@@ -91,6 +101,7 @@ void PatchFunction::addBlock(PatchBlock *b) {
 
    all_blocks_.insert(b);
 
+#if 0 //KEVINWRONG can't do this in ParseAPI callback, at least not this way, as it will finalize the parse function prematurely
    // Check to see if it's call or exit...
    const ParseAPI::Function::blocklist &retblocks = function()->returnBlocks();
    for (ParseAPI::Function::blocklist::iterator iter = retblocks.begin();
@@ -109,7 +120,7 @@ void PatchFunction::addBlock(PatchBlock *b) {
          break;
       }
    }
-
+#endif
    cb()->add_block(this, b);
 }
    
@@ -310,4 +321,35 @@ void PatchFunction::destroy(Point *p) {
 
 PatchCallback *PatchFunction::cb() const {
    return obj_->cb();
+}
+
+void PatchFunction::splitPoints(PatchBlock *first, PatchBlock *second) {
+   std::map<PatchBlock *, BlockPoints>::iterator iter = blockPoints_.find(first);
+   if (iter == blockPoints_.end()) return;
+
+   BlockPoints &points = iter->second;
+   BlockPoints &succ = blockPoints_[second];
+
+   // Check our points. 
+   // Entry stays here
+   // During stays here
+   if (points.exit) {      
+      succ.exit = points.exit;
+      points.exit = NULL;
+      succ.exit->changeBlock(second);
+   }
+
+   InsnPoints::iterator pre = points.preInsn.lower_bound(second->start());
+   for (InsnPoints::iterator tmp = pre; tmp != points.preInsn.end(); ++tmp) {
+      tmp->second->changeBlock(second);
+      succ.preInsn[tmp->first] = tmp->second;
+   }
+   points.preInsn.erase(pre, points.preInsn.end());
+
+   InsnPoints::iterator post = points.postInsn.lower_bound(second->start());
+   for (InsnPoints::iterator tmp = post; tmp != points.postInsn.end(); ++tmp) {
+      tmp->second->changeBlock(second);
+      succ.postInsn[tmp->first] = tmp->second;
+   }
+   points.postInsn.erase(post, points.postInsn.end());
 }

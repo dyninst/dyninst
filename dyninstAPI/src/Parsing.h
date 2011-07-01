@@ -119,16 +119,12 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
   virtual bool updateCodeBytes(Address target); // updates if needed
 
-  virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Edge *);
   virtual void destroy_cb(ParseAPI::Function *);
 
   virtual void remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
-  virtual void add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
-  
   virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
-  virtual void add_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
 #if defined(arch_power)
   void instruction_cb(ParseAPI::Function*,ParseAPI::Block *,Address,insn_details*);

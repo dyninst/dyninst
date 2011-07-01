@@ -8,7 +8,10 @@ using namespace PatchAPI;
 
 void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second) {
    PatchBlock *p1 = _obj->getBlock(first, false);
-   if (!p1) return;
+   if (!p1) {
+       assert(0);//KEVINTEST: isn't this a bad case? 
+       return;
+   }
 
    _obj->splitBlock(p1, second);
 }
@@ -64,12 +67,14 @@ void PatchParseCallback::remove_block_cb(ParseAPI::Function *func, ParseAPI::Blo
    pf->removeBlock(pb);
 }
 
+/* Adds blocks lazily, basically does nothing unless block and function have already
+   been created, in which case it adds the block to the function */
 void PatchParseCallback::add_block_cb(ParseAPI::Function *func, ParseAPI::Block *block) {
    PatchBlock *pb = _obj->getBlock(block, false);
-   if (!pb) return;
+   if (!pb) return; 
 
    PatchFunction *pf = _obj->getFunc(func, false);
-   if (!pf) return;
+   if (!pf) return; 
 
    pf->addBlock(pb);
 }

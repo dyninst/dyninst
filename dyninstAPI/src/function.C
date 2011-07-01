@@ -230,33 +230,6 @@ void func_instance::removeFromAll()
     delete(this);
 }
 
-/* Find image_basicBlocks that are missing from these datastructures and add
- * them.  The int_block constructor does pretty much all of the work in
- * a chain of side-effects extending all the way into the mapped_object class
- * 
- * We have to take into account that additional parsing may cause basic block splitting,
- * in which case it is necessary not only to add new int-level blocks, but to update 
- * int_block and BPatch_basicBlock objects. 
- */
-void func_instance::addMissingBlocks()
-{
-    cerr << "addMissingBlocks for function " << hex << this << dec << endl;
-
-    // Be sure that we've re-checked the blocks in the image_func as well
-    ifunc()->invalidateCache();
-
-    // clear out all block lists
-    call_blocks_.clear();
-    exit_blocks_.clear();
-    all_blocks_.clear();
-
-    // reconstruct block list
-    getAllBlocks();
-
-    // sanity check
-    assert(ifunc()->blocks().size() == all_blocks_.size());
-}
-
 //KEVINTODO: add parse-level to int-level callbacks to update instpoint lists 
 // of callBlock, exitBlock, entryBlock, etc.  
 
@@ -552,7 +525,7 @@ bool func_instance::consistency() const {
 }
 
 void func_instance::triggerModified() {
-    // KEVINTODO: implement this
+    // KEVINTODO: is there anything to do here? 
 }
 
 Address func_instance::get_address() const { assert(0); return 0; }

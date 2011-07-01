@@ -381,13 +381,6 @@ class image : public codeRange {
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
-   typedef std::pair<ParseAPI::Block *, ParseAPI::Block *> BlockSplit;
-
-   void addSplitBlock(BlockSplit &split); 
-   typedef std::vector<BlockSplit> SplitBlocks;
-   const SplitBlocks & getSplitBlocks() const;
-   bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
-   void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<parse_block*> & getNewBlocks() const;
    void clearNewBlocks();
@@ -528,7 +521,6 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   SplitBlocks splitBlocks_;
    vector<parse_block*> newBlocks_;
    bool trackNewBlocks_;
 

@@ -56,6 +56,7 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchMgr.h"
+#include "Patching.h"
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"
@@ -84,7 +85,8 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false)
+    delayRelocation_(false),
+    patchCB_(this)
 {
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
@@ -95,7 +97,7 @@ AddressSpace::AddressSpace () :
 }
 
 AddressSpace::~AddressSpace() {
-   if (memEmulator_)
+    if (memEmulator_)
       delete memEmulator_;
 }
 
