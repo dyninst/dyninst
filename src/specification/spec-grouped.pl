@@ -92,7 +92,8 @@ mutatee('patchapi_group_test', [
    'patch1_2_mutatee.c',
    'patch2_1_mutatee.c',
    'patch3_1_mutatee.c',
-   'patch3_2_mutatee.c'
+   'patch3_2_mutatee.c',
+   'patch_modifier_mutatee.c'
    ]).
 compiler_for_mutatee('patchapi_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -2191,6 +2192,15 @@ mutator('patch4_1', ['patch4_1.C']).
 test_runmode('patch4_1', 'createProcess').
 test_start_state('patch4_1', 'stopped').
 tests_module('patch4_1', 'patchapi').
+
+test('patch_modifier', 'patch_modifier', 'patchapi_group_test').
+test_description('patch_modifier', 'transactional semantics').
+test_runs_everywhere('patch_modifier').
+groupable_test('patch_modifier').
+mutator('patch_modifier', ['patch_modifier.C']).
+test_runmode('patch_modifier', 'createProcess').
+test_start_state('patch_modifier', 'stopped').
+tests_module('patch_modifier', 'patchapi').
 
 % SymtabAPI tests
 
