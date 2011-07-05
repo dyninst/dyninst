@@ -335,6 +335,9 @@ void PatchBlock::splitBlock(PatchBlock *succ)
 
    // 3)
    ParseAPI::Block::edgelist &tmp = this->block()->targets();
+   if (tmp.size() != 1) {
+      cerr << "Error: split block has " << tmp.size() << " edges, not 1 as expected!" << endl;
+   }
    assert(tmp.size() == 1);
    ParseAPI::Edge *ft = *(tmp.begin());
    obj_->getEdge(ft, this, succ);

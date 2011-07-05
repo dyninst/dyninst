@@ -11,11 +11,13 @@ namespace PatchAPI {
 
 class PatchFunction;
 class PatchCallback;
+class PatchParseCallback;
 
 /* PatchObject represents a binary object, which could be either a library or
    executable. It is also an instrumentation  unit. */
 class PatchObject {
   friend class AddrSpace;
+  friend class PatchParseCallback;
 
   public:
     PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
@@ -46,12 +48,12 @@ class PatchObject {
     PATCHAPI_EXPORT void removeFunc(ParseAPI::Function *);
     template <class Iter>
        void funcs(Iter iter); 
+
     // Block
     PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
     PATCHAPI_EXPORT void addBlock(PatchBlock*);
     PATCHAPI_EXPORT void removeBlock(PatchBlock*);
     PATCHAPI_EXPORT void removeBlock(ParseAPI::Block*);
-    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
     template <class Iter>
        void blocks(Iter iter); 
 
@@ -80,6 +82,7 @@ class PatchObject {
     PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
+    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
     PatchCallback *cb_;
 };

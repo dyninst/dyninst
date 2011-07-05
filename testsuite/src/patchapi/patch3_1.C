@@ -63,7 +63,7 @@ test_results_t patch3_1_Mutator::executeTest() {
   PatchFunction* call1_3 = NULL;
 
   /* Step 1: get call blocks */
-  const PatchFunction::blockset& callBlks = pfunc->getCallBlocks();
+  const PatchFunction::Blockset& callBlks = pfunc->getCallBlocks();
   if (callBlks.size() != 3) {
     logerror("**Failed patch3_1 (call replacement and removal)\n");
     logerror("  cannot find correct call blocks\n");
@@ -80,7 +80,7 @@ test_results_t patch3_1_Mutator::executeTest() {
   PatchBlock* call_blk2;
   PatchBlock* call_blk3;
 
-  for (PatchFunction::blockset::const_iterator i = callBlks.begin();
+  for (PatchFunction::Blockset::const_iterator i = callBlks.begin();
        i != callBlks.end(); i++) {
     PatchBlock* b = *i;
     PatchFunction* f = b->getCallee();

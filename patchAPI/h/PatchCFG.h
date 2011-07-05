@@ -91,6 +91,7 @@ class PatchBlock {
 
     PATCHAPI_EXPORT ParseAPI::Block *block() const;
     PATCHAPI_EXPORT PatchObject* object() const;
+    PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
     PATCHAPI_EXPORT const edgelist &getSources();
     PATCHAPI_EXPORT const edgelist &getTargets();
 

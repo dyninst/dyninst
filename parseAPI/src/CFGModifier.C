@@ -67,16 +67,16 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    return true;
 }
 
-bool CFGModifier::split(Block *b, Address a, bool trust) {
+Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    if (!trust) {
       // Need to check whether this is a valid instruction offset
       // in the block. 
       assert(0 && "Implement me!");
-      return false;
+      return NULL;
    }
-   if (!b) return false;
-   if (a < b->start()) return false;
-   if (a > b->end()) return false;
+   if (!b) return NULL;
+   if (a < b->start()) return NULL;
+   if (a > b->end()) return NULL;
 
    // This function is substantially similar to Parser.C's split_block;
    // however, there are minor differences and the more important point
@@ -101,6 +101,10 @@ bool CFGModifier::split(Block *b, Address a, bool trust) {
    ret->_end = b->_end;
    ret->_lastInsn = b->_lastInsn;
    ret->_parsed = true;
+   
+   b->_end = a;
+   b->_lastInsn = newlast;
+
 
    // 2b)
    for (vector<Edge *>::iterator iter = b->_targets.begin(); 
@@ -110,6 +114,7 @@ bool CFGModifier::split(Block *b, Address a, bool trust) {
       ret->_targets.push_back(*iter);
       b->obj()->_pcb->addEdge(ret, *iter, ParseCallback::target);
    }
+   b->_targets.clear();
 
    // 2c)
    Edge *ft = b->obj()->_fact->_mkedge(b, ret, FALLTHROUGH);
@@ -133,7 +138,7 @@ bool CFGModifier::split(Block *b, Address a, bool trust) {
 
    b->obj()->_pcb->splitBlock(b, ret);
 
-   return true;
+   return ret;
 }
 
 bool CFGModifier::remove(Block *b, bool force) {

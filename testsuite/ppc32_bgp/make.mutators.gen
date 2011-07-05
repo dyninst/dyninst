@@ -22,9 +22,9 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module te
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 
-patchapi_MUTATORS = patch1_1 patch1_2 patch2_1 patch3_1 patch3_2 patch4_1 
+patchapi_MUTATORS = patch1_1 patch1_2 patch2_1 patch3_1 patch3_2 patch4_1 patch_modifier 
 
-patchapi_OBJS_ALL_MUTATORS = patch1_1.o patch1_2.o patch2_1.o patch3_1.o patch3_2.o patch4_1.o 
+patchapi_OBJS_ALL_MUTATORS = patch1_1.o patch1_2.o patch2_1.o patch3_1.o patch3_2.o patch4_1.o patch_modifier.o 
 
 init_fini_callback.so: init_fini_callback.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/init_fini_callback.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
@@ -75,6 +75,14 @@ endif
 endif
 
 patch4_1.so: patch4_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch4_1.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+patch_modifier.so: patch_modifier.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/patch_modifier.dep $(LIBTESTSUITE) $(patchapi_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(patchapi_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lpatchAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO

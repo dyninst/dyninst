@@ -60,7 +60,9 @@ class CFGModifier {
 
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
-   PARSER_EXPORT static bool split(Block *, Address, bool trust = false);
+   // Newlast is the new "last insn" of the original block; provide it if
+   // you don't want to waste time disassembling to figure it out.
+   PARSER_EXPORT static Block *split(Block *, Address, bool trust = false, Address newlast = -1);
    
    // Parse and add a new region of code to a CodeObject
    // The void * becomes "owned" by the CodeObject, as it's used

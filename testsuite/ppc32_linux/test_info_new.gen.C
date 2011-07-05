@@ -1209,6 +1209,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1219,6 +1220,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1229,6 +1231,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1239,6 +1242,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1249,6 +1253,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1259,6 +1264,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1269,6 +1275,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1279,6 +1286,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1289,6 +1297,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1299,6 +1308,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1309,6 +1319,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1319,6 +1330,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1329,6 +1341,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1339,6 +1352,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1349,6 +1363,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: pic, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1359,6 +1374,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "patch3_1", "patch3_1", "patch3_1.so", false, "{test: patch3_1, mutator: patch3_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch3_2", "patch3_2", "patch3_2.so", false, "{test: patch3_2, mutator: patch3_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "patch4_1", "patch4_1", "patch4_1.so", false, "{test: patch4_1, mutator: patch4_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "patch_modifier", "patch_modifier", "patch_modifier.so", false, "{test: patch_modifier, mutator: patch_modifier, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, pic: none, mutatee: patchapi_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
