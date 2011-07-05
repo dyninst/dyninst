@@ -275,8 +275,8 @@ void PatchMgr::getCallSites(Scope &scope, CallSites &sites) {
    Functions funcs;
    getFuncs(scope, funcs);
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-      const PatchFunction::blockset &c = (*iter)->calls();
-      for (PatchFunction::blockset::const_iterator iter2 = c.begin(); iter2 != c.end(); ++iter2) {
+      const PatchFunction::Blockset &c = (*iter)->calls();
+      for (PatchFunction::Blockset::const_iterator iter2 = c.begin(); iter2 != c.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
             sites.push_back(CallSite(*iter, *iter2));
       }
@@ -288,8 +288,8 @@ void PatchMgr::getExitSites(Scope &scope, ExitSites &sites) {
    Functions funcs;
    getFuncs(scope, funcs);
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-      const PatchFunction::blockset &e = (*iter)->exits();
-      for (PatchFunction::blockset::const_iterator iter2 = e.begin(); iter2 != e.end(); ++iter2) {
+      const PatchFunction::Blockset &e = (*iter)->exits();
+      for (PatchFunction::Blockset::const_iterator iter2 = e.begin(); iter2 != e.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
             sites.push_back(ExitSite(*iter, *iter2));
       }

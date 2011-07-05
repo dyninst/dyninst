@@ -4109,9 +4109,9 @@ static void otherFuncBlocks(func_instance *func,
          bit != allBlocks.end(); 
          bit++) 
   */
-  const PatchFunction::blockset &allBlocks = 
+  const PatchFunction::Blockset &allBlocks = 
         func->getAllBlocks();
-    for (PatchFunction::blockset::const_iterator bit =
+    for (PatchFunction::Blockset::const_iterator bit =
          allBlocks.begin();
          bit != allBlocks.end(); 
          bit++) 
@@ -4676,7 +4676,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
 		  /*                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
 				       iter != func->exitBlocks().end(); ++iter) {*/
-                   for (PatchFunction::blockset::const_iterator iter = func->getExitBlocks().begin();
+                   for (PatchFunction::Blockset::const_iterator iter = func->getExitBlocks().begin();
                         iter != func->getExitBlocks().end(); ++iter) {
 		     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
@@ -4701,7 +4701,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
 		  /*                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {*/
-                   for (PatchFunction::blockset::const_iterator iter = func->getCallBlocks().begin();
+                   for (PatchFunction::Blockset::const_iterator iter = func->getCallBlocks().begin();
                         iter != func->getCallBlocks().end(); ++iter) {
 		     block_instance* iblk = SCAST_BI(*iter);
                       miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);

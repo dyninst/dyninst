@@ -195,46 +195,6 @@ bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
        return true; // ???
    p2 = getBlock(second);
 
-   // Okay, get our edges right and stuff. 
-   // We want to modify when possible so that we keep Points on affected edges the same. 
-   // Therefore:
-   // 1) Incoming edges are unchanged. 
-   // 2) Outgoing edges from p1 are switched to p2.
-   // 3) An entirely new edge is created between p1 and p2. 
-   // 4) KEVINTODO: Add the new block to the functions that the old block was a part of?
-   // 5) We fix up Points on the block]
-   // 6) Callback to whatever implements the PatchAPI (probably Dyninst)
-
-   // 1)
-   // ...
-
-   // 2)
-   for (PatchBlock::edgelist::iterator iter = p1->trglist_.begin();
-        iter != p1->trglist_.end(); ++iter) {
-      (*iter)->src_ = p2;
-      p2->trglist_.push_back(*iter);
-   }
-   p1->trglist_.clear();
-
-   // 3)
-   ParseAPI::Block::edgelist &tmp = p1->block()->targets();
-   assert(tmp.size() == 1);
-   ParseAPI::Edge *ft = *(tmp.begin());
-   getEdge(ft, p1, p2);
-
-   // 4)
-   // foreach ParseAPI function containing this block, add the block to the
-   // PatchFunction and call PatchFunction::splitBlock on the block
-   assert(0 && "KEVINTODO");
-
-   // 5) We need to reassign any Points that were in the first block and are
-   // now in the second. This can also include points in any function that
-   // contained p1, but the following call handles that. 
-   p1->splitPoints(p2);
-
-   // 6) ??
-   cb()->split_block(p1, p2);
-
    return true;
 }
 

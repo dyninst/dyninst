@@ -534,6 +534,7 @@ class AddressSpace : public InstructionSource {
   // PatchAPI stuffs
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
+    Dyninst::DynPatchCallback *patchCB() const { return patchCB_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);
@@ -543,7 +544,7 @@ class AddressSpace : public InstructionSource {
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatcherPtr patcher_;
-    DynPatchCallback patchCB_;
+    DynPatchCallback *patchCB_;
 };
 
 

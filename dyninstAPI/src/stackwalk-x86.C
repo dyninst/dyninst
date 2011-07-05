@@ -189,7 +189,7 @@ static bool isPrevInstrACall(Address addr, process *proc, func_instance **callee
         iter != funcs.end(); ++iter) {
      /*      for (func_instance::BlockSet::const_iterator c_iter = (*iter)->callBlocks().begin();
 	     c_iter != (*iter)->callBlocks().end(); ++c_iter) { */
-      for (PatchFunction::blockset::const_iterator c_iter = (*iter)->getCallBlocks().begin();
+      for (PatchFunction::Blockset::const_iterator c_iter = (*iter)->getCallBlocks().begin();
            c_iter != (*iter)->getCallBlocks().end(); ++c_iter) {
 	block_instance* iblk = SCAST_BI(*c_iter);
          if (iblk->end() == addr) {

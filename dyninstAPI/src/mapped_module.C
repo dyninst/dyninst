@@ -347,9 +347,9 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
       /*        const func_instance::BlockSet&
             blocks = funcs[fidx]->blocks();
 	    func_instance::BlockSet::const_iterator bIter;*/
-      const PatchFunction::blockset&
+      const PatchFunction::Blockset&
             blocks = funcs[fidx]->getAllBlocks();
-      PatchFunction::blockset::const_iterator bIter;
+      PatchFunction::Blockset::const_iterator bIter;
         for (bIter = blocks.begin(); 
             bIter != blocks.end(); 
             bIter++) 

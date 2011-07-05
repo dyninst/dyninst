@@ -31,6 +31,7 @@
 
 #include "Patching.h"
 #include "block.h"
+#include "function.h"
 #include "mapped_object.h"
 
 using namespace Dyninst;
@@ -38,8 +39,24 @@ using namespace PatchAPI;
 
 void DynPatchCallback::split_block_cb(PatchBlock *first, PatchBlock *second)
 {
+    // no splitting needed on block_instance itself
+    // 1) split mapped_object data structures 
+    // 2) split function data structures
+
+    // 1)
     mapped_object *obj = SCAST_MO(first->object());
     obj->splitBlock(SCAST_BI(first),SCAST_BI(second));
+
+    // 2)
+    block_instance *b1 = SCAST_BI(first);
+    std::vector<func_instance*> funcs;
+    b1->getFuncs(std::back_inserter(funcs));
+    for (vector<func_instance*>::iterator fit = funcs.begin();
+         fit != funcs.end();
+         fit++)
+    {
+        (*fit)->splitBlockInst(b1, SCAST_BI(second));
+    }
     //KEVINTODO: clean up BPatch-level items from here instead of top-down
 }
 

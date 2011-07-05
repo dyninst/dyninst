@@ -313,10 +313,32 @@ PatchCallback *PatchBlock::cb() const {
    return obj_->cb();
 }
 
-void PatchBlock::splitPoints(PatchBlock *succ) {
-   // Check our points. 
-   // Entry stays here
-   // During stays here
+void PatchBlock::splitBlock(PatchBlock *succ)
+{
+
+   // Okay, get our edges right and stuff. 
+   // We want to modify when possible so that we keep Points on affected edges the same. 
+   // Therefore:
+   // 1) Incoming edges are unchanged. 
+   // 2) Outgoing edges from p1 are switched to p2.
+   // 3) An entirely new edge is created between p1 and p2. 
+   // 4) We fix up Points on the block, entry and during points stay here
+
+   // 2)
+   for (PatchBlock::edgelist::iterator iter = this->trglist_.begin();
+        iter != this->trglist_.end(); ++iter) {
+      (*iter)->src_ = succ;
+      succ->trglist_.push_back(*iter);
+   }
+   this->trglist_.clear();
+
+   // 3)
+   ParseAPI::Block::edgelist &tmp = this->block()->targets();
+   assert(tmp.size() == 1);
+   ParseAPI::Edge *ft = *(tmp.begin());
+   obj_->getEdge(ft, this, succ);
+
+   // 4)
    if (points_.exit) {
       succ->points_.exit = points_.exit;
       points_.exit = NULL;
@@ -337,11 +359,6 @@ void PatchBlock::splitPoints(PatchBlock *succ) {
    }
    points_.postInsn.erase(post, points_.postInsn.end());
 
-   std::vector<PatchFunction *> funcs;
-   getFunctions(std::back_inserter(funcs));
-   for (unsigned i = 0; i < funcs.size(); ++i) {
-      funcs[i]->splitPoints(this, succ);
-   }
 }
 
    

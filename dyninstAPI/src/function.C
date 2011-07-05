@@ -127,7 +127,7 @@ block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
     assert(!all_blocks_.empty());
 
     // choose block with no intraprocedural incoming edges
-    PatchFunction::blockset::iterator bIter;
+    PatchFunction::Blockset::iterator bIter;
     for (bIter = all_blocks_.begin(); 
          bIter != all_blocks_.end(); 
          bIter++) 
@@ -298,7 +298,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty() || obj()->isExploratoryModeOn()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
-       for (PatchFunction::blockset::const_iterator iter = getAllBlocks().begin(); 
+       for (PatchFunction::Blockset::const_iterator iter = getAllBlocks().begin(); 
             iter != getAllBlocks().end(); ++iter) 
        {
           block_instance* iblk = SCAST_BI(*iter);
@@ -311,7 +311,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-    for (PatchFunction::blockset::const_iterator iter = getAllBlocks().begin(); 
+    for (PatchFunction::Blockset::const_iterator iter = getAllBlocks().begin(); 
          iter != getAllBlocks().end(); ++iter) 
     {
         block_instance* iblk = SCAST_BI(*iter);
@@ -342,7 +342,7 @@ block_instance *func_instance::entryBlock() {
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (PatchFunction::blockset::const_iterator iter = getCallBlocks().begin(); 
+   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
         iter != getCallBlocks().end(); ++iter) 
    {
       block_instance* iblk = SCAST_BI(*iter);
@@ -375,7 +375,7 @@ void func_instance::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (blockset::const_iterator
+    for (Blockset::const_iterator
          cb = all_blocks_.begin();
          cb != all_blocks_.end();
          cb++)
@@ -431,7 +431,7 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
-    PatchFunction::blockset::const_iterator bIter;
+    PatchFunction::Blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -470,7 +470,7 @@ bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
     bool ret = false;
 
     // Create the block list.
-    PatchFunction::blockset::const_iterator bIter;
+    PatchFunction::Blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -539,7 +539,7 @@ bool func_instance::isInstrumentable() {
 
    // Hack: avoid things that throw exceptions
    // Make sure we parsed calls
-   for (PatchFunction::blockset::const_iterator iter = getCallBlocks().begin(); 
+   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
         iter != getCallBlocks().end(); ++iter) 
    {
       block_instance* iblk = SCAST_BI(*iter);
@@ -616,7 +616,7 @@ bool func_instance::callWrappedFunction(func_instance *target) {
 }
 
 bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
-   for (blockset::const_iterator iter = getAllBlocks().begin();
+   for (Blockset::const_iterator iter = getAllBlocks().begin();
         iter != getAllBlocks().end(); ++iter) {
       obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
    }
@@ -794,5 +794,17 @@ void func_instance::destroy(func_instance *f) {
    delete f;
 }
 
-using namespace SymtabAPI;
+void func_instance::splitBlockInst(block_instance *b1, block_instance *b2)
+{
 
+    BlockSet::iterator bit = unresolvedCF_.find(b1);
+    if (bit != unresolvedCF_.end()) {
+        unresolvedCF_.erase(*bit);
+        unresolvedCF_.insert(b2);
+    }
+    bit = abruptEnds_.find(b1);
+    if (bit != abruptEnds_.end()) {
+        abruptEnds_.erase(*bit);
+        abruptEnds_.insert(b2);
+    }
+}

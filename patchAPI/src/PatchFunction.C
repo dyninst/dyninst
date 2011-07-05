@@ -18,7 +18,7 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getAllBlocks() {
   if (all_blocks_.size() == func_->blocks().size()) 
       return all_blocks_;
@@ -51,7 +51,7 @@ PatchFunction::getEntryBlock() {
   return object()->getBlock(ientry);
 }
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getExitBlocks() {
   if (func_->returnBlocks().size() != exit_blocks_.size()) 
   {
@@ -64,7 +64,7 @@ PatchFunction::getExitBlocks() {
   return exit_blocks_;
 }
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getCallBlocks() {
   // Compute the list if it's empty or if the list of function blocks
   // has grown
@@ -303,16 +303,37 @@ PatchCallback *PatchFunction::cb() const {
    return obj_->cb();
 }
 
-void PatchFunction::splitPoints(PatchBlock *first, PatchBlock *second) {
+// the "first" block should already be in the function
+void PatchFunction::splitBlock(PatchBlock *first, PatchBlock *second)
+{
+   // 1) add second block to the function
+   // 2) fix function's call, exit Blocksets to include second block
+   // 3) if the block has no points, we're done
+   // 4) fix function's blockPoints_ map for exit, preInsn, and postInsn points
+
+   // 1)
+   addBlock(second);
+
+   // 2)
+   Blockset::iterator bit = call_blocks_.find(first);
+   if (bit != call_blocks_.end()) {
+       call_blocks_.erase(*bit);
+       call_blocks_.insert(second);
+   }
+
+   bit = exit_blocks_.find(first);
+   if (bit != exit_blocks_.end()) {
+       exit_blocks_.erase(*bit);
+       exit_blocks_.insert(second);
+   }
+
+   // 3)
    std::map<PatchBlock *, BlockPoints>::iterator iter = blockPoints_.find(first);
    if (iter == blockPoints_.end()) return;
 
+   // 4)
    BlockPoints &points = iter->second;
    BlockPoints &succ = blockPoints_[second];
-
-   // Check our points. 
-   // Entry stays here
-   // During stays here
    if (points.exit) {      
       succ.exit = points.exit;
       points.exit = NULL;

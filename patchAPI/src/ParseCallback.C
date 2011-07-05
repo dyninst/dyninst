@@ -1,4 +1,5 @@
 #include "ParseCallback.h"
+#include "PatchCallback.h"
 #include "PatchObject.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"
@@ -7,10 +8,34 @@ using namespace Dyninst;
 using namespace PatchAPI;
 
 void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second) {
-   PatchBlock *p1 = _obj->getBlock(first, false);
-   if (!p1) return; // we create blocks lazily, so we might not have to do anything
 
+   // 1) we create blocks lazily, so do nothing if the first block doesn't exist yet
+   // 2) have the object split the block, it will create the second block and add it
+   // 3) tell the first block to split off the second block and all points inside of it
+   // 4) have the function split the block and re-calculate its entry,exit,etc blocks
+   // 5) trigger higher-level callbacks
+
+   // 1)
+   PatchBlock *p1 = _obj->getBlock(first, false);
+   if (!p1) return;
+
+   // 2)
    _obj->splitBlock(p1, second);
+
+   // 3)
+   PatchBlock *p2 = _obj->getBlock(second,false);
+   assert(p2);
+   p1->splitBlock(p2);
+
+   // 4)
+   std::vector<PatchFunction *> funcs;
+   p1->getFunctions(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->splitBlock(p1, p2);
+   }
+
+   // 5)
+   _obj->cb()->split_block(p1,p2);
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {

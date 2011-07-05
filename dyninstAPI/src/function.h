@@ -271,8 +271,9 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void createWrapperSymbol(Address entry);
 
   static void destroy(func_instance *f);
-
   void destroyBlock(block_instance *block);
+
+  void splitBlockInst(block_instance *b1, block_instance *b2);
 
  private:
 

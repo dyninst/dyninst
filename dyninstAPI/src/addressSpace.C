@@ -85,8 +85,7 @@ AddressSpace::AddressSpace () :
     memEmulator_(NULL),
     emulateMem_(false),
     emulatePC_(false),
-    delayRelocation_(false),
-    patchCB_(this)
+    delayRelocation_(false)
 {
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
@@ -94,11 +93,13 @@ AddressSpace::AddressSpace () :
        emulateMem_ = true;
        emulatePC_ = true;
    }
+   patchCB_ = new DynPatchCallback(this);
 }
 
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
+    delete patchCB_;
 }
 
 process *AddressSpace::proc() {

@@ -111,8 +111,7 @@ class PatchBlock {
     void addSourceEdge(PatchEdge *e, bool addIfEmpty = true);
     void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
 
-    void splitBlock(PatchBlock *b1, PatchBlock *b2);
-    void splitPoints(PatchBlock *succ);
+    void splitBlock(PatchBlock *succ);
 
     ParseAPI::Block *block_;
     edgelist srclist_;
@@ -140,8 +139,7 @@ class PatchFunction {
            return false;
        }
      };
-     typedef std::set<PatchBlock *, compare> blockset;
-     typedef blockset Blockset;
+     typedef std::set<PatchBlock *, compare> Blockset;
 
      PATCHAPI_EXPORT static PatchFunction *create(ParseAPI::Function *, PatchObject*);
      PATCHAPI_EXPORT PatchFunction(ParseAPI::Function *f, PatchObject* o);
@@ -153,16 +151,16 @@ class PatchFunction {
      ParseAPI::Function *function() { return func_; }
      PatchObject* object() { return obj_; }
 
-     PATCHAPI_EXPORT const blockset &getAllBlocks();
+     PATCHAPI_EXPORT const Blockset &getAllBlocks();
      PATCHAPI_EXPORT PatchBlock *getEntryBlock();
-     PATCHAPI_EXPORT const blockset &getExitBlocks();
-     PATCHAPI_EXPORT const blockset &getCallBlocks();
+     PATCHAPI_EXPORT const Blockset &getExitBlocks();
+     PATCHAPI_EXPORT const Blockset &getCallBlocks();
 
      // Shorter aliases
-     PATCHAPI_EXPORT const blockset &blocks() { return getAllBlocks(); }
+     PATCHAPI_EXPORT const Blockset &blocks() { return getAllBlocks(); }
      PATCHAPI_EXPORT PatchBlock *entry() { return getEntryBlock(); }
-     PATCHAPI_EXPORT const blockset &exits() { return getExitBlocks(); }
-     PATCHAPI_EXPORT const blockset &calls() { return getCallBlocks(); }
+     PATCHAPI_EXPORT const Blockset &exits() { return getExitBlocks(); }
+     PATCHAPI_EXPORT const Blockset &calls() { return getCallBlocks(); }
 
      PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
 
@@ -182,15 +180,15 @@ class PatchFunction {
      // For callbacks from ParseAPI to PatchAPI
      void removeBlock(PatchBlock *);
      void addBlock(PatchBlock *);
-     void splitPoints(PatchBlock *first, PatchBlock *second);
+     void splitBlock(PatchBlock *first, PatchBlock *second);
 
      ParseAPI::Function *func_;
      PatchObject* obj_;
      Address addr_;
 
-     blockset all_blocks_;
-     blockset exit_blocks_;
-     blockset call_blocks_;
+     Blockset all_blocks_;
+     Blockset exit_blocks_;
+     Blockset call_blocks_;
 
      FuncPoints points_;
      // For context-specific

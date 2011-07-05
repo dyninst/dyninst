@@ -1985,8 +1985,8 @@ void BPatch_process::overwriteAnalysisUpdate
         }
  
         // add blocks to deadBlockAddrs 
-        const PatchFunction::blockset& deadBs = (*fit)->getAllBlocks();
-        PatchFunction::blockset::const_iterator bIter= deadBs.begin();
+        const PatchFunction::Blockset& deadBs = (*fit)->getAllBlocks();
+        PatchFunction::Blockset::const_iterator bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
             deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
                                                    (*bIter)->size()));
@@ -2241,9 +2241,9 @@ void BPatch_process::printDefensiveStatsInt()
         {
             //foreach block
             func_instance *func = *fit;
-            const PatchFunction::blockset & blocks = func->getAllBlocks();
+            const PatchFunction::Blockset & blocks = func->getAllBlocks();
             bool sharedFunc = false;
-            for (PatchFunction::blockset::const_iterator bit = blocks.begin();
+            for (PatchFunction::Blockset::const_iterator bit = blocks.begin();
                  bit != blocks.end();
                  bit++) 
             {
