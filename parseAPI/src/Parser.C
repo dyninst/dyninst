@@ -299,7 +299,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             {
                 if ((*eit)->type() == CALL) {
                     callEdge = *eit;
-                    break;
+                    if (!(*eit)->sinkEdge()) // otherwise look for nonsink CALL
+                        break; 
                 }
             }
             // create a call work elem so that the bundle is complete
@@ -322,7 +323,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                 {
                     isResolvable = true;
                     callTarget = callEdge->trg()->start();
-                    Function *callee = findFuncByEntry(
+                    // the call target may be in another Code Object
+                    Function *callee = callEdge->trg()->obj()->findFuncByEntry(
                         callEdge->trg()->region(), callTarget);
                     assert(callee);
                     callee->set_retstatus(RETURN);
@@ -1510,6 +1512,8 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
     e->_type._sink = sink;
     src->_targets.push_back(e);
     dst->_sources.push_back(e);
+    _pcb.addEdge(src, e, ParseCallback::target);
+    _pcb.addEdge(dst, e, ParseCallback::source);
     return e;
 }
 
@@ -1552,6 +1556,8 @@ Parser::relink(Edge * e, Block *src, Block *dst)
     }
 
     e->_type._sink = (dst == _sink);
+    _pcb.addEdge(src, e, ParseCallback::target);
+    _pcb.addEdge(dst, e, ParseCallback::source);
 }
 
 ParseFrame::Status

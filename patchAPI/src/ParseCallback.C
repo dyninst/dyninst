@@ -65,16 +65,24 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
 }
 
 void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
-   PatchBlock *pb = _obj->getBlock(block, false);
+   PatchObject *pbObj = _obj->addrSpace()->findObject(block->obj());
+   PatchBlock *pb = pbObj->getBlock(block, false);
    if (!pb) return; // We haven't created the block, so we'll get around to the edge later.
    
    // If we haven't requested edges then ignore and we'll get it later.
-   if ((type == source) && (pb->srclist_.empty())) return;
-   else if (pb->trglist_.empty()) return;
+   if (type == source) {
+       if (pb->srclist_.empty())
+           return;
+   }
+   else 
+       if (pb->trglist_.empty()) 
+           return;
 
-   PatchBlock *pb2 = (type == source) ? _obj->getBlock(edge->src()) : _obj->getBlock(edge->trg());
+   ParseAPI::Block *block2 = (type == source) ? edge->src() : edge->trg();
+   PatchObject *pb2Obj = _obj->addrSpace()->findObject(block2->obj());
+   PatchBlock *pb2 = pb2Obj->getBlock(block2);
    assert(pb2);
-   PatchEdge *pe = _obj->getEdge(edge, pb, pb2);
+   PatchEdge *pe = (type == source) ? pb2Obj->getEdge(edge, pb, pb2) : pbObj->getEdge(edge,pb,pb2);
    if (type == source) pb->addSourceEdge(pe, false);
    else pb->addTargetEdge(pe, false);
 }
@@ -106,16 +114,16 @@ bool PatchParseCallback::absAddr(Address absolute,
                                  Address & loadAddr, 
                                  ParseAPI::CodeObject *& codeObj)
 {
-    AddrSpace::ObjSet objs = _obj->addrSpace()->objSet();
-    AddrSpace::ObjSet::iterator oit = objs.begin();
+    AddrSpace::ObjMap objs = _obj->addrSpace()->objMap();
+    AddrSpace::ObjMap::iterator oit = objs.begin();
     for (; oit != objs.end(); oit++) {
-        if (absolute > (*oit)->codeBase()) {
-            ParseAPI::CodeSource *cs = (*oit)->co()->cs();
+        if (absolute > oit->second->codeBase()) {
+            ParseAPI::CodeSource *cs = oit->first->cs();
             set<ParseAPI::CodeRegion*> regs;
-            cs->findRegions(absolute - (*oit)->codeBase(), regs);
+            cs->findRegions(absolute - oit->second->codeBase(), regs);
             if (1 == regs.size()) {
-                loadAddr = (*oit)->codeBase();
-                codeObj = (*oit)->co();
+                loadAddr = oit->second->codeBase();
+                codeObj = const_cast<ParseAPI::CodeObject*>(oit->first);
                 return true;
             }
         }

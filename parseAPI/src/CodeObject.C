@@ -251,7 +251,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         else {
             parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
                                                             *regs.begin()));
-            ParseWorkBundle *bundle = new ParseWorkBundle();
+            ParseWorkBundle *bundle = new ParseWorkBundle(); //parse_frames will delete when done
             ParseWorkElem *elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),

@@ -37,15 +37,17 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     PATCHAPI_EXPORT virtual bool loadObject(PatchObject* obj);
 
     // Getters
-    typedef std::set<PatchObject*> ObjSet;
-    PATCHAPI_EXPORT ObjSet& objSet() { return obj_set_; }
+    typedef std::map<const ParseAPI::CodeObject*, PatchObject*> ObjMap;
+    ObjMap& objMap() { return obj_map_; }
+    PatchObject* findObject(const ParseAPI::CodeObject*) const;
+    template <class Iter> void objs(Iter iter); // EXPORTED
     PATCHAPI_EXPORT PatchObject* getFirstObject() { return first_object_; }
     PATCHAPI_EXPORT PatchMgrPtr mgr() { return mgr_; }
 
     std::string format() const;
 
   protected:
-    ObjSet obj_set_;
+    ObjMap obj_map_;
     PatchObject* first_object_;
     PatchMgrPtr mgr_;
 
@@ -53,6 +55,16 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     AddrSpace() {}
     explicit AddrSpace(AddrSpacePtr) {}
 };
+
+template <class Iter>
+   void AddrSpace::objs(Iter iter) {
+   for (ObjMap::iterator tmp = obj_map_.begin(); tmp != obj_map.end(); ++tmp) {
+      *iter = tmp->second;
+      ++iter;
+   }
+}
+
+
 
 }
 }

@@ -257,9 +257,9 @@ void PatchMgr::getInsnInstanceCandidates(Scope &scope, Point::Type types, Candid
 
 void PatchMgr::getFuncs(Scope &scope, Functions &funcs) {
    if (scope.wholeProgram) {
-      AddrSpace::ObjSet &objs = as()->objSet();
-      for (AddrSpace::ObjSet::iterator iter = objs.begin(); iter != objs.end(); ++iter) {
-         (*iter)->funcs(std::back_inserter(funcs));
+      AddrSpace::ObjMap &objs = as()->objMap();
+      for (AddrSpace::ObjMap::iterator iter = objs.begin(); iter != objs.end(); ++iter) {
+         iter->second->funcs(std::back_inserter(funcs));
       }
    }
    else if (scope.obj) {
@@ -298,9 +298,9 @@ void PatchMgr::getExitSites(Scope &scope, ExitSites &sites) {
 
 void PatchMgr::getBlocks(Scope &scope, Blocks &blocks) {
    if (scope.wholeProgram) {
-      const AddrSpace::ObjSet &objs = as()->objSet();
-      for (AddrSpace::ObjSet::const_iterator iter = objs.begin(); iter != objs.end(); ++iter) {
-         (*iter)->blocks(std::back_inserter(blocks));
+      const AddrSpace::ObjMap &objs = as()->objMap();
+      for (AddrSpace::ObjMap::const_iterator iter = objs.begin(); iter != objs.end(); ++iter) {
+         iter->second->blocks(std::back_inserter(blocks));
       }
    }
    else if (scope.obj) {
@@ -313,9 +313,9 @@ void PatchMgr::getBlocks(Scope &scope, Blocks &blocks) {
       
 void PatchMgr::getEdges(Scope &scope, Edges &edges) {
    if (scope.wholeProgram) {
-      const AddrSpace::ObjSet &objs = as()->objSet();
-      for (AddrSpace::ObjSet::const_iterator iter = objs.begin(); iter != objs.end(); ++iter) {
-         (*iter)->edges(std::back_inserter(edges));
+      const AddrSpace::ObjMap &objs = as()->objMap();
+      for (AddrSpace::ObjMap::const_iterator iter = objs.begin(); iter != objs.end(); ++iter) {
+         iter->second->edges(std::back_inserter(edges));
       }
    }
    else if (scope.obj) {

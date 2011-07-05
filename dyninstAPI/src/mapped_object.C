@@ -1289,6 +1289,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
+    bool unparsedTargets = false;
     vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
@@ -1309,7 +1310,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
         // Determine if this stub already has been parsed
         // Which means looking up a block at the target address
         if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
-          continue;
+          continue; //KEVINTODO: don't we maybe want to add the edge anyway?
         }
 
         // Otherwise we don't have a target block, so we need to make one.

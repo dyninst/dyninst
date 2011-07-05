@@ -418,8 +418,6 @@ void BPatch_function::getUnresolvedControlTransfers
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-   malware_cerr << "getAbruptEndPoints\n";
-
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.

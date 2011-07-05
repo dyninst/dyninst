@@ -108,7 +108,7 @@ PatchObject::getBlock(ParseAPI::Block* b, bool create) {
   if (co_ != b->obj()) {
     cerr << "ERROR: block starting at 0x" << b->start()
          << " doesn't exist in this object!\n";
-    exit(0);
+    assert(0);
   }
   BlockMap::iterator iter = blocks_.find(b);
   if (iter != blocks_.end()) return iter->second;
