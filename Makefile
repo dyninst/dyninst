@@ -38,10 +38,10 @@ Build_list += proccontrol
 endif
 
 ifndef DONT_BUILD_NEWTESTSUITE
-testsuites += testsuite parseThat
+testsuites += testsuite 
 allSubdirs_noinstall += testsuite 
-fullSystem += testsuite parseThat
-Build_list += testsuite parseThat
+fullSystem += testsuite 
+Build_list += testsuite 
 endif
 
 fullSystem += parseAPI
@@ -50,7 +50,7 @@ fullSystem += dynC_API
 Build_list += dynC_API
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI
-allSubdirs	= $(allCoreSubdirs) parseThat $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
+allSubdirs	= $(allCoreSubdirs) $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
 # We're not building the new test suite on all platforms yet
@@ -217,8 +217,6 @@ instructionAPI: common dynutil
 symtabAPI dyninstAPI: dynutil
 dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
-testsuite: parseThat
-parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
 parseAPI: symtabAPI instructionAPI common dynutil
 patchAPI: parseAPI

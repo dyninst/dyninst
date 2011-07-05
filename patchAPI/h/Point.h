@@ -169,6 +169,7 @@ class Point {
     // Getters
     PATCHAPI_EXPORT size_t size();
     Address address() const { return addr_; }
+    Address addr() const { return address(); }
     Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
@@ -183,6 +184,10 @@ class Point {
     PatchBlock* getBlock() const { return the_block_; }
     PatchEdge* getEdge() const { return the_edge_; }
 
+    PatchFunction *func() const { return getFunction(); }
+    PatchBlock *block() const { return getBlock(); }
+    PatchEdge *edge() const { return getEdge(); }
+
     // Point type utilities
     
     // Test whether the type contains a specific type.
@@ -193,6 +198,8 @@ class Point {
     PATCHAPI_EXPORT static void RemoveType(Point::Type& types, Point::Type trg);
 
     PATCHAPI_EXPORT PatchCallback *cb() const;
+
+    bool consistency() const;
     
   protected:
     bool destroy();
@@ -321,6 +328,7 @@ struct BlockPoints {
    InsnPoints preInsn;
    InsnPoints postInsn;
 BlockPoints() : entry(NULL), during(NULL), exit(NULL) {};
+   bool consistency(const PatchBlock *block, const PatchFunction *func) const;
    ~BlockPoints();
 };
 
@@ -328,6 +336,7 @@ struct EdgePoints {
    Point *during;
 EdgePoints() : during(NULL) {};
    ~EdgePoints() { if (during) delete during; };
+   bool consistency(const PatchEdge *edge, const PatchFunction *func) const;
 };
 
 struct FuncPoints {
@@ -338,6 +347,7 @@ struct FuncPoints {
    std::map<PatchBlock *, Point *> postCalls;
 FuncPoints() : entry(NULL), during(NULL) {};
    ~FuncPoints();
+   bool consistency(const PatchFunction *func) const;
 };
 
 

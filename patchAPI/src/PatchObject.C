@@ -203,11 +203,35 @@ std::string PatchObject::format() const {
    ParseAPI::SymtabCodeSource *symtab = dynamic_cast<ParseAPI::SymtabCodeSource *>(cs);
    stringstream ret;
 
-   //if (symtab) {
-   //   ret << symtab->getSymtabObject()->name();
-   //}
+   if (symtab) {
+      ret << symtab->getSymtabObject()->name();
+   }
 
-   ret << hex << "(" << this << ")" << dec << endl;
+   ret << hex << "(" << this << ")" << dec;
    return ret.str();
 
+}
+
+bool PatchObject::consistency(const AddrSpace *as) const {
+   if (!co_) return false;
+   if (as != addr_space_.get()) return false;
+
+   for (FuncMap::const_iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
+      if (!iter->second->consistency()) {
+         cerr << "Error: " << iter->second->name() << " failed consistency!" << endl;
+         return false;
+      }
+   }
+   for (BlockMap::const_iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+      if (!iter->second->consistency()) {
+         cerr << "Error: block @ " << hex << iter->second->start() << " failed consistency" << endl;
+         return false;
+      }
+   }
+   for (EdgeMap::const_iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
+      if (!iter->second->consistency()) return false;
+   }
+   if (!cfg_maker_) return false;
+   if (!cb_) return false;
+   return true;
 }

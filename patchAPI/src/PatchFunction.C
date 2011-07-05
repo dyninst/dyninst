@@ -354,3 +354,197 @@ void PatchFunction::splitBlock(PatchBlock *first, PatchBlock *second)
    }
    points.postInsn.erase(post, points.postInsn.end());
 }
+
+
+bool PatchFunction::consistency() const {
+   if (!obj_) {
+      cerr << "Error: no object!" << endl;
+      return false;
+   }
+
+   if (!all_blocks_.empty()) {
+      if (all_blocks_.size() != func_->blocks().size()) {
+         cerr << "Error: size mismatch in all_blocks; PatchAPI " << all_blocks_.size() 
+              << " and ParseAPI " << func_->blocks().size() << endl;
+         return false;
+      }
+      for (Blockset::const_iterator iter = all_blocks_.begin(); iter != all_blocks_.end(); ++iter) {
+         bool found = false;
+         for (ParseAPI::Function::blocklist::iterator iter2 = func_->blocks().begin();
+              iter2 != func_->blocks().end(); ++iter2) {
+            if ((*iter)->block() == *iter2) {
+               found = true;
+               break;
+            }
+         }
+         if (!found) {
+            cerr << "Error: found block not in ParseAPI" << endl;
+            return false;
+         }
+      }
+   }
+
+   if (!exit_blocks_.empty()) {
+      if (exit_blocks_.size() != func_->returnBlocks().size()) return false;
+      for (Blockset::const_iterator iter = exit_blocks_.begin(); iter != exit_blocks_.end(); ++iter) {
+         bool found = false;
+         for (ParseAPI::Function::blocklist::iterator iter2 = func_->returnBlocks().begin();
+              iter2 != func_->returnBlocks().end(); ++iter2) {
+            if ((*iter)->block() == *iter2) {
+               found = true;
+               break;
+            }
+         }
+         if (!found) {
+            cerr << "Error: found exit block not in ParseAPI" << endl;
+            return false;
+         }
+      }
+   }
+
+   if (!call_blocks_.empty()) {
+      // Comparing edges to blocks; may not be safe. 
+      if (call_blocks_.size() != func_->callEdges().size()) return false;
+      for (Blockset::const_iterator iter = call_blocks_.begin(); iter != call_blocks_.end(); ++iter) {
+         bool found = false;
+         for (ParseAPI::Function::edgelist::iterator iter2 = func_->callEdges().begin();
+              iter2 != func_->callEdges().end(); ++iter2) {
+            if ((*iter)->block() == (*iter2)->src()) {
+               found = true;
+               break;
+            }
+         }
+         if (!found) {
+            cerr << "Error: found call block not in ParseAPI" << endl;
+            return false;
+         }
+      }      
+   }
+
+   if (!points_.consistency(this))  {
+      cerr << "Error: failed point consistency" << endl;
+      return false;
+   }
+
+   for (std::map<PatchBlock *, BlockPoints>::const_iterator iter = blockPoints_.begin();
+        iter != blockPoints_.end(); ++iter) {
+      if (!(iter->second.consistency(iter->first, this))) {
+         cerr << "Error: failed block point consistency" << endl;
+         return false;
+      }
+      if (all_blocks_.find(iter->first) == all_blocks_.end()) {
+         cerr << "Error: points for a block not in the function" << endl;
+         return false;
+      }
+   }
+
+   for (std::map<PatchEdge *, EdgePoints>::const_iterator iter = edgePoints_.begin();
+        iter != edgePoints_.end(); ++iter) {
+      if (!iter->second.consistency(iter->first, this)) return false;
+   }
+
+   return true;
+}
+
+
+bool FuncPoints::consistency(const PatchFunction *func) const {
+   if (entry) {
+      if (entry->type() != Point::FuncEntry) {
+         cerr << "Error: entry point has wrong type" << endl;
+         return false;
+      }
+      if (!entry->consistency()) {
+         cerr << "Error: entry point inconsistent" << endl; 
+         return false;
+      }
+      if (entry->func() != func) {
+         cerr << "Error: entry point has wrong func" << endl;
+         return false;
+      }
+   }
+   if (during) {
+      if (during->type() != Point::FuncDuring) {
+         cerr << "Error: during point has wrong type" << endl;
+         return false;
+      }
+      if (!during->consistency()) {
+         cerr << "Error: during point inconsistent" << endl; 
+         return false;
+      }
+      if (during->func() != func) {
+         cerr << "Error: during point has wrong func" << endl;
+         return false;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = exits.begin();
+        iter != exits.end(); ++iter) {
+      if (iter->second->type() != Point::FuncExit) {
+         cerr << "Error: exit point has non-exit type" << endl;
+         return false;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: exit point inconsistent" << endl;
+         return false;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: exit point has a different func" << endl;
+         return false;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: exit point has incorrect block" << endl;
+         return false;
+      }
+      if (!func->verifyExitConst(iter->first)) {
+         cerr << "Error: exit point has non-exit block" << endl;
+         return false;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = preCalls.begin();
+        iter != preCalls.end(); ++iter) {
+      if (iter->second->type() != Point::PreCall) {
+         cerr << "Error: preCall point has wrong type" << endl;
+         return false;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: preCall point inconsistent" << endl;
+         return false;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: preCall point has wrong function" << endl;
+         return false;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: preCall point has wrong block" << endl;
+         return false;
+      }
+      if (!func->verifyCallConst(iter->first)) {
+         cerr << "Error: preCall point has non-call block" << endl;
+         return false;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = postCalls.begin();
+        iter != postCalls.end(); ++iter) {
+      if (iter->second->type() != Point::PostCall) {
+         cerr << "Error: postCall point has wrong type" << endl;
+         return false;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: postCall point inconsistent" << endl;
+         return false;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: postCall function incorrect" << endl;
+         return false;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: postCall block incorrect" << endl;
+         return false;
+      }
+      if (!func->verifyCallConst(iter->first)) {
+         cerr << "Error: postCall has non-call block" << endl;
+         return false;
+      }
+   }
+   return true;
+}
+

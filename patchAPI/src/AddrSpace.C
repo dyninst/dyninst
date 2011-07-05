@@ -76,3 +76,16 @@ PatchObject *AddrSpace::findObject(const ParseAPI::CodeObject *co) const
     }
     return NULL;
 }
+
+bool AddrSpace::consistency(const PatchMgr *m) const {
+   if (mgr_.get() != m) return false;
+   for (ObjSet::const_iterator iter = obj_set_.begin();
+        iter != obj_set_.end(); ++iter) {
+      if (!(*iter)->consistency(this)) {
+         cerr << "Error: " << (*iter)->format() << " failed consistency!" << endl;
+         return false;
+      }
+   }
+   return true;
+}
+

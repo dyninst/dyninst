@@ -79,3 +79,25 @@ void PatchEdge::destroy(Point *p) {
 PatchCallback *PatchEdge::cb() const {
    return src_->object()->cb();
 }
+
+bool PatchEdge::consistency() const { 
+   if (src_) {
+      if (src_->block() != edge_->src()) return false;
+   }
+   if (trg_) {
+      if (trg_->block() != edge_->trg()) return false;
+   }
+
+   if (!points_.consistency(this, NULL)) return false;
+   return true;
+}
+
+bool EdgePoints::consistency(const PatchEdge *edge, const PatchFunction *func) const {
+   if (during) {
+      if (!during->consistency()) return false;
+      if (during->type() != Point::EdgeDuring) return false;
+      if (during->edge() != edge) return false;
+      if (during->func() != func) return false;
+   }
+   return true;
+}

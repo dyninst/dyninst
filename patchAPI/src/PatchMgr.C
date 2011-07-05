@@ -403,3 +403,10 @@ bool PatchMgr::verify(Location &loc) {
    return true;
 
 }
+
+bool PatchMgr::consistency() const {
+   if (!point_maker_) return false;
+   if (!instor_) return false;
+   if (!as_) return false;
+   return (as_->consistency(this));
+}

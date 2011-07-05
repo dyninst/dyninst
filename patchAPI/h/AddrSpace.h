@@ -46,6 +46,8 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
 
     std::string format() const;
 
+    bool consistency(const PatchMgr *mgr) const;
+
   protected:
     ObjMap obj_map_;
     PatchObject* first_object_;

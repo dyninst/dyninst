@@ -70,6 +70,11 @@ bool checkSnippet(Point* pt, int expected_snip_num, int vals[]) {
 }
 
 test_results_t patch1_1_Mutator::executeTest() {
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test entry!\n");
+      return FAILED;
+   }
+
   PatchFunction* func = findFunction("patch1_1_func");
   if (func == NULL) {
     logerror("**Failed patch1_1 (snippet insertion)\n");
@@ -172,40 +177,6 @@ test_results_t patch1_1_Mutator::executeTest() {
   }
   if (failed) return FAILED;
 
-#if 0
-// Removed: abstract points have no address
-  // Step 3.2: Points have correct address;
-  //           And, different types of points may have the same address
-  if (func->addr() != func_entry->address()) {
-    logerror(" FuncEntry point should be at %x, but in fact %x\n", func->addr(), func_entry->address());
-    return FAILED;
-  }
-  const PatchFunction::blockset& exit_blks = func->getExitBlocks();
-  if ((*exit_blks.begin())->last() != func_exit->address()) {
-    logerror(" FuncExit point should be at %x, but in fact %x\n", (*exit_blks.begin())->last(), func_exit->address());
-    return FAILED;
-  }
-  const PatchFunction::blockset& call_blks = func->getCallBlocks();
-  if ((*call_blks.begin())->last() != pre_call->address()) {
-    logerror(" PreCall point should be at %x, but in fact %x\n", (*call_blks.begin())->last(), pre_call->address());
-    return FAILED;
-  }
-  if (pre_call->address() != post_call->address()) {
-    logerror(" PreCall point should have the same address as PostCall\n");
-    return FAILED;
-  }
-  if (pre_call == post_call) {
-    logerror(" PreCall point should be a different point from PostCall point!\n");
-    return FAILED;
-  }
-  for (vector<Point*>::iterator i = block_entries.begin(); i != block_entries.end(); i++) {
-    if ((*i) == func_entry) {
-      logerror(" block_entry point should be a different point from func_entry point!\n");
-      return FAILED;
-    }
-  }
-#endif
-
   // Step 3.3: checking snippets
   int entry_vals[1] = {1};
   if (!checkSnippet(func_entry, 1, entry_vals)) return FAILED;
@@ -224,6 +195,11 @@ test_results_t patch1_1_Mutator::executeTest() {
 
   int blk_entry_vals[2] = {2, 3};
   if (!checkSnippet(block_entries[0], 2, blk_entry_vals)) return FAILED;
+
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test exit!\n");
+      return FAILED;
+   }
 
   return PASSED;
 }

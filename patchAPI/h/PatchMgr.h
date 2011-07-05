@@ -152,6 +152,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //----------------------------------------------------
     PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
+    PATCHAPI_EXPORT bool consistency() const;
+
   private:
 
     bool findInsnPointsByType(Location *, Point::Type, PointSet&, bool create = true);
