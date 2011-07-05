@@ -67,3 +67,15 @@ std::string AddrSpace::format() const {
    ret << hex << this << dec << endl;
    return ret.str();
 }
+
+bool AddrSpace::consistency(const PatchMgr *m) const {
+   if (mgr_.get() != m) return false;
+   for (ObjSet::const_iterator iter = obj_set_.begin();
+        iter != obj_set_.end(); ++iter) {
+      if (!(*iter)->consistency(this)) {
+         cerr << "Error: " << (*iter)->format() << " failed consistency!" << endl;
+         return false;
+      }
+   }
+   return true;
+}

@@ -230,3 +230,57 @@ PatchCallback *Point::cb() const {
    else if (the_edge_) return the_edge_->cb();
    else return NULL;
 }
+
+bool Point::consistency() const {
+   if (!co()) return false;
+   if (!cs()) return false;
+   if (!obj()) return false;
+        
+
+   // Assert that our data matches our type.
+   switch (type()) {
+      case PreInsn:
+      case PostInsn:
+         if (!insn()) return false;
+         if (!address()) return false;
+         if (!block()) return false;
+         // Can have a function or not, that's okay
+         if (edge()) return false;
+         break;
+      case BlockEntry:
+      case BlockExit:
+      case BlockDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (!block()) return false;
+         if (edge()) return false;
+         break;
+      case FuncEntry:
+      case FuncDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (block()) return false;
+         if (edge()) return false;
+         if (!func()) return false;
+         break;
+      case PreCall:
+      case PostCall:
+      case FuncExit:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (!block()) return false;
+         if (edge()) return false;
+         if (!func()) return false;
+         break;
+      case EdgeDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (block()) return false;
+         if (!edge()) return false;
+         if (!func()) return false;
+         break;
+      default:
+         return false;
+   }
+   return true;
+}

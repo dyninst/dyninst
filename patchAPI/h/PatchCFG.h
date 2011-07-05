@@ -47,6 +47,8 @@ class PatchEdge {
    PATCHAPI_EXPORT void destroy(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
+   bool consistency() const;
+
  protected:
     ParseAPI::Edge *edge_;
     PatchBlock *src_;
@@ -99,6 +101,8 @@ class PatchBlock {
 
    PATCHAPI_EXPORT void destroy(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
+
+   bool consistency() const;
 
   protected:
     typedef enum {
@@ -167,6 +171,14 @@ class PatchFunction {
      bool verifyExit(PatchBlock *block) { return exits().find(block) != exits().end(); }
      bool verifyCall(PatchBlock *block) { return calls().find(block) != calls().end(); }
 
+     // Const : no building the exit/call sets
+     bool verifyExitConst(const PatchBlock *block) const { 
+        return exit_blocks_.find(const_cast<PatchBlock *>(block)) != exit_blocks_.end(); 
+     }
+     bool verifyCallConst(const PatchBlock *block) const { 
+        return call_blocks_.find(const_cast<PatchBlock *>(block)) != call_blocks_.end(); 
+     }
+
      // Fast access to a range of instruction points
      PATCHAPI_EXPORT bool findInsnPoints(Point::Type type, PatchBlock *block,
                                          InsnPoints::const_iterator &start,
@@ -175,6 +187,7 @@ class PatchFunction {
    PATCHAPI_EXPORT void destroy(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
                                          
+   bool consistency() const;
 
    protected:
      // For callbacks from ParseAPI to PatchAPI

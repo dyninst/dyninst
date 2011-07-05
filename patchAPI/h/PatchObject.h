@@ -64,6 +64,8 @@ class PatchObject {
        void edges(Iter iter); 
 
     PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
+
+    PATCHAPI_EXPORT bool consistency(const AddrSpace *as) const;
     
   protected:
     ParseAPI::CodeObject* co_;

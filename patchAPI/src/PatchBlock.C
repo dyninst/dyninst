@@ -6,6 +6,7 @@
 #include "PatchObject.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
+#include "Point.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -361,4 +362,60 @@ void PatchBlock::splitBlock(PatchBlock *succ)
 
 }
 
+bool PatchBlock::consistency() const {
+   if (!block_) return false;
+   if (!srclist_.empty()) {
+      if (srclist_.size() != block_->sources().size()) return false;
+      for (unsigned i = 0; i < srclist_.size(); ++i) {
+         if (!srclist_[i]->consistency()) return false;
+      }
+   }
+   if (!trglist_.empty()) {
+      if (trglist_.size() != block_->sources().size()) return false;
+      for (unsigned i = 0; i < trglist_.size(); ++i) {
+         if (!trglist_[i]->consistency()) return false;
+      }
+   }
+   if (!obj_) return false;
+   if (!points_.consistency(this, NULL)) return false;
+   return true;
+}
+
+bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const {
+   if (entry) {
+      if (!entry->consistency()) return false;
+      if (entry->block() != b) return false;
+      if (entry->func() != f) return false;
+      if (entry->type() != Point::BlockEntry) return false;
+   }
+   if (during) {
+      if (!during->consistency()) return false;
+      if (during->block() != b) return false;
+      if (during->func() != f) return false;
+      if (during->type() != Point::BlockDuring) return false;
+   }
+   if (exit) {
+      if (!exit->consistency()) return false;
+      if (exit->block() != b) return false;
+      if (exit->func() != f) return false;
+      if (exit->type() != Point::BlockExit) return false;
+   }
+   for (InsnPoints::const_iterator iter = preInsn.begin(); iter != preInsn.end(); ++iter) {
+      if (!iter->second->consistency()) return false;
+      if (iter->second->block() != b) return false;
+      if (iter->second->func() != f) return false;
+      if (iter->second->addr() != iter->first) return false;
+      if (iter->second->type() != Point::PreInsn) return false;
+      if (!b->getInsn(iter->first)) return false;
+   }
+   for (InsnPoints::const_iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
+      if (!iter->second->consistency()) return false;
+      if (iter->second->block() != b) return false;
+      if (iter->second->func() != f) return false;
+      if (iter->second->addr() != iter->first) return false;
+      if (iter->second->type() != Point::PostInsn) return false;
+      if (!b->getInsn(iter->first)) return false;
+   }
+   return true;
+}
    
