@@ -58,7 +58,7 @@ class PatchObject {
        void blocks(Iter iter); 
 
     // Edge
-    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, bool create = true);
+    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock* = NULL, PatchBlock* = NULL, bool create = true);
     PATCHAPI_EXPORT void addEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(ParseAPI::Edge*);

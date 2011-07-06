@@ -58,10 +58,29 @@ PatchBlock::getTargets() {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
       PatchEdge *newEdge = obj_->getEdge(*iter, this, NULL);
+      assert(newEdge);
       trglist_.push_back(newEdge);
     }
   }
   return trglist_;
+}
+
+PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
+   for (edgelist::iterator iter = srclist_.begin();
+        iter != srclist_.end(); ++iter) {
+      if ((*iter)->type() == type) return *iter;
+   }
+   return NULL;
+}
+
+PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
+   for (edgelist::iterator iter = trglist_.begin();
+        iter != trglist_.end(); ++iter) {
+      assert(*iter);
+      assert((*iter)->edge());
+      if ((*iter)->type() == type) return *iter;
+   }
+   return NULL;
 }
 
 void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
@@ -73,6 +92,7 @@ void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
 }
 
 void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {
+   assert(e);
    if (!addIfEmpty && trglist_.empty()) return;
 
    trglist_.push_back(e);
@@ -99,6 +119,7 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
 
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
+     cerr << "Erasing target edge" << endl;
     trglist_.erase(iter);
   }
   cb()->remove_edge(this, e, PatchCallback::target);
@@ -329,6 +350,7 @@ void PatchBlock::splitBlock(PatchBlock *succ)
    for (PatchBlock::edgelist::iterator iter = this->trglist_.begin();
         iter != this->trglist_.end(); ++iter) {
       (*iter)->src_ = succ;
+      assert(*iter);
       succ->trglist_.push_back(*iter);
    }
    this->trglist_.clear();
@@ -366,21 +388,44 @@ void PatchBlock::splitBlock(PatchBlock *succ)
 }
 
 bool PatchBlock::consistency() const {
-   if (!block_) return false;
+   if (!block_) {
+      cerr << "Error: block has no associated ParseAPI block, failed consistency" << endl;
+      return false;
+   }
    if (!srclist_.empty()) {
-      if (srclist_.size() != block_->sources().size()) return false;
+      if (srclist_.size() != block_->sources().size()) {
+         cerr << "Error: block has inconsistent sources size" << endl;
+         return false;
+      }
       for (unsigned i = 0; i < srclist_.size(); ++i) {
-         if (!srclist_[i]->consistency()) return false;
+         if (!srclist_[i]->consistency()) {
+            cerr << "Error: source edge inconsistent" << endl;
+            return false;
+         }
       }
    }
    if (!trglist_.empty()) {
-      if (trglist_.size() != block_->sources().size()) return false;
+      if (trglist_.size() != block_->targets().size()) {
+         cerr << "Error: block has inconsistent targets size; ParseAPI "
+              << block_->targets().size() << " and PatchAPI " 
+              << trglist_.size() << endl;
+         return false;
+      }
       for (unsigned i = 0; i < trglist_.size(); ++i) {
-         if (!trglist_[i]->consistency()) return false;
+         if (!trglist_[i]->consistency()) {
+            cerr << "Error: target edge inconsistent" << endl;
+            return false;
+         }
       }
    }
-   if (!obj_) return false;
-   if (!points_.consistency(this, NULL)) return false;
+   if (!obj_) {
+      cerr << "Error: block has no object" << endl;
+      return false;
+   }
+   if (!points_.consistency(this, NULL)) {
+      cerr << "Error: block has inconsistent points" << endl;
+      return false;
+   }
    return true;
 }
 

@@ -155,6 +155,8 @@ class ParseCallback {
   virtual void remove_block_cb(Function *, Block *) {};
   virtual void add_block_cb(Function *, Block *) {};
 
+  virtual void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t) {};
+
   private:
 };
 
@@ -188,7 +190,7 @@ class ParseCallbackManager {
   void removeBlock(Function *, Block *);
   void addBlock(Function *, Block *);  
   void splitBlock(Block *, Block *);
-
+  void modifyEdge(Edge *, Block *, ParseCallback::edge_type_t);
 
   void interproc_cf(Function*,Block *,Address,ParseCallback::interproc_details*);
   void instruction_cb(Function*,Block *,Address,ParseCallback::insn_details*);
@@ -215,7 +217,7 @@ class ParseCallbackManager {
   void add_edge_cb(Block *, Edge *, ParseCallback::edge_type_t);
   void remove_block_cb(Function *, Block *);
   void add_block_cb(Function *, Block *);
-
+  void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t);
 
   private:
   Callbacks cbs_;
@@ -224,6 +226,7 @@ class ParseCallbackManager {
 
   typedef enum { removed, added } mod_t;
 
+
   struct BlockMod {
      Block *block;
      Edge *edge;
@@ -231,6 +234,15 @@ class ParseCallbackManager {
      mod_t action;
   BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {};
   };     
+
+  struct EdgeMod {
+     Edge *edge;
+     Block *block;
+     ParseCallback::edge_type_t action;
+     
+  EdgeMod(Edge *e, Block *b, ParseCallback::edge_type_t t) : 
+     edge(e), block(b), action(t) {};
+  };
 
   struct FuncMod {
      Function *func;
@@ -245,6 +257,7 @@ class ParseCallbackManager {
   std::vector<Block *> destroyedBlocks_;
   std::vector<Function *> destroyedFunctions_;
   std::vector<BlockMod> blockMods_;
+  std::vector<EdgeMod> edgeMods_;
   std::vector<FuncMod> funcMods_;
   std::vector<BlockSplit> blockSplits_;
 

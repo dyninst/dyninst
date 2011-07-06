@@ -145,6 +145,9 @@ PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool c
    if (iter != edges_.end()) return iter->second;
    else if (!create) return NULL;
 
+   // We can only create if we have src or trg
+   if (!src && !trg) return NULL;
+
    PatchEdge *ret = cfg_maker_->makeEdge(e, src, trg, this);
    addEdge(ret);
    return ret;

@@ -35,6 +35,8 @@ class PatchParseCallback : public ParseAPI::ParseCallback {
    virtual void destroy_cb(ParseAPI::Block *);
    virtual void destroy_cb(ParseAPI::Edge *);
    virtual void destroy_cb(ParseAPI::Function *);
+
+   virtual void modify_edge_cb(ParseAPI::Edge *, ParseAPI::Block *, edge_type_t);
    
    virtual void remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
    virtual void add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);

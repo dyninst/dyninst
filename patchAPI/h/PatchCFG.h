@@ -3,6 +3,7 @@
 #ifndef _PATCHAPI_DYNINST_CFG_H_
 #define _PATCHAPI_DYNINST_CFG_H_
 
+#include "CFG.h"
 #include "common.h"
 #include "PatchObject.h"
 #include "Point.h"
@@ -94,6 +95,9 @@ class PatchBlock {
     PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
     PATCHAPI_EXPORT const edgelist &getSources();
     PATCHAPI_EXPORT const edgelist &getTargets();
+    
+    PATCHAPI_EXPORT PatchEdge *findSource(ParseAPI::EdgeTypeEnum type);
+    PATCHAPI_EXPORT PatchEdge *findTarget(ParseAPI::EdgeTypeEnum type);
 
     template <class OutputIterator>
     void getFunctions(OutputIterator result);
