@@ -42,6 +42,8 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_point.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"
@@ -67,7 +69,7 @@ bool nullFilter(Dyninst::InstructionAPI::Instruction::Ptr)
 test_results_t test1_20_Mutator::executeTest() 
 {
 	BPatch_Vector<BPatch_function *> bpfv;
-	char *fn = "test1_20_call1";
+	const char *fn = "test1_20_call1";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 			|| NULL == bpfv[0])
 	{
@@ -83,7 +85,7 @@ test_results_t test1_20_Mutator::executeTest()
 	checkCost(call20_1Expr);
 
 	bpfv.clear();
-	char *fn2 = "test1_20_func2";
+	const char *fn2 = "test1_20_func2";
 
 	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size() ||
 			NULL == bpfv[0])
@@ -150,7 +152,6 @@ test_results_t test1_20_Mutator::executeTest()
                         if(pt->getPointType() == BPatch_arbitrary)
                         {
                             found_one = true;
-
                             if (appAddrSpace->insertSnippet(call20_1Expr, *pt) == NULL)
                             {
                                 logerror("%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",

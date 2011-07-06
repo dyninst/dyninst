@@ -38,6 +38,7 @@
 #include <string.h>
 
 #include "test_lib.h"
+#include "BPatch_point.h"
 
 #include "dyninst_comp.h"
 

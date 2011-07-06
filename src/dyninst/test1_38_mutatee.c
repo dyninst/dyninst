@@ -85,23 +85,23 @@ void test1_38_call1() {
     funCall38_1();
 
     for (i = 0; i < 50; i++) {
-	m = i;
-	funCall38_2();
+        m = i;
+        funCall38_2();
 
-	for (j = 0; i < 100; i++) {
-	    for (k = 0; k < i ; i++) {
-		funCall38_3();
-	    }
-	}
+        for (j = 0; i < 100; i++) {
+            for (k = 0; k < i ; i++) {
+                funCall38_3();
+            }
+        }
 
-	funCall38_4();
+        funCall38_4();
 
-	while (m < 100) {
-	    funCall38_5();
-	    m++;
-	}
+        while (m < 100) {
+            funCall38_5();
+            m++;
+        }
 
-	funCall38_6();
+        funCall38_6();
     }
 
     funCall38_7();

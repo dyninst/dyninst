@@ -39,6 +39,7 @@
  */
 
 #include "BPatch.h"
+#include "BPatch_point.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
@@ -169,6 +170,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 		logerror("  Mutator couldn't replaceFunction (a.out -> a.out)\n");
 		return FAILED;
 	}
+
 
 	// Replace an a.out function with a shlib function
 	bpfv.clear();

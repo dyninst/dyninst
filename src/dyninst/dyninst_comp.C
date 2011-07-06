@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -41,9 +41,11 @@
 #include "BPatch_process.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "BPatch_point.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
+
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
@@ -97,8 +99,7 @@ DyninstComponent::DyninstComponent() :
 {
 }
 
-test_results_t DyninstComponent::program_setup(ParameterDict &params)
-{
+test_results_t DyninstComponent::program_setup(ParameterDict &params) {
    if (measure) um_program.start();  // Measure resource usage.
 
    bpatch = new BPatch();
@@ -116,7 +117,7 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params)
    if (debugprint) {
       setDebugPrint(debugprint->getInt());
    }
-   
+ 
    if ( getenv("DYNINSTAPI_RT_LIB") )
    {
       char *temp = getenv("DYNINSTAPI_RT_LIB");
@@ -146,8 +147,7 @@ test_results_t DyninstComponent::program_teardown(ParameterDict &params)
 }
 
 test_results_t DyninstComponent::group_setup(RunGroup *group, 
-                                             ParameterDict &params)
-{
+                                             ParameterDict &params) {
 #if defined(m_abi)
    if (isMutateeMABI32(group->mutatee)) {
       if (NULL == libRTname_m_abi) {
@@ -166,12 +166,11 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    appBinEdit = NULL;
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
    clear_mutateelog(mutatee_resumelog);
-
    /*   if (group->customExecution)
    {
       return PASSED;
       }*/
-
+ 
    if (group->mutatee && group->state != SELFSTART)
    {
       if (measure) um_group.start(); // Measure resource usage.
@@ -279,7 +278,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       char *humanlogname = params["humanlogname"]->getString();
       bool noClean = (bool) params["noClean"]->getInt();
       int unique_id = params["unique_id"]->getInt();
-      
+
       test_results_t test_result;
       runBinaryTest(bpatch, group, appBinEdit,
                     logfilename, humanlogname, verboseFormat, printLabels,
@@ -324,6 +323,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    parse_mutateelog(group, mutatee_resumelog);
+
 
    return UNKNOWN;
 }
@@ -1724,6 +1724,4 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 
 	return true;
 }
-
-
 // End Test12 Library functions
