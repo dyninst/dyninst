@@ -55,10 +55,6 @@ int test2_5_spinning = 1;
 
 /* This test does nothing but mark that it succeeded */
 int test2_5_mutatee() {
-  /* fprintf(stderr, "Running test2_5_mutatee()\n"); */
-  while (test2_5_spinning) {
-    /* Do nothing */
-  }
   test_passes("test2_5");
   return 0; /* No error */
 }

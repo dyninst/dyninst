@@ -46,10 +46,6 @@ namespace {
         if(fact) return fact;
         return new CFGFactory();
     }
-    static inline ParseCallback * __pcb_init(ParseCallback * cb) {
-        if(cb) return cb;
-        return new ParseCallback();
-    }
 }
 
 static const int ParseAPI_major_version = 1;
@@ -70,10 +66,9 @@ CodeObject::CodeObject(CodeSource *cs,
                        bool defMode) :
     _cs(cs),
     _fact(__fact_init(fact)),
-    _pcb(__pcb_init(cb)),
+    _pcb(new ParseCallbackManager(cb)),
     parser(new Parser(*this,*_fact,*_pcb) ),
     owns_factory(fact == NULL),
-    owns_pcb(cb == NULL),
     defensive(defMode),
     flist(parser->sorted_funcs)
 {
@@ -90,10 +85,10 @@ CodeObject::process_hints()
     for(hit = hints.begin();hit!=hints.end();++hit) {
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
-            f = parser->factory().mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+            f = parser->factory()._mkfunc(
+               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
         else
-            f = parser->factory().mkfunc(
+            f = parser->factory()._mkfunc(
                 (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
@@ -105,8 +100,7 @@ CodeObject::process_hints()
 CodeObject::~CodeObject() {
     if(owns_factory)
         delete _fact;
-    if(owns_pcb)
-        delete _pcb;
+    delete _pcb;
     if(parser)
         delete parser;
 }
@@ -134,6 +128,12 @@ CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
     return parser->findBlockByEntry(cr, addr);
 }
 
+Block *
+CodeObject::findNextBlock(CodeRegion * cr, Address addr)
+{
+    return parser->findNextBlock(cr, addr);
+}
+
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
@@ -155,7 +155,16 @@ CodeObject::parse(Address target, bool recursive) {
         fprintf(stderr,"FATAL: internal parser undefined\n");
         return;
     }
-    parser->parse_at(target,recursive,HINT);
+    parser->parse_at(target,recursive,ONDEMAND);
+}
+
+void
+CodeObject::parse(CodeRegion *cr, Address target, bool recursive) {
+   if (!parser) {
+      fprintf(stderr, "FATAL: internal parser undefined\n");
+      return;
+   }
+   parser->parse_at(cr, target, recursive, ONDEMAND);
 }
 
 void
@@ -170,7 +179,11 @@ CodeObject::parseGaps(CodeRegion *cr) {
 void
 CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 {
-    parser->link(src,trg,et,false);
+    if (trg == NULL) {
+        parser->link(src, parser->_sink, et, true);
+    } else {
+        parser->link(src,trg,et,false);
+    }
 }
 
 void
@@ -178,33 +191,101 @@ CodeObject::finalize() {
     parser->finalize();
 }
 
-void 
-CodeObject::deleteFunc(Function *func)
-{
-    assert(func->_cache_valid);
-    parser->remove_func(func);
-    func->deleteBlocks(func->_blocks, NULL);
-    fact()->free_func(func);
-}
-
+// Call this function on the CodeObject corresponding to the targets,
+// not the sources, if the edges are inter-module ones
+// 
 // create work elements and pass them to the parser
 bool 
-CodeObject::parseNewEdges( vector<Block*> & sources, 
-                           vector<Address> & targets,
-                           vector<EdgeTypeEnum> & edge_types )
+CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
 {
     vector< ParseWorkElem * > work_elems;
-    for (unsigned idx=0; idx < sources.size(); idx++) {
-        ParseWorkElem *elem = new ParseWorkElem
-            ( NULL, 
-              parser->link_tempsink(sources[idx], edge_types[idx]),
-              targets[idx],
-              true,
-              false );
-        work_elems.push_back(elem);
+    vector<std::pair<Address,CodeRegion*> > parsedTargs;
+    for (unsigned idx=0; idx < worklist.size(); idx++) {
+        // see if the target block already exists, in which case we can use
+        // add_edge
+        set<CodeRegion*> regs;
+        cs()->findRegions(worklist[idx].target,regs);
+        assert(1 == regs.size()); // at present this function doesn't support 
+                                  // ambiguous regions for the target address
+        Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
+
+        if (trgB) {
+            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+            if (CALL == worklist[idx].edge_type) {
+                // if it's a call edge, add it to Function::_call_edges
+                // since we won't re-finalize the function
+                vector<Function*> funcs;
+                worklist[idx].source->getFuncs(funcs);
+                for(vector<Function*>::iterator fit = funcs.begin();
+                    fit != funcs.end();
+                    fit++) 
+                {
+                    Block::edgelist & tedges = worklist[idx].source->targets();
+                    for(Block::edgelist::iterator eit = tedges.begin();
+                        eit != tedges.end();
+                        eit++)
+                    {
+                        if ((*eit)->trg() == trgB) {
+                            (*fit)->_call_edges.insert(*eit);
+                        }
+                    }
+                }
+            }
+        } 
+        else {
+            parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
+                                                            *regs.begin()));
+            ParseWorkBundle *bundle = new ParseWorkBundle();
+            ParseWorkElem *elem = bundle->add(new ParseWorkElem
+                ( bundle, 
+                  parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
+                  worklist[idx].target,
+                  true,
+                  false ));
+            work_elems.push_back(elem);
+        }
     }
 
     parser->parse_edges( work_elems );
 
+    if (defensiveMode()) {
+        // update tampersStack for modified funcs
+        for (unsigned idx=0; idx < parsedTargs.size(); idx++) {
+            set<Function*> tfuncs;
+            findFuncs(parsedTargs[idx].second, parsedTargs[idx].first, tfuncs);
+            for (set<Function*>::iterator fit = tfuncs.begin();
+                 fit != tfuncs.end();
+                 fit++) 
+            {
+                (*fit)->tampersStack(true);
+            }
+        }
+    }
+
     return true;
+}
+
+void CodeObject::startCallbackBatch() {
+   _pcb->batch_begin();
+}
+
+void CodeObject::finishCallbackBatch() {
+   _pcb->batch_end(_fact);
+}
+
+void CodeObject::destroy(Edge *e) {
+   // The callback deletes the object so that we can
+   // be sure to allow users to access its data before
+   // its freed.
+   // We hand in a CFGFactory so that we have customized
+   // deletion methods.
+   _pcb->destroy(e, _fact);
+}
+
+void CodeObject::destroy(Block *b) {
+   _pcb->destroy(b, _fact);
+}
+
+void CodeObject::destroy(Function *f) {
+   _pcb->destroy(f, _fact);
 }

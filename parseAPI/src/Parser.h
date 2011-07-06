@@ -55,8 +55,13 @@ typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 namespace Dyninst {
 namespace ParseAPI {
 
+   class CFGModifier;
+
 /** This is the internal parser **/
 class Parser {
+   // The CFG modifier needs to manipulate the lookup structures,
+   // which are internal Parser data. 
+   friend class CFGModifier;
  private:
     // Owning code object
     CodeObject & _obj;
@@ -65,7 +70,7 @@ class Parser {
     CFGFactory & _cfgfact;
 
     // Callback notifications
-    ParseCallback & _pcb;
+    ParseCallbackManager & _pcb;
 
     // region data store
     ParseData * _parse_data;
@@ -99,7 +104,7 @@ class Parser {
     bool _in_finalize;
 
  public:
-    Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb);
+    Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb);
     ~Parser();
 
     /** Initialization & hints **/
@@ -113,6 +118,7 @@ class Parser {
     // blocks
     Block * findBlockByEntry(CodeRegion * cr, Address entry);
     int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
+    Block * findNextBlock(CodeRegion * cr, Address addr);
 
     void parse();
     void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
@@ -124,7 +130,8 @@ class Parser {
 
     // removal
     void remove_func(Function *);
-    void remove_block(Block *);
+    //void remove_block(Block *);
+    void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
  public: 
     /** XXX all strictly internals below this point **/
@@ -168,12 +175,20 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+    ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
+    void ProcessUnresBranchEdge(
+        ParseFrame&,
+        Block*,
+        InstructionAdapter_t&,
+        Address target,
+        EdgeTypeEnum etype);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,
         InstructionAdapter_t&,
+        bool,
         bool,
         bool,
         Address);

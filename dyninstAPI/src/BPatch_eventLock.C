@@ -34,7 +34,6 @@
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
-#include "BPatch_point.h"
 #include "common/h/Vector.h"
 
 #if !defined(os_windows)

@@ -1781,7 +1781,7 @@ bool ser_operation(SerializerBase *sb, ser_post_op_t &op, const char *tag)
 	{
 		gtranslate(sb, op, serPostOp2Str, tag);
 	}
-	catch (const Dyninst::SerializerError &err_)
+	catch (const Dyninst::SerializerError &)
 	{   
 		if (isEOF(sb))
 		{   

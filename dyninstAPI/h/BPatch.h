@@ -35,16 +35,18 @@
 #include <stdio.h>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "BPatch_Set.h"
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
+#include "BPatch_callbacks.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
-class int_function;
+class func_instance;
 class process;
 
 //Keep old versions defined, that way someone can test if we're more
@@ -115,7 +117,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_process;
     friend class BPatch_point;
     friend class process;
-    friend class int_function;
+    friend class func_instance;
     friend class SignalHandler;
     friend class BPatch_asyncEventHandler;
     friend bool handleSigStopNInt(EventRecord &ev);
@@ -324,6 +326,7 @@ public:
 
     API_EXPORT(Int, (),
                int, livenessAnalysisDepth, ());
+
 
     //  User-specified callback functions...
 

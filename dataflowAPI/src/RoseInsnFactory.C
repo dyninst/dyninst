@@ -126,6 +126,7 @@ void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
 
 bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
   // Does nothing?
+
   return false;
 }
 
@@ -133,13 +134,13 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
 					 std::vector<InstructionAPI::Operand> &operands) {
   switch (insn->getOperation().getID()) {
   case e_lea: {
-                  // ROSE expects there to be a "memory reference" statement wrapping the 
-                  // address calculation. It then unwraps it.
-                  Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
-                  operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
-                  operands.resize(2);
-                  break;
-              }
+    // ROSE expects there to be a "memory reference" statement wrapping the
+    // address calculation. It then unwraps it. 
+    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
+    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
+    operands.resize(2);
+    break;  
+  }
   case e_push:
   case e_pop:
     operands.resize(1);
@@ -181,8 +182,22 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     operands.clear();
     break;
   case e_popad:
+  case e_pushfd:
     operands.clear();
     break;
+  case e_lodsd:
+  case e_lodsb:
+  case e_lodsw:
+      operands.clear();
+      break;
+  case e_pushad:
+      operands.clear();
+      break;
+  case e_loop:
+  case e_loope:
+  case e_loopn:
+      operands.resize(1);
+      break;
   default:
     break;
   }

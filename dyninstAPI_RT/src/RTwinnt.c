@@ -60,8 +60,10 @@
 void DYNINSTbreakPoint(void) {
   /* TODO: how do we stop all threads? */
     DYNINST_break_point_event = 1;
+	fprintf(stderr, "About to execute DebugBreak!\n");
     DebugBreak();
-    DYNINST_break_point_event = 0;
+	fprintf(stderr, "Back from DebugBreak!\n");
+	DYNINST_break_point_event = 0;
 }
 
 void DYNINSTsafeBreakPoint() {
@@ -72,7 +74,7 @@ static dyntid_t initial_thread_tid;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-  initial_thread_tid = (dyntid_t) GetCurrentThreadId();
+  initial_thread_tid = (dyntid_t) dyn_lwp_self();
 }
 
 /* this function is automatically called when windows loads this dll
@@ -247,7 +249,16 @@ int dyn_pid_self()
 
 int dyn_lwp_self()
 {
-    return GetCurrentThreadId();
+	/* getCurrentThreadId() is conflicting with SD-Dyninst instrumentation. 
+	So I'm doing the massively unportable thing here and hard-coding the assembly
+	FOR GREAT JUSTICE! */
+/*    return GetCurrentThreadId(); */
+	/* This will do stack frame setup, but that seems harmless in this context... */
+	__asm
+    {
+        mov     EAX,FS:[0x18]
+		mov     EAX,DS:[EAX+0x24]
+	}
 }
 
 dyntid_t dyn_pthread_self()
@@ -267,4 +278,54 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 */
 int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
+}
+
+extern int fakeTickCount;
+extern FILE *stOut;
+DWORD __stdcall DYNINST_FakeTickCount()
+{
+    DWORD tmp = 0x12345678;
+    if (0 == fakeTickCount) {
+        fakeTickCount = tmp;
+    } else {
+        fakeTickCount = fakeTickCount + 2;
+//        fakeTickCount = fakeTickCount + (tmp - fakeTickCount)/1000 + 1;
+    }
+    fprintf(stOut,"0x%lx = DYNINST_FakeTickCount()\n",fakeTickCount);
+    return (DWORD) fakeTickCount;
+}
+
+BOOL __stdcall DYNINST_FakeBlockInput(BOOL blockit)
+{
+    BOOL ret = RT_TRUE;
+    fprintf(stOut,"0x%lx = DYNINST_FakeBlockInput(%d)\n",ret,blockit);
+    return ret;
+}
+
+DWORD __stdcall DYNINST_FakeSuspendThread(HANDLE hThread)
+{
+    DWORD suspendCnt = 0;
+    fprintf(stOut,"%d = DYNINST_FakeBlockInput(%d)\n",suspendCnt,hThread);
+    return suspendCnt;
+}
+
+BOOL __stdcall DYNINST_FakeCheckRemoteDebuggerPresent(HANDLE hProcess, PBOOL bpDebuggerPresent)
+{
+    BOOL ret = RT_FALSE;
+    fprintf(stOut,"%d = DYNINST_FakeCheckRemoteDebuggerPresent(%d,0x%lx)\n",
+            ret, hProcess, bpDebuggerPresent);
+    (*bpDebuggerPresent) = ret;
+    return ret;
+}
+
+VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
+{
+    lpSystemTime->wYear = 2009;
+    lpSystemTime->wMonth = 5;
+    lpSystemTime->wDayOfWeek = 0;
+    lpSystemTime->wDay = 3;
+    lpSystemTime->wHour = 10;
+    lpSystemTime->wMinute = 1;
+    lpSystemTime->wSecond = 33;
+    lpSystemTime->wMilliseconds = 855;
 }

@@ -45,9 +45,9 @@
 
 #include "debug_dataflow.h"
 
-#include "CFG.h"
-#include "CodeSource.h"
-#include "CodeObject.h"
+#include "parseAPI/h/CFG.h"
+#include "parseAPI/h/CodeSource.h"
+#include "parseAPI/h/CodeObject.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -223,6 +223,10 @@ Slicer::sliceInternalAux(
 
     for(unsigned i=0;i<nextCands.size();++i) {
         SliceFrame & f = nextCands[i];
+        if(!f.valid) {
+            widenAll(g,dir,cand);
+            continue;
+        }
         CacheEdge e(cand.addr(),f.addr());
 
         slicing_printf("\t\t candidate %d is at %lx, %ld active\n",
@@ -249,7 +253,7 @@ Slicer::sliceInternalAux(
         // If the control flow search has run
         // off the rails somehow, widen;
         // otherwise search down this new path
-        if(!f.valid) {
+        if(!f.valid || visited.size() > 50*g->size()) {
             widenAll(g,dir,cand);
 	}
         else {
@@ -325,7 +329,7 @@ Slicer::updateAndLink(
     else
         insn = cand.loc.rcurrent->first;
 
-    convertInstruction(insn,cand.addr(),cand.loc.func,assns);
+    convertInstruction(insn,cand.addr(),cand.loc.func, cand.loc.block, assns);
 
     for(unsigned i=0; i<assns.size(); ++i) {
         SliceFrame::ActiveMap::iterator ait = cand.active.begin();
@@ -445,12 +449,13 @@ Slicer::findMatch(
     DefCache & cache)
 {
     if(dir == forward) {
+		slicing_cerr << "\t\tComparing candidate assignment " << assn->format() << " to input region " << reg.format() << endl;
         vector<AbsRegion> const& inputs = assn->inputs();
         bool hadmatch = false;
         for(unsigned i=0;i<inputs.size();++i) {
             if(reg.contains(inputs[i])) {
                 hadmatch = true;    
-
+				slicing_cerr << "\t\t\t Match!" << endl;
                 // Link the assignments associated with this
                 // abstract region (may be > 1)
                 Element ne(cand.loc.block,cand.loc.func,reg,assn);
@@ -547,6 +552,7 @@ Slicer::getSuccessors(
     if(next != cand.loc.end) {
         SliceFrame nf = cand;
         nf.loc.current = next;
+        assert(nf.loc.block);
         newCands.push_back(nf);
 
         slicing_printf("\t\t\t\t added intra-block successor\n");
@@ -563,6 +569,7 @@ Slicer::getSuccessors(
         // nf may be transformed
         if(handleCall(p,nf,err)) {
             slicing_printf("success, err: %d\n",err);
+            assert(nf.loc.block);
             newCands.push_back(nf);
         } else {
             slicing_printf("failed, err: %d\n",err);
@@ -575,6 +582,7 @@ Slicer::getSuccessors(
         // nf may be transformed
         if(handleReturn(p,nf,err)) {
             slicing_printf("success, err: %d\n",err);
+            assert(nf.loc.block);
             newCands.push_back(nf);
         } else {
             slicing_printf("failed, err: %d\n",err);
@@ -599,6 +607,7 @@ Slicer::getSuccessors(
                     (*eit)->type());
                 if(handleDefault(forward,p,*eit,nf,err)) {
                     slicing_printf("success, err: %d\n",err);
+                    assert(nf.loc.block);
                     newCands.push_back(nf);
                 } else {
                     slicing_printf("failed, err: %d\n",err);
@@ -718,38 +727,44 @@ Slicer::handleCall(
 {
     ParseAPI::Block * callee = NULL;
     ParseAPI::Edge * funlink = NULL;
+    bool widen = false;
 
     Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::iterator eit = targets.begin();
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
-        if(e->sinkEdge()) {
-            // FIXME all blocks with calls contain a sink edge;
-            //       this probably isn't an error. I am duplicating
-            //       functionality that existed as of git version
-            //       06697df, and it needs review
-            err = true;
-        } else if(e->type() == CALL) {
+        if (e->sinkEdge()) widen = true;
+        else if(e->type() == CALL) {
+            if (callee && callee != e->trg()) {
+                // Oops
+                widen = true;
+            }
             callee = e->trg();
         } else if(e->type() == CALL_FT) {
-            funlink = e;
+           funlink = e;
         }
     }
-
+    
     if(followCall(p, callee, cur)) {
-        ParseAPI::Block * caller_block = cur.loc.block;
+       if (widen) {
+          // Indirect call that they wanted us to follow, so widen.
+          err = true;
+          return true;
+       }
 
-        cur.loc.block = callee;
-        cur.loc.func = getEntryFunc(callee);
-        getInsns(cur.loc);
-
-        // Update the context of the slicing frame
-        // and modify the abstract regions in its
-        // active vector
-        if(!handleCallDetails(cur,caller_block)) {
-            err = true;
-            return false;
-        }
+       ParseAPI::Block * caller_block = cur.loc.block;
+       
+       cur.loc.block = callee;
+       cur.loc.func = getEntryFunc(callee);
+       getInsns(cur.loc);
+       
+       // Update the context of the slicing frame
+       // and modify the abstract regions in its
+       // active vector
+       if(!handleCallDetails(cur,caller_block)) {
+          err = true;
+          return false;
+       }
     }
     else {
         // Use the funlink
@@ -780,8 +795,8 @@ Slicer::followCall(
     SliceFrame & cur)
 {
     // FIXME quote:
-        // A NULL callee indicates an indirect call.
-        // TODO on that one...
+   // A NULL callee indicates an indirect call.
+   // TODO on that one...
    
     ParseAPI::Function * callee = (target ? getEntryFunc(target) : NULL);
     
@@ -876,7 +891,7 @@ Slicer::handleCallDetails(
     ParseAPI::Function * callee = cur.loc.func;
 
     long stack_depth = 0;
-    if(!getStackDepth(caller, caller_block->end(), stack_depth))
+    if(!getStackDepth(caller, caller_block, caller_block->end(), stack_depth))
         return false;
 
     // Increment the context
@@ -914,6 +929,9 @@ Slicer::handleReturn(
     for(; eit != targets.end(); ++eit) {
         if((*eit)->type() == CALL_FT) {
             retBlock = (*eit)->trg();
+            if ((*eit)->sinkEdge()) {
+                cerr << "Weird!" << endl;
+            }
             break;
         }
     }
@@ -1065,7 +1083,7 @@ Slicer::handleCallDetailsBackward(
     Address callBlockLastInsn = callBlock->lastInsnAddr();
 
     long stack_depth;
-    if(!getStackDepth(caller,callBlockLastInsn,stack_depth)) {
+    if(!getStackDepth(caller, callBlock, callBlockLastInsn,stack_depth)) {
         return false;
     }
 
@@ -1133,7 +1151,7 @@ Slicer::handleReturnDetailsBackward(
     ParseAPI::Function * callee = cur.loc.func;
 
     long stack_depth;
-    if(!getStackDepth(caller,caller_block->end(),stack_depth)) {
+    if(!getStackDepth(caller,caller_block, caller_block->end(),stack_depth)) {
         return false;
     }
     
@@ -1237,8 +1255,10 @@ Slicer::Slicer(Assignment::Ptr a,
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
-  // delete cache state
+
+	// delete cache state
   unique_edges_.clear(); 
+
   return sliceInternal(forward, predicates);
 }
 
@@ -1249,10 +1269,10 @@ Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
   return sliceInternal(backward, predicates);
 }
 
-bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
+bool Slicer::getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height) {
   StackAnalysis sA(func);
 
-  StackAnalysis::Height heightSA = sA.findSP(callAddr);
+  StackAnalysis::Height heightSA = sA.findSP(block, callAddr);
 
   // Ensure that analysis has been performed.
 
@@ -1367,15 +1387,18 @@ std::string SliceNode::format() const {
 void Slicer::convertInstruction(Instruction::Ptr insn,
 				Address addr,
 				ParseAPI::Function *func,
+                                ParseAPI::Block *block,
 				std::vector<Assignment::Ptr> &ret) {
   converter.convert(insn,
 		    addr,
 		    func,
+                    block,
 		    ret);
   return;
 }
 
 void Slicer::getInsns(Location &loc) {
+
 
   InsnCache::iterator iter = insnCache_.find(loc.block);
   if (iter == insnCache_.end()) {
@@ -1387,6 +1410,7 @@ void Slicer::getInsns(Location &loc) {
 }
 
 void Slicer::getInsnsBackward(Location &loc) {
+    assert(loc.block->start() != (Address) -1); 
     InsnCache::iterator iter = insnCache_.find(loc.block);
     if (iter == insnCache_.end()) {
       getInsnInstances(loc.block, insnCache_[loc.block]);
@@ -1489,7 +1513,7 @@ void Slicer::fastBackward(Location &loc, Address addr) {
 }
 
 void Slicer::cleanGraph(Graph::Ptr ret) {
-  
+  slicing_cerr << "Cleaning up the graph..." << endl;
   // Clean the graph up
   
   // TODO: make this more efficient by backwards traversing.
@@ -1501,26 +1525,32 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   ret->allNodes(nbegin, nend);
   
   std::list<Node::Ptr> toDelete;
-  
+  unsigned numNodes = 0;
   for (; nbegin != nend; ++nbegin) {
+     numNodes++;
     SliceNode::Ptr foozle =
       dyn_detail::boost::dynamic_pointer_cast<SliceNode>(*nbegin);
     //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
     if ((*nbegin)->hasOutEdges()) {
-      //cerr << "\t has out edges, leaving in" << endl;
+      slicing_cerr << "\t has out edges, leaving in" << endl;
       
-        // This cleans up case where we ended a backward slice
-        // but never got to mark the node as an entry node
-        if (!(*nbegin)->hasInEdges()) {
-            ret->markAsEntryNode(foozle);
-        }
+      // This cleans up case where we ended a backward slice
+      // but never got to mark the node as an entry node
+      if (!(*nbegin)->hasInEdges()) {
+	ret->markAsEntryNode(foozle);
+      }
       continue;
     }
     if (ret->isExitNode(*nbegin)) {
-      //cerr << "\t is exit node, leaving in" << endl;
+
+      slicing_cerr << "\t is exit node, leaving in" << endl;
+      // A very odd case - a graph of 1 node. Yay!
+      if (!(*nbegin)->hasInEdges()) {
+	ret->markAsEntryNode(foozle);
+      }
       continue;
     }
-    //cerr << "\t deleting" << endl;
+    slicing_cerr << "\t deleting" << endl;
     toDelete.push_back(*nbegin);
   }
 
@@ -1528,6 +1558,8 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
 	 toDelete.begin(); tmp != toDelete.end(); ++tmp) {
     ret->deleteNode(*tmp);
   }
+  slicing_cerr << "\t Slice has " << numNodes << " nodes" << endl;
+
 }
 
 ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,

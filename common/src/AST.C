@@ -36,8 +36,8 @@
 using namespace Dyninst; 
 
 AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
-  // Quick check
-  assert(in);
+  if (!in) return in;
+
   if (*in == *a)
     return b;
 

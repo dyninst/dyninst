@@ -30,25 +30,25 @@
  */
 
 #include "parRegion.h"
-#include "image-func.h"
+#include "parse-cfg.h"
 #include "function.h"
 
 #include "process.h"
 
-image_parRegion::image_parRegion(image_func * imageFunc)
+image_parRegion::image_parRegion(parse_func * imageFunc)
 {
    regionIf_ = imageFunc;
   parentIf_ = NULL;
 }
 
-image_parRegion::image_parRegion(Address firstOffset, image_func * imageFunc)
+image_parRegion::image_parRegion(Address firstOffset, parse_func * imageFunc)
 {
    regionIf_ = imageFunc;
   parentIf_ = NULL;
   firstInsnOffset_ = firstOffset;
 }
 
-const image_func * image_parRegion::getAssociatedFunc() const {return regionIf_;}
+const parse_func * image_parRegion::getAssociatedFunc() const {return regionIf_;}
 
 void image_parRegion::printDetails()
 {  
@@ -152,7 +152,7 @@ void image_parRegion::setClauseLoc(const char *key, Address value)
   clauses[key] = value;
 }
 
-int_parRegion::int_parRegion(image_parRegion *ip, Address baseAddr, int_function * iFunc)
+int_parRegion::int_parRegion(image_parRegion *ip, Address baseAddr, func_instance * iFunc)
 {
   ip_ = ip;
   addr_ = baseAddr + ip->get_address();

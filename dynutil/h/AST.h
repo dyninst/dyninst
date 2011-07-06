@@ -234,6 +234,7 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
  class COMMON_EXPORT ASTVisitor {
  public:
    typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
+
    virtual ASTPtr visit(AST *) {return AST::Ptr();};
    virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();};
    virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();};

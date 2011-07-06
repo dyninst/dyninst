@@ -74,7 +74,7 @@ public:
    } patch_type_t;
 
 
-   relocPatch(void *d, patchTarget *s, relocPatch::patch_type_t ptype, 
+   relocPatch(unsigned d, patchTarget *s, relocPatch::patch_type_t ptype, 
               codeGen *gen, Dyninst::Offset off, unsigned size);
 
    void applyPatch();
@@ -82,7 +82,7 @@ public:
    void setTarget(patchTarget *s) { source_ = s; }
 
  private:
-   void *dest_;
+   unsigned dest_;
    patchTarget *source_;
    unsigned size_;
    patch_type_t ptype_;

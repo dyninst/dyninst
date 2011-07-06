@@ -65,8 +65,10 @@ typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
 class Graph;
 typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
 
-class InstructionAPI::Instruction;
-typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+ namespace InstructionAPI {
+   class Instruction;
+ }
+ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
@@ -141,6 +143,7 @@ class Slicer {
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
 
+    DATAFLOW_EXPORT virtual bool allowImprecision() { return false; }
     DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
     DATAFLOW_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
@@ -148,10 +151,10 @@ class Slicer {
                                            AbsRegion /*argument*/) { 
        return false; 
     }
-    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *>
-        followCallBackward(ParseAPI::Block * /*callerBlock*/,
-                CallStack_t & /*cs*/,
-                AbsRegion /* argument */) {
+    DATAFLOW_EXPORT virtual std::vector<ParseAPI::Function *> 
+        followCallBackward(ParseAPI::Block * /*callerB*/,
+            CallStack_t & /*cs*/,
+            AbsRegion /*argument*/) {
             std::vector<ParseAPI::Function *> vec;
             return vec;
         }
@@ -212,7 +215,7 @@ class Slicer {
   // This should be sufficient...
   typedef std::deque<ContextElement> Context;
 
-  bool getStackDepth(ParseAPI::Function *func, Address callAddr, long &height);
+  bool getStackDepth(ParseAPI::Function *func, ParseAPI::Block *block, Address callAddr, long &height);
 
   // Add the newly called function to the given Context.
   void pushContext(Context &context,
@@ -238,7 +241,7 @@ class Slicer {
     InsnVec::reverse_iterator rcurrent;
     InsnVec::reverse_iterator rend;
 
-    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+    Address addr() const { if(fwd) return (*current).second; else return (*rcurrent).second;}
 
   Location(ParseAPI::Function *f,
 	   ParseAPI::Block *b) : func(f), block(b), fwd(true){};
@@ -575,6 +578,7 @@ class Slicer {
   void convertInstruction(InstructionPtr,
 			  Address,
 			  ParseAPI::Function *,
+                          ParseAPI::Block *,
 			  std::vector<AssignmentPtr> &);
 
   void fastForward(Location &loc, Address addr);

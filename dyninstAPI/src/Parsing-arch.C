@@ -32,7 +32,8 @@
 
 #include "parseAPI/h/InstructionAdapter.h"
 
-#include "image-func.h"
+#include "parse-cfg.h"
+
 #include "Parsing.h"
 #include "debug.h"
 
@@ -41,9 +42,9 @@ using namespace Dyninst::ParseAPI;
 
 #if defined(arch_power)
 void 
-DynParseCallback::instruction_cb(Function*f,Address,insn_details*det)
+DynParseCallback::instruction_cb(Function*f,Block *,Address,insn_details*det)
 {
-    image_func * ifunc = static_cast<image_func*>(f);
+    parse_func * ifunc = static_cast<parse_func*>(f);
     /* In case we do callback from a place where the leaf function analysis has not been done */ 
     Address ret_addr = 0;
     if (f->_is_leaf_function) { 

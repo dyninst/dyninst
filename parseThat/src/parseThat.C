@@ -396,7 +396,7 @@ bool runHunt()
 
 void parseArgs(int argc, char **argv)
 {
-    int tempInt;
+   int tempInt;
     bool needShift;
     char *arg;
 
@@ -563,19 +563,19 @@ void parseArgs(int argc, char **argv)
                 break;
 
             case 'T':
-                tempInt = 0;
-                if (isdigit(*(ptr + 1))) {
-                    tempInt = strtol(++ptr, &arg, 0);
-                    ptr = arg - 1;
-
-                } else if (i+1 < argc && isdigit(*argv[i+1])) {
-                    tempInt = atoi(argv[++i]);
-                }
-
-                config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
-                if (config.use_process)
-                    config.trace_inst = true;
-                break;
+               tempInt = 0;
+               if (isdigit(*(ptr + 1))) {
+                  tempInt = strtol(++ptr, &arg, 0);
+                  ptr = arg - 1;
+                  
+               } else if (i+1 < argc && isdigit(*argv[i+1])) {
+                  tempInt = atoi(argv[++i]);
+               }
+               
+               config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
+               if (config.use_process)
+                  config.trace_inst = true;
+               break;
 
             case 'v':
                 if (isdigit(*(ptr + 1))) {

@@ -45,6 +45,14 @@ using namespace Dyninst;
 
 const Address Node::INVALID_ADDR = (Address) -1;
 
+void Node::addInEdge(const EdgePtr in) {
+   ins_.insert(in);
+}
+ 
+void Node::addOutEdge(const EdgePtr out) {
+   outs_.insert(out);
+}   
+
 void Node::ins(NodeIterator &begin, NodeIterator &end) {
     // Ins and outs are currently stored as sets of edges.
     // We need an iterator that translates them...

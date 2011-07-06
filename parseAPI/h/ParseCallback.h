@@ -46,8 +46,12 @@ namespace Dyninst {
 namespace ParseAPI {
 
 class Function;
+class Block;
+class Edge;
+class ParseCallbackManager;
 
 class ParseCallback {
+   friend class ParseCallbackManager;
  public:
   ParseCallback() { }
   virtual ~ParseCallback() { }
@@ -61,8 +65,6 @@ class ParseCallback {
     size_t isize;
     bool isbranch;
   };
-  virtual void unresolved_cf(Function *,Address,default_details*) { }
-  virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*
    * Notify for interprocedural control transfers
@@ -72,7 +74,9 @@ class ParseCallback {
         ret,
         call,
         branch_interproc, // tail calls, branches to plts
-        syscall
+        syscall,
+        unres_call,
+        unres_branch
     } type_t;
     unsigned char * ibuf;
     size_t isize;
@@ -83,17 +87,30 @@ class ParseCallback {
             bool absolute_address;
             bool dynamic_call;
         } call;
+        struct {
+            Address target;
+            bool absolute_address;
+            bool dynamic;
+        } unres;
     } data;
   };
-  virtual void interproc_cf(Function*,Address,interproc_details*) { }
+
+  struct insn_details {
+    InsnAdapter::InstructionAdapter * insn;
+  };
+
+  typedef enum {
+     source, 
+     target } edge_type_t;
+
+  // Callbacks
+  protected:
+  virtual void interproc_cf(Function*,Block *,Address,interproc_details*) { }
 
   /*
    * Allow examination of every instruction processed during parsing.
    */
-  struct insn_details {
-    InsnAdapter::InstructionAdapter * insn;
-  };
-  virtual void instruction_cb(Function*,Address,insn_details*) { }
+  virtual void instruction_cb(Function*,Block *,Address,insn_details*) { }
 
   /* 
    * Notify about inconsistent parse data (overlapping blocks).
@@ -113,8 +130,120 @@ class ParseCallback {
    *   keep code generation from doing bad things
    */
   virtual void newfunction_retstatus(Function*) { }
-  virtual void block_split(Block *, Block *) { }
-  virtual void patch_jump_neg1(Address) { }
+  virtual void patch_nop_jump(Address) { }
+  virtual bool updateCodeBytes(Address) { return false; }
+  virtual void abruptEnd_cf(Address, Block *,default_details*) { }
+  virtual bool loadAddr(Address, Address &) { return false; }
+  virtual bool hasWeirdInsns(const Function*) const { return false; };
+  virtual void foundWeirdInsns(Function*) {};
+
+  // User override time
+  // (orig, new split block)
+  virtual void split_block_cb(Block *, Block *) {};
+
+  virtual void destroy_cb(Block *) {};
+  virtual void destroy_cb(Edge *) {};
+  virtual void destroy_cb(Function *) {};
+
+  virtual void remove_edge_cb(Block *, Edge *, edge_type_t) {};
+  virtual void add_edge_cb(Block *, Edge *, edge_type_t) {};
+  
+  virtual void remove_block_cb(Function *, Block *) {};
+  virtual void add_block_cb(Function *, Block *) {};
+
+  private:
+};
+
+// And the wrapper class used by CodeObject. 
+
+class ParseCallbackManager {
+  public:
+  ParseCallbackManager(ParseCallback *b) : inBatch_(false) { if (b) registerCallback(b); }
+   virtual ~ParseCallbackManager();
+  
+  typedef std::list<ParseCallback *> Callbacks;
+  typedef Callbacks::iterator iterator;
+  typedef Callbacks::const_iterator const_iterator;
+
+  void registerCallback(ParseCallback *a) { cbs_.push_back(a); }
+  void unregisterCallback(iterator iter) { cbs_.erase(iter); }
+  const_iterator begin() const { return cbs_.begin(); }
+  const_iterator end() const { return cbs_.end(); }
+  iterator begin() { return cbs_.begin(); }
+  iterator end() { return cbs_.end(); }
+
+  void batch_begin();
+  void batch_end(CFGFactory *fact); // fact provided so we can safely delete
+
+  // Batch-compatible methods
+  void destroy(Block *, CFGFactory *fact);
+  void destroy(Edge *, CFGFactory *fact);
+  void destroy(Function *, CFGFactory *fact);
+  void removeEdge(Block *, Edge *, ParseCallback::edge_type_t);
+  void addEdge(Block *, Edge *, ParseCallback::edge_type_t);  
+  void removeBlock(Function *, Block *);
+  void addBlock(Function *, Block *);  
+  void splitBlock(Block *, Block *);
+
+
+  void interproc_cf(Function*,Block *,Address,ParseCallback::interproc_details*);
+  void instruction_cb(Function*,Block *,Address,ParseCallback::insn_details*);
+  void overlapping_blocks(Block*,Block*);
+  void newfunction_retstatus(Function*);
+  void patch_nop_jump(Address);
+  bool updateCodeBytes(Address);
+  void abruptEnd_cf(Address, Block *,ParseCallback::default_details*);
+  bool loadAddr(Address, Address &);
+  bool hasWeirdInsns(const Function*);
+  void foundWeirdInsns(Function*);
+  void split_block_cb(Block *, Block *);
+  
+
+  private:
+  // Named the same as ParseCallback to make the code
+  // more readable. 
+  void destroy_cb(Block *);
+  void destroy_cb(Edge *);
+  void destroy_cb(Function *);
+  void remove_edge_cb(Block *, Edge *, ParseCallback::edge_type_t);
+  void add_edge_cb(Block *, Edge *, ParseCallback::edge_type_t);
+  void remove_block_cb(Function *, Block *);
+  void add_block_cb(Function *, Block *);
+
+
+  private:
+  Callbacks cbs_;
+
+  bool inBatch_;
+
+  typedef enum { removed, added } mod_t;
+
+  struct BlockMod {
+     Block *block;
+     Edge *edge;
+     ParseCallback::edge_type_t type;
+     mod_t action;
+  BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {};
+  };     
+
+  struct FuncMod {
+     Function *func;
+     Block *block;
+     mod_t action;
+  FuncMod(Function *f, Block *b, mod_t m) : func(f), block(b), action(m) {};
+  };     
+
+  typedef std::pair<Block *, Block *> BlockSplit;
+
+  std::vector<Edge *> destroyedEdges_;
+  std::vector<Block *> destroyedBlocks_;
+  std::vector<Function *> destroyedFunctions_;
+  std::vector<BlockMod> blockMods_;
+  std::vector<FuncMod> funcMods_;
+  std::vector<BlockSplit> blockSplits_;
+
+
+
 };
 
 }

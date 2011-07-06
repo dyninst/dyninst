@@ -42,6 +42,7 @@
 
 #include "BPatch.h"
 #include "BPatch_function.h"
+#include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
@@ -52,9 +53,15 @@
 #include "BPatch_statement.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
+#include "hybridAnalysis.h"
 
 #include "common/h/Types.h"
 
+#include "Point.h"
+#include "PatchMgr.h"
+
+using Dyninst::PatchAPI::PatchMgrPtr;
+using Dyninst::PatchAPI::Point;
 
 
 
@@ -71,7 +78,7 @@
 int bpatch_function_count = 0;
 
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, 
-                                 int_function *_func,
+                                 func_instance *_func,
                                  BPatch_module *_mod) :
 	addSpace(_addSpace), 
    lladdSpace(_func->proc()),
@@ -98,7 +105,7 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace,
  * Constructor that creates the BPatch_function with return type.
  *
  */
-BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
+BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, func_instance *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
 	addSpace(_addSpace),
    lladdSpace(_func->proc()),
@@ -296,17 +303,7 @@ bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
  */
 void *BPatch_function::getBaseAddrInt()
 {
-  return (void *)func->getAddress();
-}
-
-/*
- * BPatch_function::getSize
- *
- * Returns the size of the function in bytes.
- */
-unsigned int BPatch_function::getSizeInt() 
-{
-    return func->getSize_NP();
+  return (void *)func->addr();
 }
 
 /*
@@ -320,61 +317,47 @@ BPatch_type *BPatch_function::getReturnTypeInt()
     return retType;
 }
 
-/* 
- * 1. First test to see if this is possible, if the target and source are not
- *    in the same mapped region we want to parse them as separate functions 
- * 2. Correct missing elements in BPatch-level datastructures
+/* Update code bytes if necessary (defensive mode), 
+ * Parse new edge, 
+ * Correct missing elements in BPatch-level datastructures
 */
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
-/* 1. First test to see if this is possible, if the target and source are not
-      in the same mapped region, they must be parsed as separate functions  */
-    Address loadAddr = func->getAddress() - func->ifunc()->getOffset();
-    SymtabAPI::Region *targetRegion = func->ifunc()->img()->getObject()->
-        findEnclosingRegion( target-loadAddr );
-    if (func->ifunc()->img()->getObject()->findEnclosingRegion( source-loadAddr ) 
-        != targetRegion) 
-    {
-        fprintf(stderr,"%s[%d] Returning FALSE, parseNewEdge is being called for "
-                "source %lx and target %lx that are not in the same "
-                "section or module\n",__FILE__,__LINE__,source,target);
-        return false;
-    }
-
-    // do it here and not in int_function, as that would cause double effort
-    // for overwrites, which also call func->parseNewEdges
-    if (func->obj()->parse_img()->codeObject()->defensiveMode()) {
-        func->obj()->clearUpdatedRegions();
+   assert(0 && "TODO");
+   return false;
+#if 0
+    // mark code bytes as needing an update
+    if (BPatch_defensiveMode == func->obj()->hybridMode()) {
+        func->obj()->setCodeBytesUpdated(false);
     }
 
     // set up arguments to lower level parseNewEdges and call it
-    int_basicBlock *sblock = lladdSpace->findBasicBlockByAddr(source);
+    block_instance *sblock = func->findBlockByEntry(source);
     assert(sblock);
-    vector<ParseAPI::Block*> sblocks;
-    vector<Address> targets;
-    sblocks.push_back(sblock->llb());
-    targets.push_back(target);
-    std::vector<EdgeTypeEnum> edgeTypes;
-    edgeTypes.push_back(ParseAPI::NOEDGE);//we don't know edge type yet
+    vector<edgeStub> stubs;
+    stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
+    func->obj()->parseNewEdges(stubs);
 
-    func->parseNewEdges(sblocks,targets,edgeTypes);
-
-/* 2. Correct missing elements in BPatch-level datastructures */
-    //   wipe out the BPatch_flowGraph CFG, we'll re-generate it
+    // Correct missing elements in BPatch-level datastructures
+    // i.e., wipe out the BPatch_flowGraph CFG, we'll re-generate it
     if ( cfg ) {
         cfg->invalidate();
     }
 
     return true;
+#endif
 }
 
 // Removes all instrumentation and relocation from the function and 
 // restores the original version
 // Also flushes the runtime library address cache, if present
-bool BPatch_function::removeInstrumentation()
+bool BPatch_function::removeInstrumentation(bool useInsertionSet)
 {
     bool removedAll = true;
+    if (useInsertionSet) {
+        addSpace->beginInsertionSet();
+    }
 
     // remove instrumentation, point by point
     std::vector<BPatch_point*> points;
@@ -384,119 +367,132 @@ bool BPatch_function::removeInstrumentation()
             points[pidx]->getCurrentSnippetsInt();
         for (unsigned all = 0; all < allSnippets.size(); all++) 
         {
-            if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
+            if (dynamic_cast<BPatch_process*>(addSpace)->getHybridAnalysis()->hybridOW()->
+                hasLoopInstrumentation(true,*this))
+            {
+                mal_printf("ERROR: Trying to remove active looop instrumentation\n");
+                removedAll = false;
+                assert(0);
+            }
+            else if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
                 removedAll = false;
             }
         } 
     }
 
-    // invalidate relocations
-    bool invalidationOK = func->relocationInvalidateAll(); 
-
-    return invalidationOK && removedAll;
+    if (useInsertionSet) {
+        bool dontcare=false;
+        if (!addSpace->finalizeInsertionSet(false,&dontcare)) {
+            removedAll = false;
+        }
+    }
+    mal_printf("removed instrumentation from func %lx\n", getBaseAddr());
+    return removedAll;
 }
 
-/* Gets unresolved instPoints from int_function and converts them to
+/* Gets unresolved instPoints from func_instance and converts them to
    BPatch_points, puts them in unresolvedCF */
 void BPatch_function::getUnresolvedControlTransfers
 (BPatch_Vector<BPatch_point *> &unresolvedCF/*output*/)
 {
-    const std::set<instPoint*> badCF = func->funcUnresolvedControlFlow();
-    std::set<instPoint*>::const_iterator bIter = badCF.begin();
-    while (bIter != badCF.end()) {
-        BPatch_procedureLocation ptType = 
-            BPatch_point::convertInstPointType_t((*bIter)->getPointType());
-        if (ptType == BPatch_locInstruction) {
-            // since this must be a control transfer, it's either an indirect
-            // jump or a direct jump
-            mal_printf("WARNING: ambiguous point type translation for "
-                       "insn at %lx, setting to locLongJump %s[%d]\n",
-                       (*bIter)->addr(), FILE__,__LINE__);
-                ptType = BPatch_locLongJump;
-        }
-        BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-            (this, const_cast<instPoint*>(*bIter), ptType);
-        unresolvedCF.push_back(curPoint);
-        bIter++;
-    }
+   const func_instance::BlockSet &blocks = func->unresolvedCF();
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+      // We want to instrument before the last instruction, since we can pull out
+      // the target at that point. Technically, we want to instrument the sink edge;
+      // but we can't do that yet. 
+      instPoint *point = instPoint::preInsn(func, *iter, (*iter)->last());
+      BPatch_procedureLocation ptType = 
+         BPatch_point::convertInstPointType_t(point->type());
+      if (ptType == BPatch_locInstruction) {
+         // since this must be a control transfer, it's either an indirect
+         // jump or a direct jump
+         mal_printf("WARNING: ambiguous point type translation for "
+                    "insn at %lx, setting to locLongJump %s[%d]\n",
+                    point->nextExecutedAddr(), FILE__,__LINE__);
+         ptType = BPatch_locLongJump;
+      }
+      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+         (this, point, ptType);
+      unresolvedCF.push_back(curPoint);
+   }
 }
 
-/* Gets abrupt end instPoints from int_function and converts them to
+/* Gets abrupt end instPoints from func_instance and converts them to
    BPatch_points, puts them in abruptEnds */
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-    const std::set<instPoint*> abruptPts = func->funcAbruptEnds();
-    std::set<instPoint*>::const_iterator pIter = abruptPts.begin();
-    while (pIter != abruptPts.end()) {
-        BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-            (this, const_cast<instPoint*>(*pIter), BPatch_locInstruction);
-             
-        abruptEnds.push_back(curPoint);
-        pIter++;
-    }
+  cerr << "getAbruptEndPoints\n";
+
+   const func_instance::BlockSet &blocks = func->abruptEnds();
+   for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+      // We just want to know if this code is executed, so use a "start of block" point.
+      instPoint *point = instPoint::blockEntry(func, *iter);
+      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+         (this, point, BPatch_locInstruction);
+      abruptEnds.push_back(curPoint);
+   }
 }
 
+// This one is interesting - get call points for everywhere that _calls_ us. 
+// That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 {
-    std::vector<instPoint*> intPoints; 
-    lowlevel_func()->getCallerPoints(intPoints);
-    std::vector<instPoint*>::iterator pIter = intPoints.begin();
-    while (pIter != intPoints.end()) {
-        callerPoints.push_back(addSpace->findOrCreateBPPoint(this,*pIter, 
-            BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
-        pIter++;
-    }
+  // TODO (wenbin) add PreCaller point and PostCaller point types
+   std::vector<block_instance *> callerBlocks;
+   func->getCallerBlocks(std::back_inserter(callerBlocks));
+   for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
+        iter != callerBlocks.end(); ++iter) {
+      instPoint *point = instPoint::preCall(func, *iter);
+      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+         (this, point, BPatch_locSubroutine);
+      callerPoints.push_back(curPoint);
+   }
 }
+
+void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
+  /*
+  const func_instance::BlockSet &blocks = func->callBlocks();
+  for (func_instance::BlockSet::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+*/
+  const PatchFunction::blockset &blocks = func->getCallBlocks();
+  for (PatchFunction::blockset::const_iterator iter = blocks.begin();
+       iter != blocks.end(); ++iter) {
+    block_instance* iblk = SCAST_BI(*iter);
+    instPoint *point = instPoint::preCall(func, iblk);
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point,
+                                                           BPatch_locSubroutine);
+    callPoints.push_back(curPoint);
+  }
+}
+
+void BPatch_function::getEntryPoints(BPatch_Vector<BPatch_point *> &entryPoints/*output*/) {
+   BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this,
+                                                          instPoint::funcEntry(func),
+                                                          BPatch_locEntry);
+   entryPoints.push_back(curPoint);
+}
+
+void BPatch_function::getExitPoints(BPatch_Vector<BPatch_point *> &exitPoints) {
+  func_instance::Points pts;
+  func->funcExitPoints(&pts);
+  for (func_instance::Points::iterator i = pts.begin(); i != pts.end(); i++) {
+    instPoint *point = *i;
+    BPatch_point *curPoint = addSpace->findOrCreateBPPoint(this, point, BPatch_locExit);
+    exitPoints.push_back(curPoint);
+  }
+}
+
 
 void BPatch_function::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
-    pdvector<instPoint*> curPoints = lowlevel_func()->funcEntries();
-    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             curPoints[pIdx], 
-             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
-    }
-    curPoints = lowlevel_func()->funcExits();
-    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             curPoints[pIdx], 
-             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
-    }
-    curPoints = lowlevel_func()->funcCalls();
-    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             curPoints[pIdx], 
-             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
-    }
-    curPoints = lowlevel_func()->funcArbitraryPoints();
-    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             curPoints[pIdx], 
-             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
-    }
-    std::set<instPoint*> pointSet = lowlevel_func()->funcUnresolvedControlFlow();
-    std::set<instPoint*>::iterator pIter = pointSet.begin();
-    while (pIter != pointSet.end()) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             *pIter, 
-             BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
-        pIter++;
-    }
-    pointSet = lowlevel_func()->funcAbruptEnds();
-    pIter = pointSet.begin();
-    while (pIter != pointSet.end()) {
-        bpPoints.push_back(addSpace->findOrCreateBPPoint
-            (this, 
-             *pIter, 
-             BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
-        pIter++;
-    }
+   getEntryPoints(bpPoints);
+   getExitPoints(bpPoints);
+   getCallPoints(bpPoints);
+   getUnresolvedControlTransfers(bpPoints);
+   getAbruptEndPoints(bpPoints);
+   // Not running with arbitrary for now...
 }
 
 // Sets the address in the structure at which the fault instruction's
@@ -568,66 +564,28 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
     if (!isInstrumentable())
        return NULL;
 
-    // function is generally uninstrumentable (with current technology)
-    if (func->funcEntries().size() == 0) return NULL;
-
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
-
-    if (loc == BPatch_entry || loc == BPatch_allLocations) {
-        const pdvector<instPoint *> entries = func->funcEntries();
-        for (unsigned foo = 0; foo < entries.size(); foo++)
-            result->push_back(addSpace->findOrCreateBPPoint(this, 
-                                                        entries[foo], 
-                                                        BPatch_entry));
-    }
-    switch (loc) {
-      case BPatch_entry: // already done
+    
+    switch(loc) {
+       case BPatch_entry:
+          getEntryPoints(*result);
           break;
-      case BPatch_allLocations:
-        {
-          const pdvector<instPoint *> &Rpoints = func->funcExits();
-          const pdvector<instPoint *> &Cpoints = func->funcCalls();
-          unsigned int c=0, r=0;
-          Address cAddr, rAddr;
-          while (c < Cpoints.size() || r < Rpoints.size()) {
-              if (c < Cpoints.size()) cAddr = Cpoints[c]->addr();
-              else                    cAddr = (Address)(-1);
-              if (r < Rpoints.size()) rAddr = Rpoints[r]->addr();
-              else                    rAddr = (Address)(-1);
-              if (cAddr <= rAddr) {
-                  result->push_back(addSpace->findOrCreateBPPoint(
-                                                              this, Cpoints[c], BPatch_subroutine));
-	      c++;
-	    } else {
-                 result->push_back(addSpace->findOrCreateBPPoint(
-                                   this, Rpoints[r], BPatch_exit));
-                 r++;
-	    }
-          }
+       case BPatch_exit:
+          getExitPoints(*result);
           break;
-        }
-      case BPatch_exit:
-        {
-          const pdvector<instPoint *> &points = func->funcExits();
-          for (unsigned i = 0; i < points.size(); i++) {
-             result->push_back(addSpace->findOrCreateBPPoint(
-                                             this, points[i], BPatch_exit));
-          }
+       case BPatch_subroutine:
+          getCallPoints(*result);
           break;
-        }
-      case BPatch_subroutine:
-        {
-          const pdvector<instPoint *> &points = func->funcCalls();
-          for (unsigned i = 0; i < points.size(); i++) {
-             result->push_back(addSpace->findOrCreateBPPoint(
-                                          this, points[i], BPatch_subroutine));
-          }
+       case BPatch_allLocations:
+          // Seems to be "entry, exit, call" rather than a true "all"
+          getEntryPoints(*result);
+          getExitPoints(*result);
+          getCallPoints(*result);
           break;
-        }
-      case BPatch_longJump:
-        /* XXX Not yet implemented */
-      default:
-        assert( 0 );
+       default:
+          // Not implemented
+          delete result;
+          return NULL;
     }
 
     return result;
@@ -656,30 +614,30 @@ struct compareByEntryAddr
 BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
         const BPatch_Set<BPatch_opCode>& ops)
 {
-  // function does not exist!
-  if (func == NULL) return NULL;
-
-    if (!mod->isValid()) return NULL;
-  // function is generally uninstrumentable (with current technology)
-  if (func->funcEntries().size() == 0) return NULL;
-
-  std::set<BPatch_basicBlock*, compareByEntryAddr> blocks;
-  std::set<BPatch_basicBlock*> unsorted_blocks;
-  getCFG()->getAllBasicBlocks(unsorted_blocks);
-  std::copy(unsorted_blocks.begin(), unsorted_blocks.end(), std::inserter(blocks, blocks.begin()));
-  BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
-  for(std::set<BPatch_basicBlock*, compareByEntryAddr>::iterator curBlk = blocks.begin();
-      curBlk != blocks.end();
-     curBlk++)
-  {
+   // function does not exist!
+   if (func == NULL) return NULL;
+   
+   if (!mod->isValid()) return NULL;
+   // function is generally uninstrumentable (with current technology)
+   if (!isInstrumentable()) return NULL;
+   
+   std::set<BPatch_basicBlock*, compareByEntryAddr> blocks;
+   std::set<BPatch_basicBlock*> unsorted_blocks;
+   getCFG()->getAllBasicBlocks(unsorted_blocks);
+   std::copy(unsorted_blocks.begin(), unsorted_blocks.end(), std::inserter(blocks, blocks.begin()));
+   BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
+   for(std::set<BPatch_basicBlock*, compareByEntryAddr>::iterator curBlk = blocks.begin();
+       curBlk != blocks.end();
+       curBlk++)
+   {
       BPatch_Vector<BPatch_point*>* tmp = (*curBlk)->findPoint(ops);
       for (unsigned int i = 0; i < tmp->size(); i++)
       {
-          ret->push_back((*tmp)[i]);
+         ret->push_back((*tmp)[i]);
       } 
       
-  }
-  return ret;
+   }
+   return ret;
 }
 
 /*
@@ -753,7 +711,7 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
         cfg = NULL;
         fprintf(stderr, "CFG is NULL for func %s at %lx %s[%d]\n", 
                 lowlevel_func()->symTabName().c_str(),
-                func->getAddress(),FILE__,__LINE__);
+                func->addr(),FILE__,__LINE__);
         return NULL;
     }
     return cfg;
@@ -949,45 +907,26 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
 
 } /* end getFunctionRef() */
 
-#ifdef IBM_BPATCH_COMPAT
-
-bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
-  char name[256];
-  unsigned int length = 255;
-  return getLineAndFileInt(start, end, name, length);
-}
-
-void *BPatch_function::getAddressInt() { return getBaseAddr(); }
-    
 bool BPatch_function::getAddressRangeInt(void * &start, void * &end) {
-	start = getBaseAddr();
-	unsigned long temp = (unsigned long) start;
-	end = (void *) (temp + getSize());
-
-	return true;
+   Address s, e;
+   bool ret = getAddressRange(s, e);
+   start = (void *)s;
+   end = (void *)e;
+   return ret;
 }
 
-//BPatch_type *BPatch_function::returnType() { return retType; }
-void BPatch_function::getIncPointsInt(BPatch_Vector<BPatch_point *> &vect) 
-{
-    BPatch_Vector<BPatch_point *> *v1 = findPoint(BPatch_allLocations);
-    if (v1) {
-	for (unsigned int i=0; i < v1->size(); i++) {
-	    vect.push_back((*v1)[i]);
-	}
-    }
+bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Address &end) {
+   start = func->addr();
+   
+   // end is a little tougher
+   end = func->addr();
+   for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+        iter != func->getAllBlocks().end(); ++iter) {
+      end = (end < (*iter)->end()) ? (*iter)->end() : end;
+   }
+
+   return true;
 }
-
-int	BPatch_function::getMangledNameLenInt() { return 1024; }
-
-void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
-  points.clear();
-  abort();
-  return;
-};
-
-
-#endif
 
 /*
  * BPatch_function::isInstrumentable
@@ -996,7 +935,7 @@ void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
  */
 bool BPatch_function::isInstrumentableInt()
 {
-     return ((int_function *)func)->isInstrumentable();
+     return ((func_instance *)func)->isInstrumentable();
 }
 
 // Return TRUE if the function resides in a shared lib, FALSE otherwise
@@ -1044,33 +983,21 @@ const char *BPatch_function::addNameInt(const char *name,
     return name;
 }
 
-unsigned int BPatch_function::getContiguousSizeInt() {
-   Address start, end;
-   start = func->getAddress();
-   end = start + func->getSize_NP();
-    
-    bblInstance* block = func->findBlockInstanceByAddr(start);
-    while (block != NULL) {
-       end = block->firstInsnAddr() + block->getSize();
-       block = func->findBlockInstanceByAddr(end);
-    }
-    return end - start;
-}
-
 bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
     assert(func);
     assert(addSpace);
 
-    pdvector<int_function *> overlappingIntFuncs;
-    if (!func->getOverlappingFuncs(overlappingIntFuncs)) {
+    std::set<func_instance *> overlappingIntFuncs;
+    if (!func->getSharingFuncs(overlappingIntFuncs)) {
         // No overlapping functions
         return false;
     }
 
-    // We now need to map from int_functions to BPatch_functions
-    for (unsigned i = 0; i < overlappingIntFuncs.size(); i++) {
-        funcs.push_back(addSpace->findOrCreateBPFunc(overlappingIntFuncs[i],
-                                                 mod));
+    // We now need to map from func_instances to BPatch_functions
+    for (std::set<func_instance *>::iterator iter = overlappingIntFuncs.begin();
+         iter != overlappingIntFuncs.end(); ++iter) {
+       funcs.push_back(addSpace->findOrCreateBPFunc(*iter,
+                                                     mod));
     }
 
     return true;
@@ -1082,3 +1009,24 @@ ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
   return func->ifunc();
 }
 
+void BPatch_function::relocateFunction()
+{
+     lowlevel_func()->proc()->addModifiedFunction(lowlevel_func());
+     if (getAddSpace()->pendingInsertions == NULL) {
+        // Trigger it now
+        bool tmp;
+        getAddSpace()->finalizeInsertionSet(false, &tmp);
+     }
+}
+
+bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
+{
+   std::set<func_instance *> ishared;
+   if (!func->getSharingFuncs(ishared)) return false;
+   for (std::set<func_instance *>::iterator iter = ishared.begin();
+        iter != ishared.end(); ++iter) {
+      sharedFuncs.insert(getAddSpace()->findOrCreateBPFunc(*iter,
+                                                           getModule()));
+   }
+   return true;
+}

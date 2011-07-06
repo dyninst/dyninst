@@ -14,7 +14,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil patchAPI
 DynC_API = ready common dyninstAPI dynC_API  dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
@@ -49,7 +49,7 @@ fullSystem += parseAPI
 fullSystem += dynC_API
 Build_list += dynC_API
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI
 allSubdirs	= $(allCoreSubdirs) parseThat $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
@@ -84,7 +84,8 @@ clean distclean:
 	done
 
 install:	ready world
-	+@for subsystem in $(fullSystem); do 			\
+	+@for subsystem in $(fullSystem); do 
+			\
 		if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 			$(MAKE) -C $$subsystem/$(PLATFORM) install;		\
 		elif [ -f $$subsytem/Makefile ]; then 			\
@@ -211,7 +212,7 @@ $(coreSubdirs_explicitInstall): install_%: %
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 stackwalk: symtabAPI dynutil
-dyninstAPI: symtabAPI instructionAPI parseAPI common dynutil
+dyninstAPI: symtabAPI instructionAPI parseAPI common dynutil patchAPI
 instructionAPI: common dynutil
 symtabAPI dyninstAPI: dynutil
 dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI
@@ -220,6 +221,7 @@ testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
 parseAPI: symtabAPI instructionAPI common dynutil
+patchAPI: parseAPI
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 

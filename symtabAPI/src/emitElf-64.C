@@ -1667,6 +1667,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
       max_index = allDynSymbols[i]->getIndex();
   }
   for(i=0; i<allDynSymbols.size(); i++) {
+     
     if (allDynSymbols[i]->getIndex() == -1) {
       max_index++;
       allDynSymbols[i]->setIndex(max_index);
@@ -1715,7 +1716,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     symbolNamesLength += allSymSymbols[i]->getName().length()+1;
   }
   for(i=0; i<allDynSymbols.size();i++) {
-    createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
+     createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
     dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
     dynsymVector.push_back(allDynSymbols[i]);
   }

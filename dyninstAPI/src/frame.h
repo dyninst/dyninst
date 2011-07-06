@@ -41,18 +41,25 @@
 class dyn_thread;
 class process;
 class dyn_lwp;
-class codeRange;
+
 class instPoint;
 class miniTramp;
-class int_function;
-
-typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_iRPC, FRAME_unknown } frameType_t;
+class func_instance;
+class baseTramp;
 
 class Frame {
   friend class dyn_lwp;
   friend class dyn_thread;
  public:
-  
+
+  typedef enum { unset, 
+		 instrumentation, 
+		 signalhandler, 
+		 normal, 
+		 syscall, 
+		 iRPC, 
+		 unknown } frameType_t;
+
   // default ctor (zero frame)
   Frame();
 
@@ -73,7 +80,16 @@ class Frame {
 
  Frame(const Frame &f) :
   frameType_(f.frameType_),
-  uppermost_(f.uppermost_),
+     eax(f.eax),
+     ebx(f.ebx),
+     ecx(f.ecx),
+     edx(f.edx),
+     esp(f.esp),
+     ebp(f.ebp),
+     esi(f.esi),
+     edi(f.edi),
+	 eflags(f.eflags),
+     uppermost_(f.uppermost_),
       pc_(f.pc_),
       fp_(f.fp_),
       sp_(f.sp_),
@@ -81,11 +97,19 @@ class Frame {
       proc_(f.proc_),
       thread_(f.thread_),
       lwp_(f.lwp_),
-      range_(f.range_),
-      pcAddr_(f.pcAddr_) {};
+     pcAddr_(f.pcAddr_) {};
 
   const Frame &operator=(const Frame &f) {
       frameType_ = f.frameType_;
+      eax = f.eax;
+      ebx = f.ebx;
+      ecx = f.ecx;
+      edx = f.edx;
+      esp = f.esp;
+      ebp = f.ebp;
+      esi = f.esi;
+      edi = f.edi;
+	  eflags = f.eflags;
       uppermost_ = f.uppermost_;
       pc_ = f.pc_;
       fp_ = f.fp_;
@@ -94,9 +118,8 @@ class Frame {
       proc_ = f.proc_;
       thread_ = f.thread_;
       lwp_ = f.lwp_;
-      range_ = f.range_;
       pcAddr_ = f.pcAddr_;
-      return *this;
+	  return *this;
   }
   
   bool operator==(const Frame &F) {
@@ -120,24 +143,19 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
+
+
+  instPoint *getPoint();
+  baseTramp *getBaseTramp();
+  func_instance *getFunc();
+
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   bool     isSyscall();
   Address  getPClocation() { return pcAddr_; }
 
-  instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
-  int_function *getFunc(); // As above
-
-  codeRange *getRange();
-  void setRange (codeRange *range); 
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
-
   bool setPC(Address newpc);
-
-#if defined(arch_power)
-  // We store the actual return addr in a word on the stack
-  bool setRealReturnAddr(Address retaddr);
-#endif
 
   // check for zero frame
   bool isLastFrame() const;
@@ -150,6 +168,16 @@ class Frame {
   // Set the frameType_ member
   void calcFrameType();
   
+  Address eax;
+  Address ebx;
+  Address ecx;
+  Address edx;
+  Address esp;
+  Address ebp;
+  Address esi;
+  Address edi;
+  Address eflags;
+
  private:
   bool			uppermost_;
   Address		pc_;
@@ -159,10 +187,8 @@ class Frame {
   process *		proc_;				// We're only valid for a single process anyway
   dyn_thread *	thread_;			// user-level thread
   dyn_lwp *		lwp_;				// kernel-level thread (LWP)
-  codeRange *	range_;				// If we've done a by-address lookup, keep it here
 
-  Address		pcAddr_;
-  
+  Address		pcAddr_;  
 };
 
 class int_stackwalk {

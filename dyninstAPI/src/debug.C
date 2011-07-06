@@ -219,6 +219,8 @@ int dyn_debug_stackwalk = 0;
 int dyn_debug_dbi = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_springboard = 0;
+int dyn_debug_sensitivity = 0;
 int dyn_debug_dyn_unw = 0;
 int dyn_debug_dyn_dbi = 0;
 int dyn_debug_mutex = 0;
@@ -236,16 +238,23 @@ int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
-int dyn_debug_relocation = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
+  static bool init = false;
+  if (init) return true;
+  init = true;
+
   char *p;
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
+    fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
+    dyn_debug_springboard = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_SIGNAL"))) {
     fprintf(stderr, "Enabling DyninstAPI signal debug\n");
@@ -298,6 +307,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_RELOCATION"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_SENSITIVITY"))) {
+    fprintf(stderr, "Enabling DyninstAPI sensitivity debug\n");
+    dyn_debug_sensitivity = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
@@ -365,10 +378,6 @@ bool init_debug() {
      fprintf(stderr, "Enable DyninstAPI crash debugging\n");
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
-  }
-  if ((p=getenv("DYNINST_DEBUG_RELOCATION"))) {
-    fprintf(stderr, "Enabling DyninstAPI relocation debugging\n");
-    dyn_debug_relocation = 1;
   }
 
   debugPrintLock = new eventLock();
@@ -762,7 +771,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (!dyn_debug_write) return 0;
+  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

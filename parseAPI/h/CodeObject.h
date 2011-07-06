@@ -52,8 +52,11 @@ namespace ParseAPI {
 
 class Parser;   // internals
 class ParseCallback;
+class ParseCallbackManager;
+class CFGModifier;
 
 class CodeObject {
+   friend class CFGModifier;
  public:
     PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
     typedef ContainerWrapper<
@@ -63,9 +66,9 @@ class CodeObject {
     > funclist;
 
     PARSER_EXPORT CodeObject(CodeSource * cs, 
-               CFGFactory * fact = NULL, 
-               ParseCallback * cb = NULL,
-               bool defensiveMode = false);
+                             CFGFactory * fact = NULL, 
+                             ParseCallback * cb = NULL,
+                             bool defensiveMode = false);
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/
@@ -76,10 +79,18 @@ class CodeObject {
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
 
-    // adds new edges to parsed functions
-    PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
-                                      vector<Address> & targets, 
-                                      vector<EdgeTypeEnum> & edge_types);
+    // `even-more-exact-target' parsing; optinally recursive
+    PARSER_EXPORT void parse(CodeRegion *cr, Address target, bool recursive);
+
+    // parses new edges in already parsed functions
+	struct NewEdgeToParse {
+		Block *source;
+		Address target;
+		EdgeTypeEnum edge_type;
+		NewEdgeToParse(Block *a, Address b, EdgeTypeEnum c) : source(a), target(b), edge_type(c) {};
+	};
+
+    PARSER_EXPORT bool parseNewEdges( vector<NewEdgeToParse> & worklist ); 
 
     // `speculative' parsing
     PARSER_EXPORT void parseGaps(CodeRegion *cr);
@@ -101,12 +112,23 @@ class CodeObject {
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
+    PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 
     /* Misc */
     PARSER_EXPORT CodeSource * cs() const { return _cs; }
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
-    PARSER_EXPORT void deleteFunc(Function *);
+
+    // This is for callbacks; it is often much more efficient to 
+    // batch callbacks and deliver them all at once than one at a time. 
+    // Particularly if we're deleting code, it's better to get
+    // "The following blocks were deleted" than "block 1 was deleted;
+    // block 2 lost an edge; block 2 was deleted..."
+
+    PARSER_EXPORT void startCallbackBatch();
+    PARSER_EXPORT void finishCallbackBatch();
+    PARSER_EXPORT void registerCallback(ParseCallback *cb);
+    PARSER_EXPORT void unregisterCallback(ParseCallback *cb);
 
     /*
      * Calling finalize() forces completion of all on-demand
@@ -114,29 +136,36 @@ class CodeObject {
      */
     PARSER_EXPORT void finalize();
 
+    /*
+     * Deletion support
+     */
+    PARSER_EXPORT void destroy(Edge *);
+    PARSER_EXPORT void destroy(Block *);
+    PARSER_EXPORT void destroy(Function *);
+
  private:
     void process_hints();
     void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
-    // allows Function to (re-)finalize
-    friend void Function::deleteBlocks(vector<Block*> &, Block *);
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
     friend void Function::finalize();
+    // allows Function entry blocks to be moved to new regions
+    friend void Function::setEntryBlock(Block *);
 
- private:
+  private:
     CodeSource * _cs;
     CFGFactory * _fact;
-    ParseCallback * _pcb;
+    ParseCallbackManager * _pcb;
 
     Parser * parser; // parser implementation
 
     bool owns_factory;
-    bool owns_pcb;
     bool defensive;
     funclist flist;
-
 };
+
+
 
 }//namespace ParseAPI
 }//namespace Dyninst

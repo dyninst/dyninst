@@ -190,7 +190,7 @@ class Object : public AObject {
     Object (const Object &);
     Object&   operator= (const Object &);
     Object(){}	
-    Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
+    Object(MappedFile *, MappedFile *, bool, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
     Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
           void (*)(const char *) = log_msg, Offset off = 0);
     Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	

@@ -113,9 +113,19 @@ namespace Dyninst
 	}
       }
     }
-    INSTRUCTION_EXPORT std::string Operand::format() const
+    INSTRUCTION_EXPORT std::string Operand::format(Architecture arch, Address addr) const
     {
       if(!op_value) return "ERROR: format() called on empty operand!";
+      if (addr) {
+          Expression::Ptr thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(arch)));
+          op_value->bind(thePC.get(), Result(u32, addr));
+          Result res = op_value->eval();
+          if (res.defined) {
+              stringstream ret;
+              ret << hex << res.convert<unsigned>() << dec;
+              return ret.str();
+          }
+      }
       return op_value->format();
     }
     INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const

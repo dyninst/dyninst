@@ -35,8 +35,8 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_snippet.h" // snippetOrder
 #include "BPatch_Set.h"
+#include "BPatch_enums.h"
 
 class InstrucIter;
 class process;
@@ -48,23 +48,16 @@ class BPatch_function;
 class BPatch_memoryAccess;
 class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
+class BPatch_point;
 class BPatch_process;
 class BPatch_frame;
 class BPatch_edge;
+class BPatch_snippet;
+class BPatch_addressSpace;
+class AddressSpace;
+class BPatch_register;
 
 #include "Instruction.h"
-
-
-
-/*
- * Used to specify whether a snippet is to be called before the instructions
- * at the point where it is inserted, or after.
- */
-typedef enum {
-    BPatch_callBefore,
-    BPatch_callAfter,
-    BPatch_callUnset
-} BPatch_callWhen;
 
 /*
  * Provide these definitions for backwards compatability.
@@ -82,42 +75,6 @@ typedef enum {
 #define BPatch_locBasicBlockLoopEntry BPatch_locLoopEntry
 #define BPatch_locBasicBlockLoopExit BPatch_locLoopExit
 #endif
-/*
- * Used with BPatch_function::findPoint to specify which of the possible
- * instrumentation points within a procedure should be returned.
- */
-typedef enum eBPatch_procedureLocation {
-    BPatch_locEntry,
-    BPatch_locExit,
-    BPatch_locSubroutine,
-    BPatch_locLongJump,
-    BPatch_locAllLocations,
-    BPatch_locInstruction,
-    BPatch_locUnknownLocation,
-    BPatch_locSourceBlockEntry,		// not yet used
-    BPatch_locSourceBlockExit,		// not yet used
-    BPatch_locSourceLoopEntry,		// not yet used
-    BPatch_locSourceLoopExit,		// not yet used
-    BPatch_locBasicBlockEntry,		// not yet used
-    BPatch_locBasicBlockExit,		// not yet used
-    BPatch_locSourceLoop,		// not yet used
-    BPatch_locLoopEntry,	
-    BPatch_locLoopExit,
-    BPatch_locLoopStartIter,
-    BPatch_locLoopEndIter,
-    BPatch_locVarInitStart,		// not yet used
-    BPatch_locVarInitEnd,		// not yet used
-    BPatch_locStatement		// not yet used
-} BPatch_procedureLocation;
-
-
-/* VG (09/07/01) Created */
-
-typedef enum BPatch_opCode {
-  BPatch_opLoad,
-  BPatch_opStore,
-  BPatch_opPrefetch
-} BPatch_opCode;
 
 /* VG(09/17/01) Added memory access pointer */
 
@@ -143,28 +100,27 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class process;
     friend class BPatch_edge;
     friend class BPatch_snippet;
+
+private:
     
-    static BPatch_point* createInstructionInstPoint(//BPatch_process *proc,
-                                                    BPatch_addressSpace *addSpace,
-						    void*address,
-                                                    BPatch_function* bpf = NULL);
-    // Create a set of points, all that match a given op in the given instruciter.
-
-    static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
-                                                    InstrucIter &ii,
-                                                    BPatch_function *bpf);
-
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
     BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
+
+    // We have a disconnect between how BPatch represents a point
+    // (e.g., an instruction) and how the internals represent a point
+    // (e.g., pre-instruction). We handle this here with a secondary
+    // instPoint that is defined to be the "after" equivalent. 
     instPoint	*point;
+    instPoint   *secondaryPoint;
 
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
     BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
-                 instPoint *_point, BPatch_procedureLocation _pointType,
+                 instPoint *_point, instPoint *_secondary,
+                 BPatch_procedureLocation _pointType,
                  AddressSpace *as);
 
     // Edge constructor...
@@ -188,36 +144,47 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;
 
-    instPoint * getPoint() {return point;}
-
-    BPatch_Vector<BPatchSnippetHandle *> preSnippets;
-    BPatch_Vector<BPatchSnippetHandle *> postSnippets;
-    BPatch_Vector<BPatchSnippetHandle *> allSnippets;
+    instPoint *getPoint() {return point;}
+    instPoint *getPoint(BPatch_callWhen when);
 
     // If we're edge inst
     BPatch_edge *edge_;
 
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
-    bool deleteSnippet(BPatchSnippetHandle* handle);
+    bool removeSnippet(BPatchSnippetHandle* handle);
 
     void attachMemAcc(BPatch_memoryAccess *memacc);
 
     AddressSpace *getAS();
+
+private:
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4251) 
+#endif
+    // Disable warning that these vectors cannot be used externally, 
+    // which is irrelevant since the vectors are private
+    BPatch_Vector<BPatchSnippetHandle *> preSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> postSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> allSnippets;
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
 
 public:
     //~BPatch_point() { delete memacc; };
 
     // Internal functions, DO NOT USE.
     // Hack to get edge information. DO NOT USE.
-    const BPatch_edge *edge() const { return edge_; }
+    BPatch_edge *edge() const { return edge_; }
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
     instPoint *llpoint() { return point; } 
     bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
-    void setResolved();
-    Dyninst::Address getSavedTarget();
+    bool getSavedTargets(std::vector<Dyninst::Address> & targs);
+    bool patchPostCallArea();
     // End internal functions
 
     //Added for DynC...

@@ -33,12 +33,11 @@
 #define _BPatch_binaryEdit_h_
 
 
-#include "BPatch_snippet.h"
+//#include "BPatch_snippet.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_image.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_callbacks.h"
@@ -57,9 +56,10 @@ class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
+class BPatch_point;
 class BPatch_funcMap;
 class BPatch_instpMap;
-class int_function;
+class func_instance;
 class rpcMgr;
 struct batchInsertionRecord;
 
@@ -91,7 +91,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool replaceTrapHandler();
     
 
-    protected:
+    //        protected:
+ public:
     void getAS(std::vector<AddressSpace *> &as);
 
     public:

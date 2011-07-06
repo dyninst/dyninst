@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -40,7 +40,7 @@
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
-#include "function.h" // int_function
+#include "function.h" // func_instance
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
@@ -64,6 +64,11 @@
 #include "ast.h"
 
 #include "sys/stat.h"
+#include "mapped_object.h"
+#include "Relocation/DynAddrSpace.h"
+
+using Dyninst::PatchAPI::DynAddrSpacePtr;
+using Dyninst::PatchAPI::DynAddrSpace;
 
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit
@@ -84,30 +89,32 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    creation_error(false)
 {
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
- 
+
   pdvector<std::string> argv_vec;
   pdvector<std::string> envp_vec;
-  
+
   std::string directoryName = "";
 
-  startup_printf("[%s:%u] - Opening original file %s\n", 
+  startup_printf("[%s:%u] - Opening original file %s\n",
                  FILE__, __LINE__, path);
   origBinEdit = BinaryEdit::openFile(std::string(path));
+
   if (!origBinEdit){
-     startup_printf("[%s:%u] - Creation error opening %s\n", 
+     startup_printf("[%s:%u] - Creation error opening %s\n",
                     FILE__, __LINE__, path);
      creation_error = true;
      return;
   }
   llBinEdits[path] = origBinEdit;
-  
+
   if(openDependencies) {
-    origBinEdit->getAllDependencies(llBinEdits); 
+    origBinEdit->getAllDependencies(llBinEdits);
   }
+  std::map<std::string, BinaryEdit*>::iterator i, j;
 
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
-	
+
   // Load the RT library and create the collection of BinaryEdits that represent it
   std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
   std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
@@ -120,8 +127,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
       }
       rtLib.push_back(rtlibs_it->second);
       // Ensure that the correct type of library is loaded
-      if(    rtlibs_it->second->getMappedObject()->isSharedLib() 
-          && origBinEdit->getMappedObject()->isStaticExec() ) 
+      if(    rtlibs_it->second->getMappedObject()->isSharedLib()
+          && origBinEdit->getMappedObject()->isStaticExec() )
       {
           std::string msg = std::string("RT Library is a shared library ") +
               std::string("when it should be a static library");
@@ -139,14 +146,14 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
       }
   }
 
-  std::map<std::string, BinaryEdit*>::iterator i, j;
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      (*i).second->setupRTLibrary(rtLib);
   }
 
+
   int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
   assert(masterTrampGuard);
-  
+
   for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      BinaryEdit *llBinEdit = (*i).second;
      llBinEdit->registerFunctionCallback(createBPFuncCB);
@@ -174,9 +181,9 @@ BPatch_image * BPatch_binaryEdit::getImageInt() {
 
 void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
 {
-   if (image) 
+   if (image)
       delete image;
-   
+
    image = NULL;
 
    if (pendingInsertions) {
@@ -193,7 +200,7 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
   }
   llBinEdits.clear();
   origBinEdit = NULL;
-  
+
   assert(BPatch::bpatch != NULL);
 }
 
@@ -202,130 +209,53 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     assert(pendingInsertions);
 
     // This should be a parameter...
-    bool atomic = false;
-   
+    //bool atomic = false;
+
     // Define up here so we don't have gotos causing issues
-    std::set<int_function *> instrumentedFunctions;
-    
+    std::set<func_instance *> instrumentedFunctions;
+
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
-    bool err = false;
+    //bool err = false;
 
-    for (unsigned i = 0; i < pendingInsertions->size(); i++) {
-        batchInsertionRecord *&bir = (*pendingInsertions)[i];
-        assert(bir);
+    // Iterate over our AddressSpaces, triggering relocation
+    // in each one.
+    std::vector<AddressSpace *> as;
+    getAS(as);
+    bool ret = true;
 
-        // Don't handle thread inst yet...
-        assert(!bir->thread_);
-
-        if (!bir->points_.size()) {
-          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
-          fprintf(stderr, "%s[%d]:  failing to addInst\n", FILE__, __LINE__);
-        }
-
-        for (unsigned j = 0; j < bir->points_.size(); j++) {
-            BPatch_point *bppoint = bir->points_[j];
-            instPoint *point = bppoint->point;
-            callWhen when = bir->when_[j];
-            
-            miniTramp *mini = point->addInst(bir->snip.ast_wrapper,
-                                             when,
-                                             bir->order_,
-                                             bir->trampRecursive_,
-                                             false);
-            if (mini) {
-                workDone.push_back(mini);
-                // Add to snippet handle
-                bir->handle_->addMiniTramp(mini);
-            }
-            else {
-                err = true;
-                if (atomic) break;
-            }
-        }
-        if (atomic && err)
-            break;
+    /* PatchAPI stuffs */
+    if (as.size() > 0) {
+          ret = AddressSpace::patch(as[0]);
     }
-    
-   if (atomic && err) goto cleanup;
+    /* end of PatchAPI stuffs */
 
-   // Having inserted the requests, we hand things off to functions to 
-   // actually do work. First, develop a list of unique functions. 
 
-   for (unsigned i = 0; i < pendingInsertions->size(); i++) {
-       batchInsertionRecord *&bir = (*pendingInsertions)[i];
-       for (unsigned j = 0; j < bir->points_.size(); j++) {
-           BPatch_point *bppoint = bir->points_[j];
-           instPoint *point = bppoint->point;
-           point->optimizeBaseTramps(bir->when_[j]);
-
-           instrumentedFunctions.insert(point->func());
-       }
-   }
-
-   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
-        funcIter != instrumentedFunctions.end();
-        funcIter++) {
-
-       pdvector<instPoint *> failedInstPoints;
-       (*funcIter)->performInstrumentation(atomic,
-                                           failedInstPoints); 
-       if (failedInstPoints.size() && atomic) {
-           err = true;
-           goto cleanup;
-       }
-   }
-
-   
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.
    replaceTrapHandler();
 
-
-   if (atomic && err) 
-      goto cleanup;
-
    for(std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
-       i != llBinEdits.end(); i++) 
+       i != llBinEdits.end(); i++)
    {
       (*i).second->trapMapping.flush();
    }
 
-  cleanup:
-    bool ret = true;
 
-    if (atomic && err) {
-        // Something failed...   Cleanup...
-        for (unsigned k = 0; k < workDone.size(); k++) {
-            workDone[k]->uninstrument();
-        }
-        ret = false;
-    }
+   if( !origBinEdit->writeFile(outFile) ) return false;
 
-    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
-        batchInsertionRecord *&bir = (*pendingInsertions)[i];
-        assert(bir);
-        delete(bir);
-    }
+   std::map<std::string, BinaryEdit *>::iterator curBinEdit;
+   for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
+     BinaryEdit *bin = (*curBinEdit).second;
+     if (bin == origBinEdit)
+       continue;
+     if (!bin->isDirty())
+       continue;
 
-    pendingInsertions->clear();
-
-    if( !origBinEdit->writeFile(outFile) ) return false;
-
-    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
-    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
-       BinaryEdit *bin = (*curBinEdit).second;
-       if (bin == origBinEdit)
-          continue;
-       if (!bin->isDirty())
-          continue;
-       
-       std::string newname = bin->getMappedObject()->fileName();
-       if( !bin->writeFile(newname) ) return false;
-    }
-
-
-    return ret;
+     std::string newname = bin->getMappedObject()->fileName();
+     if( !bin->writeFile(newname) ) return false;
+   }
+   return ret;
 }
 
 bool BPatch_binaryEdit::getType()
@@ -347,54 +277,62 @@ void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
 
 /*
  * BPatch_addressSpace::beginInsertionSet
- * 
+ *
  * Starts a batch insertion set; that is, all calls to insertSnippet until
  * finalizeInsertionSet are delayed.
  *
  */
 
-void BPatch_binaryEdit::beginInsertionSetInt() 
+void BPatch_binaryEdit::beginInsertionSetInt()
 {
     return;
 }
 
 
-bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modified*/) 
+bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modified*/)
 {
     return true;
 }
 
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-   std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
-   std::map<std::string, BinaryEdit*>::iterator lib_it;
-   for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
-      std::pair<std::string, BinaryEdit*> lib = *lib_it;
+  std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
+  std::map<std::string, BinaryEdit*>::iterator lib_it;
+  for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
+    std::pair<std::string, BinaryEdit*> lib = *lib_it;
 
-      if(!lib.second)
-        return false;
+    if(!lib.second)
+      return false;
 
-      llBinEdits.insert(lib);
-      
-      int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-      assert(masterTrampGuard);
-      
-      lib.second->registerFunctionCallback(createBPFuncCB);
-      lib.second->registerInstPointCallback(createBPPointCB);
-      lib.second->set_up_ptr(this);
-      lib.second->setupRTLibrary(rtLib);
-      lib.second->setTrampGuard(masterTrampGuard);
-      lib.second->setMultiThreadCapable(isMultiThreadCapable());
-      /* Do we need to do this? 
-      std::map<std::string, BinaryEdit*>::iterator j;
-      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
-            lib.second->addSibling((*j).second);
-      }
-      */
+    llBinEdits.insert(lib);
+    /* PatchAPI stuffs */
+    mapped_object* plib = lib.second->getAOut();
+    assert(plib);
+    DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as())->loadLibrary(plib);
+    lib.second->setMgr(origBinEdit->mgr());
+    lib.second->setPatcher(origBinEdit->patcher());
+    /* End of PatchAPi stuffs */
+
+    int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+    assert(masterTrampGuard);
+
+    lib.second->registerFunctionCallback(createBPFuncCB);
+    lib.second->registerInstPointCallback(createBPPointCB);
+    lib.second->set_up_ptr(this);
+    lib.second->setupRTLibrary(rtLib);
+    lib.second->setTrampGuard(masterTrampGuard);
+    lib.second->setMultiThreadCapable(isMultiThreadCapable());
+    /* Do we need to do this?
+       std::map<std::string, BinaryEdit*>::iterator j;
+       for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
+       lib.second->addSibling((*j).second);
+       }
+    */
     if (deps)
-       if( !lib.second->getAllDependencies(llBinEdits) ) return false;
-   }
-       
+      if( !lib.second->getAllDependencies(llBinEdits) ) return false;
+
+  }
+
   return true;
 }
 
@@ -443,5 +381,5 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
     }
     return success;
 }
-    
+
 

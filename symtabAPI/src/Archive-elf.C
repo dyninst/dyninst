@@ -132,7 +132,7 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
         return false;
     }
 
-    bool success = Symtab::openFile(img, rawMember, rawSize);
+    bool success = Symtab::openFile(img, (void *)rawMember, rawSize, member->getName());
     if( !success ) {
         serr = Obj_Parsing;
         errMsg = "problem creating underlying Symtab object";

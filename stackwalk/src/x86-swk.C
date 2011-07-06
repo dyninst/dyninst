@@ -85,7 +85,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
         break;      
      default:
         sw_printf("[%s:%u] - Request for unsupported register %s\n",
-                  __FILE__, __LINE__, reg.name());
+                  __FILE__, __LINE__, reg.name().c_str());
         setLastError(err_badparam, "Unknown register passed in reg field");
   }
 

@@ -39,7 +39,7 @@
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "codeRange.h"
-#include "BPatch_hybridAnalysis.h"
+#include "BPatch_enums.h"
 
 class SignalHandler;
 class EventGate;

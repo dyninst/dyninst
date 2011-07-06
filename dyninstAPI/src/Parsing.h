@@ -51,7 +51,7 @@ class image;
 class DynCFGFactory : public ParseAPI::CFGFactory {
   public:
     DynCFGFactory(image * im);
-    ~DynCFGFactory();
+    ~DynCFGFactory() {};
     
     ParseAPI::Function * mkfunc(Address addr, FuncSource src, std::string name,
             ParseAPI::CodeObject * obj, ParseAPI::CodeRegion * reg,
@@ -103,21 +103,36 @@ class DynCFGFactory : public ParseAPI::CFGFactory {
 class image;
 class DynParseCallback : public ParseAPI::ParseCallback {
  public:
-  DynParseCallback(image * img) : _img(img) { }
+  DynParseCallback(image * img) : ParseAPI::ParseCallback(), _img(img) { }
   ~DynParseCallback() { }
 
+  protected:
   // defensive and exploratory mode callbacks
-  void unresolved_cf(ParseAPI::Function*,Address,default_details*);
-  void abruptEnd_cf(Address,default_details*);
-  void newfunction_retstatus(ParseAPI::Function*);
-  void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
-  void patch_jump_neg1(Address);
+  virtual void abruptEnd_cf(Address,ParseAPI::Block *,default_details*);
+  virtual void newfunction_retstatus(ParseAPI::Function*);
+  virtual void patch_nop_jump(Address);
+  virtual bool hasWeirdInsns(const ParseAPI::Function*) const;
+  virtual void foundWeirdInsns(ParseAPI::Function*);
+
   // other callbacks
-  void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
-  void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
+  virtual void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
+  virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
+  virtual bool updateCodeBytes(Address target); // updates if needed
+  virtual bool loadAddr(Address absoluteAddr, Address & loadAddr);
+
+  virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *);
+  virtual void destroy_cb(ParseAPI::Block *);
+  virtual void destroy_cb(ParseAPI::Edge *);
+  virtual void destroy_cb(ParseAPI::Function *);
+
+  virtual void remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
+  virtual void add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t);
+  
+  virtual void remove_block_cb(ParseAPI::Function *, ParseAPI::Block *);
+  virtual void add_block_cb(ParseAPI::Function *, ParseAPI::Block *);
 
 #if defined(arch_power)
-  void instruction_cb(ParseAPI::Function*,Address,insn_details*);
+  void instruction_cb(ParseAPI::Function*,ParseAPI::Block *,Address,insn_details*);
 #endif
  private:
     image * _img;

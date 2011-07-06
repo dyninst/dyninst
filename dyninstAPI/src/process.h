@@ -58,7 +58,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 #include "debug.h"
 
 #include "common/h/Dictionary.h"
@@ -111,12 +111,8 @@ using namespace Dyninst;
 //using namespace Dyninst::SymtabAPI;
 
 class instPoint;
-class multiTramp;
 class baseTramp;
 class miniTramp;
-class generatedCodeObject;
-class replacedFunctionCall;
-class functionReplacement;
 
 class dyn_thread;
 class dyn_lwp;
@@ -128,7 +124,7 @@ class mapped_object;
 class mapped_module;
 class dynamic_linking;
 class int_variable;
-class int_function;
+class func_instance;
 
 class rpcMgr;
 class syscallNotification;
@@ -151,7 +147,6 @@ class process : public AddressSpace {
     friend class dyn_thread;
     friend class dyn_lwp;
     friend Address loadDyninstDll(process *, char Buffer[]);
-    friend class multiTramp;
     friend class SignalGenerator;
     friend class SignalGeneratorCommon;
 
@@ -276,7 +271,7 @@ class process : public AddressSpace {
     // this is only used on aix so far - naim
     // And should really be defined in a arch-dependent place, not process.h - bernat
     Address getTOCoffsetInfo(Address);
-    Address getTOCoffsetInfo(int_function *);
+    Address getTOCoffsetInfo(func_instance *);
     
     bool dyninstLibAlreadyLoaded() { return runtime_lib.size() != 0; }
     
@@ -411,8 +406,8 @@ class process : public AddressSpace {
 #endif
 
 #if defined(os_windows)
-  bool instrumentThreadInitialFunc(int_function *f);
-  pdvector<int_function *> initial_thread_functions;
+  bool instrumentThreadInitialFunc(func_instance *f);
+  pdvector<func_instance *> initial_thread_functions;
   bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
@@ -541,7 +536,7 @@ class process : public AddressSpace {
   bool removeASharedObject(mapped_object *);
 
   // getMainFunction: returns the main function for this process
-  int_function *getMainFunction() const { return main_function; }
+  func_instance *getMainFunction() const { return main_function; }
 
  private:
   enum mt_cache_result { not_cached, cached_mt_true, cached_mt_false };
@@ -566,7 +561,7 @@ class process : public AddressSpace {
 
   // No function is pushed onto return vector if address can't be resolved
   // to a function
-  pdvector<int_function *>pcsToFuncs(pdvector<Frame> stackWalk);
+  pdvector<func_instance *>pcsToFuncs(pdvector<Frame> stackWalk);
 
   bool mappedObjIsDeleted(mapped_object *mobj);
 
@@ -602,54 +597,67 @@ class process : public AddressSpace {
   //////////////////////////////////////////////
 
   // active instrumentation tracking stuff
-  int_function *findActiveFuncByAddr(Address addr);
-  bool isBBIactive(bblInstance *bbi) 
-    { return activeBBIs.end() != activeBBIs.find(bbi); }
-  void updateActiveMultis();
-  void fixupActiveStackTargets();
-  void getActiveMultiMap(std::map<Address,multiTramp*> &map);
-  void invalidateActiveMultis() { isAMcacheValid = false; }
-  void addActiveMulti(multiTramp* multi);
+  func_instance *findActiveFuncByAddr(Address addr);
+
+  typedef std::pair<Address, Address> AddrPair;
+  typedef std::set<AddrPair> AddrPairSet;
+  typedef std::set<Address> AddrSet;
+
+  struct ActiveDefensivePad {
+    Address activePC;
+    Address padStart;
+    block_instance *callBlock;
+    block_instance *ftBlock;
+  ActiveDefensivePad(Address a, Address b, block_instance *c, block_instance *d) : 
+    activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
+  };
+  typedef std::list<ActiveDefensivePad> ADPList;
+  
+  //void getActivePCs(AddrSet &);
+  //void getActiveDefensivePads(AddrSet &, ADPList &);
+  bool patchPostCallArea(instPoint *point);
+private:
+  bool generateRequiredPatches(instPoint *callPt, AddrPairSet &);
+  void generatePatchBranches(AddrPairSet &);
+public:
 
   // code overwrites 
   bool getOverwrittenBlocks
       ( std::map<Address, unsigned char *>& overwrittenPages,//input
-        std::map<Address,Address>& overwrittenRegions,//output
-        std::set<bblInstance *> &writtenBBIs);//output
-  bool getDeadCodeFuncs
-  ( std::set<bblInstance *> &deadBlocks, // input
-    std::set<int_function*> &affectedFuncs, //output
-    std::set<int_function*> &deadFuncs); //output
+        std::list<std::pair<Address,Address> >& overwrittenRegions,//output
+        std::list<block_instance *> &writtenBBIs);//output
+  bool getDeadCode
+    ( const std::list<block_instance*> &owBlocks, // input
+      std::set<block_instance*> &delBlocks, //output: Del(for all f)
+      std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
+      std::list<func_instance*> &deadFuncs, //output: DeadF
+      std::map<func_instance*,block_instance*> &newFuncEntries); //output: newF
   unsigned getMemoryPageSize() const { return memoryPageSize_; }
 
   // synch modified mapped objects with current memory contents
   mapped_object *createObjectNoFile(Address addr);
-  void updateMappedFile
-      ( std::map<Dyninst::Address,unsigned char*>& owPages,
-        std::map<Address,Address> owRegions );
+  void updateCodeBytes
+      ( const std::list<std::pair<Address,Address> >&owRegions );
 
   // misc
   bool hideDebugger();
-  void flushAddressCache_RT(codeRange *flushRange=NULL);
+  void flushAddressCache_RT(Address start = 0, unsigned size = 0);
+  void flushAddressCache_RT(codeRange *range) { flushAddressCache_RT(range->get_address(), range->get_size()); }
   BPatch_hybridMode getHybridMode() { return analysisMode_; }
   bool isExploratoryModeOn();
   bool isRuntimeHeapAddr(Address addr);
+  bool setMemoryAccessRights(Address start, Address size, int rights);
+  bool getMemoryAccessRights(Address start, Address size, int rights);
+
 
  private:
   BPatch_hybridMode analysisMode_;
   int memoryPageSize_;
 
   //stopThread instrumentation
-  Address stopThreadCtrlTransfer  
-      (instPoint* intPoint, Address target);
+  Address stopThreadCtrlTransfer(instPoint* intPoint, Address target);
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
-
-  // active instrumentation tracking
-  bool isAMcacheValid;
-  std::set<multiTramp*> activeMultis;
-  std::map<bblInstance*,Address> activeBBIs;
-  std::map<int_function*,std::set<Address>*> am_funcRelocs;
 
   // runtime library stuff 
   Address RT_address_cache_addr;
@@ -794,7 +802,7 @@ private:
     // function symbol corresponding to the relocation entry in at the address 
     // specified by entry and base_addr.  If it has been bound, then the callee 
     // function is returned in "target_pdf", else it returns false. 
-    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, int_function *&target_pdf, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, 
                               Address base_addr) ;
  private:
 
@@ -831,9 +839,10 @@ private:
 
    // garbage collect instrumentation
 
-   void deleteGeneratedCode(generatedCodeObject *del);
+#if defined(cap_garbage_collection)
    void gcInstrumentation();
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
+#endif
 
    virtual bool needsPIC();
   ///////////////////////////////////////////////////
@@ -863,8 +872,8 @@ private:
   // for example, if attached.
   processState stateWhenAttached_;
 
-  int_function *main_function; // Usually, but not always, "main"
-  int_function *thread_index_function;
+  func_instance *main_function; // Usually, but not always, "main"
+  func_instance *thread_index_function;
   dyn_thread *lastForkingThread;
 
   ///////////////////////////////
@@ -1046,6 +1055,7 @@ private:
 
 process *ll_createProcess(const std::string file, pdvector<std::string> *argv, 
                           BPatch_hybridMode &analysisMode, 
+                          void * upPtr, //the BPatch_process*
                           pdvector<std::string> *envp,
                           const std::string dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);

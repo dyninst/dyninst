@@ -50,6 +50,7 @@ using namespace NS_x86;
 #endif
 
 #include "dyninstAPI/src/bitArray.h"
+#include "pcrel.h"
 
 #include "arch-forward-decl.h" // instruction
 
@@ -68,9 +69,10 @@ class regTracker_t;
 class AstNode;
 class Emitter;
 class pcRelRegion;
-class int_function;
+class func_instance;
 class generatedCodeObject;
-class baseTrampInstance;
+class baseTramp;
+class block_instance;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -89,6 +91,10 @@ class codeGen {
     codeGen(codeBuf_t *buf, int size);
     ~codeGen();
 
+    bool valid() { return buffer_ != NULL; }
+
+    bool verify();
+
     // Copy constructor. Deep-copy -- allocates
     // a new buffer
     codeGen(const codeGen &);
@@ -102,7 +108,7 @@ class codeGen {
     codeGen &operator=(const codeGen &param);
 
     // Initialize the current using the argument as a "template"
-    void applyTemplate(codeGen &codeTemplate);
+    void applyTemplate(const codeGen &codeTemplate);
     static codeGen baseTemplate;
 
     // Allocate a certain amount of space
@@ -117,11 +123,19 @@ class codeGen {
     
     // Copy a buffer into here and move the offset
     void copy(const void *buf, const unsigned size);
+    void copy(const void *buf, const unsigned size, const codeBufIndex_t index);
+    void copy(const std::vector<unsigned char> &buf);
+    // Workaround for copying strings on word-aligned platforms
+    void copyAligned(const void *buf, const unsigned size);
+
     // Similar, but slurp from the start of the parameter
     void copy(codeGen &gen);
 
     // How much space are we using?
     unsigned used() const;
+
+    unsigned size() const { return size_; }
+    unsigned max() const { return max_; }
 
     // Blind pointer to the start of the code area
     void *start_ptr() const;
@@ -161,6 +175,8 @@ class codeGen {
     // Since we have a known size
     void fillRemaining(int fillType);
 
+    std::string format() const;
+
     //Add a new PCRelative region that should be generated after 
     // addresses are fixed
     void addPCRelRegion(pcRelRegion *reg);
@@ -176,7 +192,7 @@ class codeGen {
     void addPatch(const relocPatch &p);
 
     //Create a patch into the codeRange
-    void addPatch(void *dest, patchTarget *source, 
+    void addPatch(codeBufIndex_t index, patchTarget *source, 
                   unsigned size = sizeof(Address),
                   relocPatch::patch_type_t ptype = relocPatch::abs,
                   Dyninst::Offset off = 0);
@@ -190,29 +206,36 @@ class codeGen {
     void setAddrSpace(AddressSpace *a);
     void setThread(dyn_thread *t) { thr_ = t; }
     void setLWP(dyn_lwp *l) { lwp_ = l; }
-    void setRegisterSpace(registerSpace *r) { rs_ = r; }
+    void setRegisterSpace(registerSpace *r) { 
+      rs_ = r; 
+    }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
-    void setFunction(int_function *f) { f_ = f; }
+    void setFunction(func_instance *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
-    void setBTI(baseTrampInstance *i) { bti_ = i; }
+    void setBT(baseTramp *i) { bt_ = i; }
+    void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
-    dyn_lwp *lwp();
-    dyn_thread *thread();
+    dyn_lwp *lwp() const;
+    dyn_thread *thread() const;
     //process *proc();
-    AddressSpace *addrSpace();
+    AddressSpace *addrSpace() const;
     Address startAddr() const { return addr_; }
-    instPoint *point();
-    baseTrampInstance *bti() const { return bti_; }
-    int_function *func();
-    registerSpace *rs();
-    regTracker_t *tracker();
-    Emitter *codeEmitter();
-    Emitter *emitter() { return codeEmitter(); } // A little shorter
+    instPoint *point() const;
+    baseTramp *bt() const { return bt_; }
+    func_instance *func() const;
+    registerSpace *rs() const;
+    regTracker_t *tracker() const;
+    Emitter *codeEmitter() const;
+    Emitter *emitter() const { return codeEmitter(); } // A little shorter
+    bool inInstrumentation() const { return inInstrumentation_; }
+    
 
-    generatedCodeObject *obj();
+    Dyninst::Architecture getArch() const;
+
+    generatedCodeObject *obj() const;
 
     void beginTrackRegDefs();
     void endTrackRegDefs();
@@ -222,10 +245,27 @@ class codeGen {
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
+
+    // SD-DYNINST
+    // 
+    typedef std::pair<Address, unsigned> Extent;
+    void registerDefensivePad(block_instance *, Address, unsigned);
+    std::map<block_instance *, Extent> &getDefensivePads() { return defensivePads_; }
+    
+    // Immediate uninstrumentation
+    void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
+    std::map<baseTramp *, Address> &getInstrumentation() { return instrumentation_; }
+    
+    void registerRemovedInstrumentation(baseTramp *bt, Address loc) { removedInstrumentation_[bt] = loc; }
+    std::map<baseTramp *, Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
+
  private:
+    void realloc(unsigned newSize); 
+
     codeBuf_t *buffer_;
     codeBufIndex_t offset_;
     unsigned size_;
+    unsigned max_;
     int pc_rel_use_count;
 
     Emitter *emitter_;
@@ -239,17 +279,23 @@ class codeGen {
     regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
-    int_function *f_;
-    baseTrampInstance *bti_;
+    func_instance *f_;
+    baseTramp *bt_;
     bool isPadded_;
 
     bitArray regsDefined_;
     bool trackRegDefs_;
 
+    bool inInstrumentation_;
+
     generatedCodeObject *obj_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
+
+    std::map<block_instance *, Extent> defensivePads_;
+    std::map<baseTramp *, Address> instrumentation_;
+    std::map<baseTramp *, Address> removedInstrumentation_;
 };
 
 #endif

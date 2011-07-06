@@ -44,9 +44,10 @@
 #include "ast.h"
 
 #include "parseAPI/h/InstructionSource.h"
+#include "PatchMgr.h"
 
 class fileDescriptor;
-class int_function;
+class func_instance;
 class memoryTracker;
 class depRelocation;
 
@@ -105,7 +106,6 @@ class BinaryEdit : public AddressSpace {
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
-
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
@@ -128,12 +128,11 @@ class BinaryEdit : public AddressSpace {
 
     // Default to "nope"
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
-                              int_function *&, 
+                              func_instance *&, 
                               Address) { return false; }
 
     // Should be easy if the process isn't _executing_ where
     // we're deleting...
-    virtual void deleteGeneratedCode(generatedCodeObject *del);
 
     bool needsPIC();
 
@@ -144,11 +143,13 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file, const std::string &member = "");
+    static BinaryEdit *openFile(const std::string &file,
+                                Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
+                                const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
     
-    virtual int_function *findOnlyOneFunction(const std::string &name,
+    virtual func_instance *findOnlyOneFunction(const std::string &name,
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
 
@@ -183,6 +184,7 @@ class BinaryEdit : public AddressSpace {
    bool isMultiThreadCapable();
    std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
 
+   bool writing() { return writing_; }
  private:
     Address highWaterMark_;
     Address lowWaterMark_;
@@ -194,6 +196,8 @@ class BinaryEdit : public AddressSpace {
     static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
 
     bool inferiorMallocStatic(unsigned size);
+
+    Address maxAllocedAddr();
 
     bool createMemoryBackingStore(mapped_object *obj);
 
@@ -219,6 +223,7 @@ class BinaryEdit : public AddressSpace {
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
+    bool writing_;
 };
 
 class depRelocation {
@@ -253,7 +258,10 @@ class memoryTracker : public codeRange {
     void realloc(unsigned newsize) {
       b_ = ::realloc(b_, newsize);
       s_ = newsize;
-      assert(b_);
+      if (!b_) {
+	cerr << "Odd: failed to realloc " << newsize << endl;
+	assert(b_);
+      }
     }
 
     bool alloced;

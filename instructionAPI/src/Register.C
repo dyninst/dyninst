@@ -86,18 +86,15 @@ namespace Dyninst
     
     std::string RegisterAST::format(formatStyle) const
     {
-        const char* name = m_Reg.name();
-	//return name;
-        if(name)
-        {
-            std::string ret(name);
-            std::string::size_type substr = ret.rfind(':');
+        std::string name = m_Reg.name();
+		{
+            std::string::size_type substr = name.rfind(':');
             if(substr != std::string::npos)
             {
-                ret = ret.substr(substr+1, ret.length());
+                name = name.substr(substr+1, name.length());
             }
-            std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
-            return ret;
+            std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+            return name;
         }
         return "[NAME NOT FOUND]";
     }
@@ -153,9 +150,9 @@ namespace Dyninst
     bool RegisterAST::checkRegID(MachRegister r, unsigned int low, unsigned int high) const
     {
 #if defined(DEBUG)
-            fprintf(stderr, "%s (%d-%d) compared with %s (%d-%d)\n",
-                    format().c_str(), m_Low, m_High,
-                    r.name(), low, high);
+      fprintf(stderr, "%s (%d-%d/%x) compared with %s (%d-%d/%x)",
+                    format().c_str(), m_Low, m_High, m_Reg.getBaseRegister().val(),
+                    r.name().c_str(), low, high, r.getBaseRegister().val());
 #endif
         return (r.getBaseRegister() == m_Reg.getBaseRegister()) && (low <= m_High) &&
                 (high >= m_Low);
@@ -169,15 +166,15 @@ namespace Dyninst
         if(Expression::bind(e, val)) {
             return true;
         }
-//        fprintf(stderr, "checking %s against %s with checkRegID in RegisterAST::bind...", e->format().c_str(),
-//                format().c_str());
+	//        fprintf(stderr, "checking %s against %s with checkRegID in RegisterAST::bind... %p", e->format().c_str(),
+	//format().c_str(), this);
         if(e->checkRegID(m_Reg, m_Low, m_High))
         {
-//            fprintf(stderr, "yes\n");
+	  //fprintf(stderr, "yes\n");
             setValue(val);
             return true;
         }
-//        fprintf(stderr, "no\n");
+        //fprintf(stderr, "no\n");
         return false;
     }
   };

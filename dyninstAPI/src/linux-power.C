@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
@@ -490,8 +489,7 @@ Frame Frame::getCallerFrame()
   bool isLeaf = false;
   bool noFrame = false;
 
-  codeRange *range = getRange();
-  int_function *func = range->is_function();
+  func_instance *func = getFunc();
 
   if (uppermost_) {
     if (func) {
@@ -534,20 +532,8 @@ Frame Frame::getCallerFrame()
       basePCAddr = thisStackFrame.elf32.oldFp;
   }
 
-  // See if we're in instrumentation
-  baseTrampInstance *bti = NULL;
-  
-  if (range->is_multitramp()) {
-      bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
-      if (bti) {
-          // If we're not in instru, then re-set this to NULL
-          if (!bti->isInInstru(getPC()))
-              bti = NULL;
-      }
-  }
-  else if (range->is_minitramp()) {
-      bti = range->is_minitramp()->baseTI;
-  }
+  baseTramp *bti = getBaseTramp();
+
   if (bti) {
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
@@ -572,30 +558,35 @@ Frame Frame::getCallerFrame()
 
       // Instrumentation makes its own frame; we want to skip the
       // function frame if there is one as well.
-      instPoint *point = bti->baseT->instP();
+      instPoint *point = bti->point();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
+
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
       // function has a frame, tear it down as well.
-      if ((point->getPointType() == callSite ||
-          point->getPointType() == otherPoint) &&
-          !point->func()->hasNoStackFrame()) {
+      bool inFunction = ((point->type() != instPoint::FuncEntry) &&
+			 (point->type() != instPoint::FuncExit));
+      bool noFuncFrame = (point->func() ? point->func()->hasNoStackFrame() : false);
+
+      if (inFunction && !noFuncFrame) {
         if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
           if (!getProc()->readDataSpace((caddr_t) (Address)
                                         thisStackFrame.elf64.oldFp,
                                         sizeof(newFP),
-                                        (caddr_t) &newFP, false))
+                                        (caddr_t) &newFP, false)) {
             return Frame();
+	  }
         }
         else {
           uint32_t u32;
           if (!getProc()->readDataSpace((caddr_t) (Address)
                                         thisStackFrame.elf32.oldFp,
-                                        sizeof(u32), (caddr_t) &u32, false))
+                                        sizeof(u32), (caddr_t) &u32, false)) {
             return Frame();
+	  }
           newFP = u32;
         }
-      }
+      }                                                                                                                                   
       // Otherwise must be at a reloc insn
   }
   else if (isLeaf) {
@@ -676,7 +667,6 @@ bool Frame::setPC(Address newpc) {
          return false;
    }
    pc_ = newpc;
-   range_ = NULL;
 
    return true;
 }
@@ -770,8 +760,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 bool process::insertTrapAtEntryPointOfMain()
 {
     // copied from aix.C
-    int_function *f_main = NULL;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = NULL;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("main", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -790,7 +780,7 @@ bool process::insertTrapAtEntryPointOfMain()
     f_main = funcs[0];
     assert(f_main);
 
-    Address addr = f_main->getAddress();
+    Address addr = f_main->addr();
 
     startup_printf("[%d]: inserting trap at 0x%x\n",
                    getPid(), addr);
@@ -824,7 +814,7 @@ Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); }
 
 bool process::loadDYNINSTlib()
 {
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
         return loadDYNINSTlib_exported();
@@ -876,7 +866,7 @@ bool process::loadDYNINSTlib_exported(const char *, int)
     Address dyninstlib_str_addr = 0;
     Address dlopen_call_addr = 0;
 
-    pdvector<int_function *> dlopen_funcs;
+    pdvector<func_instance *> dlopen_funcs;
     if (!findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
         if (!findFuncsByAll(DL_OPEN_LIBC_FUNC_EXPORTED, dlopen_funcs)) {
             startup_cerr << "Couldn't find method to load dynamic library" << endl;
@@ -889,7 +879,7 @@ bool process::loadDYNINSTlib_exported(const char *, int)
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
     //Address dlopen_addr = dlopen_funcs[0]->getAddress();
-    int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+    func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
     // We now fill in the scratch code buffer with appropriate data
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
@@ -899,7 +889,7 @@ bool process::loadDYNINSTlib_exported(const char *, int)
 
     // The library name goes first
     dyninstlib_str_addr = codeBase;
-    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+    scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
     // Need a register space                                           //aix.C
     // make sure this syncs with inst-power.C                          //aix.C
@@ -1013,10 +1003,10 @@ bool process::loadDYNINSTlib_hidden() {
   Address dlopen_call_addr = 0;
   Address do_dlopen_struct_addr = 0;
 
-  pdvector<int_function *> dlopen_funcs;
+  pdvector<func_instance *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
   {
-    pdvector<int_function *> dlopen_int_funcs;
+    pdvector<func_instance *> dlopen_int_funcs;
 
     // If we can't find the do_dlopen function (because this library
     // is stripped, for example), try searching for the internal
@@ -1036,7 +1026,8 @@ bool process::loadDYNINSTlib_hidden() {
                            __FILE__,__LINE__,dlopen_int_funcs.size(),
                            DL_OPEN_FUNC_INTERNAL);
         }
-        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+	dlopen_int_funcs[0]->getCallerFuncs(std::back_inserter(dlopen_funcs));
+
         if(dlopen_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
@@ -1057,8 +1048,8 @@ bool process::loadDYNINSTlib_hidden() {
       return false;
   }
 
-  Address dlopen_addr = dlopen_funcs[0]->getAddress();
-  int_function *dlopen_func = dlopen_funcs[0];  //aix.C
+  Address dlopen_addr = dlopen_funcs[0]->addr();
+  func_instance *dlopen_func = dlopen_funcs[0];  //aix.C
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   startup_cerr << "Dyninst RT lib name: " << dyninstRT_name << endl;
@@ -1070,7 +1061,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // First copy the RT library name
   dyninstlib_str_addr = codeBase + scratchCodeBuffer.used();
-  scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+  scratchCodeBuffer.copyAligned(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
   startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(),
                                                     dyninstlib_str_addr);

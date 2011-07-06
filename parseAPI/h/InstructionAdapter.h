@@ -74,6 +74,7 @@ class InstructionAdapter
     virtual size_t getSize() const = 0;
     virtual bool isFrameSetupInsn() const = 0;
     virtual bool isAbortOrInvalidInsn() const = 0;
+    virtual bool isGarbageInsn() const = 0; //true for insns indicative of bad parse, for defensive mode
     virtual void
             getNewEdges(std::vector<std::pair<Address,ParseAPI::EdgeTypeEnum> >&
             outEdges, 
@@ -88,11 +89,10 @@ class InstructionAdapter
     virtual ParseAPI::FuncReturnStatus getReturnStatus(ParseAPI::Function* context, unsigned int num_insns) const ;
     virtual bool hasUnresolvedControlFlow(ParseAPI::Function* context, unsigned int num_insns)
 const;
-    virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *, Address &) const 
-        { return ParseAPI::TAMPER_NONE; }
+    virtual bool isNopJump() const { return false; }
     virtual bool simulateJump() const= 0;
     virtual void advance() = 0;
-    virtual void retreat() = 0;
+    virtual bool retreat() = 0;
     virtual bool isNop() const = 0;
     virtual bool isLeave() const = 0;
     virtual bool isDelaySlot() const = 0;
@@ -100,7 +100,7 @@ const;
     virtual Address getAddr() const;
     virtual Address getPrevAddr() const;
     virtual Address getNextAddr() const;
-    virtual Address getCFT() const = 0;
+    virtual std::pair<bool, Address>  getCFT() const = 0;
     virtual bool isStackFramePreamble() const = 0;
     virtual bool savesFP() const = 0;
     virtual bool cleansStack() const = 0;

@@ -61,6 +61,10 @@ typedef unsigned codeBufIndex_t;
 class codeGen;
 class AddressSpace;
 
+namespace NS_x86 {
+   class instruction;
+}
+
 class insnCodeGen {
  public:
 
@@ -103,6 +107,21 @@ class insnCodeGen {
                    Address newAddr,
                    Register newLoadReg,
                    Register newStoreReg);
+
+  static bool modifyJump(Address target,
+                         NS_x86::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyJcc(Address target,
+                        NS_x86::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyCall(Address target,
+                         NS_x86::instruction &insn, 
+                         codeGen &gen);
+  static bool modifyData(Address target,
+                         NS_x86::instruction &insn, 
+                         codeGen &gen);
 };
+
+
 
 #endif

@@ -53,6 +53,7 @@
 #endif
 
 #include "BPatch.h"
+#include "BPatch_point.h"
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
 #include "callbacks.h"
@@ -657,7 +658,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 #if defined (os_windows)
   FD_SET(windows_sock, &readSet);
   FD_SET(windows_sock, &errSet);
-  if (windows_sock > width)
+  if (windows_sock > (unsigned)width)
       width = windows_sock;
 #else
   //  build the set of fds we want to wait on, one fd per process
@@ -1067,7 +1068,7 @@ bool handleDynamicCall(process *llproc,
    BPatch_point *pt = monitored_points[callsite_addr];
 
    //  found the record(s), now find the function that was called
-   int_function *f = llproc->findFuncByAddr(func_addr);
+   func_instance *f = llproc->findOneFuncByAddr(func_addr);
 
    if (!f) 
    {
@@ -1544,7 +1545,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
    {
 	   return true;
    }
-   eventType evt;
+   eventType evt = evtUndefined;
    while(!doneDisconnect) {
        evt = p->sh->waitForEvent(evtRPCSignal, p, NULL /*lwp*/, statusRPCDone);
    }

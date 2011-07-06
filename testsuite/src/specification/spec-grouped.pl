@@ -66,6 +66,7 @@ module('symtab').
 module('stackwalker').
 module('instruction').
 module('proccontrol').
+module('patchapi').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -85,6 +86,17 @@ mutatee_comp('').
 mutatee_link_options('', '').
 comp_std_flags_str('', '').
 comp_mutatee_flags_str('', '').
+
+mutatee('patchapi_group_test', [
+   'patch1_1_mutatee.c',
+   'patch1_2_mutatee.c',
+   'patch2_1_mutatee.c',
+   'patch3_1_mutatee.c',
+   'patch3_2_mutatee.c'
+   ]).
+compiler_for_mutatee('patchapi_group_test', Compiler) :-
+    comp_lang(Compiler, 'c').
+mutatee_format('patchapi_group_test', 'staticMutatee').
 
 mutatee('dyninst_group_test', ['test1_1_mutatee.c', 
 	'test1_2_mutatee.c',
@@ -2120,6 +2132,63 @@ groupable_test('test1_36F').
 tests_module('test1_36F', 'dyninst').
 
 
+% patchAPI tests
+
+test('patch1_1', 'patch1_1', 'patchapi_group_test').
+test_description('patch1_1', 'insert snippets at entry, exit, and call points').
+test_runs_everywhere('patch1_1').
+groupable_test('patch1_1').
+mutator('patch1_1', ['patch1_1.C']).
+%test_runmode('patch1_1', 'staticdynamic').
+test_runmode('patch1_1', 'createProcess').
+test_start_state('patch1_1', 'stopped').
+tests_module('patch1_1', 'patchapi').
+
+test('patch1_2', 'patch1_2', 'patchapi_group_test').
+test_description('patch1_2', 'insert snippet order').
+test_runs_everywhere('patch1_2').
+groupable_test('patch1_2').
+mutator('patch1_2', ['patch1_2.C']).
+test_runmode('patch1_2', 'createProcess').
+test_start_state('patch1_2', 'stopped').
+tests_module('patch1_2', 'patchapi').
+
+test('patch2_1', 'patch2_1', 'patchapi_group_test').
+test_description('patch2_1', 'remove snippets at function entry').
+test_runs_everywhere('patch2_1').
+groupable_test('patch2_1').
+mutator('patch2_1', ['patch2_1.C']).
+test_runmode('patch2_1', 'createProcess').
+test_start_state('patch2_1', 'stopped').
+tests_module('patch2_1', 'patchapi').
+
+test('patch3_1', 'patch3_1', 'patchapi_group_test').
+test_description('patch3_1', 'function call replacement / removal').
+test_runs_everywhere('patch3_1').
+groupable_test('patch3_1').
+mutator('patch3_1', ['patch3_1.C']).
+test_runmode('patch3_1', 'createProcess').
+test_start_state('patch3_1', 'stopped').
+tests_module('patch3_1', 'patchapi').
+
+test('patch3_2', 'patch3_2', 'patchapi_group_test').
+test_description('patch3_2', 'replace function').
+test_runs_everywhere('patch3_2').
+groupable_test('patch3_2').
+mutator('patch3_2', ['patch3_2.C']).
+test_runmode('patch3_2', 'createProcess').
+test_start_state('patch3_2', 'stopped').
+tests_module('patch3_2', 'patchapi').
+
+test('patch4_1', 'patch4_1', 'patchapi_group_test').
+test_description('patch4_1', 'transactional semantics').
+test_runs_everywhere('patch4_1').
+groupable_test('patch4_1').
+mutator('patch4_1', ['patch4_1.C']).
+test_runmode('patch4_1', 'createProcess').
+test_start_state('patch4_1', 'stopped').
+tests_module('patch4_1', 'patchapi').
+
 % SymtabAPI tests
 
 test('test_lookup_func', 'test_lookup_func', 'symtab_group_test').
@@ -2543,6 +2612,8 @@ mutatee_abi(64).
 platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power32', 'bluegene', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
@@ -2551,6 +2622,8 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
+compiler_format('bgxlc++', 'staticMutatee').
+compiler_format('bgxlc', 'staticMutatee').
 compiler_format('gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
@@ -2899,15 +2972,20 @@ compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
-compiler_dynamic_link(_, _, '').
+compiler_static_link('bgxlc++', P, '') :- platform(_,'bluegene', _, P).
+compiler_static_link('bgxlc', P, '') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link(_, _, '') :- platform(_, OS, _, P),
+	OS \= 'bluegene'.
+compiler_dynamic_link('bgxlc++', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
+compiler_dynamic_link('bgxlc', P, '-qnostaticlink') :- platform(_,'bluegene', _, P).
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '-qnostaticlink').
-comp_std_flags_str('bgxlc++', '-qnostaticlink').
+comp_std_flags_str('bgxlc', '').
+comp_std_flags_str('bgxlc++', '').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
@@ -3064,6 +3142,7 @@ all_mutators_require_libs(['testSuite']).
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
+module_required_libs('patchapi', ['patchAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instruction', ['instructionAPI']).
 module_required_libs('proccontrol', ['pcontrol']).

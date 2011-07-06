@@ -52,17 +52,7 @@ using namespace Dyninst::ParseAPI;
 const StackAnalysis::Height StackAnalysis::Height::bottom(StackAnalysis::Height::notUnique);
 const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::uninitialized);
 
-const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::bottom(StackAnalysis::InsnTransferFunc::notUnique, false);
-const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::top(StackAnalysis::InsnTransferFunc::uninitialized, false);
-
-const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::bottom(StackAnalysis::BlockTransferFunc::notUnique, false, false);
-const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::top(StackAnalysis::BlockTransferFunc::uninitialized, false, false);
-
-const StackAnalysis::Range StackAnalysis::defaultRange(std::make_pair(0, 0), 0, 0);
-const StackAnalysis::Range::range_t StackAnalysis::Range::infinite(std::make_pair(MINLONG, MAXLONG));
-
-AnnotationClass <StackAnalysis::HeightTree> SP_Anno(std::string("SP_Anno"));
-AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
+AnnotationClass <StackAnalysis::Intervals> Stack_Anno(std::string("Stack_Anno"));
 
 
 //
@@ -93,26 +83,20 @@ bool StackAnalysis::analyze()
     summarizeBlocks();
     
     stackanalysis_printf("\tPerforming fixpoint analysis\n");
-    sp_fixpoint();
+    fixpoint();
 
     stackanalysis_printf("\tCreating SP interval tree\n");
-    sp_createIntervals();
+    summarize();
 
-    stackanalysis_printf("\tCreating FP interval tree\n");
-    fp_fixpoint();
+    func->addAnnotation(intervals_, Stack_Anno);
 
-    fp_createIntervals();
-    
-    func->addAnnotation(sp_intervals_, SP_Anno);
-    func->addAnnotation(fp_intervals_, FP_Anno);
     if (df_debug_stackanalysis) {
         debug();
     }
 
     stackanalysis_printf("Finished stack analysis for function %s\n",
 			 func->name().c_str());
-
-    return true;
+   return true;
 }
 
 // We want to create a transfer function for the block as a whole. 
@@ -125,7 +109,7 @@ bool StackAnalysis::analyze()
 typedef std::vector<std::pair<Instruction::Ptr, Offset> > InsnVec;
 
 static void getInsnInstances(Block *block,
-		      InsnVec &insns) {
+			     InsnVec &insns) {
   Offset off = block->start();
   const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
   if (ptr == NULL) return;
@@ -137,23 +121,6 @@ static void getInsnInstances(Block *block,
 }
 
 void StackAnalysis::summarizeBlocks() {
-    // STACK HEIGHT:
-    // Foreach block B:
-    //   Let E = block effect
-    //   Foreach (insn i, offset o) in B:
-    //     Let T = transfer function representing i;
-    //     E = T(E);
-    //     blockToInsnFuncs[B][o] = T;
-    //   blockEffects[B] = E;
-
-    // STACK PRESENCE:
-    // Foreach block B:
-    //   Let d = uninitialized;
-    //   Foreach (insn i, offset o) in B:
-    //     d = change in stack presence at d;
-    //     blockToInsnDeltas[B][o] = d;
-    //   blockHeightDeltas[B] = d;
-
   Function::blocklist & bs = func->blocks();
   Function::blocklist::iterator bit = bs.begin();
   for( ; bit != bs.end(); ++bit) {
@@ -166,14 +133,11 @@ void StackAnalysis::summarizeBlocks() {
     // Setting the stack pointer: zero delta, set set_value.
     // 
     
-    BlockTransferFunc &bFunc = sp_blockEffects[block];
-    
-    bFunc = BlockTransferFunc::top;
+    SummaryFunc &bFunc = blockEffects[block];
     
     stackanalysis_printf("\t Block starting at 0x%lx: %s\n", 
 			 block->start(),
 			 bFunc.format().c_str());
-    
     InsnVec instances;
     getInsnInstances(block, instances);
     
@@ -182,26 +146,18 @@ void StackAnalysis::summarizeBlocks() {
       Offset &off = instances[j].second;
       Offset next;
       if (j < (instances.size() - 1)) {
-	next = instances[j+1].second;
+		  next = instances[j+1].second;
       }
       else {
-	next = block->end();
+		  next = block->end();
       }
-      
-      InsnTransferFunc iFunc;
-      fp_State fpCopied = fp_noChange;
-      
-      computeInsnEffects(block, insn, off, 
-			 iFunc, fpCopied);
-      
-      if (iFunc != InsnTransferFunc::top) {
-	iFunc.apply(bFunc);
-	sp_blockToInsnFuncs[block][next] = iFunc;
-      }
-      if (fpCopied != fp_noChange) {
-	fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off + insn->size()));
-      }
-      
+
+      // Fills in insnEffects[off]
+      TransferFuncs &xferFuncs = insnEffects[block][off];
+      computeInsnEffects(block, insn, off,
+                         xferFuncs);
+      bFunc.add(xferFuncs);
+
       stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
 			   off,
 			   bFunc.format().c_str());
@@ -211,7 +167,7 @@ void StackAnalysis::summarizeBlocks() {
 }
 
 
-void StackAnalysis::sp_fixpoint() {
+void StackAnalysis::fixpoint() {
   std::queue<Block *> worklist;
   
   Intraproc epred; // ignore calls, returns in edge iteration
@@ -230,545 +186,161 @@ void StackAnalysis::sp_fixpoint() {
     // Step 1: calculate the meet over the heights of all incoming
     // intraprocedural blocks.
     
-    std::set<BlockTransferFunc> inEffects;
+    RegisterState input;
     
     if (block == entry) {
-      // FIXME for POWER/non-IA32
-      // IA32 - the in height includes the return address and therefore
-      // is <wordsize>
-      // POWER - the in height is 0
-      
-#if defined(arch_power)
-      inEffects.insert(BlockTransferFunc(0, true, true));
-#elif (defined(arch_x86) || defined(arch_x86_64))
-      int word_size = func->isrc()->getAddressWidth();
-      inEffects.insert(BlockTransferFunc(-1*word_size,
-					 true, true));
-#else
-      assert(0 && "Unimplemented architecture");
-#endif
-      
-      stackanalysis_printf("\t Primed initial block\n");
+       createEntryInput(input);
+       stackanalysis_printf("\t Primed initial block\n");
     }
     else {
-      
-      Block::edgelist & inEdges = block->sources();
-      Block::edgelist::iterator eit = inEdges.begin(&epred2);
-      for( ; eit != inEdges.end(); ++eit) {
-	Edge *edge = (Edge*)*eit;
-	//if (edge->type() == CALL || edge->type() == RET) continue;
-	inEffects.insert(sp_outBlockEffects[edge->src()]);
-	stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
-			     edge->src()->start(),
-			     sp_outBlockEffects[edge->src()].format().c_str());
-      }
+       meetInputs(block, input);
     }
     
-    BlockTransferFunc newInEffect = meet(inEffects);
-    
-    stackanalysis_printf("\t New in meet:  %s\n",
-			 newInEffect.format().c_str());
-    
+    stackanalysis_printf("\t New in meet: %s\n", format(input).c_str());
+
     // Step 2: see if the input has changed
     
-    if (newInEffect == sp_inBlockEffects[block]) {
-      // No new work here
-      stackanalysis_printf("\t ... equal to current, skipping block\n");
-      continue;
+    if (input == blockInputs[block]) {
+       // No new work here
+       stackanalysis_printf("\t ... equal to current, skipping block\n");
+       continue;
     }
     
-    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
-			 sp_inBlockEffects[block].format().c_str());
+    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n", format(blockInputs[block]).c_str());
     
-    sp_inBlockEffects[block] = newInEffect;
+    blockInputs[block] = input;
     
     // Step 3: calculate our new outs
     
-    sp_blockEffects[block].apply(newInEffect, 
-				 sp_outBlockEffects[block]);
+    blockEffects[block].apply(input,
+                              blockOutputs[block]);
     
-    stackanalysis_printf("\t ... output from block: %s\n",
-			 sp_outBlockEffects[block].format().c_str());
+    stackanalysis_printf("\t ... output from block: %s\n", format(blockOutputs[block]).c_str());
     
     // Step 4: push all children on the worklist.
     
     Block::edgelist & outEdges = block->targets();
     Block::edgelist::iterator eit = outEdges.begin(&epred2);
     for( ; eit != outEdges.end(); ++eit) {
-      //if ((*eit)->type() == CALL) continue;
-      worklist.push((Block*)(*eit)->trg());
+       if ((*eit)->type() == CALL) continue;
+       worklist.push((Block*)(*eit)->trg());
     }
   }
 }
 
-void StackAnalysis::sp_createIntervals() {
-  // We now have a summary of the state of the stack at
-  // the entry to each block. We need to push that information
-  // into the block. Assume that frame affecting instructions
-  // are rare, where i_m, i_n affect the stack (m < n). Then
-  // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
-  
-  sp_intervals_ = new HeightTree();
-  
-  Function::blocklist & bs = func->blocks();
-  Function::blocklist::iterator bit = bs.begin();
-  for( ; bit != bs.end(); ++bit) {
-    Block *block = *bit;
-    
-    stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", block->start());
-    
-    Offset curLB = block->start();
-    Offset curUB = 0;
-    BlockTransferFunc curHeight = sp_inBlockEffects[block];
-    
-    stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
-			 curLB, curHeight.format().c_str());
-    
-    // We only cache points where the frame height changes. 
-    // Therefore, we can simply iterate through them. 
-    for (InsnFuncs::iterator iter = sp_blockToInsnFuncs[block].begin();
-	 iter != sp_blockToInsnFuncs[block].end(); iter++) {
-      
-      // We've changed the state of the stack pointer. End this interval
-      // and start a new one. 
-      
-      curUB = iter->first;
-      
-      
-      sp_intervals_->insert(curLB, curUB, 
-			    Height(curHeight.delta(),
-				   getRegion(curHeight.ranges())));
-      
-      curLB = curUB;
-      // Adjust height
-      iter->second.apply(curHeight);
-      
-      stackanalysis_printf("\t\t Block continuing state: 0x%lx, %s\n", 
-			   curLB, curHeight.format().c_str());
-    }
-    
-    if (curLB != block->end()) {
-      // Cap off the extent for the current block
-      curUB = block->end();
-      if (curHeight != sp_outBlockEffects[block]) {
-	fprintf(stderr, "ERROR: accumulated state not equal to fixpoint state!\n");
-	fprintf(stderr, "\t %s\n", curHeight.format().c_str());
-	fprintf(stderr, "\t %s\n", sp_outBlockEffects[block].format().c_str());
-      }
-      
-      assert(curHeight == sp_outBlockEffects[block]);
-      
-      sp_intervals_->insert(curLB, curUB, 
-			    Height(curHeight.delta(),
-				   getRegion(curHeight.ranges())));
-    }
-  }
+void StackAnalysis::summarize() {
+	// Now that we know the actual inputs to each block,
+	// we create intervals by replaying the effects of each
+	// instruction. 
+
+	intervals_ = new Intervals();
+
+	Function::blocklist & bs = func->blocks();
+	Function::blocklist::iterator bit = bs.begin();
+	for( ; bit != bs.end(); ++bit) {
+		Block *block = *bit;
+		RegisterState input = blockInputs[block];
+
+		for (std::map<Offset, TransferFuncs>::iterator iter = insnEffects[block].begin(); 
+			iter != insnEffects[block].end(); ++iter) {
+			Offset off = iter->first;
+			TransferFuncs &xferFuncs = iter->second;
+
+			// TODO: try to collapse these in some intelligent fashion
+			(*intervals_)[block][off] = input;
+
+			RegisterState old = input;
+			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
+				iter2 != xferFuncs.end(); ++iter2) {
+					input[iter2->target] = iter2->apply(old);
+			}
+		}
+		(*intervals_)[block][block->end()] = input;
+		assert(input == blockOutputs[block]);
+	}
 }
 
-// Now determine where the FP is set and what value
-// it is set to. This should take a single pass through
-// to perform. 
-
-void StackAnalysis::fp_fixpoint() {
-
-  std::queue<Block *> worklist;
-
-  Intraproc epred; // ignore calls, returns
-  NoSinkPredicate epred2(&epred);
-
-  Block *entry = func->entry();
-  worklist.push(entry);
-
-  while (!worklist.empty()) {
-    Block *block = worklist.front();
-    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
-      
-    worklist.pop();
-      
-    // Step 1: calculate the meet over the heights of all incoming
-    // intraprocedural blocks.
-      
-    std::set<Height> inHeights;
-      
-    if (block == entry) {
-      // The in height is 0
-      // The set height is... 0
-      // And there is no input region.
-      inHeights.insert(Height::bottom);
-      stackanalysis_printf("\t Primed initial block\n");
-    }
-    else {
-        Block::edgelist & inEdges = block->sources();
-        Block::edgelist::iterator eit = inEdges.begin(&epred2);
-        for( ; eit != inEdges.end(); ++eit) {
-	        Edge *edge = (Edge*)*eit;
-	        //if (edge->type() == CALL) continue;
-	        inHeights.insert(fp_outBlockHeights[edge->src()]);
-	        stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
-			     edge->src()->start(),
-			     fp_outBlockHeights[edge->src()].format().c_str());
-        }
-    }
-    
-    Height newInHeight = meet(inHeights);
-    
-    stackanalysis_printf("\t New in meet:  %s\n",
-			 newInHeight.format().c_str());
-    
-    // Step 2: see if the input has changed
-      
-    if (newInHeight == fp_inBlockHeights[block]) {
-      // No new work here
-      stackanalysis_printf("\t ... equal to current, skipping block\n");
-      continue;
-    }
-      
-    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
-			 fp_inBlockHeights[block].format().c_str());
-      
-    fp_inBlockHeights[block] = newInHeight;
-      
-    // Step 3: calculate our new outs
-      
-    if (!fp_changePoints[block].empty()) {
-      switch (fp_changePoints[block].back().first) {
-      case fp_noChange:
-	fp_outBlockHeights[block] = newInHeight;
-	break;
-      case fp_created: {
-	// We set the FP to the last thing in the block
-	Height sp = findSP(fp_changePoints[block].back().second);
-	fp_outBlockHeights[block] = sp;
-	break;
-      }
-      case fp_destroyed:
-	fp_outBlockHeights[block] = Height::bottom;
-	break;
-      }
-    }
-    else {
-      // Copy through
-      fp_outBlockHeights[block] = newInHeight;
-    }
-
-    stackanalysis_printf("\t ... output from block: %s\n",
-			 fp_outBlockHeights[block].format().c_str());
-      
-    // Step 4: push all children on the worklist.
-     
-    Block::edgelist & outEdges = block->targets();
-    Block::edgelist::iterator eit = outEdges.begin(&epred2);
-    for( ; eit != outEdges.end(); ++eit) { 
-      //if ((*eit)->type() == CALL) continue;
-      worklist.push((Block*)(*eit)->trg());
-    }
-  }
-}
-
-void StackAnalysis::fp_createIntervals() {
-  // We now have a summary of the state of the stack at
-  // the entry to each block. We need to push that information
-  // into the block. Assume that frame affecting instructions
-  // are rare, where i_m, i_n affect the stack (m < n). Then
-  // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
-
-  fp_intervals_ = new HeightTree();
-
-  Function::blocklist & bs = func->blocks();
-  Function::blocklist::iterator bit = bs.begin();
-  for( ; bit != bs.end(); ++bit) {
-    Block *block = *bit;
-
-    stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", 
-			 block->start());
-    
-    Offset curLB = block->start();
-    Offset curUB = 0;
-    Height curHeight = fp_inBlockHeights[block];
-    
-    stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
-			 curLB, curHeight.format().c_str());
-    
-    // We only cache points where the frame height changes. 
-    // Therefore, we can simply iterate through them. 
-    for (FPChangePoints::iterator iter2 = fp_changePoints[block].begin();
-	 iter2 != fp_changePoints[block].end(); ++iter2) {
-
-      // We've changed the state of the stack pointer. End this interval
-      // and start a new one. 
-           
-      curUB = iter2->second;
-
-      fp_intervals_->insert(curLB, curUB, 
-			    curHeight);
-
-      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
-			   curLB, curUB, curHeight.format().c_str());
-
-      switch(iter2->first) {
-      case fp_noChange:
-	// ????
-	continue;
-      case fp_created: 
-	curHeight = findSP(curUB);
-	break;
-      case fp_destroyed:
-	curHeight = Height::bottom;
-	break;
-      }
-      
-      curLB = curUB;
-    }
-    
-    if (curLB != block->end()) {
-      // Cap off the extent for the current block
-      curUB = block->end();
-      if (curHeight != fp_outBlockHeights[block]) {
-	fprintf(stderr, "ERROR: accumulated state not equal to fixpoint state!\n");
-	fprintf(stderr, "\t %s\n", curHeight.format().c_str());
-	fprintf(stderr, "\t %s\n", fp_outBlockHeights[block].format().c_str());
-      }
-
-
-      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
-			   curLB, curUB, curHeight.format().c_str());
-      fp_intervals_->insert(curLB, curUB, 
-			    curHeight);
-    }
-  }
-}
-
-void StackAnalysis::computeInsnEffects(Block *block,
+void StackAnalysis::computeInsnEffects(ParseAPI::Block *block,
                                        const Instruction::Ptr &insn,
-                                       Offset off,
-                                       InsnTransferFunc &iFunc,
-				       fp_State &fpState) 
-{
-    stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->isrc()->getArch())));
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->isrc()->getArch())));
+                                       const Offset off,
+                                       TransferFuncs &xferFuncs) {
+   stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
     
-    //TODO: Integrate entire test into analysis lattice
     entryID what = insn->getOperation().getID();
 
-    if (insn->isWritten(theFramePtr)) {
-      stackanalysis_printf("\t\t\t FP written\n");
-      if (what == e_mov &&
-          (insn->isRead(theStackPtr))) {
-	fpState = fp_created;
-	stackanalysis_printf("\t\t\t Frame created\n");
-      }
-      else {
-	fpState = fp_destroyed;
-      }
+    // Reminder: what we're interested in:
+    // a) Use of the stack pointer to define another register
+    //      Assumption: this is done by an e_mov and is a direct copy
+    //                  else bottom
+    // b) Use of another register to define the stack pointer
+    //      Assumption: see ^^
+    // c) Modification of the stack pointer
+    // 
+    // The reason for these assumptions is to keep the analysis reasonable; also,
+    // other forms just don't occur. 
+    //
+    // In summary, the stack pointer must be read or written for us to be interested.
+    // 
+    // However, we need to detect when a register is destroyed. So if something is written,
+    // we assume it is destroyed.
+    // 
+    // For now, we assume an all-to-all mapping for speed. 
+
+    // Cases we handle
+    if (isCall(insn)) {
+       if (handleNormalCall(insn, block, off, xferFuncs))
+          return;
+       else if (handleThunkCall(insn, xferFuncs))
+          return;
+       else
+          return handleDefault(insn, xferFuncs);
     }
 
-    int word_size = func->isrc()->getAddressWidth();
-    if (insn->getControlFlowTarget() && insn->getCategory() == c_CallInsn) {
-      if (off != block->lastInsnAddr()) {
-	// Call in the middle of the block? Must be a get PC operation
-	iFunc.delta() = -1*word_size;
-	stackanalysis_printf("\t\t\t getPC call: %s\n", iFunc.format().c_str());
-	return;
-      }
-        
-        Block::edgelist & outs = block->targets();  
-        Block::edgelist::iterator eit = outs.begin();
-        for( ; eit != outs.end(); ++eit) {
-            Edge *cur_edge = (Edge*)*eit;
-
-	        if (cur_edge->type() == DIRECT) {
-	            // For some reason we're treating this
-	            // call as a branch. So it shifts the stack
-	            // like a push (heh) and then we're done.
-	            iFunc.delta() = -1*word_size;
-	            stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
-	            return;
-	        }
-
-            if (cur_edge->type() != CALL) 
-                continue;
-            
-            Block *target_bbl = cur_edge->trg();
-	    Function *target_func = target_bbl->obj()->findFuncByEntry(target_bbl->region(), target_bbl->start());
-
-            if (!target_func)
-                continue;
-            Height h = getStackCleanAmount(target_func);
-            if (h == Height::bottom) {
-                iFunc == InsnTransferFunc::bottom;
-            }
-            else {
-                iFunc.delta() = h.height();
-            }
-
-            stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
-            return;
-        }
-        stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
-        return;
-    }
-    
-    if(!insn->isWritten(theStackPtr)) {
-      return;
-    }
-
-    // Here's one for you:
-    // lea    0xfffffff4(%ebp),%esp
-    // Yeah, that's "do math off the base pointer and assign the stack pointer". 
-    // Oy. 
-    // Doesn't work right, so leaving it out for now. 
-#if 0
-    if (insn->isRead(theFramePtr) || insn->isRead(framePtr64)) {
-      
-      bool done;
-      std::vector<Operand> operands;
-      insn->getOperands(operands);
-      cerr << "************" << endl;
-      for (unsigned i = 0; i < operands.size(); ++i) {
-	cerr << operands[i].format() << endl;
-	// We need to find the thing that be done read
-	if (operands[i].isRead(operands[i].getValue())) {
-	  if (done) {
-	    // Multiple conflicting uses. WTF?
-	    iFunc.range() = Range(Range::infinite, 0, off);
-	    return;
-	  }
-	  done = true;
-	  static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-	  static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
-	  operands[i].getValue()->bind(theFramePtr.get(), Result(s32, -2*word_size));
-	  operands[i].getValue()->bind(theFramePtr64.get(), Result(s32, -2*word_size));
-
-	  Result res = operands[i].getValue()->eval();
-	  if (res.defined) {
-	    iFunc.abs() = true;
-	    iFunc.delta() = res.convert<long>();
-            stackanalysis_printf("\t\t\t Stack height changed by ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
-	  }
-	  else {
-	    iFunc.range() = Range(Range::infinite, 0, off);
-            stackanalysis_printf("\t\t\t Stack height changed by unevalled ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
-	  }
-	}
-      }
-    }
-
-#endif
     int sign = 1;
-    switch(what) {
-    case e_push:
-        sign = -1;
-    case e_pop: {
-        Operand arg = insn->getOperand(0);
-        if (arg.getValue()->eval().defined) {
-            iFunc.delta() = sign * word_size;
-            stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", iFunc.format().c_str());
-            return;
-        }
-        iFunc.delta() = sign * arg.getValue()->size();
-        stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", iFunc.format().c_str());
-        return;
+    switch (what) {
+       case e_push:
+          sign = -1;
+       case e_pop:
+          handlePushPop(insn, sign, xferFuncs);
+          break;
+       case e_ret_near:
+       case e_ret_far:
+          handleReturn(insn, xferFuncs);
+          break;
+       case e_sub:
+          sign = -1;
+       case e_add:
+          handleAddSub(insn, sign, xferFuncs);
+          break;
+       case e_leave:
+          handleLeave(xferFuncs);
+          break;
+       case e_pushfd:
+          sign = -1;
+       case e_popfd:
+          handlePushPopFlags(sign, xferFuncs);
+          break;
+       case e_pushad:
+           sign = -1;
+           handlePushPopRegs(sign, xferFuncs);
+           break;
+       case e_popad:
+           // This nukes all registers
+           handleDefault(insn, xferFuncs);
+           break;
+       case power_op_addi:
+       case power_op_addic:
+          handlePowerAddSub(insn, sign, xferFuncs);
+          break;
+       case power_op_stwu:
+          handlePowerStoreUpdate(insn, xferFuncs);
+          break;
+       case e_mov:
+          handleMov(insn, xferFuncs);
+          break;
+       default:
+          handleDefault(insn, xferFuncs);
     }
-    case e_ret_near:
-    case e_ret_far: {
-      std::vector<Operand> operands;
-      insn->getOperands(operands);
-      if (operands.size() == 0) {
-	iFunc.delta() = word_size;
-      }
-      else if (operands.size() == 1) {
-	// Ret immediate
-	Result imm = operands[0].getValue()->eval();
-	if (imm.defined) {
-	  iFunc.delta() = word_size + imm.convert<int>();
-	}
-	else {
-	  iFunc.range() = Range(Range::infinite, 0, off);
-	}
-      }
-      stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
-      
-      return;
-    }
-    case e_sub:
-        sign = -1;
-    case e_add:
-      {
-        // Add/subtract are op0 += (or -=) op1
-        Operand arg = insn->getOperand(1);
-        Result delta = arg.getValue()->eval();
-        if(delta.defined) {
-	  iFunc.delta() = sign * delta.convert<long>();
-	  stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
-	  return;
-        }
-        iFunc.range() = Range(Range::infinite, 0, off);
-        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
-        return;
-    }
-        // We treat return as zero-modification right now
-    case e_leave:
-        iFunc.abs() = true;
-        iFunc.delta() = -1*word_size;
-        stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
-        return;
-    case e_pushfd:
-        sign = -1;
-    case e_popfd:
-        iFunc.delta() = sign * word_size;
-        stackanalysis_printf("\t\t\t Stack height changed by flag push/pop: %s\n", iFunc.format().c_str());
-        return;
-    case power_op_addi:
-    case power_op_addic:
-        {
-        // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
-        Operand arg = insn->getOperand(2);
-        Result delta = arg.getValue()->eval();
-        if(delta.defined && insn->isRead(theStackPtr)) {
-	    iFunc.delta() = sign * delta.convert<long>();
-	    stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
-	    return;
-        }
-        iFunc.range() = Range(Range::infinite, 0, off);
-        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
-        return;
-    }
-    case power_op_stwu: {
-        std::set<Expression::Ptr> memWriteAddrs;
-        insn->getMemoryWriteOperands(memWriteAddrs);
-	Expression::Ptr stackWrite = *(memWriteAddrs.begin());
-        stackanalysis_printf("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
-        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
-        stackWrite->bind(theStackPtr.get(), Result(u32, 0));
-        Result delta = stackWrite->eval();
-        if(delta.defined) {
-            iFunc.delta() = delta.convert<long>();
-            stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
-            return;
-        }
-    }
-    case e_mov: {
-      // Special case: mov ebp, esp is a stack teardown that we need to handle
-      // correctly. Things to think about... moving the FP analysis before the SP
-      // analysis? Or add an "assignment" func? For now, special-casing...
-      if (insn->isRead(theFramePtr)) {
-	// Awesome
-	iFunc.abs() = true;
-	iFunc.delta() = -2*word_size;
-	stackanalysis_printf("\t\t\t Stack height changed by mov ebp, esp: %s\n", iFunc.format().c_str());
-	return;
-      }
-      // Otherwise fall through to default
-    }
-    default:
-        iFunc.range() = Range(Range::infinite, 0, off);
-        stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
-			     insn->format().c_str(), iFunc.format().c_str());
-        return;
-    }
-    assert(0);
-    return;
 }
 
 StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
@@ -811,276 +383,617 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       }
       returnCleanVals.insert(Height(val));
     }
-    
-    funcCleanAmounts[func] = meet(returnCleanVals);
+    funcCleanAmounts[func] = Height::meet(returnCleanVals);
+
     return funcCleanAmounts[func];
 }
 
 StackAnalysis::StackAnalysis() :
-    func(NULL), sp_intervals_(NULL), fp_intervals_(NULL), 
-    rt(Region::Ptr(new Region())) {};
-    
+   func(NULL), intervals_(NULL) {};
+   
 
 StackAnalysis::StackAnalysis(Function *f) : func(f),
-					    sp_intervals_(NULL),
-					    fp_intervals_(NULL),
-                                            rt(Region::Ptr(new Region())) {}
+					    intervals_(NULL) {
+   word_size = func->isrc()->getAddressWidth();
+   theStackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(func->isrc()->getArch())));
+   thePC = Expression::Ptr(new RegisterAST(MachRegister::getPC(func->isrc()->getArch())));
+};
+
 void StackAnalysis::debug() {
-#if 0
-    if (!sp_intervals_) return;
-    std::vector<std::pair<std::pair<Offset, Offset>, Height> > elements;
-    sp_intervals_->elements(elements);
-
-    for (unsigned i = 0; i < elements.size(); i++) {
-        fprintf(stderr, "0x%lx - 0x%lx: %s\n",
-                elements[i].first.first,
-                elements[i].first.second,
-                elements[i].second.format().c_str());
-    }
-#endif
 }
 
-std::string StackAnalysis::InsnTransferFunc::format() const {
-    char buf[256];
+std::string StackAnalysis::TransferFunc::format() const {
+   std::stringstream ret;
 
-    if (*this == bottom) {
-        sprintf(buf, "<BOTTOM>");
-        return buf;
-    }
-    if (*this == top) {
-        sprintf(buf, "<TOP>");
-        return buf;
-    }
-
-    if (range_ == defaultRange) {
-        if (!abs_) {
-	  sprintf(buf, "<%ld>", delta_);
-        }
-        else {
-	  sprintf(buf, "Abs: %ld", delta_);
-        }
-    }
-    else {
-        sprintf(buf, "%s", range_.format().c_str());
-    }
-    return buf;
+   ret << "[";
+   if (target.isValid())
+      ret << target.name();
+   else
+      ret << "<INVALID>";
+   ret << ":=";
+   if (isBottom()) ret << "<BOTTOM>";
+   else if (isTop()) ret << "<TOP>";
+   else {
+      if (isAlias())
+         ret << from.name();
+      if (isAbs())
+         ret << hex << abs << dec;
+      if (isDelta()) 
+         ret << "+" << hex << delta << dec;
+   }
+   ret << "]";
+   return ret.str();
 }
 
-std::string StackAnalysis::BlockTransferFunc::format() const {
-    if (*this == bottom) {
-        return "<BOTTOM>";
-    }
-    if (*this == top) {
-        return "<TOP>";
-    }
-
-    std::stringstream retVal;
-
-    if (!abs_) {
-        retVal << "<" << delta_ << ">";
-    }
-    else {
-        retVal << "Abs: " << delta_;
-    }
-
-    for (unsigned i = 0; i < ranges_.size(); i++) {
-        retVal << ranges_[i].format();
-    }
-    return retVal.str();
+std::string StackAnalysis::SummaryFunc::format() const {
+   stringstream ret;
+   for (TransferSet::const_iterator iter = accumFuncs.begin();
+        iter != accumFuncs.end(); ++iter) {
+      ret << iter->second.format() << endl;
+   }
+   return ret.str();
 }
 
-void StackAnalysis::InsnTransferFunc::apply(const BlockTransferFunc &in,
-                                            BlockTransferFunc &out) const {
-    out = in;
+StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister reg) {
 
-    apply(out);
-}
-
-
-void StackAnalysis::InsnTransferFunc::apply(BlockTransferFunc &out) const {
-    if (out == BlockTransferFunc::bottom) return;
-
-    if (*this == bottom) {
-        out = BlockTransferFunc::bottom;
-        return;
-    }
-
-    if (abs_) {
-        out.delta() = 0;
-        out.abs() = true;
-        out.ranges().clear();
-        out.reset() = true;
-    }
-
-    if (delta_ != uninitialized) {
-        if (out.delta() == uninitialized) {
-            out.delta() = 0;
-        }
-        out.delta() += delta_;
-    }
-
-    if (range_ != defaultRange) {
-        out.ranges().push_back(Range(range_, 
-                                     ((out.delta() == uninitialized ) ? 0 : out.delta())));
-        out.reset() = true;
-        out.delta() = 0;
-    }
-}
-
-
-void StackAnalysis::BlockTransferFunc::apply(const BlockTransferFunc &in,
-                                             BlockTransferFunc &out) const {
-    out = in;
-    apply(out);
-}
-
-void StackAnalysis::BlockTransferFunc::apply(BlockTransferFunc &out) const {
-    if (out == bottom) return;
-    if (*this == bottom) {
-        out = bottom;
-        return;
-    }
-
-    // abs: we encountered a leave or somesuch
-    // that rebased the stack pointer
-    if (abs_) {
-        // Any increment will happen below.
-        out.delta() = 0;
-        out.ranges().clear();
-        out.abs() = true;
-    }
-
-    // This just says reset delta to 0;
-    // we've got a new relative origin.
-    if (reset_) {
-        out.delta() = 0;
-        out.reset() = true;
-    }
-
-    if (delta_ != uninitialized) {
-        if (out.delta() == uninitialized) {
-            out.delta() = 0;
-        }
-        out.delta() += delta_;
-    }
-    
-    for (unsigned i = 0; i < ranges_.size(); i++) {
-        out.ranges().push_back(ranges_[i]);
-    }
-}
-
-std::string StackAnalysis::Range::format() const {
-    std::stringstream retVal;
-
-    if (off_ == 0) {
-        return "[NONE]";
-    }
-    else {
-        retVal << "[" << std::hex << off_ 
-               << std::dec
-               << ", " << delta_
-               << ", [";
-        if (range_.first == MINLONG)
-            retVal << "-inf";
-        else
-            retVal << range_.first;
-
-        retVal << ",";
-
-        if (range_.second == MAXLONG)
-            retVal << "+inf";
-        else
-            retVal << range_.second;
-        
-        retVal << "]]";
-        return retVal.str();
-    }
-}
-
-StackAnalysis::Region::Ptr StackAnalysis::RangeTree::find(Ranges &str) {
-    if (str.empty()) return root->region;
-
-    Node *cur = root;
-    for (unsigned i = 0; i < str.size(); i++) {
-        std::map<Range, Node *>::iterator iter = cur->children.find(str[i]);
-        if (iter == cur->children.end()) {
-            stackanalysis_printf("\t Creating new node for range %s\n", 
-				 str[i].format().c_str());
-            // Need to create a new node...
-            Node *newNode = new Node(Region::Ptr(new Region(getNewRegionID(),
-                                                            str[i],
-                                                            cur->region)));
-            cur->children[str[i]] = newNode;
-            cur = newNode;
-        }
-        else {
-	  stackanalysis_printf("\t Found existing node for range %s\n",
-			       str[i].format().c_str());
-            cur = iter->second;
-        }
-    }
-    stackanalysis_printf("\t Returning region %s\n", cur->region->format().c_str());
-    return cur->region;
-}
-
-StackAnalysis::Region::Ptr StackAnalysis::getRegion(Ranges &ranges) {
-    return rt.find(ranges);
-}
-
-std::string StackAnalysis::Region::format() const {
-    std::stringstream retVal;
-    
-    retVal << "(" << name_ << "," << range_.format() << ") ";
-    if (prev_)
-        retVal << prev_->format();
-
-    return retVal.str();
-}
-
-StackAnalysis::Height StackAnalysis::findSP(Address addr) {
   Height ret; // Defaults to "top"
 
   if (func == NULL) return ret;
-
-  if (!sp_intervals_) {
+  
+  if (!intervals_) {
     // Check annotation
-    func->getAnnotation(sp_intervals_, SP_Anno);
+    func->getAnnotation(intervals_, Stack_Anno);
   }
-  if (!sp_intervals_) {
+  if (!intervals_) {
     // Analyze?
     if (!analyze()) return Height();
   }
-  assert(sp_intervals_);
+  assert(intervals_);
 
-  sp_intervals_->find(addr, ret);
-  if(ret.isTop()) {
-    if(!analyze()) return Height();
+  //(*intervals_)[b].find(addr, state);
+  ret = (*intervals_)[b][addr][reg];
+
+  if (ret.isTop()) {
+     return Height::bottom;
   }
-  sp_intervals_->find(addr, ret);
-  assert(!ret.isTop());
   return ret;
 }
 
-StackAnalysis::Height StackAnalysis::findFP(Address addr) {
-  Height ret; // Defaults to "top"
-
-  if (func == NULL) return ret;
-
-  if (!fp_intervals_) {
-    // Check annotation
-    func->getAnnotation(fp_intervals_, FP_Anno);
-  }
-  if (!fp_intervals_) {
-    // Analyze?
-    if (!analyze()) return ret;
-  }
-  assert(fp_intervals_);
-
-  fp_intervals_->find(addr, ret);
-  return ret;
+StackAnalysis::Height StackAnalysis::findSP(Block *b, Address addr) {
+   return find(b, addr, sp());
 }
+
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h) {
   os << "STACK_SLOT[" << h.format() << "]";
   return os;
+}
+
+///////////////////
+// Insn effect fragments
+///////////////////
+
+void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
+   long delta = 0;
+   Operand arg = insn->getOperand(0);
+   // Why was this here? bernat, 12JAN11
+   if (arg.getValue()->eval().defined) {
+      delta = sign * word_size;
+      stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %lx\n", delta);
+   }
+   else {
+	   delta = sign * arg.getValue()->size();
+	   //cerr << "Odd case: set delta to " << hex << delta << dec << " for instruction " << insn->format() << endl;
+      stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %lx\n", delta);
+   }
+   //   delta = sign *arg.getValue()->size();
+   xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
+
+   // Let's get whatever was popped (if it was)
+   if (insn->getOperation().getID() == e_pop) {
+      MachRegister reg = sp();
+      
+      std::set<RegisterAST::Ptr> written;
+      insn->getWriteSet(written);
+      for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
+           iter != written.end(); ++iter) {
+         if ((*iter)->getID() != sp()) reg = (*iter)->getID();
+      }
+      xferFuncs.push_back(TransferFunc::bottomFunc(reg));
+   }
+}
+
+void StackAnalysis::handleReturn(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+   long delta = 0;
+   std::vector<Operand> operands;
+   insn->getOperands(operands);
+   if (operands.size() == 0) {
+      delta = word_size;
+   }
+   else if (operands.size() == 1) {
+      // Ret immediate
+      Result imm = operands[0].getValue()->eval();
+      if (imm.defined) {
+         delta = word_size + imm.convert<int>();
+      }
+      else {
+         stackanalysis_printf("\t\t\t Stack height changed by return: bottom\n");
+         xferFuncs.push_back(TransferFunc::bottomFunc(sp()));   
+      }
+   }
+   stackanalysis_printf("\t\t\t Stack height changed by return: %lx\n", delta);
+   xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
+   return;
+}
+
+void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
+   if(!insn->isRead(theStackPtr)) {
+      return handleDefault(insn, xferFuncs);
+   }
+   
+   // Add/subtract are op0 += (or -=) op1
+   Operand arg = insn->getOperand(1);
+   Result res = arg.getValue()->eval();
+   if(res.defined) {
+	   // FIXME: IAPI is treating the operand as unsigned, and thus a <long> conversion
+	   // comes out as a small positive number if the offset is negative. 
+	   // This should fix it...
+      long delta = sign * (long) res.convert<unsigned char>();
+      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", delta);
+      xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));   
+   }
+   else {
+      stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: bottom\n");
+      xferFuncs.push_back(TransferFunc::bottomFunc(sp()));   
+   }      
+   return;
+}
+
+void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
+   // This is... mov esp, ebp; pop ebp.
+   // Handle it as such.
+
+   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+
+   // And pop
+   xferFuncs.back().delta = word_size;
+   xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
+}
+
+void StackAnalysis::handlePushPopFlags(int sign, TransferFuncs &xferFuncs) {
+   // Fixed-size push/pop
+   xferFuncs.push_back(TransferFunc::deltaFunc(sp(), sign * word_size));
+}
+
+void StackAnalysis::handlePushPopRegs(int sign, TransferFuncs &xferFuncs) {
+   // Fixed-size push/pop
+	// 8 registers
+   xferFuncs.push_back(TransferFunc::deltaFunc(sp(), sign * 8 * word_size));
+}
+
+void StackAnalysis::handlePowerAddSub(Instruction::Ptr insn, int sign, TransferFuncs &xferFuncs) {
+   // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
+   if (!insn->isRead(theStackPtr) ||
+       !insn->isWritten(theStackPtr)) {
+      return handleDefault(insn, xferFuncs);
+   }
+   
+   Operand arg = insn->getOperand(2);
+   Result res = arg.getValue()->eval();
+   if(res.defined) {
+      xferFuncs.push_back(TransferFunc::deltaFunc(sp(), sign * res.convert<long>()));
+      stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %lx\n", sign * res.convert<long>());
+   }
+   else {
+      xferFuncs.push_back(TransferFunc::bottomFunc(sp()));
+      stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: bottom\n");
+   }   
+   return;
+}
+
+void StackAnalysis::handlePowerStoreUpdate(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+   if(!insn->isWritten(theStackPtr)) {
+      return handleDefault(insn, xferFuncs);
+   }
+   
+   std::set<Expression::Ptr> memWriteAddrs;
+   insn->getMemoryWriteOperands(memWriteAddrs);
+   Expression::Ptr stackWrite = *(memWriteAddrs.begin());
+   stackanalysis_printf("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
+   stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
+   stackWrite->bind(theStackPtr.get(), Result(u32, 0));
+   Result res = stackWrite->eval();
+   if(res.defined) {
+      long delta = res.convert<long>();
+      xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
+      stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %lx\n", delta);
+   }
+   else {
+      xferFuncs.push_back(TransferFunc::bottomFunc(sp()));
+      stackanalysis_printf("\t\t\t Stack height changed by unevalled stwu: bottom\n");
+   }
+}
+
+void StackAnalysis::handleMov(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+   // A couple of cases:
+   // mov reg, reg
+   // mov mem, reg
+   // mov reg, mem
+   // 
+   // The first is fine, the second bottoms the reg, and the third we ignore.
+
+   if (insn->writesMemory()) return;
+   if (insn->readsMemory()) {
+      handleDefault(insn, xferFuncs);
+      return;
+   }
+   MachRegister read;
+   MachRegister written;
+   std::set<RegisterAST::Ptr> regs;
+   RegisterAST::Ptr reg;
+
+   insn->getWriteSet(regs);
+   if (regs.size() > 1) {
+       handleDefault(insn, xferFuncs);
+       return;
+   }
+
+   assert(regs.size() == 1);
+   reg = *(regs.begin());
+   written = reg->getID();
+   regs.clear();
+
+   insn->getReadSet(regs);
+   if (regs.size() > 1) {
+       //assert(regs.size() < 2);
+       // I had been asserting that there were two registers. Then a rep-prefixed mov instruction came
+       // along and ruined my day...
+       // This is a garbage instruction that is prefixed. Treat as bottom. 
+       handleDefault(insn, xferFuncs);
+       return;
+   }
+
+
+   if (!regs.empty()) {
+	   reg = *(regs.begin());
+	   read = reg->getID();
+   }
+   regs.clear();
+   
+   if (read.isValid()) {
+	   stackanalysis_printf("\t\t\t Alias detected: %s -> %s\n", read.name().c_str(), written.name().c_str());
+	   xferFuncs.push_back(TransferFunc::aliasFunc(read, written));
+   }
+   else {
+	   xferFuncs.push_back(TransferFunc::bottomFunc(written));
+	   stackanalysis_printf("\t\t\t Non-register-register move: %s set to bottom\n", written.name().c_str());
+   }
+}
+
+void StackAnalysis::handleDefault(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+   std::set<RegisterAST::Ptr> written;
+   insn->getWriteSet(written);
+   for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
+        iter != written.end(); ++iter) {
+
+      xferFuncs.push_back(TransferFunc::bottomFunc((*iter)->getID()));
+      stackanalysis_printf("\t\t\t Unhandled insn %s detected: %s set to bottom\n", insn->format().c_str(), 
+                           (*iter)->getID().name().c_str());
+   }
+   return;
+}
+
+bool StackAnalysis::isCall(Instruction::Ptr insn) {
+   return insn->getCategory() == c_CallInsn;
+}
+
+bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset off, TransferFuncs &xferFuncs) {
+   if (!insn->getControlFlowTarget()) return false;
+
+   // Must be a thunk based on parsing.
+   if (off != block->lastInsnAddr()) return false;
+   
+   Block::edgelist & outs = block->targets();  
+   Block::edgelist::iterator eit = outs.begin();
+   for( ; eit != outs.end(); ++eit) {
+      Edge *cur_edge = (Edge*)*eit;
+      
+      if (cur_edge->type() == DIRECT) {
+         // For some reason we're treating this
+         // call as a branch. So it shifts the stack
+         // like a push (heh) and then we're done.
+         stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
+         xferFuncs.push_back(TransferFunc::deltaFunc(sp(), -1 * word_size));
+         return true;
+      }
+      
+      if (cur_edge->type() != CALL) 
+         continue;
+      
+      Block *target_bbl = cur_edge->trg();
+      Function *target_func = target_bbl->obj()->findFuncByEntry(target_bbl->region(), target_bbl->start());
+      
+      if (!target_func)
+         continue;
+      
+      Height h = getStackCleanAmount(target_func);
+      if (h == Height::bottom) {
+         stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: bottom\n");
+         xferFuncs.push_back(TransferFunc::bottomFunc(sp()));
+      }
+      else {
+         stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %ld\n", h.height());
+         xferFuncs.push_back(TransferFunc::deltaFunc(sp(), h.height()));
+      }
+      return true;
+
+   }
+   stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
+   return true;
+}
+                                       
+
+bool StackAnalysis::handleThunkCall(Instruction::Ptr insn, TransferFuncs &xferFuncs) {
+   // We know that we're not a normal call, so it depends on whether
+   // the CFT is "next instruction" or not. 
+   if (insn->getCategory() != c_CallInsn ||
+       !insn->getControlFlowTarget()) return false;
+   
+   // Eval of getCFT(0) == size?
+   Expression::Ptr cft = insn->getControlFlowTarget();
+   cft->bind(thePC.get(), Result(u32, 0));
+   Result res = cft->eval();
+   if (!res.defined) return false;
+   if (res.convert<unsigned>() == insn->size()) {
+      xferFuncs.push_back(TransferFunc::deltaFunc(sp(), -1 * word_size));
+      return true;
+   }
+   // Else we're calling a mov, ret thunk that has no effect on the stack pointer
+   return true;
+}
+
+
+void StackAnalysis::createEntryInput(RegisterState &input) {
+   // FIXME for POWER/non-IA32
+   // IA32 - the in height includes the return address and therefore
+   // is <wordsize>
+   // POWER - the in height is 0
+
+#if defined(arch_power)
+   input[sp()] = Height(0);
+#elif (defined(arch_x86) || defined(arch_x86_64))
+   input[sp()] = Height(-1 * word_size);
+#else
+   assert(0 && "Unimplemented architecture");
+#endif
+}
+
+void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
+   input.clear();
+
+   Intraproc epred; // ignore calls, returns in edge iteration
+   NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+   
+   Block::edgelist & inEdges = block->sources();
+   Block::edgelist::iterator eit = inEdges.begin(&epred2);
+   for( ; eit != inEdges.end(); ++eit) {
+      Edge *edge = (Edge*)*eit;
+      // Intraprocedural only
+      if (edge->type() == CALL || edge->type() == RET) continue;
+      meet(blockOutputs[edge->src()], input);
+#if 0
+      stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
+                           edge->src()->start(),
+                           outBlockEffects[edge->src()].format().c_str());
+#endif
+   }
+}
+
+void StackAnalysis::meet(const RegisterState &input, RegisterState &accum) {
+   for (RegisterState::const_iterator iter = input.begin();
+        iter != input.end(); ++iter) {
+      accum[iter->first] = Height::meet(iter->second, accum[iter->first]);
+   }
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::deltaFunc(MachRegister r, Height d) {
+   return TransferFunc(Height::top, d, MachRegister(), r);
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::absFunc(MachRegister r, Height a) {
+   return TransferFunc(a, Height::top, MachRegister(), r);
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::aliasFunc(MachRegister f, MachRegister t) {
+   return TransferFunc (Height::top, Height::top, f, t);
+}
+
+StackAnalysis::TransferFunc StackAnalysis::TransferFunc::bottomFunc(MachRegister r) {
+   return TransferFunc(Height::bottom, Height::bottom, MachRegister(), r);
+}
+
+bool StackAnalysis::TransferFunc::isBottom() const {
+   return (delta == notUnique || abs == notUnique);
+}
+
+bool StackAnalysis::TransferFunc::isTop() const {
+   return (!isDelta() && !isAbs() && !isAlias());
+}
+
+bool StackAnalysis::TransferFunc::isAlias() const {
+   return from.isValid();
+}
+
+bool StackAnalysis::TransferFunc::isAbs() const {
+   return (abs != uninitialized);
+}
+
+bool StackAnalysis::TransferFunc::isDelta() const {
+   return (delta != uninitialized);
+}
+
+// Destructive update of the input map. Assumes inputs are absolute, uninitalized, or 
+// bottom; no deltas.
+StackAnalysis::Height StackAnalysis::TransferFunc::apply(const RegisterState &inputs ) const {
+	assert(target.isValid());
+	// Bottom stomps everything
+	if (isBottom()) {
+		return Height::bottom;
+	}
+
+	RegisterState::const_iterator iter = inputs.find(target);
+	Height input;
+	if (iter != inputs.end()) {
+		input = iter->second;
+	}
+	else {
+		input = Height::bottom;
+	}
+
+   if (isAbs()) {
+      // We cannot be an alias, as the absolute removes that. 
+      assert(!isAlias());
+      // Apply the absolute 
+      input = abs;
+   }
+   if (isAlias()) {
+      // Cannot be absolute
+      assert(!isAbs());
+      // Copy the input value from whatever we're an alias of.
+	  RegisterState::const_iterator iter2 = inputs.find(from);
+	  if (iter2 != inputs.end()) input = iter2->second;
+	  else input = Height::bottom;
+   }
+   if (isDelta()) {
+      input += delta;
+   }
+   return input;
+}
+
+// Accumulation to the input map. This is intended to create a summary, so we create
+// something that can take further input.
+void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc> &inputs ) {
+   TransferFunc &input = inputs[target];
+   if (input.target.isValid()) assert(input.target = target);
+   input.target = target; // Default constructed TransferFuncs won't have this
+   assert(target.isValid());
+
+   // Bottom stomps everything
+   if (isBottom()) {
+      input = bottomFunc(target);
+      return;
+   }
+   // Absolutes override everything else
+   if (isAbs()) {
+      input = absFunc(target, abs);
+      return;
+   }
+   // Aliases can be tricky
+   if (isAlias()) {
+      // We need to record that we want to take the inflow height
+      // of a different register. 
+	   // Don't do an inputs[from] as that creates
+	   std::map<MachRegister, TransferFunc>::iterator iter = inputs.find(from);
+	   if (iter == inputs.end()) {
+		   // Aliasing to something we haven't seen yet; easy
+		   input = *this;
+		   return;
+	   }
+
+	   TransferFunc &alias = iter->second;
+      
+      if (alias.isAbs()) {
+         // Easy; we reset the height, so we don't care about the inflow height.
+         // This might be a delta from that absolute, but all that we care about is that
+         // we ignore any inflow. 
+         assert(!alias.isAlias());
+		 input = absFunc(input.target, alias.abs);
+		 assert(input.target.isValid());
+         return;
+      }
+      if (alias.isAlias()) {
+         // Transitivity! We cut that short.
+         // Again, it might be a delta since the alias, which we'll copy over. It cannot
+         // be an absolute because that will remove the alias (and vice versa).
+         assert(!alias.isAbs());
+         input = alias;
+		 assert(input.target.isValid());
+         return;
+      }
+
+	  // Default case: record the alias, zero out everything else, copy over the delta
+	  // if it's defined.
+	  //input.target is defined
+	  input.from = alias.target;
+	  input.abs = Height::top;
+	  if (alias.isDelta()) {
+         input.delta = alias.delta;
+	  }
+	  else {
+		  input.delta = Height::top;
+	  }
+	  return;
+   }
+   if (isDelta()) {
+      // A delta can apply cleanly to anything, since Height += handles top/bottom
+      input.delta += delta;
+      return;
+   }
+   assert(0);
+   return;
+}
+
+void StackAnalysis::SummaryFunc::apply(const RegisterState &in, RegisterState &out) const {
+	// Copy all the elements we don't have xfer funcs for. 
+	out = in;
+
+	// We apply in parallel, since all summary funcs are from the start of the block.
+	for (TransferSet::const_iterator iter = accumFuncs.begin();
+		iter != accumFuncs.end(); ++iter) {
+		assert(iter->first.isValid());
+		out[iter->first] = iter->second.apply(in);
+	}
+}
+
+
+void StackAnalysis::SummaryFunc::add(TransferFuncs &xferFuncs) {
+   // We need to update our register->xferFunc map
+   // with the effects of each of the transferFuncs. 
+   
+   for (TransferFuncs::iterator iter = xferFuncs.begin(); 
+        iter != xferFuncs.end(); ++iter) {
+      TransferFunc &func = *iter;
+
+      func.accumulate(accumFuncs);
+   validate();
+   }
+
+}
+
+void StackAnalysis::SummaryFunc::validate() const {
+   for (TransferSet::const_iterator iter = accumFuncs.begin(); 
+	   iter != accumFuncs.end(); ++iter)
+   {
+	   const TransferFunc &func = iter->second;
+	   assert(func.target.isValid());
+	   if (func.isAlias()) assert(!func.isAbs());
+	   if (func.isAbs()) assert(!func.isAlias());
+	   if (func.isBottom()) assert(!func.isAlias());
+   }
+}
+
+MachRegister StackAnalysis::sp() { 
+ return MachRegister::getStackPointer(func->isrc()->getArch());
+}
+
+MachRegister StackAnalysis::fp() { 
+ return MachRegister::getFramePointer(func->isrc()->getArch());
+}
+
+std::string StackAnalysis::format(const RegisterState &input) const {
+	std::stringstream ret;
+	for (RegisterState::const_iterator iter = input.begin(); iter != input.end(); ++iter) {
+		ret << iter->first.name() << " := " << iter->second.format() << ", ";
+	}
+	return ret.str();
 }

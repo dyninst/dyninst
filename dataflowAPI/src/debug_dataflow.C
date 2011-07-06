@@ -38,6 +38,8 @@
 #include "debug_dataflow.h"
 #include <stdlib.h>
 
+#include <iostream>
+
 // Internal debugging
 
 int df_debug_slicing= 0;

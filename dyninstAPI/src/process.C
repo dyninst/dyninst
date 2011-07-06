@@ -66,6 +66,10 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI/src/ast.h"
 
+#include "MemoryEmulator/memEmulator.h"
+
+#include <boost/tuple/tuple.hpp>
+
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
 #include "common/h/Time.h"
@@ -89,12 +93,24 @@
 #include "common/h/Timer.h"
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#include "PatchMgr.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
 using namespace Dyninst;
+using PatchAPI::DynObjectPtr;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::DynAddrSpacePtr;
+using PatchAPI::PatchMgr;
+using PatchAPI::PointMakerPtr;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
-#define SIZE_WATERMARK 100
+#define SIZE_WATERMARK 100 
 static const timeLength MaxWaitingTime(10, timeUnit::sec());
 static const timeLength MaxDeletingTime(2, timeUnit::sec());
 
@@ -102,6 +118,7 @@ unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
 
 pdvector<instMapping*> initialRequests;
+class BPatch_process;
 
 void printLoadDyninstLibraryError() {
     cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
@@ -139,36 +156,25 @@ Address process::getTOCoffsetInfo(Address dest)
     // I think this is the right func to use
     
     // Find out which object we're in (by addr).
-    codeRange *range = NULL;
-    textRanges_.find(dest, range);
-    if (!range)  // Try data?
-        dataRanges_.find(dest, range);
-    if (!range)
-        return 0;
-    mapped_object *mobj = range->is_mapped_object();
-    if (!mobj) {
-        mappedObjData *tmp = dynamic_cast<mappedObjData *>(range);
-        if (tmp)
-            mobj = tmp->obj;
-    }
-    // Very odd case if this is not defined.
-    assert(mobj);
-    Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
-
+   mapped_object *mobj = findObject(dest);
+   // Very odd case if this is not defined.
+   assert(mobj);
+   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
+   
     if (!TOCOffset)
        return 0;
     return TOCOffset + mobj->dataBase();
 
 }
 
-Address process::getTOCoffsetInfo(int_function *func) {
-
+Address process::getTOCoffsetInfo(func_instance *func) {
+  
 #if defined(arch_power) && defined(os_linux)
    // See comment above.
    if (getAddressWidth() == 4)
       return 0;
 #endif
-
+   assert(func);
     mapped_object *mobj = func->obj();
 
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
@@ -198,6 +204,8 @@ bool process::walkStackFromFrame(Frame startFrame,
 #endif
   if (!isStopped())
       return false;
+
+  mal_printf("Invoked a stackwalk %s[%d]\n",FILE__,__LINE__);
 
   Frame currentFrame = preStackWalkInit(startFrame);
 
@@ -451,7 +459,6 @@ void process::addInferiorHeap(mapped_object *obj)
 void process::initInferiorHeap()
 {
     initializeHeap();
-
     // first initialization: add static heaps to pool
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         addInferiorHeap(mapped_objects[i]);
@@ -713,7 +720,9 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	case 1: // compact free blocks
             infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
                              FILE__, __LINE__);
+#if defined(cap_garbage_collection)
             gcInstrumentation();
+#endif
             inferiorFreeCompact();
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
@@ -752,7 +761,9 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   break;
 #else /* !(cap_dynamic_heap) */
       case 1: // deferred free, compact free blocks
+#if defined(cap_garbage_collection)
 	  gcInstrumentation();
+#endif
           inferiorFreeCompact();
           break;
 #endif /* cap_dynamic_heap */
@@ -881,15 +892,6 @@ void process::deleteProcess()
 
   dyninstlib_brk_addr = 0;
   main_brk_addr = 0;
-  
-  // By definition, these are dangling.
-  for (iter = 0; iter < pendingGCInstrumentation.size(); iter++) {
-      if(pendingGCInstrumentation[iter] != NULL) {
-          delete pendingGCInstrumentation[iter];
-          pendingGCInstrumentation[iter] = NULL;
-      }
-  }
-  pendingGCInstrumentation.clear();
 
   inInferiorMallocDynamic = false;
 
@@ -980,7 +982,7 @@ process::~process()
 process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     cached_result(not_cached), // MOVE ME
     analysisMode_(mode),
-    isAMcacheValid(false),
+    //isAMcacheValid(false),
     RT_address_cache_addr(0),
     parent(NULL),
     sh(sh_),
@@ -1333,11 +1335,6 @@ bool process::setupFork()
     if (!recognize_threads(parent))
         return false;
 
-    // Tag the garbage collection list...
-    for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
-        // TODO. For now we'll just "leak"
-    }
-
     // Now that we have instPoints, we can create the (possibly) instrumentation-
     // based tracing code
 
@@ -1417,10 +1414,9 @@ bool process::setAOut(fileDescriptor &desc)
        startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
     }
-    
-    mapped_objects.push_back(aout);
-   startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
-    addOrigRange(aout);
+
+    initPatchAPI(aout);
+    addMappedObject(aout);
 
    startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
     findSignalHandler(aout);
@@ -1464,13 +1460,12 @@ bool process::setupGeneral()
         return true;
     // We should be paused; be sure.
     pause();
-    
+
     // In the ST case, threads[0] (the only one) is effectively
     // a pass-through for process operations. In MT, it's the
     // main thread of the process and is handled correctly
 
     startup_printf("Creating initial thread...\n");
-
     createInitialThread();
 
     // Probably not going to find anything (as we haven't loaded the
@@ -1525,7 +1520,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     cached_result(parentProc->cached_result), // MOVE ME
     analysisMode_(parentProc->analysisMode_),
     memoryPageSize_(parentProc->memoryPageSize_),
-    isAMcacheValid(parentProc->isAMcacheValid),
+    //isAMcacheValid(parentProc->isAMcacheValid),
     RT_address_cache_addr(parentProc->RT_address_cache_addr),
     parent(parentProc),
     sh(sg_),
@@ -1588,7 +1583,7 @@ static void cleanupBPatchHandle(int pid)
  *   the program
  */
 process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
-			  BPatch_hybridMode &analysisMode, 
+			  BPatch_hybridMode &analysisMode, void * upPtr, 
 			  pdvector<std::string> *envp, const std::string dir = "",
 			  int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
@@ -1620,7 +1615,6 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     // NT
     //    int thrHandle_temp;
-
     process *theProc = SignalGeneratorCommon::newProcess(File, dir,
                                                          argv, envp,
                                                          stdin_fd, stdout_fd, 
@@ -1637,10 +1631,12 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     startup_printf( "%s[%d]:  Fork new process... succeeded",FILE__, __LINE__);
 
-    // Register the pid with the BPatch library (not yet associated with a
-    // BPatch_thread object).
+    // Add this object to the list of processes
+    startup_cerr << "Registering process..." << endl;
     assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->registerProvisionalThread(theProc->sh->getPid());
+    ((BPatch_process*)upPtr)->set_llproc(theProc);
+    BPatch::bpatch->registerProcess((BPatch_process*)upPtr, 
+                                    theProc->sh->getPid());
 
     theProc->set_status(running);
 
@@ -1678,6 +1674,7 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
    assert(theProc->reachedBootstrapState(bootstrapped_bs));
    startup_printf("%s[%d]:  process state: %s\n\n\n\n", FILE__, __LINE__, theProc->getBootstrapStateAsString().c_str());
+
    return theProc;    
 }
 
@@ -1780,6 +1777,7 @@ process *ll_attachProcess(const std::string &progpath, int pid, void *container_
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
+
    startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
    // Wait for the process to get to an initialized (dlopen exists)
    // state
@@ -1790,6 +1788,7 @@ bool process::loadDyninstLib() {
       continueProc();
    }
 #endif
+
    while (!reachedBootstrapState(libcLoaded_bs)) {
       startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
@@ -1840,6 +1839,7 @@ bool process::loadDyninstLib() {
            << "different version of libelf than it was built with." << endl;
       return false;
    }
+
    startup_printf("Initialized dynamic linking tracer\n");
 
    if (!getDyninstRTLibName()) {
@@ -1872,6 +1872,7 @@ bool process::loadDyninstLib() {
          getMailbox()->executeCallbacks(FILE__, __LINE__);
       }
    }
+
 
    // And get the list of all shared objects in the process. More properly,
    // get the address of dlopen.
@@ -3081,6 +3082,11 @@ bool process::pause() {
       return true;
    }
 
+   //if (status_ == stopped) {
+   //   signal_printf("%s[%d]: tried to stop a stopped process\n", FILE__, __LINE__);
+   //   return true;
+   //}
+
    signal_printf("%s[%d]: stopping process\n", FILE__, __LINE__);
 
    result = stop_();
@@ -3254,8 +3260,8 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Add to codeRange tree
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
-    mapped_objects.push_back(new_obj);
-    addOrigRange(new_obj);
+
+    addMappedObject(new_obj);
 
     findSignalHandler(new_obj);
     std::string msg;
@@ -3315,6 +3321,12 @@ bool process::addASharedObject(mapped_object *new_obj)
         fprintf(stderr, "%s[%d]:  FATAL, failing to init dyninst lib\n", FILE__, __LINE__);
         assert(0);
       }
+      // Clean this up some...
+      addAllocatedRegion(new_obj->codeAbs(),
+                         new_obj->imageSize());
+      addAllocatedRegion(new_obj->dataAbs(),
+                         new_obj->dataSize());
+
     }
 
 #if !defined(i386_unknown_nt4_0) \
@@ -3370,6 +3382,8 @@ bool process::removeASharedObject(mapped_object *obj) {
             break;
         }
     }
+	flushAddressCache_RT(obj);
+	getMemEm()->removeRegion(obj);
 
     if (runtime_lib.end() != runtime_lib.find(obj)) {
         runtime_lib.erase( runtime_lib.find(obj) );
@@ -3378,8 +3392,6 @@ bool process::removeASharedObject(mapped_object *obj) {
                    obj->fileName().c_str(),
                    obj->getBaseAddress(),
                    obj->get_size());
-
-    removeOrigRange(obj);
 
     // Signal handler...
     // TODO
@@ -3467,9 +3479,12 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 void process::addSignalHandler(Address addr, unsigned size) {
-    signal_handler_location *newSig = new signal_handler_location(addr, 
-                                                                  size);
-    signalHandlerLocations_.insert(newSig);
+    codeRange *handlerLoc;
+    if (signalHandlerLocations_.find(addr, handlerLoc)) {
+        return; // we're already tracking this location
+    }
+    handlerLoc = new signal_handler_location(addr, size);
+    signalHandlerLocations_.insert((signal_handler_location*)handlerLoc);
 }
 
 // We keep a vector of all signal handler locations
@@ -3766,6 +3781,87 @@ int process::getStopThreadCB_ID(const Address cb)
     }
 }
 
+bool process::isRuntimeHeapAddr(Address addr)
+{
+    for (unsigned hidx=0; hidx < dyninstRT_heaps.size(); hidx++) {
+        if (addr >= dyninstRT_heaps[hidx]->addr &&
+            addr < dyninstRT_heaps[hidx]->addr + dyninstRT_heaps[hidx]->length) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/*    If calculation is a relocated address, translate it to the original addr
+ *    case 1: The point is at a return instruction
+ *    case 2: The point is a control transfer into the runtime library
+ *    Mark returning functions as returning
+ *    Save the targets of indirect control transfers (not regular returns)
+ */
+Address process::stopThreadCtrlTransfer (instPoint* intPoint, 
+                                         Address target)
+{
+   Address pointAddr = intPoint->nextExecutedAddr();
+
+    // if the point is a real return instruction and its target is a stack 
+    // address, get the return address off of the stack 
+    if (intPoint->type() == instPoint::FuncExit &&
+        intPoint->block()->isFuncExit() &&
+        !intPoint->func()->isSignalHandler()) 
+    {
+        mal_printf("%s[%d]: return address is %lx\n", FILE__,
+                    __LINE__,target);
+    }
+
+    Address unrelocTarget = target;
+
+    if ( isRuntimeHeapAddr( target ) ) {
+        // get unrelocated target address, there are three possibilities
+        // a. We're in post-call padding, and targBBI is the call block
+        // b. We're in an analyzed fallthrough block
+        // c. The stack was tampered with and we need the (mod_pc - pc) 
+        //    offset to figure out where we should be
+        cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
+        instPoint *callPt = NULL;
+        block_instance *callBBI = NULL;
+
+        if ( reverseDefensiveMap_.find(target,callPt) ) {
+            // a. 
+            cerr << "\t Found in defensive map" << endl;
+            callBBI = callPt->block();
+            unrelocTarget = callBBI->end();
+        }
+        else {
+            // b. 
+            // if we're in the fallthrough block, match to call block, 
+            // and if necessary, add fallthrough edge
+           AddressSpace::RelocInfo ri;
+           bool hasFT = getRelocInfo(target, ri);
+           assert(hasFT); // otherwise we should be in the defensive map
+        }
+        mal_printf("translated target %lx to %lx %s[%d]\n",
+            target, unrelocTarget, FILE__, __LINE__);
+    }
+    else { // target is not relocated, nothing to do but find the 
+           // mapped_object, creating one if necessary, for transfers
+           // into memory regions that are allocated at runtime
+        mapped_object *obj = findObject(target);
+        if (!obj) {
+            obj = createObjectNoFile(target);
+            if (!obj) {
+                fprintf(stderr,"ERROR, point %lx has target %lx that responds "
+                        "to no object %s[%d]\n", pointAddr, target, 
+                        FILE__,__LINE__);
+                assert(0 && "stopThread snippet has an invalid target");
+                return 0;
+            }
+        }
+    }
+
+    return unrelocTarget;
+} 
+
 /* This is the simple version
  * 1. Need three pieces of information: 
  * 1a. The instrumentation point that triggered the stopThread event
@@ -3781,23 +3877,24 @@ bool process::handleStopThread(EventRecord &ev)
     // 1. Need three pieces of information: 
 
     /* 1a. The instrumentation point that triggered the stopThread event */
-    Address pointAddress = // arg1
+    Address relocPointAddr = // arg1
 #if defined (os_windows)
-       (Address) ev.fd;
+    (Address) ev.fd;
 #else
-       (Address) ev.info;
+    (Address) ev.info;
 #endif
-    // get instPoint from point address
-    int_function *pointfunc = findActiveFuncByAddr(pointAddress);
-    if (!pointfunc) { 
-        assert(0);
-        return false; 
+
+    AddressSpace::RelocInfo ri;
+
+    bool success = getRelocInfo(relocPointAddr, ri);
+    if (!success) {
+       assert(0);
+       return false;
     }
-    instPoint *intPoint = pointfunc->findInstPByAddr(pointAddress);
-    if (!intPoint) { 
-        assert(0);
-        return false; 
-    }
+    func_instance *pointFunc = ri.func; 
+    assert(pointFunc); // Must have done context instrumentation to get this
+    instPoint *intPoint = ri.bt->point();
+    assert(intPoint);
 
     // Read args 2,3 from the runtime library, as in decodeRTSignal,
     // didn't do it there since this is the only RT library event that
@@ -3856,9 +3953,12 @@ bool process::handleStopThread(EventRecord &ev)
         return false;
     }
 
+    mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
+               ri.reloc, relocPointAddr, (long)calculation, FILE__,__LINE__); 
+
 /* 2. If the callbackID is negative, the calculation is meant to be
-      interpreted as the address of code, so we call stopThreadCtrlTransfer
-      to translate the target to an unrelocated address */
+   interpreted as the address of code, so we call stopThreadCtrlTransfer
+   to translate the target to an unrelocated address */
     bool interpFlag = false;
     if (callbackID < 0) {
         interpFlag = true;
@@ -3870,181 +3970,17 @@ bool process::handleStopThread(EventRecord &ev)
 /* 3. Trigger the callback for the stopThread
       using the correct snippet instance ID & event type */
     ((BPatch_process*)up_ptr())->triggerStopThread
-        (intPoint, pointfunc, callbackID, (void*)calculation);
+        (intPoint, pointFunc, callbackID, (void*)calculation);
 
     return true;
 
 } // handleStopThread
 
 
-/*    If calculation is a relocated address, translate it to the original addr
- *    case 1: The point is at a return instruction
- *    case 2: The point is a control transfer into the runtime library
- *    Mark returning functions as returning
- *    Save the targets of indirect control transfers (not regular returns)
- */
-Address process::stopThreadCtrlTransfer
-       (instPoint* intPoint, 
-        Address target)
-{
-    int_function *pointfunc = intPoint->func();
-    Address pointAddress = intPoint->addr();
-
-    // if the point is a real return instruction and its target is a stack 
-    // address, get the return address off of the stack 
-    Address returnAddrAddr=0;
-    if ( intPoint->isReturnInstruction() && 
-         ! intPoint->func()->isSignalHandler() &&
-         NULL == findObject(target) ) 
-    {
-        returnAddrAddr = target + intPoint->preBaseTramp()->savedFlagSize;
-        assert (getAddressWidth() == // otherwise we'll have cached the wrong address in the runtime library
-                intPoint->preBaseTramp()->savedFlagSize); 
-        if (!readDataSpace((void *)returnAddrAddr, 
-                           getAddressWidth(), &target, false)) 
-        {
-            fprintf(stderr, "%s[%d] WARNING: reading from the stopthread "
-                    "return addr addr %lx failed\n",FILE__,__LINE__,target);
-            assert(0);
-        }
-        mal_printf("%s[%d]: return address address %lx contains %lx\n", FILE__,
-                __LINE__,returnAddrAddr,target);
-    }
-
-    Address unrelocTarget = target;
-    bblInstance *pointBBI = intPoint->block()->instVer(pointfunc->version());
-
-    if ( isRuntimeHeapAddr( target ) ) {
-        // case 1: The point is at a return instruction
-        if (intPoint->getPointType() == functionExit && 
-            ! intPoint->func()->isSignalHandler()) 
-        {
-            // case 1a: at return instruction not in signal handler
-            bblInstance *callBBI = NULL;
-            // set callBBI 
-            codeRange *callRange = findOrigByAddr(target-1);
-            if (! callRange ) {
-                fprintf(stderr,"ERROR STOPTHREAD FOUND NO MATCH FOR RUNTIME "
-                        "HEAP ADDR %lx %s[%d]\n",target,FILE__,__LINE__);
-                assert(0 && "stopThread target is unmatched rt-lib heap addr");
-            }
-            callBBI = callRange->is_basicBlockInstance();
-            if ( ! callBBI ) {
-                multiTramp *callMulti = callRange->is_multitramp();
-                if (callMulti) {
-                    Address uninstrumented = 
-                        callMulti->instToUninstAddr(target-1)+1;
-                    callRange = findOrigByAddr(uninstrumented-1);
-                    if ( callRange ) {
-                        callBBI = callRange->is_basicBlockInstance();
-                    }
-                    assert(callBBI);
-                }
-            }
-            while ( callBBI && ! callBBI->block()->containsCall() ) {
-				if ( ! callBBI->block()->getFallthrough() ) {
-					break;
-				}
-                callBBI = callBBI->block()->getFallthrough()->
-                    instVer(callBBI->version());
-            }
-            assert( callBBI );
-
-            // Translate the address
-            unrelocTarget = callBBI->block()->origInstance()->endAddr();
-
-            // Set the return status of the function containing the 
-            // return instPoint to returning
-            pointfunc->ifunc()->set_retstatus(ParseAPI::RETURN);
-        } 
-        else if (intPoint->getPointType() == functionExit && 
-                 intPoint->func()->isSignalHandler()) 
-        {
-            // case 1a: at return instruction in signal handler
-            bblInstance *targBBI = findOrigByAddr(target)->
-                is_basicBlockInstance();
-            multiTramp *targMulti = findOrigByAddr(target)->is_multitramp();
-            if (targMulti) {
-                Address uninstrumented = 
-                    targMulti->instToUninstAddr(target);
-                targBBI = findOrigByAddr(uninstrumented)->is_basicBlockInstance();
-            }
-            assert(targBBI);
-            unrelocTarget = targBBI->equivAddr(0, target);
-        }
-        // case 2: The point is a control transfer into the runtime library
-        else {
-            // This is an indirect jump or call into the dyninst runtime 
-            // library heap, meaning that the indirect target is calculated 
-            // by basing off of the program counter at the source block, so
-            // adjust the target by determining the uninstrumented address of
-            // the source instruction
-            bblInstance *origPointBBI = intPoint->block()->origInstance();
-            assert(pointAddress >= origPointBBI->firstInsnAddr() &&
-                   pointAddress < origPointBBI->endAddr());
-            Address relocPointAddr = origPointBBI->equivAddr
-                (pointBBI->version(), pointAddress);
-            Address adjustment;
-            if (relocPointAddr > pointAddress) {
-                adjustment = relocPointAddr - pointAddress;
-            } else {
-                adjustment = pointAddress - relocPointAddr;
-            }
-            unrelocTarget = target - adjustment;
-            mal_printf("%s[%d] WARNING: stopThread caught transfer "
-                    "%lx[%lx]=>%lx[%lx] whose target is "
-                    "in runtime library heap, will translate target addr\n",
-                    FILE__, __LINE__, relocPointAddr, pointAddress, 
-                    target, target);
-        }
-        mal_printf("%s[%d] translated %lx to %lx\n",
-                FILE__, __LINE__, target, unrelocTarget);
-    }
-    else { // target is not relocated, find the mapped_object
-        mapped_object *obj = findObject(target);
-        if (!obj) {
-            obj = createObjectNoFile(target);
-            if (!obj) {
-                fprintf(stderr,"ERROR, point %lx has target %lx that responds "
-                        "to no object %s[%d]\n", pointAddress, target, 
-                        FILE__,__LINE__);
-                assert(0 && "stopThread snippet has an invalid target");
-                return 0;
-            }
-        }
-    }
-
-    // save the targets of indirect control transfers, save them in the point
-    if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
-        intPoint->setSavedTarget(unrelocTarget);
-    }
-    else if ( ! intPoint->isDynamic() && 
-              functionExit != intPoint->getPointType()) 
-    {
-        // remove unresolved status from point if it is a static ctrl transfer
-        if ( false == intPoint->setResolved() ) {
-            fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
-                    "twice, why? %s[%d]\n", pointAddress, FILE__,__LINE__);
-        }
-    }
-    return unrelocTarget;
-} 
-
-bool process::isRuntimeHeapAddr(Address addr)
-{
-    for (unsigned hidx=0; hidx < dyninstRT_heaps.size(); hidx++) {
-        if (addr >= dyninstRT_heaps[hidx]->addr &&
-            addr < dyninstRT_heaps[hidx]->addr + dyninstRT_heaps[hidx]->length) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /* returns true if blocks were overwritten, initializes overwritten
  * blocks and ranges by contrasting shadow pages with current memory
  * contents
- * 1. reads shadow pages in from memory
+ * 1. reads page in from memory
  * 2. constructs overwritten region list
  * 3. constructs overwrittn basic block list
  * 4. determines if the last of the blocks has an abrupt end, in which 
@@ -4052,8 +3988,8 @@ bool process::isRuntimeHeapAddr(Address addr)
  */
 bool process::getOverwrittenBlocks
 ( std::map<Address, unsigned char *>& overwrittenPages,//input
-  std::map<Address,Address>& overwrittenRanges,//output
-  std::set<bblInstance *> &writtenBBIs)//output
+  std::list<pair<Address,Address> >& overwrittenRanges,//output
+  std::list<block_instance *> &writtenBBIs)//output
 {
     const unsigned MEM_PAGE_SIZE = getMemoryPageSize();
     unsigned char * memVersion = (unsigned char *) ::malloc(MEM_PAGE_SIZE);
@@ -4064,66 +4000,63 @@ bool process::getOverwrittenBlocks
     for (; pIter != overwrittenPages.end(); pIter++) {
         Address curPageAddr = (*pIter).first / MEM_PAGE_SIZE * MEM_PAGE_SIZE;
         unsigned char *curShadow = (*pIter).second;
-    
+
         // 0. check to make sure curShadow is non-null, if it is null, 
         //    that means it hasn't been written to
         if ( ! curShadow ) {
-            continue;
+			cerr << "\t\t No current shadow, continuing" << endl;
+			continue;
         }
 
         mapped_object* obj = findObject(curPageAddr);
         if (owObjs.end() != owObjs.find(obj)) {
-            obj->clearUpdatedRegions();
+            obj->setCodeBytesUpdated(false);
         }
 
         // 1. Read the modified page in from memory
-        readTextSpace((void*)curPageAddr, MEM_PAGE_SIZE, memVersion);
+        Address readAddr = curPageAddr;
+        if (isMemoryEmulated()) {
+            bool valid = false;
+            boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
+			cerr << "\t\t Reading from shadow page " << hex << readAddr << " instead of original " << curPageAddr << endl;
+            assert(valid);
+        }
+        readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
 
-        // 2. Compare modified page to shadow copy, construct overwritten region list
+        // 2. build overwritten region list by comparing shadow, memory
         for (unsigned mIdx = 0; mIdx < MEM_PAGE_SIZE; mIdx++) {
             if ( ! foundStart && curShadow[mIdx] != memVersion[mIdx] ) {
                 foundStart = true;
                 regionStart = curPageAddr+mIdx;
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
-                overwrittenRanges[regionStart] = curPageAddr+mIdx;
+				cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + mIdx << dec << endl;
+
+                overwrittenRanges.push_back(
+                    pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
         }
         if (foundStart) {
+
             foundStart = false;
-            overwrittenRanges[regionStart] = curPageAddr+MEM_PAGE_SIZE;
+			cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
+
+            overwrittenRanges.push_back(
+                pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
         }
     }
 
-    std::map<Address,Address>::iterator rIter = overwrittenRanges.begin();
-    std::vector<bblInstance*> curBBIs;
+    // 3. Determine which basic blocks have been overwritten
+    list<pair<Address,Address> >::const_iterator rIter = overwrittenRanges.begin();
+    std::list<block_instance*> curBBIs;
     while (rIter != overwrittenRanges.end()) {
         mapped_object *curObject = findObject((*rIter).first);
 
-        // 3. Determine which basic blocks have been overwritten
-        curObject->findBBIsByRange((*rIter).first,(*rIter).second,curBBIs);
+        curObject->findBlocksByRange((*rIter).first,(*rIter).second,curBBIs);
         if (curBBIs.size()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
-            writtenBBIs.insert(curBBIs.begin(),curBBIs.end());
-        }
-
-        // 4. determine if the last of the blocks has an abrupt end, in which 
-        //    case, mark it as overwritten
-        if (    curBBIs.size() 
-             && ! curObject->proc()->isCode((*rIter).second - 1) )
-        {
-            bblInstance *lastBBI = curBBIs.back();
-            int_function *lastFunc = lastBBI->func();
-            const set<instPoint*> abruptEnds = lastFunc->funcAbruptEnds();
-            set<instPoint*>::const_iterator aIter = abruptEnds.begin();
-            while (aIter != abruptEnds.end()) {
-                if (lastBBI->block() == (*aIter)->block()) {
-                    writtenBBIs.insert(lastBBI);
-                    break;
-                }
-                aIter++;
-            }
+            writtenBBIs.splice(writtenBBIs.end(), curBBIs);
         }
 
         curBBIs.clear();
@@ -4139,42 +4072,98 @@ bool process::getOverwrittenBlocks
 }
 
 // distribute the work to mapped_objects
-// currently asserts if there are overwrites to multiple objects
-void process::updateMappedFile
-    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-      std::map<Address,Address> owRanges )
+void process::updateCodeBytes
+    ( const list<pair<Address,Address> >&owRanges ) //input
 {
-    std::map<Dyninst::Address,unsigned char*>::iterator pIter = owPages.begin();
-    assert( owPages.end() != pIter );
-
-    mapped_object *curObj = findObject((*pIter).first);
-
-    std::map<Address,Address> objRanges;
-    for(; pIter != owPages.end(); pIter++) {
-        assert ( curObj == findObject((*pIter).first) );
-        std::map<Address,Address>::iterator rIter = owRanges.begin();
-        for (; rIter != owRanges.end(); rIter++) {
-            objRanges[(*rIter).first] = (*rIter).second;
+    std::map<mapped_object *,list<pair<Address,Address> >*> objRanges;
+    list<pair<Address,Address> >::const_iterator rIter = owRanges.begin();
+    for (; rIter != owRanges.end(); rIter++) {
+        mapped_object *obj = findObject((*rIter).first);
+        if (objRanges.find(obj) == objRanges.end()) {
+            objRanges[obj] = new list<pair<Address,Address> >();
         }
+        objRanges[obj]->push_back(pair<Address,Address>(rIter->first, rIter->second));
     }
 
-    curObj->updateMappedFile(objRanges);
-    objRanges.clear();
+    std::map<mapped_object *,list<pair<Address,Address> > *>::iterator oIter = 
+        objRanges.begin();
+    for (; oIter != objRanges.end(); oIter++) 
+    {
+        oIter->first->updateCodeBytes( *(oIter->second) );
+        delete (oIter->second);
+    }
+    assert(objRanges.size() <= 1); //o/w analysis code may not be prepared for other cases
+}
+
+
+static void otherFuncBlocks(func_instance *func, 
+                            const set<block_instance*> &blks, 
+                            set<block_instance*> &otherBlks)
+{
+  /*
+    const func_instance::BlockSet &allBlocks = 
+        func->blocks();
+    for (func_instance::BlockSet::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
+  */
+  const PatchFunction::blockset &allBlocks = 
+        func->getAllBlocks();
+    for (PatchFunction::blockset::const_iterator bit =
+         allBlocks.begin();
+         bit != allBlocks.end(); 
+         bit++) 
+    {
+      block_instance* iblk = SCAST_BI(*bit);
+        if (blks.end() == blks.find(iblk)) {
+            otherBlks.insert(iblk);
+        }
+    }
 }
 
 
 /* Summary
- * If the entry point of a function is overwritten, purge the overwritten part 
- * of that function, taking care to account for currently executing code. 
- * Given a list of dead functions, find the affected blocks.
+ * Given a list of overwritten blocks, find blocks that are unreachable,
+ * functions that have been overwritten at their entry points and can go away,
+ * and new function entry for functions that are being overwritten while still
+ * executing
+ *
+ * variables
+ * f:  the overwritten function
+ * ow: the set of overwritten blocks
+ * ex: the set of blocks that are executing on the call stack
+ * 
+ * primitives
+ * R(b,s): yields set of reachable blocks for collection of blocks b, starting
+ *         at seed blocks s.
+ * B(f):   the blocks pertaining to function f
+ * EP(f):  the entry point of function f
+ * 
+ * calculations
+ * Elim(f): the set of blocks to eliminate from function f.
+ *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
+ * New(f):  new function entry candidates for f's surviving blocks.
+ *          If EB(f) not in ow(f), empty set
+ *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Eliminate New(f) elements that have ancestors in New(f)
+ * Del(f):  Blocks that can be deleted altogether
+ *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
+ * DeadF:   the set of functions that have no executing blocks 
+ *          and were overwritten in their entry blocks
+ *          EP(f) in ow(f) AND ex(f) is empty
  */
-bool process::getDeadCodeFuncs
-( std::set<bblInstance *> &deadBlocks, // we add unreachable blocks to this
-  std::set<int_function*> &affectedFuncs, //output
-  std::set<int_function*> &deadFuncs) //output
+bool process::getDeadCode
+( const std::list<block_instance*> &owBlocks, // input
+  std::set<block_instance*> &delBlocks, //output: Del(for all f)
+  std::map<func_instance*,set<block_instance*> > &elimMap, //output: elimF
+  std::list<func_instance*> &deadFuncs, //output: DeadF
+  std::map<func_instance*,block_instance*> &newFuncEntries) //output: newF
 {
-
-    // do a stackwalk to see if this function is currently executing
+   assert(0 && "TODO");
+   return false;
+#if 0
+    // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
     pdvector<Address> pcs;
     if (!walkStacks(stacks)) {
@@ -4184,137 +4173,119 @@ bool process::getDeadCodeFuncs
     for (unsigned i = 0; i < stacks.size(); ++i) {
         pdvector<Frame> &stack = stacks[i];
         for (unsigned int j = 0; j < stack.size(); ++j) {
-            pcs.push_back( (Address) stack[j].getPC());
+            Address origPC = 0;
+            vector<func_instance*> dontcare1;
+            baseTramp *dontcare2 = NULL;
+            getAddrInfo(stack[j].getPC(), origPC, dontcare1, dontcare2);
+            pcs.push_back( origPC );
         }
     }
 
-    // set affected functions
-    for (set<bblInstance *>::iterator bIter=deadBlocks.begin();
-         bIter != deadBlocks.end(); 
+    // group blocks by function
+    std::map<func_instance*,set<block_instance*> > deadMap;
+    std::set<func_instance*> deadEntryFuncs;
+    std::set<Address> owBlockAddrs;
+    for (list<block_instance*>::const_iterator bIter=owBlocks.begin();
+         bIter != owBlocks.end(); 
          bIter++) 
     {
-        affectedFuncs.insert((*bIter)->func());
+       deadMap[(*bIter)->func()].insert(*bIter);
+       owBlockAddrs.insert((*bIter)->start());
+       if ((*bIter)->llb() == (*bIter)->func()->ifunc()->entry()) {
+          deadEntryFuncs.insert((*bIter)->func());
+       }
     }
 
-    // get unreachable image blocks, identify functions with 
-    // overwritten entry points
-    image *blockImg = (*deadBlocks.begin())->func()->ifunc()->img();
-    set<image_basicBlock*> deadImgBs;
-    set<image_func*> deadImgFuncs; 
-    for (set<bblInstance *>::iterator bIter=deadBlocks.begin();
-         bIter != deadBlocks.end();
-         bIter++) 
+    // for each modified function, calculate ex, ElimF, NewF, DelF
+    for (map<func_instance*,set<block_instance*> >::iterator fit = deadMap.begin();
+         fit != deadMap.end(); 
+         fit++) 
     {
-        image_basicBlock *imgB = (*bIter)->block()->llb();
-        if ( imgB->getEntryFunc() ) {
-            deadImgFuncs.insert( imgB->getEntryFunc() );
+
+        // calculate ex(f)
+        set<block_instance*> execBlocks;
+        for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
+            std::set<block_instance *> candidateBlocks;
+            fit->first->findBlocksByAddr(pcs[pidx], candidateBlocks);
+            for (std::set<block_instance *>::iterator cb_iter = candidateBlocks.begin();
+                cb_iter != candidateBlocks.end(); ++cb_iter) {
+                block_instance *exB = *cb_iter;
+                if (exB && owBlockAddrs.end() == owBlockAddrs.find(
+                                                        exB->start())) 
+                {
+                    execBlocks.insert(exB);
+                }
+            }
+        }
+
+        // calculate DeadF: EP(f) in ow and EP(f) not in ex
+        if ( 0 == execBlocks.size() ) {
+            set<block_instance*>::iterator eb = fit->second.find(
+                fit->first->entryBlock());
+            if (eb != fit->second.end()) {
+                deadFuncs.push_back(fit->first);
+                continue;// treated specially, don't need elimF, NewF or DelF
+            }
         } 
-        if ( !imgB->getEntryFunc() || imgB->isShared() ) {
-            deadImgBs.insert(imgB);
+
+        // calculate elimF
+        set<block_instance*> keepF;
+        list<block_instance*> seedBs;
+        seedBs.push_back(fit->first->entryBlock());
+        fit->first->getReachableBlocks(fit->second, seedBs, keepF);
+        otherFuncBlocks(fit->first, keepF, elimMap[fit->first]);
+
+        // calculate NewF
+        if (deadEntryFuncs.end() != deadEntryFuncs.find(fit->first)) {
+            for (set<block_instance*>::iterator bit = execBlocks.begin();
+                 bit != execBlocks.end();
+                 bit++) 
+            {
+                if (elimMap[fit->first].end() != 
+                    elimMap[fit->first].find(*bit)) 
+                {
+                    newFuncEntries[fit->first] = *bit;
+                    break; // just need one candidate
+                }
+            }
         }
-        assert(blockImg == (*bIter)->func()->ifunc()->img());
+
+        // calculate Del(f)
+        seedBs.clear();
+        if (deadEntryFuncs.end() == deadEntryFuncs.find(fit->first)) {
+            seedBs.push_back(fit->first->entryBlock());
+        }
+        else if (newFuncEntries.end() != newFuncEntries.find(fit->first)) {
+            seedBs.push_back(newFuncEntries[fit->first]);
+        }
+        for (set<block_instance*>::iterator xit = execBlocks.begin();
+             xit != execBlocks.end();
+             xit++) 
+        {
+            if (elimMap[fit->first].end() != elimMap[fit->first].find(*xit)) {
+                seedBs.push_back(*xit);
+            }
+        }
+        keepF.clear();
+        fit->first->getReachableBlocks(fit->second, seedBs, keepF);
+        otherFuncBlocks(fit->first, keepF, delBlocks);
+        
     }
-
-    set<image_basicBlock*> unreachableImgBs;
-    vector<bblInstance*> unreachableBlocks;
-    image_func::getUnreachableBlocks(deadImgBs, unreachableImgBs);
-    
-    // if we're executing in a block that's been marked as unreachable, don't 
-    // eliminate the unreachable blocks
-    bool inUnreachable = false;
-    vector<ParseAPI::Function *> blockfuncs;
-    for (set<image_basicBlock *>::iterator bIter=unreachableImgBs.begin();
-         !inUnreachable && bIter != unreachableImgBs.end();
-         bIter++) 
-    {
-        (*bIter)->getFuncs(blockfuncs);
-        image_func *bfunc = dynamic_cast<image_func*>(blockfuncs[0]);
-        int_basicBlock *unreachBlock = 
-            findFuncByInternalFunc(bfunc)->findBlockByAddr
-                ( (*bIter)->firstInsnOffset() + 
-                  bfunc->img()->desc().loadAddr() );
-        blockfuncs.clear();
-        unreachableBlocks.push_back(unreachBlock->origInstance());
-        for (unsigned pcI = 0; !inUnreachable && pcI < pcs.size(); pcI++) {
-            Address pc = pcs[pcI];
-            int_basicBlock *pcblock = findBasicBlockByAddr(pc);
-            if (!pcblock) {
-                pcblock = findBasicBlockByAddr
-                    (findMultiTrampByAddr(pc)->instToUninstAddr(pc));
-            }
-            if (pcblock == unreachBlock) {
-                mal_printf("WARNING: executing in block[%lx %lx] that "
-                        "is only reachable from overwritten blocks, so "
-                        "will not delete any of the blocks that fit this "
-                        "description %s[%d]\n", 
-                        unreachBlock->origInstance()->firstInsnAddr(), 
-                        unreachBlock->origInstance()->endAddr(), 
-                        FILE__,__LINE__);
-                inUnreachable = true;
-            }
-        }
-    }
-    if (!inUnreachable) {
-        deadBlocks.insert(unreachableBlocks.begin(), unreachableBlocks.end());
-    }
-
-    // Lots of special case code for the limited instance in which a block
-    // is overwritten that is at the start of a function, in which case the
-    // whole function can go away.
-    // If we're executing the entry block though, re-parse the function
-    for (set<image_func *>::iterator fIter=deadImgFuncs.begin();
-         fIter != deadImgFuncs.end();
-         fIter++) 
-    {
-        bool inEntryBlock = false;
-        int_function *deadFunc = findFuncByInternalFunc(*fIter);
-        int_basicBlock *entryBlock = deadFunc->findBlockByAddr
-            ((*fIter)->entryBlock()->firstInsnOffset() 
-             + (*fIter)->img()->desc().loadAddr());
-
-        // see if we're executing in the entryBlock
-        for (unsigned pcI = 0; !inEntryBlock && pcI < pcs.size(); pcI++) {
-            Address func_pc = pcs[pcI];
-            int_basicBlock *pcblock = findBasicBlockByAddr(func_pc);
-            if (!pcblock) {
-                pcblock = findBasicBlockByAddr
-                    (findMultiTrampByAddr(func_pc)->instToUninstAddr(func_pc));
-            }
-            if (pcblock == entryBlock) {
-                inEntryBlock = true;
-            }
-        }
-
-        // add all function blocks to deadBlocks
-        std::set< int_basicBlock* , int_basicBlock::compare >
-            fblocks = deadFunc->blocks();
-        std::set<int_basicBlock*,int_basicBlock::compare>::iterator
-            fbIter = fblocks.begin();
-        while (fbIter != fblocks.end()) {
-            deadBlocks.insert((*fbIter)->origInstance());
-            fbIter++;
-        }
-
-        if (!inEntryBlock) {
-            // mark func dead 
-            deadFuncs.insert(deadFunc);
-            affectedFuncs.erase(affectedFuncs.find(deadFunc));
-        }
-    }// for all dead image funcs
 
     return true;
+#endif
 }
 
 
 // will flush addresses of all addresses in the specified range, if the
 // range is null, flush all addresses from the cache.  Also flush 
 // rt-lib heap addrs that correspond to the range
-void process::flushAddressCache_RT(codeRange *flushRange)
+void process::flushAddressCache_RT(Address start, unsigned size)
 {
-    if (flushRange) {
+    if (start != 0) {
         mal_printf("Flushing address cache of range [%lx %lx]\n",
-                   flushRange->get_address(), 
-                   flushRange->get_address()+flushRange->get_size());
+                   start, 
+                   start + size);
     } else {
         mal_printf("Flushing address cache of rt_lib heap addrs only \n");
     }
@@ -4350,7 +4321,7 @@ void process::flushAddressCache_RT(codeRange *flushRange)
     bool flushedHeaps = false;
 
     while ( true ) // iterate twice, once to flush the heaps, 
-    {              // and once to flush the flushRange
+    {              // and once to flush the flush range
         Address flushStart=0;
         Address flushEnd=0;
         if (!flushedHeaps) {
@@ -4369,8 +4340,8 @@ void process::flushAddressCache_RT(codeRange *flushRange)
                 }
             }
         } else {
-            flushStart = flushRange->get_address();
-            flushEnd = flushStart + flushRange->get_size();
+            flushStart = start;
+            flushEnd = start + size;
         }
         //zero out entries that lie in the runtime heaps
         for(int idx=0; idx < TARGET_CACHE_WIDTH; idx++) {
@@ -4380,7 +4351,7 @@ void process::flushAddressCache_RT(codeRange *flushRange)
                 cacheCopy[idx] = 0;
             }
         }
-        if ( flushedHeaps || !flushRange ) {
+        if ( flushedHeaps || (start == 0) ) {
             break;
         }
         flushedHeaps = true;
@@ -4400,678 +4371,166 @@ void process::flushAddressCache_RT(codeRange *flushRange)
  * address that's triggered a context switch back to Dyninst, either 
  * through instrumentation or a signal
  */
-int_function *process::findActiveFuncByAddr(Address addr)
+func_instance *process::findActiveFuncByAddr(Address addr)
 {
-    bblInstance *bbi = findOrigByAddr(addr)->is_basicBlockInstance();
-    assert(bbi);
-    int_function *func = findFuncByAddr(addr);
-    if (!func) {
-        return NULL;
-    }
-    int_basicBlock *block = func->findBlockByAddr(addr);
-    if (!block) {
-        return NULL;
-    }
-    if (block->llb()->isShared()) {
-        bool foundFrame = false;
-        pdvector<pdvector<Frame> >  stacks;
-        if ( false == walkStacks(stacks) ) {
-            fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
-                    FILE__, __LINE__);
-            assert(0);
-        }
-        for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
-            pdvector<Frame> &stack = stacks[i];
-            for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
-                int_function *frameFunc = NULL;
-                Frame *curFrame = &stack[j];
-                Address framePC = curFrame->getPC();
-                codeRange *pcRange = findOrigByAddr(framePC);
-                // if we're in instrumentation, use the multiTramp function
-                if (pcRange->is_multitramp() || pcRange->is_minitramp()) {
-                    frameFunc = curFrame->getFunc();
-                } else if (bbi->firstInsnAddr() <= framePC && 
-                           framePC <= bbi->lastInsnAddr() && 
-                           j < stack.size()-1) {
-                    // find the function by looking at the previous stack 
-                    // frame's call target
-                    Address callerPC = stack[j+1].getPC();
-                    bblInstance *callerBBI = findOrigByAddr(callerPC-1)->
-                        is_basicBlockInstance();
-                    if (callerBBI) {
-                        instPoint *callPt = callerBBI->func()->findInstPByAddr
-                            (callerBBI->block()->origInstance()->endAddr());
-                        if (callPt && callPt->callTarget()) {
-                            image *img = callPt->func()->obj()->parse_img();
-                            frameFunc = findFuncByInternalFunc(
-                                img->findFuncByEntry
-                                (callPt->callTarget()-img->desc().loadAddr()));
-                        }
-                    }
-                }
-                if (frameFunc && bbi->block() == frameFunc->findBlockByAddr
-                        (bbi->block()->origInstance()->firstInsnAddr())) {
-                    foundFrame = true;
-                    func = frameFunc;
-                }
-            }
-        }
-        assert(foundFrame);
-    }
-    return func;
-}
+    std::set<func_instance *> funcs;
+    findFuncsByAddr(addr, funcs, true);
+    if (funcs.empty()) return NULL;
 
-/* This function does the following:
- * 
- * walk the stacks 
- * build up set of currently active tramps
- * find multiTramps that are no longer active
- * for every multiTramp that has become inactive
- *     mark the tramp as inactive (is this flag necessary any more?)
- *     if the multitramp is partlyGone 
- *         then delete it
- * update process's set of currently active tramps
- */
-void process::updateActiveMultis()
-{
-    // return if cached results are valid
-    if ( isAMcacheValid || 
-         ( analysisMode_ != BPatch_exploratoryMode &&
-           analysisMode_ != BPatch_defensiveMode      ) ) 
-    {
-        return;
+    if (funcs.size() == 1) {
+        return *(funcs.begin());
     }
 
-    // walk the stacks 
+    // unrelocated shared function address, do a stack walk to figure 
+    // out which of the shared functions is on the call stack
+    bool foundFrame = false;
+    func_instance *activeFunc = NULL; 
     pdvector<pdvector<Frame> >  stacks;
     if ( false == walkStacks(stacks) ) {
-        fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", FILE__, __LINE__);
+        fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
+                FILE__, __LINE__);
         assert(0);
     }
-
-    // build up new set of active tramps
-    std::set<multiTramp*> newActiveMultis;
-    std::map<bblInstance*,Address> newActiveBBIs; 
-    for (unsigned int i = 0; i < stacks.size(); ++i) {
+    for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
         pdvector<Frame> &stack = stacks[i];
-        mal_printf("updateActiveMultis stackwalk:\n");
-        int_function *calleeFunc = NULL;
-
-        // mark the multiTramps that contain calls as active
-        for (unsigned int j = 0; j < stack.size(); ++j) {
+        for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
             Frame *curFrame = &stack[j];
-            if (j < 64) {
-                mal_printf(" stackpc[%d]=0x%lx fp %lx sp %lx pcloc %lx\n", j, 
-                        stack[j].getPC(),stack[j].getFP(), 
-                        stack[j].getSP(), stack[j].getPClocation());
+            Address framePC = curFrame->getPC();
+
+            // if we're at a relocated address, we can translate 
+            // back to the right function, if translation fails 
+            // frameFunc will still be NULL
+            RelocInfo ri;
+            func_instance *frameFunc = NULL;
+
+            if (getRelocInfo(framePC, ri) &&
+                ri.func) {
+               frameFunc = ri.func;
             }
-            multiTramp *multi = findMultiTrampByAddr( curFrame->getPC() );
-            bblInstance *activebbi;
-            Address funcRelocAddr = 0;
-            if (NULL != multi) {
-                activebbi = findOrigByAddr
-                    ( multi->instAddr() + multi->instSize() -1 )->
-                    is_basicBlockInstance();
-                // Make the multi active if we're likely to execute it
-                // again, i.e., if it contains a call or if we're in a frame
-                // corresponding to a faulting instruction.
-                // The multi on the top-most stack frame may not contain a call,
-                // we mark it as active only if it does, as we will not re-enter
-                // it and its trampEnd should not have to be updated
-                if (activebbi && 
-                    (activebbi->block()->containsCall() ||
-                     activebbi->func()->obj()->parse_img()->codeObject()->
-                     defensiveMode()))
+            else if (j < (stack.size() - 1)) {
+                // Okay, crawl original code. 
+                // Step 1: get our current function
+                std::set<func_instance *> curFuncs;
+                findFuncsByAddr(framePC, curFuncs);
+                // Step 2: get return addresses one frame up and map to possible callers
+                std::set<block_instance *> callerBlocks;
+                findBlocksByAddr(stack[j+1].getPC() - 1, callerBlocks);
+                for (std::set<block_instance *>::iterator cb_iter = callerBlocks.begin();
+                    cb_iter != callerBlocks.end(); ++cb_iter)
                 {
-                    do {
-                        newActiveMultis.insert( multi );
-                        multi->setIsActive(true);
-                        assert(NULL != activebbi);
-                        funcRelocAddr = multi->getFuncBaseInMutatee();
-                        multi = multi->getStompMulti();
-                    } while (NULL != multi);
-                } else {
-                    activebbi = NULL;
-                }
-
-            } else { // This is either the first frame on the call-stack, 
-                     // a call bbi on the stack, 
-                     // or a fault-raising instruction. 
-                     // Save the block & set relocAddr
-
-                // find the active block
-                mapped_object *activeobj = findObject(curFrame->getPC());
-                if ( (calleeFunc && calleeFunc->isSignalHandler() ) ||
-                     ( 0==j && activeobj && 
-                       activeobj->parse_img()->codeObject()->defensiveMode() ) )
-                {   // there is a fault-raising instruction in this block, use framePC
-                    activebbi = findOrigByAddr( curFrame->getPC() )->
-                        is_basicBlockInstance();
-
-                } else { // there's a call in the preceding block, use framePC-1
-                    activebbi = findOrigByAddr( curFrame->getPC()-1 )->
-                        is_basicBlockInstance();
-                }
-
-                // don't bother about multiTramps that have been removed since
-                // the previous stackwalk or about blocks in system libraries,
-                // or non-heap code in the runtime library
-                if ( NULL == activebbi || 
-                     (activebbi->func()->obj()->isSharedLib() && 
-                      (activebbi->func()->obj()->parse_img()->codeObject()->
-                       defensiveMode() ||
-                       (runtime_lib.end() != runtime_lib.find(activebbi->func()->obj()) &&
-                        !isRuntimeHeapAddr(curFrame->getPC()))))) 
-                {
-                    calleeFunc = findFuncByAddr(curFrame->getPC());
-                    continue;
-                }
-
-                mal_printf("Adding activeBBI %lx[%lx %lx] for framePC %lx "
-                           "%s[%d]\n", 
-                           activebbi->block()->origInstance()->firstInsnAddr(),
-                           activebbi->firstInsnAddr(), activebbi->endAddr(), 
-                           curFrame->getPC(), FILE__,__LINE__);
-                newActiveBBIs[ activebbi ] = curFrame->getPC();
-
-                // calculate funcRelocBase, the base address of the relocated
-                // function in which the activebbi resides
-                if ( 0 == activebbi->version() ) {
-                    // easy case, the function is not relocated 
-                    funcRelocAddr = activebbi->func()->getAddress();
-                } 
-
-                else if ( activebbi->version() > activebbi->func()->version() ||
-                          activebbi != 
-                          activebbi->block()->instVer( activebbi->version() ) )
-                {   // the block is a remnant of an invalidated function 
-                    // relocation, in which case we've saved the funcRelocBase
-                    assert( 0 != activebbi->getFuncRelocBase() );
-                    funcRelocAddr = activebbi->getFuncRelocBase();
-
-                } else {
-                    // funcRelocBase is the address of the first block in 
-                    // the function to contain a bbi that matches activebbi's 
-                    // function version.
-                    const set< int_basicBlock* , int_basicBlock::compare > *
-                        blocks = & activebbi->func()->blocks();
-                    set<int_basicBlock*,int_basicBlock::compare>::const_iterator
-                        bIter = blocks->begin();
-                    for(; 
-                        bIter != blocks->end() && 
-                        activebbi->version() >= (int)(*bIter)->instances().size();
-                        bIter++);
-                    assert( bIter != blocks->end() );
-                    funcRelocAddr = (*bIter)->instVer( activebbi->version() )->
-                                            firstInsnAddr();
-                    activebbi->setFuncRelocBase(funcRelocAddr);
-                }
-            }
-
-            // save the block's function relocation, if the block 
-            // is part of a relocated function
-            if ( activebbi != NULL && activebbi->version() > 0 ) {
-                if (am_funcRelocs.end() == 
-                    am_funcRelocs.find(activebbi->func())) 
-                {
-                    am_funcRelocs[activebbi->func()] = new set<Address>;
-                }
-                am_funcRelocs[activebbi->func()]->insert( funcRelocAddr );
-            }
-            calleeFunc = findFuncByAddr(curFrame->getPC());
-        }
-    }
-
-    // identify multiTramps that are no longer active
-    set<multiTramp*> prevActiveMultis;
-    std::set_difference(activeMultis.begin(), activeMultis.end(),
-                        newActiveMultis.begin(), newActiveMultis.end(),
-                        inserter(prevActiveMultis, 
-                                 prevActiveMultis.begin()));
-    // identify block instances that are no longer active
-    map<bblInstance*,Address> prevActiveBBIs;
-    std::set_difference(activeBBIs.begin(), activeBBIs.end(),
-                        newActiveBBIs.begin(), newActiveBBIs.end(),
-                        inserter(prevActiveBBIs, 
-                                 prevActiveBBIs.begin()));
-
-    map<Address,int_function*> relocsToRemove;
-
-    // for each multitramp that has become inactive:
-    for (set<multiTramp*>::iterator mIter = prevActiveMultis.begin();
-         mIter != prevActiveMultis.end();
-         mIter++) 
-    {
-        multiTramp *curMulti = *mIter;
-        // mark the tramp as inactive (is this flag necessary any more?)
-        curMulti->setIsActive(false);
-
-        // mark the reloc for possible removal and delete the block if the 
-        // reloc has been invalidated and no other active multis are 
-        // installed at the same block
-        bblInstance *bbi = 
-            findOrigByAddr(curMulti->instAddr())->is_basicBlockInstance();
-        assert(bbi);
-        if ( bbi->version() <= bbi->func()->version() && 
-             bbi != bbi->block()->instVer( bbi->version() ) ) 
-        {
-            bool blockStillActive = false;
-            for(set<multiTramp*>::iterator mIter = activeMultis.begin();
-                !blockStillActive && mIter != activeMultis.end(); mIter++) 
-            {
-                if (bbi->firstInsnAddr() == (*mIter)->instAddr()) {
-                    blockStillActive = true;
-                }
-            }
-            if ( !blockStillActive ) {
-                if ( bbi->version() > 0 ) {
-                    relocsToRemove[curMulti->getFuncBaseInMutatee()] = 
-                        bbi->func();
-                }
-                removeOrigRange(bbi);
-                bbi->block()->func()->deleteBBLInstance(bbi);
-                delete(bbi);
-            }
-        }
-
-        // if the multitramp is partlyGone, remove and delete it 
-        if ( true == curMulti->getPartlyGone() ) {
-            // Unfortunately, we can't remove the multi without removing its 
-            // BPatchSnippetHandles or we'll have dangling pointers
-
-            // remove the mutator's knowledge of the link to the multiTramp 
-            // since we can't delete it directly, 
-            // otherwise we'll find this multitramp by looking up its instAddr
-            instArea *jump = 
-                dynamic_cast<instArea *>(findModByAddr(curMulti->instAddr()));
-            if (jump && jump->multi == curMulti) {
-                removeModifiedRange(jump);
-                delete jump;
-            }
-            
-        }
-    }
-
-    // for each block that has become inactive:
-    for (map<bblInstance*,Address>::iterator bIter = prevActiveBBIs.begin();
-         bIter != prevActiveBBIs.end();
-         bIter++) 
-    {
-        bblInstance *bbi = bIter->first;
-        if ( NULL == bbi->block() ) {
-            delete(bbi); // it's been wiped out by removeBlock
-        }
-        // if the block and its func reloc have been invalidated
-        else if ( bbi->version() > bbi->func()->version() || 
-             bbi != bbi->block()->instVer( bbi->version() ) ) 
-        {
-            // mark the reloc for possible removal
-            assert( 0 != bbi->getFuncRelocBase() );//set by relocationInvalidate
-            if ( bbi->version() > 0 ) {
-                relocsToRemove[bbi->getFuncRelocBase()] = bbi->func();
-            }
-
-            // remove block from all datastructures
-            removeOrigRange(bbi);
-            bbi->block()->func()->deleteBBLInstance(bbi);
-            delete(bbi);
-        }
-    }
-
-    // update process's set of currently active tramps
-    activeMultis.clear();
-    activeMultis.insert(newActiveMultis.begin(),newActiveMultis.end());
-    activeBBIs.clear();
-    activeBBIs.insert(newActiveBBIs.begin(),newActiveBBIs.end());
-
-    // from the set of relocs that lost an active multiTramp, identify the 
-    // relocs that no longer have ANY active multitramps or active bblInstances
-    for (set<multiTramp*>::iterator mIter = activeMultis.begin();
-         mIter != activeMultis.end();
-         mIter++) 
-    {
-        if ( relocsToRemove.end() != 
-             relocsToRemove.find((*mIter)->getFuncBaseInMutatee()) )
-        {   // has an active multiTramp, can't remove this reloc
-            relocsToRemove.erase((*mIter)->getFuncBaseInMutatee());
-        }
-    }
-    for (map<bblInstance*,Address>::iterator bIter = activeBBIs.begin();
-         bIter != activeBBIs.end();
-         bIter++) 
-    {
-        if ( 0 == bIter->first->version() ) {
-            continue; // there is no reloc for origInstance blocks
-        } 
-        // the bbi is invalidated, so the reloc_info should have been set by 
-        // relocationInvalidate
-        Address funcRelocAddr = bIter->first->getFuncRelocBase();
-        assert( 0 != funcRelocAddr );
-        if ( relocsToRemove.end() != 
-             relocsToRemove.find(funcRelocAddr) )
-        {   // has an active bblInstance, can't remove this reloc
-            relocsToRemove.erase(funcRelocAddr);
-        }
-    }
-
-    // remove the relocs that are safe to remove
-    for (map<Address,int_function*>::iterator rIter = relocsToRemove.begin();
-         rIter != relocsToRemove.end();
-         rIter++) 
-    {
-        assert ( am_funcRelocs.end() != am_funcRelocs.find(rIter->second) );
-        assert ( NULL != am_funcRelocs[rIter->second] );
-        am_funcRelocs[rIter->second]->erase( rIter->first );
-        if (true == am_funcRelocs[rIter->second]->empty()) {
-            delete am_funcRelocs[rIter->second];
-            am_funcRelocs.erase( rIter->second );
-        }
-        mal_printf("freeing function relocation at %lx for func at %lx %s[%d]\n",
-                rIter->first, rIter->second->getAddress(), FILE__, __LINE__);
-        inferiorFree(rIter->first);
-    }
-
-    isAMcacheValid = true;
-}
-
-/* Update the trampEnds of active multiTramps
- * Update return addresses to invalidated function relocations
- */
-void process::fixupActiveStackTargets()
-{
-    if ( !isAMcacheValid || 
-         ( analysisMode_ != BPatch_exploratoryMode &&
-           analysisMode_ != BPatch_defensiveMode      ) ) 
-    {
-        return; // if it's not valid, the analysis did not change
-    }
-
-    map<Address,Address> pcUpdates;
-
-    /* Update the trampEnds of active multiTramps */
-    for (set<multiTramp*>::iterator mIter = activeMultis.begin();
-         mIter != activeMultis.end();
-         mIter++) 
-    {
-        multiTramp *multi = *mIter;
-
-        // figure out what the target should be
-        int_basicBlock *targBlock = findBasicBlockByAddr
-            ( multi->instAddr() + multi->instSize() );
-        bblInstance *targBBI = NULL;
-        if (targBlock) {
-            targBBI = targBlock->instVer( targBlock->func()->version() );
-        }
-        else { 
-            // No block after the [instAddr instAddr+instSize] block, 
-            // one possibility is that we've updated the analysis
-            // and removed other bblInstances for this function,
-            // Start at tramp install block and move to whatever is at
-            // instAddr+instSize
-            // (they're not the same block, because if the install size is
-            // smaller than the block size, we would not have left the block)
-            long instSize = multi->instSize();
-            targBBI = findOrigByAddr( multi->instAddr() )->
-                is_basicBlockInstance();
-            assert(targBBI);
-            int bbiVersion = targBBI->version();
-            mal_printf("finding multi targ block, going from source block: "
-                       "[%lx %lx][%lx %lx] ",
-                       targBBI->block()->origInstance()->firstInsnAddr(),
-                       targBBI->block()->origInstance()->endAddr(), 
-                       targBBI->firstInsnAddr(), targBBI->endAddr());
-            // move to the next block if instSize is smaller than the block size
-            while ( targBBI && instSize >= (long)(targBBI->getSize()) )
-            {   
-                int sizeDiff = 0;
-                // if other bbi's in this function have been deleted
-                // and we've switched to origBBIs, the block may have 
-                // been expanded in the relocated versions, so instSize
-                // should be adjusted according to the expanded size
-                if (0 == targBBI->version() && 0 < bbiVersion && 
-                    instruction::maxJumpSize(getAddressWidth()) < targBBI->getSize())
-                {
-                    sizeDiff = instruction::maxJumpSize(getAddressWidth());
-                } else {
-                    sizeDiff = targBBI->getSize();
-                }
-                bblInstance *nextBBI = targBBI->getFallthroughBBL();
-                // getFallthroughBBI may have returned to version 0 if the 
-                // function relocation is gone, in which we should adjust by 
-                // the size of the origInstance block
-                if (nextBBI && targBBI->version() != nextBBI->version()) {
-                    mal_printf("switching function relocation versions in "
-                               "fixUpActiveTramps for func at %lx block %lx "
-                               "%s[%d]\n", targBBI->func()->getAddress(), 
-                               targBBI->firstInsnAddr(), FILE__,__LINE__);
-                }
-                targBBI = nextBBI;
-                instSize -= sizeDiff;
-            }
-            if (!targBBI) { //could be sign of bad stackwalk, as in case of FSG
-                mal_printf("WARNING: Couldn't fix target of trampEnd for "
-                        "active multiTramp installed at [%lx %lx], originally "
-                        "[%lx], it has no fallthrough block %s[%d]\n", 
-                        multi->instAddr(), 
-                        multi->instAddr() + multi->instSize(),
-                        findOrigByAddr(multi->instAddr())->
-                            is_basicBlockInstance()->block()->
-                            origInstance()->firstInsnAddr(), 
-                        FILE__,__LINE__);
-                continue;
-            }
-
-            targBBI = targBBI->block()->instVer(targBBI->func()->version());
-            targBlock = targBBI->block();
-
-            mal_printf("to targBlock [%lx %lx][%lx %lx] %s[%d]\n",
-                       targBBI->block()->origInstance()->firstInsnAddr(),
-                       targBBI->block()->origInstance()->endAddr(), 
-                       targBBI->firstInsnAddr(), targBBI->endAddr(), 
-                       FILE__,__LINE__);
-        }
-
-        // update the trampEnd's target, if it's wrong
-        do { // loop through the chain of multis that stomp the current multi
-            trampEnd *end = multi->getTrampEnd();
-		    assert(NULL != end);
-            if ( end->target() < targBBI->firstInsnAddr() || 
-                 end->target() >= targBBI->endAddr() ) 
-            {
-                bblInstance *oldTargBBI = findOrigByAddr(end->target())->
-                    is_basicBlockInstance();
-                Address newTarget = targBBI->firstInsnAddr();
-                // if the target is not to the beginning of the block, set
-                // newTarget to point to the equivalent address in the block
-                if (oldTargBBI && oldTargBBI->firstInsnAddr() != end->target())
-                {
-                    newTarget = 
-                        oldTargBBI->equivAddr(targBBI->version(), newTarget);
-                }
-                mal_printf("updating trampEnd at %lx in multi [%lx %lx][%lx "
-                           "%lx]: oldTarget=%lx, newTarget=%lx to block "
-                           "originally at [%lx %lx] now at [%lx %lx] %s[%d]\n",
-                           end->get_address(), 
-                           multi->instAddr(), multi->instSize(),
-                           multi->get_address(), 
-                           multi->get_address() + multi->get_size(),
-                           end->target(), newTarget, 
-                           targBlock->origInstance()->firstInsnAddr(), 
-                           targBlock->origInstance()->endAddr(), 
-                           targBBI->firstInsnAddr(),
-                           targBBI->endAddr(),
-                           FILE__,__LINE__);
-                // trigger new code generation for the trampEnd
-                end->changeTarget( newTarget );
-                codeGen endGen(multi->getAddress() 
-                               + multi->get_size() 
-                               - end->get_address());
-                end->generateCode(endGen, end->get_address(), NULL);
-                // copy the newly generated code to the mutatee
-                writeTextSpace((void*)end->get_address(), 
-                               end->get_size(), 
-                               endGen.start_ptr());
-            }
-
-            // keep changing trampEnds if this multitramp was stomped by 
-            // a newer multi
-            if (multi->getStompMulti()) {
-                Address jumpTarg = 0;
-                codeRange *range = findModByAddr(multi->instAddr());
-                instArea *jump = dynamic_cast<instArea*>(range);
-                functionReplacement *fjump = range->is_function_replacement();
-                if (jump) {
-                    jumpTarg = jump->multi->getAddress();
-                } else if (fjump) {
-                    jumpTarg = fjump->target()->instVer
-                        (fjump->targetVersion())->firstInsnAddr();
-                }
-                mal_printf("multi at %lx is stomped, jump is to instAddr=%lx, "
-                           "trampAddr=%lx\n",
-                           multi->getAddress(), multi->instAddr(), 
-                           jumpTarg);
-            }
-            multi = multi->getStompMulti();
-        } while( NULL != multi );
-    }
-
-    /* Iterate through activeBBIs to detect if we are planning to 
-       return to an activeBBI in an invalidated function relocation */
-    for (map<bblInstance*,Address>::iterator bIter = activeBBIs.begin();
-         bIter != activeBBIs.end();
-         bIter++) 
-    {
-        /* We start out with the old target BBI, but it may have been 
-         * overwritten, its relocation may have been invalidated, or
-         * it may have been split.  
-         * So: safeguard against overwrites by translating back to the
-         * original address, deal with splits by traversing to the latter
-         * half of split blocks, while keeping in mind that the relocation
-         * may have been invalidated
-         */
-
-        const bblInstance *oldTargBBI = bIter->first;
-        bblInstance *bbi = bIter->first;
-        mal_printf("fixing activeBlock [%lx %lx][%lx %lx] with PC=%lx %s[%d]\n",
-                   bbi->block()->origInstance()->firstInsnAddr(),
-                   bbi->block()->origInstance()->endAddr(), 
-                   bbi->firstInsnAddr(), bbi->endAddr(), bIter->second, 
-                   FILE__,__LINE__);
-
-        // if the block was overwritten, switch to the original instance
-        if (NULL == bbi->block()) {
-            if (bbi->version() == 0) {
-                bbi = findOrigByAddr(bIter->second)->is_basicBlockInstance();
-            } else {
-                bbi = findOrigByAddr(bbi->equivAddr(0,bIter->second))->
-                    is_basicBlockInstance();
-            }
-
-        } else { // account for block splitting and relocation invalidations
-
-            Address prevStart = 0; //used to check for reverting to origInst
-            while (bbi && bbi->endAddr() < bIter->second &&
-                   prevStart < bbi->firstInsnAddr()) 
-            { 
-                prevStart = bbi->firstInsnAddr();
-                bbi = bbi->getFallthroughBBL();
-                mal_printf("activeBlock split response, moving to block "
-                           "[%lx %lx][%lx %lx]\n",
-                           bbi->block()->origInstance()->firstInsnAddr(),
-                           bbi->block()->origInstance()->endAddr(), 
-                           bbi->firstInsnAddr(), bbi->endAddr(), bIter->second,
-                           FILE__,__LINE__);
-            } 
-
-            if (!bbi) {
-                mal_printf("WARNING: bbi[%lx %lx] on stack does not contain or "
-                        "immediately precede the PC and has no fallthrough "
-                        "block %s[%d]\n", bIter->first->firstInsnAddr(), 
-                        bIter->first->endAddr(), FILE__,__LINE__);
-                continue;
-            }
-            // if all we did was account for block splitting, w/o switching 
-            // from one relocation to another, set oldTargBBI to bbi
-            if (bbi->firstInsnAddr() > oldTargBBI->firstInsnAddr()) {
-                oldTargBBI = bbi;
-            }
-        }
-
-        // find a valid bbi to return to if there's been a change
-        bblInstance *newbbi = bbi->block()->instVer( bbi->func()->version() );
-        if ( oldTargBBI != newbbi ) {
-            // if we're returning after a call BBI
-            if (oldTargBBI->endAddr() == bIter->second) {
-                assert(bbi->block()->containsCall());
-                while ( ! newbbi->block()->containsCall() ) {
-                    newbbi = newbbi->getFallthroughBBL();
-                } 
-                pcUpdates[bIter->second] = newbbi->endAddr();
-            } else {
-                // we're returning after a fault bbi, most likely
-                assert(bbi->firstInsnAddr() <= bIter->second && 
-                       bIter->second < bbi->endAddr() && newbbi);
-                Address translAddr = 
-                    bbi->equivAddr(newbbi->version(), bIter->second);
-                pcUpdates[bIter->second] = translAddr;
-            }
-        }
-    }
-
-    /* Update return addresses that used to point to invalidated function 
-       relocations */
-    if ( ! pcUpdates.empty() ) {
-
-        // walk the stacks 
-        pdvector<pdvector<Frame> >  stacks;
-        if ( false == walkStacks(stacks) ) {
-            fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
-                    FILE__, __LINE__);
-            assert(0);
-        }
-
-        // match pcUpdate pairs to the pc's on the call stack
-        for(map<Address,Address>::iterator pIter = pcUpdates.begin();
-            pIter != pcUpdates.end();
-            pIter++)
-        {
-            bool foundBlock = false;
-            for (unsigned int i = 0; !foundBlock && i < stacks.size(); ++i) {
-                pdvector<Frame> &stack = stacks[i];
-                mal_printf("fixupActiveMultis stackwalk:\n");
-                for (unsigned int j=0; !foundBlock && j < stack.size(); ++j) {
-                    mal_printf(" stackpc[%d]=0x%lx fp %lx sp %lx pcloc %lx\n", 
-                               j, stack[j].getPC(),stack[j].getFP(), 
-                               stack[j].getSP(), stack[j].getPClocation());
-                    if ( pIter->first == stack[j].getPC() ) {
-                        stack[j].setPC( pIter->second ); //update pc
-                        foundBlock = true;
+                    if (!(*cb_iter)->containsCall()) continue;
+                    // We have a call point; now see if it called the entry of any function
+                    // that maps to a curFunc.
+                    for (std::set<func_instance *>::iterator cf_iter = curFuncs.begin();
+                         cf_iter != curFuncs.end(); ++cf_iter) {
+                       if ((*cf_iter) == (*cb_iter)->callee()) {
+                          frameFunc = *cf_iter;
+                       }
                     }
                 }
             }
-            if ( ! foundBlock ) {
-                fprintf(stderr,"failed to find block pc in need of update "
-                        "from %lx to %lx %s[%d]\n",pIter->first, pIter->second,
-                        FILE__,__LINE__);
-                assert(0);
+            if (frameFunc) {
+                foundFrame = true;
+                activeFunc = frameFunc;
             }
         }
     }
-}
-
-void process::getActiveMultiMap(std::map<Address,multiTramp*> &map)
-{
-    for(set<multiTramp*>::iterator mIter = activeMultis.begin();
-        mIter != activeMultis.end();
-        mIter++)
-    {
-        map[(*mIter)->instAddr()] = *mIter;
+    if (!foundFrame) {
+        activeFunc = *(funcs.begin());
     }
+                
+    return activeFunc;
 }
 
-void process::addActiveMulti(multiTramp* multi)
+bool process::patchPostCallArea(instPoint *callPt)
 {
-    activeMultis.insert(multi);
+   // 1) Find all the post-call patch areas that correspond to this 
+   //    call point
+   // 2) Generate and install the branches that will be inserted into 
+   //    these patch areas
+   
+   // 1...
+   AddrPairSet patchAreas;
+   if ( ! generateRequiredPatches(callPt, patchAreas) ) {
+      return false;
+    }
+   
+   // 2...
+   generatePatchBranches(patchAreas);
+   return true;
+}
+
+bool process::generateRequiredPatches(instPoint *callPt, 
+                                      AddrPairSet &patchAreas)
+{
+    // We need to figure out where this patch should branch to.
+    // To do that, we're going to:
+    // 1) Forward map the entry of the ft block to
+    //    its most recent relocated version (if that exists)
+    // 2) For each padding area, create a (padAddr,target) pair
+
+    // 1)
+    block_instance *callbbi = callPt->block();
+    block_instance *ftbbi = callbbi->getFallthroughBlock();
+    assert(ftbbi);
+
+    std::vector<func_instance *> funcs;
+    ftbbi->getFuncs(std::back_inserter(funcs));
+
+    Relocation::CodeTracker::RelocatedElements reloc;
+    CodeTrackers::reverse_iterator rit;
+    for (unsigned i = 0; i < funcs.size(); ++i) {
+       for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++) {
+          if ((*rit)->origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
+             break;
+          }
+       }
+    }
+    assert(rit != relocatedCode_.rend());
+    
+    Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
+
+    // 2) 
+    if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callPt)) {
+        set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
+        for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
+        {
+          Address jumpAddr = d_iter->first;
+          patchAreas.insert(std::make_pair(jumpAddr, to));
+          mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                     callbbi->end(), jumpAddr, to, FILE__,__LINE__);
+        }
+    }
+    if (!patchAreas.size()) {
+       mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
+    }
+    return true;
+}
+
+void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
+  for (AddrPairSet::iterator iter = branchesNeeded.begin();
+       iter != branchesNeeded.end(); ++iter) 
+  {
+    Address from = iter->first;
+    Address to = iter->second;
+
+    codeGen gen(64);
+    insnCodeGen::generateBranch(gen, from, to);
+
+    // Safety check: make sure we didn't overrun the patch area
+    Address lb, ub;
+    instPoint *tmp;
+    if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
+      // Huh? This worked before!
+      assert(0);
+    }
+    assert((from + gen.used()) <= ub);
+    if (!writeTextSpace((void *)from, 
+			gen.used(),
+			gen.start_ptr())) {
+      assert(0);
+    }
+  }
 }
 
 bool process::isExploratoryModeOn() 
@@ -5126,7 +4585,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
     // the requests are per-inst, not per-function. So 
     // accumulate functions, then generate afterwards. 
 
-    vector<int_function *> instrumentedFuncs;
+    vector<func_instance *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
@@ -5136,7 +4595,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         if(!multithread_capable() && req->is_MTonly())
             continue;
         
-        pdvector<int_function *> matchingFuncs;
+        pdvector<func_instance *> matchingFuncs;
         
         if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {
             inst_printf("%s[%d]: failed to find any functions matching %s (lib %s), returning failure from installInstrRequests\n", FILE__, __LINE__, req->func.c_str(), req->lib.c_str());
@@ -5148,7 +4607,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         }
 
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-            int_function *func = matchingFuncs[funcIter];
+            func_instance *func = matchingFuncs[funcIter];
             if (!func) {
                 inst_printf("%s[%d]: null int_func detected\n",
                     FILE__,__LINE__);
@@ -5173,69 +4632,59 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             switch ( ( req->where & 0x7) ) {
             case FUNC_EXIT:
                 {
-                    const pdvector<instPoint*> func_rets = func->funcExits();
-                    for (unsigned j=0; j < func_rets.size(); j++) {
-                        miniTramp *mt = func_rets[j]->addInst(ast,
-                                                              req->when,
-                                                              req->order,
-                                                              (!req->useTrampGuard),
-                                                              false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+		  /*                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
+				       iter != func->exitBlocks().end(); ++iter) {*/
+                   for (PatchFunction::blockset::const_iterator iter = func->getExitBlocks().begin();
+                        iter != func->getExitBlocks().end(); ++iter) {
+		     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
+                      if (mt) 
+                         minis.push_back(mt);
+                      else {
+                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                      }
+                   }
                 }
                 break;
-            case FUNC_ENTRY:
-                {
-                    const pdvector<instPoint *> func_entries = func->funcEntries();
-                    for (unsigned k=0; k < func_entries.size(); k++) {
-                        miniTramp *mt = func_entries[k]->addInst(ast,
-                                                                 req->when,
-                                                                 req->order,
-                                                                 (!req->useTrampGuard),
-                                                                 false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+               case FUNC_ENTRY:
+               {
+                  miniTramp *mt = instPoint::funcEntry(func)->insert(req->order, ast, req->useTrampGuard);
+                  if (mt) 
+                     minis.push_back(mt);
+                  else {
+                     fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                  }
                 }
                 break;
             case FUNC_CALL:
                 {
-                    pdvector<instPoint*> func_calls = func->funcCalls();
-                    for (unsigned l=0; l < func_calls.size(); l++) {
-                        miniTramp *mt = func_calls[l]->addInst(ast,
-                                                               req->when,
-                                                               req->order,
-                                                               (!req->useTrampGuard),
-                                                               false);
-                        if (mt) 
-                            minis.push_back(mt);
-                        else {
-                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                        }
-                    }
+		  /*                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
+                        iter != func->callBlocks().end(); ++iter) {*/
+                   for (PatchFunction::blockset::const_iterator iter = func->getCallBlocks().begin();
+                        iter != func->getCallBlocks().end(); ++iter) {
+		     block_instance* iblk = SCAST_BI(*iter);
+                      miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);
+                      if (mt) 
+                         minis.push_back(mt);
+                      else {
+                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                      }
+                   }
                 }
                 break;
             default:
                 fprintf(stderr, "Unknown where: %d\n",
                         req->where);
             } // switch
-            pdvector<instPoint *> failedPoints; 
-            if (func->performInstrumentation(false, failedPoints)) {
-                for (unsigned i = 0; i < minis.size(); i++) {
-                    req->miniTramps.push_back(minis[i]);
-                }
-            }
 	    minis.clear();
         } // matchingFuncs        
         
     } // requests
+    // relocate();
+
+    /* PatchAPI stuffs */
+    AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+
     return;
 }
 
@@ -5351,122 +4800,30 @@ std::string process::getStatusAsString() const
 }
 
 bool process::uninstallMutations() {
-    pdvector<codeRange *> modifiedRanges;
-    if (!getModifiedRanges(modifiedRanges))
-        return false;
-
-    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
-        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
-        if (tmp) {
-            multiTramp *multi = tmp->multi;
-            multi->disable();
-            continue;
-        }
-        
-        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
-        if (rfc) {
-            if (!writeDataSpace((void *)rfc->callAddr,
-                                rfc->oldCall.used(),
-                                rfc->oldCall.start_ptr())) {
-                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
-            }
-            continue;
-        }
-        
-        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
-        if (fr) {
-            // don't handle this yet...
-            continue;
-        }
-        
-        assert(0 && "Unhandled type of modified code in uninstallMutations!");
-    }
-    
-    return true;
+  //assert(0);
+  return false;
 }
 
 bool process::reinstallMutations() {
-    pdvector<codeRange *> modifiedRanges;
-    if (!getModifiedRanges(modifiedRanges))
-        return false;
-    
-    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
-        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
-        if (tmp) {
-            multiTramp *multi = tmp->multi;
-            multi->enable();
-            continue;
-        }
-        
-        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
-        if (rfc) {
-            if (!writeDataSpace((void *)rfc->callAddr,
-                                rfc->newCall.used(),
-                                rfc->newCall.start_ptr())) {
-                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
-            }
-            continue;
-        }
-        
-        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
-        if (fr) {
-            // don't handle this yet...
-            continue;
-        }
-        
-        assert(0 && "Unhandled type of modified code in uninstallMutations!");
-    }
-    
-    return true;
+  //assert(0);
+  return false;
 }
 
 // Function relocation requires a version of process::convertPCsToFuncs 
 // in which null functions are not passed into ret. - Itai 
-pdvector<int_function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <int_function *> ret;
+pdvector<func_instance *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <func_instance *> ret;
     unsigned i;
-    int_function *fn;
+    func_instance *fn;
     for(i=0;i<stackWalk.size();i++) {
-        fn = (int_function *)findFuncByAddr(stackWalk[i].getPC());
+        fn = (func_instance *)findOneFuncByAddr(stackWalk[i].getPC());
         // no reason to add a null function to ret
         if (fn != 0) ret.push_back(fn);
     }
     return ret;
 }
 
-// Add it at the bottom...
-void process::deleteGeneratedCode(generatedCodeObject *delInst)
-{
-  // Add to the list and deal with it later.
-  // The question is then, when to GC. I'd suggest
-  // when we try to allocate memory, and leave
-  // it a public member that can be called when
-  // necessary
-
-#if 0
-    fprintf(stderr, "Deleting generated code %p, which is a:\n",
-            delInst);
-    if (dynamic_cast<multiTramp *>(delInst)) {
-        fprintf(stderr, "   multiTramp\n");
-    }
-    else if (dynamic_cast<baseTrampInstance *>(delInst)) {
-        fprintf(stderr, "   baseTramp\n");
-    } 
-    else if (dynamic_cast<miniTrampInstance *>(delInst)) {
-        fprintf(stderr, "   miniTramp\n");
-    }
-    else {
-        fprintf(stderr, "   unknown\n");
-    }
-#endif    
-    // Make sure we don't double-add
-    for (unsigned i = 0; i < pendingGCInstrumentation.size(); i++)
-        if (pendingGCInstrumentation[i] == delInst)
-            return;
-
-    pendingGCInstrumentation.push_back(delInst);
-}
-
+#if defined(cap_garbage_collection)
 
 // garbage collect instrumentation
 void process::gcInstrumentation()
@@ -5501,8 +4858,10 @@ void process::gcInstrumentation()
 }
 
 // garbage collect instrumentation
-void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
+void process::gcInstrumentation(pdvector<pdvector<Frame> > &)
 {
+  return;
+#if 0
   // Go through the list and try to clear out any
   // instInstances that are freeable.
   if (status() == exited) return;
@@ -5575,7 +4934,10 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
           delete deletedInst;
       }
   }
+#endif
 }
+
+#endif
 
 dyn_thread *process::createInitialThread() 
 {
@@ -6070,7 +5432,7 @@ bool process::recognize_threads(process *parent)
             
         if (lwp->is_asLWP()) continue;
         
-        const pdvector<int_function *> *thread_funcs = NULL;
+        const pdvector<func_instance *> *thread_funcs = NULL;
         
         set<mapped_object *>::iterator runtime_lib_it;
         for(runtime_lib_it = runtime_lib.begin(); 
@@ -6080,7 +5442,7 @@ bool process::recognize_threads(process *parent)
             if( thread_funcs ) break;
         }
         assert(thread_funcs && thread_funcs->size() == 1);
-        int_function *thread_func = (*thread_funcs)[0];
+        func_instance *thread_func = (*thread_funcs)[0];
 
         pdvector<AstNodePtr> ast_args;
         AstNodePtr ast = AstNode::funcCallNode(thread_func, ast_args);
@@ -6381,14 +5743,7 @@ Address process::stepi(bool verbose, int lwp) {
     **/
    if (!verbose)
       return nexti;
-   
-   codeRange *range = findOrigByAddr(nexti);
-
-   fprintf(stderr, "0x%lx ", nexti);
-   if (range)
-      range->print_range();
-   else
-      fprintf(stderr, "\n");
+  
 
 #if defined(arch_x86_64)
    //MATT TODO: Temporarily commiting, but should remove
@@ -6504,12 +5859,8 @@ void process::debugSuicide() {
    last_single_step = 0;
    for (unsigned i=0; i < activeFrames.size(); i++) {
      Address addr = activeFrames[i].getPC();
-     codeRange *range = findOrigByAddr(addr);
      fprintf(stderr, "Frame %u @ 0x%lx ", i, addr);
-     if (range)
-        range->print_range();
-     else
-        fprintf(stderr, "\n");
+
    }
 
     while (!hasExited()) {

@@ -42,11 +42,13 @@
 #include "BPatch_basicBlockLoop.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_loopTreeNode.h"
+#include "BPatch_edge.h"
 
-class int_function;
+class func_instance;
 class process;
 class AddressSpace;
 class BPatch_edge;
+class edge_instance;
 
 typedef BPatch_basicBlockLoop BPatch_loop;
 
@@ -66,9 +68,10 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
       public Dyninst::AnnotatableSparse 
 {
   friend class BPatch_basicBlock;
+  friend class BPatch_edge;
   friend class BPatch_function;
   friend class dominatorCFG;
-  friend class int_function; // This is illegal here... keeps us from having to
+  friend class func_instance; // This is illegal here... keeps us from having to
                             // have a public constructor...  PDSEP
   friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
   friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
@@ -77,16 +80,22 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
  
   BPatch_flowGraph (BPatch_function *func, bool &valid); 
 
-  int_function *ll_func() const;
+  func_instance *ll_func() const;
   bool isValid_;
+
+  std::map<const block_instance *, BPatch_basicBlock *> blockMap_;
+  std::map<const edge_instance *, BPatch_edge *> edgeMap_;
+
 public:
 
   //BPatch_process *getBProcess() const { return bproc; }
   BPatch_addressSpace *getAddSpace() const { return addSpace; }
   AddressSpace *getllAddSpace() const;
-  BPatch_function *getBFunction() const { return func_; }
+  BPatch_function *getFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
   BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr);
+  BPatch_basicBlock *findBlock(block_instance *b);
+  BPatch_edge *findEdge(edge_instance *e);
   void invalidate(); // invoked when additional parsing takes place
   //  End of deprecated function
 
@@ -216,10 +225,10 @@ public:
 			      bool outerMostOnly);
   
   bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-                                        int_function *func,
+                                        func_instance *func,
                                         unsigned long addr);
 
-  void insertCalleeIntoLoopHierarchy(int_function * func, unsigned long addr);
+  void insertCalleeIntoLoopHierarchy(func_instance * func, unsigned long addr);
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 

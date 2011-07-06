@@ -40,6 +40,7 @@
 #include "AST.h"
 
 #include "Graph.h"
+#include "util.h"
 #include "Node.h"
 #include "Edge.h"
 
@@ -51,6 +52,12 @@ class SgAsmx86RegisterReferenceExpression;
 class SgAsmPowerpcRegisterReferenceExpression;
 
 namespace Dyninst {
+
+   namespace ParseAPI {
+      class Function;
+      class Block;
+   };
+
 namespace DataflowAPI {
 
 // The ROSE symbolic evaluation engine wants a data type that
@@ -306,7 +313,6 @@ DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 class SymEvalPolicy;
 
 class  SymEval {
-
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
     typedef dyn_detail::boost::shared_ptr<SliceNode> SliceNodePtr;
@@ -348,9 +354,8 @@ public:
 			 const uint64_t addr,
 			 Result_t& res);
 
- static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
-  
-  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func);
+  static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
+  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 
 };

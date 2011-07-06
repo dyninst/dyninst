@@ -32,11 +32,10 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
-#include "BPatch_snippet.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_point.h"
+#include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type
 
 #include "BPatch_callbacks.h"
@@ -46,12 +45,30 @@
 #include <stdio.h>
 #include <signal.h>
 
+// PatchAPI stuffs
+//#include "Command.h"
+
+namespace Dyninst {
+namespace PatchAPI { 
+  class PatchMgr;
+  class DynAddrSpace;
+  class Patcher;
+  typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+  typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+}
+}
+
+class BPatch_statement;
+class BPatch_snippet;
+class BPatch_point;
+class BPatch_variableExpr;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
+class BPatch_image;
 
-class int_function;
+class func_instance;
 struct batchInsertionRecord;
 
 typedef enum{
@@ -75,8 +92,15 @@ private:
     // Address Space snippet belogns to
     BPatch_addressSpace *addSpace_;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4251) 
+#endif
     // low-level mappings for removal
     BPatch_Vector<miniTramp *> mtHandles_;
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
 
     //  a flag for catchup
     bool catchupNeeded;
@@ -130,7 +154,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
  public:
     
-  BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
+  BPatch_function *findOrCreateBPFunc(func_instance *ifunc, 
                                       BPatch_module *bpmod);
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
@@ -145,8 +169,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   // These callbacks are triggered by lower-level code and forward
   // calls up to the findOrCreate functions.
-  static BPatch_function *createBPFuncCB(AddressSpace *p, int_function *f);
-  static BPatch_point *createBPPointCB(AddressSpace *p, int_function *f,
+  static BPatch_function *createBPFuncCB(AddressSpace *p, func_instance *f);
+  static BPatch_point *createBPPointCB(AddressSpace *p, func_instance *f,
 				       instPoint *ip, int type);
 
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
@@ -159,7 +183,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-  
+
  public:
 
   BPatch_addressSpace();
@@ -263,6 +287,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
+    // Look, ma, I rock
+
+    API_EXPORT(Int, (oldFunc, newFunc),
+    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+
     //  BPatch_addressSpace::getSourceLines
     //  
     //  Method that retrieves the line number and file name corresponding 
@@ -277,7 +306,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     
     API_EXPORT(Int, (fileName, lineNo, ranges),
     bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
-	
+
+    //  DEPRECATED:
     //  BPatch_addressSpace::findFunctionByAddr
     //  
     //  Returns the function containing an address
@@ -285,10 +315,18 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (addr),
     BPatch_function *,findFunctionByAddr,(void *addr));
 
+    //  BPatch_addressSpace::findFunctionByEntry
+    //  
+    //  Returns the function starting at the given address
+
+    API_EXPORT(Int, (entry),
+    BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
+
     //  BPatch_addressSpace::findFunctionsByAddr
     //  
     //  Returns the functions containing an address 
-    //  (this is possible if there is shared code
+    //  (multiple functions are returned when code is shared)
+
     API_EXPORT(Int, (addr,funcs),
     bool, findFunctionsByAddr,(Dyninst::Address addr, 
                                std::vector<BPatch_function*> &funcs));
@@ -338,8 +376,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
                BPatch_variableExpr *, createVariable, 
                (std::string name, Dyninst::Address addr, BPatch_type *type = NULL));
 
-    API_EXPORT(Int, (regs, includeSPRs),
-               bool, getRegisters, (std::vector<BPatch_register> &regs, bool includeSPRs = false));
+    API_EXPORT(Int, (regs),
+               bool, getRegisters, (std::vector<BPatch_register> &regs));
 
     API_EXPORT(Int, (regName, reg),
     bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
@@ -367,6 +405,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // statically-linked executable, false otherwise
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
+
 };
 
 #endif 

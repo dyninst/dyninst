@@ -112,7 +112,7 @@ class SimpleInterval : public interval<int> {
 
     virtual int low() const { return low_; }
     virtual int high() const { return high_; }
-        
+
   private:
     int low_;
     int high_;
@@ -799,7 +799,7 @@ void IBSTree<ITYPE>::successor(interval_type X, set<ITYPE *> &out) const
             if(last != nil) {
                 typename set<ITYPE *>::iterator sit = last->equal.begin();
                 for( ; sit != last->equal.end(); ++sit) {
-                    if((*sit)->low() == last->value()) out.insert(*sit);
+                   if((*sit)->low() == last->value()) out.insert(*sit);
                 }
                 if(!out.empty())
                     break;

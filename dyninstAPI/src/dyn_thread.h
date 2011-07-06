@@ -69,7 +69,7 @@ class dyn_thread {
   Address        get_stack_addr() const;
   int            get_ppid()          const { return(ppid); }
   process*       get_proc()                { return(proc); }
-  int_function*  get_start_func()          { return(start_func); }
+  func_instance*  get_start_func()          { return(start_func); }
   Address        get_start_pc()      const { return(start_pc); }
   void*          get_resumestate_p()       { return resumestate_p; }
   Address        get_indirect_start_addr() const { return indirect_start_func; }
@@ -79,14 +79,14 @@ class dyn_thread {
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
   void update_stack_addr   (Address stack_addr_);
   void update_start_pc     (Address start_pc_)   { start_pc=start_pc_; }
-  void update_start_func   (int_function *pdf)   { start_func=pdf; }
+  void update_start_func   (func_instance *pdf)   { start_func=pdf; }
   void update_sfunc_indir  (Address addr)        {indirect_start_func = addr; }
   void update_resumestate_p(void* resumestate_p_) { resumestate_p=resumestate_p_; }
   
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
   bool is_exited()                         { return lwp->status() == exited; }
-  int_function *map_initial_func(int_function *ifunc);
+  func_instance *map_initial_func(func_instance *ifunc);
 
   ///
  private:
@@ -98,7 +98,7 @@ class dyn_thread {
   Address stack_addr;
   Address start_pc ;
   void*    resumestate_p; //platform specific
-  int_function *start_func ;
+  func_instance *start_func ;
   process *proc;
   Address pending_tramp_addr;	// address of pending instrumentation
   Address indirect_start_func;

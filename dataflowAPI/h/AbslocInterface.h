@@ -47,6 +47,7 @@ namespace Dyninst {
 
   namespace ParseAPI {
     class Function; 
+    class Block;
   };
 
 class AbsRegionConverter {
@@ -61,11 +62,13 @@ class AbsRegionConverter {
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
 				  Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  std::vector<AbsRegion> &regions);
   
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
 				  Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  std::vector<AbsRegion> &used,
 				  std::vector<AbsRegion> &defined);
 
@@ -75,25 +78,30 @@ class AbsRegionConverter {
 
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
-				    ParseAPI::Function *func);
+				    ParseAPI::Function *func,
+                                    ParseAPI::Block *block);
 
   // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  bool push);
   
   DATAFLOW_EXPORT AbsRegion frame(Address addr,
 				  ParseAPI::Function *func,
+                                  ParseAPI::Block *block,
 				  bool push);
   
  private:
   // Returns false if the current height is unknown.
   bool getCurrentStackHeight(ParseAPI::Function *func,
+                             ParseAPI::Block *block,
 			     Address addr, 
-			     long &height, int &region);
+			     long &height);
   bool getCurrentFrameHeight(ParseAPI::Function *func,
+                             ParseAPI::Block *block,
 			     Address addr, 
-			     long &height, int &region);
+			     long &height);
   
   bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
   bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
@@ -118,20 +126,23 @@ class AssignmentConverter {
  DATAFLOW_EXPORT AssignmentConverter(bool cache, bool stack = true) : cacheEnabled_(cache), aConverter(false, stack) {};
 
   DATAFLOW_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
-	       const Address &addr,
-	       ParseAPI::Function *func,
-	       std::vector<Assignment::Ptr> &assignments);
+                               const Address &addr,
+                               ParseAPI::Function *func,
+                               ParseAPI::Block *block,
+                               std::vector<Assignment::Ptr> &assignments);
 
 
  private:
   void handlePushEquivalent(const InstructionAPI::Instruction::Ptr I,
 			    Address addr,
 			    ParseAPI::Function *func,
+                            ParseAPI::Block *block,
 			    std::vector<AbsRegion> &operands,
 			    std::vector<Assignment::Ptr> &assignments);
   void handlePopEquivalent(const InstructionAPI::Instruction::Ptr I,
 			   Address addr,
 			   ParseAPI::Function *func,
+                           ParseAPI::Block *block,
 			   std::vector<AbsRegion> &operands,
 			   std::vector<Assignment::Ptr> &assignments);
 

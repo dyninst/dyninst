@@ -38,6 +38,7 @@
 #include "external/rose/powerpcInstructionEnum.h"
 #include "Visitor.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynutil/h/util.h"
 #include <vector>
 
 #if defined(_MSC_VER)

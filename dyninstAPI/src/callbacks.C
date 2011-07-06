@@ -41,6 +41,7 @@
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_function.h"
+#include "dyninstAPI/h/BPatch_point.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()
@@ -185,21 +186,6 @@ bool SyncCallback::do_it()
       waitForCompletion();
       if (reset_delete_enabled)
          enableDelete();
-   }
-
-   // invoke trampEnd and return address fixup after any callback
-   // that could update the analysis of the code
-   if ( synchronous && getProcess() && 
-        ( dynamic_cast<StopThreadCallback*>(this) ||
-          dynamic_cast<DynLibraryCallback*>(this) ||
-          dynamic_cast<ForkCallback*>(this) ||
-          dynamic_cast<ExecCallback*>(this) ||
-          dynamic_cast<SignalCallback*>(this) ||
-          dynamic_cast<SignalHandlerCallback*>(this) ||
-          dynamic_cast<CodeOverwriteCallback*>(this) ||
-          dynamic_cast<AsyncThreadEventCallback*>(this) ) )
-   {
-       getProcess()->fixupActiveStackTargets();
    }
 
    return true;
@@ -378,15 +364,15 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
 }
 
 
-process* SyncCallback::getProcess()
+process* SyncCallback::getProcess() const
 {
     return NULL;
 }
-process * StopThreadCallback::getProcess() 
+process * StopThreadCallback::getProcess() const
 {
     return point->getFunction()->getProc()->lowlevel_process();
 }
-process * CodeOverwriteCallback::getProcess() 
+process * CodeOverwriteCallback::getProcess() const
 {
     return proc;
 }

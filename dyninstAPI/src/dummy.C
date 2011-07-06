@@ -51,8 +51,8 @@ extern "C" {
 void __uninitialized_copy_aux__H2ZPCt6vector2ZUiZt9allocator1ZUiZPt6vector2ZUiZt9allocator1ZUi_X01X01X11G12__false_type_X11() { abort(); }
 void __uninitialized_copy_aux__H2ZPC7FERNodeZP7FERNode_X01X01X11G12__false_type_X11() { abort(); }
 
-void fill_n__H3ZPP11int_functionZUlZP11int_function_X01X11RCX21_X01() {}
-void fill_n__H3ZPP11int_functionZUiZP11int_function_X01X11RCX21_X01() { }
+void fill_n__H3ZPP11func_instanceZUlZP11func_instance_X01X11RCX21_X01() {}
+void fill_n__H3ZPP11func_instanceZUiZP11func_instance_X01X11RCX21_X01() { }
 
 void fill_n__H3ZPP7AstNodeZUiZP7AstNode_X01X11RCX21_X01() { }
 

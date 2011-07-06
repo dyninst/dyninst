@@ -460,6 +460,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 #endif
 
    result = binEdit->writeFile(outfile.c_str());
+
    if (!result) {
       goto done;
    }

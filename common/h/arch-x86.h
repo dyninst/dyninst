@@ -753,6 +753,8 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define PUSH_RM_OPC2 (6)
 #define CALL_RM_OPC1 (0xFF)
 #define CALL_RM_OPC2 (2)
+#define JUMP_RM_OPC1 (0xFF)
+#define JUMP_RM_OPC2 (4)
 #define PUSH_EBP (0x50+REGNUM_EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
@@ -765,10 +767,7 @@ COMMON_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsi
 #define EXTENDED_0x81_SUB 5
 #define EXTENDED_0x81_XOR 6
 #define EXTENDED_0x81_CMP 7
-
-#define EXTENDED_0x83_ADD 0
 #define EXTENDED_0x83_AND 4
-#define EXTENDED_0x83_SUB 5
 
 unsigned int swapBytesIfNeeded(unsigned int i);
 
@@ -937,7 +936,7 @@ COMMON_EXPORT bool insn_hasDisp32(unsigned ModRM);
 COMMON_EXPORT bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 COMMON_EXPORT bool isStackFramePrecheck_gcc( const unsigned char *buffer );
 
-} // namespace arch_x86
+}; // namespace arch_x86
 
 #endif
 

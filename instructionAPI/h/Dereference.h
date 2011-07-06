@@ -145,8 +145,8 @@ namespace Dyninst
                 break;
         }
 #endif
-//	retVal << "[" << addressToDereference->format() << "]";
-        retVal << addressToDereference->format(memoryAccessStyle);
+	retVal << "[" << addressToDereference->format() << "]";
+//        retVal << addressToDereference->format(memoryAccessStyle);
         return retVal.str();
       }
 

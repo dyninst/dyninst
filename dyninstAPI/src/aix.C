@@ -58,7 +58,6 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
-#include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/function.h"
 
@@ -114,7 +113,7 @@ Frame Frame::getCallerFrame()
   bool noFrame = false;
 
   codeRange *range = getRange();
-  int_function *func = range->is_function();
+  func_instance *func = range->is_function();
 
   if (uppermost_) {
     if (func) {
@@ -590,8 +589,8 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-    int_function *f_main = NULL;
-    pdvector<int_function *> funcs;
+    func_instance *f_main = NULL;
+    pdvector<func_instance *> funcs;
     bool res = findFuncsByPretty("main", funcs);
     if (!res) {
         // we can't instrument main - naim
@@ -698,7 +697,7 @@ bool process::loadDYNINSTlib()
     //        Write the library name somewhere where dlopen can find it.
     // Actually, why not write the library name first?
 
-    int_function *scratch = findOnlyOneFunction("main");
+    func_instance *scratch = findOnlyOneFunction("main");
     if (!scratch) return false;
 
 
@@ -731,7 +730,7 @@ bool process::loadDYNINSTlib()
 
     scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
 
-    int_function *dlopen_func = findOnlyOneFunction("dlopen");
+    func_instance *dlopen_func = findOnlyOneFunction("dlopen");
     if (!dlopen_func) {
         fprintf(stderr, "%s[%d]: ERROR: unable to find dlopen!\n",
                 __FILE__, __LINE__);
@@ -803,7 +802,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *lwp)
     savedRegs = NULL;
     // We was never here.... 
 
-    int_function *scratch = findOnlyOneFunction("main");
+    func_instance *scratch = findOnlyOneFunction("main");
     if (!scratch) return false;
     // Testing...
     // Round it up to the nearest instruction. 
@@ -1167,7 +1166,7 @@ void process::copyDanglingMemory(process *parent) {
 
 
 // findCallee
-int_function *instPoint::findCallee() {
+func_instance *instPoint::findCallee() {
     if (callee_) {
         return callee_;
     }
@@ -1182,11 +1181,11 @@ int_function *instPoint::findCallee() {
 
     // Check if we parsed an intra-module static call
     assert(img_p_);
-    image_func *icallee = img_p_->getCallee();
+    parse_func *icallee = img_p_->getCallee();
     if (icallee) {
       // Now we have to look up our specialized version
       // Can't do module lookup because of DEFAULT_MODULE...
-      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
+      const pdvector<func_instance *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
       if (!possibles) {
           return NULL;
       }
@@ -1264,7 +1263,7 @@ int_function *instPoint::findCallee() {
 
         // Again, by definition, the function is not in owner.
         // So look it up.
-        int_function *pdf = proc()->findFuncByAddr(linkageTarget);
+        func_instance *pdf = proc()->findFuncByAddr(linkageTarget);
 
         if (pdf) {
             callee_ = pdf;
@@ -1281,7 +1280,7 @@ int_function *instPoint::findCallee() {
  * to libpthread, then to libc, then to the process.
  **/
 static void findThreadFuncs(process *p, std::string func, 
-                            pdvector<int_function *> &result)
+                            pdvector<func_instance *> &result)
 {
    bool found = false;
    mapped_module *lpthread = p->findModule("libpthread.a", true);
@@ -1314,7 +1313,7 @@ static bool initWrapperFunction(process *p, std::string symbol_name, std::string
    Address sym_addr = dyn_syms[0]->getAddress();
 
    //Find func_name
-   pdvector<int_function *> funcs;
+   pdvector<func_instance *> funcs;
    findThreadFuncs(p, func_name, funcs);   
    if (funcs.size() != 1)
    {
@@ -1333,11 +1332,11 @@ static bool initWrapperFunction(process *p, std::string symbol_name, std::string
    return true;
 }
 
-static bool instrumentThrdFunc(int_function *dummy_create, std::string func_name, 
+static bool instrumentThrdFunc(func_instance *dummy_create, std::string func_name, 
                                process *proc) 
 {
    //Find create_thread
-   pdvector<int_function *> thread_init_funcs;
+   pdvector<func_instance *> thread_init_funcs;
    findThreadFuncs(proc, func_name.c_str(), thread_init_funcs);
    //findThreadFuncs(this, "init_func", &thread_init_funcs);
    if (!thread_init_funcs.size()) {
@@ -1384,8 +1383,8 @@ bool process::initMT()
     * Instrument thread_create with calls to DYNINST_dummy_create
     **/
    //Find DYNINST_dummy_create
-   pdvector<int_function *> dummy_create_funcs;
-   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   pdvector<func_instance *> dummy_create_funcs;
+   func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
    if (!dummy_create)
    {
       fprintf(stderr, "[%s:%d] - Could not find DYNINST_dummy_create\n",

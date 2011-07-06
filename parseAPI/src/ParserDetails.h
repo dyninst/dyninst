@@ -129,6 +129,7 @@ class ParseWorkElem
     Address             target()        const { return _targ; }
     bool                resolvable()    const { return _can_resolve; }
     parse_work_order    order()         const { return _order; }
+    void                setTarget(Address t)  { _targ = t; }
 
     bool                tailcall()      const { return _tailcall; }
     bool                callproc()      const { return _call_processed; }

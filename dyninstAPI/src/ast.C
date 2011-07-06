@@ -76,6 +76,7 @@ extern int tramp_pre_frame_size_64;
 #include "mapped_module.h"
 
 #include "legacy-instruction.h"
+#include "mapped_object.h"
 
 using namespace Dyninst;
 
@@ -194,7 +195,7 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
 {
    if (addrSpace) 
    {
-      int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
+      func_instance *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
 
       if (ifunc == NULL) 
       {
@@ -209,23 +210,18 @@ AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > 
       return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args) {
+AstNodePtr AstNode::funcCallNode(func_instance *func, pdvector<AstNodePtr > &args) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNodePtr AstNode::funcCallNode(int_function *func) {
+AstNodePtr AstNode::funcCallNode(func_instance *func) {
     if (func == NULL) return AstNodePtr();
     return AstNodePtr(new AstCallNode(func));
 }
 
 AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
-}
-
-AstNodePtr AstNode::funcReplacementNode(int_function *func, bool emitCall) {
-    if (func == NULL) return AstNodePtr();
-    return AstNodePtr(new AstReplacementNode(func, emitCall));
 }
 
 AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
@@ -381,7 +377,7 @@ AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
 }
 
 
-AstCallNode::AstCallNode(int_function *func,
+AstCallNode::AstCallNode(func_instance *func,
                          pdvector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(0),
@@ -395,7 +391,7 @@ AstCallNode::AstCallNode(int_function *func,
     }
 }
 
-AstCallNode::AstCallNode(int_function *func) :
+AstCallNode::AstCallNode(func_instance *func) :
     AstNode(),
     func_addr_(0),
     func_(func),
@@ -633,7 +629,10 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     ast_printf("Allocating register for node %p, useCount %d\n", this, useCount);
     // Allocate a register
     Register dest = gen.rs()->allocateRegister(gen, noCost);
-    
+
+    ast_printf("Allocator returned %d\n", dest);
+    assert(dest != REG_NULL);
+
     if (useCount > 1) {
         ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, this, useCount);
         // If use count is 0 or 1, we don't want to keep
@@ -712,8 +711,8 @@ bool AstNode::generateCode(codeGen &gen,
     }
     
     if (top_level) {
-        delete gen.tracker();
-        gen.setRegTracker(NULL);
+      delete gen.tracker();
+      gen.setRegTracker(NULL);
     }
     
     ast_printf("====== Code Generation End ===== \n");
@@ -724,7 +723,6 @@ bool AstNode::generateCode(codeGen &gen,
         entered = false;
         stats_codegen.stopTimer(CODEGEN_AST_TIMER);
     }
-
     return ret;
 }
 
@@ -775,7 +773,6 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
@@ -810,22 +807,6 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
 
 	decUseCount(gen);
 
-    return true;
-}
-
-bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                             Address &retAddr,
-                                             Register &retReg) {
-    retAddr = ADDR_NULL;
-    retReg = REG_NULL;
-    
-    assert(replacement);
-    
-    opCode op = genFuncCall_ ? funcCallOp : funcJumpOp;
-    emitFuncJump(op, gen, replacement, gen.addrSpace(),
-                 gen.point(), noCost);
-    
-    decUseCount(gen);
     return true;
 }
 
@@ -1229,7 +1210,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                   retReg = allocateAndKeep(gen, noCost);
                Register temp = gen.rs()->getScratchRegister(gen, noCost);
                addr = (Address) loperand->getOValue();
-	    
                emitVload(loadFrameAddr, addr, temp, retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
@@ -1341,7 +1321,9 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                //src1, gen, getSize(), noCost);
                loperand->decUseCount(gen);
                break;
-            case Param: {
+            case Param: 
+            case ParamAtCall: 
+            case ParamAtEntry: {
                dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
                   dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
                emitR(getParamOp, (Address)lnode->oValue,
@@ -1356,6 +1338,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                      gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
+            case ReturnAddr:
+                emitR(getRetAddrOp, Null_Register,
+                      src1, src2, gen, noCost, gen.point(), 
+                      gen.addrSpace()->multithread_capable());
             default: {
                // Could be an error, could be an attempt to load based on an arithmetic expression
                // Generate the left hand side, store the right to that address
@@ -1527,8 +1513,35 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
        }
        break;
+   case ReturnAddr:
+       src = emitR(getRetAddrOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
+                   gen.addrSpace()->multithread_capable());
+       REGISTER_CHECK(src);
+       if (src != retReg) {
+           // Move src to retReg. Can't simply return src, since it was not
+           // allocated properly
+           emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
+       }
+       break;
    case Param:
-       src = emitR(getParamOp, (Address)oValue, Null_Register,
+   case ParamAtCall: 
+   case ParamAtEntry: {
+       opCode paramOp = undefOp;
+       switch(oType) {
+           case Param: 
+               paramOp = getParamOp;
+               break;
+           case ParamAtCall: 
+               paramOp = getParamAtCallOp;
+               break;
+           case ParamAtEntry: 
+               paramOp = getParamAtEntryOp;
+               break;
+           default:
+               assert(0);
+               break;
+       }
+       src = emitR(paramOp, (Address)oValue, Null_Register,
                    retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
@@ -1536,6 +1549,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            // Move src to retReg. Can't simply return src, since it was not
            // allocated properly
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
+       }
        }
        break;
    case DataAddr:
@@ -1549,7 +1563,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case FrameAddr:
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
-       
        emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
@@ -1610,7 +1623,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
-                    gen.point(), gen.point()->addr());
+                    gen.point(), gen.point()->insnAddr());
         }
         assert(bpoint);
         ma = bpoint->getMemoryAccess();
@@ -1626,7 +1639,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
             assert(0);
         }
         start = ma->getStartAddr(which_);
-        emitASload(start, retReg, gen, noCost);
+        emitASload(start, retReg, 0, gen, noCost);
         break;
     }
     case BytesAccessed: {
@@ -1677,7 +1690,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 #if defined(arch_x86) || defined(arch_x86_64)
     // Our "everything" is "floating point registers".
     // We also need a function object.
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1696,7 +1709,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     if (callReplace_) return true;
 
     // This code really doesn't work right now...
-    int_function *callee = func_;
+    func_instance *callee = func_;
     if (!callee) {
         // Painful lookup time
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
@@ -1723,10 +1736,10 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     // dependent fn which calls it back for each operand... Have to
     // fix those as well to pass location...
 
-    int_function *use_func = func_;
+    func_instance *use_func = func_;
 
     if (!use_func && !func_addr_) {
-        // We purposefully don't cache the int_function object; the AST nodes
+        // We purposefully don't cache the func_instance object; the AST nodes
         // are process independent, and functions kinda are.
         use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         if (!use_func) {
@@ -1913,7 +1926,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     if (retReg == REG_NULL) return false;
 
     emitVload(loadConstOp, 
-              (Address) gen.point()->addr(),
+              (Address) gen.point()->nextExecutedAddr(),
               retReg, retReg, gen, noCost);
     return true;
 }
@@ -1939,13 +1952,17 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
                                             Register &retReg) {
+   if (gen.point()->type() != instPoint::PreCall &&
+       gen.point()->type() != instPoint::FuncExit &&
+       gen.point()->type() != instPoint::PreInsn) return false;
 
-    if(gen.point()->insn()->getCategory() == c_ReturnInsn) {
-    // if this is a return instruction our AST reads the top stack value
-        if (retReg == REG_NULL) {
-            retReg = allocateAndKeep(gen, noCost);
-        }
-        if (retReg == REG_NULL) return false;
+   InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
+   if (insn->getCategory() == c_ReturnInsn) {
+      // if this is a return instruction our AST reads the top stack value
+      if (retReg == REG_NULL) {
+         retReg = allocateAndKeep(gen, noCost);
+      }
+      if (retReg == REG_NULL) return false;
 
 #if defined (arch_x86)
         emitVload(loadRegRelativeOp, 
@@ -1968,17 +1985,19 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
 #else
         assert(0);
 #endif
-        return true;
-    }
-    else {// this is a dynamic ctrl flow instruction, have
-          // getDynamicCallSiteArgs generate the necessary AST
-        pdvector<AstNodePtr> args;
-        if (!gen.addrSpace()->getDynamicCallSiteArgs
-            (const_cast<instPoint*>(gen.point()),args)) {
-            return false;
-        }
-        return args[0]->generateCode_phase2(gen, noCost, retAddr, retReg);
-    }
+      return true;
+   }
+   else {// this is a dynamic ctrl flow instruction, have
+      // getDynamicCallSiteArgs generate the necessary AST
+      pdvector<AstNodePtr> args;
+      if (!gen.addrSpace()->getDynamicCallSiteArgs(insn, gen.point()->block()->last(), args)) {
+         return false;
+      }
+      if (!args[0]->generateCode_phase2(gen, noCost, retAddr, retReg)) {
+         return false;
+      }
+      return true;			
+   }
 }
 
 
@@ -2083,7 +2102,7 @@ int AstOperandNode::costHelper(enum CostStyleType costStyle) const {
         total = getInsnCost(loadOp);
     } else if (oType == DataReg) {
         total = getInsnCost(loadIndirOp);
-    } else if (oType == Param) {
+    } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
         total = getInsnCost(getParamOp);
     }
     return total;
@@ -2132,10 +2151,12 @@ void AstNode::print() const {
       } else if (oType == DataReg) {
 	fprintf(stderr," reg%d ",(int)(Address)oValue);
         loperand->print();
-      } else if (oType == Param) {
+      } else if (oType == Param || oType == ParamAtCall || oType == ParamAtEntry) {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == ReturnVal) {
 	fprintf(stderr,"retVal");
+      } else if (oType == ReturnAddr) {
+	fprintf(stderr, "retAddr");
       } else if (oType == DataAddr)  {
 	if(!oVar)
 	{
@@ -2290,8 +2311,11 @@ BPatch_type *AstOperandNode::checkType()
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
     } 
-    else if ((oType == Param) || (oType == ReturnVal)) {
+    else if ((oType == Param) || (oType == ParamAtCall) || 
+             (oType == ParamAtEntry) || (oType == ReturnVal) 
+             || (oType == ReturnAddr)) {
             // XXX Params and ReturnVals untyped for now
+      // ReturnAddr should be void *, probably
         ret = BPatch::bpatch->type_Untyped; 
     }
     else if ((oType == origRegister)) {
@@ -2429,7 +2453,6 @@ bool AstNode::accessesParam() {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
@@ -2561,10 +2584,6 @@ bool AstMiniTrampNode::canBeKept() const {
 	return ast_->canBeKept();
 }
 
-bool AstReplacementNode::canBeKept() const { 
-    return false;
-}
-
 bool AstMemoryNode::canBeKept() const {
 	// Despite our memory loads, we can be kept;
 	// we're loading off process state, which is defined
@@ -2594,7 +2613,6 @@ void AstNode::getChildren(pdvector<AstNodePtr > &) {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
@@ -2610,7 +2628,6 @@ void AstNode::setChildren(pdvector<AstNodePtr > &) {
     else if (dynamic_cast<AstOperatorNode *>(this)) fprintf(stderr, "operatorNode\n");
     else if (dynamic_cast<AstOperandNode *>(this)) fprintf(stderr, "operandNode\n");
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
-    else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
@@ -2865,7 +2882,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->addr();     //Offset of inst point from function base address
+    Address addr = gen.point()->nextExecutedAddr();     //Offset of inst point from function base address
     for(unsigned i=0; i< ranges_->size();i++){
         if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
             index = i;
@@ -2889,10 +2906,6 @@ bool AstCallNode::containsFuncCall() const {
    return true;
 }
 
-
-bool AstReplacementNode::containsFuncCall() const {
-   return true;
-}
 
 
 bool AstOperatorNode::containsFuncCall() const {
@@ -2977,10 +2990,6 @@ cfjRet_t AstCallNode::containsFuncJump() const {
    return cfj_none;
 }
 
-cfjRet_t AstReplacementNode::containsFuncJump() const {
-   return genFuncCall_ ? cfj_call : cfj_jump;
-}
-
 cfjRet_t AstOperatorNode::containsFuncJump() const {
    cfjRet_t ret = cfj_none;
 	if (loperand) setCFJRet(ret, loperand->containsFuncJump());
@@ -3063,10 +3072,6 @@ bool AstCallNode::usesAppRegister() const {
    return false;
 }
 
-bool AstReplacementNode::usesAppRegister() const {
-   return false;
-}
-
 bool AstOperatorNode::usesAppRegister() const {
 	if (loperand && loperand->usesAppRegister()) return true;
 	if (roperand && roperand->usesAppRegister()) return true;
@@ -3079,12 +3084,15 @@ bool AstOperandNode::usesAppRegister() const {
        oType == AstNode::RegOffset ||
        oType == AstNode::origRegister ||
        oType == AstNode::Param ||
+       oType == AstNode::ParamAtEntry ||
+       oType == AstNode::ParamAtCall ||
        oType == AstNode::ReturnVal)
    {
       return true;
    }
-	if (operand_ && operand_->usesAppRegister()) return true;
-	return false;
+
+   if (operand_ && operand_->usesAppRegister()) return true;
+   return false;
 }
 
 bool AstMiniTrampNode::usesAppRegister() const {
@@ -3235,7 +3243,6 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
     else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
     else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
-    else if (dynamic_cast<AstReplacementNode *>(this)) type = "replacementNode";
     else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
     else if (dynamic_cast<AstVariableNode *>(this)) type = "variableNode";
     else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";

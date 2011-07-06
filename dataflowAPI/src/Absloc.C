@@ -90,7 +90,10 @@ std::string Absloc::format() const {
     ret << reg_.name();
     break;
   case Stack: {
-    ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
+    if (func_)
+        ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
+    else 
+        ret << "S[NULL_FUNC" << "," << off_ << "," << region_ << "]";
     break;
   }
   case Heap:
@@ -114,8 +117,9 @@ bool AbsRegion::contains(const Absloc &loc) const {
   if (type_ != Absloc::Unknown) {
     // If we're a typed region we contain any absloc
     // with our type
-    return (type_ == loc.type());
+     return (type_ == loc.type());
   }
+
   //if (loc.type() != Absloc::Unknown) {
   //return (type() == loc.type());
   //}
@@ -142,7 +146,8 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
   }
 
   if (rhs.type() != Absloc::Unknown) {
-    if (absloc_.type() == rhs.type()) return true;
+     if (absloc_.type() == rhs.type()) return true;
+     return false;
   }
 
   if (absloc_ == rhs.absloc_) return true;
@@ -150,8 +155,12 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
   // Stack slots operate kinda... odd...
   if ((absloc_.type() == Absloc::Stack) &&
       (rhs.absloc_.type() == Absloc::Stack)) {
+         
+    // Testing: assume regions do not overlap
+    return false;
+
     // Return true if we're in the same function but different
-    // regions
+    // regions    
     if ((absloc_.func() == rhs.absloc_.func()) &&
 	(absloc_.region() != rhs.absloc_.region())) return true;
   }

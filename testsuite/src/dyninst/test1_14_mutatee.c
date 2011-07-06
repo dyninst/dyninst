@@ -95,7 +95,7 @@ int test1_14_func1() {
 	if (globalVariable14_2 != 0)
 	    logerror("    call to test1_14_func3() was not removed\n");
         if (globalVariable14_3 != 2) 
-            logerror("    call to test1_14_func4() was not inter-module replaced\n");
+	  logerror("    call to test1_14_func4() was not inter-module replaced: %d instead of 2\n", globalVariable14_3);
 	retval = -1; /* Test failed */
     }
     return retval;

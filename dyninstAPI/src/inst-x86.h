@@ -78,6 +78,8 @@
                                      // 16 may be enough.
 #define AMD64_RED_ZONE         0x80
 
+
+
 /*
    Function arguments are in the stack and are addressed with a displacement
    from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
@@ -228,7 +230,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op);
 // XMM registers
 bool xmmCapable();
 
-void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen);
+void emitBTRegRestores32(baseTramp *bti, codeGen &gen);
 
 struct stackItem {
    enum stackItem_t {

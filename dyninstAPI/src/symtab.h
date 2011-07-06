@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+#include "dyninstAPI/h/BPatch_enums.h"
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -94,7 +94,7 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 
 class image;
 class lineTable;
-class image_func;
+class parse_func;
 class image_variable;
 
 class image_parRegion;
@@ -106,7 +106,6 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
-class image_instPoint;
 
 // ParseAPI classes
 class DynCFGFactory;
@@ -243,7 +242,7 @@ class lineDict {
 std::string getModuleName(std::string constraint);
 std::string getFunctionName(std::string constraint);
 
-int rawfuncscmp( image_func*& pdf1, image_func*& pdf2 );
+int rawfuncscmp( parse_func*& pdf1, parse_func*& pdf2 );
 
 typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 
@@ -262,11 +261,10 @@ class image : public codeRange {
    static void removeImage(image *img);
 
    // "I need another handle!"
-   image *clone() { refCount++; return this; }
-
-   // And alternates
-   static void removeImage(const string file);
-   static void removeImage(fileDescriptor &desc);
+   image *clone() {
+      refCount++; 
+      return this; 
+   }
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
@@ -274,10 +272,13 @@ class image : public codeRange {
 
    void analyzeIfNeeded();
 
-   image_func* addFunction(Address functionEntryAddr, const char *name=NULL);
+   parse_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
+
+   void addOwner(mapped_object *owner);
+   void removeOwner(mapped_object *owner);
 
  protected:
    ~image();
@@ -290,19 +291,19 @@ class image : public codeRange {
 
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
-   const pdvector <image_func *> *findFuncVectorByPretty(const std::string &name);
-   const pdvector <image_func *> *findFuncVectorByMangled(const std::string &name);
+   const pdvector <parse_func *> *findFuncVectorByPretty(const std::string &name);
+   const pdvector <parse_func *> *findFuncVectorByMangled(const std::string &name);
    // Variables: nearly identical
    const pdvector <image_variable *> *findVarVectorByPretty(const std::string &name);
    const pdvector <image_variable *> *findVarVectorByMangled(const std::string &name);
 
    // Find the vector of functions determined by a filter function
-   pdvector <image_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+   pdvector <parse_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
-                                                    pdvector<image_func *> *found);
-   pdvector <image_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+                                                    pdvector<parse_func *> *found);
+   pdvector <parse_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
                                                      void *user_data, 
-                                                     pdvector<image_func *> *found);
+                                                     pdvector<parse_func *> *found);
 
    /*********************************************************************/
    /**** Function lookup (by name or address) routines               ****/
@@ -310,7 +311,7 @@ class image : public codeRange {
    /**** Overlapping region objects MUST NOT use these routines      ****/
    /*********************************************************************/
    // Find a function that begins at a particular address
-   image_func *findFuncByEntry(const Address &entry);
+   parse_func *findFuncByEntry(const Address &entry);
    // Code sharing allows multiple functions to overlap a given point
    int findFuncs(const Address offset, set<ParseAPI::Function *> & funcs);
    // Find the basic blocks that overlap the given address
@@ -318,7 +319,7 @@ class image : public codeRange {
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
-   void addTypedPrettyName(image_func *func, const char *typedName);
+   void addTypedPrettyName(parse_func *func, const char *typedName);
 
    // Create an image variable (e.g., malloced variable). Creates the
    // variable and adds to appropriate data structures.
@@ -337,6 +338,8 @@ class image : public codeRange {
    Address dataOffset() const { return dataOffset_;}
    Address dataLength() const { return dataLen_;} 
    Address imageLength() const { return imageLen_;} 
+
+   void setImageLength(Address newlen);
 
    // codeRange interface implementation
    Address get_address() const { return imageOffset(); }
@@ -366,29 +369,28 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-   image_instPoint * getInstPoint(Address addr);
-   bool addInstPoint(image_instPoint*p);
-   void getInstPoints(Address start, Address end, 
-                      pdvector<image_instPoint*> &points); 
 
+   //-----------DEFENSIVE-MODE CODE------------//
+   BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
-   void removeInstPoint(image_instPoint *p);
-   void deleteFunc(image_func *func);
-   void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
-   const set<image_basicBlock*> & getSplitBlocks() const;
-   bool hasSplitBlocks() const { return 0 < splitBlocks_.size(); }
+
+   void addSplitBlock(parse_block *first,
+                      parse_block *second);
+   typedef std::set<std::pair<parse_block *, parse_block *> > SplitBlocks;
+   const SplitBlocks & getSplitBlocks() const;
+   bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
-   const vector<image_basicBlock*> & getNewBlocks() const;
+   const vector<parse_block*> & getNewBlocks() const;
    void clearNewBlocks();
    // callback that updates our view the binary's raw code bytes
    void register_codeBytesUpdateCB(void *cb_arg0)
        { cb_arg0_ = cb_arg0; }
-   void call_codeBytesUpdateCB(SymtabAPI::Region *reg, Address addr);
+   void * cb_arg0() const { return cb_arg0_; }
 
    // And when we parse, we might find more:
    // FIXME might be convenient to access HINT-only functions easily
-   // XXX const pdvector<image_func *> &getCreatedFunctions();
+   // XXX const pdvector<parse_func *> &getCreatedFunctions();
 
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
@@ -406,10 +408,15 @@ class image : public codeRange {
 
    dictionary_hash<Address, std::string> *getPltFuncs();
 #if defined(arch_power)
-   bool updatePltFunc(image_func *caller_func, Address stub_targ);
+   bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
 
-   
+   // Object deletion (defensive mode)
+   void destroy(ParseAPI::Block *);
+   void destroy(ParseAPI::Edge *);
+   void destroy(ParseAPI::Function *);
+
+
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
@@ -431,26 +438,14 @@ class image : public codeRange {
    void setModuleLanguages(dictionary_hash<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
-   void enterFunctionInTables(image_func *func);
+   void enterFunctionInTables(parse_func *func);
 
-   bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
+   bool buildFunctionLists(pdvector<parse_func *> &raw_funcs);
    void analyzeImage();
 
    //
    //  **** GAP PARSING SUPPORT  ****
    bool parseGaps() { return parseGaps_; }
-#if 0
-#if defined(cap_stripped_binaries)
-   bool compute_gap(
-        Address,
-        set<image_func *, image_func::compare>::const_iterator &,
-        Address &, Address &);
-   
-   bool gap_heuristics(Address addr); 
-   bool gap_heuristic_GCC(Address addr);
-   bool gap_heuristic_MSVS(Address addr);
-#endif
-#endif
 
    //
    //  ****  PRIVATE DATA MEMBERS  ****
@@ -465,7 +460,7 @@ class image : public codeRange {
    Address dataOffset_;
    unsigned dataLen_;
 
-   dictionary_hash<Address, image_func *> activelyParsing;
+   dictionary_hash<Address, parse_func *> activelyParsing;
 
    //Address codeValidStart_;
    //Address codeValidEnd_;
@@ -494,10 +489,6 @@ class image : public codeRange {
 
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
-   // instrumentation points by address
-   // NB this must be ordered
-   typedef map<Address, image_instPoint *> instp_map_t;
-   instp_map_t inst_pts_;
 
    pdvector<image_variable *> everyUniqueVariable;
    pdvector<image_variable *> createdVariables;
@@ -529,8 +520,8 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   set<image_basicBlock*> splitBlocks_;
-   vector<image_basicBlock*> newBlocks_;
+   SplitBlocks splitBlocks_;
+   vector<parse_block*> newBlocks_;
    bool trackNewBlocks_;
 
    int refCount;
@@ -538,6 +529,9 @@ class image : public codeRange {
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
+
+   std::list<mapped_object *> owning_objects_;
+
 };
 
 class pdmodule {
@@ -548,10 +542,10 @@ class pdmodule {
 
    void cleanProcessSpecific(process *p);
 
-   bool getFunctions(pdvector<image_func *> &funcs);
+   bool getFunctions(pdvector<parse_func *> &funcs);
 
    bool findFunction(const std::string &name,
-                      pdvector<image_func *> &found);
+                      pdvector<parse_func *> &found);
 
    bool getVariables(pdvector<image_variable *> &vars);
 
@@ -563,9 +557,9 @@ class pdmodule {
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
    bool findFunctionByMangled (const std::string &name,
-                               pdvector<image_func *> &found);
+                               pdvector<parse_func *> &found);
    bool findFunctionByPretty (const std::string &name,
-                              pdvector<image_func *> &found);
+                              pdvector<parse_func *> &found);
    void dumpMangled(std::string &prefix) const;
    const string &fileName() const;
    const string &fullName() const;

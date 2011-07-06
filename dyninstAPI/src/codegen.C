@@ -56,7 +56,8 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const unsigned int codeGenPadding = 256;
+const unsigned int codeGenPadding = (128);
+const unsigned int codeGenMinAlloc = (4 * 1024);
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -72,9 +73,10 @@ codeGen::codeGen() :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
+    inInstrumentation_(false), // save default
     obj_(NULL)
 {}
 
@@ -93,9 +95,10 @@ codeGen::codeGen(unsigned size) :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    bti_(NULL),
+    bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
+    inInstrumentation_(false),
     obj_(NULL)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
@@ -126,9 +129,10 @@ codeGen::codeGen(const codeGen &g) :
     addr_(g.addr_),
     ip_(g.ip_),
     f_(g.f_),
-    bti_(g.bti_),
+    bt_(g.bt_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
+    inInstrumentation_(g.inInstrumentation_),
     obj_(g.obj_)
 {
     if (size_ != 0) {
@@ -154,11 +158,13 @@ codeGen &codeGen::operator=(const codeGen &g) {
     invalidate();
     offset_ = g.offset_;
     size_ = g.size_;
+    max_ = g.max_;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
+    inInstrumentation_ = g.inInstrumentation_;
     obj_ = g.obj_;
     
 
@@ -181,13 +187,16 @@ void codeGen::allocate(unsigned size)
       free(buffer_);
       buffer_ = NULL;
    }
+
+   size_ = size;
+   max_ = size_ + codeGenPadding;
+
    if (buffer_ == NULL)
    {
-      buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
+      buffer_ = (codeBuf_t *)malloc(max_);
       isPadded_ = true;
    }
    
-   size_ = size;
    offset_ = 0;
    allocated_ = true;
    if (!buffer_) {
@@ -213,15 +222,20 @@ void codeGen::invalidate() {
     }
     buffer_ = NULL;
     size_ = 0;
+    max_ = 0;
     offset_ = 0;
     allocated_ = false;
     isPadded_ = false;
 }
 
+bool codeGen::verify() {
+    return true;
+}
+
 void codeGen::finalize() {
     assert(buffer_);
     assert(size_);
-
+    cerr << "FINALIZE!" << endl;
     applyPatches();
     if (size_ == offset_) return;
     if (offset_ == 0) {
@@ -229,31 +243,72 @@ void codeGen::finalize() {
         invalidate();
         return;
     }
-    codeBuf_t *newbuf = (codeBuf_t *)malloc(used());
-    memcpy((void *)newbuf, (void *)buffer_, used());
-    size_ = used(); // Don't use offset :D
+    buffer_ = (codeBuf_t *)::realloc(buffer_, used());
+    max_ = used();
+    size_ = used();
     isPadded_ = false;
+}
 
-    free(buffer_);
-    buffer_ = newbuf;
+void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
+  if (size == 0) return;
+
+  codeBufIndex_t current = getIndex();
+  setIndex(index);
+  copy(b, size);
+  setIndex(current);
+
 }
 
 void codeGen::copy(const void *b, const unsigned size) {
-    assert(buffer_);
-    memcpy(cur_ptr(), b, size);
-    // "Upgrade" to next index side
-    int disp = size;
-    if (disp % CODE_GEN_OFFSET_SIZE) {
-        disp += (CODE_GEN_OFFSET_SIZE - (disp % CODE_GEN_OFFSET_SIZE));
-    }
-    moveIndex(disp);
+  if (size == 0) return;
+
+  assert(buffer_);
+  
+  realloc(used() + size);
+
+  memcpy(cur_ptr(), b, size);
+
+  moveIndex(size);
+}
+
+void codeGen::copy(const std::vector<unsigned char> &buf) {
+  if (buf.empty()) return;
+
+   assert(buffer_);
+   realloc(used() + buf.size());
+   
+   unsigned char * ptr = (unsigned char *)cur_ptr();
+   std::copy(buf.begin(), buf.end(), ptr);
+
+   moveIndex(buf.size());
 }
 
 void codeGen::copy(codeGen &gen) {
-    memcpy((void *)cur_ptr(), (void *)gen.start_ptr(), gen.used());
-    offset_ += gen.offset_;
-    assert(used() <= size_);
+  if ((used() + gen.used()) >= size_) {
+    realloc(used() + gen.used()); 
+  }
+
+  memcpy((void *)cur_ptr(), (void *)gen.start_ptr(), gen.used());
+  offset_ += gen.offset_;
+  assert(used() <= size_);
 }
+
+void codeGen::copyAligned(const void *b, const unsigned size) {
+  if (size == 0) return;
+
+  assert(buffer_);
+  
+  realloc(used() + size);
+
+  memcpy(cur_ptr(), b, size);
+
+  unsigned alignedSize = size;
+  alignedSize += (CODE_GEN_OFFSET_SIZE - (alignedSize % CODE_GEN_OFFSET_SIZE));
+
+  moveIndex(alignedSize);
+}
+
+
 
 // codeBufIndex_t stores in platform-specific units.
 unsigned codeGen::used() const {
@@ -300,15 +355,12 @@ void codeGen::update(codeBuf_t *ptr) {
     offset_ = diff / CODE_GEN_OFFSET_SIZE;
 
     // Keep the pad
-    if (used() > size_) {
-        fprintf(stderr, "WARNING: overflow of codeGen structure, trying to enlarge\n");
-        if ((used() - size_) > codeGenPadding) {
-            assert(0 && "Overflow in codeGen");
+    if (used() >= size_) {
+        if ((used() - size_) >= codeGenPadding) {
+	  cerr << "Used too much extra: " << used() - size_ << " bytes" << endl;
+	  assert(0 && "Overflow in codeGen");
         }
-        // Add an extra codeGenPadding to the end
-        size_ += codeGenPadding;
-        buffer_ = (codeBuf_t *)realloc(buffer_, size_ + codeGenPadding);
-        assert(buffer_);
+	realloc(2*used());
     }
 
     assert(used() <= size_);
@@ -318,16 +370,13 @@ void codeGen::setIndex(codeBufIndex_t index) {
     offset_ = index;
     
     // Keep the pad
-    if (used() > size_) {
-        fprintf(stderr, "WARNING: overflow of codeGen structure (%d requested, %d actual), trying to enlarge\n", used(), size_);
+    if (used() >= size_) {
+      //fprintf(stderr, "WARNING: overflow of codeGen structure (%d requested, %d actual), trying to enlarge\n", used(), size_);
 
         if ((used() - size_) > codeGenPadding) {
             assert(0 && "Overflow in codeGen");
         }
-        // Add an extra codeGenPadding to the end
-        size_ += codeGenPadding;
-        buffer_ = (codeBuf_t *)realloc(buffer_, size_ + codeGenPadding);
-        assert(buffer_);
+	realloc(used());
     }
     assert(used() <= size_);
 }
@@ -337,6 +386,7 @@ codeBufIndex_t codeGen::getIndex() const {
 }
 
 void codeGen::moveIndex(int disp) {
+
     int cur = getIndex() * CODE_GEN_OFFSET_SIZE;
     cur += disp;
     if (cur % CODE_GEN_OFFSET_SIZE) {
@@ -352,8 +402,9 @@ int codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
 }
 
 Address codeGen::currAddr() const {
-    assert(addr_ != (Address) -1);
-    return currAddr(addr_);
+  if(addr_ == (Address) -1) return (Address) -1;
+  assert(addr_ != (Address) -1);
+  return currAddr(addr_);
 }
 
 Address codeGen::currAddr(Address base) const { 
@@ -367,7 +418,7 @@ void codeGen::fill(unsigned fillSize, int fillType) {
         break;
     case cgTrap: {
         unsigned curUsed = used();
-        while ((used() - curUsed < (unsigned) fillSize))
+        while ((used() - curUsed) < (unsigned) fillSize)
             insnCodeGen::generateTrap(*this);
         assert((used() - curUsed) == (unsigned) fillSize);
         break;
@@ -397,22 +448,38 @@ void codeGen::fillRemaining(int fillType) {
     }
 }
 
-void codeGen::applyTemplate(codeGen &c) {
+void codeGen::applyTemplate(const codeGen &c) {
     // Copy off necessary bits...
 
-    aSpace_ = c.aSpace_;
-    thr_ = c.thr_;
-    lwp_ = c.lwp_;
-    rs_ = c.rs_;
-    addr_ = c.addr_;
-    ip_ = c.ip_;
-    f_ = c.f_;
+  emitter_ = c.emitter_;
+  aSpace_ = c.aSpace_;
+  thr_ = c.thr_;
+  lwp_ = c.lwp_;
+  rs_ = c.rs_;
+  t_ = c.t_;
+  ip_ = c.ip_;
+  f_ = c.f_;
+  bt_ = c.bt_;
+  inInstrumentation_ = c.inInstrumentation_;
 }
 
 void codeGen::setAddrSpace(AddressSpace *a)
 { 
    aSpace_ = a; 
    setCodeEmitter(a->getEmitter());
+}
+
+void codeGen::realloc(unsigned newSize) {  
+   if (newSize <= size_) return;
+
+   unsigned increment = newSize - size_;
+   if (increment < codeGenMinAlloc) increment = codeGenMinAlloc;
+
+   size_ += increment;
+   max_ += increment;
+   buffer_ = (codeBuf_t *)::realloc(buffer_, max_);
+   
+   assert(buffer_);
 }
 
 void codeGen::addPCRelRegion(pcRelRegion *reg) {
@@ -486,12 +553,12 @@ std::vector<relocPatch>& codeGen::allPatches() {
    return patches_;
 }
 
-void codeGen::addPatch(void *dest, patchTarget *source, 
+void codeGen::addPatch(codeBufIndex_t index, patchTarget *source, 
                        unsigned size,
                        relocPatch::patch_type_t ptype,
                        Dyninst::Offset off)
 {
-   relocPatch p(dest, source, ptype, this, off, size);
+   relocPatch p(index, source, ptype, this, off, size);
    patches_.push_back(p);
 }
 
@@ -508,16 +575,17 @@ void codeGen::applyPatches()
 }
 
 
-relocPatch::relocPatch(void *d, patchTarget *s, patch_type_t ptype,
+relocPatch::relocPatch(codeBufIndex_t index, patchTarget *s, patch_type_t ptype,
                        codeGen *gen, Dyninst::Offset off, unsigned size) :
-   dest_(d),
-   source_(s),
-   size_(size),
-   ptype_(ptype),
-   gen_(gen),
-   offset_(off),
-   applied_(false)
+  dest_(index),
+  source_(s),
+  size_(size),
+  ptype_(ptype),
+  gen_(gen),
+  offset_(off),
+  applied_(false)
 {
+
 }
 
 void relocPatch::applyPatch()
@@ -527,12 +595,13 @@ void relocPatch::applyPatch()
 
    Address addr = source_->get_address();
 
+
    switch (ptype_) {
       case pcrel:
-         addr = addr - (gen_->startAddr() + offset_);
+	addr = addr - (gen_->startAddr() + offset_);
       case abs:
-         memcpy(dest_, &addr, size_);
-         break;
+	gen_->copy(&addr, size_, dest_);
+	break;
       default:
          assert(0);
    }
@@ -575,17 +644,17 @@ void toAddressPatch::set_address(Address a) {
 
 codeGen codeGen::baseTemplate;
 
-dyn_lwp *codeGen::lwp() {
+dyn_lwp *codeGen::lwp() const {
     if (lwp_) return lwp_;
     if (thr_) return thr_->get_lwp();
     return NULL;
 }
 
-dyn_thread *codeGen::thread() {
+dyn_thread *codeGen::thread() const {
     return thr_;
 }
 
-AddressSpace *codeGen::addrSpace() {
+AddressSpace *codeGen::addrSpace() const {
     if (aSpace_) { return aSpace_; }
     if (f_) { return f_->proc(); }
     if (ip_) { return ip_->proc(); }
@@ -593,29 +662,29 @@ AddressSpace *codeGen::addrSpace() {
     return NULL;
 }
 
-instPoint *codeGen::point() {
+instPoint *codeGen::point() const {
     return ip_;
 }
 
-int_function *codeGen::func() {
+func_instance *codeGen::func() const {
     if (f_) return f_;
     if (ip_) return ip_->func();
     return NULL;
 }
 
-registerSpace *codeGen::rs() {
+registerSpace *codeGen::rs()  const{
     return rs_;
 }
 
-regTracker_t *codeGen::tracker() {
+regTracker_t *codeGen::tracker() const {
     return t_; 
 }
 
-Emitter *codeGen::codeEmitter() {
+Emitter *codeGen::codeEmitter() const {
     return emitter_;
 }
 
-generatedCodeObject *codeGen::obj() {
+generatedCodeObject *codeGen::obj() const {
     return obj_;
 }
 
@@ -645,3 +714,49 @@ bool codeGen::isRegDefined(Register r) {
    assert(trackRegDefs_);
    return regsDefined_[r];
 }
+
+Dyninst::Architecture codeGen::getArch() const {
+  // Try whatever's defined
+  if (func()) {
+    return func()->ifunc()->isrc()->getArch();
+  }
+  if (addrSpace()) {
+     return addrSpace()->getArch();
+  }
+
+  assert(0);
+  return Arch_none;
+}
+
+void codeGen::registerDefensivePad(block_instance *callBlock, Address padStart, unsigned padSize) {
+  // Register a match between a call instruction
+  // and a padding area post-reloc-call for
+  // control flow interception purposes.
+  // This is kind of hacky, btw.
+    //cerr << "Registering pad [" << hex << padStart << "," << padStart + padSize << "], for block @ " << callBlock->start() << dec << endl;
+  defensivePads_[callBlock] = Extent(padStart, padSize);
+}
+
+
+#include "InstructionDecoder.h"
+using namespace InstructionAPI;
+
+std::string codeGen::format() const {
+   if (!aSpace_) return "<codeGen>";
+
+   stringstream ret;
+
+   Address base = (addr_ != (Address)-1) ? addr_ : 0;
+   InstructionDecoder deco
+      (buffer_,used(),aSpace_->getArch());
+   Instruction::Ptr insn = deco.decode();
+   ret << hex;
+   while(insn) {
+     ret << "\t" << base << ": " << insn->format(base) << " / " << *((unsigned *)insn->ptr()) << endl;
+      base += insn->size();
+      insn = deco.decode();
+   }
+   ret << dec;
+   return ret.str();
+};
+   

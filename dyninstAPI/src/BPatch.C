@@ -306,9 +306,6 @@ void BPatch::forceSaveFPRInt(bool x)
   forceSaveFloatingPointsOn = x;
 }
 
-
-
-
 /*
  * BPatch::registerErrorCallbackInt
  *
@@ -1186,7 +1183,8 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     signalNotificationFD();
     
     pdvector<CallbackBase *> cbs;
-    
+#if 0
+	// TODO FIXME
     // For now we use the same callback for load and unload of library....
     if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
         return;
@@ -1196,6 +1194,7 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
         if (cb)
             (*cb)(bProc->threads[0], bpmod, false);
     }
+#endif
 
     bImage->removeModule(bpmod);
 }
@@ -1352,6 +1351,10 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 
    if (!ret->updateThreadInfo()) return NULL;
 
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
+
    return ret;
 }
 
@@ -1404,6 +1407,10 @@ BPatch_process *BPatch::processAttachInt
    asyncActive = true;
 #endif
    if (!ret->updateThreadInfo()) return false;
+
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
 
    return ret;
 }
@@ -2263,3 +2270,4 @@ void BPatch::addNonReturningFuncInt(std::string name)
 {
   Dyninst::ParseAPI::SymtabCodeSource::addNonReturning(name);
 }
+

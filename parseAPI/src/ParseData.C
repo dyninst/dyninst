@@ -72,6 +72,7 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr,
 {
     return _rdata.findFuncs(addr,funcs);
 }
+
 int
 StandardParseData::findFuncs(CodeRegion * /* cr */, Address start, 
     Address end, set<Function *> & funcs)
@@ -81,7 +82,14 @@ StandardParseData::findFuncs(CodeRegion * /* cr */, Address start,
 int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
-    return _rdata.findBlocks(addr,blocks);
+    int ret = _rdata.findBlocks(addr,blocks);
+    CodeRegion *check = 0;
+    for (std::set<Block *>::iterator iter = blocks.begin(); iter != blocks.end(); ++iter)
+    {
+        if (!check) check = (*iter)->region();
+        else assert(check == (*iter)->region());
+    }
+    return ret;
 }
 
 Function *
@@ -95,13 +103,13 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
 #if defined (os_windows)
-            _snprintf(name,32,"targ%lx",entry);
+            _snprintf_s(name,32,"targ%lx",entry);
 #else
             snprintf(name,32,"targ%lx",entry);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
-            ret = _parser->factory().mkfunc(
-                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
+            ret = _parser->factory()._mkfunc(
+               entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
             _parser->record_func(ret);
         }
     }
@@ -166,6 +174,7 @@ void
 StandardParseData::remove_func(Function *f)
 {
     remove_extents(f->extents());
+    _rdata.frame_status.erase(f->addr());
     _rdata.funcsByAddr.erase(f->addr());
 }
 void
@@ -277,9 +286,9 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
         if(cr && cr->isCode(addr)) {
 #if defined (os_windows)
             if(src == GAP || src == GAPRT)
-                _snprintf(name,32,"gap%lx",addr);
+                _snprintf_s(name,32,"gap%lx",addr);
             else 
-                _snprintf(name,32,"targ%lx",addr);
+                _snprintf_s(name,32,"targ%lx",addr);
 #else
             if(src == GAP || src == GAPRT)
                 snprintf(name,32,"gap%lx",addr);
@@ -287,8 +296,8 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
                 snprintf(name,32,"targ%lx",addr);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,addr);
-            ret = _parser->factory().mkfunc(
-                addr,src,name,&_parser->obj(),cr,cr);
+            ret = _parser->factory()._mkfunc(
+               addr,src,name,&_parser->obj(),cr,cr);
             _parser->record_func(ret);
         }
     }

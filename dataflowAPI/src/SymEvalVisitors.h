@@ -41,6 +41,7 @@
 // A collection of visitors for SymEval AST classes
 
 namespace Dyninst {
+
 namespace DataflowAPI {
 
 class StackVisitor : public ASTVisitor {
@@ -63,8 +64,7 @@ class StackVisitor : public ASTVisitor {
     DATAFLOW_EXPORT virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
     DATAFLOW_EXPORT virtual ASTPtr visit(SemanticsAST *) {return AST::Ptr();};
 
-  
-  DATAFLOW_EXPORT virtual ~StackVisitor() {};
+    DATAFLOW_EXPORT virtual ~StackVisitor() {};
 
   private:
   Address addr_;

@@ -72,6 +72,13 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
   case u32:
     roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
     break;
+  case s48:
+  case u48:
+	  // This only happens with far calls. ROSE appears to be set up to
+	  // expect a 32-bit absolute destination (or doesn't handle far call at 
+	  // all), so give it what it wants. 
+	roseExpression = new SgAsmDoubleWordValueExpression(value.val.u32val);
+	break;
   case s64:
   case u64:
     roseExpression = new SgAsmQuadWordValueExpression(value.val.u64val);
@@ -84,6 +91,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
     break;
   default:
     roseExpression = NULL;
+	assert(0);
     // error!
   }
   m_stack.push_front(roseExpression);
@@ -229,4 +237,3 @@ void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
   }
   m_stack.push_front(roseExpression);
 }
-

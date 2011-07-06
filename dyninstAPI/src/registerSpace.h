@@ -51,7 +51,8 @@ class codeGen;
 class instPoint;
 class process;
 class AddressSpace;
-class image_basicBlock;
+class parse_block;
+class baseTramp;
 
 // A class to retain information about where the original register can be found. It can be in one of the following states: 
 // 1) Unsaved, and available via the register itself;
@@ -197,7 +198,7 @@ class regState_t {
 };
 
 class registerSpace {
-   friend class baseTrampInstance;
+   friend class baseTramp;
  private:
     // A global mapping of register names to slots
     static registerSpace *globalRegSpace_;
@@ -215,7 +216,7 @@ class registerSpace {
     // IRPC-specific - everything live for now
     static registerSpace *irpcRegSpace(AddressSpace *proc);
     // Aaand instPoint-specific
-    static registerSpace *actualRegSpace(instPoint *iP, callWhen location);
+    static registerSpace *actualRegSpace(instPoint *iP);
     // DO NOT DELETE THESE. 
     static registerSpace *savedRegSpace(AddressSpace *proc);
 
@@ -251,16 +252,16 @@ class registerSpace {
                               unsigned size);
 
 
-    Register allocateRegister(codeGen &gen, bool noCost);
+    Register allocateRegister(codeGen &gen, bool noCost, bool realReg = false);
     bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost = true);
 
 
     // Like allocate, but don't keep it around; if someone else tries to
     // allocate they might get this one. 
-    Register getScratchRegister(codeGen &gen, bool noCost = true); 
+    Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false); 
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
-    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true);
+    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true, bool realReg = false);
 
 
     bool trySpecificRegister(codeGen &gen, Register reg, bool noCost = true);
@@ -332,6 +333,8 @@ class registerSpace {
 
     pdvector <registerSlot *> &trampRegs(); //realRegs() on x86-32, GPRs on all others
 
+    registerSlot *physicalRegs(Register reg) { return physicalRegisters_[reg]; }
+
     registerSlot *operator[](Register);
 
     // For platforms with "save all" semantics...
@@ -379,6 +382,7 @@ class registerSpace {
     void incStack(int val);
     int getInstFrameSize();
     void setInstFrameSize(int val);
+ 
     int getStackHeight();
     void setStackHeight(int val);
 
@@ -431,8 +435,12 @@ class registerSpace {
     
     int currStackPointer; 
 
+    // This structure is permanently tainted by its association with
+    // virtual registers...
     typedef dictionary_hash_iter<Register, registerSlot *> regDictIter;
     dictionary_hash<Register, registerSlot *> registers_;
+
+    std::map<Register, registerSlot *> physicalRegisters_;
 
     // And convenience vectors
     pdvector<registerSlot *> GPRs_;

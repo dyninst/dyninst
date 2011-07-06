@@ -35,7 +35,6 @@
 #include "common/h/headers.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-#include "multiTramp.h"
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
@@ -219,7 +218,7 @@ void BinaryEdit::inferiorFree(Address item)
   memoryTracker_->find(item, obj);
   
   delete obj;
-
+  
   memoryTracker_->remove(item);
 }
 
@@ -228,6 +227,8 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   bool result = inferiorReallocInternal(item, newsize);
   if (!result)
     return false;
+
+  maxAllocedAddr();
 
   codeRange *obj;
   result = memoryTracker_->find(item, obj);
@@ -244,17 +245,15 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
 }
 
 Architecture BinaryEdit::getArch() const {
-    assert(mapped_objects.size());
-   
+  assert(mapped_objects.size());
     // XXX presumably all of the objects in the BinaryEdit collection
     //     must be the same architecture.
-    return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+  return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
 }
 
 unsigned BinaryEdit::getAddressWidth() const {
-    assert(mapped_objects.size());
-    
-    return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+  assert(mapped_objects.size());
+  return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
 }
 Address BinaryEdit::offset() const {
     fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
@@ -271,16 +270,6 @@ bool BinaryEdit::multithread_capable(bool) {
 
 bool BinaryEdit::multithread_ready(bool) {
     return multithread_capable();
-}
-
-void BinaryEdit::deleteGeneratedCode(generatedCodeObject *del) {
-  // This can happen - say that someone writes a file (which generates), 
-  // then goes around uninstrumenting... yeah, it can happen.
-
-  // Or a failed atomic insert.
-
-    // No reason to delay deletion.
-    delete del;
 }
 
 BinaryEdit::BinaryEdit() : 
@@ -311,7 +300,7 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &member) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -344,8 +333,14 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
         return NULL;
     }
 
-    newBinaryEdit->mapped_objects.push_back(newBinaryEdit->mobj);
-    newBinaryEdit->addOrigRange(newBinaryEdit->mobj);
+    /* PatchAPI stuffs */
+    if (!mgr) {
+      newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
+    } else {
+      newBinaryEdit->setMgr(mgr);
+    }
+    newBinaryEdit->addMappedObject(newBinaryEdit->mobj);
+    /* End of PatchAPI stuffs */
 
     // We now need to access the start of the new section we're creating.
 
@@ -353,7 +348,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
     Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
-  
     Region *newSec = NULL;
     linkedFile->findRegion(newSec, ".dyninstInst");
     if (newSec) {
@@ -361,7 +355,6 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", file.c_str());
          return NULL;
     }
-       
     newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
@@ -403,8 +396,9 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
      * if library name resolution has been implemented on a platform.
      */
     std::map<std::string, BinaryEdit *> retMap;
+    assert(mgr());
+    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr());
 
-    BinaryEdit *temp = BinaryEdit::openFile(filename);
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
         retMap.insert(std::make_pair(filename, temp));
         return retMap;
@@ -420,7 +414,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 }
 #endif
 
-#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64))) 
+#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64) || defined(arch_power))) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }
@@ -473,35 +467,24 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
 
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
-   // We've made a bunch of changes and additions to the
-   // mapped object.
-   //   Changes: modifiedRanges_
-   //   Additions: textRanges_, excepting the file itself. 
-   // 
-   // Although, since we're creating a new file name we want
-   // textRanges. Basically, we want to serialize the contents
-   // of textRanges_, dataRanges_, and modifiedRanges_.
-
-   // A _lot_ of this method will depend on how the new file
-   // generation ends up working. Do we provide buffers? I'm guessing
-   // so.
-
    // Step 1: changes. 
+
 
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
       if( symObj->isStaticBinary() && isDirty() ) {
-          if( !doStaticBinarySpecialCases() ) {
-              return false;
-          }
+         if( !doStaticBinarySpecialCases() ) {
+            return false;
+         }
       }
 
+   delayRelocation_ = false;
+      relocate();
+      
       vector<Region*> oldSegs;
       symObj->getAllRegions(oldSegs);
-
-      //vector<Region*> newSegs = oldSegs;
 
       //Write any traps to the mutatee
       trapMapping.shouldBlockFlushes(false);
@@ -541,6 +524,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       memoryTracker_->elements(writes);
 
       for (unsigned i = 0; i < writes.size(); i++) {
+         assert(newSectionPtr);
          memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
          assert(tracker);
          //inst_printf("memory tracker: 0x%lx  load=0x%lx  size=%d  %s\n", 
@@ -574,72 +558,73 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          fprintf(stderr, "ERROR:  unable to open/reinstrument previously instrumented binary %s!\n", newFileName.c_str());
          return false;
       }
-        
+
       symObj->addRegion(lowWaterMark_,
                         newSectionPtr,
                         highWaterMark_ - lowWaterMark_,
                         ".dyninstInst",
                         Region::RT_TEXTDATA,
                         true);
-        
+      
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
 
+      
       if (mobj == getAOut()) {
          // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
-
+            
             /*
-            if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
-	      Address addr = referring->getOffset();
-	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
-	      assert(result);
-	      continue;
-	    }
+              if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
+              Address addr = referring->getOffset();
+              bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
+              assert(result);
+              continue;
+              }
             */
-
+               
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
-                    relocationEntry::getGlobalRelType(getAddressWidth()));
-
+                                     relocationEntry::getGlobalRelType(getAddressWidth()));
+            
             /*
-            if( mobj->isSharedLib() ) {
-                localRel.setRelAddr(to - mobj->imageOffset());
-            }
+              if( mobj->isSharedLib() ) {
+              localRel.setRelAddr(to - mobj->imageOffset());
+              }
             */
-
+            
             symObj->addExternalSymbolReference(referring, newSec, localRel);
-
-	    /*
-	    newSymbol = new Symbol(referring->getName(), 
-                                   Symbol::ST_FUNCTION, 
-                                   Symbol::SL_GLOBAL,
-                                   Symbol::SV_DEFAULT, 
-                                   (Address)0, 
-                                   symObj->getDefaultModule(),
-                                   NULL, 
-                                   8,
-                                   true, 
-                                   false);
-            symObj->addSymbol(newSymbol, referring);
-	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
-               newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
-            } else {
-               newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
-          }
-          */
+            
+            /*
+              newSymbol = new Symbol(referring->getName(), 
+              Symbol::ST_FUNCTION, 
+              Symbol::SL_GLOBAL,
+              Symbol::SV_DEFAULT, 
+              (Address)0, 
+              symObj->getDefaultModule(),
+              NULL, 
+              8,
+              true, 
+              false);
+              symObj->addSymbol(newSymbol, referring);
+              if (!symObj->hasReldyn() && symObj->hasReladyn()) {
+              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
+              } else {
+              newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+              }
+            */
          }
       }
-
+      
       pdvector<Symbol *> newSyms;
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i]);
       }
-        
+      
       // Okay, now...
       // Hand textSection and newSection to DynSymtab.
         
@@ -653,26 +638,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
         
       // First, text
       assert(symObj);
-        
-#if 0
-      for (unsigned i = 0; i < oldSegs.size(); i++) {
-         if (oldSegs[i].data != newSegs[i].data) {
-            inst_printf("Data not equivalent, %d, %s  load=0x%lx\n", 
-			i, oldSegs[i].name.c_str(), oldSegs[i].loadaddr);
-	    
-            if (oldSegs[i].name == ".text" || 
-		memcmp(oldSegs[i].data, newSegs[i].data, oldSegs[i].size < newSegs[i].size ? oldSegs[i].size : newSegs[i].size)) {
-            //if ((oldSegs[i].name == ".text") 
-             //|| (oldSegs[i].name == ".data")) {
-               //inst_printf("  TEXT SEGMENT: old-base=0x%lx  old-size=%d  new-base=0x%lx  new-size=%d\n",
-               //oldSegs[i].data, oldSegs[i].size, newSegs[i].data, newSegs[i].size);
-               symObj->updateRegion(oldSegs[i].name.c_str(), newSegs[i].data,
-                                  newSegs[i].size);
-            }
-         }
-      }
-#endif        
-
+      
+      
       // And now we generate the new binary
       //if (!symObj->emit(newFileName.c_str())) {
       if (!symObj->emit(newFileName.c_str())) {
@@ -682,6 +649,19 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
    return true;
 }
+
+Address BinaryEdit::maxAllocedAddr() {
+   inferiorFreeCompact();
+   Address hi = lowWaterMark_;
+
+   for (dictionary_hash<Address, heapItem *>::iterator iter = heap_.heapActive.begin();
+        iter != heap_.heapActive.end(); ++iter) {
+      Address localHi = (*iter)->addr + (*iter)->length;
+      if (localHi > hi) hi = localHi;
+   }
+   return hi;
+}
+
 
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
@@ -800,77 +780,52 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-    pdvector<codeRange *> ranges;
-    textRanges_.elements(ranges);
+   if (relocatedCode_.empty()) return;
 
-    int_function *currFunc = NULL;
-    codeRange *startRange = NULL;
-
-    Address startAddr = 0;
-    unsigned size = 0;
-
-    for (unsigned i = 0; i < ranges.size(); i++) {
-        multiTramp *multi = ranges[i]->is_multitramp();
-        bblInstance *bbl = ranges[i]->is_basicBlockInstance();
-
-        bool finishCurrentRegion = false;
-        bool startNewRegion = false;
-        bool extendCurrentRegion = false;
-
-        if (multi) {
-            if (multi->func() != currFunc) {
-                finishCurrentRegion = true;
-                startNewRegion = true;
+   for (CodeTrackers::iterator i = relocatedCode_.begin();
+        i != relocatedCode_.end(); ++i) {
+      Relocation::CodeTracker *CT = *i;
+      func_instance *currFunc = NULL;
+      Address start = 0;
+      unsigned size = 0;
+      
+      for (Relocation::CodeTracker::TrackerList::const_iterator iter = CT->trackers().begin();
+           iter != CT->trackers().end(); ++iter) {
+         const Relocation::TrackerElement *tracker = *iter;
+         
+         func_instance *tfunc = tracker->func();
+         
+         if (currFunc != tfunc) {
+            // Starting a new function
+            if (currFunc) {
+               // Record the old one
+               // currfunc set
+               // start set
+               size = tracker->reloc() - start;
+               
+               std::string name = currFunc->prettyName();
+               name.append("_dyninst");
+               
+               Symbol *newSym = new Symbol(name.c_str(),
+                                           Symbol::ST_FUNCTION,
+                                           Symbol::SL_GLOBAL,
+                                           Symbol::SV_DEFAULT,
+                                           start,
+                                           newMod,
+                                           newSec,
+                                           size);                                        
+               newSyms.push_back(newSym);
             }
-            else {
-                extendCurrentRegion = true;
-            }
-        }
-        else if (bbl) {
-            if (bbl->func() != currFunc) {
-                finishCurrentRegion = true;
-                startNewRegion = true;
-            }
-            else {
-                extendCurrentRegion = true;
-            }
-        }
-        else
-            continue;
-
-        if (finishCurrentRegion && (currFunc != NULL)) {
-            std::string name = currFunc->prettyName();
-            name.append("_dyninst");
-
-            Symbol *newSym = new Symbol(name.c_str(),
-                                        Symbol::ST_FUNCTION,
-                                        Symbol::SL_GLOBAL,
-                                        Symbol::SV_DEFAULT,
-                                        startAddr,
-                                        newMod,
-                                        newSec,
-                                        size);
-                                        
-            newSyms.push_back(newSym);
-
-            currFunc = NULL;
-            startAddr = 0;
+            currFunc = tfunc;
+            start = tracker->reloc();
             size = 0;
-            startRange = NULL;
-        }
-        if (startNewRegion) {
-            assert(currFunc == NULL);
-            
-            currFunc = (multi != NULL) ? (multi->func()) : (bbl->func());
-            assert(currFunc != NULL);
-            startRange = ranges[i];
-            startAddr = ranges[i]->get_address();
-            size = ranges[i]->get_size();
-        }
-        if (extendCurrentRegion) {
-            size += ranges[i]->get_size() + (ranges[i]->get_address() - (startAddr + size));
-        }
-    }
+         }
+         else {
+            // Accumulate size
+            size = tracker->reloc() - start;
+         }
+      }
+   }
 }
     
 void BinaryEdit::markDirty()
@@ -931,11 +886,11 @@ vector<BinaryEdit *> &BinaryEdit::rtLibrary()
    return rtlib;
 }
 
-int_function *BinaryEdit::findOnlyOneFunction(const std::string &name,
+func_instance *BinaryEdit::findOnlyOneFunction(const std::string &name,
                                               const std::string &libname,
                                               bool search_rt_lib)
 {
-   int_function *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
+   func_instance *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
       std::vector<BinaryEdit *>::iterator rtlib_it;
       for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
@@ -984,47 +939,48 @@ bool BinaryEdit::replaceTrapHandler() {
     // We haven't code generated yet, so we're working 
     // with addInst.
 
-    int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
+    func_instance *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
     assert(dyn_sigaction);
 
-    int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
+    func_instance *dyn_signal = findOnlyOneFunction("dyn_signal");
     assert(dyn_signal);
 
-    bool success = true;
-    
-    pdvector<int_function *> allFuncs;
+    pdvector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
-
+    bool replaced = false;
     for (unsigned i = 0; i < allFuncs.size(); i++) {
-        int_function *func = allFuncs[i];
-        
+        func_instance *func = allFuncs[i];        
         assert(func);
-        const pdvector<instPoint *> &calls = func->funcCalls();
-
-        for (unsigned j = 0; j < calls.size(); j++) {
-            instPoint *point = calls[j];
-            
-            std::string calleeName = point->getCalleeName();
-
-            if ((calleeName == "sigaction") ||
-                (calleeName == "_sigaction") ||
-                (calleeName == "__sigaction")) {
-                if (!replaceFunctionCall(point, dyn_sigaction)) {
-                    success = false;
-                }
-            }
-            else if ((calleeName == "signal") ||
-                     (calleeName == "_signal") ||
-                     (calleeName == "__signal"))
-            {
-               if (!replaceFunctionCall(point, dyn_signal)) {
-                  success = false;
-               }
-            }
+	//        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
+	//   iter != func->blocks().end(); ++iter) {
+        for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+             iter != func->getAllBlocks().end(); ++iter) {
+	  block_instance* iblk = SCAST_BI(*iter);
+           if (iblk->containsCall()) {
+              std::string calleeName = iblk->calleeName();
+              
+              if ((calleeName == "sigaction") ||
+                  (calleeName == "_sigaction") ||
+                  (calleeName == "__sigaction")) {
+                 modifyCall(iblk, dyn_sigaction, func);
+                 replaced = true;
+              }
+              else if ((calleeName == "signal") ||
+                       (calleeName == "_signal") ||
+                       (calleeName == "__signal"))
+              {
+                 modifyCall(iblk, dyn_sigaction, func);
+                 replaced = true;
+              }
+           }
         }
     }
-    
-    return success;
+    if (!replaced) return true;
+
+    /* PatchAPI stuffs */
+    return AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+    // return relocate();
 }
 
 bool BinaryEdit::needsPIC()

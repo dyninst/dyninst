@@ -206,29 +206,42 @@ Absloc SymEvalPolicy::convert(X86SegmentRegister r)
 
 Absloc SymEvalPolicy::convert(X86Flag f)
 {
-  switch (f) {
-    case x86_flag_cf:
-      return Absloc(x86::cf);
-    case x86_flag_pf:
-      return Absloc(x86::pf);
-    case x86_flag_af:
-      return Absloc(x86::af);
-    case x86_flag_zf:
-      return Absloc(x86::zf);
-    case x86_flag_sf:
-      return Absloc(x86::sf);
-    case x86_flag_tf:
-      return Absloc(x86::tf);
-    case x86_flag_if:
-      return Absloc(x86::if_);
-    case x86_flag_df:
-      return Absloc(x86::df);
-    case x86_flag_of:
-      return Absloc(x86::of);
-    case x86_flag_nt:
-    default:
-      assert(0);
-      return Absloc();
+   switch (f) {
+      case x86_flag_cf:
+         return Absloc(x86::cf);
+      case x86_flag_1:
+         return Absloc(x86::flag1);
+      case x86_flag_pf:
+         return Absloc(x86::pf);
+      case x86_flag_3:
+         return Absloc(x86::flag3);
+      case x86_flag_af:
+         return Absloc(x86::af);
+      case x86_flag_5:
+         return Absloc(x86::flag5);
+      case x86_flag_zf:
+         return Absloc(x86::zf);
+      case x86_flag_sf:
+         return Absloc(x86::sf);
+      case x86_flag_tf:
+         return Absloc(x86::tf);
+      case x86_flag_if:
+         return Absloc(x86::if_);
+      case x86_flag_df:
+         return Absloc(x86::df);
+      case x86_flag_of:
+         return Absloc(x86::of);
+      case x86_flag_iopl0:
+         return Absloc(x86::flagc);
+      case x86_flag_iopl1:
+         return Absloc(x86::flagd);
+      case x86_flag_nt:
+         return Absloc(x86::nt_);
+      case x86_flag_15:
+         return Absloc(x86::flagf);
+      default:
+         assert(0);
+         return Absloc();
   }
 }
 

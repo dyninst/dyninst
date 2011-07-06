@@ -91,6 +91,18 @@
 #endif
 #endif
 
+#if !defined(PATCHAPI_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(PATCHAPI_LIB)
+      #define PATCHAPI_EXPORT __declspec(dllexport)
+    #else
+      #define PATCHAPI_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define PATCHAPI_EXPORT
+#endif
+#endif
+
 #if !defined(DATAFLOW_EXPORT)
   #if defined(_MSC_VER)
     #if defined(DATAFLOW_LIB)
@@ -100,6 +112,18 @@
     #endif
   #else
     #define DATAFLOW_EXPORT
+#endif
+#endif
+
+#if !defined(SYMEVAL_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(SYMEVAL_LIB)
+      #define SYMEVAL_EXPORT __declspec(dllexport)
+    #else
+      #define SYMEVAL_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define SYMEVAL_EXPORT
 #endif
 #endif
 

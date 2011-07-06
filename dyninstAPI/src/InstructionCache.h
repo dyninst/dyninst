@@ -36,7 +36,7 @@
 #include "bitArray.h"
 #include <map>
 
-class image_func;
+class parse_func;
 using namespace Dyninst;
 
 
@@ -51,9 +51,9 @@ struct ReadWriteInfo
 struct InstructionCache
 {
   std::map<Address, ReadWriteInfo> cache;
-  image_func* currentFunction;
-  bool getLivenessInfo(Address addr, image_func* func, ReadWriteInfo& rw);
-  void insertInstructionInfo(Address addr, ReadWriteInfo rw, image_func* func);
+  parse_func* currentFunction;
+  bool getLivenessInfo(Address addr, parse_func* func, ReadWriteInfo& rw);
+  void insertInstructionInfo(Address addr, ReadWriteInfo rw, parse_func* func);
 };
 
 #endif //!defined(INSTRUCTION_CACHE_H)

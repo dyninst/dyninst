@@ -85,7 +85,7 @@ class SyncCallback : public CallbackBase
    void setSynchronous(bool flag = true) {synchronous = flag;}
    static void signalCompletion(CallbackBase *cb); 
    virtual bool execute(void); 
-   process *getProcess();
+   virtual process *getProcess() const;
   protected:
    virtual bool execute_real(void) = 0;
    virtual bool waitForCompletion(); 
@@ -291,8 +291,8 @@ class StopThreadCallback : public SyncCallback
     CallbackBase *copy() { return new StopThreadCallback(*this); }
     bool execute_real(void);
     bool operator()(BPatch_point *atPoint, void *returnValue);
-    BPatchStopThreadCallback getFunc() {return cb;}
-    process *getProcess();
+    BPatchStopThreadCallback getFunc() const {return cb;}
+    process *getProcess() const;
  private:
     BPatchStopThreadCallback cb;
     BPatch_point *point;
@@ -349,7 +349,7 @@ class CodeOverwriteCallback : public SyncCallback
     bool operator()(BPatch_point *f_instr_, Address v_target_, process *proc);
     InternalCodeOverwriteCallback getFunc() {return cb_;}
     Address getTargetAddr() { return v_target; }
-    process *getProcess();
+    process *getProcess() const;
  private:
     InternalCodeOverwriteCallback cb_;
     BPatch_point *fault_instr;

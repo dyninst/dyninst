@@ -92,6 +92,7 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
     //       functions at the same linear address within
     //       two address spaces. That error is reflected
     //       here.
+	cerr << "ParseAPI: looking up name for addr " << hex << entry << dec << endl;
     SymtabAPI::Function * f = NULL;
     bool found = _symtab->findFuncByEntryOffset(f,entry);
     if(found) {
@@ -99,6 +100,9 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
         const vector<string> & pretty = f->getAllPrettyNames();
         names.insert(names.begin(),pretty.begin(),pretty.end());
     }
+	else {
+		cerr << "\t Failed to find name" << endl;
+	}
 }
 
 bool
@@ -183,7 +187,8 @@ SymtabCodeRegion::isCode(const Address addr) const
     //     the condition by which Symtab::codeRegions_ is filled
     return !_region->isBSS() && 
            (_region->getRegionType() == SymtabAPI::Region::RT_TEXT ||
-            _region->getRegionType() == SymtabAPI::Region::RT_TEXTDATA);
+            _region->getRegionType() == SymtabAPI::Region::RT_TEXTDATA ||
+            (_symtab->isDefensiveBinary() && _region->isLoadable()) );
 }
 
 bool
@@ -206,7 +211,7 @@ SymtabCodeRegion::offset() const
 Address
 SymtabCodeRegion::length() const
 {
-    return _region->getRegionSize();
+    return _region->getDiskSize();
 }
 
 /** SymtabCodeSource **/
@@ -372,7 +377,8 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
             continue;
         }
         CodeRegion * cr = rmap[sr];
-        if(!cr->isCode((*fsit)->getOffset())) {
+        if(!cr->isCode((*fsit)->getOffset()))
+        {
             parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
                 (*fsit)->getOffset(),
                 sr->getRegionAddr(),
@@ -623,6 +629,52 @@ Address
 SymtabCodeSource::length() const
 {
     return _symtab->imageLength();
+}
+
+
+void 
+SymtabCodeSource::removeRegion(CodeRegion &cr)
+{
+    _region_tree.remove( &cr );
+
+    for (vector<CodeRegion*>::iterator rit = _regions.begin(); 
+         rit != _regions.end(); rit++) 
+    {
+        if ( &cr == *rit ) {
+            _regions.erase( rit );
+            break;
+        }
+    }
+}
+
+// fails and returns false if it can't find a CodeRegion
+// to match the SymtabAPI::region
+// has to remove the region before modifying the region's size, 
+// otherwise the region can't be found
+bool
+SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
+{
+    // find region
+    std::set<CodeRegion*> regions;
+    findRegions(sr->getRegionAddr(), regions);
+    bool found_it = false;
+    set<CodeRegion*>::iterator rit = regions.begin();
+    for (; rit != regions.end(); rit++) {
+        if (sr == ((SymtabCodeRegion*)(*rit))->symRegion()) {
+            found_it = true;
+            break;
+        }
+    }
+
+    if (!found_it) {
+        return false;
+    }
+
+    // remove, resize, reinsert
+    removeRegion( **rit );
+    sr->setDiskSize( newDiskSize );
+    addRegion( *rit );
+    return true;
 }
 
 void

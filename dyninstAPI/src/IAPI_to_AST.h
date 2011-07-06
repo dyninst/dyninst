@@ -51,12 +51,14 @@ namespace Dyninst
 
 class ASTFactory : public Dyninst::InstructionAPI::Visitor
 {
-    public:
-        void visit(Dyninst::InstructionAPI::BinaryFunction* b);
-        void visit(Dyninst::InstructionAPI::Dereference* d);
-        void visit(Dyninst::InstructionAPI::Immediate* i);
-        void visit(Dyninst::InstructionAPI::RegisterAST* r);
-        std::deque<AstNodePtr> m_stack;
+ public:
+  virtual void visit(Dyninst::InstructionAPI::BinaryFunction* b);
+  virtual void visit(Dyninst::InstructionAPI::Dereference* d);
+  virtual void visit(Dyninst::InstructionAPI::Immediate* i);
+  virtual void visit(Dyninst::InstructionAPI::RegisterAST* r);
+  std::deque<AstNodePtr> m_stack;
+  virtual ~ASTFactory() {}
+  ASTFactory() {}
 };
 
 #endif //!defined(IAPI_TO_AST_H)

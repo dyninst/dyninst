@@ -94,6 +94,20 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
         }
         if (nameType & prettyName) {
             symsPretty = symsByPrettyName[name];
+#if 0
+            if (name == ("DYNINSTthreadIndex")) {
+                printf("looking for %s\n", name.c_str());
+            }
+            dyn_hash_map <std::string, std::vector<Symbol *> >::iterator 
+                pit = symsByPrettyName.find(name);
+            if (symsByPrettyName.end() != pit) {
+                symsPretty = symsByPrettyName[name];
+            } else {
+                if (name == ("DYNINSTthreadIndex")) {
+                    printf("couldn't find %s\n", name.c_str());
+                }
+            }
+#endif
         }
         if (nameType & typedName) {
             symsTyped = symsByTypedName[name];

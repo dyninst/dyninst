@@ -112,10 +112,11 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT unsigned long getMemSize() const;
    SYMTAB_EXPORT unsigned long getMemAlignment() const;
    SYMTAB_EXPORT void setMemOffset(Offset);
-   SYMTAB_EXPORT void setMemSize(long);
+   SYMTAB_EXPORT void setMemSize(unsigned long);
+   SYMTAB_EXPORT void setDiskSize(unsigned long);
 
    SYMTAB_EXPORT void *getPtrToRawData() const;
-   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long); 
+   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long);//also sets diskSize
 
    SYMTAB_EXPORT bool isBSS() const;
    SYMTAB_EXPORT bool isText() const;
@@ -135,6 +136,8 @@ class Region : public Serializable, public AnnotatableSparse {
 
    SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
    SYMTAB_EXPORT bool addRelocationEntry(const relocationEntry& rel);
+
+   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
    SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);

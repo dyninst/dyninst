@@ -136,7 +136,7 @@ bool BinaryEdit::archSpecificMultithreadCapable() {
     if( mobj->isStaticExec() ) {
         int numSymsFound = 0;
         for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
-            const pdvector<int_function *> *tmpFuncs = 
+            const pdvector<func_instance *> *tmpFuncs = 
                 mobj->findFuncVectorByPretty(pthreadSyms[i]);
             if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
         }
@@ -513,7 +513,7 @@ bool process::isRunning_() const {
     return false;
 }
 
-bool process::hasBeenBound(Dyninst::SymtabAPI::relocationEntry const&, int_function*&, unsigned long) {
+bool process::hasBeenBound(Dyninst::SymtabAPI::relocationEntry const&, func_instance*&, unsigned long) {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
 }

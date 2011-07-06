@@ -745,6 +745,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         break;
     case evtSignalHandlerCB:
         ret = handleSignalHandlerCallback(ev);
+        continueHint = true;
         forwardSigToProcess(ev, continueHint);
         break;
     case evtCodeOverwrite:

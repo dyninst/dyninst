@@ -42,6 +42,7 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
+#include "BPatch_enums.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 
 class AstNode;
@@ -64,16 +65,8 @@ class BPatch_function;
 class BPatch_point;
 class BPatch_addressSpace;
 class int_variable;
+class mapped_object;
 
-
-/*
- * Used to specify whether a snippet should be installed before other snippets
- * that have previously been inserted at the same point, or after.
- */
-typedef enum {
-    BPatch_firstSnippet,
-    BPatch_lastSnippet
-} BPatch_snippetOrder;
 
 typedef enum {
     BPatch_lt,
@@ -136,6 +129,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
     friend class BPatch_stopThreadExpr;
+    friend class BPatch_shadowExpr;
     friend class BPatch_utilExpr;
     friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
@@ -331,23 +325,6 @@ class BPATCH_DLL_EXPORT BPatch_funcCallExpr : public BPatch_snippet {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
-#define DYNINST_CLASS_NAME BPatch_funcJumpExpr
-
-class BPATCH_DLL_EXPORT BPatch_funcJumpExpr : public BPatch_snippet {
-
-    //  BPatch_funcJumpExpr::BPatch_funcJumpExpr
-    //  Creates a representation of a jump to a function without linkage
- private:
-   API_EXPORT_CTOR(Int, (func, genCall), 
-                   BPatch_funcJumpExpr,(const BPatch_function &func, bool genCall));
- public:
-   API_EXPORT_CTOR(Int, (func),
-   BPatch_funcJumpExpr,(const BPatch_function& func));
-};
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
 #define DYNINST_CLASS_NAME BPatch_ifExpr
 
 class BPATCH_DLL_EXPORT BPatch_ifExpr : public BPatch_snippet {
@@ -387,11 +364,14 @@ class BPATCH_DLL_EXPORT BPatch_nullExpr : public BPatch_snippet {
 #define DYNINST_CLASS_NAME BPatch_paramExpr
 
 class BPATCH_DLL_EXPORT BPatch_paramExpr : public BPatch_snippet {
-
     //  BPatch_paramExpr::BPatch_paramExpr
     //  Represents a parameter of a function (used in creating funcCallExpr)
-    API_EXPORT_CTOR(Int, (n),
-    BPatch_paramExpr,(int n));
+    //  n    is the index of the parameter that should be retrieved
+    //  loc  indicates whether the parameter lookup will be added at the call,
+    //       at the function's entry point, or whether Dyninst should guess
+    //       based on the instPoint type, which is error-prone and deprecated
+    API_EXPORT_CTOR(Int, (n,loc),
+    BPatch_paramExpr,(int n, BPatch_ploc loc=BPatch_ploc_guess));
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -406,6 +386,20 @@ class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
     //  snippet is inserted
     API_EXPORT_CTOR(Int, (),
     BPatch_retExpr,());
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_retAddrExpr
+
+class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
+
+    //  BPatch_retAddrExpr::BPatch_retAddrExpr
+    //  Represents the return address from the function in which the
+    //  snippet is inserted
+    API_EXPORT_CTOR(Int, (),
+    BPatch_retAddrExpr,());
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -716,6 +710,27 @@ typedef enum {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
+#define DYNINST_CLASS_NAME BPatch_shadowExpr
+
+class BPATCH_DLL_EXPORT BPatch_shadowExpr : public BPatch_snippet {
+
+  // BPatch_stopThreadExpr 
+  //  This snippet type stops the thread that executes it.  It
+  //  evaluates a calculation snippet and triggers a callback to the
+  //  user program with the result of the calculation and a pointer to
+  //  the BPatch_point at which the snippet was inserted
+  API_EXPORT_CTOR(Int, (entry, cb, calculation, useCache, interp),
+  BPatch_shadowExpr, 
+  (bool entry, 
+  const BPatchStopThreadCallback &cb,
+   const BPatch_snippet &calculation,
+   bool useCache = false,
+   BPatch_stInterpret interp = BPatch_noInterp));
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
 #define DYNINST_CLASS_NAME BPatch_stopThreadExpr
 
 class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
@@ -725,7 +740,6 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
   //  evaluates a calculation snippet and triggers a callback to the
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
-
   API_EXPORT_CTOR(Int, (cb, calculation, useCache, interp),
   BPatch_stopThreadExpr, 
   (const BPatchStopThreadCallback &cb,
@@ -733,6 +747,14 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
    bool useCache = false,
    BPatch_stInterpret interp = BPatch_noInterp));
 
+  // for internal use in conjunction with memory emulation and defensive 
+  // mode analysis
+  BPatch_stopThreadExpr(
+   const BPatchStopThreadCallback &cb,
+   const BPatch_snippet &calculation,
+   const mapped_object &obj,
+   bool useCache = false,
+   BPatch_stInterpret interp = BPatch_noInterp);
 };
 
 #ifdef DYNINST_CLASS_NAME

@@ -39,6 +39,12 @@
 #include "debug_parse.h"
 #include "util.h"
 
+#include "dataflowAPI/h/slicing.h"
+#include "dataflowAPI/h/AbslocInterface.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#include "dynutil/h/Graph.h"
+#include "StackTamperVisitor.h"
+
 using namespace std;
 
 using namespace Dyninst;
@@ -91,9 +97,13 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _tamper(TAMPER_UNSET),
         _tamper_addr(0)
 {
-    
+    if (obj->defensiveMode()) {
+        mal_printf("new funct at %lx\n",addr);
+    }
 }
 
+ParseAPI::Edge::~Edge() {
+}
 
 Function::~Function()
 {
@@ -188,13 +198,27 @@ Function::blocks_int()
             Edge * e = *tit;
             Block * t = e->trg();
 
+
             if(e->type() == CALL) {
                 _call_edges.insert(e);
                 continue;
             }
 
             if(e->type() == RET) {
-                link_return = true;
+               link_return = true;
+                if (obj()->defensiveMode()) {
+                    if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) continue;
+                }
+                
+                _rs = RETURN;
+                continue;
+            }
+
+            // If we are heading to a different CodeObject, call it a return
+            // and don't add target blocks.
+            if (t->obj() != cur->obj()) {
+                // Wowza
+                // Call or return?
                 continue;
             }
 
@@ -265,7 +289,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
 void
 Function::add_block(Block *b)
 {
-    ++b->_func_cnt;            // block counts references
+	++b->_func_cnt;            // block counts references
     _blocks.push_back(b);
     _bmap[b->start()] = b;
 }
@@ -285,14 +309,21 @@ Function::contains(Block *b)
     return HASHDEF(_bmap,b->start());
 }
 
+void Function::setEntryBlock(Block *new_entry)
+{
+    obj()->parser->move_func(this, new_entry->start(), new_entry->region());
+    _region = new_entry->region();
+    _start = new_entry->start();
+    _entry = new_entry;
+}
+
+#if 0
 void 
-Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
+Function::deleteBlocks(vector<Block*> dead_blocks)
 {
     _cache_valid = false;
-    if (new_entry) {
-        _start = new_entry->start();
-        _entry = new_entry;
-    }
+    bool deleteAll = (dead_blocks.size() == _blocks.size());
+    bool hasSharedDeadBlocks = false;
 
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         bool found = false;
@@ -316,10 +347,13 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             assert(0);
         }
 
+        // specify replacement entry prior to deleting entry block, unless 
+        // deleting all blocks
+        assert(deleteAll || dead != _entry);
+
         // remove dead block from _return_blocks and its call edges from vector
         Block::edgelist & outs = dead->targets();
         found = false;
-        
         for (Block::edgelist::iterator oit = outs.begin();
              !found && outs.end() != oit; 
              oit++ ) 
@@ -327,26 +361,23 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
             switch((*oit)->type()) {
                 case CALL:
                     for (set<Edge*>::iterator cit = _call_edges.begin(); 
-                         !found && _call_edges.end() != cit; 
+                         _call_edges.end() != cit;
                          cit++) 
                     {
                         if (*oit == *cit) {
                             found = true;
                             _call_edges.erase(cit);
+                            break;
                         }
                     }
-                    assert(found);
+                    assert(found || (*oit)->sinkEdge());
                     break;
                 case RET:
-                    for (vector<Block*>::iterator rit = _return_blocks.begin();
-                         !found && _return_blocks.end() != rit; 
-                         rit++) 
-                    {
-                        if ((*oit)->trg() == *rit) {
-                            found = true;
-                            _return_blocks.erase(rit);
-                        }
-                    }
+                    _return_blocks.erase(std::remove(_return_blocks.begin(),
+                                                     _return_blocks.end(),
+                                                     dead),
+                                         _return_blocks.end());
+                    found = true;
                     break;
                 default:
                     break;
@@ -355,33 +386,210 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
         // remove dead block from block map
         _bmap.erase(dead->start());
 
-        // disconnect dead block from CFG
-        if (1 < dead->containingFuncs()) {
+        // disconnect dead block from CFG (if not shared by other funcs)
+        if (1 == dead->containingFuncs()) {
             for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
                 Edge *edge = dead->_sources[sidx];
+                if (edge->type() == CALL) {
+                    std::vector<Function *> funcs;
+                    edge->src()->getFuncs(funcs);
+                    for (unsigned k = 0; k < funcs.size(); ++k) {
+                        funcs[k]->_call_edges.erase(edge);
+                    }
+                    Block::edgelist & trgs = edge->src()->targets();
+                    bool hasSinkEdge = false;
+                    for (Block::edgelist::iterator tit = trgs.begin();
+                         tit != trgs.end(); tit++) 
+                    {
+                        if ((*tit)->sinkEdge() && CALL == (*tit)->type()) {
+                            hasSinkEdge = true;
+                            break;
+                        }
+                    }
+                    if (!hasSinkEdge) {
+                        _obj->add_edge(edge->src(), NULL, CALL);
+                    }
+                }
                 edge->src()->removeTarget( edge );
+                obj()->fact()->free_edge(edge);
             }
             for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
                 Edge *edge = dead->_targets[tidx];
                 edge->trg()->removeSource( edge );
+                obj()->fact()->free_edge(edge);
             }
         }
+        // KEVINTODO
+        // Moved remove_block farther down to guard against shared code
     }
-
-    // call finalize, fixes extents
-    obj()->parser->finalize(this);
 
     // delete the blocks
     for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
         Block *dead = dead_blocks[didx];
-        if (1 <= dead->containingFuncs()) {
+        if (dead->_func_cnt >= 2) {
             dead->removeFunc(this);
+            hasSharedDeadBlocks = true;
             mal_printf("WARNING: removing shared block [%lx %lx] rather "
-                       "than deleting it %s[%d]\n", dead->start(), 
-                       dead->end(), FILE__,__LINE__);
+                       "than deleting it, refcount is now %d %s[%d]\n", dead->start(), 
+                       dead->end(), dead->_func_cnt, FILE__,__LINE__);
         } else {
+            // remove from internal parsing datastructures
+            obj()->parser->remove_block(dead);
+
             obj()->fact()->free_block(dead);
         }
     }
+
+    // call finalize, fixes extents
+    _cache_valid = false;
+    if (!deleteAll && !hasSharedDeadBlocks) {
+        //Don't think this is necessary or wanted, Jan 4, 2011
+        //obj()->parser->finalize(this);
+    }
+}
+#endif
+
+class ST_Predicates : public Slicer::Predicates {};
+
+StackTamper 
+Function::tampersStack(bool recalculate)
+{
+    using namespace SymbolicEvaluation;
+    using namespace InstructionAPI;
+
+    if ( ! obj()->defensiveMode() ) { 
+        assert(0);
+        _tamper = TAMPER_NONE;
+        return _tamper;
+    }
+
+    // this is above the cond'n below b/c it finalizes the function, 
+    // which could in turn call this function
+    Function::blocklist & retblks = returnBlocks();
+    if ( retblks.begin() == retblks.end() ) {
+        _tamper = TAMPER_NONE;
+        return _tamper;
+    }
+	_cache_valid = false;
+
+    // if we want to re-calculate the tamper address
+    if (!recalculate && TAMPER_UNSET != _tamper) {
+        return _tamper;
+    }
+
+    AssignmentConverter converter(true);
+    vector<Assignment::Ptr> assgns;
+    ST_Predicates preds;
+    _tamper = TAMPER_UNSET;
+    Function::blocklist::iterator bit;
+    for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
+        Address retnAddr = (*bit)->lastInsnAddr();
+        InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 
+                                  InstructionDecoder::maxInstructionLength, 
+                                  this->region()->getArch() );
+        Instruction::Ptr retn = retdec.decode();
+        converter.convert(retn, retnAddr, this, *bit, assgns);
+        vector<Assignment::Ptr>::iterator ait;
+        AST::Ptr sliceAtRet;
+
+        for (ait = assgns.begin(); assgns.end() != ait; ait++) {
+            AbsRegion & outReg = (*ait)->out();
+            if ( outReg.absloc().isPC() ) {
+                // First check to see if an input is an unresolved stack slot 
+                // (or worse, the heap) - since if that's the case there's no use
+                // in spending a lot of time slicing.
+                std::vector<AbsRegion>::const_iterator in_iter;
+                for (in_iter = (*ait)->inputs().begin();
+                    in_iter != (*ait)->inputs().end(); ++in_iter) {
+                    if (in_iter->type() != Absloc::Unknown) {
+                        _tamper = TAMPER_NONZERO;
+                        _tamper_addr = 0; 
+                        mal_printf("Stack tamper analysis for ret block at "
+                               "%lx found unresolved stack slot or heap "
+                               "addr, marking as TAMPER_NONZERO\n", retnAddr);
+                        return _tamper;
+                    }
+                }
+
+                Slicer slicer(*ait,*bit,this);
+                Graph::Ptr slGraph = slicer.backwardSlice(preds);
+                if (dyn_debug_malware && 0) {
+                    stringstream graphDump;
+                    graphDump << "sliceDump_" << this->name() << "_" 
+                              << hex << retnAddr << dec << ".dot";
+                    slGraph->printDOT(graphDump.str());
+                }
+                DataflowAPI::Result_t slRes;
+                DataflowAPI::SymEval::expand(slGraph,slRes);
+                sliceAtRet = slRes[*ait];
+                if (dyn_debug_malware && sliceAtRet != NULL) {
+                    cout << "assignment " << (*ait)->format() << " is "
+                         << sliceAtRet->format() << "\n";
+                }
+                break;
+            }
+        }
+        if (sliceAtRet == NULL) {
+            mal_printf("Failed to produce a slice for retn at %x %s[%d]\n",
+                       retnAddr, FILE__,__LINE__);
+            continue;
+        } 
+        StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
+        Address curTamperAddr=0;
+        StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
+        mal_printf("StackTamperVisitor for func at 0x%lx block[%lx %lx) w/ "
+                   "lastInsn at 0x%lx returns tamper=%d tamperAddr=0x%lx\n",
+                   _start, (*bit)->start(), (*bit)->end(), retnAddr, 
+                   curtamper, curTamperAddr);
+        if (TAMPER_UNSET == _tamper || TAMPER_NONE == _tamper ||
+            (TAMPER_NONZERO == _tamper && 
+             TAMPER_NONE != curtamper))
+        {
+            _tamper = curtamper;
+            _tamper_addr = curTamperAddr;
+        } 
+        else if ((TAMPER_REL == _tamper   || TAMPER_ABS == _tamper) &&
+                 (TAMPER_REL == curtamper || TAMPER_ABS == curtamper))
+        {
+            if (_tamper != curtamper || _tamper_addr != curTamperAddr) {
+                fprintf(stderr, "WARNING! Unhandled case in stackTamper "
+                        "analysis, func at %lx has distinct tamperAddrs "
+                        "%d:%lx %d:%lx at different return instructions, "
+                        "discarding second tamperAddr %s[%d]\n", 
+                        this->addr(), _tamper,_tamper_addr, curtamper, 
+                        curTamperAddr, FILE__, __LINE__);
+            }
+        }
+        assgns.clear();
+    }
+
+    if ( TAMPER_UNSET == _tamper ) {
+        mal_printf("WARNING: we found no valid slices for function at %lx "
+                   "%s[%d]\n", _start, _tamper_addr, FILE__,__LINE__);
+        _tamper = TAMPER_NONZERO;
+    }
+
+    //if (TAMPER_ABS == _tamper) {
+        //Address loadAddr = 0;
+        //if (_tamper_addr <  obj()->cs()->loadAddress()) {
+        //    _tamper = TAMPER_NONZERO;
+        //}
+        //else {
+        //    _tamper_addr -= obj()->cs()->loadAddress();
+        //    if (! obj()->cs()->isCode(_tamper_addr)) {
+        //        mal_printf("WARNING: function at %lx tampers its stack to point at "
+        //                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
+        //                   FILE__,__LINE__);
+        //        _tamper = TAMPER_NONZERO;
+        //    }
+        //}
+    //}
+    if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
+        _rs = NORETURN;
+    }
+    return _tamper;
 }
 
+void Function::destroy(Function *f) {
+   f->obj()->destroy(f);
+}

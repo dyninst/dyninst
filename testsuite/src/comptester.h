@@ -39,7 +39,7 @@
 
 class ComponentTester {
  public:
-   ComponentTester() : measure(false) {};
+  ComponentTester() : measure(false) {};
    virtual test_results_t program_setup(ParameterDict &params) = 0;
    virtual test_results_t program_teardown(ParameterDict &params) = 0;
    virtual test_results_t group_setup(RunGroup *group, ParameterDict &params) = 0;

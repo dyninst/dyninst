@@ -66,6 +66,8 @@ using namespace NS_power;
 
 #include <sys/poll.h>
 
+#include "boost/tuple/tuple.hpp"
+
 /////////////////////////////////////////////////////////////////////////////
 /// Massive amounts of signal handling code
 /////////////////////////////////////////////////////////////////////////////
@@ -1529,7 +1531,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     return false;
 }
 
-int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
+int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned, bool )
 {
     assert(0);//not implemented for unix
     return 0;
@@ -1562,7 +1564,7 @@ bool OS::executableExists(const std::string &file)
    return (stat_result != -1);
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) 
+func_instance *dyn_thread::map_initial_func(func_instance *ifunc) 
 {
     return ifunc;
 }
@@ -1642,11 +1644,12 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                        FILE__, __LINE__, filename.c_str());
 
         Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-
+	assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+	      BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
                     return retMap;
@@ -1676,7 +1679,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                            BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
+                          BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
+
                             if (temp && temp->getAddressWidth() == getAddressWidth()) {
                                 std::string mapName = *pathIter + string(":") +
                                     (*member_it)->memberName();
@@ -1695,7 +1699,9 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-                    BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+		  BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+
+
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 
@@ -1734,7 +1740,7 @@ bool process::hideDebugger()
 #if defined(os_linux) || defined(os_freebsd)
 
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/image-func.h"
+#include "dyninstAPI/src/parse-cfg.h"
 #include "dyninstAPI/src/function.h"
 #include <elf.h>
 
@@ -1744,76 +1750,66 @@ bool process::hideDebugger()
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
+// instPoint "callee" data member is set to pt to callee's func_instance.  
 // If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
+// func_instance associated with the name of the target function (this is 
 // obtained by the PLT and relocation entries in the image), and the instPoint
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-int_function *instPoint::findCallee() {
-   // Already been bound
-   if (callee_) {
-      return callee_;
-   }  
+//
+// HACK: made an func_instance method to remove from instPoint class...
+// FURTHER HACK: made a block_instance method so we can share blocks
 
-   /*  if (ipType_ != callSite) {
-      // Assert?
-      return NULL; 
-      }*/
-   if (isDynamic()) {
+func_instance *block_instance::callee() {
+
+   // See if we've already done this
+   edge_instance *tEdge = getTarget();
+   if (!tEdge) {
       return NULL;
    }
 
-   if( img_p_ == NULL ) return NULL;
-
-   assert(img_p_);
-   image_func *icallee = img_p_->getCallee(); 
-   if (icallee && !icallee->isPLTFunction()) {
-     callee_ = proc()->findFuncByInternalFunc(icallee);
-     //callee_ may be NULL if the function is unloaded
-
-       //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-     return callee_;
+   if (!tEdge->sinkEdge()) {
+      return obj()->findFuncByEntry(tEdge->trg());
    }
 
    // Do this the hard way - an inter-module jump
    // get the target address of this function
-   Address target_addr = img_p_->callTarget();
-   if(!target_addr) {
+   Address target_addr; bool success;
+   boost::tie(success, target_addr) = llb()->callTarget();
+   if(!success) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
-
+   
    // get the relocation information for this image
-   Symtab *obj = func()->obj()->parse_img()->getObject();
+   Symtab *sym = obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
-   if (!obj->getFuncBindingTable(fbtvector)) {
-
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-        return NULL;
-        }
+   if (!sym->getFuncBindingTable(fbtvector)) {
+      //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
+      cerr << "Failed to get func binding table" << endl;
+      return NULL;
+   }
 
    /**
     * Object files and static binaries will not have a function binding table
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && !obj->isStaticBinary() && 
-           obj->getObjectType() != obj_RelocatableFile ) 
+   if (!fbtvector.size() && !sym->isStaticBinary() && 
+           sym->getObjectType() != obj_RelocatableFile ) 
    {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
    }
 
    for (unsigned index=0; index< fbtvector.size();index++)
-        fbt.push_back(fbtvector[index]);
-  
-   Address base_addr = func()->obj()->codeBase();
-   dictionary_hash<Address, std::string> *pltFuncs =
-       func()->ifunc()->img()->getPltFuncs();
+      fbt.push_back(fbtvector[index]);
+   
+   Address base_addr = obj()->codeBase();
+   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
    if (pltFuncs->defines(target_addr)) {
@@ -1823,12 +1819,11 @@ int_function *instPoint::findCallee() {
             // check to see if this function has been bound yet...if the
             // PLT entry for this function has been modified by the runtime
             // linker
-            int_function *target_pdf = 0;
+            func_instance *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-               callee_ = target_pdf;
-               img_p_->setCalleeName(target_pdf->symTabName());
-               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-               return callee_;  // target has been bound
+               updateCallTarget(target_pdf);
+               obj()->setCalleeName(this, target_pdf->symTabName());
+               return target_pdf;
             }
          }
       }
@@ -1836,11 +1831,13 @@ int_function *instPoint::findCallee() {
       const char *target_name = (*pltFuncs)[target_addr].c_str();
       process *dproc = dynamic_cast<process *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-      img_p_->setCalleeName(std::string(target_name));
-      pdvector<int_function *> pdfv;
+      obj()->setCalleeName(this, std::string(target_name));
+      pdvector<func_instance *> pdfv;
+
+      // See if we can name lookup
       if (dproc) {
-         bool found = proc()->findFuncsByMangled(target_name, pdfv);
-         if (found) {
+         if (proc()->findFuncsByMangled(target_name, pdfv)) {
+            updateCallTarget(pdfv[0]);
             return pdfv[0];
          }
       }
@@ -1848,8 +1845,8 @@ int_function *instPoint::findCallee() {
          std::vector<BinaryEdit *>::iterator i;
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
-            bool found = (*i)->findFuncsByMangled(target_name, pdfv);
-            if (found) {
+            if ((*i)->findFuncsByMangled(target_name, pdfv)) {
+               updateCallTarget(pdfv[0]);
                return pdfv[0];
             }
          }
@@ -1857,9 +1854,14 @@ int_function *instPoint::findCallee() {
       else 
          assert(0);
    }
-
+   
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
+}
+
+bool process::setMemoryAccessRights(Address, Address, int)
+{
+    assert(0 && "IMPLEMENTED FOR WINDOWS ONLY"); 
 }
 
 void BinaryEdit::makeInitAndFiniIfNeeded()
