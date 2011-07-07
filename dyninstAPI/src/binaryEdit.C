@@ -465,6 +465,73 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
+void BinaryEdit::getMapInfo(Symtab *symObj)
+{
+      int insnSize = 0;
+      CodeTrackers::iterator it;
+      for( it = relocatedCode_.begin(); it != relocatedCode_.end(); ++it )
+        insnSize += (*it)->trackers().size();
+      Address O2Rbase, R2Obase;
+      int O2Rsize = 2 * insnSize * sizeof(Address);
+      int R2Osize = 3 * insnSize * sizeof(Address);
+      O2Rbase = symObj->getFreeOffset(O2Rsize);
+      R2Obase = symObj->getFreeOffset(R2Osize);
+      void *O2Rptr = malloc(O2Rsize);
+      void *R2Optr = malloc(R2Osize);
+      int flagO2R = 0;
+      int flagR2O = 0;
+      for( it = relocatedCode_.begin(); it != relocatedCode_.end(); ++it){
+        const Relocation::CodeTracker::TrackerList Tlist = (*it)->trackers();
+	Relocation::CodeTracker::TrackerList::const_iterator iter;
+	for( iter = Tlist.begin(); iter != Tlist.end(); ++iter){
+          Relocation::TrackerElement *te = *iter;
+  	  Address offset = flagO2R * sizeof(Address);
+	  void *ptr = (void *)(offset + (Address) O2Rptr);
+	  Address tmp = te->orig();
+	  memcpy(ptr, &tmp, sizeof(Address));
+	  offset = (flagO2R + 1) * sizeof(Address);
+	  ptr = (void *) (offset + (Address) O2Rptr);
+	  tmp = te->reloc();
+	  memcpy(ptr, &tmp, sizeof(Address));
+
+	  offset = flagR2O * sizeof(Address);
+	  ptr = (void *) (offset + (Address) R2Optr);
+	  tmp = te->reloc();
+	  memcpy(ptr, &tmp, sizeof(Address));
+	  offset = (flagR2O +1) * sizeof(Address);
+	  ptr = (void *) (offset + (Address) R2Optr);
+	  tmp = te->reloc() + te->size();
+	  memcpy(ptr, &tmp, sizeof(Address));
+	  offset = (flagR2O + 2) * sizeof(Address);
+	  ptr = (void *) (offset + (Address) R2Optr);
+	  tmp = te->orig();
+	  memcpy(ptr, &tmp, sizeof(Address));
+
+	  flagO2R += 2;
+	  flagR2O += 3;
+        }
+      }
+      
+      Region *mapO2R = NULL;
+      Region *mapR2O = NULL;
+      symObj->addRegion (O2Rbase,
+                         O2Rptr,
+			 O2Rsize,
+			 ".dyninstO2RMap",
+			 Region::RT_DATA,
+			 false);
+      symObj->findRegion (mapO2R, ".dyninstO2RMap");
+      assert (mapO2R);
+      symObj->addRegion (R2Obase,
+                  	 R2Optr,
+			 R2Osize,
+			 ".dyninstR2OMap",
+			 Region::RT_DATA,
+			 false);
+      symObj->findRegion (mapR2O, ".dyninstR2OMap");
+      assert (mapR2O);
+}
+
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
@@ -568,6 +635,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       
       symObj->findRegion(newSec, ".dyninstInst");
       assert(newSec);
+
+      getMapInfo(symObj);
 
       
       if (mobj == getAOut()) {
