@@ -89,7 +89,6 @@ void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edg
 
 void PatchParseCallback::modify_edge_cb(ParseAPI::Edge *edge,
                                         ParseAPI::Block *block, edge_type_t type) {
-   cerr << "Calling modify_edge_cb!" << endl;
    PatchEdge *pe = _obj->getEdge(edge, NULL, NULL, false);
    if (!pe) return; // No edge, so we'll get to it later. 
 

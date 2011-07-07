@@ -53,8 +53,8 @@ Point::getCallee() {
   for (; it != b->getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
-      return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
-                                                       trg->start()));
+      return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
+                                                 trg->start()));
     }
   }
   return NULL;
@@ -67,6 +67,19 @@ Point::initCodeStructure() {
   assert(mgr_);
 
   cb()->create(this);
+}
+
+PatchObject *Point::obj() const {
+   if (the_func_) { 
+      return the_func_->obj();
+   }
+   else if (the_block_) {
+      return the_block_->obj();
+   }
+   else if (the_edge_) {
+      return the_edge_->source()->obj();
+   }
+   return NULL;
 }
 
 /* for single instruction */
@@ -232,10 +245,7 @@ PatchCallback *Point::cb() const {
 }
 
 bool Point::consistency() const {
-   if (!co()) return false;
-   if (!cs()) return false;
    if (!obj()) return false;
-        
 
    // Assert that our data matches our type.
    switch (type()) {

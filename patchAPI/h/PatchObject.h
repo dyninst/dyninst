@@ -85,6 +85,7 @@ class PatchObject {
     PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
     PatchCallback *cb_;
+    PatchParseCallback *pcb_;
 };
 
 template <class Iter>
