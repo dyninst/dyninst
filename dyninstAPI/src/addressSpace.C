@@ -93,13 +93,11 @@ AddressSpace::AddressSpace () :
        emulateMem_ = true;
        emulatePC_ = true;
    }
-   patchCB_ = new DynPatchCallback(this);
 }
 
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
-    delete patchCB_;
 }
 
 process *AddressSpace::proc() {
