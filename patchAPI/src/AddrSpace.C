@@ -2,10 +2,12 @@
 
 #include "AddrSpace.h"
 #include "PatchObject.h"
+#include "PatchMgr.h"
 
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::PatchObject;
+using Dyninst::PatchAPI::PatchMgr;
 
 /* Use an PatchObject (a.out) to initialize the AddrSpace */
 
@@ -77,12 +79,13 @@ PatchObject *AddrSpace::findObject(const ParseAPI::CodeObject *co) const
     return NULL;
 }
 
-bool AddrSpace::consistency(const PatchMgr *m) const {
+bool AddrSpace::consistency(const PatchMgr *m) const
+{
    if (mgr_.get() != m) return false;
-   for (ObjSet::const_iterator iter = obj_set_.begin();
-        iter != obj_set_.end(); ++iter) {
-      if (!(*iter)->consistency(this)) {
-         cerr << "Error: " << (*iter)->format() << " failed consistency!" << endl;
+   for (ObjMap::const_iterator iter = obj_map_.begin();
+        iter != obj_map_.end(); ++iter) {
+      if (!iter->second->consistency(this)) {
+         cerr << "Error: " << iter->second->format() << " failed consistency!" << endl;
          return false;
       }
    }

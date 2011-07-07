@@ -204,7 +204,7 @@ std::string PatchObject::format() const {
    stringstream ret;
 
    if (symtab) {
-      ret << symtab->getSymtabObject()->name();
+      //ret << symtab->getSymtabObject()->name();
    }
 
    ret << hex << "(" << this << ")" << dec;
