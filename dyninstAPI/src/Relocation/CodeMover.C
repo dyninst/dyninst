@@ -253,11 +253,16 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-   // Needs to be reworked for PatchAPI separation; possibly unnecessary due to 
-   // augmented address lookup capability.
-   for (std::map<block_instance *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
-        iter != gen().getDefensivePads().end(); ++iter) {
-      AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
+   // For now, we're doing an annoying iteration over all CodeTracker elements looking
+   // for any padding structures. TODO: roll this into the address lookup
+   // mechanism.
+   // addDefensivePad(block_instance *, Address, size)
+   const CodeTracker::TrackerList &trackers = tracker_->trackers();
+   for (CodeTracker::TrackerList::const_iterator iter = trackers.begin(); iter != trackers.end(); ++iter) {
+      if ((*iter)->type() == TrackerElement::padding) {
+         PaddingTracker *tmp = static_cast<PaddingTracker *>(*iter);
+         AS->addDefensivePad(tmp->block(), tmp->func(), tmp->reloc(), tmp->pad());
+      }
    }
 }
 

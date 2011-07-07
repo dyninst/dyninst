@@ -72,6 +72,12 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
    }
    blockMods_.clear();
 
+   for (std::vector<EdgeMod>::iterator iter = edgeMods_.begin();
+        iter != edgeMods_.end(); ++iter) {
+      modify_edge_cb(iter->edge, iter->block, iter->action);
+   }
+   edgeMods_.clear();
+
    for (std::vector<FuncMod>::iterator iter = funcMods_.begin();
         iter != funcMods_.end(); ++iter) {
       if (iter->action == removed)
@@ -138,6 +144,11 @@ void ParseCallbackManager::removeEdge(Block *b, Edge *e, ParseCallback::edge_typ
 void ParseCallbackManager::addEdge(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    if (inBatch_) blockMods_.push_back(BlockMod(b, e, t, added));
    else add_edge_cb(b, e, t);
+}
+
+void ParseCallbackManager::modifyEdge(Edge *e, Block *b, ParseCallback::edge_type_t t) {
+   if (inBatch_) edgeMods_.push_back(EdgeMod(e, b, t));
+   else modify_edge_cb(e, b, t);
 }
 
 void ParseCallbackManager::removeBlock(Function *f, Block *b) {
@@ -239,6 +250,12 @@ void ParseCallbackManager::remove_edge_cb(Block *b, Edge *e, ParseCallback::edge
 void ParseCallbackManager::add_edge_cb(Block *b, Edge *e, ParseCallback::edge_type_t t) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->add_edge_cb(b, e, t);
+};
+
+void ParseCallbackManager::modify_edge_cb(Edge *e, Block *b, ParseCallback::edge_type_t t) {
+   cerr << "ParseAPI: modify_edge_cb" << endl;
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->modify_edge_cb(e, b, t);
 };
 
 void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {

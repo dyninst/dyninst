@@ -93,13 +93,11 @@ AddressSpace::AddressSpace () :
        emulateMem_ = true;
        emulatePC_ = true;
    }
-   patchCB_ = new DynPatchCallback(this);
 }
 
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
-    delete patchCB_;
 }
 
 process *AddressSpace::proc() {
@@ -1942,12 +1940,12 @@ void AddressSpace::addModifiedBlock(block_instance *block) {
 }
 
 
-void AddressSpace::addDefensivePad(block_instance *callBlock, Address padStart, unsigned size) {
+void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                                   Address padStart, unsigned size) {
   // We want to register these in terms of a block_instance that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
-   assert(0 && "TODO");
-   instPoint *point = instPoint::preCall(NULL, callBlock);
+   instPoint *point = instPoint::preCall(callFunc, callBlock);
 
    if (!point || point->empty()) {
        // Kevin didn't instrument it so we don't care :)

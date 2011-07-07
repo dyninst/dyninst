@@ -49,6 +49,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    if (edge->trg() == target) return true;
 
    // Have to stay within the same CodeObject.
+   // TODO: Kevin claims we don't. 
    if (edge->trg()->obj() != target->obj()) return false;
 
    // Okay, that's done. Let's rock.
@@ -61,9 +62,15 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
       oldTarget->removeSource(edge);
       oldTarget->obj()->_pcb->removeEdge(oldTarget, edge, ParseCallback::source);
    }
+   else {
+      // No longer a sink edge!
+      edge->_type._sink = 0;
+   }
    
+   edge->_target = target;
    target->addSource(edge);
    target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
+   edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);
    return true;
 }
 

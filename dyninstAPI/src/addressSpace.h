@@ -433,7 +433,7 @@ class AddressSpace : public InstructionSource {
 
 
     bool getAddrInfo(Address relocAddr,//input
-					  Address &origAddr,
+                     Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
     typedef Relocation::CodeTracker::RelocInfo RelocInfo;
@@ -451,7 +451,7 @@ class AddressSpace : public InstructionSource {
              const std::set<block_instance*> &delBBIs,
              const std::list<func_instance*> &deadFuncs);
 
-    void addDefensivePad(block_instance *callBlock, Address padStart, unsigned size);
+    void addDefensivePad(block_instance *callBlock, func_instance *callFunc, Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,
@@ -534,7 +534,6 @@ class AddressSpace : public InstructionSource {
   // PatchAPI stuffs
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
-    Dyninst::DynPatchCallback *patchCB() const { return patchCB_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);
@@ -544,7 +543,6 @@ class AddressSpace : public InstructionSource {
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
     Dyninst::PatchAPI::PatcherPtr patcher_;
-    DynPatchCallback *patchCB_;
 };
 
 

@@ -87,6 +87,24 @@ void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edg
    else pb->addTargetEdge(pe, false);
 }
 
+void PatchParseCallback::modify_edge_cb(ParseAPI::Edge *edge,
+                                        ParseAPI::Block *block, edge_type_t type) {
+   cerr << "Calling modify_edge_cb!" << endl;
+   PatchEdge *pe = _obj->getEdge(edge, NULL, NULL, false);
+   if (!pe) return; // No edge, so we'll get to it later. 
+
+   PatchBlock *pb = _obj->getBlock(block, true);
+   assert(pb); // We need the target. 
+
+   if (type == source) {
+      pe->src_ = pb;
+   }
+   else {
+      pe->trg_ = pb;
+   }
+}
+
+
 void PatchParseCallback::remove_block_cb(ParseAPI::Function *func, ParseAPI::Block *block) {
    PatchBlock *pb = _obj->getBlock(block, false);
    if (!pb) return;
