@@ -147,7 +147,6 @@ class BinaryEdit : public AddressSpace {
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
                                 const std::string &member = "");
 
-    void getMapInfo(SymtabAPI::Symtab *symObj);
     bool writeFile(const std::string &newFileName);
     
     virtual func_instance *findOnlyOneFunction(const std::string &name,
