@@ -97,8 +97,7 @@ int getlwp()
 
 int getlwp()
 {
-	assert(!"not implemented");
-	return -1;
+	return GetCurrentThreadId();
 }
 #endif
 
@@ -112,7 +111,9 @@ static int sendThreadMsg(int initial_thrd)
    tinfo.lwp = (unsigned long) getlwp();
    tinfo.tid = (unsigned long) pthread_self();
 #else
-   assert(!"implement pthread_self(), getpid(), gettid() alternative for windows");
+   tinfo.pid = GetCurrentProcessId();
+   tinfo.tid = GetCurrentThreadId();
+   tinfo.lwp = GetCurrentThread();
 #endif
    tinfo.a_stack_addr = (unsigned long) &tinfo;
    if (initial_thrd)
