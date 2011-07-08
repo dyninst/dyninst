@@ -54,19 +54,53 @@ void GeneratorWindows::plat_start()
 	}
 	waiters.insert(std::make_pair(proc->getPid(), Waiters::ptr(new Waiters)));
 	processes.insert(std::make_pair(proc->getPid(), proc));
+	thread_to_proc.insert(std::make_pair(::GetCurrentThreadId(), proc));
+}
+
+void GeneratorWindows::removeProcess(int_process *proc)
+{
+	processes.erase(proc->getPid());
+	//if(thread_to_proc[::GetCurrentThreadId()] == proc)
+	//{
+		thread_to_proc.erase(::GetCurrentThreadId());
+	//}
+	//else
+	//{
+	//	assert(!"Generator deleting process on wrong thread!");
+	//}
+	waiters.erase(proc->getPid());
+}
+
+bool GeneratorWindows::hasLiveProc()
+{
+	int_process* p = thread_to_proc[::GetCurrentThreadId()];
+	if(!p) {
+		setState(exiting);
+		return false;
+	}
+	return !allStopped(p, NULL);
 }
 
 void GeneratorWindows::plat_continue(ArchEvent* evt)
 {
+	// evt is null the first time we call this; however, 
+	// the process also hasn't called WaitForDebugEvent the first time we call it.
+	// thus, do nothing if evt == NULL.
+	if(!evt) return;
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(evt);
 	pthrd_printf("GeneratorWindows::plat_continue() for %d waiting\n", winEvt->evt.dwProcessId);
-	::ResetEvent(waiters[winEvt->evt.dwProcessId]->user_wait);
-	::WaitForSingleObject(waiters[winEvt->evt.dwProcessId]->gen_wait, INFINITE);
-	DWORD cont_val = waiters[winEvt->evt.dwProcessId]->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
+	//::ResetEvent(waiters[winEvt->evt.dwProcessId]->user_wait);
+	//::WaitForSingleObject(waiters[winEvt->evt.dwProcessId]->gen_wait, INFINITE);
+	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
+	if(!theWaiter) {
+		pthrd_printf("Wait object deleted. Process %d should be dead. Returning.\n", winEvt->evt.dwProcessId);
+		return;
+	}
+	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
 	::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
 	waiters[winEvt->evt.dwProcessId]->unhandled_exception = false;
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with ::ContinueDebugEvent()\n", winEvt->evt.dwProcessId);
-	::SetEvent(waiters[winEvt->evt.dwProcessId]->user_wait);
+	::SetEvent(theWaiter->user_wait);
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with signal()\n", winEvt->evt.dwProcessId);
 }
 
@@ -93,14 +127,20 @@ ArchEvent *GeneratorWindows::getEvent(bool block)
 void GeneratorWindows::wait(Dyninst::PID p)
 {
 	pthrd_printf("GeneratorWindows::wait() for %d\n", p);
-	::WaitForSingleObject(waiters[p]->user_wait, INFINITE);
+	Waiters::ptr w = waiters[p];
+	if(w) {
+		::WaitForSingleObject(w->user_wait, INFINITE);
+	}
 	pthrd_printf("GeneratorWindows::wait() done for %d\n", p);
 }
 
 void GeneratorWindows::wake(Dyninst::PID p)
 {
 	pthrd_printf("GeneratorWindows::wake() for %d\n", p);
-	::SetEvent(waiters[p]->gen_wait);
+	Waiters::ptr w = waiters[p];
+	if(w) {
+		::SetEvent(w->gen_wait);
+	}
 }
 
 void GeneratorWindows::markUnhandledException(Dyninst::PID p)
@@ -118,11 +158,6 @@ GeneratorWindows::GeneratorWindows() :
 
 GeneratorWindows::~GeneratorWindows()
 {
-}
-
-bool GeneratorWindows::hasLiveProc()
-{
-	return Generator::hasLiveProc();
 }
 
 void GeneratorWindows::enqueue_event(start_mode m, int_process* p)

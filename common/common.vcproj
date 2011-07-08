@@ -636,6 +636,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
 						CompileAsManaged="0"
 						CompileAs="2"
 					/>

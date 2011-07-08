@@ -29,20 +29,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dynamiclinking.h"
-#include "signalhandler.h"
-#include "dyn_lwp.h"
 #include "mapped_object.h"
 #include <windows.h>
 #include <string>
+#include "pcProcess.h"
 
 // Since Windows handles library loads for us, there is nothing to do here
 // Write in stubs to make the platform-indep code happy
 
-extern std::string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
+extern std::string GetLoadedDllImageName( PCProcess* p, const DEBUG_EVENT& ev );
 extern void printSysError(unsigned errNo);
 
-sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
+sharedLibHook::sharedLibHook(PCProcess *p, sharedLibHookType t, Address b) 
         : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {}
 
 sharedLibHook::~sharedLibHook() {}
@@ -79,7 +77,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
        // Windows can handle this without the special case call.
        return true;
 
-   process *proc = ev.proc;
+   PCProcess *proc = ev.proc;
    handleT procHandle = ev.lwp->getProcessHandle();
 
    if (ev.type == evtLoadLibrary) {

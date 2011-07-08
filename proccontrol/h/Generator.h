@@ -43,6 +43,7 @@
 #include <string>
 
 struct GeneratorMTInternals;
+class int_process;
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -91,6 +92,7 @@ class PC_EXPORT Generator
    std::string name;
    Generator(std::string name_);
    bool getAndQueueEventInt(bool block);
+   static bool allStopped(int_process *proc, void *);
 
    static std::set<gen_cb_func_t> CBs;
    static Mutex *cb_lock;

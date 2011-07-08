@@ -59,7 +59,9 @@ class GeneratorWindows : public GeneratorMT
    std::deque<StartInfo> procsToStart;
    std::map<Dyninst::PID, Waiters::ptr> waiters;
    std::map<int, int_process*> processes;
+   std::map<int, int_process*> thread_to_proc;
    virtual bool hasLiveProc();
+   void removeProcess(int_process* proc);
 };
 
 #endif // !defined(GENERATOR_WINDOWS_H)

@@ -2388,6 +2388,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
    if (!result) {
       pthrd_printf("Could not pause debuggee %d, thr %d\n", pid, lwp);
       pending_stop = false;
+	  pending_user_stop = false;
       return sc_error;
    }
 
@@ -2607,6 +2608,7 @@ bool int_thread::setAnyState(int_thread::State *from, int_thread::State to)
 
 bool int_thread::setHandlerState(int_thread::State s)
 {
+	assert(!isGeneratorThread() || s != stopped);
    return setAnyState(&handler_state, s);
 }
 
@@ -2734,6 +2736,11 @@ int_thread *int_thread::createThread(int_process *proc,
                                      bool initial_thrd)
 {
    int_thread *newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
+   if(!newthr)
+   {
+	   pthrd_printf("createThreadPlat failed, returning NULL\n");
+	   return NULL;
+   }
    pthrd_printf("Creating %s thread %d/%d, thr_id = %lu\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
@@ -3909,9 +3916,6 @@ void mem_state::rmProc(int_process *p, bool &should_clean)
 
 int_notify *int_notify::the_notify = NULL;
 int_notify::int_notify() :
-   pipe_in(-1),
-   pipe_out(-1),
-   pipe_count(0),
    events_noted(0)
 {
    the_notify = this;
@@ -3937,7 +3941,7 @@ void int_notify::noteEvent()
 {
    assert(isHandlerThread());
    assert(events_noted == 0);
-   writeToPipe();
+   my_internals.noteEvent();
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
    set<EventNotify::notify_cb_t>::iterator i;
@@ -3959,7 +3963,7 @@ void int_notify::clearEvent()
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
    assert(events_noted == 0);
-   readFromPipe();
+   my_internals.clearEvent();
 }
 
 bool int_notify::hasEvents()
@@ -3980,11 +3984,13 @@ void int_notify::removeCB(EventNotify::notify_cb_t cb)
    cbs.erase(i);
 }
 
-int int_notify::getPipeIn()
+int_notify::details_t::wait_object_t int_notify::getWaitable()
 {
-   if (pipe_in == -1)
-      createPipe();
-   return pipe_in;
+	if(!my_internals.internalsValid())
+	{
+		my_internals.createInternals();
+	}
+	return my_internals.getWaitObject();
 }
 
 Decoder::Decoder()
@@ -5927,7 +5933,7 @@ EventNotify::~EventNotify()
 
 int EventNotify::getFD()
 {
-   return llnotify->getPipeIn();
+   return (int)(llnotify->getWaitable());
 }
 
 void EventNotify::registerCB(notify_cb_t cb)
@@ -6130,10 +6136,11 @@ void MTManager::evhandler_main()
    }
 }
 
-void MTManager::evhandler_main_wrapper(void *)
+unsigned long MTManager::evhandler_main_wrapper(void *)
 {
    setHandlerThread(DThread::self());
    mt()->evhandler_main();
+   return 0;
 }
 
 void MTManager::eventqueue_cb_wrapper()

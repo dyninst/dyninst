@@ -37,7 +37,7 @@
 #include "common/h/dthread.h"
 
 #if defined (os_windows)
-#include <windows.h>
+#include "common/h/ntHeaders.h"
 #endif
 
 extern eventLock *global_mutex;

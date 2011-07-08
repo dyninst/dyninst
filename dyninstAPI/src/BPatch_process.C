@@ -878,14 +878,6 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
     int retval = RPC_LEAVE_AS_IS;
 
     assert(BPatch::bpatch != NULL);
-    bool need_to_unlock = true;
-    global_mutex->_Lock(FILE__, __LINE__);
-    if (global_mutex->depth() > 1) {
-        global_mutex->_Unlock(FILE__, __LINE__);
-        need_to_unlock = false;
-    }
-
-    assert(global_mutex->depth());
 
     OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
 
@@ -918,9 +910,6 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
 
         delete info;
     }
-
-    if (need_to_unlock)
-        global_mutex->_Unlock(FILE__, __LINE__);
 
     return retval;
 }

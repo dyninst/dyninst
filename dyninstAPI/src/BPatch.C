@@ -133,13 +133,6 @@ BPatch::BPatch()
     type_Error(NULL),
     type_Untyped(NULL)
 {
-    if (!global_mutex) {
-      global_mutex = new eventLock();
-      extern bool mutex_created;
-      mutex_created = true;
-    }
-
-    global_mutex->_Lock(FILE__, __LINE__);
     init_debug();
     init_stats();
 
@@ -182,8 +175,6 @@ BPatch::BPatch()
 
     //loadNativeDemangler();
     
-    global_mutex->_Unlock(FILE__, __LINE__);
-
     eventHandler_ = PCEventHandler::createPCEventHandler();
 }
 
@@ -493,15 +484,7 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
    if (bpatch == NULL) {
       return; //Probably decontructing objects.
    }
-    assert(global_mutex);
-    //assert(global_mutex->depth());
 
-    bool do_unlock = false;
-    if (!global_mutex->depth()) {
-      fprintf(stderr, "%s[%d]:  WARN:  reportError called w/0 lock\n", FILE__, __LINE__);
-      global_mutex->_Lock(FILE__, __LINE__);
-      do_unlock = true;
-    }
 
     // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
@@ -510,15 +493,11 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     if( !BPatch::bpatch->errorCallback ) { 
         fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", FILE__, __LINE__, str);
         fflush(stdout);
-        if (do_unlock) 
-          global_mutex->_Unlock(FILE__, __LINE__);
         return; 
     }
 
     BPatch::bpatch->errorCallback(severity, number, &str);
     
-    if (do_unlock) 
-       global_mutex->_Unlock(FILE__, __LINE__);
 }
 
 

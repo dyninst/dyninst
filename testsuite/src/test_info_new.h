@@ -94,7 +94,7 @@ private:
 
 // Empty implementation for Windows
 
-#include <winsock.h>  // For struct timeval
+#include <winsock2.h>  // For struct timeval
 
 class UsageMonitor
 {

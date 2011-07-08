@@ -99,9 +99,13 @@ class windows_process : public arch_process
    virtual bool plat_isStaticBinary();
    HANDLE plat_getHandle();
    virtual bool hasPendingDetach() const { return pendingDetach; }
+   virtual void clearPendingDebugBreak() { pendingDebugBreak_ = false; }
+   virtual void setPendingDebugBreak() { pendingDebugBreak_ = true; }
+   virtual bool pendingDebugBreak() const { return pendingDebugBreak_; }
 private:
 	HANDLE hproc;
 	bool pendingDetach;
+	bool pendingDebugBreak_;
 
 };
 

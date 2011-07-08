@@ -2,6 +2,7 @@
 #include "windows.h"
 #include "ProcPool.h"
 #include <iostream>
+#include "external/boost/scoped_ptr.hpp"
 
 DecoderWindows::DecoderWindows()
 {
@@ -33,24 +34,110 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 	
 	if(details.dwDebugEventCode == LOAD_DLL_DEBUG_EVENT)
 	{
-		wchar_t libName[512];
-		char asciiLibName[512];
-		char* string_addr = NULL;
+		char* asciiLibName = new char[(MAX_PATH+1)*sizeof(wchar_t)];
+		wchar_t* libName = (wchar_t*)(asciiLibName);
 		void* libnameaddr;
-		if(p->plat_readMem(NULL, libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), p->getAddressWidth()))
+		std::string result;
+		if(p->plat_readMem(NULL, libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4))
 		{	
-			if(p->plat_readMem(NULL, libName, (Dyninst::Address)libnameaddr, sizeof(libName)))
+			int lowReadSize = 1;
+			int highReadSize = 128;
+			bool doneReading = false;
+			bool gotString = false;
+			int chunkSize = highReadSize;
+			int changeSize = highReadSize / 2;
+
+			while(!doneReading)
 			{
-				::WideCharToMultiByte(CP_ACP, 0, libName, -1, asciiLibName, sizeof(asciiLibName), NULL, NULL);
+				pthrd_printf("Trying read for libname at 0x%lx, size %d\n", libnameaddr, chunkSize);
+				if(p->plat_readMem(NULL, libName, (Dyninst::Address)libnameaddr, chunkSize))
+				{
+					if(details.u.LoadDll.fUnicode)
+					{
+						unsigned int lastCharIndex = chunkSize / sizeof(wchar_t);
+						libName[lastCharIndex] = L'\0';
+						wchar_t* first_null = wcschr(libName, L'\0');
+						gotString = (first_null != &(libName[lastCharIndex]));
+					}
+					else
+					{
+						asciiLibName[chunkSize] = '0';
+						char* first_null = strchr(asciiLibName, '\0');
+						gotString = (first_null != &(asciiLibName[chunkSize]));
+					}
+					if(gotString)
+					{
+						doneReading = true;
+					}
+					else
+					{
+						if(chunkSize == highReadSize)
+						{
+							lowReadSize = highReadSize + 1;
+							highReadSize = highReadSize + 128;
+							changeSize = 128;
+							if(lowReadSize > (MAX_PATH * sizeof(wchar_t)))
+							{
+								doneReading = true;
+							}
+							else
+							{
+								chunkSize = highReadSize;
+							}
+						}
+						else
+						{
+							chunkSize = chunkSize + changeSize;
+						}
+					}
+				}
+				else
+				{
+					if(chunkSize > lowReadSize)
+					{
+						unsigned int nextReadSize = chunkSize - changeSize;
+						if(nextReadSize == chunkSize)
+						{
+							doneReading = true;
+						}
+						else
+						{
+							chunkSize = nextReadSize;
+						}
+					}
+					else
+					{
+						doneReading = true;
+					}
+				}
+				changeSize /= 2;
+				
 			}
+			if(details.u.LoadDll.fUnicode)
+			{
+				char* tmp = new char[MAX_PATH];
+				::WideCharToMultiByte(CP_ACP, 0, libName, -1, tmp, sizeof(asciiLibName), NULL, NULL);
+				delete[] asciiLibName;
+				asciiLibName = tmp;
+			}
+			else
+			{
+				asciiLibName = (char*)libName;
+			}
+			result = asciiLibName;
+
 		}
+		delete[] asciiLibName;
 
 		
-		int_library* lib = new int_library(asciiLibName,
+		int_library* lib = new int_library(result,
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
 		addedLibs.insert(lib->getUpPtr());
 		proc->memory()->libs.insert(lib);		
+		pthrd_printf("Load DLL event, loading %s (at 0x%lx)\n",
+			lib->getName(), lib->getAddr());
+
 	}
 	else if(details.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)
 	{
@@ -61,6 +148,8 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		{
 			if((*foundLib)->getAddr() == (Dyninst::Address)(details.u.UnloadDll.lpBaseOfDll))
 			{
+				pthrd_printf("Unload DLL event, unloading %s (was at 0x%lx)\n",
+					(*foundLib)->getName(), (*foundLib)->getAddr());
 				removedLibs.insert((*foundLib)->getUpPtr());
 				proc->memory()->libs.erase(foundLib);
 				break;
@@ -128,9 +217,12 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 
 }
 
+#define EXCEPTION_DEBUGGER_IO 0x406D1388
+
 bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 {
 	assert(ae);
+//	boost::scoped_ptr<ArchEvent> ae_destructor(ae);
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(ae);
 	assert(winEvt);
 	Event::ptr newEvt = Event::ptr();
@@ -138,6 +230,8 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	int_process* proc = NULL;
 	if (thread) {
       proc = thread->llproc();
+	  windows_process* windows_proc = dynamic_cast<windows_process*>(proc);
+	  windows_proc->clearPendingDebugBreak();
     }
 	DEBUG_EVENT e = winEvt->evt;
 	switch(e.dwDebugEventCode)
@@ -149,6 +243,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		break;
 	case CREATE_THREAD_DEBUG_EVENT:
 		{
+			pthrd_printf("Decoded CreateThread event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 			newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 				e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
 		    ProcPool()->condvar()->lock();
@@ -166,47 +261,44 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
 			newEvt = decodeBreakpointEvent(e, proc, thread);
-			if(!newEvt)
+			if(newEvt)
+			{
+				pthrd_printf("Decoded Breakpoint event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+			}
+			else
 			{
 				if(proc->getState() != int_process::neonatal &&
 					proc->getState() != int_process::neonatal_intermediate)
 				{
-					ProcPool()->condvar()->lock();
 					bool didSomething = false;
 
 
 					// Case 2: breakpoint from debugBreak() being used for a stop on one/all threads.
 				   int_thread *result = NULL;
+					pthrd_printf("Possible stop, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 				   for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++)
 				   {
 					  int_thread *thr = *i;
-					  thr->setGeneratorState(int_thread::stopped);
-					  thr->setHandlerState(int_thread::stopped);
 					  if (thr->hasPendingStop()) {
-						  didSomething = true;
-						   thr->setPendingStop(false);
-
-						   thr->setInternalState(int_thread::stopped);
-						   if (thr->hasPendingUserStop()) {
-							  thr->setUserState(int_thread::stopped);
-							  thr->setPendingUserStop(false);
-						   }
+						  pthrd_printf("Suspended %d/%d\n", proc->getPid(), thr->getLWP());
 						   thr->plat_suspend();
 					  }
+					  didSomething = true;
 				   }   
-   					ProcPool()->condvar()->signal();
-					ProcPool()->condvar()->unlock();
 
 					if(didSomething)
 					{
-						events.push_back(Event::ptr());
-						return true;
+						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+						newEvt = Event::ptr(new EventStop());
 					}
 					else if(proc->hasPendingDetach())
 					{
+						pthrd_printf("Decoded Detach event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						ProcPool()->condvar()->lock();
 						proc->setState(int_process::exited);
 						ProcPool()->rmProcess(proc);
+						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+						winGen->removeProcess(proc);
 						delete proc;
 						ProcPool()->condvar()->signal();
 						ProcPool()->condvar()->unlock();
@@ -215,6 +307,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					}
 					else
 					{
+						pthrd_printf("Decoded unhandled exception (breakpoint) event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						// Case 3: breakpoint that's not from us, while running. Pass on exception.
 						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 						winGen->markUnhandledException(e.dwProcessId);
@@ -229,8 +322,30 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				}
 			}
 			break;
+		case EXCEPTION_ILLEGAL_INSTRUCTION:
+			{
+				pthrd_printf("SIGILL in mutatee\n");
+				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+				winGen->markUnhandledException(e.dwProcessId);
+				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+			}
+			break;
+		case EXCEPTION_ACCESS_VIOLATION:
+			{
+				pthrd_printf("segfault in mutatee\n");
+				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+				winGen->markUnhandledException(e.dwProcessId);
+				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+			}
+			break;
+			// Thread naming exception. Ignore.
+		case EXCEPTION_DEBUGGER_IO:
+			pthrd_printf("Debugger I/O exception: %lx\n", e.u.Exception.ExceptionRecord.ExceptionInformation[0]);
+			break;
 		default:
 			{
+				pthrd_printf("Decoded unhandled exception event, PID: %d, TID: %d, Exception code = 0x%lx, Exception addr = 0x%lx\n", e.dwProcessId, e.dwThreadId,
+					e.u.Exception.ExceptionRecord.ExceptionCode, e.u.Exception.ExceptionRecord.ExceptionAddress);
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
@@ -239,27 +354,50 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		}
 		break;
 	case EXIT_PROCESS_DEBUG_EVENT:
-		newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+		{
+			pthrd_printf("Decoded ProcessExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+			newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+			winGen->removeProcess(proc);
+			newEvt->setSyncType(Event::sync_process);
+			newEvt->setProcess(proc->proc());
+			newEvt->setThread(thread->thread());
+			// We do this here because the generator thread will exit before updateSyncState otherwise
+			thread->setExitingInGenerator(true);
+			  int_threadPool::iterator i = proc->threadPool()->begin();
+			  for (; i != proc->threadPool()->end(); i++) {
+				 (*i)->setGeneratorState(int_thread::exited);
+			  }
+
+			return true;
+		}
 		break;
 	case EXIT_THREAD_DEBUG_EVENT:
+		pthrd_printf("Decoded ThreadExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+		thread->setGeneratorState(int_thread::exited);
 		newEvt = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
 		break;
 	case LOAD_DLL_DEBUG_EVENT:
+		pthrd_printf("Decoded LoadDLL event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+		newEvt = decodeLibraryEvent(e, proc);
+		break;
 	case UNLOAD_DLL_DEBUG_EVENT:
+		pthrd_printf("Decoded UnloadDLL event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 		newEvt = decodeLibraryEvent(e, proc);
 		break;
 	case OUTPUT_DEBUG_STRING_EVENT:
 		{
-			std::cerr << "Debug string event" << std::endl;
 			TCHAR buf[1024];
 			unsigned long bytes_read = 0;
 			windows_process* winProc = dynamic_cast<windows_process*>(proc);
 			bool result = ::ReadProcessMemory(winProc->plat_getHandle(), e.u.DebugString.lpDebugStringData, buf, 
 				e.u.DebugString.nDebugStringLength, &bytes_read);
-			std::cerr << buf << std::endl;
+			pthrd_printf("Decoded DebugString event, string: %s\n", buf);
 			break;
 		}
 	case RIP_EVENT:
+		pthrd_printf("Decoded RIP event, PID: %d, TID: %d, error = 0x%lx\n", e.dwProcessId, e.dwThreadId,
+			e.u.RipInfo.dwError);
 		newEvt = EventCrash::ptr(new EventCrash(e.u.RipInfo.dwError));
 		break;
 	default:

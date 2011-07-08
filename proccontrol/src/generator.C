@@ -109,7 +109,7 @@ void Generator::setState(Generator::state_t new_state)
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
-   ArchEvent *arch_event = NULL;
+   static ArchEvent *arch_event = NULL;
    vector<Event::ptr> events;
 
    setState(process_blocked);
@@ -123,6 +123,7 @@ bool Generator::getAndQueueEventInt(bool block)
 	   pthrd_printf("Generator exiting after processWait returned false\n");
       goto done;
    }
+   plat_continue(arch_event);
    
    setState(system_blocked);
    pthrd_printf("About to getEvent()\n");
@@ -162,7 +163,6 @@ bool Generator::getAndQueueEventInt(bool block)
       }
       Generator::cb_lock->unlock(); 
    }
-   plat_continue(arch_event);
 
    result = true;
  done:
@@ -170,8 +170,12 @@ bool Generator::getAndQueueEventInt(bool block)
    return result;
 }
 
-static bool allStopped(int_process *proc, void *)
+bool Generator::allStopped(int_process *proc, void *)
 {
+	if(proc == NULL) {
+		pthrd_printf("Process was NULL, treating as stopped\n");
+		return true;
+	}
    bool all_exited = true;
    int_threadPool *tp = proc->threadPool();
    assert(tp);
@@ -204,7 +208,7 @@ static bool allStopped(int_process *proc, void *)
 bool Generator::hasLiveProc()
 {
    ProcessPool *procpool = ProcPool();
-   return !procpool->for_each(allStopped, NULL);
+   return !procpool->for_each(Generator::allStopped, NULL);
 }
 
 struct GeneratorMTInternals

@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../dynutil/h;.."
+				AdditionalIncludeDirectories="../dynutil/h;..;../external"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;PROCCONTROL_EXPORTS;arch_x86;os_windows"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"

@@ -31,7 +31,7 @@
 
 
 // $Id: timing-nt.C,v 1.8 2007/05/30 19:20:33 legendre Exp $
-#include <windows.h>   // for LARGE_INTEGERS
+#include "common/h/ntHeaders.h"   // for LARGE_INTEGERS
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/timeb.h>

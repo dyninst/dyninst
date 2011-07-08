@@ -449,7 +449,7 @@ Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
 	if(winGen)
 	{
 		winGen->wake(p->getPid());
-		winGen->wait(p->getPid());
+		//winGen->wait(p->getPid());
 	}
 	return ret_success;
 }
@@ -551,14 +551,14 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
 
-   ProcPool()->condvar()->signal();
-   ProcPool()->condvar()->unlock();
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
       delete proc;
    }
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
@@ -856,14 +856,37 @@ Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 	int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    pthrd_printf("Handling thread stop for %d/%d\n", proc->getPid(), thrd->getLWP());
+   if(ev->getSyncType() == Event::sync_process)
+   {
+	   pthrd_printf("Process synchronous stop for %d, checking all threads\n", proc->getPid());
+	   for(int_threadPool::iterator t = proc->threadPool()->begin();
+		   t != proc->threadPool()->end();
+		   ++t)
+	   {
+		   if((*t)->hasPendingStop()) {
+			   (*t)->setPendingStop(false);
+			   (*t)->setInternalState(int_thread::stopped);
+			   pthrd_printf("Stopped %d/%d internal\n", proc->getPid(), (*t)->getLWP());
+		   }
+		   if((*t)->hasPendingUserStop()) {
+			   (*t)->setPendingUserStop(false);
+			   (*t)->setUserState(int_thread::stopped);
+			   pthrd_printf("Stopped %d/%d user\n", proc->getPid(), (*t)->getLWP());
+		   }
 
-   assert(thrd->hasPendingStop());
-   thrd->setPendingStop(false);
+	   }
+   }
+   else
+   {
 
-   thrd->setInternalState(int_thread::stopped);
-   if (thrd->hasPendingUserStop()) {
-      thrd->setUserState(int_thread::stopped);
-      thrd->setPendingUserStop(false);
+	   assert(thrd->hasPendingStop());
+	   thrd->setPendingStop(false);
+
+	   thrd->setInternalState(int_thread::stopped);
+	   if (thrd->hasPendingUserStop()) {
+		  thrd->setUserState(int_thread::stopped);
+		  thrd->setPendingUserStop(false);
+	   }
    }
    	ProcPool()->condvar()->signal();
 	ProcPool()->condvar()->unlock();

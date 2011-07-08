@@ -79,6 +79,7 @@ class PCProcess : public AddressSpace {
     // This allows changes to the internals to have relatively low impact on the
     // rest of Dyninst
     friend class PCEventHandler;
+	friend class HybridAnalysis;
 
 public:
     // The desired state of the process, as indicated by the user

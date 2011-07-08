@@ -93,19 +93,23 @@ windows_process::windows_process(Dyninst::PID p, std::string e, std::vector<std:
                              std::vector<std::string> envp,  std::map<int,int> f) :
    int_process(p, e, a, envp, f),
    arch_process(p, e, a, envp, f),
-   pendingDetach(false)
+   pendingDetach(false),
+   pendingDebugBreak_(false)
 {
 }
 
 windows_process::windows_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    arch_process(pid_, p),
-   pendingDetach(false)
+   pendingDetach(false),
+   pendingDebugBreak_(false)
 {
 }
 
 windows_process::~windows_process()
 {
+	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
+	winGen->removeProcess(this);
 }
 
 
@@ -125,12 +129,7 @@ HANDLE windows_process::plat_getHandle()
 bool windows_process::plat_create_int()
 {
 	std::string args = std::accumulate(argv.begin(), argv.end(), std::string(), &concatArgs);
-//	std::string env_str = std::accumulate(env.begin(), env.end(), std::string(), &concatArgs);
-//	if(env_str == "")
-//	{
-		LPCH mutator_env = ::GetEnvironmentStrings();
-		//env_str = std::string(mutator_env);
-//	}
+	LPCH mutator_env = ::GetEnvironmentStrings();
 	static const int dir_size = 1024;
 	char directory[dir_size];
 	::GetCurrentDirectory(dir_size, directory);
@@ -198,11 +197,13 @@ bool windows_process::plat_forked()
 	return false;
 }
 
-// FIXME: partial reads/writes!
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
                                  Dyninst::Address remote, size_t size)
 {
-	return ::ReadProcessMemory(hproc, (void*)remote, local, size, NULL);
+	SIZE_T bytes_done = 0;
+	int errcode = ::ReadProcessMemory(hproc, (unsigned char*)remote + bytes_done, (unsigned char*)local + bytes_done, size, &bytes_done);
+	if(!errcode) errcode = ::GetLastError();
+	return bytes_done == size;
 }
 
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
@@ -219,14 +220,18 @@ bool windows_process::needIndividualThreadAttach()
 
 bool windows_process::plat_supportLWPEvents() const
 {
-	assert(!"Not implemented");
-	return false;
+	return true;
 }
 
 bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 {
-	assert(!"Not implemented");
-	return false;
+	for(int_threadPool::iterator i = threadPool()->begin();
+		i != threadPool()->end();
+		++i)
+	{
+		lwps.push_back((*i)->getLWP());
+	}
+	return true;
 }
 
 int_process::ThreadControlMode int_process::getThreadControlMode() 
@@ -238,8 +243,9 @@ bool windows_thread::plat_cont()
 {
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	::ResumeThread(hthread);
+	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
 	wGen->wake(llproc()->getPid());
-	wGen->wait(llproc()->getPid());
+	//wGen->wait(llproc()->getPid());
 	return true;
 }
 
@@ -279,9 +285,18 @@ bool windows_thread::plat_stop()
 	pthrd_printf("Stopping thread %d (0x%lx)\n", getLWP(),
 		hthread);
 	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
-	int result = ::DebugBreakProcess(wproc->plat_getHandle());
-	if(result == -1) {
-		int err = ::GetLastError();
+	int result = -1;
+	if(wproc->pendingDebugBreak())
+	{
+		return true;
+	}
+	else
+	{
+		result = ::DebugBreakProcess(wproc->plat_getHandle());
+		if(result == -1) {
+			int err = ::GetLastError();
+		}
+		wproc->setPendingDebugBreak();
 	}
 	return result != -1;
 }
@@ -298,20 +313,38 @@ bool windows_process::plat_individualRegAccess()
 
 bool windows_process::plat_detach()
 {
+	pendingDetach = true;
+	if(pendingDebugBreak()) {
+		return true;
+	}
+	setPendingDebugBreak();
 	int result = ::DebugBreakProcess(hproc);
 	if(!result)
 	{
 		int error = ::GetLastError();
 		pthrd_printf("Error in plat_detach: %d\n", error);
 	}
-	pendingDetach = true;
 	return result;
 }
 
 bool windows_process::plat_terminate(bool &needs_sync)
 {
-	assert(!"Not implemented");
-	return false;
+   pthrd_printf("Terminating process %d\n", getPid());
+   int result = ::TerminateProcess(hproc, 0);
+   if (result == 0) {
+/*	   if (::GetLastError() == ) {
+         perr_printf("Process %d no longer exists\n", getPid());
+         setLastError(err_noproc, "Process no longer exists");
+      }
+      else {
+*/         perr_printf("Failed to terminate(%d) process\n", getPid());
+         setLastError(err_internal, "Unexpected failure of TerminateProcess\n");
+         return false;
+/*      }*/
+   }
+
+   needs_sync = true;
+   return true;
 }
 
 Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) 
@@ -631,8 +664,8 @@ bool windows_thread::haveUserThreadInfo()
 
 bool windows_thread::getTID(Dyninst::THR_ID& tid)
 {
-	assert(!"not implemented");
-	return false;
+	tid = this->tid;
+	return true;
 }
 
 bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)

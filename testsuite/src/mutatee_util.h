@@ -40,6 +40,8 @@ extern "C" {
 
 #if !defined(os_windows_test)
 #include <stdint.h>
+#else
+	typedef unsigned __int64 uint64_t;
 #endif
 
 #include <stdio.h>
