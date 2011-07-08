@@ -178,17 +178,17 @@ void
 PatchObject::copyCFG(PatchObject* parObj) {
   for (EdgeMap::const_iterator iter = parObj->edges_.begin();
        iter != parObj->edges_.end(); ++iter) {
-    cfg_maker_->copyEdge(iter->second, this);
+     edges_[iter->first] = cfg_maker_->copyEdge(iter->second, this);
   }
   // Duplicate all copied blocks
   for (BlockMap::const_iterator iter = parObj->blocks_.begin();
        iter != parObj->blocks_.end(); ++iter) {
-    cfg_maker_->copyBlock(iter->second, this);
+     blocks_[iter->first] = cfg_maker_->copyBlock(iter->second, this);
   }
   // Aaand now functions
   for (FuncMap::const_iterator iter = parObj->funcs_.begin();
        iter != parObj->funcs_.end(); ++iter) {
-    cfg_maker_->copyFunction(iter->second, this);
+     funcs_[iter->first] = cfg_maker_->copyFunction(iter->second, this);
   }
 }
 

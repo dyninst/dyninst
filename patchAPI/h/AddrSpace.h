@@ -60,7 +60,7 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
 
 template <class Iter>
    void AddrSpace::objs(Iter iter) {
-   for (ObjMap::iterator tmp = obj_map_.begin(); tmp != obj_map.end(); ++tmp) {
+   for (ObjMap::iterator tmp = obj_map_.begin(); tmp != obj_map_.end(); ++tmp) {
       *iter = tmp->second;
       ++iter;
    }
