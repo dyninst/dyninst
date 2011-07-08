@@ -717,7 +717,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       timeout.tv_usec = 0;
       int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
       if (result == 0) {
-         logerror("Timeout while waiting for socket connect");
+         logerror("Timeout while waiting for socket connect\n");
          return false;
       }
       if (result == -1) {
@@ -790,11 +790,11 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 	int result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
 
 	if(result == WAIT_TIMEOUT) {
-		handleError("WaitForMultipleObjects timed out");
+		handleError("WaitForMultipleObjects timed out\n");
 		return false;
 	}
 	if(result == WAIT_FAILED || result == WAIT_ABANDONED) {
-		handleError("WaitForMultipleObjects failed");
+		handleError("WaitForMultipleObjects failed\n");
 		return false;
 	}
 	int which_event = (result - WAIT_OBJECT_0);

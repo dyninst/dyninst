@@ -389,7 +389,7 @@ int initMutatorConnection()
 int send_message(unsigned char *msg, size_t msg_size)
 {
    int result;
-   //fprintf(stderr, "sending %d bytes...\n", msg_size);
+   fprintf(stderr, "sending %d bytes...\n", msg_size);
    result = send(sockfd, (char*)msg, msg_size, 0);
    if (result == -1) {
 	   fprintf(stderr, "Mutatee unable to send message\n");
@@ -403,11 +403,12 @@ int recv_message(unsigned char *msg, size_t msg_size)
    int result = -1;
    int bytes_remaining = msg_size;
    while( (bytes_remaining > 0) && (result != 0) ) {
+	   fprintf(stderr, "mutatee waiting for %d bytes\n", bytes_remaining);
        result = recv(sockfd, (char*)msg, bytes_remaining, 0);
 
        if (result == -1) {
 		   fprintf(stderr, "recv() failed: %d\n", WSAGetLastError());
-          perror("Mutatee unable to recieve message");
+          fprintf(stderr, "Mutatee unable to recieve message\n");
           return -1;
        }
 	   bytes_remaining -= result;
