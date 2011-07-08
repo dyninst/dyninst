@@ -356,7 +356,12 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	case EXIT_PROCESS_DEBUG_EVENT:
 		{
 			pthrd_printf("Decoded ProcessExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-			newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+			if(proc->wasForcedTerminated()) {
+				newEvt = EventForceTerminate::ptr(new EventForceTerminate(e.u.ExitProcess.dwExitCode));
+			}
+			else {
+				newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+			}
 			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 			winGen->removeProcess(proc);
 			newEvt->setSyncType(Event::sync_process);
@@ -368,6 +373,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			  for (; i != proc->threadPool()->end(); i++) {
 				 (*i)->setGeneratorState(int_thread::exited);
 			  }
+			  events.push_back(newEvt);
 
 			return true;
 		}
