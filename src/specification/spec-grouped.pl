@@ -2553,7 +2553,7 @@ mutator('pc_temp_detach', ['pc_temp_detach.C']).
 test_runmode('pc_temp_detach', 'dynamic').
 test_threadmode('pc_temp_detach', 'Threading').
 test_processmode('pc_temp_detach', 'Processes').
-test_start_state('pc_temp_detach', 'stopped').
+test_start_state('pc_temp_detach', 'selfattach').
 tests_module('pc_temp_detach', 'proccontrol').
 mutatee('pc_temp_detach', ['pc_temp_detach_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_temp_detach', Libs) :- pcMutateeLibs(Libs).
@@ -2714,7 +2714,6 @@ runmode_launch_params(Runmode, Platform, Mutator, Mutatee, Launchtime) :-
    ),
    mutatee_launchtime(Runmode, Launchtime).
 
-% Matt TODO: Fix this to be CrayXT and BlueGene/P--leaving all platforms on for testing only
 remote_platform(P) :- 
    platform(_, OS, _, P),
    member(OS, ['bluegene']).

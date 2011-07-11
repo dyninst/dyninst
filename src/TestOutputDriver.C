@@ -118,3 +118,7 @@ void TestOutputDriver::setNeedsHeader(bool h)
 {
    needs_header = h;
 }
+
+TestOutputDriver::~TestOutputDriver()
+{
+}

@@ -55,6 +55,7 @@ class TestOutputDriver {
 protected:
    bool needs_header;
 public:
+   virtual ~TestOutputDriver();
    TESTLIB_DLL_EXPORT static bool getAttributesMap(TestInfo *test, 
                         RunGroup *group, std::map<std::string, std::string> &attrs);
 

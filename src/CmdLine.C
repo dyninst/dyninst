@@ -163,6 +163,7 @@ static bool measureMEMCPU = false;
 static char *humanlog_name = NULL;
 static char *logfilename = NULL;
 static char *dbfilename = NULL;
+static char *debug_out_filename = NULL;
 
 static std::vector<RunGroup *> group_list;
 
@@ -228,6 +229,7 @@ void setupArgDictionary(ParameterDict &params)
 
    params["port"] = new ParamInt(port);
    params["hostname"] = new ParamString(hostname.c_str());
+   params["redirect"] = new ParamString(debug_out_filename ? debug_out_filename : "");
 }
 
 void setupGroupDictionary(ParameterDict &params)
@@ -448,6 +450,13 @@ static int handleArgs(int argc, char *argv[])
             fprintf(stderr, "-max_unique must be followed by a non-zero integer\n");
             return NOTESTS;
          }
+      }
+      else if (strcmp(argv[i], "-redirect-debug") == 0) {
+         if (i + 1 >= argc) {
+            fprintf(stderr, "-redirect-debug must be followed by a filename\n");
+            return NOTESTS;
+         }
+         debug_out_filename = argv[++i];
       }
       else if ( strcmp(argv[i], "-humanlog") == 0 ) {
          // Verify that the following argument exists

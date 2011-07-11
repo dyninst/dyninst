@@ -101,6 +101,7 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     TestOutputDriver.C \
                     StdOutputDriver.C \
 						  remotetest.C \
+						  connection.C \
 						  module.C
 
 SRCS_LIBTESTLAUNCH = CmdLine.C \
@@ -357,7 +358,7 @@ symlink: all
 
 clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) *.da *.bb. *.bbg 
-	@$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so
+	@$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so testdriver_wrapper
 	@$(RM) $(dyninst_MUTATORS_SO)
 	@$(RM) $(symtab_MUTATORS_SO)
 	@$(RM) $(symtab_SOLO_MUTATEES)
@@ -396,7 +397,7 @@ endif
 
 testlibs: $(LIBTESTSUITE)
 
-drivers: test_driver runTests testdriver_be
+drivers: test_driver runTests testdriver_wrapper
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees echo all
 
@@ -607,22 +608,27 @@ test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 testdriver_be.o: ../src/testdriver_be.C $(DEPENDDIR)/testdriver_be.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_BE_CFLAGS) ../src/testdriver_be.C
+	@echo Compiling $@
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_BE_CFLAGS) ../src/testdriver_be.C
+
+testdriver_wrapper.o: ../src/testdriver_wrapper.C ../src/remotetest.h
+	@echo Compiling $@
+	$(HIDE_COMP)$(CXX) -g -c -o $@ $(CXXFLAGS) ../src/testdriver_wrapper.C -Wall
 
 dynlmon.o: ../src/dynlmon.C $(DEPENDDIR)/dynlmon.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_FE_CFLAGS) ../src/dynlmon.C
+	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_FE_CFLAGS) ../src/dynlmon.C
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $@
 	$(HIDE_COMP)$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK) $(COMP_RPATHS); $(TESTDRIVER_EXTRA_LINK_STEP)
+	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK) $(COMP_RPATHS); $(TESTDRIVER_EXTRA_LINK_STEP)
 
-testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -Wl,-rpath -Wl,$(TO_CORE_ABS)/testsuite/$(PLATFORM) -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_BE_LINK) $(COMP_RPATHS)
+	$(HIDE_COMP)$(CXX) -o $@ $^ -static
 
 ######################################################################
 ### Output Drivers

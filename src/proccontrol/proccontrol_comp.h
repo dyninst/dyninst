@@ -57,7 +57,6 @@ private:
    bool cleanSocket();
    Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
    bool startMutatees(RunGroup *group, ParameterDict &param);
-   bool use_mem_communication;
 public:
    int sockfd;
    char *sockname;
@@ -80,14 +79,10 @@ public:
 
    bool recv_broadcast(unsigned char *msg, unsigned msg_size);
    bool send_broadcast(unsigned char *msg, unsigned msg_size);
-   bool recv_broadcast_mem(unsigned char *msg, unsigned msg_size);
-   bool send_broadcast_mem(unsigned char *msg, unsigned msg_size);
    bool recv_message(unsigned char *msg, unsigned msg_size, int sfd);
    bool recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool send_message(unsigned char *msg, unsigned msg_size, int sfd);
    bool send_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
-   bool send_message_mem(unsigned char *msg, uint32_t msg_size, bool &send_done, commInfo &info);
-   bool recv_message_mem(unsigned char *msg, uint32_t msg_size, bool &recv_done, commInfo &info);   
    bool block_for_events();
    bool poll_for_events();
    
