@@ -1063,7 +1063,7 @@ bool bg_process::plat_detach(bool &needs_sync)
    }
 
    needs_sync = true;
-   return true;   
+   return true;
 }
 
 bool bg_process::plat_terminate(bool &needs_sync)

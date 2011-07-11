@@ -69,6 +69,14 @@ int pc_thread_cont_mutatee()
    int i;
    struct local_data *localData = NULL;
 
+   num_threads = 0;
+   for (i = 0; i < gargc; i++) {
+      if (strcmp(gargv[i], "-mt") == 0) {
+         num_threads = atoi(gargv[i+1]);
+         break;
+      }
+   }
+
    if( num_threads > 0 ) {
        // Each thread needs its own mutex and access to the barrier
        localData = (struct local_data *)malloc(sizeof(struct local_data));

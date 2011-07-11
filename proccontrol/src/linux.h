@@ -94,7 +94,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public thread_db_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -108,7 +108,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
-   virtual bool plat_detach(bool &needs_sync);
+   virtual bool plat_detach(result_response::ptr resp);
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool preTerminate();
 
@@ -186,11 +186,6 @@ class linux_thread : public thread_db_thread
                                       result_response::ptr result);
    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
-   virtual bool plat_needsPCSaveBeforeSingleStep();
-
-   // Needed by HybridLWPControl, unused on Linux
-   virtual bool plat_resume() { return true; }
-   virtual bool plat_suspend() { return true; }
 
    void setOptions();
    bool unsetOptions();

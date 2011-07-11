@@ -45,6 +45,7 @@ class int_eventBreakpoint
    Dyninst::Address addr;
    result_response::ptr pc_regset;
    int_thread *thrd;
+   bool stopped_proc;
 
    std::set<Breakpoint::ptr> cb_bps;
 };
@@ -55,17 +56,12 @@ class int_eventBreakpointClear
    int_eventBreakpointClear();
    ~int_eventBreakpointClear();
 
-   std::set<result_response::ptr> memwrite_bp_suspend;
+   result_response::ptr memwrite_bp_suspend;
    bool started_bp_suspends;
    bool cached_bp_sets;
    bool set_singlestep;
 
    std::set<Thread::ptr> clearing_threads;
-
-   void getBPTypes(std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
-                   std::set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore);
-   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_clear_cached;
-   std::set<pair<installed_breakpoint *, int_thread *> > bps_to_restore_cached;
 };
  
 class int_eventBreakpointRestore
@@ -118,6 +114,18 @@ class int_eventThreadDB {
    
    std::set<Event::ptr> new_evs;
    bool completed_new_evs;
+};
+
+class int_eventDetach {
+  public:
+   int_eventDetach();
+   ~int_eventDetach();
+
+   std::set<response::ptr> async_responses;
+   result_response::ptr detach_response;
+   bool temporary_detach;
+   bool removed_bps;
+   bool done;
 };
 
 }

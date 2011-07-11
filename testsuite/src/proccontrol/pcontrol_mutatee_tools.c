@@ -53,20 +53,12 @@ typedef struct {
    void *data;
 } datagram;
 
-#if defined(os_bg_test)
-#define USE_MEM_COMM 0
-#else
-#define USE_MEM_COMM 0
-#endif
-
-
 #define MESSAGE_BUFFER_SIZE 4096
 #define MESSAGE_TIMEOUT 30
 volatile char recv_buffer[MESSAGE_BUFFER_SIZE];
 volatile char send_buffer[MESSAGE_BUFFER_SIZE];
 volatile uint32_t recv_buffer_size;
 volatile uint32_t send_buffer_size;
-volatile uint32_t needs_pc_comm = USE_MEM_COMM;
 volatile uint32_t timeout;
 
 static testlock_t thread_startup_lock;
@@ -265,10 +257,6 @@ void getSocketInfo()
 {
    int count = 0;
 
-
-   if (needs_pc_comm)
-      return;
-   
    count = 0;
    while (MutatorSocket[0] == '\0') {
       usleep(10000); //.01 seconds
@@ -310,9 +298,6 @@ int initMutatorConnection()
 {
    int result;
 
-   if (needs_pc_comm)
-      return 0;
-
    if (strcmp(socket_type, "un_socket") == 0) {
       sockfd = socket(PF_UNIX, SOCK_STREAM, 0);
       if (sockfd == -1) {
@@ -334,22 +319,6 @@ int initMutatorConnection()
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
-   if (needs_pc_comm) {
-      assert(msg_size < MESSAGE_BUFFER_SIZE);
-      assert(!send_buffer_size);
-      memcpy((void *) send_buffer, msg, msg_size);
-      send_buffer_size = msg_size;
-    
-      setTimeoutAlarm();
-      while (send_buffer_size && !timeout);
-      resetTimeoutAlarm();
-      if (send_buffer_size) {
-         logerror("Timed out in mutatee send_message\n");
-         exit(-3);
-      }
-      return 0;
-   }
-
    int result;
    result = send(sockfd, msg, msg_size, 0);
    if (result == -1) {
@@ -361,29 +330,6 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
-   if (needs_pc_comm) {
-      int set_alarm = 0;
-      //Sockets won't work now... Communicate by having ProccontrolAPI
-      // read and write into the process
-      if (!recv_buffer_size) {
-         setTimeoutAlarm();
-         set_alarm = 1;
-      }
-      while (!recv_buffer_size && !timeout);
-      if (set_alarm) {
-         resetTimeoutAlarm();
-      }
-      if (!recv_buffer_size) {
-         logerror("Timed out in mutatee recv_message\n");
-         exit(-4);
-      }
-      assert(msg_size < MESSAGE_BUFFER_SIZE);
-      assert(msg_size == recv_buffer_size);
-      memcpy((void *) msg, (void *) recv_buffer, msg_size);
-      recv_buffer_size = 0;
-      return 0;
-   }
-
    int result = -1;
    while( result != (int) msg_size && result != 0 ) {
        fd_set read_set;

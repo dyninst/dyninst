@@ -1,6 +1,36 @@
 #include "comptester.h"
 #include "TestMutator.h"
 
+#define PARAMETER_ARG "PARAMETER"
+#define TESTRESULT_ARG "TESTRESULT"
+#define STRING_ARG "STRING"
+#define GROUP_ARG "GROUP"
+#define TESTINFO_ARG "TESTINFO"
+#define BOOL_ARG "BOOL"
+#define INT_ARG "INT"
+
+#define COMPONENT_PROGRAM_SETUP "COMP_PROGSETUP"
+#define COMPONENT_PROGRAM_TEARDOWN "COMP_PROGTEARDOWN"
+#define COMPONENT_GROUP_SETUP "COMP_GROUPSETUP"
+#define COMPONENT_GROUP_TEARDOWN "COMP_GROUPTEARDOWN"
+#define COMPONENT_TEST_SETUP "COMP_TESTSETUP"
+#define COMPONENT_TEST_TEARDOWN "COMP_TESTTEARDOWN"
+#define COMPONENT_ERR_MSG "COMP_ERRMESSAGE"
+
+#define TEST_CUSTOM_PATH "TEST_CUSTOMPATH"
+#define TEST_SETUP "TEST_SETUP"
+#define TEST_EXECUTE "TEST_EXECUTE"
+#define TEST_POST_EXECUTE "TEST_POST_EXECUTE"
+#define TEST_TEARDOWN "TEST_TEARDOWN"
+
+#define LOAD_TEST "LOAD_TEST"
+#define LOAD_COMPONENT "LOAD_COMPONENT"
+#define RETURN "RETURN"
+#define LOG "LOG"
+#define EXIT_MSG "EXIT"
+
+#define SETENV "SETENV"
+
 class MessageBuffer;
 
 class Connection
@@ -19,7 +49,7 @@ class Connection
    bool waitForAvailData(int sock, int timeout, bool &sock_error);
   public:
    Connection();
-   Connection(std::string host, int port);
+   Connection(std::string host, int port, int fd_exists = -1);
    ~Connection();
 
    bool server_accept();
@@ -31,6 +61,8 @@ class Connection
    bool recv_return(char* &buffer);
 
    bool hasError();
+
+   int getFD();
 };
 
 Connection *getConnection();
@@ -106,6 +138,7 @@ class RemoteOutputDriver : public TestOutputDriver {
   public:
 
    RemoteOutputDriver(Connection *c);
+   ~RemoteOutputDriver();
    virtual void startNewTest(std::map<std::string, std::string> &attributes, TestInfo *test, RunGroup *group);
    virtual void redirectStream(TestOutputStream stream, const char * filename);
    virtual void logResult(test_results_t result, int stage=-1);
@@ -116,3 +149,64 @@ class RemoteOutputDriver : public TestOutputDriver {
 };
 
 bool sendRawString(Connection *c, std::string s);
+
+class MessageBuffer
+{
+private:
+   char *buffer;
+   unsigned int size;
+   unsigned int cur;
+public:
+   MessageBuffer() :
+      buffer(NULL),
+      size(0),
+      cur(0)
+   {
+   }
+
+   ~MessageBuffer() 
+   {
+      if (buffer)
+         free(buffer);
+      buffer = NULL;
+   }
+
+   void add(const char *b, unsigned int b_size)
+   {
+      if (!buffer) {
+         size = (b_size * 2);
+         buffer = (char *) malloc(size);
+      }
+      if (cur + b_size > size) {
+         while (cur + b_size > size)
+            size *= 2;
+         buffer = (char *) realloc(buffer, size);
+      }
+      memcpy(buffer+cur, b, b_size);
+      cur += b_size;
+   }
+
+   char *get_buffer() const {
+      char *new_buffer = (char *) malloc(cur*2);
+      memset(new_buffer, 0xab, cur*2);
+      memcpy(new_buffer, buffer, cur);
+      return new_buffer;
+   }
+
+   unsigned int get_buffer_size() const {
+      return cur;
+   }
+};
+
+char *decodeInt(int i, char *buffer);
+char *decodeBool(bool &b, char *buffer);
+char *decodeString(std::string &str, char *buffer);
+void encodeInt(int i, MessageBuffer &buf);
+void encodeString(std::string str, MessageBuffer &buf);
+void encodeBool(bool b, MessageBuffer &buf);
+char *my_strtok(char *str, const char *delim);
+
+bool sendEnv(Connection *c);
+bool sendArgs(char **args, Connection *c);
+bool sendLDD(Connection *c, std::string libname, std::string &result);
+bool sendGo(Connection *c);

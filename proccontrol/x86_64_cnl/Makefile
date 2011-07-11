@@ -43,3 +43,4 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
+VPATH += ../../common/src
