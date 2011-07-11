@@ -42,6 +42,7 @@
 
 class installed_breakpoint;
 class HandlerPool;
+class HandleCallbacks;
 class emulated_singlestep;
 
 namespace Dyninst {
@@ -79,10 +80,10 @@ class EventSingleStep;
 class EventBreakpointClear;
 class EventBreakpointRestore;
 class EventLibrary;
-class EventRPCInternal;
+class EventRPCLaunch;
 class EventAsync;
 class EventChangePCStop;
-class EventDetached;
+class EventDetach;
 class EventIntBootstrap;
 class EventNop;
 class EventPrepSingleStep;
@@ -94,6 +95,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    friend void dyn_detail::boost::checked_delete<const Event>(const Event *);
    friend class ::HandlerPool;
    friend class ::int_process;
+   friend class ::HandleCallbacks;
  public:
    typedef dyn_detail::boost::shared_ptr<Event> ptr;
    typedef dyn_detail::boost::shared_ptr<const Event> const_ptr;
@@ -118,14 +120,15 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    void setThread(Thread::const_ptr t);
    void setProcess(Process::const_ptr p);
    void setSyncType(SyncType t);
-
    void setSuppressCB(bool b);
+
    virtual bool suppressCB() const;
    virtual bool triggersCB() const;
    virtual bool canFastHandle() const;
-   virtual bool procStopper() const;
    virtual bool userEvent() const;
    virtual void setUserEvent(bool b);
+   virtual bool procStopper() const;
+
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
 
@@ -180,8 +183,8 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventRPC> getEventRPC();
    dyn_detail::boost::shared_ptr<const EventRPC> getEventRPC() const;
 
-   dyn_detail::boost::shared_ptr<EventRPCInternal> getEventRPCInternal();
-   dyn_detail::boost::shared_ptr<const EventRPCInternal> getEventRPCInternal() const;
+   dyn_detail::boost::shared_ptr<EventRPCLaunch> getEventRPCLaunch();
+   dyn_detail::boost::shared_ptr<const EventRPCLaunch> getEventRPCLaunch() const;
 
    dyn_detail::boost::shared_ptr<EventSingleStep> getEventSingleStep();
    dyn_detail::boost::shared_ptr<const EventSingleStep> getEventSingleStep() const;
@@ -201,8 +204,8 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
    dyn_detail::boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
 
-   dyn_detail::boost::shared_ptr<EventDetached> getEventDetached();
-   dyn_detail::boost::shared_ptr<const EventDetached> getEventDetached() const;
+   dyn_detail::boost::shared_ptr<EventDetach> getEventDetach();
+   dyn_detail::boost::shared_ptr<const EventDetach> getEventDetach() const;
 
    dyn_detail::boost::shared_ptr<EventIntBootstrap> getEventIntBootstrap();
    dyn_detail::boost::shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
@@ -215,7 +218,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventThreadDB> getEventThreadDB();
    dyn_detail::boost::shared_ptr<const EventThreadDB> getEventThreadDB() const;
-   
+ 
  protected:
    EventType etype;
    Thread::const_ptr thread;
@@ -226,6 +229,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    std::set<Handler *> handled_by;
    bool suppress_cb;
    bool user_event;
+   bool handling_started;
+   bool cb_started;
+   bool noted_event;
 };
 
 class EventTerminate : public Event
@@ -453,16 +459,16 @@ class EventRPC : public Event
    int_eventRPC *getInternal() const;
 };
 
-class EventRPCInternal : public Event
+class EventRPCLaunch : public Event
 {
-   friend void dyn_detail::boost::checked_delete<EventRPCInternal>(EventRPCInternal *);
-   friend void dyn_detail::boost::checked_delete<const EventRPCInternal>(const EventRPCInternal *);
+   friend void dyn_detail::boost::checked_delete<EventRPCLaunch>(EventRPCLaunch *);
+   friend void dyn_detail::boost::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *);
  public:
-   typedef dyn_detail::boost::shared_ptr<EventRPCInternal> ptr;
-   typedef dyn_detail::boost::shared_ptr<const EventRPCInternal> const_ptr;
-   virtual bool suppressCB() const;
-   EventRPCInternal();
-   virtual ~EventRPCInternal();
+   typedef dyn_detail::boost::shared_ptr<EventRPCLaunch> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventRPCLaunch> const_ptr;
+   virtual bool procStopper() const;
+   EventRPCLaunch();
+   virtual ~EventRPCLaunch();
 };
 
 class EventSingleStep : public Event
@@ -582,16 +588,20 @@ class EventChangePCStop : public Event
    ~EventChangePCStop();
 };
 
-
-class EventDetached : public Event
+class int_eventDetach;
+class EventDetach : public Event
 {
-   friend void dyn_detail::boost::checked_delete<EventDetached>(EventDetached *);
-   friend void dyn_detail::boost::checked_delete<const EventDetached>(const EventDetached *);
+   friend void dyn_detail::boost::checked_delete<EventDetach>(EventDetach *);
+   friend void dyn_detail::boost::checked_delete<const EventDetach>(const EventDetach *);
+   int_eventDetach *int_detach;
  public:
-   typedef dyn_detail::boost::shared_ptr<EventDetached> ptr;
-   typedef dyn_detail::boost::shared_ptr<const EventDetached> const_ptr;
-   EventDetached();
-   ~EventDetached();
+   typedef dyn_detail::boost::shared_ptr<EventDetach> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventDetach> const_ptr;
+
+   EventDetach();
+   ~EventDetach();
+   int_eventDetach *getInternal() const;
+   virtual bool procStopper() const;
 };
 
 class EventIntBootstrap : public Event
@@ -651,7 +661,6 @@ class EventThreadDB : public Event
    EventThreadDB();
    ~EventThreadDB();
 
-   virtual bool procStopper() const;
    virtual bool triggersCB() const;
 };
 

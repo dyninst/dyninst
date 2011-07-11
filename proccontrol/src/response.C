@@ -298,9 +298,6 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
 {
    pthrd_printf("Adding response %d of type %s to list of pending responses\n", r->getID(), r->name().c_str());
    Event::ptr ev = proc->handlerPool()->curEvent();
-   if (!ev) {
-      ev = proc->getInternalRPCEvent(); //May return NULL
-   }
    if (r->isSyncHandled)
       ev = Event::ptr();
 

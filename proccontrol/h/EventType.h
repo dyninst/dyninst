@@ -69,14 +69,15 @@ class EventType
    static const int InternalEvents      = 500;
    static const int BreakpointClear     = 500;
    static const int BreakpointRestore   = 501;
-   static const int RPCInternal         = 502;
-   static const int Async               = 503;
-   static const int ChangePCStop        = 504; // Used for bug_freebsd_change_pc
-   static const int PrepSingleStep      = 505;
+   static const int Async               = 502;
+   static const int ChangePCStop        = 503; // Used for bug_freebsd_change_pc
+   static const int PrepSingleStep      = 504;
+   static const int Detach              = 505;
    static const int Detached            = 506;
    static const int IntBootstrap        = 507;
    static const int Nop                 = 508;
    static const int ThreadDB            = 509;
+   static const int RPCLaunch           = 510;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

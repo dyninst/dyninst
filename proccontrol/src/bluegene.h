@@ -152,9 +152,6 @@ class bg_thread : public thread_db_thread
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
    virtual bool attach();   
 
-   virtual bool plat_suspend();
-   virtual bool plat_resume();
-
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
   private:

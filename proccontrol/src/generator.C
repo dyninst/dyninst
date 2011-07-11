@@ -171,37 +171,6 @@ bool Generator::getAndQueueEventInt(bool block)
    return result;
 }
 
-static bool allStopped(int_process *proc, void *)
-{
-   bool all_exited = true;
-   int_threadPool *tp = proc->threadPool();
-   assert(tp);
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-      if ((*i)->getGeneratorState() == int_thread::running ||
-          (*i)->getGeneratorState() == int_thread::neonatal_intermediate) 
-      {
-         pthrd_printf("Found running thread: %d/%d is %s\n", 
-                      proc->getPid(), (*i)->getLWP(), 
-                      int_thread::stateStr((*i)->getGeneratorState()));
-         return false;
-      }
-      if ((*i)->getGeneratorState() != int_thread::exited) {
-         all_exited = false;
-      }
-   }
-   if (all_exited) {
-      pthrd_printf("All threads are exited for %d, treating as stopped\n",
-                   proc->getPid());
-      return true;
-   }
-   if (proc->forceGeneratorBlock()) {
-      pthrd_printf("Process %d is forcing generator input\n", proc->getPid());
-      return false;
-   }
-   pthrd_printf("Checking for running process: %d is stopped\n", proc->getPid());
-   return true;
-}
-
 bool Generator::plat_skipGeneratorBlock()
 {
    //Default, do nothing.  May be over-written
@@ -210,11 +179,28 @@ bool Generator::plat_skipGeneratorBlock()
 
 bool Generator::hasLiveProc()
 {
-   ProcessPool *procpool = ProcPool();
    if (plat_skipGeneratorBlock()) {
       return true;
    }
-   return !procpool->for_each(allStopped, NULL);
+
+   int num_running_threads = Counter::globalCount(Counter::GeneratorRunningThreads);
+   int num_non_exited_threads = Counter::globalCount(Counter::GeneratorNonExitedThreads);
+   int num_force_generator_blocking = Counter::globalCount(Counter::ForceGeneratorBlock);
+
+   if (num_running_threads) {
+      pthrd_printf("Generator has running threads, returning true from hasLiveProc\n");
+      return true;
+   }
+   if (!num_non_exited_threads) {
+      pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
+      return false;
+   }
+   if (num_force_generator_blocking) {
+      pthrd_printf("Generator is forced into blocking state, returning true from hasLiveProc\n");
+      return true;
+   }
+   pthrd_printf("All threads stopped, returing false from hasLiveProc\n");
+   return false;
 }
 
 struct GeneratorMTInternals

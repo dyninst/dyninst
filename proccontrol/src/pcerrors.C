@@ -100,6 +100,9 @@ bool isHandlerThread() {
    return DThread::self() == handler_thrd_id;
 }
 
+bool isUserThread() {
+   return !isGeneratorThread() && !isHandlerThread();
+}
 err_t Dyninst::ProcControlAPI::getLastError()
 {
    return last_error;

@@ -42,98 +42,6 @@ using namespace std;
 extern FILE *debug_log;
 #define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
 
-#define PARAMETER_ARG "PARAMETER"
-#define TESTRESULT_ARG "TESTRESULT"
-#define STRING_ARG "STRING"
-#define GROUP_ARG "GROUP"
-#define TESTINFO_ARG "TESTINFO"
-#define BOOL_ARG "BOOL"
-#define INT_ARG "INT"
-
-#define COMPONENT_PROGRAM_SETUP "COMP_PROGSETUP"
-#define COMPONENT_PROGRAM_TEARDOWN "COMP_PROGTEARDOWN"
-#define COMPONENT_GROUP_SETUP "COMP_GROUPSETUP"
-#define COMPONENT_GROUP_TEARDOWN "COMP_GROUPTEARDOWN"
-#define COMPONENT_TEST_SETUP "COMP_TESTSETUP"
-#define COMPONENT_TEST_TEARDOWN "COMP_TESTTEARDOWN"
-#define COMPONENT_ERR_MSG "COMP_ERRMESSAGE"
-
-#define TEST_CUSTOM_PATH "TEST_CUSTOMPATH"
-#define TEST_SETUP "TEST_SETUP"
-#define TEST_EXECUTE "TEST_EXECUTE"
-#define TEST_POST_EXECUTE "TEST_POST_EXECUTE"
-#define TEST_TEARDOWN "TEST_TEARDOWN"
-
-#define LOAD_TEST "LOAD_TEST"
-#define LOAD_COMPONENT "LOAD_COMPONENT"
-#define RETURN "RETURN"
-#define LOG "LOG"
-#define EXIT_MSG "EXIT"
-
-#define SETENV "SETENV"
-
-static char *my_strtok(char *str, const char *delim);
-
-#define my_assert(bval) do { if (!(bval)) { if (debug_log) { fprintf(debug_log, "[%s:%u] - Failed my_assert: %s\n", __FILE__, __LINE__, #bval); fflush(debug_log); } *((int *) 0x0) = 0x0; } } while (0)
-static void crash_ifnot()
-{
-   *((int *) 0x0) = 0x0;
-}
-
-static void crash_ifnot(bool b)
-{
-   if (!b)
-      *((int *) 0x0) = 0x0;
-}
-
-class MessageBuffer
-{
-private:
-   char *buffer;
-   unsigned int size;
-   unsigned int cur;
-public:
-   MessageBuffer() :
-      buffer(NULL),
-      size(0),
-      cur(0)
-   {
-   }
-
-   ~MessageBuffer() 
-   {
-      if (buffer)
-         free(buffer);
-      buffer = NULL;
-   }
-
-   void add(const char *b, unsigned int b_size)
-   {
-      if (!buffer) {
-         size = (b_size * 2);
-         buffer = (char *) malloc(size);
-      }
-      if (cur + b_size > size) {
-         while (cur + b_size > size)
-            size *= 2;
-         buffer = (char *) realloc(buffer, size);
-      }
-      memcpy(buffer+cur, b, b_size);
-      cur += b_size;
-   }
-
-   char *get_buffer() const {
-      char *new_buffer = (char *) malloc(cur*2);
-      memset(new_buffer, 0xab, cur*2);
-      memcpy(new_buffer, buffer, cur);
-      return new_buffer;
-   }
-
-   unsigned int get_buffer_size() const {
-      return cur;
-   }
-};
-
 static void encodeParams(ParameterDict &params, MessageBuffer &buf)
 {
    std::string result;
@@ -180,7 +88,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
 {
    params.clear();
    char *cur = my_strtok(buffer, ":");
-   my_assert(strcmp(cur, PARAMETER_ARG) == 0);
+   assert(strcmp(cur, PARAMETER_ARG) == 0);
    
    for (;;) {
       cur = my_strtok(NULL, ":");
@@ -220,7 +128,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
          }
          default:
             debug_printf("BAD: %s %s %s %s\n", cur, key, type, value);
-            my_assert(0);
+            assert(0);
       }
       free(key);
       free(type);
@@ -240,75 +148,9 @@ static void encodeTestResult(test_results_t res, MessageBuffer &buf)
 static char *decodeTestResult(test_results_t &res, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   my_assert(strcmp(cur, TESTRESULT_ARG) == 0);
+   assert(strcmp(cur, TESTRESULT_ARG) == 0);
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", (int *) &res);
-   return strchr(buffer, ';')+1;
-}
-
-static void encodeInt(int i, MessageBuffer &buf)
-{
-   char s_buffer[64];
-   snprintf(s_buffer, 64, "%s:%d;", INT_ARG, i);
-   buf.add(s_buffer, strlen(s_buffer));
-}
-
-static char *decodeInt(int i, char *buffer)
-{
-   char *cur = my_strtok(buffer, ":;");
-   my_assert(strcmp(cur, INT_ARG) == 0);
-   cur = my_strtok(NULL, ":;");
-   sscanf(cur, "%d", (int *) &i);
-   return strchr(buffer, ';')+1;
-}
-
-static void encodeString(std::string str, MessageBuffer &buf)
-{
-   buf.add(STRING_ARG, strlen(STRING_ARG));
-   buf.add(":", 1);
-   if (!str.length())
-      buf.add("<EMPTY>", strlen("<EMPTY>"));
-   else
-      buf.add(str.c_str(), str.length());
-   buf.add(";", 1);
-}
-
-static char *decodeString(std::string &str, char *buffer)
-{
-   my_assert(strncmp(buffer, STRING_ARG, strlen(STRING_ARG)) == 0);
-   char *cur = my_strtok(buffer, ";");
-   cur += strlen(STRING_ARG)+1;
-   if (strncmp(cur, "<EMPTY>", strlen("<EMPTY>")) == 0)
-      str = std::string();
-   else
-      str = std::string(cur);
-   return strchr(buffer, ';')+1;
-}
-
-static void encodeBool(bool b, MessageBuffer &buf)
-{
-   buf.add(BOOL_ARG, strlen(BOOL_ARG));
-   buf.add(":", 1);
-   string str = b ? "true" : "false";
-   buf.add(str.c_str(), str.length());
-   buf.add(";", 1);
-}
-
-static char *decodeBool(bool &b, char *buffer)
-{
-   char *cur = my_strtok(buffer, ":;");
-   my_assert(strcmp(cur, BOOL_ARG) == 0);
-   cur = my_strtok(NULL, ":;");
-   string str = std::string(cur);
-   if (str == "true") {
-      b = true;
-   }
-   else if (str == "false") {
-      b = false;
-   }
-   else {
-      my_assert(0);
-   }
    return strchr(buffer, ';')+1;
 }
 
@@ -322,11 +164,11 @@ static void encodeGroup(RunGroup *group, MessageBuffer &buf)
 static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   my_assert(strcmp(cur, GROUP_ARG) == 0);
+   assert(strcmp(cur, GROUP_ARG) == 0);
    int group_index;
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   my_assert(group_index >= 0 && group_index < groups.size());
+   assert(group_index >= 0 && group_index < groups.size());
    group = groups[group_index];
    return strchr(buffer, ';')+1;
 }
@@ -341,17 +183,17 @@ static void encodeTest(TestInfo *test, MessageBuffer &buf)
 static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffer)
 {
    char *cur = my_strtok(buffer, ":;");
-   my_assert(strcmp(cur, TESTINFO_ARG) == 0);
+   assert(strcmp(cur, TESTINFO_ARG) == 0);
    int group_index, test_index;
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
-   my_assert(group_index >= 0 && group_index < groups.size());
+   assert(group_index >= 0 && group_index < groups.size());
    RunGroup *group = groups[group_index];
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &test_index);
-   my_assert(test_index >= 0 && test_index < group->tests.size());
+   assert(test_index >= 0 && test_index < group->tests.size());
    
    test = group->tests[test_index];
 
@@ -382,12 +224,6 @@ static void load_header(MessageBuffer &buffer, std::string name)
    buffer.add("L;", 2);
    buffer.add(name.c_str(), name.length());
    buffer.add(";", 1);
-}
-
-static void exit_header(MessageBuffer &buffer)
-{
-   buffer.add("X;", 2);
-   buffer.add(EXIT_MSG, strlen(EXIT_MSG));
 }
 
 static void return_header(MessageBuffer &buffer)
@@ -601,9 +437,17 @@ test_results_t RemoteTestFE::setup(ParameterDict &params)
    test_header(test, buffer, TEST_SETUP);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) {
+      logerror("Mutatee died during setup/send message\n");
+      return CRASHED;
+   }
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) {
+      logerror("Mutatee died during setup/recv return\n");
+      return CRASHED;
+   }
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -617,10 +461,17 @@ test_results_t RemoteTestFE::executeTest()
    MessageBuffer buffer;
    test_header(test, buffer, TEST_EXECUTE);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) {
+      logerror("Mutatee died during executeTest/send message\n");
+      return CRASHED;
+   }
    char *result_msg;
-   connection->recv_return(result_msg);
-
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) {
+      logerror("Mutatee died during executeTest/recv return\n");
+      return CRASHED;
+   }
    test_results_t result;
    decodeTestResult(result, result_msg);
 
@@ -632,9 +483,17 @@ test_results_t RemoteTestFE::postExecution()
    MessageBuffer buffer;
    test_header(test, buffer, TEST_POST_EXECUTE);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) {
+      logerror("Mutatee died during postExecution/send message\n");
+      return CRASHED;
+   }
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) {
+      logerror("Mutatee died during postExecution/recv return\n");
+      return CRASHED;
+   }
 
    test_results_t result;
    decodeTestResult(result, result_msg);
@@ -647,9 +506,17 @@ test_results_t RemoteTestFE::teardown()
    MessageBuffer buffer;
    test_header(test, buffer, TEST_TEARDOWN);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) {
+      logerror("Mutatee died during teardown/send message\n");
+      return CRASHED;
+   }
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) {
+      logerror("Mutatee died during postExecution/recv return\n");
+      return CRASHED;
+   }
 
    test_results_t result;
    decodeTestResult(result, result_msg);
@@ -713,7 +580,7 @@ void RemoteBE::dispatch(char *message)
    }
    else {
       debug_printf("Failed to dispatch message %s\n", message);
-      my_assert(0);
+      assert(0);
    }
 }
 
@@ -729,7 +596,7 @@ void RemoteBE::dispatchLoad(char *message)
       setenv_on_local(message);
    }
    else {
-      my_assert(0);
+      assert(0);
    }
 }
 
@@ -775,7 +642,7 @@ void RemoteBE::dispatchTest(char *message)
       encodeTestResult(res, buffer);
    }
    else 
-      my_assert(0);
+      assert(0);
 
    connection->send_message(buffer);
 
@@ -792,7 +659,7 @@ void RemoteBE::dispatchComp(char *message)
    args = strchr(args, ';')+1;
    
    ComponentTester *compbe = getComponentBE(name);
-   my_assert(compbe);
+   assert(compbe);
 
    MessageBuffer buffer;
    return_header(buffer);
@@ -847,7 +714,7 @@ void RemoteBE::dispatchComp(char *message)
 
 void RemoteBE::setenv_on_local(char *message)
 {
-   my_assert(strncmp(message, SETENV, strlen(SETENV)) == 0);
+   assert(strncmp(message, SETENV, strlen(SETENV)) == 0);
    char *args = strchr(message, ';')+1;
 
    std::string var, str;
@@ -882,7 +749,7 @@ static std::string getLocalComponentName(std::string modname)
 ComponentTester *RemoteBE::getComponentBE(std::string name)
 {
    map<string, ComponentTester *>::iterator i = nameToComponent.find(getLocalComponentName(name));
-   my_assert(i != nameToComponent.end());
+   assert(i != nameToComponent.end());
    return i->second;
 }
 
@@ -890,12 +757,12 @@ TestMutator *RemoteBE::getTestBE(int group_index, int test_index)
 {
    map<pair<int, int>, TestMutator *>::iterator i;
    i = testToMutator.find(pair<int, int>(group_index, test_index));
-   my_assert(i != testToMutator.end());
+   assert(i != testToMutator.end());
    return i->second;
 }
 
 void RemoteBE::loadModule(char *message) {
-   my_assert(strncmp(message, LOAD_COMPONENT, strlen(LOAD_COMPONENT)) == 0);
+   assert(strncmp(message, LOAD_COMPONENT, strlen(LOAD_COMPONENT)) == 0);
    char *args = strchr(message, ';')+1;
 
    bool error = false;
@@ -919,7 +786,7 @@ void RemoteBE::loadModule(char *message) {
             }
             if (!comp)
                comp = group->mod->tester;
-            my_assert(comp == group->mod->tester);
+            assert(comp == group->mod->tester);
          }
       }
       nameToComponent[modname] = comp;
@@ -933,7 +800,7 @@ void RemoteBE::loadModule(char *message) {
 }
 
 void RemoteBE::loadTest(char *message) {
-   my_assert(strncmp(message, LOAD_TEST, strlen(LOAD_TEST)) == 0);
+   assert(strncmp(message, LOAD_TEST, strlen(LOAD_TEST)) == 0);
    char *args = strchr(message, ';')+1;
    
    TestInfo *test;
@@ -967,22 +834,22 @@ void RemoteBE::loadTest(char *message) {
 
 void RemoteOutputDriver::startNewTest(std::map<std::string, std::string> &, TestInfo *, RunGroup *)
 {
-   my_assert(0); //Not expected to be called from BE
+   assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::redirectStream(TestOutputStream stream, const char * filename)
 {
-   my_assert(0); //Not expected to be called from BE   
+   assert(0); //Not expected to be called from BE   
 }
 
 void RemoteOutputDriver::logResult(test_results_t result, int stage)
 {
-   my_assert(0); //Not expected to be called from BE
+   assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::logCrash(std::string testname)
 {
-   my_assert(0); //Not expected to be called from BE
+   assert(0); //Not expected to be called from BE
 }
 
 void RemoteOutputDriver::log(TestOutputStream stream, const char *fmt, ...)
@@ -1009,7 +876,7 @@ void RemoteOutputDriver::vlog(TestOutputStream stream, const char *fmt, va_list 
 
 void RemoteOutputDriver::finalizeOutput()
 {
-   my_assert(0); //Not expected to be called from BE
+   assert(0); //Not expected to be called from BE
 }
 
 RemoteOutputDriver::RemoteOutputDriver(Connection *c) :
@@ -1017,382 +884,107 @@ RemoteOutputDriver::RemoteOutputDriver(Connection *c) :
 {
 }
 
-static void handle_message(char *buffer) {
-   TestOutputStream stream;
-   std::string string;
-
-   buffer = decodeInt(stream, buffer);
-   decodeString(string, buffer);
-   logerror(string.c_str());
-}
-
-#define SOCKTYPE_UNIX
-
-bool Connection::recv_return(char* &buffer) {
-   char *msg;
-   for (;;) {
-      bool result = recv_message(msg);
-      if (!result)
-         return false;
-   
-      if (*msg == 'R') {
-         buffer = msg+2;
-         return true;
-      }
-      if (*msg == 'M') {
-         handle_message(msg+2);
-      }
-   }
-}
-
-#include <sys/time.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-int Connection::sockfd = -1;
-std::string Connection::hostname;
-int Connection::port;
-bool Connection::has_hostport = false;
-
-Connection::Connection() :
-   fd(-1),
-   has_error(false)
+RemoteOutputDriver::~RemoteOutputDriver()
 {
-}
-
-Connection::Connection(std::string hostname_, int port_) :
-   fd(-1)
-{
-   hostname = hostname_;
-   port = port_;
-   has_hostport = true;
-
-   has_error = !client_connect();
-}
-
-Connection::~Connection()
-{
-   MessageBuffer buf;
-   exit_header(buf);
-   send_message(buf);
-
-   if (fd != -1)
-      close(fd);
-}
-
-bool Connection::hasError()
-{
-   return has_error;
-}
-
-bool Connection::send_message(MessageBuffer &buffer)
-{
-   buffer.add("\0", 1);
-
-   uint32_t msg_size_unenc = buffer.get_buffer_size();
-   my_assert(msg_size_unenc == strlen(buffer.get_buffer())+1);
-   uint32_t msg_size = htonl(msg_size_unenc);
-
-   ssize_t result = send(fd, &msg_size, sizeof(uint32_t), 0);
-   if (result == -1) {
-      debug_printf("[%s:%u] - Error sending data count on socket\n", __FILE__, __LINE__);
-      return false;
-   }
-   debug_printf("[%d] - Send size of %lu, (encoded 0x%lx)\n", 
-           getpid(), (unsigned long) msg_size_unenc, (unsigned long) msg_size);
-   
-   result = send(fd, buffer.get_buffer(), msg_size_unenc, 0);
-   if (result == -1) {
-     debug_printf("[%s:%u] - Error sending raw data on socket\n", __FILE__, __LINE__);
-      return false;
-   }
-  debug_printf("[%d] - Sent buffer %s\n", getpid(), buffer.get_buffer());
-   return true;
-}
-
-bool Connection::recv_message(char* &buffer)
-{
-   static char *cur_buffer = NULL;
-   static int cur_buffer_size = 0;
-   bool sock_error;
-
-   if (!waitForAvailData(fd, recv_timeout, sock_error))
-      return false;
-   if (sock_error) {
-     debug_printf("[%d] - Recv sock exception\n", getpid());
-   }
-   
-   uint32_t msg_size = 0, enc_msg_size = 0;
-   ssize_t result;
-   result = recv(fd, &enc_msg_size, sizeof(uint32_t), MSG_WAITALL);
-   if (result == -1) {
-      int errornum = errno;
-      debug_printf("Error receiving data size on socket: %s\n", strerror(errornum));
-      return false;
-   }
-   if (result == 0) {
-      debug_printf("[%d] - Recv zero, other size shutdown.\n", getpid());
-      return false;
-   }
-   msg_size = ntohl(enc_msg_size);
-   debug_printf("[%d] - Recv size of %lu, (encoded 0x%lx, result = %d)\n", 
-                getpid(), (unsigned long) msg_size, enc_msg_size, (int) result);
-
-   my_assert(msg_size < (1024*1024)); //No message over 1MB--should be plenty
-   
-   if (msg_size == 0) {
-      //Other side hung up.
-      return false;
-   }
-
-   if (msg_size > cur_buffer_size) {
-      if (cur_buffer)
-         free(cur_buffer);
-      cur_buffer = NULL;
-   }
-   if (cur_buffer == NULL) {
-      cur_buffer_size = msg_size+1;
-      cur_buffer = (char *) malloc(cur_buffer_size);
-   }
-   memset(cur_buffer, 0, cur_buffer_size);
-
-   result = recv(fd, cur_buffer, msg_size, MSG_WAITALL);
-   if (result == -1) {
-      debug_printf("[%s:%u] - Error receiving data on socket\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   buffer = cur_buffer;
-   debug_printf("[%d] - Recv of buffer %s\n", getpid(), buffer);
-
-   return true;
-}
-
-bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
-{
-   fd_set readfds;
-   fd_set exceptfds;
-   fd_set writefds;
-   FD_ZERO(&readfds);
-   FD_ZERO(&exceptfds);
-   FD_ZERO(&writefds);
-   FD_SET(sock, &readfds);
-   FD_SET(sock, &exceptfds);
-
-   struct timeval timeout;
-   timeout.tv_sec = timeout_s;
-   timeout.tv_usec = 0;
-   sock_error = false;
-
-   for (;;) {
-      int result = select(sock+1, &readfds, &writefds, &exceptfds, &timeout);
-      if (result == -1 && errno == EINTR) 
-         continue;
-      else if (result == -1) {
-         debug_printf("[%s:%u] - Error selecting to accept connections\n", __FILE__, __LINE__);
-         return false;
-      }
-      else if (result == 0) {
-         debug_printf("[%s:%u] - Timeout accepting connections\n", __FILE__, __LINE__);
-         return false;
-      }
-      else if (result >= 1) {
-         if (FD_ISSET(sock, &readfds) && FD_ISSET(sock, &exceptfds)) {
-            sock_error = true;
-            return true;
-         }
-         if (FD_ISSET(sock, &readfds)) {
-            return true;
-         }
-         if (FD_ISSET(sock, &exceptfds)) {
-            sock_error = true;
-            return false;
-         }
-         my_assert(0);
-      }      
-      else {
-         my_assert(0);
-      }
-   }
-}
-
-bool Connection::server_accept()
-{
-   struct sockaddr_in addr;
-   socklen_t socklen = sizeof(struct sockaddr_in);
-   bool sock_error;
-
-   if (!waitForAvailData(sockfd, accept_timeout, sock_error))
-      return false;
-       
-   my_assert(fd == -1); //One connection at a time.
-
-   fd = accept(sockfd, (sockaddr *) &addr, &socklen);
-   if (fd == -1) {
-     debug_printf("[%s:%u] - Error accepting connection\n", __FILE__, __LINE__);
-      return false;
-   }
-   
-   return true;
-}
-
-bool Connection::client_connect()
-{
-   debug_printf("Trying client_connect to %s:%d\n", hostname.c_str(), port);
-
-   my_assert(has_hostport);
-   fd = socket(PF_INET, SOCK_STREAM, 0);
-   if (fd == -1) {
-      debug_printf("Unable to create client socket: %s\n", strerror(errno));
-      return false;
-   }
-
-   debug_printf("Trying to get hostname for %s\n", hostname.c_str());
-   struct hostent *host = gethostbyname2(hostname.c_str(), AF_INET);
-   if (!host) {
-      debug_printf("Error looking up hostname %s\n", hostname.c_str());
-      return false;
-   }
-   my_assert(host->h_addrtype = AF_INET);
-
-   debug_printf("Got an %d addresses for hostname %s\n", host->h_length, hostname.c_str());
-   if (host->h_length == 0) {
-      debug_printf("No addresses with hostname %s\n", hostname.c_str());
-      return false;
-   } 
-
-   struct sockaddr_in addr;
-   struct in_addr iaddr;
-   bzero(&addr, sizeof(addr));
-   socklen_t socklen = sizeof(struct sockaddr_in);
-   addr.sin_family = AF_INET;
-   addr.sin_port = htons(port); 
-   iaddr.s_addr = htonl(*((int *) host->h_addr_list[0]));
-   addr.sin_addr = iaddr;
-   debug_printf("Connecting to %d.%d.%d.%d:%d\n", 
-                (int) (((char *) &addr.sin_addr)[0]),
-                (int) (((char *) &addr.sin_addr)[1]),
-                (int) (((char *) &addr.sin_addr)[2]),
-                (int) (((char *) &addr.sin_addr)[3]),
-                (int) addr.sin_port);
-
-   int result = connect(fd, (struct sockaddr *) &addr, socklen);
-   if (result == -1) {
-      debug_printf("[%s:%u] - Error connecting to server\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   debug_printf("Successfully connected to %s\n", hostname.c_str());
-   return true;
-}
-
-bool Connection::server_setup(string &hostname_, int &port_)
-{
-   if (has_hostport) {
-      hostname_ = hostname;
-      port_ = port;
-      my_assert(sockfd != -1);
-      return true;
-   }
-
-   sockfd = socket(PF_INET, SOCK_STREAM, 0);
-   if (sockfd == -1) {
-     debug_printf("Unable to create socket: %s\n", strerror(errno));
-      return false;
-   }
-   
-   struct sockaddr_in addr;
-   socklen_t socklen = sizeof(struct sockaddr_in);
-   
-   memset(&addr, 0, socklen);
-   addr.sin_family = AF_INET;
-   addr.sin_port = 0;
-   addr.sin_addr.s_addr = INADDR_ANY;
-   
-   int result = bind(sockfd, (struct sockaddr *) &addr, socklen);
-   if (result != 0){
-     debug_printf("Unable to bind socket: %s\n", strerror(errno));
-      return false;
-   }
-   
-   result = listen(sockfd, 16);
-   if (result == -1) {
-     debug_printf("Unable to listen on socket: %s\n", strerror(errno));
-      return false;
-   }
-
-   result = getsockname(sockfd, (sockaddr *) &addr, &socklen);
-   if (result != 0) {
-      debug_printf("[%s:%u] - Unable to getsockname on socket\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   char *override_name = getenv("DYNINST_TESTSERVER_HOST");
-   if (override_name) {
-      hostname = override_name;
-   }
-   else {
-      char name_buffer[1024];
-      result = gethostname(name_buffer, 1024);
-      if (result != 0) {
-         debug_printf("[%s:%u] - Unable to get hostname\n", __FILE__, __LINE__);
-         return false;
-      }
-      hostname = name_buffer;
-#if defined(os_bg_test)
-      std::string iohostname = hostname + "-io";
-      struct hostent *lookup_test = gethostbyname2(iohostname.c_str(), AF_INET);
-      if (lookup_test) {
-         hostname = iohostname;
-      }
-#endif
-   }
-
-   port = (int) addr.sin_port;
-
-   hostname_ = hostname;
-   port_ = port;
-   has_hostport = true;
-   return true;
-}
-
-static Connection *con = NULL;
-Connection *getConnection()
-{
-   return con;
-}
-
-void setConnection(Connection *c)
-{
-   con = c;
-}
-
-static char *my_strtok(char *str, const char *delim)
-{
-   static char *my_str = NULL;
-   static char *save_ptr = NULL;
-   
-   if (str) {
-      char *backup_str = strdup(str);
-      if (my_str)
-         free(my_str);
-      my_str = backup_str;
-   }
-   else {
-      my_str = NULL;
-   }
-   
-   return strtok_r(my_str, delim, &save_ptr);
 }
 
 bool sendRawString(Connection *c, std::string s) {
    MessageBuffer mb;
    mb.add(s.c_str(), s.length());
    return c->send_message(mb);
+}
+
+bool sendEnv(Connection *c)
+{
+   static MessageBuffer buf;
+   static bool have_buf = false;
+   if (!have_buf) {
+      buf.add("E:", 2);
+
+      char env_size[16];
+      unsigned env_size_count = 0;
+      char **cur = environ;
+      while (*(cur++) != NULL) env_size_count++;
+      snprintf(env_size, 15, "%d", env_size_count);
+      buf.add(env_size, strlen(env_size));
+      buf.add(":", 1);
+
+      cur = environ;
+      while (*cur != NULL) {
+         char *curenv = *cur;
+         char *equal = strchr(curenv, '=');
+         buf.add(curenv, (unsigned int) (equal - curenv));
+         buf.add("", 1);
+         
+         curenv = equal+1;
+         unsigned int eval_size = strlen(curenv) + 1;
+         buf.add(curenv, eval_size);
+         curenv += eval_size;
+         cur++;
+      }
+
+      have_buf = true;
+   }
+
+   bool result = c->send_message(buf);
+   return result;
+}
+
+bool sendArgs(char **args, Connection *c)
+{
+   MessageBuffer buf;
+   buf.add("A:", 2);
+   
+   char args_size[16];
+   unsigned args_size_count = 0;
+   char **cur = args;
+   while (*(cur++) != NULL) args_size_count++;
+   snprintf(args_size, 15, "%d", args_size_count);
+   buf.add(args_size, strlen(args_size));
+   buf.add(":", 1);
+
+   cur = args;
+   while (*cur != NULL) {
+      char *curarg = *cur;
+      unsigned int curarg_size = strlen(curarg)+1;
+      buf.add(curarg, curarg_size);
+      cur++;
+   }
+
+   bool result = c->send_message(buf);
+   return result;
+}
+
+bool sendLDD(Connection *c, std::string libname, std::string &result)
+{
+   MessageBuffer buf;
+   buf.add("L:", 2);
+   buf.add(libname.c_str(), libname.length()+1);
+
+   bool bresult = c->send_message(buf);
+   if (!bresult)
+      return false;
+
+   char *buffer;
+   bresult = c->recv_message(buffer);
+   if (!bresult)
+      return false;
+   
+   result = std::string(buffer);
+   return true;
+}
+
+bool sendGo(Connection *c) {
+   MessageBuffer buf;
+   buf.add("G:", 2);
+   return c->send_message(buf);
+}
+
+void handle_message(char *buffer) {
+   TestOutputStream stream;
+   std::string string;
+
+   buffer = decodeInt(stream, buffer);
+   decodeString(string, buffer);
+   logerror(string.c_str());
 }

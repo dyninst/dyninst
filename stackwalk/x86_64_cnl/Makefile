@@ -22,7 +22,10 @@ SRCS = 	../src/linux-swk.C \
 	../src/x86-swk.C \
 	../src/symtab-swk.C \
 	../src/dbginfo-stepper.C \
+	../src/x86-wanderer.C \
+	../src/analysis_stepper.C \
 	../src/linuxbsd-swk.C \
+	../src/linux-x86-swk.C \
 	../../common/src/Elf_X.C
 
 # Include the module-specific Makefile, which defines everything about
@@ -37,7 +40,21 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
-LIBS	+= 
+
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+
+ifdef LIBELF_LIB
+LDFLAGS += -L$(LIBELF_LIB) -lelf
+endif
+ifdef LIBDWARF_LIB
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+endif
+
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as

@@ -63,7 +63,10 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    stype(unset),
    master_event(Event::ptr()),
    suppress_cb(false),
-   user_event(false)
+   user_event(false),
+   handling_started(false),
+   cb_started(false),
+   noted_event(false)
 {
 }
 
@@ -182,10 +185,10 @@ std::string EventType::name() const
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
       STR_CASE(BreakpointRestore);
-      STR_CASE(RPCInternal);
+      STR_CASE(RPCLaunch);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
-      STR_CASE(Detached);
+      STR_CASE(Detach);
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
       STR_CASE(PrepSingleStep);
@@ -292,9 +295,6 @@ EventBreakpoint::EventBreakpoint(int_eventBreakpoint *ibp_) :
    Event(EventType(EventType::None, EventType::Breakpoint)),
    int_bp(ibp_)
 {
-   if (procStopper()) {
-      int_bp->thrd->markDecodedProcStopperBP();
-   }
 }
 
 EventBreakpoint::~EventBreakpoint()
@@ -344,12 +344,34 @@ int_eventBreakpoint *EventBreakpoint::getInternal() const
 
 bool EventBreakpoint::procStopper() const
 {
+   int num_proc_stoppers = 0;
    installed_breakpoint *bp = int_bp->ibp;
+
    for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
-      if ((*i)->isProcessStopper())
+      if (!(*i)->isProcessStopper())
+         continue;
+      if (isGeneratorThread()) {
+         //We can call this during decode--don't set the states then.
          return true;
+      }
+      num_proc_stoppers++;
    }
-   return false;
+
+   if (!num_proc_stoppers) {
+      //The breakpoint is not a proc stopper.
+      return false;
+   }
+
+   int_process *proc = getProcess()->llproc();
+   int_thread *thrd = getThread()->llthrd();
+   if (!int_bp->stopped_proc) {
+      //Move the internal state of the process to be stopped.
+      thrd->getInternalState().desyncStateProc(int_thread::stopped);
+      int_bp->stopped_proc = true;
+   }
+   
+   //We return true if the event isn't ready
+   return !proc->getProcStopManager().processStoppedTo(int_thread::InternalStateID);
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -545,17 +567,26 @@ int_eventRPC *EventRPC::getInternal() const
    return int_rpc;
 }
 
-bool EventRPCInternal::suppressCB() const
+bool EventRPCLaunch::procStopper() const
 {
-   return true;
+   int_process *proc = getProcess()->llproc();
+   int_thread *thrd = getThread()->llthrd();
+
+   int_iRPC::ptr rpc = thrd->nextPostedIRPC();
+   assert(rpc);
+   if (rpc->isProcStopRPC()) {
+      return !rpc->isRPCPrepped();
+   }
+   return !proc->getProcStopManager().threadStoppedTo(thrd, int_thread::IRPCSetupStateID);
+
 }
 
-EventRPCInternal::EventRPCInternal() :
-   Event(EventType(EventType::None, EventType::RPCInternal))
+EventRPCLaunch::EventRPCLaunch() :
+   Event(EventType(EventType::None, EventType::RPCLaunch))
 {
 }
 
-EventRPCInternal::~EventRPCInternal()
+EventRPCLaunch::~EventRPCLaunch()
 {
 }
 
@@ -588,7 +619,8 @@ int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 
 bool EventBreakpointClear::procStopper() const
 {
-   return true;
+   int_process *proc = getProcess()->llproc();
+   return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
 }
 
 EventBreakpointRestore::EventBreakpointRestore(int_eventBreakpointRestore *iebpr) :
@@ -672,13 +704,28 @@ EventChangePCStop::~EventChangePCStop()
 {
 }
 
-EventDetached::EventDetached() :
-   Event(EventType(EventType::None, EventType::Detached))
+EventDetach::EventDetach() :
+   Event(EventType(EventType::None, EventType::Detach))
 {
+   int_detach = new int_eventDetach();
 }
 
-EventDetached::~EventDetached()
+EventDetach::~EventDetach()
 {
+   if (int_detach)
+      delete int_detach;
+   int_detach = NULL;
+}
+
+int_eventDetach *EventDetach::getInternal() const
+{
+   return int_detach;
+}
+
+bool EventDetach::procStopper() const
+{
+   int_process *proc = getProcess()->llproc();
+   return !proc->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
 }
 
 EventIntBootstrap::EventIntBootstrap(void *d) :
@@ -721,7 +768,9 @@ EventPrepSingleStep::~EventPrepSingleStep()
 }
 
 bool EventPrepSingleStep::procStopper() const {
-    return true;
+#warning fix EventPrepSingleStep
+   assert(0); 
+   return true;
 }
 
 emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
@@ -745,11 +794,6 @@ int_eventThreadDB *EventThreadDB::getInternal() const
    return int_etdb;
 }
 
-bool EventThreadDB::procStopper() const
-{
-   return true;
-}
-
 bool EventThreadDB::triggersCB() const
 {
    EventType::Time ev_times[] = { EventType::None, EventType::Pre, EventType::Post };
@@ -766,7 +810,8 @@ bool EventThreadDB::triggersCB() const
 int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr) :
    ibp(i),
    addr(a),
-   thrd(thr)
+   thrd(thr),
+   stopped_proc(false)
 {
 }
 
@@ -784,51 +829,6 @@ int_eventBreakpointClear::int_eventBreakpointClear() :
 int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
-
-void int_eventBreakpointClear::getBPTypes(set<pair<installed_breakpoint *, int_thread *> > &bps_to_clear,
-                                          set<pair<installed_breakpoint *, int_thread *> > &bps_to_restore)
-{
-   if (cached_bp_sets) {
-      bps_to_clear = bps_to_clear_cached;
-      bps_to_restore = bps_to_restore_cached;
-      return;
-   }
-   cached_bp_sets = true;
-
-   for (set<Thread::ptr>::iterator i = clearing_threads.begin(); i != clearing_threads.end(); i++) {
-      Thread::ptr thr = *i;
-      if (!thr || !thr->llthrd()) {
-         pthrd_printf("Thread exited or detached before breakpoint clear\n");
-         continue;
-      }
-      int_thread *llthrd = thr->llthrd();
-
-      installed_breakpoint *ibp = llthrd->isClearingBreakpoint();
-      pthrd_printf("Checking what to do with breakpoint on Thread %d/%d\n", 
-                   llthrd->llproc()->getPid(), llthrd->getLWP());
-
-      if (!ibp->isInstalled()) {
-         pthrd_printf("Breakpoint 0x%lx not installed, not clearing nor restoring\n", ibp->getAddr());
-         continue;
-      }
-
-      pthrd_printf("Going to clear breakpoint at 0x%lx\n", ibp->getAddr());
-      bps_to_clear.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
-
-      for (installed_breakpoint::iterator j = ibp->begin(); j != ibp->end(); j++) {
-         if ((*j)->isOneTimeBreakpoint() && (*j)->isOneTimeBreakpointHit()) {
-            pthrd_printf("One time breakpoint has been hit, not going to restore\n");
-            continue;
-         }
-         pthrd_printf("Found breakpoint to restore after clear\n");
-         bps_to_restore.insert(pair<installed_breakpoint *, int_thread *>(ibp, llthrd));
-         break;
-      }
-   }
-   bps_to_clear_cached = bps_to_clear;
-   bps_to_restore_cached = bps_to_restore;
-}
-
 
 int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
    bp(breakpoint_)
@@ -897,6 +897,17 @@ int_eventThreadDB::~int_eventThreadDB()
 {
 }
 
+int_eventDetach::int_eventDetach() :
+   temporary_detach(false),
+   removed_bps(false),
+   done(false)
+{
+}
+
+int_eventDetach::~int_eventDetach()
+{
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -948,10 +959,10 @@ DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
 DEFN_EVENT_CAST(EventBreakpointRestore, BreakpointRestore)
 DEFN_EVENT_CAST(EventLibrary, Library)
-DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
+DEFN_EVENT_CAST(EventRPCLaunch, RPCLaunch)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
-DEFN_EVENT_CAST(EventDetached, Detached)
+DEFN_EVENT_CAST(EventDetach, Detach)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop);
 DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)

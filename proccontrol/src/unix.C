@@ -122,15 +122,16 @@ void unix_process::plat_execv() {
 bool unix_process::post_forked()
 {
    ProcPool()->condvar()->lock();
+
    int_thread *thrd = threadPool()->initialThread();
    //The new process is currently stopped, but should be moved to 
    // a running state when handlers complete.
    pthrd_printf("Setting state of initial thread after fork in %d\n",
                 getPid());
-   thrd->setGeneratorState(int_thread::stopped);
-   thrd->setHandlerState(int_thread::stopped);
-   thrd->setInternalState(int_thread::running);
-   thrd->setUserState(int_thread::running);
+   thrd->getGeneratorState().setState(int_thread::stopped);
+   thrd->getHandlerState().setState(int_thread::stopped);
+   thrd->getUserState().setState(int_thread::running);
+
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 

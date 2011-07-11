@@ -146,17 +146,16 @@ ps_err_e ps_lstop(struct ps_prochandle *handle, lwpid_t lwp) {
    }
    pthrd_printf("ps_lstop on %d/%d\n", proc->getPid(), thr->getLWP());
    
-   if (thr->getInternalState() == int_thread::stopped) {
+   if (thr->getInternalState().getState() == int_thread::stopped) {
       return PS_OK;
    }
-   else if (thr->getInternalState() != int_thread::running) {
+   else if (thr->getInternalState().getState() != int_thread::running) {
       perr_printf("Error, ps_lstop on thread in bad state\n");
       return PS_ERR;
    }
+
+   thr->getInternalState().setState(int_thread::stopped);
    
-   if( !thr->intStop() ) {
-      return PS_ERR;
-   }
    return PS_OK;
 }
 
@@ -172,17 +171,15 @@ ps_err_e ps_lcontinue(struct ps_prochandle *handle, lwpid_t lwp) {
    }
    pthrd_printf("ps_lcontinue on %d/%d\n", proc->getPid(), thr->getLWP());
    
-   if (thr->getInternalState() == int_thread::running) {
+   if (thr->getInternalState().getState() == int_thread::running) {
       return PS_OK;
    }
-   else if (thr->getInternalState() != int_thread::stopped) {
+   else if (thr->getInternalState().getState() != int_thread::stopped) {
       perr_printf("Error, ps_lcontinue on thread in bad state\n");
       return PS_ERR;
    }
    
-   if( !thr->intCont() ) {
-      return PS_ERR;
-   }
+   thr->getInternalState().setState(int_thread::stopped);
    return PS_OK;
 }
 
@@ -488,6 +485,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
          EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Pre));
          new_ev->setProcess(proc());
          new_ev->setThread(thr->thread());
+         new_ev->setSyncType(Event::sync_thread);
 
          return new_ev;
       }
@@ -712,7 +710,7 @@ async_ret_t thread_db_process::initThreadDB() {
       return aret_async;
    }
 
-   pthrd_printf("handleThreadAttach for %d threads\n", all_handles.size());
+   pthrd_printf("handleThreadAttach for %d threads\n", (int) all_handles.size());
    for (set<pair<td_thrhandle_t *, LWP> >::iterator i = all_handles.begin(); i != all_handles.end(); i++)
    {
       async_ret_t result = handleThreadAttach(i->first, i->second);
@@ -1400,17 +1398,6 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
    thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
    pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
    thrd->markDestroyed();
-
-   if (ev->getEventType().time() == EventType::Post) {
-      // Need to make sure that the thread actually finishes and is cleaned up
-      // by the OS
-      if( thrd->getInternalState() != int_thread::detached ) {
-         if( !thrd->plat_resume() ) {
-            perr_printf("Failed to resume LWP %d\n", thrd->getLWP());
-            return Handler::ret_error;
-         }
-      }
-   }
 
    return Handler::ret_success;
 }

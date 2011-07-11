@@ -352,11 +352,11 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
 #if defined(RUN_IN_VALGRIND) 
    string driver_exec = "valgrind";
    driver_args.push_back("--tool=memcheck");
-   driver_args.push_back("testdriver_be2");
+   driver_args.push_back("testdriver_wrapper");
 #else
    static char buffer[4096];
    char *wd = getcwd(buffer, 4096);
-   strncat(wd, "/testdriver_be2", 4096);
+   strncat(wd, "/testdriver_wrapper", 4096);
    string driver_exec = wd;
 #endif
    char port_s[32];
@@ -365,13 +365,14 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    driver_args.push_back(hostname);
    driver_args.push_back("-port");
    driver_args.push_back(port_s);
-#if !defined(os_bg_test)
-   //Work-around BG bug where you have a limited number of command line args.
-   // We'll send the arguments over the network connection down below.
-   for (unsigned i=0; i<gargc; i++) {
-      driver_args.push_back(gargv[i]);
+   driver_args.push_back("-remote");
+   char *redirect_file = params["redirect"]->getString();
+   if (redirect_file && *redirect_file != '\0') {
+      driver_args.push_back("-redirect-debug");
+      driver_args.push_back(redirect_file);
    }
-#endif
+   assert(driver_args.size() <= 12); //BlueGene restriction
+
    char **c_driver_args = getCParams(driver_exec, driver_args);
 
    bool attach_mode = (group->createmode == USEATTACH);
@@ -383,22 +384,46 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
       return false;
    }
 
-#if defined(os_bg_test)
-   //See above comment on BG bug
-   std::string arg_str("A:");
-   unsigned i = 0;
-   for (;;) {
-      arg_str += gargv[i++];
-      if (i >= gargc)
-         break;
-      arg_str += " ";
-
-   }
-   result = sendRawString(con, arg_str);
+   result = sendEnv(con);
    if (!result) {
+      fprintf(stderr, "Failed to send environment to client\n");
       return false;
    }
-#endif
+
+   //Work-around BG bug where you have a limited number of command line args.
+   // We'll send the rest of the arguments over the network connection down below.
+   result = sendArgs(gargv, con);
+   if (!result) {
+      fprintf(stderr, "Failed to send exec arguments to client\n");
+      return false;
+   }
+
+   if (strcmp("/dev/null", params["logfilename"]->getString()) != 0)
+   {
+      std::string ldd_result;
+      char libname_cstr[256];
+      const char *lname = group->modname.c_str();
+      if (strncmp(lname, "remote::", strlen("remote::")) == 0) {
+         lname += strlen("remote::");
+      }
+      snprintf(libname_cstr, 256, "libtest%s.so", lname);
+      std::string libname(libname_cstr);
+
+      result = sendLDD(con, libname, ldd_result);
+      if (!result) {
+         fprintf(stderr, "Failed to send ldd to client\n");
+      }
+      else {
+         getOutput()->log(LOGINFO, "%s", ldd_result.c_str());
+      }
+   }
+
+   result = sendGo(con);
+   if (!result) {
+      fprintf(stderr, "Failed to start client\n");
+      return false;
+   }
+   
    return true;
 }
 
@@ -781,7 +806,22 @@ bool testsRemain(std::vector<RunGroup *> &groups)
    return false;
 }
 
+bool isRemoteDriver(int argc, char *argv[]) {
+   for (unsigned i=0; i<argc; i++) {
+      if (strcmp(argv[i], "-remote") == 0) {
+         return true;
+      }
+   }
+   return false;
+}
+
+extern int be_main(int argc, char *argv[]);
+
 int main(int argc, char *argv[]) {
+   if (isRemoteDriver(argc, argv)) {
+      return be_main(argc, argv);
+   }
+
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
 

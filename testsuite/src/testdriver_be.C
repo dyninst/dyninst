@@ -38,8 +38,8 @@
 
 #include <vector>
 #include <string>
+extern FILE *debug_log;
 
-FILE *debug_log = NULL;
 using namespace std;
 
 #include <sys/time.h>
@@ -120,7 +120,7 @@ void init_lmon(int *argc, char ***argv)
 }
 #endif
 
-static void getPortAndHostname(int argc, char *argv[], int &port, std::string &hostname)
+static void getPortHostnameFD(int argc, char *argv[], int &port, std::string &hostname, int &fd)
 {
    for (unsigned i=0; i<argc; i++) {
       if (strcmp(argv[i], "-hostname") == 0) {
@@ -129,32 +129,13 @@ static void getPortAndHostname(int argc, char *argv[], int &port, std::string &h
       if (strcmp(argv[i], "-port") == 0) {
          port = atoi(argv[++i]);
       }
+      if (strcmp(argv[i], "-socket_fd") == 0) {
+         fd = atoi(argv[++i]);
+      }
    }
 }
 
-static bool receiveArgs(Connection &connection, int &new_argc, char** &new_argv)
-{
-   std::vector<char *> args;
-   char *buffer = NULL;
-   bool result = connection.recv_message(buffer);
-   if (!result)
-      return false;
-   assert(strncmp(buffer, "A:", 2) == 0);
-
-   char *entry;
-   for (entry = strtok(buffer+2, " "); entry != NULL; entry = strtok(NULL, " "))
-      args.push_back(entry);
-
-   new_argc = args.size();
-   new_argv = (char **) malloc((new_argc+1) * sizeof(char *));
-   for (unsigned i=0; i<new_argc; i++) {
-      new_argv[i] = strdup(args[i]);
-   }
-   new_argv[new_argc] = NULL;
-   return true;
-}
-
-int main(int argc, char *argv[])
+int be_main(int argc, char *argv[])
 {
    ParameterDict params;
    vector<RunGroup *> groups;
@@ -163,48 +144,13 @@ int main(int argc, char *argv[])
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
    int result = setrlimit(RLIMIT_CORE, &infin);
-   log_printf("[%s:%u] - result from setrlimit was %d: %s\n", __FILE__, __LINE__,
-              result, strerror(result));
-    
-/*
-   if (!getenv("LD_DEBUG")) {
-      setenv("LD_DEBUG", "all", 1);
-      setenv("LD_DEBUG_OUTPUT", "/g/g0/legendre/ld_debug_output", 1);
-      execv(argv[0], argv);
-   }
-*/
-   /*
-   static volatile int spin = 0;
-   fprintf(stderr, "testdriver_be running as %d\n", getpid());
-   while (!spin)
-   {
-      sleep(1);
-   }
-   */
-/*
-   system("/bin/cp /lib/libm.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libgcc_s.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libc.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libdl.so.2 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/ld.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnsl.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libnss_files.so.2 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libpthread.so.0 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libstdc++.so.6 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-   system("/bin/cp /lib/libthread_db.so.1 /g/g0/legendre/tools/dyninst/githead/dyninst/testsuite/ppc32_bgp_ion/io_libs/lib");
-*/
-   debug_log = fopen("/g/g0/legendre/driver_output", "w");
-   int debug_fd = fileno(debug_log);
-   close(1);
-   close(2);
-   dup2(debug_fd, 1);
-   dup2(debug_fd, 2);
 
    init_lmon(&argc, &argv);
 
    int port;
    string hostname;
-   getPortAndHostname(argc, argv, port, hostname);
+   int fd = -1;
+   getPortHostnameFD(argc, argv, port, hostname, fd);
    if (port == 0 || !hostname.length()) {
       log_printf("[%s:%u] - No connection info.  port = %d, hostname = %s\n",
               __FILE__, __LINE__, port, hostname.c_str());
@@ -212,34 +158,21 @@ int main(int argc, char *argv[])
    }
 
   log_printf("[%s:%u] - Connecting to %s:%d\n", __FILE__, __LINE__, hostname.c_str(), port);
-  Connection connection(hostname, port);
-   if (connection.hasError()) {
-      log_printf("[%s:%u] - Error connecting to FE\n",
-              __FILE__, __LINE__);
-      if (debug_log) fclose(debug_log);
-      return -1;
-   }
+  Connection connection(hostname, port, fd);
+  if (connection.hasError()) {
+     log_printf("[%s:%u] - Error connecting to FE\n",
+                __FILE__, __LINE__);
+     if (debug_log) fclose(debug_log);
+     return -1;
+  }
 
    RemoteOutputDriver remote_output(&connection);
    setOutput(&remote_output);
 
 
    log_printf("[%s:%u] - Connection established--ready to recv\n", __FILE__, __LINE__);
-   int new_argc;
-   char **new_argv;
 
-#if defined(os_bg_test)
-   bool bresult = receiveArgs(connection, new_argc, new_argv);
-   if (!bresult) {
-      log_printf("[%s:%u] - Unable to receive argument list\n", __FILE__, __LINE__);
-      return -1;
-   }
-#else
-   new_argc = argc;
-   new_argv = argv;
-#endif
-
-   parseArgs(new_argc, new_argv, params);
+   parseArgs(argc, argv, params);
    getGroupList(groups, params);
    
    RemoteBE remotebe(groups, &connection);

@@ -377,7 +377,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 0
+#if 1
             //Debugging code
             if (stopsig == 11) {
                Dyninst::MachRegisterVal addr;
@@ -395,7 +395,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          event->setSyncType(Event::sync_thread);
    }
    else if ((WIFEXITED(status) || WIFSIGNALED(status)) && 
-            (!proc || !thread || thread->getGeneratorState() == int_thread::exited)) 
+            (!proc || !thread || thread->getGeneratorState().getState() == int_thread::exited)) 
    {
       //This can happen if the debugger process spawned the 
       // child, but then detached.  We recieve the child process
@@ -417,7 +417,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       event->setSyncType(Event::async);
       event->setThread(thread->thread());
       lproc->decodeTdbLWPExit(lwp_ev);
-      thread->setGeneratorState(int_thread::exited);
+      thread->getGeneratorState().setState(int_thread::exited);
    }
    else if (WIFEXITED(status) || WIFSIGNALED(status)) {
       if (WIFEXITED(status)) {
@@ -441,7 +441,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       event->setSyncType(Event::sync_process);
       int_threadPool::iterator i = proc->threadPool()->begin();
       for (; i != proc->threadPool()->end(); i++) {
-         (*i)->setGeneratorState(int_thread::exited);
+         (*i)->getGeneratorState().setState(int_thread::exited);
       }
    }
 
@@ -577,7 +577,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    int_process(p, e, a, envp, f),
    sysv_process(p, e, a, envp, f),
    unix_process(p, e, a, envp, f),
-   thread_db_process(p, e, a, envp, f)
+   thread_db_process(p, e, a, envp, f),
+   indep_lwp_control_process(p, e, a, envp, f)
 {
 }
 
@@ -585,7 +586,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   thread_db_process(pid_, p)
+   thread_db_process(pid_, p),
+   indep_lwp_control_process(pid_, p)
 {
 }
 
@@ -895,7 +897,6 @@ void linux_thread::fake_async_main(void *)
          
          pthrd_printf("Enqueueing Async event with subservient %s to mailbox\n", ev->name().c_str());
          mbox()->enqueue(async_ev, true);
-         MTManager::eventqueue_cb_wrapper();
       }
       
       getResponses().signal();
@@ -964,19 +965,23 @@ int_process::ThreadControlMode linux_process::plat_getThreadControlMode() const 
 bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);
-   switch (handler_state) {
+   switch (getHandlerState().getState()) {
       case neonatal:
       case running:
       case exited:
       case errorstate:
       case detached:
          perr_printf("Continue attempted on thread in invalid state %s\n", 
-                     int_thread::stateStr(handler_state));
+                     int_thread::stateStr(handler_state.getState()));
          return false;
       case neonatal_intermediate:
       case stopped:
          //OK
          break;
+      case none:
+      case dontcare:
+      case ditto:
+         assert(0);
    }
 
    // The following case poses a problem:
@@ -1003,16 +1008,21 @@ bool linux_thread::plat_cont()
    int result;
    if (singleStep())
    {
-      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", tmpSignal);
+      pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
    }
    else 
    {
-      pthrd_printf("Calling PTRACE_CONT with signal %d\n", tmpSignal);
+      pthrd_printf("Calling PTRACE_CONT on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
    }
    if (result == -1) {
       int error = errno;
+      if (error == ESRCH) {
+         pthrd_printf("Continue attempted on exited thread %d\n", lwp);
+         setLastError(err_exited, "Continue on exited thread");
+         return false;
+      }
       perr_printf("low-level continue failed: %s\n", strerror(error));
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
@@ -1100,7 +1110,7 @@ bool linux_thread::plat_stop()
 {
    bool result;
 
-   assert(pending_stop);
+   assert(pending_stop.local());
    result = t_kill(lwp, SIGSTOP);
    if (!result) {
       int err = errno;
@@ -1154,10 +1164,8 @@ bool linux_process::plat_individualRegAccess()
    return true;
 }
 
-bool linux_process::plat_detach(bool &needs_sync)
+bool linux_process::plat_detach(result_response::ptr)
 {
-   //ProcPool lock should be held.
-   needs_sync = false;
    int_threadPool *tp = threadPool();
    bool had_error = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
@@ -1209,7 +1217,7 @@ bool linux_process::preTerminate() {
     // events being delivered to the debugger, so we stop the process and disable these
     // events for all threads in the process
 
-    if( !threadPool()->allStopped() ) {
+    if (!threadPool()->allHandlerStopped()) {
         pthrd_printf("Stopping process %d for pre-terminate handling\n",
                 getPid());
         if( !threadPool()->userStop() ) {
@@ -1798,7 +1806,6 @@ bool linux_thread::attach()
                    "be auto-attached.\n", llproc()->getPid(), lwp);
       return true;
    }
-   assert(getInternalState() == neonatal || getInternalState() == neonatal_intermediate);
 
    pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n", 
                 llproc()->getPid(), lwp);
@@ -2059,10 +2066,7 @@ Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
     // If there is a pending stop, need to handle it here because there is
     // no guarantee that the stop will ever be received
     if( thrd->hasPendingStop() ) {
-        thrd->setInternalState(int_thread::stopped);
-        if (thrd->hasPendingUserStop()) {
-            thrd->setUserState(int_thread::stopped);
-        }
+       thrd->setPendingStop(false);
     }
 
     return ret_success;

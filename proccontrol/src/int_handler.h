@@ -69,6 +69,7 @@ class HandlerPool
 
    static bool hasProcAsyncPending();
    void markEventAsyncPending(Event::ptr ev);
+   
    void addLateEvent(Event::ptr ev);
    Event::ptr curEvent() const;
  private:
@@ -78,6 +79,10 @@ class HandlerPool
    void addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const;
    void collectLateEvents(Event::ptr parent_ev);
    bool hasLateEvents() const;
+
+   bool insertAsyncPendingEvent(Event::ptr ev);
+   bool removeAsyncPendingEvent(Event::ptr ev);
+
    Event::ptr getRealParent(Event::ptr ev) const;
 
    std::set<Event::ptr> pending_async_events;
@@ -139,6 +144,17 @@ class HandlePostExit : public Handler
 
    virtual void getEventTypesHandled(vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+class HandlePostExitCleanup : public Handler
+{
+  public:
+   HandlePostExitCleanup();
+   ~HandlePostExitCleanup();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
 };
 
 class HandlePreExit : public Handler
@@ -203,6 +219,17 @@ class HandlePostFork : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
+class HandlePostForkCont : public Handler
+{
+  public:
+   HandlePostForkCont();
+   ~HandlePostForkCont();
+
+  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual handler_ret_t handleEvent(Event::ptr ev);
+  virtual int getPriority() const;
+};
+
 class HandlePostExec : public Handler
 {
   public:
@@ -236,12 +263,12 @@ class HandleBreakpoint : public Handler
 class HandleBreakpointContinue : public Handler
 {
   public:
-  HandleBreakpointContinue();
-  ~HandleBreakpointContinue();
-
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
-  virtual handler_ret_t handleEvent(Event::ptr ev);
-  virtual int getPriority() const;
+   HandleBreakpointContinue();
+   ~HandleBreakpointContinue();
+   
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
 };
 
 class HandleBreakpointClear : public Handler
@@ -274,20 +301,11 @@ class HandleLibrary : public Handler
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
-class HandleRPCInternal : public Handler
+class HandleDetach : public Handler
 {
   public:
-   HandleRPCInternal();
-   ~HandleRPCInternal();
-   
-   virtual handler_ret_t handleEvent(Event::ptr ev);
-   virtual void getEventTypesHandled(std::vector<EventType> &etypes);   
-};
-
-class HandleDetached : public Handler
-{
-   HandleDetached();
-   ~HandleDetached();
+   HandleDetach();
+   ~HandleDetach();
    
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
@@ -351,7 +369,7 @@ class HandleCallbacks : public Handler
   bool removeCallback(EventType et);
   bool removeCallback(Process::cb_func_t func);
 
-  bool deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset);
+  Handler::handler_ret_t deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset);
   
   bool requiresCB(Event::const_ptr ev);
 

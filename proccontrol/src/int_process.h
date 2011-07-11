@@ -86,6 +86,59 @@ class mem_state
    std::map<Dyninst::Address, unsigned long> inf_malloced_memory;
 };
 
+class Counter {
+  public:
+   static const int NumCounterTypes = 11;
+   enum CounterType {
+      HandlerRunningThreads = 0,
+      GeneratorRunningThreads = 1,
+      SyncRPCs = 2,
+      SyncRPCRunningThreads = 3,
+      PendingStops = 4,
+      ClearingBPs = 5,
+      ProcStopRPCs = 6,
+      AsyncEvents = 7,
+      ForceGeneratorBlock = 8,
+      GeneratorNonExitedThreads = 9,
+      TeardownProcesses = 10
+   };
+
+   Counter(CounterType ct_);
+   ~Counter();
+
+   void inc();
+   void dec();
+
+   bool local() const;
+   int localCount() const;
+   static bool global(CounterType ct);
+   static int globalCount(CounterType ct);
+
+  private:
+   int local_count;
+   CounterType ct;
+
+   void adjust(int val);
+
+   static Mutex locks[NumCounterTypes];
+   static int global_counts[NumCounterTypes];
+};
+
+class ProcStopEventManager {
+  private:
+   int_process *proc;
+   std::set<Event::ptr> held_pstop_events;
+  public:
+   ProcStopEventManager(int_process *p);
+   ~ProcStopEventManager();
+
+   bool prepEvent(Event::ptr ev);
+   void checkEvents();
+
+   bool processStoppedTo(int state_id);
+   bool threadStoppedTo(int_thread *thr, int state_id);
+};
+
 class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
@@ -110,8 +163,10 @@ class int_process
    bool attachThreads();
    virtual bool post_attach(bool wasDetached);
 
-
    bool initializeAddressSpace();
+
+   virtual bool plat_syncRunState() = 0;
+   bool syncRunState();
 
   public:
 
@@ -124,7 +179,6 @@ class int_process
 
    void setContSignal(int sig);
    int getContSignal() const;
-   bool continueProcess();
    virtual bool plat_contProcess();
 
    virtual bool forked();
@@ -134,9 +188,9 @@ class int_process
 
   public:
    bool execed();
+   virtual bool plat_detach(result_response::ptr resp) = 0;
   protected:
    virtual bool plat_execed();
-   virtual bool plat_detach(bool &needs_sync) = 0;
    virtual bool plat_terminate(bool &needs_sync) = 0;
 
    virtual bool needIndividualThreadAttach() = 0;
@@ -165,9 +219,9 @@ class int_process
    Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   void setDoingTemporaryDetach(bool b);
-   bool isDoingTemporaryDetach() const;
-   bool detach(bool &should_clean, bool temporary);
+   //Detach is static because proc could be cleaned 
+   static bool detach(int_process *proc, bool temporary);
+
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
@@ -183,7 +237,12 @@ class int_process
    static bool waitForAsyncEvent(response::ptr resp);
    static bool waitForAsyncEvent(std::set<response::ptr> resp);
 
+   Counter &asyncEventCount();
+   Counter &getForceGeneratorBlockCount();
+   Counter &getTeardownProcs();
+
    static const char *stateName(State s);
+
    void initializeProcess(Process::ptr p);
 
    void setExitCode(int c);
@@ -193,10 +252,6 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
-   void addProcStopper(Event::ptr ev);
-   Event::ptr getProcStopper();
-   void removeProcStopper();
-   bool hasQueuedProcStoppers() const;
 
    int getAddressWidth();
    HandlerPool *handlerPool() const;
@@ -251,6 +306,9 @@ class int_process
    static bool isInCB();
    static void setInCB(bool b);
 
+   void throwNopEvent();
+   void throwRPCPostEvent();
+
    virtual bool plat_supportThreadEvents();
    virtual bool plat_supportLWPEvents();
    virtual bool plat_supportFork();
@@ -270,21 +328,14 @@ class int_process
    virtual bool plat_isStaticBinary() = 0;
    virtual int_library *plat_getExecutable() = 0;
 
-   bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
 
-   void setAllowInternalRPCEvents(int_thread *thr);
-   EventRPCInternal::ptr getInternalRPCEvent();
-   
    std::string getExecutable() const;
    static bool isInCallback();
-   bool useHybridLWPControl(bool check_mt = true) const;
-
-   void addPendingBPClearEvent(int_thread *thr);
-   Event::ptr getPendingBPClearEvent();
-   void clearPendingBPClearEvent();
 
    static int_process *in_waitHandleProc;
+
+   ProcStopEventManager &getProcStopManager();
  protected:
    State state;
    Dyninst::PID pid;
@@ -301,47 +352,37 @@ class int_process
    bool hasCrashSignal;
    int crashSignal;
    bool hasExitCode;
-   bool forceGenerator;
    bool forcedTermination;
-   bool doingTemporaryDetach;
-   std::stack<int_thread *> allowInternalRPCEvents;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
-   std::queue<Event::ptr> proc_stoppers;
    int continueSig;
    memCache mem_cache;
-   EventBreakpointClear::ptr event_bp_clear;
+   Counter async_event_count;
+   Counter force_generator_block_count;
+   Counter teardown_procs;
+   ProcStopEventManager proc_stop_manager;
 };
 
-/*
- * Thread Control Modes (as defined above)
- *
- * Currently, there are 3 thread control modes: NoLWPControl, HybridLWPControl,
- * and IndependentLWPControl.
- *
- * NoLWPControl is currently unused. This mode implies that no operations can
- * be performed on just a LWP.
- *
- * HybridLWPControl is currently the mode on FreeBSD. This mode implies that
- * operations can be performed on LWPs, but the whole process needs to be
- * stopped before these operations can be performed. Additionally, it implies
- * that threads cannot be continued and stopped; they must be resumed and
- * suspended, and followed by a whole process continue. This means that the
- * plat_suspend, plat_resume, and plat_contProcess functions will be used to
- * implement thread stops and continues.
- *
- * IndependentLWPControl is currently the mode on Linux. This mode implies that
- * operations can be performed on LWPs independent of each other's state.
- */
+class indep_lwp_control_process : virtual public int_process
+{
+  protected:
+   virtual bool plat_syncRunState();
+  public:
+   indep_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                             std::vector<std::string> envp, std::map<int,int> f);
+   indep_lwp_control_process(Dyninst::PID pid_, int_process *p);
+   virtual ~indep_lwp_control_process();
+};
+
 class int_registerPool
 {
  public:
    int_registerPool();
    int_registerPool(const int_registerPool &c);
    ~int_registerPool();
-   
+
    typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal> reg_map_t;
    reg_map_t regs;
    bool full;
@@ -407,6 +448,7 @@ class proc_exitstate
 class int_thread
 {
    friend class int_threadPool;
+   friend class ProcStopEventManager;
  protected:
    int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    static int_thread *createThreadPlat(int_process *proc, 
@@ -423,53 +465,107 @@ class int_thread
 
    Dyninst::LWP getLWP() const;
 
+#define RUNNING_STATE(S) (S == int_thread::running || S == int_thread::neonatal_intermediate)
    typedef enum {
-      neonatal,
-      neonatal_intermediate,
-      running,
-      stopped,
-      exited,
-      detached,
-      errorstate
+      none=0,
+      neonatal=1,
+      neonatal_intermediate=2,
+      running=3,
+      stopped=4,
+      dontcare=5,
+      ditto=6,
+      exited=7,
+      detached=8,
+      errorstate=9
    } State;
+   //The order of these is very important.  Lower numbered
+   // states take precedence over higher numbered states.
+   static const int NumStateIDs = 14;
+   static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
+
+   static const int ExitingStateID          = 0;
+   static const int AsyncStateID            = 1;
+   static const int PendingStopStateID      = 2;
+   static const int IRPCStateID             = 3;
+   static const int IRPCSetupStateID        = 4;
+   static const int IRPCWaitStateID         = 5;
+   static const int BreakpointStateID       = 6;
+   static const int InternalStateID         = 7;
+   static const int BreakpointResumeStateID = 8;
+   static const int DetachStateID           = 9;
+   static const int CallbackStateID         = 10;
+   static const int UserStateID             = 11;
+   static const int HandlerStateID          = 12;
+   static const int GeneratorStateID        = 13;
+   static std::string stateIDToName(int id);
+
+   class StateTracker {
+     protected:
+      State state;
+      int id;
+      int sync_level;
+      int_thread *up_thr;
+     public:
+      StateTracker(int_thread *t, int id, int_thread::State initial);
+
+      void desyncState(State ns = int_thread::none);
+      void desyncStateProc(State ns = int_thread::none);
+
+      bool setState(State ns = int_thread::none);
+      bool setStateProc(State ns = int_thread::none);
+
+      void restoreState();
+      void restoreStateProc();
+      State getState() const;
+
+      std::string getName() const;
+      int getID() const;
+   };
 
    //State management, see above comment on states
-   State getHandlerState() const;
-   State getUserState() const;
-   State getGeneratorState() const;
-   State getInternalState() const;
-   bool setHandlerState(State s);
-   bool setUserState(State s);
-   bool setGeneratorState(State s);
-   bool setInternalState(State s);
-   void restoreInternalState(bool sync = true);
-   void desyncInternalState();
-   bool isDesynced() const;
+   StateTracker &getExitingState();
+   StateTracker &getBreakpointState();
+   StateTracker &getBreakpointResumeState();
+   StateTracker &getCallbackState();
+   StateTracker &getIRPCState();
+   StateTracker &getIRPCSetupState();
+   StateTracker &getIRPCWaitState();
+   StateTracker &getAsyncState();
+   StateTracker &getInternalState();
+   StateTracker &getDetachState();
+   StateTracker &getUserState();
+   StateTracker &getHandlerState();
+   StateTracker &getGeneratorState();
+   StateTracker &getPendingStopState();
 
+   StateTracker &getStateByID(int id);
+   StateTracker &getActiveState();
+   static char stateLetter(State s);
+
+   Counter &handlerRunningThreadsCount();
+   Counter &generatorRunningThreadsCount();
+   Counter &syncRPCCount();
+   Counter &runningSyncRPCThreadCount();
+   Counter &pendingStopsCount();
+   Counter &clearingBPCount();
+   Counter &procStopRPCCount();
+   Counter &getGeneratorNonExitedThreadCount();
+      
    //Process control
-   bool userCont();
-   bool userStop();
-   bool intStop(bool sync = true);
+   bool intStop();
    bool intCont();
 
    void setContSignal(int sig);
    int getContSignal();
-   bool contWithSignal(int sigOverride = -1);
+
    virtual bool plat_cont() = 0;
    virtual bool plat_stop() = 0;
-   void setPendingUserStop(bool b);
-   bool hasPendingUserStop() const;
    void setPendingStop(bool b);
    bool hasPendingStop() const;
-   void setResumed(bool b);
-   bool isResumed() const;
+
    bool wasRunningWhenAttached() const;
    void setRunningWhenAttached(bool b);
-
-   // Needed for HybridLWPControl thread control mode
-   // These can be no-ops for other modes
-   virtual bool plat_suspend() = 0;
-   virtual bool plat_resume() = 0;
+   bool isStopped(int state_id);
 
    //Single-step
    bool singleStepMode() const;
@@ -498,28 +594,14 @@ class int_thread
    void setRunningRPC(int_iRPC_ptr rpc_);
    void clearRunningRPC();
    int_iRPC_ptr runningRPC() const;
-   int_iRPC_ptr writingRPC() const;
-   void setWritingRPC(int_iRPC_ptr rpc);
    bool saveRegsForRPC(allreg_response::ptr response);
    bool restoreRegsForRPC(bool clear, result_response::ptr response);
    bool hasSavedRPCRegs();
-   bool runningInternalRPC() const;
    void incSyncRPCCount();
    void decSyncRPCCount();
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
-   int_iRPC_ptr hasRunningProcStopperRPC() const;
 
-   typedef enum {
-      hnp_post_async,
-      hnp_post_sync
-   } hnp_sync_t;
-   typedef enum {
-      hnp_allow_stop,
-      hnp_no_stop
-   } hnp_stop_t;
-
-   bool handleNextPostedIRPC(hnp_stop_t allow_stop, bool is_sync);
 
    //Register Management
    bool getAllRegisters(allreg_response::ptr result);
@@ -545,9 +627,7 @@ class int_thread
 
    void updateRegCache(int_registerPool &pool);
    void updateRegCache(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
-
-   bool hasPostponedContinue() const;
-   void setPostponedContinue(bool b);
+   void clearRegCache();
 
    // The exiting property is separate from the main state because an
    // exiting thread can either be running or stopped (depending on the
@@ -562,11 +642,12 @@ class int_thread
    //Misc
    virtual bool attach() = 0;
    Thread::ptr thread();
-   bool useHybridLWPControl(bool check_mt = true) const;
 
    typedef void(*continue_cb_t)(int_thread *thrd);
    static void addContinueCB(continue_cb_t cb);
    void triggerContinueCBs();
+
+   void throwEventsBeforeContinue();
 
    //User level thread info
    void setTID(Dyninst::THR_ID tid_);
@@ -580,11 +661,8 @@ class int_thread
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
 
-   void markDecodedProcStopperBP();
-   void markHandledProcStopperBP();
-   void clearProcStopperBPState();
-   bool decodedProcStopperBP() const;
-   bool handledProcStopperBP() const;
+   State getTargetState() const;
+   void setTargetState(State s);
 
  protected:
    Dyninst::THR_ID tid;
@@ -592,10 +670,34 @@ class int_thread
    int_process *proc_;
    Thread::ptr up_thread;
    int continueSig_;
-   State handler_state;
-   State user_state;
-   State generator_state;
-   State internal_state;
+
+   Counter handler_running_thrd_count;
+   Counter generator_running_thrd_count;
+   Counter sync_rpc_count;
+   Counter sync_rpc_running_thr_count;
+   Counter pending_stop;
+   Counter clearing_bp_count;
+   Counter proc_stop_rpc_count;
+   Counter generator_nonexited_thrd_count;
+
+   StateTracker exiting_state;
+   StateTracker pending_stop_state;
+   StateTracker callback_state;
+   StateTracker breakpoint_state;
+   StateTracker breakpoint_resume_state;
+   StateTracker irpc_setup_state;
+   StateTracker irpc_wait_state;
+   StateTracker irpc_state;
+   StateTracker async_state;
+   StateTracker internal_state;
+   StateTracker detach_state;
+   StateTracker user_state;
+   StateTracker handler_state;
+   StateTracker generator_state;
+   StateTracker *all_states[NumStateIDs];
+
+   State target_state;
+   State saved_user_state;
 
    int_registerPool cached_regpool;
    Mutex regpool_lock;
@@ -603,37 +705,17 @@ class int_thread
    int_iRPC_ptr writing_rpc;
    rpc_list_t posted_rpcs;
    int_registerPool rpc_regs;
-   unsigned sync_rpc_count;
-   bool pending_user_stop;
-   bool pending_stop;
-   bool resumed;
-   int num_locked_stops;
+
    bool user_single_step;
    bool single_step;
-   bool postponed_continue;
    bool handler_exiting_state;
    bool generator_exiting_state;
-   bool decoded_proc_stopper_bp;
-   bool handled_proc_stopper_bp;
+
    installed_breakpoint *stopped_on_breakpoint;
    installed_breakpoint *clearing_breakpoint;
    bool running_when_attached;
    std::set<emulated_singlestep *> singlesteps;
    MachRegisterVal pre_ss_pc;
-
-   bool setAnyState(int_thread::State *from, int_thread::State to);
-
-   //Stop/Continue
-   typedef enum {
-      sc_error,
-      sc_success,
-      sc_success_pending,
-      sc_skip
-   } stopcont_ret_t;
-   bool stop(bool user_stop, bool sync);
-   bool cont(bool user_cont);
-   stopcont_ret_t stop(bool user_stop);
-   stopcont_ret_t cont(bool user_cont, bool has_proc_lock);
 
    static std::set<continue_cb_t> continue_cbs;
 };
@@ -657,8 +739,6 @@ class int_threadPool {
    void setInitialThread(int_thread *thrd);
    void addThread(int_thread *thrd);
    void rmThread(int_thread *thrd);
-   void restoreInternalState(bool sync);
-   void desyncInternalState();
    void clear();
    bool hadMultipleThreads() const;
 
@@ -673,18 +753,11 @@ class int_threadPool {
 
    int_thread *findThreadByLWP(Dyninst::LWP lwp);
    int_thread *initialThread() const;
-   bool allStopped(); //Tests internal state
    bool allHandlerStopped();
+   bool allStopped(int state_id);
    
-   bool userCont();
-   bool userStop();
-   bool intStop(bool sync = true);
-   bool intCont();
-
-   bool useHybridLWPControl(bool check_mt = true) const;
- private:
-   bool cont(bool user_cont);
-   bool stop(bool user_stop, bool sync);
+   void saveUserState(Event::ptr ev);
+   void restoreUserState();
 };
 
 class int_library
@@ -872,6 +945,7 @@ extern void setGeneratorThread(long t);
 void setHandlerThread(long t);
 bool isGeneratorThread();
 bool isHandlerThread();
+bool isUserThread();
 HandlerPool *createDefaultHandlerPool(int_process *p);
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool);
 

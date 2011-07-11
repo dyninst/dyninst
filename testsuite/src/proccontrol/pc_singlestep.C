@@ -118,7 +118,7 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
    for (unsigned i = 0; i<NUM_FUNCS; i++) {
       if (pi.func[i] == loc) {
          if (ti.hit_funcs[i] != -1) {
-            logerror("Single step was executed twice");
+            logerror("Single step was executed twice\n");
             myerror = true;
          }
          ti.hit_funcs[i] = ti.order++;
