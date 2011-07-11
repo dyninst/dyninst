@@ -32,6 +32,8 @@
 #if !defined(PCERRORS_H_)
 #define PCERRORS_H_
 
+#define PROCCTRL_PRINT_TIMINGS 1
+
 #include <stdio.h>
 
 #define pclean_printf(format, ...) \
