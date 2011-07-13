@@ -343,7 +343,7 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
  */
 void *BPatch_point::getAddressInt()
 {
-    return (void *)point->nextExecutedAddr();
+    return (void *)point->addr_compat();
 }
 
 

@@ -404,7 +404,7 @@ void BPatch_function::getUnresolvedControlTransfers
          // jump or a direct jump
          mal_printf("WARNING: ambiguous point type translation for "
                     "insn at %lx, setting to locLongJump %s[%d]\n",
-                    point->nextExecutedAddr(), FILE__,__LINE__);
+                    point->addr_compat(), FILE__,__LINE__);
          ptType = BPatch_locLongJump;
       }
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
@@ -1004,6 +1004,12 @@ ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
   assert(func);
  
   return func->ifunc();
+}
+
+PatchAPI::PatchFunction * BPatch_function::getPatchAPIFuncInt() {
+  assert(func);
+ 
+  return func;
 }
 
 void BPatch_function::relocateFunction()

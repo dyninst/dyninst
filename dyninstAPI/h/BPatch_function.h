@@ -61,7 +61,12 @@ namespace Dyninst {
   namespace ParseAPI {
     class Function;
   };
+  namespace PatchAPI {
+     class PatchFunction;
+  };
 };
+
+
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -341,6 +346,8 @@ public:
     //  Get the underlying ParseAPI Function
     API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
 
+    // And the PatchAPI PatchFunction
+    API_EXPORT (Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));

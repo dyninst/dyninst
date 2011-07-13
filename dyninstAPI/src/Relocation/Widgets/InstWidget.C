@@ -56,7 +56,7 @@ TrackerElement *InstWidget::tracker() const {
    // Addr depends on the tramp type - pre, post, etc.
    // But we can't actually determine that with at-insn
    // instPs; fix when Wenbin fixes the instP data structure.
-   e = new InstTracker(point_->nextExecutedAddr(), point_->tramp(), point_->nextExecutedBlock(), point_->func());
+   e = new InstTracker(point_->addr_compat(), point_->tramp(), point_->block_compat(), point_->func());
    
    return e;
 }

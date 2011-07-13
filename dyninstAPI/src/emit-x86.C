@@ -617,7 +617,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
 
     if (saveOrigAddr) {
-       emitPushImm(bt->instP()->nextExecutedAddr(), gen);
+       emitPushImm(bt->instP()->addr_compat(), gen);
     }
     if (createFrame)
     {
@@ -2369,7 +2369,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    // push a return address for stack walking
    if (saveOrigAddr) {
       // FIXME use a scratch register!
-      emitMovImmToReg64(REGNUM_RAX, bt->instP()->nextExecutedAddr(), true, gen);
+      emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr_compat(), true, gen);
       emitPushReg64(REGNUM_RAX, gen);
       gen.markRegDefined(REGNUM_RAX);
       num_saved++;

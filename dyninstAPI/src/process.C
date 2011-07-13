@@ -3800,7 +3800,7 @@ bool process::isRuntimeHeapAddr(Address addr)
 Address process::stopThreadCtrlTransfer (instPoint* intPoint, 
                                          Address target)
 {
-   Address pointAddr = intPoint->nextExecutedAddr();
+   Address pointAddr = intPoint->addr_compat();
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
@@ -4544,7 +4544,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
         }
     }
     if (patchAreas.empty()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPoint->nextExecutedAddr());
+       mal_printf("no relocs to patch for call at %lx\n", callPoint->addr_compat());
     }
     return ! patchAreas.empty();
 }

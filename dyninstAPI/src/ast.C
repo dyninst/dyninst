@@ -1926,7 +1926,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     if (retReg == REG_NULL) return false;
 
     emitVload(loadConstOp, 
-              (Address) gen.point()->nextExecutedAddr(),
+              (Address) gen.point()->addr_compat(),
               retReg, retReg, gen, noCost);
     return true;
 }
@@ -2882,7 +2882,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->nextExecutedAddr();     //Offset of inst point from function base address
+    Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
     for(unsigned i=0; i< ranges_->size();i++){
         if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
             index = i;
