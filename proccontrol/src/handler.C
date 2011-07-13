@@ -280,12 +280,12 @@ bool HandlerPool::insertAsyncPendingEvent(Event::ptr ev)
       if (ev->getSyncType() == Event::Event::sync_thread) {
          int_thread *thr = ev->getThread()->llthrd();
          pthrd_printf("Desync'ing async thread state of %d/%d\n", proc->getPid(), thr->getLWP());
-         thr->getAsyncState().desyncState(int_thread::stopped);
+         thr->getAsyncState().desyncState(int_thread::ditto);
       }
       else {
          pthrd_printf("Desync'ing async process state of %d\n", proc->getPid());
          for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-            (*i)->getAsyncState().desyncState(int_thread::stopped);
+            (*i)->getAsyncState().desyncState(int_thread::ditto);
          }
       }
    }

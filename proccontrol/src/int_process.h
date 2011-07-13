@@ -376,6 +376,17 @@ class indep_lwp_control_process : virtual public int_process
    virtual ~indep_lwp_control_process();
 };
 
+class unified_lwp_control_process : virtual public int_process
+{
+  protected:
+   virtual bool plat_syncRunState();
+  public:
+   unified_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                             std::vector<std::string> envp, std::map<int,int> f);
+   unified_lwp_control_process(Dyninst::PID pid_, int_process *p);
+   virtual ~unified_lwp_control_process();
+};
+
 class int_registerPool
 {
  public:

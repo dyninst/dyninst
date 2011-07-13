@@ -50,7 +50,7 @@
 
 class ArchEventBlueGene;
 
-class bg_process : public sysv_process, public thread_db_process, public ppc_process
+class bg_process : public sysv_process, public thread_db_process, public ppc_process, public unified_lwp_control_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;
@@ -91,7 +91,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    virtual bool plat_attach(bool all_stopped);
    virtual bool plat_forked();
    virtual bool post_forked();
-   virtual bool plat_detach(bool &needs_sync);
+   virtual bool plat_detach(result_response::ptr resp);
    virtual bool plat_terminate(bool &needs_sync);
 
    virtual bool plat_needsAsyncIO() const;

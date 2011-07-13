@@ -1668,6 +1668,108 @@ indep_lwp_control_process::~indep_lwp_control_process()
 {
 }
 
+unified_lwp_control_process::unified_lwp_control_process(Dyninst::PID p, std::string e, 
+                                                         std::vector<std::string> a, 
+                                                         std::vector<std::string> envp, 
+                                                         std::map<int,int> f) :
+   int_process(p, e, a, envp, f)
+{
+}
+
+unified_lwp_control_process::unified_lwp_control_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p)
+{
+}
+
+unified_lwp_control_process::~unified_lwp_control_process()
+{
+}
+
+bool unified_lwp_control_process::plat_syncRunState()
+{
+   bool want_ss_running = false;
+   bool want_reg_running = false;
+   bool want_stopped = false;
+   bool has_change = false;
+   bool is_all_stopped = true;
+   bool is_all_running = true;
+
+   for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thr = *i;
+      int_thread::State handler_state = thr->getHandlerState().getState();
+      int_thread::State target_state = thr->getTargetState();
+
+      if (target_state == handler_state)
+         continue;
+      has_change = true;
+
+      if (RUNNING_STATE(target_state))
+         is_all_stopped = false;
+      else if (target_state == int_thread::stopped)
+         is_all_running = false;
+      else {
+         is_all_stopped = false;
+         is_all_running = false;
+      }
+
+      //The process threads are in a mixed running/stopped state
+      if (handler_state == int_thread::running && target_state == int_thread::stopped)
+         want_stopped = true;
+      else if (handler_state == int_thread::stopped && target_state == int_thread::running) {
+         if (thr->singleStep()) 
+            want_ss_running = true;
+         else 
+            want_reg_running = true;
+      }
+   }
+
+   if (!has_change) {
+      pthrd_printf("plat_syncRunState found no changes\n");
+      return true;
+   }
+
+   bool result = true;
+   if (want_ss_running) {
+      pthrd_printf("plat_syncRunState found single-stepping threads in %d, continuing those threads\n", getPid());
+      for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+         int_thread *thr = *i;
+         if (thr->singleStep() && thr->getHandlerState().getState() == int_thread::stopped &&
+             thr->getTargetState() == int_thread::running)
+         {
+            bool tresult = thr->intCont();
+            if (!tresult) {
+               pthrd_printf("plat_syncRunState single-step failed on %d/%d\n", getPid(), thr->getLWP());
+               result = false;
+            }
+         }
+      }
+   }
+   else if (is_all_running) {
+      pthrd_printf("plat_syncRunState found process running for %d, running all threads\n", getPid());
+      result = threadPool()->initialThread()->intCont();
+   }
+   else if (is_all_stopped) {
+      pthrd_printf("plat_syncRunState found process stop for %d, stopping all threads\n", getPid());
+      result = threadPool()->initialThread()->intStop();
+   }
+   else if (want_reg_running) {
+      pthrd_printf("plat_syncRunState found some threads running in %d, continuing all threads\n", getPid());
+      result = threadPool()->initialThread()->intCont();
+   }
+   else if (want_stopped) {
+      pthrd_printf("plat_syncRunState found some threads stopped in %d with none running, " 
+                   "stopping all threads\n", getPid());
+      result = threadPool()->initialThread()->intStop();
+   }
+   
+   if (!result) {
+      pthrd_printf("plat_syncRunState encountered error while stopping/continuing process %d\n", getPid());
+      return false;
+   }
+
+   return true;
+}
+
 int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    tid(t),
    lwp(l),

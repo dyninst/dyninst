@@ -616,7 +616,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    if (!thread) 
       thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
    
-   if (thread && thread->getGeneratorState() == int_thread::stopped &&
+   if (thread && thread->getGeneratorState().getState() == int_thread::stopped &&
        !messageAllowedOnStoppedProc(*archbg->getMsg()))
    {
       //We've recieved a non-ACK event on a stopped thread.  Unfortunately,
@@ -688,8 +688,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
          break;
       case DETACH_ACK:
          pthrd_printf("Decoded DETACH_ACK, creating Detached event\n");
-         new_event = EventDetached::ptr(new EventDetached());
-         new_event->setSyncType(Event::sync_process);
+#warning TODO: Ack for detach
          break;
       case PROGRAM_EXITED: {
          int code = msg->dataArea.PROGRAM_EXITED.type;
@@ -978,6 +977,7 @@ bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a
    sysv_process(p, e, a, envp, f),
    thread_db_process(p, e, envp, a, f),
    ppc_process(p, e, a, envp, f),
+   unified_lwp_control_process(p, e, a, envp, f),
    bootstrap_state(bg_init),
    pending_thread_alives(0)
 {
@@ -988,6 +988,7 @@ bg_process::bg_process(Dyninst::PID pid_, int_process *proc_) :
    sysv_process(pid_, proc_),
    thread_db_process(pid_, proc_),
    ppc_process(pid_, proc_),
+   unified_lwp_control_process(pid_, proc_),
    bootstrap_state(bg_init),
    pending_thread_alives(0)
 {
@@ -1041,8 +1042,10 @@ bool bg_process::post_forked()
    return false;
 }
 
-bool bg_process::plat_detach(bool &needs_sync)
+bool bg_process::plat_detach(result_response::ptr resp)
 {
+#warning TODO: Implement BG Detach
+/*
    pthrd_printf("Continuing process %d for plat detach", getPid());
    int_threadPool *tp = threadPool();
    bool result = tp->intCont();
@@ -1064,6 +1067,7 @@ bool bg_process::plat_detach(bool &needs_sync)
 
    needs_sync = true;
    return true;
+*/
 }
 
 bool bg_process::plat_terminate(bool &needs_sync)
@@ -1503,22 +1507,10 @@ bool bg_thread::plat_setRegisterAsync(Dyninst::MachRegister reg,
 bool bg_thread::attach()
 {
    pthrd_printf("Setting states for %d/%d to stopped\n", llproc()->getPid(), getLWP());
-   setGeneratorState(stopped);
-   setHandlerState(stopped);
-   setInternalState(stopped);
-   setUserState(stopped);
+   getGeneratorState().setState(stopped);
+   getHandlerState().setState(stopped);
+   getUserState().setState(stopped);
    return true;
-}
-
- 
-bool bg_thread::plat_suspend() 
-{ 
-   return true; 
-}
-
-bool bg_thread::plat_resume() 
-{ 
-   return true; 
 }
 
 bool bg_thread::decoderPendingStop()
