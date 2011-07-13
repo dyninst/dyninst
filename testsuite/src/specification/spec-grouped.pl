@@ -765,10 +765,7 @@ tests_module('test2_5', 'dyninst').
 
 test('test2_6', 'test2_6', 'test2_6').
 test_description('test2_6', 'Load a dynamically linked library from the mutatee').
-% test2_6 doesnt run on Windows
-test_platform('test2_6', Platform) :-
-    platform(_, OS, _, Platform),
-    OS \= 'windows'.
+test_runs_everywhere('test2_6').
 mutator('test2_6', ['test2_6.C']).
 mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
