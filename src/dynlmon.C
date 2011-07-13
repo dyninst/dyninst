@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cassert>
 #include "ParameterDict.h"
 #include "test_info_new.h"
 
@@ -50,6 +51,9 @@ static pid_t run_local(char **args)
 #include "lmon_api/lmon_fe.h"
 #include <signal.h>
 #include <sys/wait.h>
+
+#include "../common/h/dthread.h"
+#include "../common/src/dthread-unix.C"
 
 static char **getLaunchParams(char *executable, char *args[], const char *num, char * signal_file_name);
 static bool init_lmon();
@@ -118,7 +122,52 @@ bool collectInvocation(pid_t mpirun_pid, int session)
    return true;
 }
 
+typedef struct 
+{
+   int session;
+   int mpirun_pid;
+   char *launcher_host;
+   char **daemon_args;
+   char **test_args;
+   char *signal_file;
+   bool attach;
+} lmon_spawn_args;
 
+static DThread *lmon_thread;
+static lmon_spawn_args spawn_args;
+
+static void invokeLaunchMON_Spawn(void *opaque_args)
+{
+   lmon_rc_e rc;
+   lmon_spawn_args *a = (lmon_spawn_args *) opaque_args;
+   if (a->attach) {
+      waitForAttachReady(a->signal_file);
+      rc = LMON_fe_attachAndSpawnDaemons(a->session,
+                                         a->launcher_host,
+                                         a->mpirun_pid,
+                                         a->daemon_args[0],
+                                         a->daemon_args,
+                                         NULL, NULL);
+   }
+   else {
+      rc = LMON_fe_launchAndSpawnDaemons(a->session, 
+                                         a->launcher_host,
+                                         a->test_args[0],
+                                         a->test_args,
+                                         a->daemon_args[0],
+                                         a->daemon_args,
+                                         NULL, NULL);
+   }
+   free(a->test_args);
+}
+
+void waitForLaunchMONStartup()
+{
+   assert(lmon_thread);
+   lmon_thread->join();
+   delete lmon_thread;
+   lmon_thread = NULL;
+}
 
 int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &mpirun_pid)
 {
@@ -135,7 +184,6 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
       fprintf(stderr, "Failed to init launchmon\n");
       return -1;
    }
-
    if (attach) {
       snprintf(signal_file_name, 64, "/signal_file.%d", getpid());
       signal_file_name[63] = '\0';
@@ -146,40 +194,33 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 
       unlink(signal_file); //Ignore errors
    }
-
    char **new_test_args = getLaunchParams(test_args[0], test_args+1, "1", signal_file);
-
    rc = LMON_fe_createSession(&session);
    if (rc != LMON_OK) {
       fprintf(stderr, "Failed to create session\n");
       return -1;
    }
-
    char *launcher_host = NULL;
    if (params.find("launcher_host") != params.end())
       launcher_host = params["launcher_host"]->getString();
-
    if (attach) {
       mpirun_pid = run_local(new_test_args);
-      waitForAttachReady(signal_file);
-      rc = LMON_fe_attachAndSpawnDaemons(session,
-                                         launcher_host,
-                                         mpirun_pid,
-                                         daemon_args[0],
-                                         daemon_args,
-                                         NULL, NULL);
    }
-   else {
-      rc = LMON_fe_launchAndSpawnDaemons(session, 
-                                         launcher_host,
-                                         new_test_args[0],
-                                         new_test_args,
-                                         daemon_args[0],
-                                         daemon_args,
-                                         NULL, NULL);
+
+   assert(!lmon_thread);
+   lmon_thread = new DThread();
+   spawn_args.session = session;
+   spawn_args.mpirun_pid = mpirun_pid;
+   spawn_args.launcher_host = launcher_host;
+   spawn_args.daemon_args = daemon_args;
+   spawn_args.test_args = new_test_args;
+   spawn_args.signal_file = signal_file;
+   spawn_args.attach = attach;
+   bool result = lmon_thread->spawn(invokeLaunchMON_Spawn, &spawn_args);
+   if (!result) {
+      fprintf(stderr, "Failed to create launchMON thread\n");
+      return -1;
    }
-   
-   free(new_test_args);
 
    return session;
 }
@@ -292,6 +333,10 @@ int LMONInvoke(RunGroup *group, ParameterDict params, char *test_args[], char *d
 bool collectInvocation(pid_t /*mpirun_pid*/, int /*session*/)
 {
    return true;
+}
+
+void waitForLaunchMONStartup()
+{
 }
 
 #endif

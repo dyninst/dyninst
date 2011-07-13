@@ -33,8 +33,8 @@
 
 #define SOCKTYPE_UNIX
 extern FILE *debug_log;
-//#define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
-#define debug_printf(str, args...)
+#define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
+//#define debug_printf(str, args...)
 
 #include <sys/time.h>
 #include <sys/select.h>
@@ -303,6 +303,7 @@ bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
    sock_error = false;
 
    for (;;) {
+      debug_printf("Waiting for available data on fd %d\n", sock);
       int result = select(sock+1, &readfds, &writefds, &exceptfds, &timeout);
       if (result == -1 && errno == EINTR) 
          continue;
@@ -340,6 +341,7 @@ bool Connection::server_accept()
    socklen_t socklen = sizeof(struct sockaddr_in);
    bool sock_error;
 
+   debug_printf("[%s:%u] - server_accept waiting for connection\n", __FILE__, __LINE__);
    if (!waitForAvailData(sockfd, accept_timeout, sock_error))
       return false;
        
@@ -350,6 +352,7 @@ bool Connection::server_accept()
      debug_printf("[%s:%u] - Error accepting connection\n", __FILE__, __LINE__);
       return false;
    }
+   debug_printf("server_accept recieved new connection on fd %d\n", fd);
    
    return true;
 }
@@ -412,6 +415,8 @@ bool Connection::client_connect()
 bool Connection::server_setup(string &hostname_, int &port_)
 {
    if (has_hostport) {
+      debug_printf("server_setup returning existing hostname/port %s/%d",
+                   hostname.c_str(), port);
       hostname_ = hostname;
       port_ = port;
       assert(sockfd != -1);
@@ -420,9 +425,10 @@ bool Connection::server_setup(string &hostname_, int &port_)
 
    sockfd = socket(PF_INET, SOCK_STREAM, 0);
    if (sockfd == -1) {
-     debug_printf("Unable to create socket: %s\n", strerror(errno));
+      debug_printf("Unable to create socket: %s\n", strerror(errno));
       return false;
    }
+   debug_printf("server_setup socket call returned %d\n", sockfd);
    
    struct sockaddr_in addr;
    socklen_t socklen = sizeof(struct sockaddr_in);
@@ -437,12 +443,14 @@ bool Connection::server_setup(string &hostname_, int &port_)
       debug_printf("Unable to bind socket: %s\n", strerror(errno));
       return false;
    }
-   
+   debug_printf("[%s:%u] - server_setup successful bind on socket\n", __FILE__, __LINE__);
+
    result = listen(sockfd, 16);
    if (result == -1) {
      debug_printf("Unable to listen on socket: %s\n", strerror(errno));
       return false;
    }
+   debug_printf("server_setup successful listen on socket\n", __FILE__, __LINE__);
 
    result = getsockname(sockfd, (sockaddr *) &addr, &socklen);
    if (result != 0) {
@@ -476,6 +484,9 @@ bool Connection::server_setup(string &hostname_, int &port_)
    hostname_ = hostname;
    port_ = port;
    has_hostport = true;
+
+   debug_printf("server_setup returning new hostname/port %s/%d\n",
+                hostname.c_str(), port);
    return true;
 }
 
