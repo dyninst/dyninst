@@ -344,3 +344,15 @@ void CodeObject::registerCallback(ParseCallback *cb) {
 void CodeObject::unregisterCallback(ParseCallback *cb) {
    _pcb->unregisterCallback(cb);
 }
+
+Address CodeObject::getFreeAddr() const {
+   // Run over the code regions and return the highest address. We do this
+   // so we can allocate more space...
+   Address hi = 0;
+   const std::vector<CodeRegion *> &regions = _cs->regions();
+   for (std::vector<CodeRegion *>::const_iterator iter = regions.begin();
+        iter != regions.end(); ++iter) {
+      hi = (hi > (*iter)->high()) ? hi : (*iter)->high();
+   }
+   return hi;
+}

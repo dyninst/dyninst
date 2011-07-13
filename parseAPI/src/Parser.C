@@ -1149,6 +1149,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     FILE__,ah.getNextAddr());
 
                 end_block(cur,ah);
+                // We need to tag the block with a sink edge
+                link(cur, _sink, DIRECT, true);
                 break;
             }
             else if(!cur->region()->contains(ah.getNextAddr()))
@@ -1158,6 +1160,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     cur->region()->offset(),
                     cur->region()->offset()+cur->region()->length());
                 end_block(cur,ah);
+                // We need to tag the block with a sink edge
+                link(cur, _sink, DIRECT, true);
                 break;
             }
             ah.advance();

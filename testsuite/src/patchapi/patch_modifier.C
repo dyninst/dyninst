@@ -36,7 +36,16 @@ class patchModifier_Mutator : public PatchApiMutator {
   virtual test_results_t executeTest();
    bool splitBlock();
    bool redirect();
+   bool insert();
 };
+
+char insert_buffer[] = {
+   0x50, 0x54, 0x52, 
+   0x68, 0x90, 0x83, 0x04, 0x08, 
+   0x68, 0xa0, 0x83, 0x04, 0x08,
+   0x51, 0x56};
+
+unsigned buf_size = 15;
 
 extern "C" DLLEXPORT TestMutator* patch_modifier_factory() {
   return new patchModifier_Mutator();
@@ -182,11 +191,46 @@ bool patchModifier_Mutator::redirect() {
 
 }
 
+bool patchModifier_Mutator::insert() {
+   PatchFunction *func = findFunction("patchMod_insert");
+
+   if (func == NULL) {
+      logerror("** Failed patch_modifier: failed to find patchMod_insert\n");
+      return false;
+   }
+
+   PatchBlock *block = PatchModifier::insert(func->obj(), insert_buffer, buf_size);
+   if (!block) {
+      logerror("** Failed patch_modifier: insertion failed\n");
+      return false;
+   }
+
+   PatchBlock::Insns insns;
+   block->getInsns(insns);
+   for (PatchBlock::Insns::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
+      std::cerr << std::hex << iter->first << " : " << iter->second->format() << std::dec << std::endl;
+   }
+
+   std::cerr << "Block has " << block->getSources().size() << " incoming edges and " 
+             << block->getTargets().size() << " outgoing edges." << std::endl;
+   for (PatchBlock::edgelist::const_iterator iter = block->getTargets().begin();
+        iter != block->getTargets().end(); ++iter) {
+      std::cerr << "Target edge: "
+                << ((*iter)->sinkEdge() ? "<sink>" : "")
+                << format((*iter)->type()) << std::endl;
+   }
+
+   return true;
+
+}
+
 
 test_results_t patchModifier_Mutator::executeTest() {
    if (!redirect()) return ::FAILED;
 
    if (!splitBlock()) return ::FAILED;
+
+   if (!insert()) return ::FAILED;
    
    return ::PASSED;
 }

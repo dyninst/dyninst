@@ -66,7 +66,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
       // No longer a sink edge!
       edge->_type._sink = 0;
    }
-   
+
    edge->_target = target;
    target->addSource(edge);
    target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
@@ -231,17 +231,19 @@ bool CFGModifier::remove(Function *f) {
    return true;
 }
 
-bool CFGModifier::insert(CodeObject *obj, 
+Block *CFGModifier::insert(CodeObject *obj, 
                          Address base, void *data, 
-                         unsigned size, Architecture arch) {
+                         unsigned size) {
    // As per Nate's suggestion, we're going to add this data as a new
    // Region in the CodeObject. 
+   Architecture arch = obj->cs()->getArch();
 
    InsertedRegion *newRegion = new InsertedRegion(base, data, size, arch);
 
    obj->cs()->addRegion(newRegion);
    obj->parse(newRegion, base, true);
-   return true;
+
+   return obj->findBlockByEntry(newRegion, base);
 }
 
 InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch) : 

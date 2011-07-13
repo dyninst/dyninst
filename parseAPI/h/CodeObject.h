@@ -145,6 +145,11 @@ class CodeObject {
     PARSER_EXPORT void destroy(Block *);
     PARSER_EXPORT void destroy(Function *);
 
+    /*
+     * Hacky "for insertion" method
+     */
+    PARSER_EXPORT Address getFreeAddr() const;
+
  private:
     void process_hints();
     void add_edge(Block *src, Block *trg, EdgeTypeEnum et);

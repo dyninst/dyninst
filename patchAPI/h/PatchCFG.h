@@ -192,7 +192,7 @@ class PatchFunction {
 
    PATCHAPI_EXPORT void destroy(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
-                                         
+
    bool consistency() const;
 
    protected:
