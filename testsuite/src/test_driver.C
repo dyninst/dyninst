@@ -87,6 +87,8 @@ char **gargv;
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params);
 int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &l_pid);
+void waitForLaunchMONStartup();
+
 bool collectInvocation(pid_t mpirun_pid, int session);
 
 int setupLogs(ParameterDict &params);
@@ -423,7 +425,9 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
       fprintf(stderr, "Failed to start client\n");
       return false;
    }
-   
+
+   waitForLaunchMONStartup();
+
    return true;
 }
 

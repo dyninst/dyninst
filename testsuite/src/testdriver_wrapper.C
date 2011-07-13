@@ -194,7 +194,7 @@ static void parse_args(int argc, char *argv[])
          char *filename = argv[i+1];
          assert(filename);
          
-         int fd = open(filename, O_WRONLY);
+         int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT);
          if (fd == -1) {
             perror("Could not open file for debug output");
             continue;

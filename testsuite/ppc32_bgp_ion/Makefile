@@ -98,11 +98,9 @@ endif
 MYLINK_FLAGS += -Wl,-rpath -Wl,$(LIBRARY_DEST)
 
 ifdef LAUNCHMON_LIB
-LAUNCHMON_FE_LINK = -L$(LAUNCHMON_LIB) -lmonfeapi $(MYLINK_FLAGS)
-LAUNCHMON_BE_LINK = -Wl,-rpath -Wl,$(LAUNCHMON_LIB) -L$(LAUNCHMON_LIB) -lmonbeapi $(MYLINK_FLAGS)
+LAUNCHMON_LINK = -Wl,-rpath,$(LAUNCHMON_LIB) -L$(LAUNCHMON_LIB) -lmonfeapi -lmonbeapi $(MYLINK_FLAGS)
 else
-LAUNCHMON_FE_LINK = -lmonfeapi
-LAUNCHMON_BE_LINK = -lmonbeapi
+LAUNCHMON_LINK = -lmonfeapi -lmonbeapi
 endif
 ifdef LAUNCHMON_INC
 LAUNCHMON_FE_CFLAGS = -I$(LAUNCHMON_INC) -Dcap_launchmon
