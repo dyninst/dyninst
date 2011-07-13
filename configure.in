@@ -328,6 +328,15 @@ PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
 
+AC_ARG_WITH(launchmon-incdir,
+            [AS_HELP_STRING([--with-launchmon-incdir],[Launchmon include directory])],
+            [LAUNCHMON_INC_DIR="${withval}";],)
+AC_ARG_WITH(launchmon-libdir,
+            [AS_HELP_STRING([--with-launchmon-libdir],[Launchmon library directory])],
+            [LAUNCHMON_LIB_DIR="${withval}";],)
+AC_SUBST(LAUNCHMON_INC_DIR)
+AC_SUBST(LAUNCHMON_LIB_DIR)
+
 AC_ARG_WITH(libflex-libdir,
             [AS_HELP_STRING([--with-libflex-libdir],[Absolute path to flex library])],
             [LIBFLEX_LIB_DIR="${withval}";],)
