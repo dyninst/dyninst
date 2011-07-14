@@ -155,10 +155,11 @@ class PatchFunction {
      PATCHAPI_EXPORT PatchFunction(const PatchFunction* parFunc, PatchObject* child);
      PATCHAPI_EXPORT virtual ~PatchFunction();
 
-     const string &name() { return func_->name(); }
+     const string &name() const { return func_->name(); }
      Address addr() const { return addr_;  }
-     ParseAPI::Function *function() { return func_; }
-     PatchObject* object() { return obj_; }
+     ParseAPI::Function *function() const { return func_; }
+     PatchObject* object() const { return obj_; }
+     PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
 
      PATCHAPI_EXPORT const Blockset &getAllBlocks();
      PATCHAPI_EXPORT PatchBlock *getEntryBlock();

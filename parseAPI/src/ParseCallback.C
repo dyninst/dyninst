@@ -157,6 +157,7 @@ void ParseCallbackManager::removeBlock(Function *f, Block *b) {
 }
 
 void ParseCallbackManager::addBlock(Function *f, Block *b) {
+   
    if (inBatch_) funcMods_.push_back(FuncMod(f, b, added));
    else add_block_cb(f, b);
 }
@@ -253,7 +254,6 @@ void ParseCallbackManager::add_edge_cb(Block *b, Edge *e, ParseCallback::edge_ty
 };
 
 void ParseCallbackManager::modify_edge_cb(Edge *e, Block *b, ParseCallback::edge_type_t t) {
-   cerr << "ParseAPI: modify_edge_cb" << endl;
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->modify_edge_cb(e, b, t);
 };
@@ -269,5 +269,14 @@ void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
       (*iter)->add_block_cb(f, b);
 };
 
+void ParseCallbackManager::unregisterCallback(ParseCallback *cb) {
+   for (iterator iter = cbs_.begin(); iter != cbs_.end(); ++iter) {
+      if (*iter == cb) {
+         cbs_.erase(iter);
+         return;
+      }
+   }
+}
 
+   
 

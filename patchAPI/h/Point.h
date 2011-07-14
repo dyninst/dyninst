@@ -175,9 +175,7 @@ class Point {
 
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
-    const ParseAPI::CodeObject* co() const { return co_; }
-    const ParseAPI::CodeSource* cs() const { return cs_; }
-    const PatchObject* obj() const { return obj_; }
+    PatchObject* obj() const;
     const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
     PatchFunction* getFunction() const { return the_func_; }
@@ -215,9 +213,6 @@ class Point {
     PatchEdge* the_edge_;
     PatchFunction* the_func_;
     InstructionAPI::Instruction::Ptr insn_;
-    ParseAPI::CodeObject* co_;
-    ParseAPI::CodeSource* cs_;
-    PatchObject* obj_;
 };
 
 inline Point::Type operator|(Point::Type a, Point::Type b) {

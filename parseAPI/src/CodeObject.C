@@ -342,5 +342,5 @@ void CodeObject::registerCallback(ParseCallback *cb) {
 }
 
 void CodeObject::unregisterCallback(ParseCallback *cb) {
-   assert(0);
+   _pcb->unregisterCallback(cb);
 }

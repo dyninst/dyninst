@@ -34,9 +34,8 @@ PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, Pat
       cb_ = cb;
    }
    // Set up a new callback
-   PatchParseCallback *pcb = new PatchParseCallback(this);
-   co_->registerCallback(pcb);
-
+   pcb_ = new PatchParseCallback(this);
+   co_->registerCallback(pcb_);
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
@@ -50,8 +49,8 @@ PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb
    }
 
    // Set up a new callback
-   PatchParseCallback *pcb = new PatchParseCallback(this);
-   co_->registerCallback(pcb);
+   pcb_ = new PatchParseCallback(this);
+   co_->registerCallback(pcb_);
 }
 
 PatchObject::~PatchObject() {
@@ -64,6 +63,7 @@ PatchObject::~PatchObject() {
   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
     delete iter->second;
   }
+  co_->unregisterCallback(pcb_);
   delete cb_;
 }
 
@@ -108,6 +108,7 @@ PatchObject::getBlock(ParseAPI::Block* b, bool create) {
   if (co_ != b->obj()) {
     cerr << "ERROR: block starting at 0x" << b->start()
          << " doesn't exist in this object!\n";
+    cerr << "This: " << hex << this << " and our code object: " << co_ << " and block is " << b->obj() << dec << endl;
     assert(0);
   }
   BlockMap::iterator iter = blocks_.find(b);
@@ -177,17 +178,17 @@ void
 PatchObject::copyCFG(PatchObject* parObj) {
   for (EdgeMap::const_iterator iter = parObj->edges_.begin();
        iter != parObj->edges_.end(); ++iter) {
-    cfg_maker_->copyEdge(iter->second, this);
+     edges_[iter->first] = cfg_maker_->copyEdge(iter->second, this);
   }
   // Duplicate all copied blocks
   for (BlockMap::const_iterator iter = parObj->blocks_.begin();
        iter != parObj->blocks_.end(); ++iter) {
-    cfg_maker_->copyBlock(iter->second, this);
+     blocks_[iter->first] = cfg_maker_->copyBlock(iter->second, this);
   }
   // Aaand now functions
   for (FuncMap::const_iterator iter = parObj->funcs_.begin();
        iter != parObj->funcs_.end(); ++iter) {
-    cfg_maker_->copyFunction(iter->second, this);
+     funcs_[iter->first] = cfg_maker_->copyFunction(iter->second, this);
   }
 }
 
