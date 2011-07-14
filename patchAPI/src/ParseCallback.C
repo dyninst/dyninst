@@ -82,7 +82,7 @@ void PatchParseCallback::add_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edg
    PatchObject *pb2Obj = _obj->addrSpace()->findObject(block2->obj());
    PatchBlock *pb2 = pb2Obj->getBlock(block2);
    assert(pb2);
-   PatchEdge *pe = (type == source) ? pb2Obj->getEdge(edge, pb, pb2) : pbObj->getEdge(edge,pb,pb2);
+   PatchEdge *pe = (type == source) ? pb2Obj->getEdge(edge, pb2, pb) : pbObj->getEdge(edge,pb,pb2);
    if (type == source) pb->addSourceEdge(pe, false);
    else pb->addTargetEdge(pe, false);
 }

@@ -253,7 +253,7 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAdd
 {
     mal_printf("\nAt signalHandlerEntry(%lx , %lx)\n", 
                point->getAddress(), (Address)excRecAddr);
-    stats_->exceptions++;
+    stats_.exceptions++;
     // calculate the offset of the fault address in the EXCEPTION_RECORD
     EXCEPTION_RECORD record;
     proc()->lowlevel_process()->readDataSpace(

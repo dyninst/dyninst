@@ -342,27 +342,39 @@ void PatchBlock::splitBlock(PatchBlock *succ)
    // We want to modify when possible so that we keep Points on affected edges the same. 
    // Therefore:
    // 1) Incoming edges are unchanged. 
-   // 2) Outgoing edges from p1 are switched to p2.
-   // 3) An entirely new edge is created between p1 and p2. 
+   // 2) Outgoing edges from p1 are switched to p2 (except the fallthrough from p1 to p2)
+   // 3) Fallthrough edge from p1 to p2 added if it wasn't already (depends on the status
+   //    of our lazy block & edge creation when parseAPI added the edge)
    // 4) We fix up Points on the block, entry and during points stay here
 
    // 2)
-   for (PatchBlock::edgelist::iterator iter = this->trglist_.begin();
-        iter != this->trglist_.end(); ++iter) {
-      (*iter)->src_ = succ;
-      assert(*iter);
-      succ->trglist_.push_back(*iter);
+   bool hasFTEdge = false;
+   unsigned tidx= 0; 
+   while (tidx < trglist_.size()) {
+      PatchEdge *cur = trglist_[tidx];
+      if (cur->target() == succ) {
+          hasFTEdge = true;
+          tidx++;
+      } else {
+          cur->src_ = succ;
+          succ->trglist_.push_back(cur);
+          int last = trglist_.size()-1;
+          trglist_[tidx] = trglist_[last];
+          trglist_.pop_back();
+      }
    }
-   this->trglist_.clear();
 
    // 3)
-   ParseAPI::Block::edgelist &tmp = this->block()->targets();
-   if (tmp.size() != 1) {
-      cerr << "Error: split block has " << tmp.size() << " edges, not 1 as expected!" << endl;
+   if (!hasFTEdge) { // may have been created by ParseAPI callbacks
+       ParseAPI::Block::edgelist &tmp = this->block()->targets();
+       if (tmp.size() != 1) {
+          cerr << "ERROR: split block has " << tmp.size() 
+              << " edges, not 1 as expected!" << endl;
+          assert(0);
+       }
+       ParseAPI::Edge *ft = *(tmp.begin());
+       obj_->getEdge(ft, this, succ);
    }
-   assert(tmp.size() == 1);
-   ParseAPI::Edge *ft = *(tmp.begin());
-   obj_->getEdge(ft, this, succ);
 
    // 4)
    if (points_.exit) {
@@ -390,17 +402,17 @@ void PatchBlock::splitBlock(PatchBlock *succ)
 bool PatchBlock::consistency() const {
    if (!block_) {
       cerr << "Error: block has no associated ParseAPI block, failed consistency" << endl;
-      return false;
+      CONSIST_FAIL;
    }
    if (!srclist_.empty()) {
       if (srclist_.size() != block_->sources().size()) {
          cerr << "Error: block has inconsistent sources size" << endl;
-         return false;
+         CONSIST_FAIL;
       }
       for (unsigned i = 0; i < srclist_.size(); ++i) {
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;
-            return false;
+            CONSIST_FAIL;
          }
       }
    }
@@ -409,60 +421,60 @@ bool PatchBlock::consistency() const {
          cerr << "Error: block has inconsistent targets size; ParseAPI "
               << block_->targets().size() << " and PatchAPI " 
               << trglist_.size() << endl;
-         return false;
+         CONSIST_FAIL;
       }
       for (unsigned i = 0; i < trglist_.size(); ++i) {
          if (!trglist_[i]->consistency()) {
             cerr << "Error: target edge inconsistent" << endl;
-            return false;
+            CONSIST_FAIL;
          }
       }
    }
    if (!obj_) {
       cerr << "Error: block has no object" << endl;
-      return false;
+      CONSIST_FAIL;
    }
    if (!points_.consistency(this, NULL)) {
       cerr << "Error: block has inconsistent points" << endl;
-      return false;
+      CONSIST_FAIL;
    }
    return true;
 }
 
 bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const {
    if (entry) {
-      if (!entry->consistency()) return false;
-      if (entry->block() != b) return false;
-      if (entry->func() != f) return false;
-      if (entry->type() != Point::BlockEntry) return false;
+      if (!entry->consistency()) CONSIST_FAIL;
+      if (entry->block() != b) CONSIST_FAIL;
+      if (entry->func() != f) CONSIST_FAIL;
+      if (entry->type() != Point::BlockEntry) CONSIST_FAIL;
    }
    if (during) {
-      if (!during->consistency()) return false;
-      if (during->block() != b) return false;
-      if (during->func() != f) return false;
-      if (during->type() != Point::BlockDuring) return false;
+      if (!during->consistency()) CONSIST_FAIL;
+      if (during->block() != b) CONSIST_FAIL;
+      if (during->func() != f) CONSIST_FAIL;
+      if (during->type() != Point::BlockDuring) CONSIST_FAIL;
    }
    if (exit) {
-      if (!exit->consistency()) return false;
-      if (exit->block() != b) return false;
-      if (exit->func() != f) return false;
-      if (exit->type() != Point::BlockExit) return false;
+      if (!exit->consistency()) CONSIST_FAIL;
+      if (exit->block() != b) CONSIST_FAIL;
+      if (exit->func() != f) CONSIST_FAIL;
+      if (exit->type() != Point::BlockExit) CONSIST_FAIL;
    }
    for (InsnPoints::const_iterator iter = preInsn.begin(); iter != preInsn.end(); ++iter) {
-      if (!iter->second->consistency()) return false;
-      if (iter->second->block() != b) return false;
-      if (iter->second->func() != f) return false;
-      if (iter->second->addr() != iter->first) return false;
-      if (iter->second->type() != Point::PreInsn) return false;
-      if (!b->getInsn(iter->first)) return false;
+      if (!iter->second->consistency()) CONSIST_FAIL;
+      if (iter->second->block() != b) CONSIST_FAIL;
+      if (iter->second->func() != f) CONSIST_FAIL;
+      if (iter->second->addr() != iter->first) CONSIST_FAIL;
+      if (iter->second->type() != Point::PreInsn) CONSIST_FAIL;
+      if (!b->getInsn(iter->first)) CONSIST_FAIL;
    }
    for (InsnPoints::const_iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
-      if (!iter->second->consistency()) return false;
-      if (iter->second->block() != b) return false;
-      if (iter->second->func() != f) return false;
-      if (iter->second->addr() != iter->first) return false;
-      if (iter->second->type() != Point::PostInsn) return false;
-      if (!b->getInsn(iter->first)) return false;
+      if (!iter->second->consistency()) CONSIST_FAIL;
+      if (iter->second->block() != b) CONSIST_FAIL;
+      if (iter->second->func() != f) CONSIST_FAIL;
+      if (iter->second->addr() != iter->first) CONSIST_FAIL;
+      if (iter->second->type() != Point::PostInsn) CONSIST_FAIL;
+      if (!b->getInsn(iter->first)) CONSIST_FAIL;
    }
    return true;
 }

@@ -2407,6 +2407,6 @@ void BPatch_process::printDefensiveStatsInt()
         }
     }
 
-    const HybridAnalysis::AnalysisStats *stats = hybridAnalysis_->getStats();
+    const HybridAnalysis::AnalysisStats stats = hybridAnalysis_->getStats();
     //KEVINTODO: print out overwrite stats
 }

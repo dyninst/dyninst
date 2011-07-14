@@ -2,7 +2,7 @@
 
 #include "DynObject.h"
 #include "PatchMgr.h"
-#include "process.h"
+#include "dyninstAPI/src/process.h"
 
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeRegion;
@@ -23,7 +23,7 @@ DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
 DynObject::DynObject(const DynObject* par_obj, process* child, Address base)
   : PatchObject(par_obj, base, 
                 new DynPatchCallback(child)),
-    as_((AddressSpace*)child) {
+    as_(child) {
 }
 
 DynObject::~DynObject() {

@@ -3823,13 +3823,10 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
         malware_cerr << "Looking for matches to incoming address " 
             << hex << target << dec << endl;
         instPoint *callPt = NULL;
-        block_instance *callBBI = NULL;
 
         if ( reverseDefensiveMap_.find(target,callPt) ) {
             // a. 
-            cerr << "\t Found in defensive map" << endl;
-            callBBI = callPt->block();
-            unrelocTarget = callBBI->end();
+            unrelocTarget = callPt->block()->end();
         }
         else {
             // b. 
@@ -3838,6 +3835,7 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            AddressSpace::RelocInfo ri;
            bool hasFT = getRelocInfo(target, ri);
            assert(hasFT); // otherwise we should be in the defensive map
+           unrelocTarget = ri.block->start();
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
             target, unrelocTarget, FILE__, __LINE__);
@@ -4507,7 +4505,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
     {
         func_instance *callF = findFunction((parse_func*)*fit);
         block_instance *callB = callPoint->block();
-        instPoint *callP = instPoint::postCall(callF, callB);
+        instPoint *callP = instPoint::preCall(callF, callB);
         block_instance *ftBlk = callB->getFallthrough()->trg();
         if (!ftBlk) {
             // find the block at the next address, if there's no fallthrough block
@@ -4525,7 +4523,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
         if (rit == relocatedCode_.rend()) {
             mal_printf("WARNING: no relocs of call-fallthrough at %lx "
                        "in func at %lx, will not patch its post-call "
-                       "padding\n", callP->address(),callF->addr());
+                       "padding\n", callP->block()->last(),callF->addr());
             continue;
         }
         

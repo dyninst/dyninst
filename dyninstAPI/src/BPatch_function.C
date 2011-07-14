@@ -396,7 +396,13 @@ void BPatch_function::getUnresolvedControlTransfers
       // We want to instrument before the last instruction, since we can pull out
       // the target at that point. Technically, we want to instrument the sink edge;
       // but we can't do that yet. 
-      instPoint *point = instPoint::preCall(func, *iter);
+      instPoint *point = NULL;
+      if ((*iter)->containsCall()) {
+          point = instPoint::preCall(func, *iter);
+      } else {
+          assert((*iter)->getTargets().size() ==1);
+          point = instPoint::blockExit(func, *iter);
+      }
       BPatch_procedureLocation ptType = 
          BPatch_point::convertInstPointType_t(point->type());
       if (ptType == BPatch_locInstruction) {
@@ -404,7 +410,7 @@ void BPatch_function::getUnresolvedControlTransfers
          // jump or a direct jump
          mal_printf("WARNING: ambiguous point type translation for "
                     "insn at %lx, setting to locLongJump %s[%d]\n",
-                    point->nextExecutedAddr(), FILE__,__LINE__);
+                    point->block()->start(), FILE__,__LINE__);
          ptType = BPatch_locLongJump;
       }
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint

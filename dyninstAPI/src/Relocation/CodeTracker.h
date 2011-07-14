@@ -167,8 +167,8 @@ class InstTracker : public TrackerElement {
 class PaddingTracker : public TrackerElement {
  public:
   PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f = NULL) :
-   TrackerElement(orig, b, f), pad_(pad) {assert(0);};
-   virtual ~PaddingTracker() {assert(0);};
+   TrackerElement(orig, b, f), pad_(pad) {};
+   virtual ~PaddingTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
     assert(reloc >= reloc_);

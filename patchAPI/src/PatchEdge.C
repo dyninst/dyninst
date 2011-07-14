@@ -82,22 +82,22 @@ PatchCallback *PatchEdge::cb() const {
 
 bool PatchEdge::consistency() const { 
    if (src_) {
-      if (src_->block() != edge_->src()) return false;
+      if (src_->block() != edge_->src()) CONSIST_FAIL;
    }
    if (trg_) {
-      if (trg_->block() != edge_->trg()) return false;
+      if (trg_->block() != edge_->trg()) CONSIST_FAIL;
    }
 
-   if (!points_.consistency(this, NULL)) return false;
+   if (!points_.consistency(this, NULL)) CONSIST_FAIL;
    return true;
 }
 
 bool EdgePoints::consistency(const PatchEdge *edge, const PatchFunction *func) const {
    if (during) {
-      if (!during->consistency()) return false;
-      if (during->type() != Point::EdgeDuring) return false;
-      if (during->edge() != edge) return false;
-      if (during->func() != func) return false;
+      if (!during->consistency()) CONSIST_FAIL;
+      if (during->type() != Point::EdgeDuring) CONSIST_FAIL;
+      if (during->edge() != edge) CONSIST_FAIL;
+      if (during->func() != func) CONSIST_FAIL;
    }
    return true;
 }

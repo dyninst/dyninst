@@ -116,7 +116,7 @@ public:
     // returns false if conversion has no effect or is not possible
     bool setMode(BPatch_hybridMode mode);
 
-    const HybridAnalysis::AnalysisStats * getStats();
+    const HybridAnalysis::AnalysisStats & getStats();
 
     HybridAnalysisOW * hybridOW() { return hybridow_; };
     BPatch_process *proc() { return proc_; };
@@ -225,7 +225,7 @@ private:
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
     HybridAnalysisOW *hybridow_;
-    AnalysisStats *stats_;
+    AnalysisStats stats_;
 
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;

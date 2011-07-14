@@ -299,7 +299,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             {
                 if ((*eit)->type() == CALL) {
                     callEdge = *eit;
-                    if (!(*eit)->sinkEdge()) // otherwise look for nonsink CALL
+                    if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
                         break; 
                 }
             }
@@ -1543,21 +1543,33 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
+    bool addSrcAndDest = true;
     if(src != e->src()) {
         e->src()->removeTarget(e);
+        _pcb.removeEdge(e->src(), e, ParseCallback::target);
         e->_source = src;
         src->addTarget(e);
+        _pcb.addEdge(src, e, ParseCallback::target);
+        addSrcAndDest = false;
     }
     if(dst != e->trg()) { 
-        if(e->trg() != _sink)
+        if(e->trg() != _sink) {
             e->trg()->removeSource(e);
+            _pcb.removeEdge(e->trg(), e, ParseCallback::source);
+            addSrcAndDest = false;
+        }
         e->_target = dst;
         dst->addSource(e);
+        _pcb.addEdge(dst, e, ParseCallback::source);
+        if (addSrcAndDest) {
+            // We're re-linking a sinkEdge to be a non-sink edge; since 
+            // we don't inform PatchAPI of temporary sinkEdges, we have
+            // to add both the source AND target edges
+            _pcb.addEdge(src, e, ParseCallback::target);
+        }
     }
 
     e->_type._sink = (dst == _sink);
-    _pcb.addEdge(src, e, ParseCallback::target);
-    _pcb.addEdge(dst, e, ParseCallback::source);
 }
 
 ParseFrame::Status

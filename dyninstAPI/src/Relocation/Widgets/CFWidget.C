@@ -582,7 +582,7 @@ unsigned CFPatch::estimate(codeGen &) {
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
    //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
-   if (1 || noop_) {
+   if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
    else if ( 0 == (size_ % 2) ) {

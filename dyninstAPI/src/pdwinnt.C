@@ -675,7 +675,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
 
-			cerr << "Overwrite insn @ " << hex << origAddr << endl;
+			cerr << "Overwrite insn @ " << hex << origAddr << dec << endl;
             vector<func_instance *> writefuncs;
             baseTramp *bti = NULL;
             bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
@@ -684,7 +684,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                         "function\"%s\" [%lx], writing to %lx (%lx) \n",
                         FILE__,__LINE__, ev.address, origAddr,
 						writefuncs.empty() ? "<NO FUNC>" : writefuncs[0]->get_name().c_str(), 
-						writefuncs.empty() ? 0 : writefuncs[0]->get_address(), 
+						writefuncs.empty() ? 0 : writefuncs[0]->addr(), 
                         violationAddr, shadowAddr);
             } else { 
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
@@ -1048,8 +1048,8 @@ int dyn_lwp::changeMemoryProtections
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
-          //         rights, idx , idx + pageSize);
+        mal_printf("setting rights to %lx for [%lx %lx)\n", 
+                   rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -2938,7 +2938,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     } else { 
         writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
     }
-	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(ev.address), ev.address);
+	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(origWrite), origWrite);
 
     assert(writePoint);
 

@@ -100,6 +100,7 @@ InternalSignalHandlerCallback HybridAnalysis::getSignalHandlerCB()
 
 
 HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc) 
+: stats_()
 {
     mode_ = mode;
     proc_ = proc;
@@ -282,7 +283,7 @@ int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point,
     }
 
     mal_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
-               (long) point->getAddress(),FILE__,__LINE__);
+               (long) point->llpoint()->block()->last(),FILE__,__LINE__);
     return 0;
 }
 
@@ -396,7 +397,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             BPatch_stopThreadExpr *dynamicTransferSnippet;
             bool useCache = canUseCache(curPoint);
             mal_printf("hybridInstrumentation[%d] monitoring unresolved at 0x%lx: "
-                       "indirect, useCache=%d\n", __LINE__,(long)curPoint->getAddress(),(int)useCache);
+                       "indirect, useCache=%d\n", __LINE__,(long)curPoint->llpoint()->block()->last(),(int)useCache);
             if (useCache) {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
                     dynTarget, *curPoint->llpoint()->func()->obj(), useCache, BPatch_interpAsTarget);
@@ -427,7 +428,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             vector<Address> targets;
             if (!getCFTargets(curPoint, targets)) {
                 mal_printf("ERROR: Could not get target for static point[%d] "
-                       "[%lx] -> [?]\n", pidx, (long)curPoint->getAddress());
+                       "[%lx] -> [?]\n", pidx, (long)curPoint->llpoint()->block()->last());
                 continue;
             }
 
@@ -441,11 +442,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
             if (curPoint->getPointType() == BPatch_locSubroutine) {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: call 0x%lx\n",
-                            __LINE__,(long)curPoint->getAddress(), 
+                            __LINE__,(long)curPoint->llpoint()->block()->last(), 
                             target);
             } else {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: jump 0x%lx\n",
-                            __LINE__,(long)curPoint->getAddress(), 
+                            __LINE__,(long)curPoint->llpoint()->block()->last(), 
                             target);
             }
 
@@ -480,7 +481,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         }
         BPatch_point *curPoint = points[pidx];
         mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: abruptEnd point\n",
-                    __LINE__,(long)curPoint->getAddress());
+                    __LINE__,(long)curPoint->llpoint()->block()->last());
 
         // set up args and instrument
         if (useInsertionSet && 0 == pointCount) {
@@ -563,7 +564,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     func->getAddressRange(s, e);
                     mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
                                s, e,
-                               (long)curPoint->getAddress());
+                               (long)curPoint->llpoint()->block()->last());
                 }
                 else if (curPoint->isDynamic()) {
                     // case 2: above check ensures that this is not a return 
@@ -572,7 +573,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                         interp = BPatch_interpAsTarget;
                         calcSnippet = & dynTarget;
                         mal_printf("instrumenting indirect non-return exit "
-                                   "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
+                                   "at 0x%lx %s[%d]\n", curPoint->llpoint()->block()->last(), 
                                    FILE__,__LINE__);
                 }
                 else { // tail call, do nothing?
@@ -580,7 +581,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                     fprintf(stderr,"WARNING: exit point at %lx that isn't "
                             "a return or indirect control transfer, what "
                             "kind of point is this? not instrumenting %s[%d]\n", 
-                            (Address)curPoint->getAddress(), FILE__,__LINE__);
+                            (Address)curPoint->llpoint()->block()->last(), FILE__,__LINE__);
                     continue;
                 }
 
@@ -819,7 +820,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             {
                 mal_printf("%s[%d] Function call at 0x%lx is returning, adding edge "
                           "after calls to the function at %lx\n", __FILE__,__LINE__,
-                          callPoint->getAddress(), (long)(*cIter)->getAddress());
+                          callPoint->llpoint()->block()->last(), (long)(*cIter)->llpoint()->block()->last());
 
                 parseNewEdgeInFunction( *cIter , curFallThroughAddr , false );
 
@@ -854,7 +855,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     {
         mal_printf("Function call at 0x%lx is returning, "
                     "adding edge to fallthrough at %lx %s[%d]\n", 
-                    callPoint->getAddress(), fallThroughAddr, 
+                    callPoint->llpoint()->block()->last(), fallThroughAddr, 
                     FILE__, __LINE__);
 
         parseNewEdgeInFunction( callPoint , fallThroughAddr , false );
@@ -919,7 +920,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
             if (callPoint->isDynamic()) {
                 mal_printf("replacing instrumentation at indirect call point "
                             "%lx with instrumentation that uses the cache "
-                            "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
+                            "%s[%d]\n", callPoint->llpoint()->block()->last(),FILE__,__LINE__);
                 BPatch_stopThreadExpr newSnippet (badTransferCB_wrapper, 
                         BPatch_dynamicTargetExpr(), 
                         *callPoint->llpoint()->func()->obj(), 
@@ -950,7 +951,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 BPatch_point *sharedCallPoint = NULL;
                 std::vector<BPatch_point *> *points = func->findPoint(BPatch_subroutine);
                 for (unsigned i = 0; i < points->size(); ++i) {
-                    if ((*points)[i]->getAddress() == callPoint->getAddress()) {
+                    if ((*points)[i]->llpoint()->block() == callPoint->llpoint()->block()) {
                         sharedCallPoint = (*points)[i];
                         break;
                     }
@@ -992,7 +993,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     if (targObj && eit == edges.end()) {
 
         mal_printf("Adding indirect edge %lx->%lx", 
-                   (Address)sourcePt->getAddress(), target);
+                   (Address)sourcePt->llpoint()->block()->last(), target);
 
         // edge does not exist, determine desired edge type
         EdgeTypeEnum etype;
@@ -1225,11 +1226,11 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     if (targFunc) {
         targFunc->getName(funcName,32);
         mal_printf("%lx => %lx, in module %s to known func %s\n",
-                    point->getAddress(),target,modName,funcName);
+                    point->llpoint()->block()->last(),target,modName,funcName);
     } else {
         funcName[0]= '\0';
         mal_printf("%lx => %lx, in module %s \n",
-                    point->getAddress(),target,modName,funcName);
+                    point->llpoint()->block()->last(),target,modName,funcName);
     }
 
     // 1.1 if targMod is a system library don't parse at target.  However, if the 
@@ -1241,14 +1242,14 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
         if (point->getPointType() == BPatch_subroutine) {
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                 "target is in module %s, parsing at fallthrough %s[%d]\n",
-                (long)point->getAddress(), target, modName,FILE__,__LINE__);
+                (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
             parseAfterCallAndInstrument(point, targFunc);
             doMoreProcessing = false;
         } else if (point->getPointType() == BPatch_exit) {
             mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "
                 "into module %s, this indicates obfuscation or that there was a "
                 "call from that module into our code %s[%d]\n",
-                (long)point->getAddress(), target, modName,FILE__,__LINE__);
+                (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
             instReturns = true;
         } else {
             // jump into system library
@@ -1259,7 +1260,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
             // jump ptr
             mal_printf("WARNING: transfer into non-instrumented system module "
                 "%s at: %lx=>%lx %s[%d]\n", modName, 
-                (long)point->getAddress(), target,FILE__,__LINE__);
+                (long)point->llpoint()->block()->last(), target,FILE__,__LINE__);
             instReturns = true;
         }
 
@@ -1282,13 +1283,13 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     else if ( targMod->isExploratoryModeOn() ) { 
         mal_printf("WARNING: Transfer into instrumented module %s "
                 "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
-                (long)point->getAddress(), target, FILE__,__LINE__);
+                (long)point->llpoint()->block()->last(), target, FILE__,__LINE__);
     } else { // jumped or called into module that's not recognized as a 
              // system library and is not instrumented
         mal_printf("WARNING: Transfer into non-instrumented module "
                 "%s func %s that is not recognized as a system lib: "
                 "%lx=>%lx [%d]\n", modName, funcName, 
-                (long)point->getAddress(), target, FILE__,__LINE__);
+                (long)point->llpoint()->block()->last(), target, FILE__,__LINE__);
     }
     return doMoreProcessing;
 }
@@ -1450,10 +1451,16 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
       case instPoint::PreCall: 
       case instPoint::PostCall: 
       {
-        Address targ = (Address) point->getCalledFunction()->getBaseAddr();
-        if (targ) {
-            targets.push_back(targ);
-        } else {
+        BPatch_function *targFunc = point->getCalledFunction();
+        if (targFunc) {
+            Address targ = (Address) point->getCalledFunction()->getBaseAddr();
+            if (targ) {
+                targets.push_back(targ);
+            } else {
+                ret = false;
+            }
+        }
+        else {
             ret = false;
         }
         break;
@@ -1463,22 +1470,22 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
         // don't miss targets to invalid addresses 
         // (these get linked to the sink block by ParseAPI)
         using namespace ParseAPI;
-        Address baseAddr = point->llpoint()->block()->start() 
-                         - point->llpoint()->block()->llb()->start();
-        Block::edgelist & trgs = point->llpoint()->block()->llb()->targets();
-        Block::edgelist::iterator iter = trgs.begin();
-        mapped_object *obj = point->llpoint()->func()->obj();
+        using namespace PatchAPI;
+        PatchBlock::edgelist trgs = point->llpoint()->block()->getTargets();
+        PatchBlock::edgelist::iterator iter = trgs.begin();
+        mapped_object *obj = SCAST_MO(point->llpoint()->func()->obj());
         Architecture arch = point->llpoint()->proc()->getArch();
 
         for ( ; iter != trgs.end(); iter++) {
             if ( ! (*iter)->sinkEdge() ) {
-                targets.push_back( baseAddr + (*iter)->trg()->start() );
+                targets.push_back( (*iter)->target()->start() );
             } else {
-                // if this is a cond'l branch taken or direct 
-                // edge, decode the instruction to get its target, 
-                // otherwise we won't find a target for this insn
+                // this is a sink edge, if the edge type is cond'l branch 
+                // taken or direct, crack instruction to get its target,
+                // otherwise we won't find a target for this instruction
                 switch((*iter)->type()) {
                 case INDIRECT:
+                case RET:
                     break;
                 case COND_NOT_TAKEN:
                 case FALLTHROUGH:
@@ -1490,23 +1497,25 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                     }
                     break;
                 default:
-                { // this is a cond'l taken or jump target
+                { // this is a cond'l taken or jump target, crack instruction 
+                  // to get target
                     using namespace InstructionAPI;
                     RegisterAST::Ptr thePC = RegisterAST::Ptr
                         ( new RegisterAST( MachRegister::getPC( arch ) ) );
 
-                    void *ptr = obj->getPtrToInstruction((Address)point->getAddress());
+                    void *ptr = obj->getPtrToInstruction(
+                        point->llpoint()->block()->last());
                     assert(ptr);
                     InstructionDecoder dec
                         (ptr, InstructionDecoder::maxInstructionLength, arch);
                     Instruction::Ptr insn = dec.decode();
                     Expression::Ptr trgExpr = insn->getControlFlowTarget();
                     trgExpr->bind(thePC.get(), 
-                        Result(s64, point->llpoint()->block()->llb()->lastInsnOffset()));
+                        Result(s64, point->llpoint()->block()->last()));
                     Result actualTarget = trgExpr->eval();
                     if(actualTarget.defined)
                     {
-                        Address targ = actualTarget.convert<Address>() + baseAddr;
+                        Address targ = actualTarget.convert<Address>();
                         targets.push_back( targ );
                     }
                     break;
@@ -1521,7 +1530,7 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
     return ret;
 }
 
-const HybridAnalysis::AnalysisStats * HybridAnalysis::getStats()
+const HybridAnalysis::AnalysisStats & HybridAnalysis::getStats()
 { 
     process *llproc = proc_->lowlevel_process();
     const vector<mapped_object*> objs = llproc->mappedObjects();
@@ -1529,7 +1538,7 @@ const HybridAnalysis::AnalysisStats * HybridAnalysis::getStats()
          oit != objs.end(); 
          oit++) 
     {
-        stats_->unpackCount += (*oit)->codeByteUpdates();
+        stats_.unpackCount += (*oit)->codeByteUpdates();
     }
     return stats_; 
 }

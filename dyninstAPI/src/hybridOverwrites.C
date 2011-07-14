@@ -422,7 +422,8 @@ void HybridAnalysisOW::owLoop::instrumentOneWrite(Address writeInsnAddr,
                                            block,
                                            writeInsnAddr);
        BPatch_point *writePoint = hybridow_->proc()->findOrCreateBPPoint(writeFuncs[fidx],
-                                                                         ip);
+                                                                         ip, 
+                                                                         BPatch_locInstruction);
 
         // instrument and store the snippet handle
         BPatchSnippetHandle *snippetHandle = hybridow_->proc()->insertSnippet
@@ -1178,7 +1179,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
     if (changedCode) {
 
         // overwrite stats
-        hybrid_->stats_->owCount++;
+        hybrid_->stats_.owCount++;
         unsigned long owBytes = 0;
         for (vector<pair<Address,int> >::iterator bit = deadBlocks.begin();
              bit != deadBlocks.end();
@@ -1186,7 +1187,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
         {
             owBytes += bit->second;
         }
-        hybrid_->stats_->owBytes = owBytes;
+        hybrid_->stats_.owBytes = owBytes;
 
         // build up list of modified modules 
         std::set<BPatch_module*> mods;
@@ -1249,7 +1250,7 @@ void HybridAnalysisOW::overwriteAnalysis(BPatch_point *point, void *loopID_)
 
     } // if the code changed 
     else {
-        hybrid_->stats_->owFalseAlarm++;
+        hybrid_->stats_.owFalseAlarm++;
     }
 
     if (idToLoop.end() != idToLoop.find(loopID)) {

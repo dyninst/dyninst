@@ -375,6 +375,7 @@ Address instPoint::nextExecutedAddr() const {
       case FuncEntry:
 	return func()->addr();
       case FuncExit:
+      case BlockExit:
          // Not correct, but as close as we can get
 	return block()->last();
       case BlockEntry:
@@ -397,6 +398,9 @@ Address instPoint::nextExecutedAddr() const {
 	   return block()->end();
       }
       default:
+          mal_printf("ERROR: returning 0 from instPoint::nextExecutedAddr "
+                  "for point of type %lx in block [%lx %lx)\n", type(),
+                  block()->start(), block()->end());
          return 0;
    }
 }

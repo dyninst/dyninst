@@ -176,12 +176,14 @@ class PatchFunction {
      bool verifyExit(PatchBlock *block) { return exits().find(block) != exits().end(); }
      bool verifyCall(PatchBlock *block) { return calls().find(block) != calls().end(); }
 
-     // Const : no building the exit/call sets
+     // Const : no building the exit/call sets (returns true if set is empty)
      bool verifyExitConst(const PatchBlock *block) const { 
-        return exit_blocks_.find(const_cast<PatchBlock *>(block)) != exit_blocks_.end(); 
+        return exit_blocks_.empty() || 
+            exit_blocks_.find(const_cast<PatchBlock *>(block)) != exit_blocks_.end(); 
      }
      bool verifyCallConst(const PatchBlock *block) const { 
-        return call_blocks_.find(const_cast<PatchBlock *>(block)) != call_blocks_.end(); 
+        return call_blocks_.empty() || 
+            call_blocks_.find(const_cast<PatchBlock *>(block)) != call_blocks_.end(); 
      }
 
      // Fast access to a range of instruction points
@@ -224,6 +226,9 @@ void PatchBlock::getFunctions(OutputIterator result) {
     ++result;
   }
 }
+
+#define ASSERT_CONSISTENCY_FAILURE 1
+#define CONSIST_FAIL {if (ASSERT_CONSISTENCY_FAILURE) assert(0); return false;}
 
 };
 };

@@ -1271,7 +1271,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
     //    splitIntLayer();
     //    parse_img()->clearSplitBlocks();
     //}
-
+    assert(consistency(&(*addrSpace())));
     return reparsedObject;
 }
 
@@ -1408,7 +1408,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 
        modFuncs[fidx]->triggerModified();
        modFuncs[fidx]->getAllBlocks();
-       assert(modFuncs[fidx]->consistency());
+       modFuncs[fidx]->getCallBlocks();
+       modFuncs[fidx]->getExitBlocks();
+       // assert(modFuncs[fidx]->consistency()); // redundant, see below
     }
 
 /* 5. fix mapping of split blocks that have points */
@@ -1424,7 +1426,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
     //	modFuncs[fidx]->triggerModified();
     //    assert(modFuncs[fidx]->consistency());
     //}
-
+    assert(consistency(&(*addrSpace())));
     return true;
 }
 
