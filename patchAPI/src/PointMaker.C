@@ -8,6 +8,8 @@ using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PointMaker;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::PatchEdge;
+using Dyninst::PatchAPI::Location;
+using Dyninst::PatchAPI::PatchMgrPtr;
 
 Point *
 PointMaker::createPoint(Location loc, Point::Type t) {

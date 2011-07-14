@@ -94,8 +94,7 @@ class PatchBlock {
     PATCHAPI_EXPORT const edgelist &getSources();
     PATCHAPI_EXPORT const edgelist &getTargets();
 
-    PATCHAPI_EXPORT
-    template <class OutputIterator>
+    template <class OutputIterator> 
     void getFunctions(OutputIterator result);
 
     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);

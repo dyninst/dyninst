@@ -285,6 +285,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\ParseCallback.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\PatchBlock.C"
 				>
 				<FileConfiguration
