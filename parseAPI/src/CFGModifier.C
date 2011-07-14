@@ -71,6 +71,16 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    target->addSource(edge);
    target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
    edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);
+
+   // This may have just played merry hell with function boundaries, so we
+   // mark any function that contains the source block as out of date. 
+   
+   std::vector<Function *> funcs;
+   edge->src()->getFuncs(funcs);
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->invalidateCache();
+   }
+
    return true;
 }
 
@@ -234,6 +244,8 @@ bool CFGModifier::remove(Function *f) {
 Block *CFGModifier::insert(CodeObject *obj, 
                          Address base, void *data, 
                          unsigned size) {
+   cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
+
    // As per Nate's suggestion, we're going to add this data as a new
    // Region in the CodeObject. 
    Architecture arch = obj->cs()->getArch();
