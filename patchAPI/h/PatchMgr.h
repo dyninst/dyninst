@@ -66,11 +66,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     // Query Points:
 
     // Direct interface; specify a Location and a unique Type, receive a Point.
-    Point *findPoint(Location loc,
-                     Point::Type type,
-                     bool create = true);
+    PATCHAPI_EXPORT Point *findPoint(Location loc,
+                                     Point::Type type,
+                                     bool create = true);
     // And accumulation version
-    template <class OutputIterator>
+    template <class OutputIterator> 
     bool findPoint(Location loc,
                    Point::Type type,
                    OutputIterator outputIter,
@@ -152,7 +152,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //----------------------------------------------------
 
   private:
-    bool getCandidates(Scope &, Point::Type types, Candidates &ret);
+    PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
     bool findInsnPointsByType(Location *, Point::Type, PointSet&, bool create = true);
     bool findBlockPointsByType(Location *, Point::Type, PointSet&, bool create = true);
@@ -190,7 +190,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //bool getEdgeInstances(Scope &scope, EdgeCandidates &edges);
     void getInsnInstances(Scope &scope, InsnInstances &insns);
 
-    void enumerateTypes(Point::Type types, EnumeratedTypes &out);
+    PATCHAPI_EXPORT void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
     bool match(Point *, Location *);
     PointMakerPtr point_maker_;

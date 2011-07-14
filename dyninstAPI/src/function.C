@@ -297,7 +297,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
    if (unresolvedCF_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
-     for (blockset::iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
+     for (blockset::const_iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
        block_instance* iblk = SCAST_BI(*iter);
          if (iblk->llb()->unresolvedCF()) {
             unresolvedCF_.insert(iblk);
@@ -311,7 +311,7 @@ const func_instance::BlockSet &func_instance::abruptEnds() {
    if (abruptEnds_.empty()) {
       // A block has unresolved control flow if it has an indirect
       // out-edge.
-     for (blockset::iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
+     for (blockset::const_iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
        block_instance* iblk = SCAST_BI(*iter);
          if (iblk->llb()->abruptEnd()) {
             abruptEnds_.insert(iblk);
@@ -415,7 +415,7 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
-    blockset::iterator bIter;
+    blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -454,7 +454,7 @@ bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
     bool ret = false;
 
     // Create the block list.
-    blockset::iterator bIter;
+    blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -519,7 +519,7 @@ bool func_instance::isInstrumentable() {
 
    // Hack: avoid things that throw exceptions
    // Make sure we parsed calls
-   for (blockset::iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
+   for (blockset::const_iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
       block_instance* iblk = SCAST_BI(*iter);
       if (iblk->calleeName().find("cxa_throw") != std::string::npos) {
          cerr << "Func " << symTabName() << " found exception ret false" << endl;

@@ -44,8 +44,8 @@ class PatchObject {
     PATCHAPI_EXPORT void addFunc(PatchFunction*);
     PATCHAPI_EXPORT void removeFunc(PatchFunction*);
     PATCHAPI_EXPORT void removeFunc(ParseAPI::Function *);
-    template <class Iter>
-       PATCHAPI_EXPORT void funcs(Iter iter); 
+    template <class Iter> 
+	void funcs(Iter iter); 
     // Block
     PATCHAPI_EXPORT PatchBlock *getBlock(ParseAPI::Block*, bool create = true);
     PATCHAPI_EXPORT void addBlock(PatchBlock*);
@@ -53,7 +53,7 @@ class PatchObject {
     PATCHAPI_EXPORT void removeBlock(ParseAPI::Block*);
     PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
     template <class Iter>
-       PATCHAPI_EXPORT void blocks(Iter iter); 
+     void blocks(Iter iter); 
 
     // Edge
     PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, bool create = true);
@@ -61,7 +61,7 @@ class PatchObject {
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(ParseAPI::Edge*);
     template <class Iter>
-       PATCHAPI_EXPORT void edges(Iter iter); 
+      void edges(Iter iter); 
 
     PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
     
