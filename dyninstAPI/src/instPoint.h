@@ -135,8 +135,8 @@ class instPoint : public Dyninst::PatchAPI::Point {
     // instrumentation) and thus aren't strongly tied to
     // a block give us the next block that will execute.
     // Unlike block() above, this always works.
-    block_instance *nextExecutedBlock() const;
-    Address nextExecutedAddr() const;
+    block_instance *block_compat() const;
+    Address addr_compat() const;
 
     miniTramp *push_front(AstNodePtr ast, bool recursive);
     miniTramp *push_back(AstNodePtr ast, bool recursive);

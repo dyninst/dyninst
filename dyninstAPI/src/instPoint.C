@@ -344,7 +344,7 @@ baseTramp *instPoint::tramp() {
 // In some cases we may not know; function exit points
 // and the like. In this case we return the current block
 // as a "well, this is what we've got..."
-block_instance *instPoint::nextExecutedBlock() const {
+block_instance *instPoint::block_compat() const {
    switch (type_) {
       case FuncEntry:
 	return func()->entryBlock();
@@ -369,7 +369,7 @@ block_instance *instPoint::nextExecutedBlock() const {
    }
 }
 
-Address instPoint::nextExecutedAddr() const {
+Address instPoint::addr_compat() const {
    // As the above, but our best guess at an address
    switch (type_) {
       case FuncEntry:

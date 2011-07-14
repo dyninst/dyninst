@@ -1012,6 +1012,12 @@ ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
   return func->ifunc();
 }
 
+PatchAPI::PatchFunction * BPatch_function::getPatchAPIFuncInt() {
+  assert(func);
+ 
+  return func;
+}
+
 void BPatch_function::relocateFunction()
 {
      lowlevel_func()->proc()->addModifiedFunction(lowlevel_func());
