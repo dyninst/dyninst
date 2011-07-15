@@ -354,6 +354,7 @@ block_instance *instPoint::block_compat() const {
       case PostInsn:
       case FuncExit:
       case BlockEntry:
+      case BlockExit:
       case PreCall:
 	return block();
       case PostCall: {

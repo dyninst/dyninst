@@ -1139,9 +1139,7 @@ mapped_module* mapped_object::getDefaultModule()
 }
 
 
-// Grabs all block_instances corresponding to the region, taking special care
-// to get ALL block_instances corresponding to an address if it is shared
-// between multiple functions
+// Grabs all block_instances corresponding to the region (horribly inefficient)
 bool mapped_object::findBlocksByRange(Address startAddr,
                                       Address endAddr,
                                       list<block_instance*> &rangeBlocks)//output
@@ -1151,26 +1149,13 @@ bool mapped_object::findBlocksByRange(Address startAddr,
       Address papiCur = cur - codeBase();
       parse_img()->codeObject()->findBlocks(NULL, papiCur, papiBlocks);
    }
-   //malware_cerr << "ParseAPI reported " << papiBlocks.size() << " unique blocks in the range "
-   //     << hex << startAddr << " -> " << endAddr << dec << endl;
 
    for (std::set<ParseAPI::Block *>::iterator iter = papiBlocks.begin();
         iter != papiBlocks.end(); ++iter) {
-      // For each parseAPI block, up-map it to a set of block_instances
-      ParseAPI::Block *pB = *iter;
-
-      std::vector<ParseAPI::Function *> funcs;
-      pB->getFuncs(funcs);
-      for (std::vector<ParseAPI::Function *>::iterator f_iter = funcs.begin();
-           f_iter != funcs.end(); ++f_iter) {
-         parse_func *ifunc = SCAST_PF(*f_iter);
-         func_instance *func = findFunction(ifunc);
-         assert(func);
-
-         block_instance *bbl = findBlockByEntry(pB->start() + codeBase());
-         assert(bbl);
-         rangeBlocks.push_back(bbl);
-      }
+      // For each parseAPI block, up-map it to a block_instance
+      block_instance *bbl = this->findBlock(*iter);
+      assert(bbl);
+      rangeBlocks.push_back(bbl);
    }
    return !rangeBlocks.empty();
 }

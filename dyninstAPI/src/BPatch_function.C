@@ -400,8 +400,7 @@ void BPatch_function::getUnresolvedControlTransfers
       if ((*iter)->containsCall()) {
           point = instPoint::preCall(func, *iter);
       } else {
-          assert((*iter)->getTargets().size() ==1);
-          point = instPoint::blockExit(func, *iter);
+          point = instPoint::preInsn(func, *iter, (*iter)->last());
       }
       BPatch_procedureLocation ptType = 
          BPatch_point::convertInstPointType_t(point->type());

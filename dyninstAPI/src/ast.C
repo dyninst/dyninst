@@ -1951,10 +1951,12 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
 bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
-                                            Register &retReg) {
-   if (gen.point()->type() != instPoint::PreCall &&
+                                            Register &retReg) 
+{
+    if (gen.point()->type() != instPoint::PreCall &&
        gen.point()->type() != instPoint::FuncExit &&
-       gen.point()->type() != instPoint::PreInsn) return false;
+       gen.point()->type() != instPoint::PreInsn) 
+       return false;
 
    InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
    if (insn->getCategory() == c_ReturnInsn) {

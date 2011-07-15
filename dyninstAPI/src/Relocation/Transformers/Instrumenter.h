@@ -66,6 +66,7 @@ class Instrumenter : public Transformer {
 
   bool funcExitInstrumentation(RelocBlock *trace);
   bool blockEntryInstrumentation(RelocBlock *trace);
+  bool blockExitInstrumentation(RelocBlock *trace);
   bool preCallInstrumentation(RelocBlock *trace);
   bool insnInstrumentation(RelocBlock *trace);
 

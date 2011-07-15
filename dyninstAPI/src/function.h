@@ -324,9 +324,12 @@ void func_instance::getCallerBlocks(OutputIterator result)
   */
   const PatchBlock::edgelist &ins = entryBlock()->getSources();
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
-       iter != ins.end(); ++iter) {
-    *result = SCAST_EI(*iter)->src();
-    ++result;
+       iter != ins.end(); ++iter) 
+  {
+      if ((*iter)->type() == ParseAPI::CALL) {
+        *result = SCAST_EI(*iter)->src();
+        ++result;
+      }
   }
 }
 

@@ -328,7 +328,11 @@ void Parser::ProcessUnresBranchEdge(
     det.ibuf = (unsigned char*)
        frame.func->isrc()->getPtrToInstruction(ah.getAddr());
     det.isize = ah.getSize();
-    det.data.unres.target = target;
+    if (-1 == target) {
+        det.data.unres.target = 0;
+    } else {
+        det.data.unres.target = target;
+    }
     det.type = ParseCallback::interproc_details::unresolved;
     det.data.unres.target = target;
 
@@ -578,28 +582,6 @@ void Parser::ProcessCFInsn(
         else if( unlikely(_obj.defensiveMode() && NOEDGE != curEdge->second) )
         {   
             ProcessUnresBranchEdge(frame, cur, ah, curEdge->first);
-            // invoke callback for: 
-            // direct ctrl transfers with bad targets 
-            // (calls will have been taken care of and indirect branches don't have outgoing edges)
-            ParseCallback::interproc_details det;
-            det.ibuf = (unsigned char*)
-               frame.func->isrc()->getPtrToInstruction(ah.getAddr());
-            det.isize = ah.getSize();
-            det.data.unres.target = curEdge->first;
-            det.type = ParseCallback::interproc_details::unresolved;
-            if (-1 == (long)det.data.unres.target) {
-                det.data.unres.target = 0;
-            }
-            bool valid; Address addr;
-            boost::tie(valid, addr) = ah.getCFT();
-            if (!valid) {
-                det.data.unres.dynamic = true;
-                det.data.unres.absolute_address = true;
-            } else {
-                det.data.unres.dynamic = false;
-                det.data.unres.absolute_address = false;
-            }
-            _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
         }
     }
 

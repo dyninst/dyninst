@@ -400,10 +400,12 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                        "indirect, useCache=%d\n", __LINE__,(long)curPoint->llpoint()->block()->last(),(int)useCache);
             if (useCache) {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
-                    dynTarget, *curPoint->llpoint()->func()->obj(), useCache, BPatch_interpAsTarget);
+                    dynTarget, *curPoint->llpoint()->func()->obj(), true, BPatch_interpAsTarget);
+                cachePoints_.insert(curPoint);
             } else {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(badTransferCB_wrapper, 
-                    dynTarget, useCache, BPatch_interpAsTarget);
+                    dynTarget, false, BPatch_interpAsTarget);
+                cachePoints_.erase(curPoint);
             }
 
             // instrument the point
@@ -791,7 +793,8 @@ bool HybridAnalysis::instrumentModules(bool useInsertionSet)
  * Return true if instrumentation of new or modified functions occurs
  */ 
 bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                                                 BPatch_function *calledFunc)
+                                                 BPatch_function *calledFunc,
+                                                 bool foundByRet)
 {
     assert(callPoint);
     std::set<BPatch_module*> callerMods; 
@@ -872,35 +875,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    bool reInstrument = false;
-    if (!parsedAfterCallPoint) {
-        reInstrument = true; 
-#if 0
-   we can always re-instrument now that we synchronize around 
-   functions in non-defensive objects by instrumenting the called
-   functions at their entry and exit points
-
-        vector<Address> targs;
-        if (!proc()->lowlevel_process()->isMemoryEmulated()) {
-            reInstrument = true;
-        } else if (getCallAndBranchTargets(callPoint->block(), targs)) {
-            reInstrument = true;
-            Address objStart = callPoint->llpoint()->func()->obj()->codeBase();
-            Address objEnd = objStart 
-                + callPoint->llpoint()->func()->obj()->imageSize();
-            for (vector<Address>::iterator iter=targs.begin(); 
-                 iter != targs.end(); 
-                 iter++) 
-            {
-                if ((*iter) < objStart || (*iter) >= objEnd) {
-                    reInstrument = false;
-                    break;
-                }
-            }
-        }
-#endif     
-    }
-    if (reInstrument) {
+    if (!parsedAfterCallPoint && 
+        !foundByRet && 
+        cachePoints_.end() == cachePoints_.find(callPoint)) 
+    {
       for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) 
       {
         BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
@@ -925,6 +903,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                         BPatch_dynamicTargetExpr(), 
                         *callPoint->llpoint()->func()->obj(), 
                         true, BPatch_interpAsTarget);
+                cachePoints_.insert(callPoint);
                 BPatchSnippetHandle *handle = proc()->insertSnippet
                     (newSnippet, *callPoint, BPatch_lastSnippet);
                 saveInstrumentationHandle(callPoint, handle);
@@ -1243,7 +1222,7 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                 "target is in module %s, parsing at fallthrough %s[%d]\n",
                 (long)point->llpoint()->block()->last(), target, modName,FILE__,__LINE__);
-            parseAfterCallAndInstrument(point, targFunc);
+            parseAfterCallAndInstrument(point, targFunc, false);
             doMoreProcessing = false;
         } else if (point->getPointType() == BPatch_exit) {
             mal_printf("WARNING: stopThread instrumentation found return %lx=>%lx, "

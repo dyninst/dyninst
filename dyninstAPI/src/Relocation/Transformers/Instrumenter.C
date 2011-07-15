@@ -77,6 +77,7 @@ bool Instrumenter::process(RelocBlock *trace,
    if (!insnInstrumentation(trace)) return false;
    if (!preCallInstrumentation(trace)) return false;
    if (!blockEntryInstrumentation(trace)) return false;
+   if (!blockExitInstrumentation(trace)) return false;
    if (!funcExitInstrumentation(trace)) return false;
 
    // And on to the graph modification shtuff. 
@@ -207,6 +208,32 @@ bool Instrumenter::blockEntryInstrumentation(RelocBlock *trace) {
    if (!inst) return false;
 
    elements.push_front(inst);
+   return true;
+}
+
+bool Instrumenter::blockExitInstrumentation(RelocBlock *trace) {
+   instPoint *exit = NULL;
+   if (trace->func()) {
+     exit = trace->func()->blockExitPoint(trace->block(), false);
+   }
+
+   if (!exit || exit->empty()) return true;
+
+   RelocBlock::WidgetList &elements = trace->elements();
+   // Block exit instrumentation goes in after anything except a CFAtom
+   // .. which means before the last instruction
+
+   Widget::Ptr last;
+   if (!elements.empty()) {
+      last = elements.back();
+      elements.pop_back();
+   }
+   Widget::Ptr inst = makeInstrumentation(exit);
+   if (!inst) return false;
+
+   elements.push_back(inst);
+   if (last) elements.push_back(last);
+
    return true;
 }
 

@@ -270,6 +270,9 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     assert(point);
     // Try to find it... we do so through an InstrucIter
     Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
+    if (!i) {
+        return NULL;
+    }
     BPatch_memoryAccessAdapter converter;
 
     attachMemAcc(converter.convert(i, point->insnAddr(), point->proc()->getAddressWidth() == 8));
@@ -381,6 +384,17 @@ bool BPatch_point::isDynamicInt()
          return point->edge()->sinkEdge();
          break;
       default:
+         if (point->addr() == point->block()->last()) {
+             PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
+             for (PatchAPI::PatchBlock::edgelist::iterator eit = trgs.begin();
+                  eit != trgs.end(); 
+                  eit++)
+             {
+                 if ((*eit)->type() == ParseAPI::INDIRECT) {
+                     return true;
+                 }
+             }
+         }
          return false;
    }
 }

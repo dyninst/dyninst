@@ -118,6 +118,7 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   virtual void interproc_cf(ParseAPI::Function*,ParseAPI::Block*,Address,interproc_details*);
   virtual void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
   virtual bool updateCodeBytes(Address target); // updates if needed
+  virtual void split_block_cb(ParseAPI::Block *, ParseAPI::Block *); // needed for defensive mode
 
   virtual void destroy_cb(ParseAPI::Block *);
   virtual void destroy_cb(ParseAPI::Edge *);

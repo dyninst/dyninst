@@ -952,7 +952,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
                     FILE__,curAddr);
                 if (frame.func->obj()->defensiveMode()) {
-                    mal_printf("new block at %lx\n",curAddr);
+                    mal_printf("straight-line parse into block at %lx\n",curAddr);
                 }
                 ah.retreat();
                 curAddr = ah.getAddr();
@@ -1105,7 +1105,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     end_block(cur,ah);
                     break;
                 }
-#if 0
                 else if (ah.isNopJump()) 
                 {
                     // patch the jump to make it a nop, and re-set the 
@@ -1120,10 +1119,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         (func->isrc()->getPtrToInstruction(ah.getAddr()));
                     dec = InstructionDecoder
                         (bufferBegin, bufsize, frame.codereg->getArch());
-                    ah = new InstructionAdapter_t(dec, curAddr, func->obj(), 
+                    ah = InstructionAdapter_t(dec, curAddr, func->obj(), 
                                               func->region(), func->isrc(), cur);
                 }
-#endif
                 else {
                     entryID id = ah.getInstruction()->getOperation().getID();
                     switch (id) {

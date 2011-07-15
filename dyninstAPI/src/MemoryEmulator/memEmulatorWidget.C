@@ -525,7 +525,7 @@ bool MemEmulator::copyScratchToCodeBuffer(CodeBuffer &buffer) {
 }
 
 TrackerElement *MemEmulator::tracker() const {
-   EmulatorTracker *e = new EmulatorTracker(addr_, block);
+   EmulatorTracker *e = new EmulatorTracker(addr_, block, point_->func());
   return e;
 }
 

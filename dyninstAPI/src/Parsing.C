@@ -183,7 +183,9 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     image_edge * ret;
-
+    if (src->lastInsnAddr() == 0x1d1) {
+        cerr << "here we are" <<endl; //KEVINTODO: erase this
+    }
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
     ret = new image_edge((parse_block*)src,
@@ -288,3 +290,19 @@ DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
     static_cast<parse_func*>(func)->setHasWeirdInsns(true);
 }
 
+void DynParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second)
+{
+    if (SCAST_PB(first)->abruptEnd()) {
+        SCAST_PB(first)->setAbruptEnd(false);
+        SCAST_PB(second)->setAbruptEnd(true);
+    }
+    if (SCAST_PB(first)->unresolvedCF()) {
+        SCAST_PB(first)->setUnresolvedCF(false);
+        SCAST_PB(second)->setUnresolvedCF(true);
+    }
+    if (SCAST_PB(first)->needsRelocation()) {
+        SCAST_PB(second)->markAsNeedingRelocation();
+    }
+    //parse_block::canBeRelocated_ doesn't need to be set, it's only ever
+    // true for the sink block, which is never split
+}

@@ -83,12 +83,19 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
     int ret = _rdata.findBlocks(addr,blocks);
+#if 0 // old sanity check that discovered blocks at a given address are all 
+      // in the same region, the problem with the check is that it blocks
+      // has to be empty when you call this function, so with the sanity 
+      // check in place you can't call findBlocks on a range of addresses
+      // accumulating the results in the blocks set.  Copying would allow
+      // the sanity check to work, but it seems unnecessary
     CodeRegion *check = 0;
     for (std::set<Block *>::iterator iter = blocks.begin(); iter != blocks.end(); ++iter)
     {
         if (!check) check = (*iter)->region();
         else assert(check == (*iter)->region());
     }
+#endif
     return ret;
 }
 

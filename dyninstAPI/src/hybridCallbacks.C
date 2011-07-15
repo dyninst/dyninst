@@ -704,7 +704,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
             //         (long)point->getAddress(), target);
-            parseAfterCallAndInstrument(point, targFunc);
+            parseAfterCallAndInstrument(point, targFunc, false);
         } else {
             instrumentModules(false);
         }
@@ -758,7 +758,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                      pit != callPts.end(); 
                      pit++)
                 {
-                    parseAfterCallAndInstrument( *pit, NULL );
+                    parseAfterCallAndInstrument( *pit, NULL, true );
                 }
             }
 
@@ -794,11 +794,12 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     // return point, so use the call target function
                     BPatch_function *calledFunc = proc()->
                         findFunctionByEntry(returningCallB.second);
-                    parseAfterCallAndInstrument( callPoints[0], calledFunc );
+                    parseAfterCallAndInstrument( callPoints[0], calledFunc, true );
                 }
                 else {
                     parseAfterCallAndInstrument( callPoints[0], 
-                                                 point->getFunction() );
+                                                 point->getFunction(),
+                                                 true);
                 }
             }
         }

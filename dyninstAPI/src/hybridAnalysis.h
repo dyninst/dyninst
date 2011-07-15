@@ -177,7 +177,8 @@ private:
                             bool instrumentReturns=false,
                             bool syncShadow = false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                        BPatch_function *calledFunc) ;
+                        BPatch_function *calledFunc,
+                        bool foundByRet) ;
     void removeInstrumentation(BPatch_function *func, 
                                bool useInsertionSet, 
                                bool handlesWereDeleted = false);
@@ -221,6 +222,7 @@ private:
     std::set< BPatch_function *> instShadowFuncs_;
     std::set< std::string > skipShadowFuncs_;
     std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
+    std::set< BPatch_point* > cachePoints_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;

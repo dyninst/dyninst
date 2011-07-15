@@ -4524,6 +4524,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
             mal_printf("WARNING: no relocs of call-fallthrough at %lx "
                        "in func at %lx, will not patch its post-call "
                        "padding\n", callP->block()->last(),callF->addr());
+            (*relocatedCode_.rbegin())->debug();
             continue;
         }
         

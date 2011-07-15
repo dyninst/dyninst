@@ -63,7 +63,7 @@ class TrackerElement {
     padding
   } type_t;
 
-  TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
+  TrackerElement(Address o, block_instance *b, func_instance *f) 
       : orig_(o), reloc_(0), size_(0), 
      block_(b), func_(f) {
      assert(b);
@@ -97,7 +97,7 @@ class TrackerElement {
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, block_instance *b, func_instance *f = NULL) :
+  OriginalTracker(Address orig, block_instance *b, func_instance *f) :
    TrackerElement(orig, b, f) {};
   virtual ~OriginalTracker() {};
 
@@ -120,7 +120,7 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
-  EmulatorTracker(Address orig, block_instance *b, func_instance *f = NULL) : 
+  EmulatorTracker(Address orig, block_instance *b, func_instance *f) : 
    TrackerElement(orig, b, f) {};
   virtual ~EmulatorTracker() {};
 
@@ -142,7 +142,7 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f = NULL) :
+  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f) :
    TrackerElement(orig, b, f), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
@@ -166,7 +166,7 @@ class InstTracker : public TrackerElement {
 
 class PaddingTracker : public TrackerElement {
  public:
-  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f = NULL) :
+  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f) :
    TrackerElement(orig, b, f), pad_(pad) {};
    virtual ~PaddingTracker() {};
 
