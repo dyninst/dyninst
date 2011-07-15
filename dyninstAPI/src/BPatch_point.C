@@ -270,6 +270,7 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     assert(point);
     // Try to find it... we do so through an InstrucIter
     Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
+    if (!i) return NULL;
     BPatch_memoryAccessAdapter converter;
 
     attachMemAcc(converter.convert(i, point->insnAddr(), point->proc()->getAddressWidth() == 8));
