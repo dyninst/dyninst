@@ -130,7 +130,6 @@ bool test_modification_Mutator::test_modify() {
       return false;
    }
    
-   cerr << "Buffer contains: " << hex << *((unsigned *)codeBuffer) << dec << endl;
    PatchBlock *inserted = PatchModifier::insert(entry->obj(),
                                                 modification_buffer,
                                                 modification_buffer_size); 
