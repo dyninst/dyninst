@@ -412,7 +412,9 @@ void Parser::ProcessCFInsn(
                 det.data.unres.absolute_address = false;
             }
             _pcb.interproc_cf(frame.func,cur,ah.getAddr(),&det);
-        }
+        } else if( NOEDGE != curEdge->second) {
+        		ProcessUnresBranchEdge(frame, cur, ah, -1, INDIRECT);
+		  }
     }
 
     if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
