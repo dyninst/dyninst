@@ -912,12 +912,12 @@ bool int_process::terminate(bool &needs_sync)
    pthrd_printf("Terminate requested on process %d\n", getPid());
    bool had_error = true;
    ProcPool()->condvar()->lock();
+   forcedTermination = true;
    bool result = plat_terminate(needs_sync);
    if (!result) {
       pthrd_printf("plat_terminate failed on %d\n", getPid());
       goto done;
    }
-   forcedTermination = true;
    setForceGeneratorBlock(true);
    had_error = false;
   done:
