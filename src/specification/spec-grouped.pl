@@ -2443,6 +2443,32 @@ mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'muta
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
 
+test('pc_terminate', 'pc_terminate', 'pc_terminate').
+test_description('pc_terminate', 'Terminate a process').
+test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate', ['pc_terminate.C']).
+test_runmode('pc_terminate', 'dynamic').
+test_threadmode('pc_terminate', 'Threading').
+test_processmode('pc_terminate', 'Processes').
+test_start_state('pc_terminate', 'stopped').
+tests_module('pc_terminate', 'proccontrol').
+mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate_stopped', 'pc_terminate_stopped', 'pc_terminate_stopped').
+test_description('pc_terminate_stopped', 'Terminate a stopped process').
+test_platform('pc_terminate_stopped', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate_stopped', ['pc_terminate_stopped.C']).
+test_runmode('pc_terminate_stopped', 'dynamic').
+test_threadmode('pc_terminate_stopped', 'Threading').
+test_processmode('pc_terminate_stopped', 'Processes').
+test_start_state('pc_terminate_stopped', 'stopped').
+tests_module('pc_terminate_stopped', 'proccontrol').
+mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
+
 test('pc_thread_cont', 'pc_thread_cont', 'pc_thread_cont').
 test_description('pc_thread_cont', 'Test process running').
 test_platform('pc_thread_cont', Platform) :- pcPlatforms(Platform).
