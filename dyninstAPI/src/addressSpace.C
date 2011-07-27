@@ -1848,8 +1848,11 @@ void AddressSpace::getRelocAddrs(Address orig,
     Relocation::CodeTracker::RelocatedElements reloc;
     if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
-      if (reloc.instrumentation && getInstrumentationAddrs) {
-        relocs.push_back(reloc.instrumentation);
+       if (!reloc.instrumentation.empty() && getInstrumentationAddrs) {
+          for (std::map<instPoint *, Address>::iterator iter2 = reloc.instrumentation.begin();
+               iter2 != reloc.instrumentation.end(); ++iter2) {
+             relocs.push_back(iter2->second);
+          }
       }
       else {
         assert(reloc.instruction);
