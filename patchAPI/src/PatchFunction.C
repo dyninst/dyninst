@@ -198,7 +198,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
             return points_.during;
          case Point::FuncExit: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyExit(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyExit(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.exits.find(loc.block);
             if (iter == points_.exits.end()) {
                if (!create) return NULL;
@@ -210,7 +210,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
          }
          case Point::PreCall: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyCall(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyCall(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.preCalls.find(loc.block);
             if (iter == points_.preCalls.end()) {
                if (!create) return NULL;
@@ -222,7 +222,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
          }
          case Point::PostCall: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyCall(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyCall(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.postCalls.find(loc.block);
             if (iter == points_.postCalls.end()) {
                if (!create) return NULL;

@@ -34,15 +34,15 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
-  typedef std::pair<PatchFunction *, InsnLoc> InsnInstance;
+  typedef std::pair<PatchFunction *, InsnLoc_t> InsnInstance;
   typedef std::vector<PatchFunction *> Functions;
   typedef std::vector<PatchBlock *> Blocks;
   typedef std::vector<PatchEdge *> Edges;
   typedef std::vector<BlockInstance> BlockInstances;
   typedef std::vector<InsnInstance> InsnInstances;
-  typedef std::vector<CallSite> CallSites;
-  typedef std::vector<ExitSite> ExitSites;
-  typedef std::vector<InsnLoc> Insns;
+  typedef std::vector<CallSite_t> CallSites;
+  typedef std::vector<ExitSite_t> ExitSites;
+  typedef std::vector<InsnLoc_t> Insns;
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
