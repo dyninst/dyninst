@@ -66,6 +66,7 @@ PatchBlock::getTargets() {
 }
 
 PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
+   getSources();
    for (edgelist::iterator iter = srclist_.begin();
         iter != srclist_.end(); ++iter) {
       if ((*iter)->type() == type) return *iter;
@@ -74,10 +75,12 @@ PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
 }
 
 PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
+   getTargets();
    for (edgelist::iterator iter = trglist_.begin();
         iter != trglist_.end(); ++iter) {
       assert(*iter);
       assert((*iter)->edge());
+      cerr << "Looking for " << ParseAPI::format(type) << ", found edge with " << ParseAPI::format((*iter)->type()) << endl;
       if ((*iter)->type() == type) return *iter;
    }
    return NULL;

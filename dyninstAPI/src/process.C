@@ -4531,8 +4531,19 @@ bool process::generateRequiredPatches(instPoint *callPoint,
             (*relocatedCode_.rbegin())->debug();
             continue;
         }
-        
-        Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
+
+        Address to = reloc.instruction;
+        if (!reloc.instrumentation.empty()) {
+           // There could be a lot of instrumentation at this point. Bias towards the lowest,
+           // non-edge instrumentation
+           to = 0;
+           for (std::map<instPoint *, Address>::iterator inst_iter = reloc.instrumentation.begin();
+                inst_iter != reloc.instrumentation.end(); ++inst_iter) {
+              if (inst_iter->first->type() == PatchAPI::Point::EdgeDuring) continue;
+              to = (inst_iter->second < to) ? inst_iter->second : to;
+           }
+           if (to == 0) to = reloc.instruction;
+        }
 
         // 2) 
         if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callP)) {

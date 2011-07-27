@@ -48,6 +48,7 @@ class baseTramp;
 class func_instance;
 class block_instance;
 class AddressSpace;
+class instPoint;
 
 namespace Dyninst {
 namespace Relocation {
@@ -191,10 +192,10 @@ class PaddingTracker : public TrackerElement {
 class CodeTracker {
  public:
   struct RelocatedElements {
-    Address instruction;
-    Address instrumentation;
+     Address instruction;
+     std::map<instPoint *, Address> instrumentation;
      Address pad;
-  RelocatedElements() : instruction(0), instrumentation(0), pad(0) {};
+  RelocatedElements() : instruction(0), pad(0) {};
   };
 
   // I'd like to use a block * as a unique key element, but
