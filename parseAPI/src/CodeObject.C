@@ -262,7 +262,9 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         }
     }
 
+    parser->_pcb.batch_begin(); // must batch callbacks and deliver after parsing structures are stable
     parser->parse_edges( work_elems );
+    parser->_pcb.batch_end(_fact);
 
     if (defensiveMode()) {
         // update tampersStack for modified funcs
@@ -277,7 +279,6 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             }
         }
     }
-
     return true;
 }
 

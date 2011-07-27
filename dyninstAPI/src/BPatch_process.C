@@ -1520,7 +1520,7 @@ bool BPatchSnippetHandle::usesTrapInt() {
  *
  * Causes the execution of a callback in the mutator that was
  * triggered for the evtStopThread event. As BPatch_stopThreadExpr
- * snippets allow a different callback to be triggered to each
+ * snippets allow a different callback to be triggered for each
  * snippet instance, the cb_ID is used to find the right callback to
  * trigger. This code had to be in a BPatch-level class so that we
  * could utilize the findOrCreateBPFunc and findOrCreateBPPoint
@@ -1654,6 +1654,8 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  */
 bool BPatch_process::hideDebuggerInt()
 {
+    return true; //KEVINTODO: re-enable this function
+
     // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
 
@@ -2379,7 +2381,7 @@ void BPatch_process::printDefensiveStatsInt()
             if (bFuncs.size() == 1 && curFuncs.size() == 1) {// the common case
                 if ((*bFuncs.begin()) != (*curFuncs.begin())) {
                     // switched from one function to another
-                    if (bFuncs.end() != visitedFs.find(*bFuncs.begin())) {
+                    if (visitedFs.find(*bFuncs.begin()) != visitedFs.end()) {
                         oFuncs.insert((*bFuncs.begin())->addr());
                     }
                     curFuncs.clear();

@@ -273,7 +273,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   static void destroy(func_instance *f);
   void destroyBlock(block_instance *block);
 
-  void splitBlockInst(block_instance *b1, block_instance *b2);
+  void split_block_cb(block_instance *b1, block_instance *b2);
+  void add_block_cb(block_instance *block);
 
  private:
 
@@ -292,6 +293,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
+  unsigned int prevBlocksUnresolvedCF_; // num func blocks when calculated
+  unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
 
 
   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is

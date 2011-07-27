@@ -59,6 +59,8 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
+  prevBlocksUnresolvedCF_(0),
+  prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -93,6 +95,8 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
+  prevBlocksUnresolvedCF_(0),
+  prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -295,11 +299,12 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (unresolvedCF_.empty() || obj()->isExploratoryModeOn()) {
-      // A block has unresolved control flow if it has an indirect
-      // out-edge.
-       for (PatchFunction::Blockset::const_iterator iter = getAllBlocks().begin(); 
-            iter != getAllBlocks().end(); ++iter) 
+   if (prevBlocksUnresolvedCF_ < ifunc()->blocks().size()) {
+       prevBlocksUnresolvedCF_ = getAllBlocks().size();
+       // A block has unresolved control flow if it has an indirect
+       // out-edge.
+       for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
+            iter != all_blocks_.end(); ++iter) 
        {
           block_instance* iblk = SCAST_BI(*iter);
           if (iblk->llb()->unresolvedCF()) {
@@ -311,12 +316,15 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-    for (PatchFunction::Blockset::const_iterator iter = getAllBlocks().begin(); 
-         iter != getAllBlocks().end(); ++iter) 
-    {
-        block_instance* iblk = SCAST_BI(*iter);
-        if (iblk->llb()->abruptEnd()) {
-            abruptEnds_.insert(iblk);
+    if (prevBlocksAbruptEnds_ < ifunc()->blocks().size()) {
+        prevBlocksUnresolvedCF_ = getAllBlocks().size();
+        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
+             iter != all_blocks_.end(); ++iter) 
+        {
+            block_instance* iblk = SCAST_BI(*iter);
+            if (iblk->llb()->abruptEnd()) {
+                abruptEnds_.insert(iblk);
+            }
         }
     }
     return abruptEnds_;
@@ -794,7 +802,7 @@ void func_instance::destroy(func_instance *f) {
    delete f;
 }
 
-void func_instance::splitBlockInst(block_instance *b1, block_instance *b2)
+void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
 {
 
     BlockSet::iterator bit = unresolvedCF_.find(b1);
@@ -808,3 +816,19 @@ void func_instance::splitBlockInst(block_instance *b1, block_instance *b2)
         abruptEnds_.insert(b2);
     }
 }
+
+
+void func_instance::add_block_cb(block_instance *block)
+{
+    if (block->llb()->unresolvedCF() && 
+        prevBlocksUnresolvedCF_ == ifunc()->blocks().size()) 
+    {
+        unresolvedCF_.insert(block);
+    }
+    if (block->llb()->abruptEnd() && 
+        prevBlocksAbruptEnds_ == ifunc()->blocks().size())
+    {
+        abruptEnds_.insert(block);
+    }
+}
+

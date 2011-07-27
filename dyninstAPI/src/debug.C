@@ -209,6 +209,7 @@ int bpinfo(const char *format, ...)
 // Internal debugging
 
 int dyn_debug_malware = 0;
+int dyn_debug_traps = 0;
 int dyn_debug_signal = 0;
 int dyn_debug_infrpc = 0;
 int dyn_debug_startup = 0;
@@ -251,6 +252,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_TRAPS"))) {
+    fprintf(stderr, "Enabling DyninstAPI debugging using traps\n");
+    dyn_debug_traps = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
@@ -388,6 +393,23 @@ bool init_debug() {
 int mal_printf(const char *format, ...)
 {
   if (!dyn_debug_malware) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int trap_printf(const char *format, ...)
+{
+  if (!dyn_debug_traps) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

@@ -189,8 +189,9 @@ PatchBlock::containsDynamicCall() {
   ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
-     if ( ParseAPI::CALL == (*eit)->type() && ((*eit)->sinkEdge())) {
-         return true;
+     if ( ParseAPI::CALL == (*eit)->type() ) { 
+         // see if it's a static call to a bad address
+         return getInsn(last())->readsMemory();
       }
    }
    return false;

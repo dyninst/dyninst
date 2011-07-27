@@ -55,8 +55,12 @@ void DynPatchCallback::split_block_cb(PatchBlock *first, PatchBlock *second)
          fit != funcs.end();
          fit++)
     {
-        (*fit)->splitBlockInst(b1, SCAST_BI(second));
+        (*fit)->split_block_cb(b1, SCAST_BI(second));
     }
     //KEVINTODO: clean up BPatch-level items from here instead of top-down
 }
 
+void DynPatchCallback::add_block_cb(PatchFunction *func, PatchBlock *block)
+{
+    SCAST_FI(func)->add_block_cb(SCAST_BI(block));
+}

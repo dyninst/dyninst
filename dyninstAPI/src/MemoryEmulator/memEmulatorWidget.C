@@ -86,7 +86,8 @@ bool MemEmulator::initialize(const codeGen &templ, const RelocBlock *t) {
 	effAddrSaveOffset = 0;
 	usesESI = false;
 	usesEDI = false;
-	debug = false;
+	debug = true;
+	//debug = false;
 
 	return true;
 }
@@ -291,7 +292,7 @@ bool MemEmulator::generateViaModRM(CodeBuffer &buffer) {
 }
 
 void MemEmulator::insertDebugMarker() {
-	if (debug) 
+	if (debug || dyn_debug_traps) 
 		scratch.fill(1, codeGen::cgTrap);
 }
 

@@ -56,6 +56,7 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
   protected:
     virtual void split_block_cb(PatchAPI::PatchBlock *, 
                                 PatchAPI::PatchBlock *);
+    virtual void add_block_cb(PatchAPI::PatchFunction *, PatchAPI::PatchBlock *);
 
 #if 0
     virtual void destroy_cb(PatchBlock *) {};
@@ -67,7 +68,6 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
     virtual void create_cb(PatchFunction *) {};
     virtual void create_cb(PatchObject *) {};
     virtual void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t) {};
-    virtual void add_block_cb(PatchFunction *, PatchBlock *) {};
     virtual void add_edge_cb(PatchBlock *, PatchEdge *, edge_type_t) {};
     virtual void remove_block_cb(PatchFunction *, PatchBlock *) {};
     virtual void destroy_cb(Point *) {};

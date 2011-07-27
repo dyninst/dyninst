@@ -82,10 +82,6 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
 {
    assert(point->func() == _func->lowlevel_func());
 
-   if (_pointType == BPatch_subroutine)
-      dynamic_call_site_flag = 2; // dynamic status unknown
-   else
-      dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
    // I'd love to have a "loop" constructor, but the code structure
    // doesn't work right. We create an entry point as a set of edge points,
    // but not all edge points are loop points.
@@ -115,7 +111,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
-   dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
+   dynamic_point_monitor_func(NULL),edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -379,10 +375,18 @@ bool BPatch_point::isDynamicInt()
       case instPoint::PreCall:
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
-         break;
       case instPoint::EdgeDuring:
-         return point->edge()->sinkEdge();
-         break;
+          if (point->edge()->type() != ParseAPI::FALLTHROUGH && 
+             point->edge()->type() != ParseAPI::CALL_FT) 
+         {
+             PatchAPI::PatchBlock *src = point->edge()->src();
+             return src->getInsn(src->last())->readsMemory();
+         }
+         return false;
+      case instPoint::FuncExit:
+      case instPoint::BlockEntry:
+      case instPoint::BlockExit:
+         return false;
       default:
          if (point->addr() == point->block()->last()) {
              PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
@@ -390,6 +394,8 @@ bool BPatch_point::isDynamicInt()
                   eit != trgs.end(); 
                   eit++)
              {
+                 PatchAPI::PatchBlock *src = (*eit)->source();
+                 return src->getInsn(src->last())->readsMemory();
                  if ((*eit)->type() == ParseAPI::INDIRECT) {
                      return true;
                  }

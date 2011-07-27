@@ -124,6 +124,7 @@ void PatchParseCallback::add_block_cb(ParseAPI::Function *func, ParseAPI::Block 
    if (!pf) return; 
 
    pf->addBlock(pb);
+   _obj->cb()->add_block(pf,pb);
 }
 
 // returns the load address of the code object containing an absolute address

@@ -40,6 +40,8 @@
 using namespace Dyninst;
 using namespace Relocation;
 
+extern int dyn_debug_traps;
+
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
 std::set<Address> SpringboardBuilder::relocTraps_; 
@@ -217,7 +219,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    bool usedTrap = false;
    generateBranch(r.from, r.destinations.begin()->second.second, gen);
 
-   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if (dyn_debug_traps || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 

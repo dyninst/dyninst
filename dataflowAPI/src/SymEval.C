@@ -109,7 +109,7 @@ bool edgeSort(Edge::Ptr ptr1, Edge::Ptr ptr2) {
     Address addr1 = ptr1->target()->addr();
     Address addr2 = ptr2->target()->addr();
 
-    return (addr1 <= addr2);
+    return (addr1 < addr2);
 }
 
 void dfs(Node::Ptr source,

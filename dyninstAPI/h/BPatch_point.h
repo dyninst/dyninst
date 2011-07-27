@@ -134,12 +134,6 @@ private:
     // and later need to override it to a specific type (e.g., loop entry)
     void overrideType(BPatch_procedureLocation loc) { pointType = loc; }
 
-    //  dynamic_call_site_flag:
-    //    0:  is not dynamic call site
-    //    1:  is dynamic call site
-    //    2:  dynamic status unknown (initial value)
-    int dynamic_call_site_flag;
-
     //  a snippet used in monitoring of dynamic calls
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;

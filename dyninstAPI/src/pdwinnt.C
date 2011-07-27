@@ -541,24 +541,24 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-#if 0
-	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-                 << " (DEBUG:" 
-                 << "EAX: " << activeFrame.eax
-                 << ", ECX: " << activeFrame.ecx
-                 << ", EDX: " << activeFrame.edx
-                 << ", EBX: " << activeFrame.ebx
-                 << ", ESP: " << activeFrame.esp
-                 << ", EBP: " << activeFrame.ebp
-                 << ", ESI: " << activeFrame.esi 
-                 << ", EDI " << activeFrame.edi
-				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-	 for (unsigned i = 0; i < 10; ++i) {
-			Address stackTOPVAL =0;
-		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
-	 }
-#endif
+     if (dyn_debug_traps) {
+	     cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+                     << " (DEBUG:" 
+                     << "EAX: " << activeFrame.eax
+                     << ", ECX: " << activeFrame.ecx
+                     << ", EDX: " << activeFrame.edx
+                     << ", EBX: " << activeFrame.ebx
+                     << ", ESP: " << activeFrame.esp
+                     << ", EBP: " << activeFrame.ebp
+                     << ", ESI: " << activeFrame.esi 
+                     << ", EDI " << activeFrame.edi
+				     << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+	     for (unsigned i = 0; i < 10; ++i) {
+			    Address stackTOPVAL =0;
+		        ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+			    cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+	     }
+     }
 	 ret = true;
   }
   else if (decodeRTSignal(ev)) {
@@ -578,30 +578,37 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
         {
             ev.type = evtIgnore;
         }
-#if 0
-        cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-				<< " (DEBUG:" 
-				<< "EAX: " << activeFrame.eax
-				<< ", ECX: " << activeFrame.ecx
-				<< ", EDX: " << activeFrame.edx
-				<< ", EBX: " << activeFrame.ebx
-				<< ", ESP: " << activeFrame.esp
-				<< ", EBP: " << activeFrame.ebp
-				<< ", ESI: " << activeFrame.esi 
-				<< ", EDI: " << activeFrame.edi
-				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-			Address stackTOPVAL[200];
-            ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(ev.proc->getAddressWidth())*200, stackTOPVAL, false);
-            for (int i = 0; i < 200; ++i) 
-            {
-                Address remapped = 0;
-                vector<func_instance *> funcs;
-                baseTramp *bti;
-				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
-				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
-			}
-		}
-#endif
+        if (dyn_debug_traps) {
+            cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+				    << " (DEBUG:" 
+				    << "EAX: " << activeFrame.eax
+				    << ", ECX: " << activeFrame.ecx
+				    << ", EDX: " << activeFrame.edx
+				    << ", EBX: " << activeFrame.ebx
+				    << ", ESP: " << activeFrame.esp
+				    << ", EBP: " << activeFrame.ebp
+				    << ", ESI: " << activeFrame.esi 
+				    << ", EDI: " << activeFrame.edi
+				    << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+            if (activeFrame.getUninstAddr() >= 0x406392 && activeFrame.getUninstAddr() <= 0x406398 ) {
+                const int SDEPTH = 20;
+			    Address stackTOPVAL[SDEPTH];
+                ev.proc->readDataSpace((void *) activeFrame.esp, 
+                                       sizeof(ev.proc->getAddressWidth())*SDEPTH, 
+                                       stackTOPVAL, 
+                                       false);
+                for (int i = 0; i < SDEPTH; ++i) 
+                {
+                    Address remapped = 0;
+                    vector<func_instance *> funcs;
+                    baseTramp *bti;
+				    ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
+				    cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] 
+                          << ", orig @ " << remapped << " in " << funcs.size() 
+                          << "functions" << dec << endl;
+			    }
+		    }
+        }
 	 }
      else { // return exception to mutatee
         requested_wait_until_active = true;//i.e., return exception to mutatee

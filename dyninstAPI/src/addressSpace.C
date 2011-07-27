@@ -1943,13 +1943,8 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
+   assert(point);
 
-   if (!point || point->empty()) {
-       // Kevin didn't instrument it so we don't care :)
-       mal_printf("NOT Adding pad for uninstrumented callBlock [%lx %lx), pad NOT at 0%lx\n", 
-                  callBlock->start(), callBlock->end(), padStart);
-       return;
-   }
    mal_printf("Adding pad for callBlock [%lx %lx), pad at 0%lx\n", 
               callBlock->start(), callBlock->end(), padStart);
    forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));

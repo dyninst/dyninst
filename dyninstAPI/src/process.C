@@ -3835,7 +3835,11 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            AddressSpace::RelocInfo ri;
            bool hasFT = getRelocInfo(target, ri);
            assert(hasFT); // otherwise we should be in the defensive map
-           unrelocTarget = ri.block->start();
+           if (ri.pad) {
+               unrelocTarget = ri.block->end();
+           } else {
+               unrelocTarget = ri.block->start();
+           }
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
             target, unrelocTarget, FILE__, __LINE__);

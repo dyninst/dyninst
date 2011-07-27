@@ -689,7 +689,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (!analyzeNewFunction( point,target,true,false )) {
+            if (!analyzeNewFunction( point,target,false,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
@@ -844,8 +844,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
     proc()->beginInsertionSet();
     // 4.1 if the point is a direct branch, remove any instrumentation
-    if (!point->llpoint()->block() &&
-        !point->llpoint()->block()->containsDynamicCall()) {
+    if ((point->llpoint()->block() &&
+        !point->llpoint()->block()->containsDynamicCall())
+        ||
+        (point->llpoint()->edge() && point->isDynamic()))
+    {
         BPatch_function *func = point->getFunction();
         if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
             &&

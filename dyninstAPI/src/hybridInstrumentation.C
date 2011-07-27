@@ -436,11 +436,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
             //output message
             Address target = 0;
-            if (targets.size()) { 
+            if (!targets.empty()) { 
                 target = targets[0]; 
             } else {
-                mal_printf("WARNING: instrumenting static transfer to "
-                           "unknown target %s[%d]\n",FILE__,__LINE__);
+                mal_printf("instrumenting static transfer with unresolved target %s[%d]\n",FILE__,__LINE__);
             }
             if (curPoint->getPointType() == BPatch_locSubroutine) {
                 mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: call 0x%lx\n",
@@ -1413,26 +1412,28 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
  *  Returns true if the point corresponds to a control flow
  *  instruction whose target can be statically determined, in which
  *  case "target" is set to the targets of the control flow instruction
+ *  Has to return targets even for sink edges to invalid targets if the
+ *  control-flow instruction is static. 
  */
 bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
 {
-
     bool ret = true;
+    instPoint *ipoint = point->llpoint();
     if (point->isDynamic()) {
-        if (getCallAndBranchTargets(point->llpoint()->block(), targets)) {
+        if (getCallAndBranchTargets(ipoint->block(), targets)) {
             return true;
         } else {
             return false;
         }
     }
-    switch(point->llpoint()->type()) 
+    switch(ipoint->type()) 
     {
       case instPoint::PreCall: 
       case instPoint::PostCall: 
       {
         BPatch_function *targFunc = point->getCalledFunction();
         if (targFunc) {
-            Address targ = (Address) point->getCalledFunction()->getBaseAddr();
+            Address targ = (Address)targFunc->getBaseAddr();
             if (targ) {
                 targets.push_back(targ);
             } else {
@@ -1440,7 +1441,23 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
             }
         }
         else {
-            ret = false;
+            // compute static targets with bad addresses
+            using namespace InstructionAPI;
+            Instruction::Ptr insn = ipoint->block()->getInsn(ipoint->block()->last());
+            Expression::Ptr expr = insn->getControlFlowTarget();
+            //Expression::Ptr expr = ipoint->insn()->getControlFlowTarget();
+            Architecture arch = proc_->lowlevel_process()->getArch();
+            expr->bind(RegisterAST::Ptr
+                (new RegisterAST(MachRegister::getPC(arch))).get(), 
+                                 Result(s64, (Address)point->getAddress()));
+            Result actualTarget = expr->eval();
+            if(actualTarget.defined) {
+               Address targ = actualTarget.convert<Address>();
+               targets.push_back(targ);
+            }
+            else {
+                ret = false;
+            }
         }
         break;
       }
@@ -1450,10 +1467,10 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
         // (these get linked to the sink block by ParseAPI)
         using namespace ParseAPI;
         using namespace PatchAPI;
-        PatchBlock::edgelist trgs = point->llpoint()->block()->getTargets();
+        PatchBlock::edgelist trgs = ipoint->block()->getTargets();
         PatchBlock::edgelist::iterator iter = trgs.begin();
-        mapped_object *obj = SCAST_MO(point->llpoint()->func()->obj());
-        Architecture arch = point->llpoint()->proc()->getArch();
+        mapped_object *obj = SCAST_MO(ipoint->func()->obj());
+        Architecture arch = ipoint->proc()->getArch();
 
         for ( ; iter != trgs.end(); iter++) {
             if ( ! (*iter)->sinkEdge() ) {
@@ -1468,9 +1485,9 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                     break;
                 case COND_NOT_TAKEN:
                 case FALLTHROUGH:
-                    if (point->llpoint()->proc()->proc() && 
+                    if (ipoint->proc()->proc() && 
                         BPatch_defensiveMode == 
-                        point->llpoint()->proc()->proc()->getHybridMode()) 
+                        ipoint->proc()->proc()->getHybridMode()) 
                     {
                         assert( 0 && "should be an abrupt end point");
                     }
@@ -1483,14 +1500,14 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
                         ( new RegisterAST( MachRegister::getPC( arch ) ) );
 
                     void *ptr = obj->getPtrToInstruction(
-                        point->llpoint()->block()->last());
+                        ipoint->block()->last());
                     assert(ptr);
                     InstructionDecoder dec
                         (ptr, InstructionDecoder::maxInstructionLength, arch);
                     Instruction::Ptr insn = dec.decode();
                     Expression::Ptr trgExpr = insn->getControlFlowTarget();
                     trgExpr->bind(thePC.get(), 
-                        Result(s64, point->llpoint()->block()->last()));
+                        Result(s64, ipoint->block()->last()));
                     Result actualTarget = trgExpr->eval();
                     if(actualTarget.defined)
                     {

@@ -834,7 +834,7 @@ bool insnCodeGen::generateMem(codeGen &gen,
 	   }
    if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
-      return false; 
+      return false; // e.g., leave instruction
    }
 
    //if (loc.address_size == 1) {
