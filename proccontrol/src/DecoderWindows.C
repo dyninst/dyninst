@@ -37,9 +37,11 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		char* asciiLibName = new char[(MAX_PATH+1)*sizeof(wchar_t)];
 		wchar_t* libName = (wchar_t*)(asciiLibName);
 		void* libnameaddr;
-		std::string result;
-		if(p->plat_readMem(NULL, libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4))
-		{	
+		std::string result = "";
+		if(details.u.LoadDll.lpImageName && // NULL lpImageName = done
+			p->plat_readMem(NULL, &libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4) && 
+			libnameaddr) // NULL libnameaddr = done
+		{
 			int lowReadSize = 1;
 			int highReadSize = 128;
 			bool doneReading = false;
@@ -50,8 +52,11 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 			while(!doneReading)
 			{
 				pthrd_printf("Trying read for libname at 0x%lx, size %d\n", libnameaddr, chunkSize);
+				// try to read with the current byte count
 				if(p->plat_readMem(NULL, libName, (Dyninst::Address)libnameaddr, chunkSize))
 				{
+					// the read succeeded -
+					// did we get the full string?
 					if(details.u.LoadDll.fUnicode)
 					{
 						unsigned int lastCharIndex = chunkSize / sizeof(wchar_t);
@@ -64,6 +69,7 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 						asciiLibName[chunkSize] = '0';
 						char* first_null = strchr(asciiLibName, '\0');
 						gotString = (first_null != &(asciiLibName[chunkSize]));
+
 					}
 					if(gotString)
 					{
@@ -71,13 +77,18 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 					}
 					else
 					{
+						// we didn't get the full string,
+						// need to try a larger read
 						if(chunkSize == highReadSize)
 						{
+							// we were are the high end of the current range -
+							// move to the next range
 							lowReadSize = highReadSize + 1;
 							highReadSize = highReadSize + 128;
-							changeSize = 128;
+							changeSize = 128; // we will half this before we read again
 							if(lowReadSize > (MAX_PATH * sizeof(wchar_t)))
 							{
+								// we've tried every range but still failed
 								doneReading = true;
 							}
 							else
@@ -87,17 +98,22 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 						}
 						else
 						{
+							// we were within the current range -
+							// try something higher but still within the range
 							chunkSize = chunkSize + changeSize;
 						}
 					}
 				}
 				else
 				{
+					// the read failed -
+					// we need to try a smaller read
 					if(chunkSize > lowReadSize)
 					{
 						unsigned int nextReadSize = chunkSize - changeSize;
 						if(nextReadSize == chunkSize)
 						{
+							// we can't subdivide any further
 							doneReading = true;
 						}
 						else
@@ -107,21 +123,30 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 					}
 					else
 					{
+						// there are no smaller reads to try in this range,
+						// and by induction, in any range
 						doneReading = true;
 					}
 				}
+				// update the amount that we use to change the read request
 				changeSize /= 2;
-				
+
 			}
 			if(details.u.LoadDll.fUnicode)
 			{
+				pthrd_printf("Converting unicode into single-byte characters\n");
+				// the DLL path is a Unicode string
+				// we have to convert it to single-byte characters
 				char* tmp = new char[MAX_PATH];
-				::WideCharToMultiByte(CP_ACP, 0, libName, -1, tmp, sizeof(asciiLibName), NULL, NULL);
+				::WideCharToMultiByte(CP_ACP, 0, libName, -1, tmp, MAX_PATH, NULL, NULL);
+				// swap buffers so that asciiLibName points to the single-byte string
+				// when we're out of this code block
 				delete[] asciiLibName;
 				asciiLibName = tmp;
 			}
 			else
 			{
+				// the DLL path can be cast correctly
 				asciiLibName = (char*)libName;
 			}
 			result = asciiLibName;
@@ -136,7 +161,7 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		addedLibs.insert(lib->getUpPtr());
 		proc->memory()->libs.insert(lib);		
 		pthrd_printf("Load DLL event, loading %s (at 0x%lx)\n",
-			lib->getName(), lib->getAddr());
+			lib->getName().c_str(), lib->getAddr());
 
 	}
 	else if(details.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)
@@ -149,7 +174,7 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 			if((*foundLib)->getAddr() == (Dyninst::Address)(details.u.UnloadDll.lpBaseOfDll))
 			{
 				pthrd_printf("Unload DLL event, unloading %s (was at 0x%lx)\n",
-					(*foundLib)->getName(), (*foundLib)->getAddr());
+					(*foundLib)->getName().c_str(), (*foundLib)->getAddr());
 				removedLibs.insert((*foundLib)->getUpPtr());
 				proc->memory()->libs.erase(foundLib);
 				break;
@@ -180,7 +205,8 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 	//
 	// If no forward progress was made due to a single step, then a
 	// breakpoint was hit
-	if (thread->singleStep() && ( /*(pre_ss_pc != 0 && pre_ss_pc != addr) ||*/ !ibp)) {
+	Dyninst::MachRegisterVal pre_ss_pc = thread->getPreSingleStepPC();
+	if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != adjusted_addr) || !ibp)) {
 	   pthrd_printf("Decoded event to single step on %d/%d\n",
 			   proc->getPid(), thread->getLWP());
 	   evt = Event::ptr(new EventSingleStep());
@@ -194,24 +220,6 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 	   evt = event_bp;
 	   evt->setThread(thread->thread());
 	   ibp->addClearingThread(thread);
-
-	   if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
-		   pthrd_printf("Breakpoint is emulated single step\n");
-		   installed_breakpoint *ibp = thread->isClearingBreakpoint();
-		   if( ibp ) {
-			   pthrd_printf("Decoded emulated single step to breakpoint cleanup\n");
-			   EventBreakpointClear::ptr bc_event = EventBreakpointClear::ptr(new EventBreakpointClear(ibp));
-			   bc_event->setThread(thread->thread());
-			   bc_event->setProcess(proc->proc());
-			   evt->addSubservientEvent(bc_event);
-		   }else{
-			   pthrd_printf("Decoded emulated single step to normal single step\n");
-			   EventSingleStep::ptr ss_event = EventSingleStep::ptr(new EventSingleStep());
-			   ss_event->setThread(thread->thread());
-			   ss_event->setProcess(proc->proc());
-			   evt->addSubservientEvent(ss_event);
-		   }
-	   }
 	}
 	return evt;
 
@@ -258,12 +266,27 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	case EXCEPTION_DEBUG_EVENT:
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
+		case EXCEPTION_SINGLE_STEP:
+			{
+				//installed_breakpoint* clearingbp = thread->isClearingBreakpoint();
+				/*if(thread->singleStep() && clearingbp)
+				{
+					pthrd_printf("Decoded event to breakpoint cleanup\n");
+					newEvt = Event::ptr(new EventBreakpointClear(clearingbp));
+				}
+				else
+				{*/
+					newEvt = Event::ptr(new EventSingleStep());
+					pthrd_printf("Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
+/*				}*/
+			}
+			break;
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
 			newEvt = decodeBreakpointEvent(e, proc, thread);
 			if(newEvt)
 			{
-				pthrd_printf("Decoded Breakpoint event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+				pthrd_printf("Decoded Breakpoint event at 0x%lx, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId, e.u.Exception.ExceptionRecord.ExceptionAddress);
 			}
 			else
 			{

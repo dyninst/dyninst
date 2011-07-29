@@ -200,16 +200,28 @@ bool windows_process::plat_forked()
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
                                  Dyninst::Address remote, size_t size)
 {
-	SIZE_T bytes_done = 0;
-	int errcode = ::ReadProcessMemory(hproc, (unsigned char*)remote + bytes_done, (unsigned char*)local + bytes_done, size, &bytes_done);
-	if(!errcode) errcode = ::GetLastError();
-	return bytes_done == size;
+	int errcode = ::ReadProcessMemory(hproc, (unsigned char*)remote, (unsigned char*)local, size, NULL);
+	if(!errcode) {
+		errcode = ::GetLastError();
+		return false;
+	}
+	return true;
 }
 
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
                                   Dyninst::Address remote, size_t size)
 {
-	return ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
+	int lasterr = 0;
+	bool ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
+	if(ok)
+	{
+		if(FlushInstructionCache(hproc, NULL, 0))
+		{
+			return true;
+		}
+	}
+	lasterr = GetLastError();
+	return false;
 }
 
 
@@ -238,10 +250,62 @@ int_process::ThreadControlMode int_process::getThreadControlMode()
 {
     return int_process::IndependentLWPControl;
 }
+#if !defined(TF_BIT)
+#define TF_BIT 0x100
+#endif
+
+WinHandleSingleStep::WinHandleSingleStep() :
+   Handler("Windows Single Step")
+{
+}
+
+WinHandleSingleStep::~WinHandleSingleStep()
+{
+}
+
+Handler::handler_ret_t WinHandleSingleStep::handleEvent(Event::ptr ev)
+{
+	int_thread* t = ev->getThread()->llthrd();
+	assert(t);
+	t->setSingleStepMode(false);
+	t->markClearingBreakpoint(NULL);
+	return ret_success;
+}
+
+int WinHandleSingleStep::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+void WinHandleSingleStep::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::SingleStep));
+}
 
 bool windows_thread::plat_cont()
 {
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	if(singleStep())
+	{
+		CONTEXT context;
+		int result;
+		context.ContextFlags = CONTEXT_FULL;
+		result = GetThreadContext(hthread, &context);
+		if(!result) {
+			pthrd_printf("Couldn't get thread context\n");
+			return false;
+		}
+
+		context.ContextFlags = CONTEXT_FULL;
+		pthrd_printf("Enabling single-step on %d/%d\n", proc()->getPid(), tid);
+		context.EFlags |= TF_BIT;
+		result = SetThreadContext(hthread, &context);
+		if(!result)
+		{
+			pthrd_printf("Couldn't set thread context to single-step thread\n");
+			return false;
+		}
+	}
 	::ResumeThread(hthread);
 	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
 	wGen->wake(llproc()->getPid());
@@ -357,6 +421,7 @@ Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, un
 bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
 	CONTEXT c;
+	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	if(::GetThreadContext(hthread, &c))
 	{
 		regpool.regs[x86::eax] = c.Eax;
@@ -398,6 +463,7 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
 	CONTEXT c;
+	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	c.Eax = regpool.regs[x86::eax];
 	c.Ebx = regpool.regs[x86::ebx];
 	c.Ecx = regpool.regs[x86::ecx];
@@ -553,15 +619,18 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    static WindowsHandleNewThr *wbootstrap = NULL;
    static WindowsHandleLWPDestroy* wthreaddestroy = NULL;
    static WinHandleThreadStop* winthreadstop = NULL;
-   if (!wbootstrap) {
+   static WinHandleSingleStep* wsinglestep = NULL;
+   if (!initialized) {
       wbootstrap = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
 	  winthreadstop = new WinHandleThreadStop();
+	  wsinglestep = new WinHandleSingleStep();
       initialized = true;
    }
    hpool->addHandler(wbootstrap);
    hpool->addHandler(wthreaddestroy);
    hpool->addHandler(winthreadstop);
+   hpool->addHandler(wsinglestep);
    return hpool;
 }
 

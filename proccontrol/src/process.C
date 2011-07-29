@@ -43,6 +43,7 @@
 #include <cstring>
 #include <cassert>
 #include <map>
+#include <sstream>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -1245,6 +1246,14 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
                    getPid(), thr->getLWP());
 
       bresult = plat_readMem(thr, result->getBuffer(), remote, result->getSize());
+	  std::stringstream s;
+	  s << "\t";
+	  for(unsigned long byte = 0; byte < result->getSize(); byte++)
+	  {
+		  s << std::hex << "0x" << (int)(result->getBuffer()[byte]);
+	  }
+	  s << std::endl;
+	  pthrd_printf("%s\n", s.str().c_str());
       if (!bresult) {
          result->markError();
       }
@@ -1282,6 +1291,14 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
                    getPid(), thr->getLWP());
+	  std::stringstream s;
+	  s << "\t";
+	  for(unsigned long byte = 0; byte < size; byte++)
+	  {
+		  s << std::hex << "0x" << (int)(((char*)(local))[byte]);
+	  }
+	  s << std::endl;
+	  pthrd_printf("%s", s.str().c_str());
 
       bresult = plat_writeMem(thr, local, remote, size);
       if (!bresult) {
@@ -2963,6 +2980,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
    assert(getHandlerState() == int_thread::stopped);
    assert(getGeneratorState() == int_thread::stopped);
    bool ret_result = false;
+   pthrd_printf("%d/%d: Setting %s to 0x%lx...\n", proc()->getPid(), tid, reg.name().c_str(), val);
    
    if (!llproc()->plat_individualRegAccess())
    {
@@ -3277,6 +3295,11 @@ bool int_thread::singleStep() const
 void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
+   if(bp) {
+	   pthrd_printf("Marking breakpoint at 0x%lx clearing on %d/%d\n", bp->getAddr(), proc()->getPid(), tid);
+   } else {
+	   pthrd_printf("Removing clearing breakpoint at 0x%lx on %d/%d\n", clearing_breakpoint->getAddr(), proc()->getPid(), tid);
+   }
    clearing_breakpoint = bp;
 }
 

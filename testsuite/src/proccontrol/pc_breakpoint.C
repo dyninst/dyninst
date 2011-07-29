@@ -117,6 +117,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    else {
       hit_counts[cur_thread]++;
    }
+   logerror("mutator breakpoint callback, hit_counts[0x%lx] = 0x%lx\n", cur_thread, hit_counts[cur_thread]);
 
    return Process::cbProcContinue;
 }
