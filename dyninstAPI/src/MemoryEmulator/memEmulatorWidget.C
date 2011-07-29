@@ -86,8 +86,7 @@ bool MemEmulator::initialize(const codeGen &templ, const RelocBlock *t) {
 	effAddrSaveOffset = 0;
 	usesESI = false;
 	usesEDI = false;
-	debug = true;
-	//debug = false;
+	debug = false;
 
 	return true;
 }

@@ -164,7 +164,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
                                     instPoint *ip,
-                                    BPatch_procedureLocation pointType = BPatch_locUnknownLocation);
+                                    BPatch_procedureLocation pointType);
 
   BPatch_variableExpr *findOrCreateVariable(int_variable *v,
                                             BPatch_type *type = NULL);

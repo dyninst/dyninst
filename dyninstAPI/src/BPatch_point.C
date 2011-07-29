@@ -374,12 +374,15 @@ bool BPatch_point::isDynamicInt()
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
       case instPoint::EdgeDuring:
-          if (point->edge()->type() != ParseAPI::FALLTHROUGH && 
-             point->edge()->type() != ParseAPI::CALL_FT) 
-         {
-             PatchAPI::PatchBlock *src = point->edge()->src();
-             return src->getInsn(src->last())->readsMemory();
-         }
+         switch(point->edge()->type()) {
+            case ParseAPI::INDIRECT:
+               return true;
+            case ParseAPI::CALL:
+               return point->edge()->src()->containsDynamicCall();
+               break;
+            default:
+               return false;
+          }
          return false;
       case instPoint::FuncExit:
       case instPoint::BlockEntry:
@@ -387,13 +390,14 @@ bool BPatch_point::isDynamicInt()
          return false;
       default:
          if (point->addr() == point->block()->last()) {
+             if (point->block()->containsCall()) {
+                 return point->block()->containsDynamicCall();
+             }
              PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
              for (PatchAPI::PatchBlock::edgelist::iterator eit = trgs.begin();
                   eit != trgs.end(); 
                   eit++)
              {
-                 PatchAPI::PatchBlock *src = (*eit)->source();
-                 return src->getInsn(src->last())->readsMemory();
                  if ((*eit)->type() == ParseAPI::INDIRECT) {
                      return true;
                  }

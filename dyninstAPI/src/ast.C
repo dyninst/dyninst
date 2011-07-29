@@ -1105,7 +1105,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          // Yay.
         
          BPatch_addressSpace *bproc = (BPatch_addressSpace *) gen.addrSpace()->up_ptr();
-         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         
          const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
          assert(ma);
@@ -1620,7 +1620,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(gen.point());
         
         BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
                     gen.point(), gen.point()->insnAddr());
@@ -1647,7 +1647,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(gen.point());
         
         BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         ma = bpoint->getMemoryAccess();
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");

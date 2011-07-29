@@ -567,7 +567,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
      Frame activeFrame = ev.lwp->getActiveFrame();
      if (ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
-        requested_wait_until_active = false;
+        requested_wait_until_active = false; // i.e., return exception to mutatee
         ret = true;
         if (ev.proc->getMemEm() && 
             ev.proc->getMemEm()->isEmulPOPAD(activeFrame.getPC()-1)) 

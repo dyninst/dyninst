@@ -217,7 +217,8 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
     // representation...
     BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
                                                          instPoint::blockEntry(loop->getLoopHead()->ifunc(),
-                                                                               llHead));
+                                                                               llHead),
+                                                         BPatch_locBasicBlockEntry);
     p->overrideType(BPatch_locLoopStartIter);
     p->setLoop(loop);
     points->push_back(p);

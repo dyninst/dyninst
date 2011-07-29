@@ -7,6 +7,7 @@
 #include "PatchMgr.h"
 #include "PatchCallback.h"
 #include "Point.h"
+#include <dyn_detail/boost/shared_ptr.hpp>
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -194,7 +195,26 @@ PatchBlock::containsDynamicCall() {
    for( ; eit != out_edges.end(); ++eit) {
      if ( ParseAPI::CALL == (*eit)->type() ) { 
          // see if it's a static call to a bad address
-         return getInsn(last())->readsMemory();
+         if ((*eit)->sinkEdge()) {
+             using namespace InstructionAPI;
+             Instruction::Ptr insn = getInsn(last());
+             if (insn->readsMemory()) { // memory indirect
+                 return true;
+             } else { // check for register indirect
+                 set<InstructionAST::Ptr> regs;
+                 Expression::Ptr tExpr = insn->getControlFlowTarget();
+                 tExpr->getUses(regs);
+                 for (set<InstructionAST::Ptr>::iterator rit = regs.begin(); 
+                      rit != regs.end(); rit++)
+                 {
+                     if (RegisterAST::makePC(obj()->co()->cs()->getArch()).getID() != 
+                         dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(*rit)->getID()) 
+                     {
+                         return true;
+                     }
+                 }
+             }
+         }
       }
    }
    return false;
