@@ -76,9 +76,11 @@ static void self_signal()
 
 #elif defined(os_windows_test)
 
+static HANDLE am_signaled;
+
 static void self_signal()
 {
-	assert(!"not implemented");
+	SetEvent(am_signaled);
 }
 
 #else
@@ -103,11 +105,19 @@ static int threadFunc(int myid, void *data)
    return 0;
 }
 
+#if !defined(os_windows_test)
 static void signal_handler(int sig)
 {
    num_signals++;
 }
+#else
+static void signal_handler(int sig)
+{
+	WaitForSingleObject(am_signaled, 30000);
+   num_signals++;
+}
 
+#endif
 //Basic test for create/attach and exit.
 int pc_detach_mutatee()
 {
@@ -126,7 +136,7 @@ int pc_detach_mutatee()
 #if !defined(os_windows_test)
    signal(SIGUSR1, signal_handler);
 #else
-   assert(!"signals wrong mechanism on windows, convert to message pass");
+   am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {

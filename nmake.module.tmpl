@@ -1,4 +1,4 @@
-# 
+#
 # Common makefile template for dyninst Tests.  This file is not intended to
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
@@ -17,12 +17,12 @@ CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_te
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/testsuite/src \
 	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi -Dsnprintf=_snprintf
-CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
+CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib
 
-SYSLIBS		= 
+SYSLIBS		=
 
 LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
@@ -102,13 +102,13 @@ UNCOMMON_INSTALL=true
 install: all
 
 # try not to have clean remove dbghelp.dll
-clean: 
+clean:
 	$(RM) *.ilk
-	$(RM) *.exp 
-	$(RM) *.lib 
-	$(RM) *.obj 
+	$(RM) *.exp
+	$(RM) *.lib
+	$(RM) *.obj
 	$(RM)	$(TESTDRIVER_LIBS) libtestA.dll libtestB.dll libtestsymtab.dll test*.dll
-	$(RM) *.exe 
+	$(RM) *.exe
 	$(RM) *.pdb
 
 # Old Install commands if we actually want to install
@@ -154,7 +154,7 @@ $(DYNINST_TESTLIBS_OBJS) : $(SRCS_DYNINSTTESTLIB)
 	$(CC) -c $(LDFLAGS) $(CFLAGS) $(CFLAGS_TESTLIBS)$**
 
 $(DYNINST_TESTLIBS): $(DYNINST_TESTLIBS_OBJS)
-	$(LINK) $(TESTLIB_FLAGS) $*.obj -out:$@
+	$(LINK) $(TESTLIB_FLAGS) /base:@dlls.txt,$* $*.obj -out:$@
 
 
 #CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
@@ -181,7 +181,7 @@ runTests-utils-nt.obj: ../src/runTests-utils-nt.C
 
 DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
 	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ $**
-	
+
 DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**

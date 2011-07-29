@@ -152,7 +152,7 @@ struct socket_types
 			wait_events[0] = winsock_event;
 			wait_events[1] = notification_event;
 			// 30 second timeout
-			int result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
+			result = ::WaitForMultipleObjects(2, wait_events, FALSE, 30000);
 	      
 	if(result == WAIT_TIMEOUT) {
 		logerror("WaitForMultipleObjects timed out");
@@ -208,9 +208,13 @@ struct socket_types
 	   } 
 	                          
 	}
-	static int close(SOCKET s)
+	static int close(SOCKET s, HANDLE winsock_event)
 	{
-		return closesocket(s);
+		// set socket back to blocking
+		::WSAEventSelect(s, NULL, 0);
+		char truth = 1;
+		::setsockopt(s, SOL_SOCKET, SO_DONTLINGER, &truth, 4);
+		return ::closesocket(s);
 	}
 	typedef int socklen_t;
 };
@@ -619,8 +623,12 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    procs.clear();
 
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
+#if defined(os_windows_test)
+	   if( socket_types::close(i->second, winsock_event) == SOCKET_ERROR ) {
+#else
 	   if( socket_types::close(i->second) == SOCKET_ERROR ) {
-           logerror("Could not close connected socket\n");
+#endif
+		   logerror("Could not close connected socket\n");
            error = true;
        }
    }
@@ -668,7 +676,8 @@ void handleError(const char* msg)
 #if 1 // !windows
 bool ProcControlComponent::setupServerSocket()
 {
-	SOCKET fd = socket_types::socket();
+	SOCKET fd = INVALID_SOCKET; // initialize, dammit.
+	fd = socket_types::socket();
    if (fd == INVALID_SOCKET) {
 	   handleError("Failed to create socket: %s\n");
       return false;
@@ -868,9 +877,13 @@ bool ProcControlComponent::cleanSocket()
       return false;
    }
 #endif
-   free(sockname);
+   delete[] sockname;
    sockname = NULL;
+#if defined(os_windows_test)
+   result = socket_types::close(sockfd, winsock_event);
+#else
    result = socket_types::close(sockfd);
+#endif
    if (result == -1) {
       logerror("Could not close socket\n");
       return false;

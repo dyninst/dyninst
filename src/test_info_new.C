@@ -62,7 +62,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     threadmode(threads_), procmode(procs_),
     linktype(linktype_),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), selfStart(false)
 {
   Module::registerGroupInModule(std::string(modname_), this);
   tests.push_back(test_init);
@@ -83,7 +83,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     threadmode(threads_), procmode(procs_),
     linktype(linktype_),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), selfStart(false)
 {
    Module::registerGroupInModule(std::string(modname_), this);
 }
@@ -101,7 +101,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     threadmode(TNone), procmode(PNone),
     linktype(DynamicLink),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), selfStart(false)
 {
    Module::registerGroupInModule(std::string(modname_), this);
 }

@@ -41,7 +41,9 @@ static testlock_t init_lock;
 
 void bp0(int tid)
 {
+  output->log(STDERR, "Pre-increment in bp0\n");
   func_counts[0][tid]++;
+  output->log(STDERR, "Post-increment in bp0\n");
 }
 
 void bp1(int tid)
@@ -64,16 +66,22 @@ static int threadFunc(int myid, void *data)
 {
   unsigned i;
 
+  output->log(STDERR, "Entered threadFunc OK, myid = %d\n", myid);
   assert(((num_threads == 0) || (myid >= 0 && myid < num_threads)) && !data);
 
   testLock(&init_lock);
   testUnlock(&init_lock);
 
   for (i=0; i<NUM_BREAKPOINT_SPINS; i++) {
+  output->log(STDERR, "Entering bp0, myid = %d\n", myid);
     bp0(myid);
+  output->log(STDERR, "Finished bp0 OK, myid = %d\n", myid);
     bp1(myid);
+  output->log(STDERR, "Finished bp1 OK, myid = %d\n", myid);
     bp2(myid);
+  output->log(STDERR, "Finished bp2 OK, myid = %d\n", myid);
     bp3(myid);
+  output->log(STDERR, "Finished bp3 OK, myid = %d\n", myid);
   }
   return 0;
 }
@@ -93,6 +101,7 @@ int pc_breakpoint_mutatee()
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
+   output->log(STDERR, "Initialized OK\n");
 
    bp_addr_msg.code = (uint32_t) SENDADDR_CODE;
    bp_addr_msg.addr = getFunctionPtr((unsigned long *)bp0);
@@ -115,6 +124,7 @@ int pc_breakpoint_mutatee()
      testUnlock(&init_lock);
      return -1;
    }
+   output->log(STDERR, "Sent BP addrs OK\n");
 
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
