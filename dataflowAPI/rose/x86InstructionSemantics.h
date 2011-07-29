@@ -274,7 +274,7 @@ struct X86InstructionSemantics {
     Word(32) read32(SgAsmExpression* e) {
         switch (e->variantT()) {
             case V_SgAsmx86RegisterReferenceExpression: {
-                SgAsmx86RegisterReferenceExpression* rre = isSgAsmx86RegisterReferenceExpression(e);
+               SgAsmx86RegisterReferenceExpression* rre = isSgAsmx86RegisterReferenceExpression(e);
                 switch (rre->get_register_class()) {
                     case x86_regclass_gpr: {
                         X86GeneralPurposeRegister reg = (X86GeneralPurposeRegister)(rre->get_register_number());
@@ -1820,10 +1820,23 @@ struct X86InstructionSemantics {
                 ROSE_ASSERT(operands.size() == 1);
                 ROSE_ASSERT(insn->get_addressSize() == x86_insnsize_32);
                 ROSE_ASSERT(insn->get_operandSize() == x86_insnsize_32);
+
+                // Override hack for push <segreg>
+                if (operands[0]->variantT() == V_SgAsmx86RegisterReferenceExpression) {
+                   SgAsmx86RegisterReferenceExpression* rre = isSgAsmx86RegisterReferenceExpression(operands[0]);
+                   if (rre->get_register_class() == x86_regclass_segment) {
+                      Word(32) oldSp = policy.readGPR(x86_gpr_sp);
+                      Word(32) newSp = policy.add(oldSp, number<32>(-2));
+                      policy.writeMemory(x86_segreg_ss, newSp, read16(operands[0]), policy.true_());
+                      policy.writeGPR(x86_gpr_sp, newSp);
+                      break;
+                   }
+                }
                 Word(32) oldSp = policy.readGPR(x86_gpr_sp);
                 Word(32) newSp = policy.add(oldSp, number<32>(-4));
                 policy.writeMemory(x86_segreg_ss, newSp, read32(operands[0]), policy.true_());
-                policy.writeGPR(x86_gpr_sp, newSp);
+                policy.writeGPR(x86_gpr_sp, newSp);                      
+
                 break;
             }
 
