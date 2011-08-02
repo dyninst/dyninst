@@ -139,38 +139,39 @@ bool PatchMgr::getCandidates(Scope &scope,
 }
 
 bool PatchMgr::wantFuncs(Scope &scope, Point::Type types) {
-   return ((types | Point::FuncDuring || types | Point::FuncEntry) &&
-           (scope.func || scope.obj || scope.wholeProgram));
+  return (Point::TestType(types, Point::FuncDuring) ||
+          Point::TestType(types, Point::FuncEntry) &&
+         (scope.func || scope.obj || scope.wholeProgram));
 }
 
 bool PatchMgr::wantCallSites(Scope &scope, Point::Type types) {
-   return ((types | Point::CallTypes) &&
-           (scope.func || scope.obj || scope.wholeProgram));
+  return (Point::TestType(types, Point::CallTypes) &&
+         (scope.func || scope.obj || scope.wholeProgram));
 }
 
 bool PatchMgr::wantExitSites(Scope &scope, Point::Type types) {
-   return ((types | Point::FuncExit) &&
-           (scope.func || scope.obj || scope.wholeProgram));
+  return (Point::TestType(types, Point::FuncExit) &&
+         (scope.func || scope.obj || scope.wholeProgram));
 }
 
 bool PatchMgr::wantBlocks(Scope &scope, Point::Type types) {
-   return (scope.func == NULL && types | Point::BlockTypes);
+  return (scope.func == NULL && Point::TestType(types, Point::BlockTypes));
 }
 
 bool PatchMgr::wantBlockInstances(Scope &scope, Point::Type types) {
-   return (scope.func != NULL && types | Point::BlockTypes);
+  return (scope.func != NULL && Point::TestType(types, Point::BlockTypes));
 }
 
 bool PatchMgr::wantEdges(Scope &scope, Point::Type types) {
-   return (scope.func == NULL && types | Point::EdgeTypes);
+  return (scope.func == NULL && Point::TestType(types, Point::EdgeTypes));
 }
 
 bool PatchMgr::wantInsns(Scope &scope, Point::Type types) {
-   return (scope.func == NULL && types | Point::InsnTypes);
+  return (scope.func == NULL && Point::TestType(types, Point::InsnTypes));
 }
 
 bool PatchMgr::wantInsnInstances(Scope &scope, Point::Type types) {
-   return (scope.func == NULL && types | Point::InsnTypes);
+  return (scope.func == NULL && Point::TestType(types, Point::InsnTypes));
 }
 
 void PatchMgr::getFuncCandidates(Scope &scope, Point::Type types, Candidates &ret) {
