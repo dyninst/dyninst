@@ -1357,6 +1357,12 @@ func_instance *AddressSpace::findFuncByEntry(const block_instance *block) {
 	return obj->findFuncByEntry(block);
 }
 
+block_instance *AddressSpace::findBlockByEntry(Address a) {
+	mapped_object *obj = findObject(a);
+	if (!obj) return NULL;
+	return obj->findBlockByEntry(a);
+}
+
 func_instance *AddressSpace::findOneFuncByAddr(Address addr) {
     std::set<func_instance *> funcs;
     if (!findFuncsByAddr(addr, funcs)) return NULL;

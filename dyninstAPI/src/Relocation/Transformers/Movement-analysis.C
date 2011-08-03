@@ -71,20 +71,18 @@ bool PCSensitiveTransformer::analysisRequired(RelocBlock *blk) {
    return false;
 }
 
-bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::iterator &b_iter, const RelocBlockMap &) {
-#if 0
-   if (!analysisRequired(b_iter)) {
-      return adhoc.processRelocBlock(b_iter);
+bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
+   if (!analysisRequired(reloc)) {
+      return adhoc.process(reloc, g);
    }
-#endif
 
-   const block_instance *block = (*b_iter)->block();
-   const func_instance *func = (*b_iter)->func();
+   const block_instance *block = reloc->block();
+   const func_instance *func = reloc->func();
 
   // Can be true if we see an instrumentation block...
   if (!block) return true;
   
-  RelocBlock::WidgetList &elements = (*b_iter)->elements();
+  RelocBlock::WidgetList &elements = reloc->elements();
   for (RelocBlock::WidgetList::iterator iter = elements.begin();
        iter != elements.end(); ++iter) {
 
@@ -139,11 +137,11 @@ bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::ite
 
     if (insnIsThunkCall(insn, addr, dest)) {
       //relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
-      handleThunkCall(b_iter, iter, dest);
-      intSens_++;
-      extSens_++;
-      thunk_++;
-      continue;
+       handleThunkCall(reloc, iter, dest);
+       intSens_++;
+       extSens_++;
+       thunk_++;
+       continue;
     }
 
     if (exceptionSensitive(addr+insn->size(), block)) {
@@ -217,7 +215,7 @@ bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::ite
 	  // calling a 2-instruction function that copies the return address elsewhere
 	  // and returns. So we can remove the internal sensitivity by inlining the 
 	  // call.
-	  handleThunkCall(b_iter,
+	  handleThunkCall(reloc,
 			  iter, 
 			  destination);
 	  continue;
@@ -232,7 +230,7 @@ bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::ite
 	}
       }
       // And now to the real work. Replace this instruction with an emulation sequence
-      emulateInsn(b_iter,
+      emulateInsn(reloc,
 		  iter, 
 		  insn, 
 		  addr);
@@ -244,7 +242,7 @@ bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::ite
 
 bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
 					   Address addr,
-					   const block_instance *func,
+					   const func_instance *func,
 					   const block_instance *block,
 					   AssignList &sensitiveAssignments) {
   if (!(insn->getOperation().getID() == e_call)) return false;
@@ -483,11 +481,11 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   return false;
 }
 
-void PCSensitiveTransformer::handleThunkCall(Modification::RelocBlockList::iterator &b_iter, 
+void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
 					     RelocBlock::WidgetList::iterator &iter,
 					     Absloc &destination) {
 
-  Widget::Ptr replacement = GetPC::create((*iter)->insn(),
+   Widget::Ptr replacement = PCWidget::create((*iter)->insn(),
 					   (*iter)->addr(),
 					   destination);
 
@@ -495,7 +493,7 @@ void PCSensitiveTransformer::handleThunkCall(Modification::RelocBlockList::itera
   // because it also might end the basic block. If that happens we
   // need to pull the fallthough element out of the CFWidget so
   // that we don't hork control flow. What a pain.
-  if ((*iter) != (*b_iter)->elements().back()) {
+  if ((*iter) != reloc->elements().back()) {
     // Easy case; no worries.
     (*iter).swap(replacement);
   }
@@ -519,20 +517,19 @@ void PCSensitiveTransformer::handleThunkCall(Modification::RelocBlockList::itera
       dest = cf->destMap_.find(CFWidget::Taken);
     }
     if (dest != cf->destMap_.end()) {
-      CFWidget::Ptr newCF = CFWidget::create((*b_iter)->bbl());
-      newCF->updateAddr(cf->addr());
-      // Explicitly do _NOT_ reuse old information - this is just a branch
-      
-      newCF->destMap_[CFWidget::Fallthrough] = dest->second;
-      
-      // And since we delete destMap_ elements, NUKE IT from the original!
-      cf->destMap_.erase(dest);
-      
-      // Before we forget: swap in the GetPC for the current element
-      (*iter).swap(replacement);
-      
-      (*b_iter)->elements().push_back(newCF);
-      // Go ahead and skip it...
+       CFWidget::Ptr newCF = CFWidget::create(cf->addr());
+       // Explicitly do _NOT_ reuse old information - this is just a branch
+       
+       newCF->destMap_[CFWidget::Fallthrough] = dest->second;
+       
+       // And since we delete destMap_ elements, NUKE IT from the original!
+       cf->destMap_.erase(dest);
+       
+       // Before we forget: swap in the PCWidget for the current element
+       (*iter).swap(replacement);
+       
+       reloc->elements().push_back(newCF);
+       // Go ahead and skip it...
       iter++;
     }
   }
@@ -541,16 +538,19 @@ void PCSensitiveTransformer::handleThunkCall(Modification::RelocBlockList::itera
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // All we have from this is a raw address. Suck...
   // Look up the block_instances that map to this address. 
-  std::set<block_instance *> funcs;
-  addrSpace->findFuncsByAddr(addr, funcs);
 
-  for (std::set<block_instance *>::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-    block_instance *block = (*iter)->findBlockByEntry(addr);
-    priMap[block] = Required;
-  }
+   block_instance *block = addrSpace->findBlockByEntry(addr);
+
+   std::vector<func_instance *> funcs;
+   block->getFuncs(std::back_inserter(funcs));
+   if (funcs.empty()) return;
+
+   // We arbitrarily go to the first one...
+   priMap[block] = std::make_pair(Required, funcs[0]);
+
 }
 
-void PCSensitiveTransformer::emulateInsn(Modification::RelocBlockList::iterator &b_iter,
+void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
 					 RelocBlock::WidgetList::iterator &iter,
 					 InstructionAPI::Instruction::Ptr insn,
 					 Address addr) {
@@ -562,10 +562,10 @@ void PCSensitiveTransformer::emulateInsn(Modification::RelocBlockList::iterator 
 
   // Construct a new Widget that will emulate the original instruction here. 
   static Absloc stack_loc(0, 0, NULL);
-  Widget::Ptr replacement = GetPC::create(insn, addr, stack_loc);
+  Widget::Ptr replacement = PCWidget::create(insn, addr, stack_loc);
 
   // Okay, now wire this in as appropriate.
-  if ((*iter) != (*b_iter)->elements().back()) {
+  if ((*iter) != reloc->elements().back()) {
     //cerr << "... middle of block" << endl;
     // Easy case; no worries.
     // This is the case for call+5s...
@@ -582,8 +582,7 @@ void PCSensitiveTransformer::emulateInsn(Modification::RelocBlockList::iterator 
 
     // Indirect, we put in a push/jump <reg> combination.
 
-    CFAtom::Ptr newCF = CFAtom::create((*b_iter)->block());
-    newCF->updateInfo(cf);
+    CFWidget::Ptr newCF = CFWidget::create(cf);
 
     CFWidget::DestinationMap::iterator dest = cf->destMap_.find(CFWidget::Taken);
     if (dest != cf->destMap_.end() && !cf->isIndirect_) {
@@ -599,49 +598,44 @@ void PCSensitiveTransformer::emulateInsn(Modification::RelocBlockList::iterator 
       // So we want to use the current CFelement, but strip the "call" part of it
       // to turn it into an indirect branch.
 
-      newCF->updateInsn(insn);
-      newCF->updateAddr(addr);
-      if (!newCF->isIndirect_) { 
-        // ???
-        cerr << "Error: unknown insn " << insn->format() 
-             << std::hex << "@" << addr << dec << endl;
-
-        for (CFWidget::DestinationMap::iterator foo = cf->destMap_.begin();
-             foo != cf->destMap_.end(); ++foo) {
-          //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
-        }
-
-      }
-
-      //assert(newCF->isIndirect_);
-      newCF->isCall_ = false;
+       if (!newCF->isIndirect_) { 
+          // ???
+          cerr << "Error: unknown insn " << insn->format() 
+               << std::hex << "@" << addr << dec << endl;
+          
+          for (CFWidget::DestinationMap::iterator foo = cf->destMap_.begin();
+               foo != cf->destMap_.end(); ++foo) {
+             //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
+          }
+          
+       }
+       
+       //assert(newCF->isIndirect_);
+       newCF->isCall_ = false;
     }
 
     //cerr << "Swapping in replacement" << endl;
-    // Before we forget: swap in the GetPC for the current element
+    // Before we forget: swap in the PCWidget for the current element
     (*iter).swap(replacement);
     
     //cerr << "And adding new CF" << endl;
-    (*b_iter)->elements().push_back(newCF);
+    reloc->elements().push_back(newCF);
     // Go ahead and skip it...
     iter++;
   }
 }
 
-// TODO: fix t
+// TODO: fix this
 bool PCSensitiveTransformer::exceptionSensitive(Address a, const block_instance *bbl) {
-  // If we're within the try section of an exception, return true.
-  // Otherwise return false.
-  
-  // First, convert a to an offset and dig out the Symtab of the
-  // block we're looking at.
-  block_instance *func = bbl->func();
-  Offset o = func->addrToOffset(a);
-  Symtab *symtab = func->obj()->parse_img()->getObject();
+   // If we're within the try section of an exception, return true.
+   // Otherwise return false.
 
-  ExceptionBlock eBlock;
-  // Amusingly, existence is sufficient for us.
-  return symtab->findException(eBlock, o);      
+   Symtab *symtab = bbl->obj()->parse_img()->getObject();
+   Offset o = a - (bbl->start() - bbl->llb()->start());
+   
+   ExceptionBlock eBlock;
+   // Amusingly, existence is sufficient for us.
+   return symtab->findException(eBlock, o);      
 }
 
 void PCSensitiveTransformer::cacheAnalysis(const block_instance *bbl, Address addr, bool intSens, bool extSens) {
@@ -668,23 +662,21 @@ void PCSensitiveTransformer::invalidateCache(const block_instance *b) {
 	analysisCache_.erase(b);
 }
 
-void PCSensitiveTransformer::invalidateCache(block_instance *f) {
-	// We want to invalidate any cache results for f directly,
-	// as well as any for blocks that call f. 
+void PCSensitiveTransformer::invalidateCache(func_instance *f) {
+   // We want to invalidate any cache results for f directly,
+   // as well as any for blocks that call f. 
 
-	const block_instance::BlockSet &blocks = f->blocks();
-	for (block_instance::BlockSet::iterator iter = blocks.begin();
-		iter != blocks.end(); ++iter) {
-			invalidateCache(*iter);
-	}
-
-	// Get callers of this function
-	std::vector<instPoint *> callerPoints;
-	f->getCallerPoints(callerPoints);
-	for (std::vector<instPoint *>::iterator iter = callerPoints.begin();
-		iter != callerPoints.end(); ++iter) {
-			invalidateCache((*iter)->block());
-    	}
+   const PatchFunction::Blockset &blocks = f->blocks();
+   for (PatchFunction::Blockset::iterator iter = blocks.begin();
+        iter != blocks.end(); ++iter) {
+      invalidateCache(SCAST_BI(*iter));
+   }
+   
+   // Get callers of this function
+   PatchAPI::PatchBlock::edgelist edges = f->entry()->getSources();
+   for (PatchAPI::PatchBlock::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+      invalidateCache(SCAST_BI((*iter)->source()));
+   }
 }
 
 ExtPCSensVisitor::ExtPCSensVisitor(const AbsRegion &a) :
@@ -864,7 +856,7 @@ bool ExtPCSensVisitor::isExtSens(AST::Ptr a) {
   }
 }
 
-bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr) {
+bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Address) {
   // call *%gs:0x10
   // Build a GS
   static Expression::Ptr x86_gs(new RegisterAST(x86::gs));

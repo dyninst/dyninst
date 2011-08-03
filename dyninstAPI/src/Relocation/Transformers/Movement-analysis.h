@@ -102,7 +102,7 @@ class PCSensitiveTransformer : public Transformer {
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};
   virtual ~PCSensitiveTransformer() {};
 
-  static void invalidateCache(block_instance *);
+  static void invalidateCache(func_instance *);
   static void invalidateCache(const block_instance *);
 
  private:

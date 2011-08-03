@@ -249,6 +249,7 @@ class AddressSpace : public InstructionSource {
     func_instance *findOneFuncByAddr(Address addr);
     // And the one thing that is unique: entry address!
     func_instance *findFuncByEntry(Address addr);
+    block_instance *findBlockByEntry(Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
     func_instance *findFunction(parse_func *ifunc);
