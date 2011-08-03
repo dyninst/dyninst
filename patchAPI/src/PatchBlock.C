@@ -332,14 +332,14 @@ Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
 
 
 void PatchBlock::destroy(Point *p) {
-   assert(p->getBlock() == this);
+   assert(p->block() == this);
 
    switch(p->type()) {
       case Point::PreInsn:
-         delete points_.preInsn[p->address()];
+         delete points_.preInsn[p->addr()];
          break;
       case Point::PostInsn:
-         delete points_.postInsn[p->address()];
+         delete points_.postInsn[p->addr()];
          break;
       case Point::BlockEntry:
          delete points_.entry;

@@ -252,7 +252,7 @@ bool Point::consistency() const {
       case PreInsn:
       case PostInsn:
          if (!insn()) return false;
-         if (!address()) return false;
+         if (!addr()) return false;
          if (!block()) return false;
          // Can have a function or not, that's okay
          if (edge()) return false;

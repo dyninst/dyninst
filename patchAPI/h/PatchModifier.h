@@ -54,26 +54,26 @@ class PatchModifier {
    // it's just a namespace. 
 
    // Redirect the target of an existing edge. 
-   PARSER_EXPORT static bool redirect(PatchEdge *edge, PatchBlock *target);
+   PATCHAPI_EXPORT static bool redirect(PatchEdge *edge, PatchBlock *target);
 
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
-   PARSER_EXPORT static PatchBlock *split(PatchBlock *, Address, 
+   PATCHAPI_EXPORT static PatchBlock *split(PatchBlock *, Address, 
                                           bool trust = false, 
                                           Address newlast = (Address)-1);
    
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.
-   PARSER_EXPORT static bool remove(PatchBlock *, bool force = false);
+   PATCHAPI_EXPORT static bool remove(PatchBlock *block, bool force = false);
 
    // As the above, but for functions. 
-   PARSER_EXPORT static bool remove(PatchFunction *);
+   PATCHAPI_EXPORT static bool remove(PatchFunction *);
 
    // Now for some fun. 
-   PARSER_EXPORT static bool insert(SnippetPtr snippet);
+   PATCHAPI_EXPORT static bool insert(SnippetPtr snippet);
    // We need a "binary blob" snippet, but SnippetPtrs need to be
    // fixed first. 
-   PARSER_EXPORT static PatchBlock *insert(PatchObject *, void *start, unsigned size);
+   PATCHAPI_EXPORT static PatchBlock *insert(PatchObject *, void *start, unsigned size);
 
 };
 

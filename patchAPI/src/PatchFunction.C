@@ -261,38 +261,38 @@ bool PatchFunction::findInsnPoints(Point::Type type,
 }
 
 void PatchFunction::destroy(Point *p) {
-   assert(p->getFunction() == this);
+   assert(p->func() == this);
 
    switch(p->type()) {
       case Point::PreInsn:
-         delete blockPoints_[p->getBlock()].preInsn[p->address()];
+         delete blockPoints_[p->block()].preInsn[p->addr()];
          break;
       case Point::PostInsn:
-         delete blockPoints_[p->getBlock()].postInsn[p->address()];
+         delete blockPoints_[p->block()].postInsn[p->addr()];
          break;
       case Point::BlockEntry:
-         delete blockPoints_[p->getBlock()].entry;
+         delete blockPoints_[p->block()].entry;
          break;
       case Point::BlockExit:
-         delete blockPoints_[p->getBlock()].exit;
+         delete blockPoints_[p->block()].exit;
          break;
       case Point::BlockDuring:
-         delete blockPoints_[p->getBlock()].during;
+         delete blockPoints_[p->block()].during;
          break;
       case Point::FuncEntry:
          delete points_.entry;
          break;
       case Point::FuncExit:
-         delete points_.exits[p->getBlock()];
+         delete points_.exits[p->block()];
          break;
       case Point::FuncDuring:
          delete points_.during;
          break;
       case Point::PreCall:
-         delete points_.preCalls[p->getBlock()];
+         delete points_.preCalls[p->block()];
          break;
       case Point::PostCall:
-         delete points_.postCalls[p->getBlock()];
+         delete points_.postCalls[p->block()];
          break;
       default:
          break;

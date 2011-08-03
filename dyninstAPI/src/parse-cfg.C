@@ -587,6 +587,10 @@ void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 }
 ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 {
+    if (UNSET == init_retstatus_) {
+        assert(!obj()->defensiveMode()); // should have been set for defensive binaries
+        return retstatus();
+    }
     if (init_retstatus_ > retstatus()) {
         return retstatus();
     }

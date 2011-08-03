@@ -33,6 +33,7 @@
 
 #include "Transformer.h"
 #include "Movement-analysis.h"
+#include "Modification.h"
 #include "../patchapi_debug.h"
 #include "../Widgets/Widget.h"
 #include "dyninstAPI/src/function.h"
@@ -47,7 +48,7 @@
 
 #include "dataflowAPI/h/slicing.h"
 
-#include "../Widgets/RelocBlock.h"
+#include "../CFG/RelocBlock.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -61,21 +62,16 @@ using namespace DataflowAPI;
 
 PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 
-bool PCSensitiveTransformer::postprocess(RelocBlockList &) {
-   sensitivity_cerr << dec << "Sensitive count: " << Sens_ << ", failed " << overApprox_ << ", ext " << extSens_ << ", int " << intSens_ << ", thunk " << thunk_ << endl;
-  return true;
-}
-
 int DEBUG_hi = -1;
 int DEBUG_lo = -1;
 
-bool PCSensitiveTransformer::analysisRequired(RelocBlockList::iterator &b_iter) {
-   if ( (*b_iter)->func()->obj()->parse_img()->codeObject()->defensiveMode())
+bool PCSensitiveTransformer::analysisRequired(RelocBlock *blk) {
+   if ( blk->func()->obj()->parse_img()->codeObject()->defensiveMode())
       return true;
    return false;
 }
 
-bool PCSensitiveTransformer::processRelocBlock(RelocBlockList::iterator &b_iter, const RelocBlockMap &) {
+bool PCSensitiveTransformer::processRelocBlock(Modification::RelocBlockList::iterator &b_iter, const RelocBlockMap &) {
 #if 0
    if (!analysisRequired(b_iter)) {
       return adhoc.processRelocBlock(b_iter);
@@ -487,7 +483,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   return false;
 }
 
-void PCSensitiveTransformer::handleThunkCall(RelocBlockList::iterator &b_iter, 
+void PCSensitiveTransformer::handleThunkCall(Modification::RelocBlockList::iterator &b_iter, 
 					     RelocBlock::WidgetList::iterator &iter,
 					     Absloc &destination) {
 
@@ -554,7 +550,7 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   }
 }
 
-void PCSensitiveTransformer::emulateInsn(RelocBlockList::iterator &b_iter,
+void PCSensitiveTransformer::emulateInsn(Modification::RelocBlockList::iterator &b_iter,
 					 RelocBlock::WidgetList::iterator &iter,
 					 InstructionAPI::Instruction::Ptr insn,
 					 Address addr) {

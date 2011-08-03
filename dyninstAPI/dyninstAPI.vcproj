@@ -2649,11 +2649,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
@@ -2750,6 +2750,10 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Movement-analysis.h"
 				>
 			</File>
 			<File

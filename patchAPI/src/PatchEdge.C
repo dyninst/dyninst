@@ -72,7 +72,7 @@ PatchEdge::interproc() const {
 }
 
 void PatchEdge::destroy(Point *p) {
-   assert(p->getEdge() == this);
+   assert(p->edge() == this);
    delete points_.during;
 }
 

@@ -185,7 +185,7 @@ void CodeTracker::debug() {
         for (FwdMapInner::const_iterator iter3 = iter2->second.begin();
              iter3 != iter2->second.end(); ++iter3) {
            cerr << "\t\t" << hex \
-                << iter3->first 
+                << iter3->first << " "
                 << iter3->second.instruction << "(insn)"
                 << iter3->second.instrumentation.size() << " (bts)"
                 << ", block @" << iter->first

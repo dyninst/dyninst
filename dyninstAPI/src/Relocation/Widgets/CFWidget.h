@@ -178,7 +178,8 @@ class CFWidget : public Widget {
   
   bool generateAddressTranslator(CodeBuffer &buffer,
                                  const codeGen &templ,
-				 Register &reg);  
+                                 Register &reg, 
+                                 const RelocBlock *trace);
 
 };
 

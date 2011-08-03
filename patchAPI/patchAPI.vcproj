@@ -386,6 +386,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\PatchModifier.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\PatchObject.C"
 				>
 				<FileConfiguration
@@ -485,6 +497,10 @@
 			</File>
 			<File
 				RelativePath=".\h\PatchMgr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\PatchModifier.h"
 				>
 			</File>
 			<File

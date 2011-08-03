@@ -66,6 +66,7 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchMgr.h"
+#include "PatchModifier.h"
 #include "Command.h"
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
@@ -1918,8 +1919,9 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
         deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
-        //KEVINTODO delete by calling patchmanager->removeBlock: llproc->mgr()->removeBlock(*bit);
-        assert(0);
+        if (false == PatchAPI::PatchModifier::remove(*bit)) {
+            assert(0);
+        }
     }
     mal_printf("Done deleting blocks\n"); 
 

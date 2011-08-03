@@ -257,6 +257,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\CFGModifier.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\CodeObject.C"
 				>
 				<FileConfiguration
@@ -720,6 +732,10 @@
 			</File>
 			<File
 				RelativePath=".\h\CFGFactory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\CFGModifier.h"
 				>
 			</File>
 			<File

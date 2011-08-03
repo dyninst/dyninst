@@ -34,6 +34,12 @@
 #include "../CFG/RelocTarget.h"
 
 #include "instructionAPI/h/Instruction.h"
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/src/emitter.h"
+#include "dyninstAPI/src/RegisterSpace.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 
 #include "../patchapi_debug.h"
 
@@ -248,7 +254,7 @@ bool CFWidget::generate(const codeGen &templ,
          Register reg = Null_Register; /* = originalRegister... */
          // Originally for use in helping with jump tables, I'm taking
          // this for the memory emulation effort. Huzzah!
-         if (!generateAddressTranslator(buffer, templ, reg))
+         if (!generateAddressTranslator(buffer, templ, reg, trace))
             return false;
          if (isCall_) {
             if (!generateIndirectCall(buffer, 
@@ -412,12 +418,11 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
 
 bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
-                                       Register &reg) 
+                                       Register &reg,
+                                       const RelocBlock *trace) 
 {
-   return true;
-#if 0
    if (!templ.addrSpace()->isMemoryEmulated() ||
-       BPatch_defensiveMode != block()->func()->obj()->hybridMode())
+       BPatch_defensiveMode != trace->block()->obj()->hybridMode())
       return true;
 
    if (insn_->getOperation().getID() == e_ret_near ||
@@ -471,18 +476,18 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    
    // This might look a lot like a memEmulatorWidget. That's, well, because it
    // is. 
-   buffer.addPIC(patch, tracker());
+   buffer.addPIC(patch, tracker(trace));
    
    // Where are we going?
-   block_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   func_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
    // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
    assert(func);
    
    // Now we start stealing from memEmulatorWidget. We need to call our translation function,
    // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
    // so there we go.
-   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->getAddress()),
-                   tracker());
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->addr()),
+                   tracker(trace));
    patch.setIndex(0);
    
    // Restore flags
@@ -510,10 +515,9 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    // for their work.
    // TODO: trust liveness and leave this in a register. 
 
-   buffer.addPIC(patch, tracker());
+   buffer.addPIC(patch, tracker(trace));
    reg = REGNUM_ESP;
    return true;
-#endif
 }
 
 std::string CFWidget::format() const {

@@ -83,7 +83,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     edge_instance *getFallthrough();
     // NULL if not conclusive
     block_instance *getFallthroughBlock();
-    block_instance *getTargetBlock();
 
     func_instance *callee();
     std::string calleeName();

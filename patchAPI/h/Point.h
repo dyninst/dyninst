@@ -198,23 +198,18 @@ class Point {
 
     // Getters
     PATCHAPI_EXPORT size_t size();
-    Address address() const { return addr_; }
-    Address addr() const { return address(); }
-    Type type() const {return type_;}
+    Address addr() const { return addr_; }
+    PATCHAPI_EXPORT Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
-    PatchObject* obj() const;
+    PATCHAPI_EXPORT PatchObject* obj() const;
     const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-    PatchFunction* getFunction() const { return the_func_; }
-    PatchBlock* getBlock() const { return the_block_; }
-    PatchEdge* getEdge() const { return the_edge_; }
-
-    PatchFunction *func() const { return getFunction(); }
-    PatchBlock *block() const { return getBlock(); }
-    PatchEdge *edge() const { return getEdge(); }
+    PATCHAPI_EXPORT PatchFunction *func() const { return the_func_; }
+    PATCHAPI_EXPORT PatchBlock *block() const { return the_block_; }
+    PATCHAPI_EXPORT PatchEdge *edge() const { return the_edge_; }
 
     // Point type utilities
     

@@ -99,15 +99,6 @@ edge_instance *block_instance::getTarget() {
   return NULL;
 }
 
-block_instance *block_instance::getTargetBlock() {
-  edge_instance *t = getFallthrough();
-  if (t &&
-      !t->sinkEdge())
-    return t->trg();
-  else
-    return NULL;
-}
-
 int block_instance::id() const {
   return llb()->id();
 }

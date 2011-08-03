@@ -104,3 +104,18 @@ PatchBlock *PatchModifier::insert(PatchObject *obj, void *start, unsigned size) 
    return obj->getBlock(newBlock);
 }
 
+bool PatchModifier::remove(PatchBlock *block, bool force)
+{
+    vector<PatchFunction*> funcs;
+    block->getFunctions(std::back_inserter(funcs));
+    bool success = ParseAPI::CFGModifier::remove(block->block(), force);
+
+    // DEBUG
+    if (success) {
+        for (unsigned int fidx = 0; fidx < funcs.size(); fidx++) {
+            assert(funcs[fidx]->consistency());
+        }
+    }
+    assert(0 && "KEVINTODO: is there more to do here?");
+    return success;
+}
