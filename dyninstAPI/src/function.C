@@ -217,43 +217,6 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
   }
 }
 
-// Remove funcs from:
-//   mapped_object & mapped_module datastructures
-//   addressSpace::textRanges codeRangeTree<func_instance*>
-//   image-level & SymtabAPI datastructures
-//   BPatch_addressSpace::BPatch_funcMap <func_instance -> BPatch_function>
-void func_instance::removeFromAll()
-{
-    mal_printf("purging blocks_ of size = %d from func at %lx\n",
-               all_blocks_.size(), addr());
-
-    // remove from mapped_object & mapped_module datastructures
-    obj()->removeFunction(this);
-    mod()->removeFunction(this);
-
-    delete(this);
-}
-
-//KEVINTODO: add parse-level to int-level callbacks to update instpoint lists 
-// of callBlock, exitBlock, entryBlock, etc.  
-
-/* trigger search in image_layer points vectors to be added to int_level 
- * datastructures  
- */ 
-#if 0
-void func_instance::addMissingPoints() 
-{
-    // the "true" parameter causes the helper functions to search for new 
-    // points in the image, bypassing cached points
-    funcEntries();
-    funcExits();
-    funcCalls();
-    funcUnresolvedControlFlow();
-    funcAbruptEnds();
-}
-
-#endif 
-
 void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
                                       const list<block_instance*> &seedBlocks,
                                       set<block_instance*> &reachBlocks)//output
@@ -784,7 +747,17 @@ void func_instance::edgePoints(Points* pts) {
 }
 
 void func_instance::destroyBlock(block_instance *block) {
-   // Put things here that go away from the perspective of this function
+    // Put things here that go away from the perspective of this function
+    BlockSet::iterator bit = unresolvedCF_.find(block);
+    if (bit != unresolvedCF_.end()) {
+        unresolvedCF_.erase(bit);
+        prevBlocksUnresolvedCF_ --;
+    }
+    bit = abruptEnds_.find(block);
+    if (bit != abruptEnds_.end()) {
+        abruptEnds_.erase(block);
+        prevBlocksAbruptEnds_ --;
+    }
 }
 
 void func_instance::destroy(func_instance *f) {

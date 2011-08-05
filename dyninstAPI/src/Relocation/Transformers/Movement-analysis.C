@@ -667,7 +667,7 @@ void PCSensitiveTransformer::invalidateCache(func_instance *f) {
    // as well as any for blocks that call f. 
 
    const PatchFunction::Blockset &blocks = f->blocks();
-   for (PatchFunction::Blockset::iterator iter = blocks.begin();
+   for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
         iter != blocks.end(); ++iter) {
       invalidateCache(SCAST_BI(*iter));
    }

@@ -158,50 +158,84 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    return ret;
 }
 
-bool CFGModifier::remove(Block *b, bool force) {
+bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever not want to force removal?
+
    if (!b) return false;
+
+   // 1) Remove from containing functions
+   // 2) Remove all source edges (and clear up src func's _call_edges)
+   // 3) Remove all target edges. 
+   // 4) Remove from Parser data structures;
+   // 5) destroy the block and related edges
+
+   ParseCallbackManager *pcb = b->obj()->_pcb;
+   vector<Edge*> deadEdges;
+
+   // 1)
+   std::vector<Function *> funcs;
+   b->getFuncs(funcs);
+   for (std::vector<Function *>::iterator iter = funcs.begin(); 
+        iter != funcs.end(); ++iter) 
+   {
+      Function *func = *iter;
+      pcb->removeBlock(func, b);
+      func->removeBlock(b);
+      if (b->_func_cnt > 0) {// remove func if count is not 0, in which case 
+                             // we haven't finalized the block
+          b->removeFunc(func);
+      }
+      b->obj()->parser->_parse_data->remove_extents(func->_extents);
+      func->_extents.clear();
+   }
+   
+   // 2)
    if (!b->_sources.empty()) {
       if (!force) return false;
+
       for (std::vector<Edge *>::iterator iter = b->_sources.begin();
-           iter != b->_sources.end(); ++iter) {
-         b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::source);
-         b->obj()->_pcb->removeEdge((*iter)->src(), *iter, ParseCallback::source);
+           iter != b->_sources.end(); ++iter) 
+      {
+         deadEdges.push_back(*iter);
+         // callbacks
+         pcb->removeEdge(b, *iter, ParseCallback::source);
+         pcb->removeEdge((*iter)->src(), *iter, ParseCallback::source);
+         // clear up _call_edges vector in the caller function         
+         if ((*iter)->type() == CALL) {
+            std::vector<Function *> funcs;
+            (*iter)->src()->getFuncs(funcs);
+            for (unsigned k = 0; k < funcs.size(); ++k) {
+                funcs[k]->_call_edges.erase(*iter);
+            }
+         }
+         // remove edge from source block
          (*iter)->src()->removeTarget(*iter);
       }
    }
 
-   // 1) Remove all target edges. 
-   // Remove from:
-   // 2) Containing functions;
-   // 3) Parser data structures;
-
-   // 1)
+   // 3)
    for (std::vector<Edge *>::iterator iter = b->_targets.begin();
-        iter != b->_targets.end(); ++iter) {
-      b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::target);
+        iter != b->_targets.end(); ++iter) 
+   {
+      deadEdges.push_back(*iter);
+      pcb->removeEdge(b, *iter, ParseCallback::target);
       if (!(*iter)->sinkEdge()) {
          (*iter)->trg()->removeSource(*iter);
-         b->obj()->_pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
+         pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
       }
    }
 
-   // 2)
-   std::vector<Function *> funcs;
-   b->getFuncs(funcs);
-   for (std::vector<Function *>::iterator iter = funcs.begin(); 
-        iter != funcs.end(); ++iter) {
-      b->obj()->_pcb->removeBlock(*iter, b);
-      (*iter)->_cache_valid = false;
-      (*iter)->finalize();
-   }
-   
-   // 3)
+   // 4)
    region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
    assert(rd);
    rd->blocksByRange.remove(b);
+   rd->blocksByAddr.erase(b->start());
 
-   // And destroy it.
-   b->obj()->_pcb->destroy(b, b->obj()->fact());
+   // 5)
+   CFGFactory *fact = b->obj()->fact();
+   pcb->destroy(b, fact);
+   for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
+       pcb->destroy(*eit, fact);
+   }
 
    return true;
 }
@@ -209,14 +243,29 @@ bool CFGModifier::remove(Block *b, bool force) {
 bool CFGModifier::remove(Function *f) {
    // Remove this function and all of its blocks; 
    // actually refcount the blocks one lower. 
-   
-   // Must have no in-edges. Technically, we can never remove a recursive function :)
-   if (!f->entry()->_sources.empty()) return false;
+   vector<Block*> destroyBs;
 
+   // remove call edges
+   Block *entry = f->entry();
+   Interproc pred;
+   Block::edgelist calls = entry->sources();
+   for (Block::edgelist::iterator cit = calls.begin(&pred);
+        cit != calls.end();
+        cit++)
+   {
+       f->obj()->destroy(*cit);
+   }
+
+   // remove blocks from func, remove blocks if not shared
    for (Function::blocklist::iterator iter = f->blocks().begin(); 
-        iter != f->blocks().end(); ++iter) {
+        iter != f->blocks().end(); ++iter) 
+   {
       (*iter)->removeFunc(f);
-   };
+      if ((*iter)->_func_cnt == 0) {
+          CFGModifier::remove(*iter,true);
+          destroyBs.push_back(*iter);
+      }
+   }
 
    f->_start = 0;
    f->_name = "ERASED";
@@ -236,7 +285,13 @@ bool CFGModifier::remove(Function *f) {
    f->_call_edges.clear();
    f->_return_blocks.clear();
 
-   f->obj()->_pcb->destroy(f, f->obj()->fact());
+   CodeObject *obj = f->obj();
+   f->obj()->destroy(f);
+
+   for (unsigned int bidx = 0; bidx < destroyBs.size(); bidx++) {
+       obj->destroy(destroyBs[bidx]);
+   }
+   // delete f;
 
    return true;
 }

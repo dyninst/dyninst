@@ -4056,7 +4056,7 @@ bool process::getOverwrittenBlocks
         mapped_object *curObject = findObject((*rIter).first);
 
         curObject->findBlocksByRange((*rIter).first,(*rIter).second,curBBIs);
-        if (curBBIs.size()) {
+        if (!curBBIs.empty()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
             writtenBBIs.splice(writtenBBIs.end(), curBBIs);
@@ -4067,7 +4067,7 @@ bool process::getOverwrittenBlocks
     }
 
     free(memVersion);
-    if (writtenBBIs.size()) {
+    if (!writtenBBIs.empty()) {
         return true;
     } else {
         return false;
@@ -4135,7 +4135,7 @@ static void otherFuncBlocks(func_instance *func,
  * variables
  * f:  the overwritten function
  * ow: the set of overwritten blocks
- * ex: the set of blocks that are executing on the call stack
+ * ex: the set of blocks that are executing on the call stack that were not overwritten
  * 
  * primitives
  * R(b,s): yields set of reachable blocks for collection of blocks b, starting
@@ -4155,7 +4155,7 @@ static void otherFuncBlocks(func_instance *func,
  *          forall f in F(b): B(f) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
- *          EP(f) in ow(f) AND ex(f) is empty
+ *          EP(f) in ow(f) AND ex(f)-ow(f) is empty
  */
 bool process::getDeadCode
 ( const std::list<block_instance*> &owBlocks, // input
@@ -4216,27 +4216,33 @@ bool process::getDeadCode
         set<block_instance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             std::set<block_instance *> candidateBlocks;
-            fit->first->obj()->findBlocksByAddr(pcs[pidx], candidateBlocks);
+            Address realPC = pcs[pidx];
+            vector<func_instance*> dontcare1;
+            baseTramp * dontcare2;
+            if (isRuntimeHeapAddr(realPC)) {
+                getAddrInfo(pcs[pidx], realPC, dontcare1, dontcare2);
+            }
+            fit->first->obj()->findBlocksByAddr(realPC, candidateBlocks);
             for (std::set<block_instance *>::iterator cb_iter = candidateBlocks.begin();
-                cb_iter != candidateBlocks.end(); ++cb_iter) {
+                cb_iter != candidateBlocks.end(); ++cb_iter) 
+            {
                 block_instance *exB = *cb_iter;
-                if (exB && owBlockAddrs.end() == owBlockAddrs.find(
-                                                        exB->start())) 
+                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) 
                 {
                     execBlocks.insert(exB);
                 }
             }
         }
 
-        // calculate DeadF: EP(f) in ow and EP(f) not in ex
-        if ( 0 == execBlocks.size() ) {
+        // calculate DeadF: EP(f) in ow and EP(f) not in ex(f)
+        if (!execBlocks.empty()) {
             set<block_instance*>::iterator eb = fit->second.find(
                 fit->first->entryBlock());
             if (eb != fit->second.end()) {
                 deadFuncs.push_back(fit->first);
                 continue;// treated specially, don't need elimF, NewF or DelF
             }
-        } 
+        }
 
         // calculate elimF
         set<block_instance*> keepF;

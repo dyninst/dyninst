@@ -71,9 +71,9 @@ PatchEdge::interproc() const {
          (edge_->type() == ParseAPI::RET);
 }
 
-void PatchEdge::destroy(Point *p) {
+void PatchEdge::remove(Point *p) {
    assert(p->edge() == this);
-   delete points_.during;
+   points_.during = NULL;
 }
 
 PatchCallback *PatchEdge::cb() const {

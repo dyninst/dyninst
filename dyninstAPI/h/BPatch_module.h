@@ -112,7 +112,7 @@ public:
     bool isExploratoryModeOn();// true if exploratory or defensive mode is on
     bool setAnalyzedCodeWriteable(bool writeable);//sets write perm's analyzed code pages
     bool isSystemLib();
-    bool removeFunction(BPatch_function*, bool deep_removal);
+    bool removeFunction(BPatch_function*);
     // End functions for internal use only
   
     // BPatch_module::getName

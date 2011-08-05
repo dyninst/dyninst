@@ -38,6 +38,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "PatchModifier.h"
 
 #include "mapped_object.h"
 
@@ -350,7 +351,8 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 	{
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
 		if (!bpfunc) continue;
-		bpfunc->getModule()->removeFunction(bpfunc, true);
+        PatchAPI::PatchModifier::remove(bpfunc->lowlevel_func());
+		//bpfunc->getModule()->removeFunction(bpfunc, true);
 	}
 
 	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);

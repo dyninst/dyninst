@@ -93,6 +93,13 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    exit_blocks_.erase(b);
    call_blocks_.erase(b);
 
+   // pull all of b's points from blockPoints_
+   std::map<PatchBlock *, BlockPoints>::iterator pit = blockPoints_.find(b);
+   if (pit != blockPoints_.end()) {
+       pit->second.preInsn.clear();
+       pit->second.postInsn.clear();
+       blockPoints_.erase(pit);
+   }
    cb()->remove_block(this, b);
 }
 
@@ -260,41 +267,49 @@ bool PatchFunction::findInsnPoints(Point::Type type,
    else return false;
 }
 
-void PatchFunction::destroy(Point *p) {
+void PatchFunction::remove(Point *p) {
    assert(p->func() == this);
 
    switch(p->type()) {
       case Point::PreInsn:
-         delete blockPoints_[p->block()].preInsn[p->addr()];
+         blockPoints_[p->block()].preInsn.erase(p->addr());
          break;
       case Point::PostInsn:
-         delete blockPoints_[p->block()].postInsn[p->addr()];
+         blockPoints_[p->block()].postInsn.erase(p->addr());
          break;
       case Point::BlockEntry:
-         delete blockPoints_[p->block()].entry;
+         blockPoints_[p->block()].entry = NULL;
          break;
       case Point::BlockExit:
-         delete blockPoints_[p->block()].exit;
+         blockPoints_[p->block()].exit = NULL;
          break;
       case Point::BlockDuring:
-         delete blockPoints_[p->block()].during;
+         blockPoints_[p->block()].during = NULL;
          break;
       case Point::FuncEntry:
-         delete points_.entry;
+         points_.entry = NULL;
          break;
       case Point::FuncExit:
-         delete points_.exits[p->block()];
+         points_.exits.erase(p->block());
          break;
       case Point::FuncDuring:
-         delete points_.during;
+         points_.during = NULL;
          break;
       case Point::PreCall:
-         delete points_.preCalls[p->block()];
+         points_.preCalls.erase(p->block());
          break;
       case Point::PostCall:
-         delete points_.postCalls[p->block()];
+         points_.postCalls.erase(p->block());
          break;
+      case Point::EdgeDuring: {
+         map<PatchEdge *, EdgePoints>::iterator eit = edgePoints_.find(p->edge());
+         if (eit != edgePoints_.end()) {
+            edgePoints_.erase(p->edge());
+         }
+         break;
+      }
       default:
+         assert(0 && "deleting point of unexpected type");
          break;
    }
 }

@@ -49,18 +49,6 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
    assert(inBatch_);
    // And now we do work. Hard work. 
    // Collect up all the info we've copied and send it up to the user
-   for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
-        iter != destroyedEdges_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
-   for (std::vector<Block *>::iterator iter = destroyedBlocks_.begin();
-        iter != destroyedBlocks_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
-   for (std::vector<Function *>::iterator iter = destroyedFunctions_.begin();
-        iter != destroyedFunctions_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
 
    // Inform about changes
    for (std::vector<BlockMod>::iterator iter = blockMods_.begin();
@@ -92,6 +80,20 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
       split_block_cb(iter->first, iter->second);
    }
    blockSplits_.clear();
+
+   // destroy (KEVINTODO: test this, shouldn't delete, but I think it does)
+   for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
+        iter != destroyedEdges_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
+   for (std::vector<Block *>::iterator iter = destroyedBlocks_.begin();
+        iter != destroyedBlocks_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
+   for (std::vector<Function *>::iterator iter = destroyedFunctions_.begin();
+        iter != destroyedFunctions_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
 
    // now that we're done with callbacks, delete dangling objects
    for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();

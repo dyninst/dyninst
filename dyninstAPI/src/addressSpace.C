@@ -1703,8 +1703,14 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
 
-   adhocMovementTransformer a(this);
-   cm->transform(a);
+   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
+       adhocMovementTransformer a(this);
+       cm->transform(a);
+   }
+   else {
+       PCSensitiveTransformer pc(this, cm->priorityMap());
+        cm->transform(pc);
+   }
 
 #if defined(cap_mem_emulation)
    if (emulateMem_) {

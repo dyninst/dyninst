@@ -130,7 +130,6 @@ class Parser {
 
     // removal
     void remove_func(Function *);
-    //void remove_block(Block *);
     void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
  public: 

@@ -578,7 +578,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
-bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
+bool BPatch_module::removeFunction(BPatch_function *bpfunc)
 {
     func_instance *func = bpfunc->lowlevel_func();
 
@@ -592,6 +592,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         return false;
     }
 
+#if 0
     if (deepRemoval) {
         std::map<func_instance*,block_instance*> newFuncEntries;
 
@@ -629,8 +630,9 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         func->removeFromAll();
 
     } // end deepRemoval
+#endif
 
-    this->func_map.erase(fmap_iter);
+    func_map.erase(fmap_iter);
 
     return true;
 }

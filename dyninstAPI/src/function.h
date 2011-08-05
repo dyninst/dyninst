@@ -231,7 +231,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void setParamSize(int s) { paramSize = s; }
 #endif
 
-  void removeFromAll();
   void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
                           const std::list<block_instance*> &seedBlocks,
                           std::set<block_instance*> &reachBlocks);//output

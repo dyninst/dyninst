@@ -45,7 +45,7 @@ class PatchEdge {
    PATCHAPI_EXPORT bool sinkEdge() const;
    PATCHAPI_EXPORT bool interproc() const;
 
-   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
    bool consistency() const;
@@ -104,7 +104,7 @@ class PatchBlock {
 
     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
 
-   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
    bool consistency() const;
@@ -192,7 +192,7 @@ class PatchFunction {
                                          InsnPoints::const_iterator &start,
                                          InsnPoints::const_iterator &end);
 
-   PATCHAPI_EXPORT void destroy(Point *);
+   PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
    bool consistency() const;

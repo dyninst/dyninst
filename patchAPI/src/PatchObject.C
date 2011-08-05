@@ -99,7 +99,6 @@ void
 PatchObject::removeFunc(ParseAPI::Function* f) {
    FuncMap::iterator iter = funcs_.find(f);
    if (iter == funcs_.end()) return;
-   cb()->destroy(iter->second);
    funcs_.erase(iter);
 }
 
@@ -136,7 +135,6 @@ void
 PatchObject::removeBlock(ParseAPI::Block* b) {
    BlockMap::iterator iter = blocks_.find(b);
    if (iter == blocks_.end()) return;
-   cb()->destroy(iter->second);
    blocks_.erase(iter);
 }
 
@@ -170,7 +168,6 @@ void
 PatchObject::removeEdge(ParseAPI::Edge *e) {
    EdgeMap::iterator iter = edges_.find(e);
    if (iter == edges_.end()) return;
-   cb()->destroy(iter->second);
    edges_.erase(iter);
 }
 

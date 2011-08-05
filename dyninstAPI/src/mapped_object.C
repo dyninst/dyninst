@@ -2180,25 +2180,40 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
 void mapped_object::destroy(ParseAPI::Block *b) {
    BlockMap::iterator iter = blocks_.find(b);
    if (iter != blocks_.end()) {
+     calleeNames_.erase(SCAST_BI(iter->second));
+     if (as()->isMemoryEmulated()) {
+         as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
+     }
      block_instance::destroy(SCAST_BI(iter->second));
      blocks_.erase(iter);
-     calleeNames_.erase(SCAST_BI(iter->second));
    }
 }
 
 void mapped_object::destroy(ParseAPI::Edge *e) {
    EdgeMap::iterator iter = edges_.find(e);
    if (iter != edges_.end()) {
-     edge_instance::destroy(SCAST_EI(iter->second));
-     edges_.erase(iter);
+   //  edge_instance::destroy(SCAST_EI(iter->second));
+       edges_.erase(iter);
    }
 }
 
 void mapped_object::destroy(ParseAPI::Function *f) {
-   FuncMap::iterator iter = funcs_.find(f);
-   if (iter != funcs_.end()) {
-     func_instance::destroy(SCAST_FI(iter->second));
-     funcs_.erase(iter);
+    FuncMap::iterator iter = funcs_.find(f);
+    if (iter != funcs_.end()) {
+        if (as()->isMemoryEmulated()) {
+            as()->getMemEm()->removeSpringboards(SCAST_FI(iter->second));
+        }
+        vector<mapped_module*> mods = getModules();
+        for (unsigned int midx = 0; midx < mods.size(); midx++) {
+            BPatch_addressSpace* bpAS = (BPatch_addressSpace*)proc()->up_ptr();
+            BPatch_module *bpmod = bpAS->getImage()->findModule(mods[midx]);
+            BPatch_function *bpfunc = bpAS->findOrCreateBPFunc(SCAST_FI(iter->second), bpmod);
+            bpmod->removeFunction(bpfunc);
+            mods[midx]->removeFunction(SCAST_FI(iter->second));
+            removeFunction(SCAST_FI(iter->second));
+        }
+        func_instance::destroy(SCAST_FI(iter->second));
+        funcs_.erase(iter);
    }
 }
 

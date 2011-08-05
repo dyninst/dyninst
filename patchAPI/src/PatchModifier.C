@@ -116,6 +116,17 @@ bool PatchModifier::remove(PatchBlock *block, bool force)
             assert(funcs[fidx]->consistency());
         }
     }
-    assert(0 && "KEVINTODO: is there more to do here?");
+    return success;
+}
+
+bool PatchModifier::remove(PatchFunction *func)
+{
+    PatchObject *obj = func->obj();
+    bool success = ParseAPI::CFGModifier::remove(func->function());
+
+    // DEBUG
+    if (success) {
+        assert(obj);
+    }
     return success;
 }

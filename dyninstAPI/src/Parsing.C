@@ -220,11 +220,12 @@ void DynParseCallback::destroy_cb(Function *f) {
 }
 
 void DynParseCallback::remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
-   cerr << "Warning: edge removal callback unimplemented" << endl;
+   //cerr << "Warning: edge removal callback unimplemented" << endl;
 }
 
 void DynParseCallback::remove_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
-   cerr << "Warning: block removal callback unimplemented" << endl;
+   // we currently do all necessary cleanup during destroy
+   //cerr << "Warning: block removal callback unimplemented" << endl;
 }
 
 void

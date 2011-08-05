@@ -317,141 +317,74 @@ void Function::setEntryBlock(Block *new_entry)
     _entry = new_entry;
 }
 
-#if 0
 void 
-Function::deleteBlocks(vector<Block*> dead_blocks)
+Function::removeBlock(Block* dead)
 {
     _cache_valid = false;
-    bool deleteAll = (dead_blocks.size() == _blocks.size());
-    bool hasSharedDeadBlocks = false;
+    bool found = false;
 
-    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
-        bool found = false;
-        Block *dead = dead_blocks[didx];
-
-        // remove dead block from _blocks
-        std::vector<Block *>::iterator biter = _blocks.begin();
-        while ( !found && _blocks.end() != biter ) {
-            if (dead == *biter) {
-                found = true;
-                biter = _blocks.erase(biter);
-            }
-            else {
-                biter++;
-            }
+    // remove dead block from _blocks // KEVINTODO: use binary search
+    std::vector<Block *>::iterator biter = _blocks.begin();
+    while ( !found && _blocks.end() != biter ) {
+        if (dead == *biter) {
+            found = true;
+            biter = _blocks.erase(biter);
         }
-        if (!found) {
-            fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
-                    "function at %lx that it does not belong to at %s[%d]\n",
-                    dead->start(),dead->end(), addr(), FILE__,__LINE__);
-            assert(0);
+        else {
+            biter++;
         }
+    }
+    if (!found) {
+        fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
+                "function at %lx that it does not belong to at %s[%d]\n",
+                dead->start(),dead->end(), addr(), FILE__,__LINE__);
+        assert(0);
+    }
 
-        // specify replacement entry prior to deleting entry block, unless 
-        // deleting all blocks
-        assert(deleteAll || dead != _entry);
+    // specify replacement entry prior to deleting entry block, unless 
+    // deleting all blocks
+    if (dead == _entry) {
+        mal_printf("Warning: removing entry block [%lx %lx) for function at "
+                   "%lx\n", dead->start(), dead->end(), addr());
+        _entry = NULL;
+        assert(0);
+    }
 
-        // remove dead block from _return_blocks and its call edges from vector
-        Block::edgelist & outs = dead->targets();
-        for (Block::edgelist::iterator oit = outs.begin();
-             outs.end() != oit; 
-             oit++ ) 
-        {
-            switch((*oit)->type()) {
-                case CALL: {
-                    bool foundEdge = false;
-                    for (set<Edge*>::iterator cit = _call_edges.begin(); 
-                         _call_edges.end() != cit;
-                         cit++) 
-                    {
-                        if (*oit == *cit) {
-                            foundEdge = true;
-                            _call_edges.erase(cit);
-                            break;
-                        }
-                    }
-                    assert(foundEdge || (*oit)->sinkEdge());
-                    break;
-                }
-                case RET:
-                    _return_blocks.erase(std::remove(_return_blocks.begin(),
-                                                     _return_blocks.end(),
-                                                     dead),
-                                         _return_blocks.end());
-                    break;
-                default:
-                    break;
-            }
-        }
-        // remove dead block from block map
-        _bmap.erase(dead->start());
-
-        // disconnect dead block from CFG (if not shared by other funcs)
-        if (1 == dead->containingFuncs()) {
-            while ( ! dead->_sources.empty() ) {
-                Edge *edge = dead->_sources.back();
-                if (edge->type() == CALL) {
-                    std::vector<Function *> funcs;
-                    edge->src()->getFuncs(funcs);
-                    for (unsigned k = 0; k < funcs.size(); ++k) {
-                        funcs[k]->_call_edges.erase(edge);
-                    }
-                    Block::edgelist & trgs = edge->src()->targets();
-                    bool hasSinkEdge = false;
-                    for (Block::edgelist::iterator tit = trgs.begin();
-                         tit != trgs.end(); tit++) 
-                    {
-                        if ((*tit)->sinkEdge() && CALL == (*tit)->type()) {
-                            hasSinkEdge = true;
-                            break;
-                        }
-                    }
-                    if (!hasSinkEdge) {
-                        _obj->add_edge(edge->src(), NULL, CALL);
+    // remove dead block from _return_blocks and _call_edges
+    Block::edgelist & outs = dead->targets();
+    for (Block::edgelist::iterator oit = outs.begin();
+         outs.end() != oit; 
+         oit++ ) 
+    {
+        switch((*oit)->type()) {
+            case CALL: {
+                bool foundEdge = false;
+                for (set<Edge*>::iterator cit = _call_edges.begin();
+                     _call_edges.end() != cit;
+                     cit++) 
+                {
+                    if (*oit == *cit) {
+                        foundEdge = true;
+                        _call_edges.erase(cit);
+                        break;
                     }
                 }
-                dead->_sources.pop_back();//i.e.,edge->_trg->removeSource(edge)
-                edge->src()->removeTarget( edge );
-                obj()->fact()->free_edge( edge );
+                assert(foundEdge || (*oit)->sinkEdge());
+                break;
             }
-            while (!dead->_targets.empty()) {
-                Edge *edge = dead->_targets.back();
-                dead->_targets.pop_back();//i.e.,edge->_src->removeTarget(edge)
-                edge->trg()->removeSource( edge );
-                obj()->fact()->free_edge(edge);
-            }
-        }
-        // Moved remove_block farther down to guard against shared code
-    }
-
-    // delete the blocks
-    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
-        Block *dead = dead_blocks[didx];
-        if (dead->_func_cnt >= 2) {
-            dead->removeFunc(this);
-            hasSharedDeadBlocks = true;
-            mal_printf("WARNING: removing shared block [%lx %lx] rather "
-                       "than deleting it, refcount is now %d %s[%d]\n", dead->start(), 
-                       dead->end(), dead->_func_cnt, FILE__,__LINE__);
-        } else {
-            mal_printf("disconnecting & freeing block [%lx %lx) refcount=%d\n", 
-                       dead->start(), dead->end(), dead->_func_cnt);
-
-            // remove from internal parsing datastructures
-            obj()->parser->remove_block(dead);
-
-            obj()->fact()->free_block(dead);
+            case RET:
+                _return_blocks.erase(std::remove(_return_blocks.begin(),
+                                                 _return_blocks.end(),
+                                                 dead),
+                                     _return_blocks.end());
+                break;
+            default:
+                break;
         }
     }
-
-    // call finalize, fixes extents
-    _cache_valid = false;
-    if (!deleteAll && !hasSharedDeadBlocks) {
-        //Don't think this is necessary or wanted, Jan 4, 2011
-        //obj()->parser->finalize(this);
-    }
+    // remove dead block from block map
+    _bmap.erase(dead->start());
 }
-#endif
 
 class ST_Predicates : public Slicer::Predicates {};
 

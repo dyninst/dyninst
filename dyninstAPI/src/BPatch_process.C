@@ -1896,30 +1896,25 @@ void BPatch_process::overwriteAnalysisUpdate
     std::map<func_instance*,vector<edgeStub> > stubs =
        llproc->getStubs(owBBIs,delBlocks,deadFuncs);
 
-    // remove springboards from blocks that will be deleted
-    for(set<block_instance*>::iterator bit = delBlocks.begin();
-        bit != delBlocks.end();
-        bit++)
+
+    // set new entry points for functions with NewF blocks, the active blocks
+    // in newFuncEntries serve as suggested entry points, but will not be 
+    // chosen if there are other blocks in the function with no incoming edges
+    for (map<func_instance*,block_instance*>::iterator nit = newFuncEntries.begin();
+         nit != newFuncEntries.end();
+         nit++)
     {
-        llproc->getMemEm()->removeSpringboards(*bit);
-    }
-    for(list<func_instance*>::iterator fit = deadFuncs.begin();
-        fit != deadFuncs.end();
-        fit++)
-    {
-        malware_cerr << "Removing instrumentation from dead func at " 
-            << hex << (*fit)->addr() << dec << endl;
-        llproc->getMemEm()->removeSpringboards(*fit);
+        nit->first->setNewEntryPoint(nit->second);
     }
 
     // delete delBlocks and set new function entry points, if necessary
-    for(set<block_instance*>::iterator bit = delBlocks.begin(); 
-        bit != delBlocks.end();
+    for(set<block_instance*>::reverse_iterator bit = delBlocks.rbegin(); 
+        bit != delBlocks.rend();
         bit++)
     {
         mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
         deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
-        if (false == PatchAPI::PatchModifier::remove(*bit)) {
+        if (false == PatchAPI::PatchModifier::remove(*bit,true)) {
             assert(0);
         }
     }
@@ -2002,8 +1997,9 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->getModule()->removeFunction(bpfunc,false); //KEVINTODO: doesn't delete the blocks
-        (*fit)->removeFromAll();
+        if (false == PatchAPI::PatchModifier::remove(*fit)) {
+            assert(0);
+        }
     }
     mal_printf("Done deleting functions\n");
 
@@ -2047,16 +2043,6 @@ void BPatch_process::overwriteAnalysisUpdate
             }
         }
         mit->first->parseNewEdges(mit->second);
-    }
-
-    // set new entry points for functions with NewF blocks, the active blocks
-    // in newFuncEntries serve as suggested entry points, but will not be 
-    // chosen if there are other blocks in the function with no incoming edges
-    for (map<func_instance*,block_instance*>::iterator nit = newFuncEntries.begin();
-         nit != newFuncEntries.end();
-         nit++)
-    {
-        nit->first->setNewEntryPoint(nit->second);
     }
 
     //3. parse new code, one overwritten function at a time
