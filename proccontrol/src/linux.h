@@ -43,6 +43,7 @@
 #include "proccontrol/src/x86_process.h"
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/int_thread_db.h"
+#include "proccontrol/src/mmapalloc.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -94,7 +95,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, mmap_alloc_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 

@@ -58,7 +58,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    test_pictype_t pic_,
                    TestInfo *test_init,
                    const char *modname_, const char *compiler_, const char *optlevel_, 
-                   const char *abi_)
+                   const char *abi_, const char *platmode_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
     customExecution(ex), disabled(false), mod(NULL), modname(modname_),
     threadmode(threads_), procmode(procs_),
@@ -66,7 +66,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     mutatee_runtime(mutatee_runtime_),
     linktype(linktype_),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), platmode(platmode_)
 {
   tests.push_back(test_init);
 }
@@ -82,7 +82,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    test_pictype_t pic_,
                    const char *modname_,
                    const char *compiler_, const char *optlevel_, 
-                   const char *abi_)
+                   const char *abi_, const char *platmode_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
     customExecution(ex), disabled(false), mod(NULL), modname(modname_),
     threadmode(threads_), procmode(procs_),
@@ -90,7 +90,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     mutatee_runtime(mutatee_runtime_),
     linktype(linktype_),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), platmode(platmode_)
 {
 }
 
@@ -103,13 +103,14 @@ RunGroup::RunGroup(const char *mutatee_name,
                    test_pictype_t pic_,
                    const char *compiler_, 
                    const char *optlevel_, 
-                   const char *abi_)
+                   const char *abi_,
+                   const char *platmode_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
     customExecution(ex), disabled(false), mod(NULL), modname(modname_),
     threadmode(TNone), procmode(PNone),
     linktype(DynamicLink),
     pic(pic_),
-    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+    compiler(compiler_), optlevel(optlevel_), abi(abi_), platmode(platmode_)
 {
 }
 

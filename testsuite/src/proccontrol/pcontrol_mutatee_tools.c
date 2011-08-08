@@ -105,11 +105,10 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
          is_mt = 1;
          num_threads = atoi(gargv[i+1]);
-         assert(num_threads > 1);
          break;
       }
    }
-   if (is_mt) {
+   if (is_mt && num_threads) {
       initLock(&thread_startup_lock);
       testLock(&thread_startup_lock);
       for (j = 0; j < num_threads; j++) {

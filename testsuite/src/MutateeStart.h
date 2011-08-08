@@ -53,10 +53,11 @@ int getMutateePid(RunGroup *group);
 
 /**
  * setMutateeDict is a macro function because we want to objects created
- * by it to have a lifetime of the callers scope.  
+ * by it to have a lifetime of the caller's scope.  
  **/
 #define setMutateeDict(group, paramd) \
    ParamString mutatee_prm(group->mutatee); \
+   ParamString platmode_prm(group->platmode); \
    ParamInt startstate_prm((int) group->state); \
    ParamInt createmode_prm((int) group->createmode); \
    ParamInt customexecution_prm((int) group->customExecution); \
@@ -64,14 +65,13 @@ int getMutateePid(RunGroup *group);
    ParamInt threadmode_prm((int) group->threadmode); \
    ParamInt procmode_prm((int) group->procmode); \
    ParamInt threadmd_prm((int) group->threadmode); \
-   ParamInt procmd_prm((int) group->procmode); \
+   ParamInt procmd_prm((int) group->procmode);     \
    paramd["pathname"] = &mutatee_prm; \
+   paramd["platmode"] = &platmode_prm; \
    paramd["startState"] = &startstate_prm; \
    paramd["createmode"] = &createmode_prm; \
    paramd["customExecution"] = &customexecution_prm; \
    paramd["selfStart"] = &selfstart_prm; \
-   paramd["threadMode"] = &threadmode_prm; \
-   paramd["processMode"] = &procmode_prm; \
    paramd["mt"] = &threadmd_prm; \
    paramd["mp"] = &procmd_prm;
 

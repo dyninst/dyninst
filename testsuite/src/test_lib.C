@@ -583,23 +583,40 @@ int setenv(const char *envname, const char *envval, int)
 }
 #endif
 
+int bg_maxThreadsPerProcess(const char *runmode) {
+   if (strcmp(runmode, "SMP") == 0) {
+      return 4;
+   }
+   else if (strcmp(runmode, "DUAL") == 0) {
+      return 2;
+   }
+   else if (strcmp(runmode, "VN") == 0) {
+      return 1;
+   }
+   assert(0);
+   return -1;
+}
+
 int getNumProcs(const ParameterDict &dict)
 {
    ParameterDict::const_iterator i = dict.find("mp");
-   if (i == dict.end() || i->second->getInt() <= 1) {
+   assert(i != dict.end());
+   if (i->second->getInt() <= 1) {
       return 1;
    }
+   int base = 16;
    char *e = getenv("DYNINST_MPTEST_WIDTH");
    if (e) {
       int result = atoi(e);
       if (result)
-         return result;
+         base = result;
    }
+   int mult = 1;
 #if defined(os_bg_test)
-   return 16;
-#else
-   return 8;
+   int max_threads = bg_maxThreadPerProcess(dict["platmode"]->getString().c_str());
+   mult = 4 / max_threads;
 #endif
+   return base * mult;
 }
 
 int getNumThreads(const ParameterDict &dict)
@@ -607,7 +624,7 @@ int getNumThreads(const ParameterDict &dict)
    ParameterDict::const_iterator i = dict.find("mt");
    assert(i != dict.end());
    if (i->second->getInt() <= 1) {
-      return 1;
+      return 0;
    }
    char *e = getenv("DYNINST_MTTEST_WIDTH");
    if (e) {
@@ -616,7 +633,7 @@ int getNumThreads(const ParameterDict &dict)
          return result;
    }
 #if defined(os_bg_test)
-   return 3;
+   return bg_maxThreadPerProcess(dict["platmode"]->getString().c_str()) - 1;
 #else
    return 8;
 #endif

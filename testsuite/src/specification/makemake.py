@@ -411,7 +411,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			print "No module found! Test object: " 
 			print testobj[0]
 			raise
-		out.write(', "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi']))
+		out.write(', "%s", "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi'], group['platmode']))
 		out.write(');\n')
 		for test in group['tests']:
 			# Set the tuple string for this test
