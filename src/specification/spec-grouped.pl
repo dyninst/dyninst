@@ -39,7 +39,8 @@
                   compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
                   test_exclude_compiler/2, remote_platform/1, remote_runmode_mutator/2,
                   remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5,
-                  platform_module/2, mutatee_compiler_platform_exclude/2]).
+                  platform_module/2, mutatee_compiler_platform_exclude/2,
+                  platform_mode/4]).
 
 %%%%%%%%%%
 %
@@ -3353,6 +3354,24 @@ test_processmode(Test, 'None') :- tests_module(Test, Module),
    module(Module),
    \+ member(Module, ['proccontrol']).
 
+bg_vn_exclude('VN', 'MultiThreaded').
+
+% platform_mode is currently only used by BG to specify the modes
+% the system can run in: Virtual, Dual, or SMP
+platform_mode(P, M, RM, TM) :-
+   current_platform(P),
+   platform(_, 'bluegene', _, P),
+   member(M, ['DUAL', 'VN', 'SMP']),
+   member(RM, ['createProcess', 'useAttach', 'binary']),
+   \+ bg_vn_exclude(M, TM).
+
+platform_mode(P, 'NONE', 'disk', _) :-
+   current_platform(P),
+   platform(_, 'bluegene', _, P).
+
+platform_mode(P, 'NONE', _, _) :- 
+   current_platform(P),
+   \+ platform(_, 'bluegene', _, P).   
 
 % runmode/1
 % runmode(+RunMode)

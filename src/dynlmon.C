@@ -56,7 +56,7 @@ static pid_t run_local(char **args)
 #include "../common/h/dthread.h"
 #include "../common/src/dthread-unix.C"
 
-static char **getLaunchParams(char *executable, char *args[], const char *num, char * signal_file_name);
+static char **getLaunchParams(char *executable, char *args[], const char *num, char * signal_file_name, const char *mode);
 static bool init_lmon();
 
 #define SIGNAL_FILE_TIMEOUT 15
@@ -200,7 +200,9 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
    char num_procs_s[32];
    snprintf(num_procs_s, 32, "%d", num_procs);
 
-   char **new_test_args = getLaunchParams(test_args[0], test_args+1, num_procs_s, signal_file);
+   char *mode = params["platmode"]->getString().c_str();
+
+   char **new_test_args = getLaunchParams(test_args[0], test_args+1, num_procs_s, signal_file, mode);
    rc = LMON_fe_createSession(&session);
    if (rc != LMON_OK) {
       fprintf(stderr, "Failed to create session\n");
@@ -245,7 +247,7 @@ static bool init_lmon()
 }
 
 #if defined(os_cnl_test)
-static char **getLaunchParams(char *executable, char *args[], char *num, char *signal_file_name)
+static char **getLaunchParams(char *executable, char *args[], char *num, char *signal_file_name, const char *)
 {
    
    int count = 0;
@@ -259,7 +261,7 @@ static char **getLaunchParams(char *executable, char *args[], char *num, char *s
    return new_args;
 }
 #elif defined(os_linux_test)
-static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name)
+static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *)
 {
    
    int count = 0;
@@ -273,12 +275,12 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
    return new_args;
 }
 #elif defined(os_bg_test)
-static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name)
+static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *mode)
 {   
    int count = 0;
    unsigned i=0, j=0;
    for (char **counter = args; *counter; counter++, count++);
-   char **new_args = (char **) malloc(sizeof(char *) * (count+12));
+   char **new_args = (char **) malloc(sizeof(char *) * (count+14));
    new_args[i++] = "mpirun";
    char *partition = getenv("DYNINST_BGP_PARTITION");
    if (partition) {
@@ -288,6 +290,10 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
    }
    new_args[i++] = "-np";
    new_args[i++] = const_cast<char *>(num);
+
+   new_args[i++] = "-mode";
+   new_args[i++] = mode;
+
    for (j=0; args[j]; j++)
       new_args[i++] = args[j];
    if (signal_file_name) {

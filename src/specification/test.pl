@@ -144,9 +144,9 @@ mutator_tuple(Name, Sources, Libraries, Platform, Compiler) :-
     mutator(Name, Sources),
     mutator_requires_libs(Name, Explicit_libs),
     all_mutators_require_libs(Implicit_libs),
-	tests_module(Name, Modules),
-   platform_module(Platform, Modules),
-	module_requires_libs(Modules, Module_libs),
+    tests_module(Name, Modules),
+    platform_module(Platform, Modules),
+    module_requires_libs(Modules, Module_libs),
     findall(L, (member(L, Explicit_libs); member(L, Implicit_libs); member(L, Module_libs)), All_libs),
     % BUG(?) This doesn't maintain order of libraries, if link order matters..
     sort(All_libs, Libraries),
@@ -257,7 +257,7 @@ test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format,
-              MutatorStart, MutateeStart, MutateeLaunchtime, PIC) :-
+              MutatorStart, MutateeStart, MutateeLaunchtime, PIC, PlatMode) :-
     mutatee(Mutatee, _, _),
     compiler_for_mutatee(Mutatee, Compiler),
     compiler_platform(Compiler, Platform),
@@ -281,6 +281,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     runmode_launch_params(RunMode, Platform, MutatorStart, MutateeStart, MutateeLaunchtime),
     threadmode(ThreadMode),
     processmode(ProcessMode),
+    platform_mode(Platform, PlatMode, RunMode, ThreadMode),
     member(StartState, ['stopped', 'running', 'selfstart', 'selfattach']),
     member(Groupable, ['true', 'false']),
     (
@@ -382,8 +383,8 @@ write_tuples(Filename, Platform) :-
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),
-    findall([M, C, O, R, S, G, T, A, H, P, F, Smr, Sme, Mrt, PIC],
-            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, Smr, Sme, Mrt, PIC),
+    findall([M, C, O, R, S, G, T, A, H, P, F, Smr, Sme, Mrt, PIC, PlatMd],
+            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, Smr, Sme, Mrt, PIC, PlatMd),
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),

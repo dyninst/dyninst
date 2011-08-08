@@ -348,13 +348,13 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
       args.push_back("-customattach");
    }
 
-   test_procstate_t ps = (test_procstate_t) params["processMode"]->getInt();
+   test_procstate_t ps = (test_procstate_t) params["mp"]->getInt();
    if (ps == SingleProcess) 
       args.push_back("-sp");
    else if (ps == MultiProcess)
       args.push_back("-mp");
 
-   test_threadstate_t ts = (test_threadstate_t) params["threadMode"]->getInt();
+   test_threadstate_t ts = (test_threadstate_t) params["mt"]->getInt();
    if (ts == SingleThreaded)
       args.push_back("-st");
    else if (ts == MultiThreaded) {
