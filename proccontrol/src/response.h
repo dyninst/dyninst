@@ -114,6 +114,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    unsigned int markAsMultiResponse(int num_resps);
    bool isMultiResponse();
    unsigned int multiResponseSize();
+   bool isMultiResponseComplete();
 
    void setDecoderEvent(ArchEvent *ae);
    ArchEvent *getDecoderEvent();

@@ -578,7 +578,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    sysv_process(p, e, a, envp, f),
    unix_process(p, e, a, envp, f),
    thread_db_process(p, e, a, envp, f),
-   indep_lwp_control_process(p, e, a, envp, f)
+   indep_lwp_control_process(p, e, a, envp, f),
+   mmap_alloc_process(p, e, a, envp, f)
 {
 }
 
@@ -587,7 +588,8 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    sysv_process(pid_, p),
    unix_process(pid_, p),
    thread_db_process(pid_, p),
-   indep_lwp_control_process(pid_, p)
+   indep_lwp_control_process(pid_, p),
+   mmap_alloc_process(pid_, p)
 {
 }
 
@@ -1243,6 +1245,11 @@ bool linux_process::preTerminate() {
 #endif
 
     return true;
+}
+
+OSType linux_process::getOS() const
+{
+   return Dyninst::Linux;
 }
 
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
@@ -2262,195 +2269,3 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
-const unsigned int x86_64_mmap_flags_position = 26;
-const unsigned int x86_64_mmap_size_position = 43;
-const unsigned int x86_64_mmap_addr_position = 49;
-const unsigned int x86_64_mmap_start_position = 4;
-const unsigned char x86_64_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
-0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
-0x49, 0xc7, 0xc0, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r8
-0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9
-0x49, 0xc7, 0xc2, 0x22, 0x00, 0x00, 0x00,       //mov    $0x22,%r10
-0x48, 0xc7, 0xc2, 0x07, 0x00, 0x00, 0x00,       //mov    $0x7,%rdx
-0x48, 0x31, 0xf6,                               //xor    %rsi,%rsi
-0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,       //mov    $<size>,%rsi
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
-0x00, 0x00, 0x00,                               //
-0x48, 0xc7, 0xc0, 0x09, 0x00, 0x00, 0x00,       //mov    $0x9,%rax
-0x0f, 0x05,                                     //syscall 
-0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
-0xcc,                                           //Trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
-
-const unsigned int x86_64_munmap_size_position = 15;
-const unsigned int x86_64_munmap_addr_position = 21;
-const unsigned int x86_64_munmap_start_position = 4;
-const unsigned char x86_64_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
-0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
-0x48, 0x31, 0xf6,                               //xor    %rsi,%rsi
-0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,       //mov    $<size>,%rsi
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
-0x00, 0x00, 0x00,                               //
-0x48, 0xc7, 0xc0, 0x0b, 0x00, 0x00, 0x00,       //mov    $0xb,%rax
-0x0f, 0x05,                                     //syscall 
-0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
-0xcc,                                           //Trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
-
-
-const unsigned int x86_mmap_flags_position = 20;
-const unsigned int x86_mmap_size_position = 10;
-const unsigned int x86_mmap_addr_position = 5;
-const unsigned int x86_mmap_start_position = 4;
-const unsigned char x86_call_mmap[] = {
-   0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
-   0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
-   0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
-   0xba, 0x07, 0x00, 0x00, 0x00,          //mov    $0x7,%edx  (perms)
-   0xbe, 0x22, 0x00, 0x00, 0x00,          //mov    $0x22,%esi (flags)
-   0xbf, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%edi  (fd)
-   0xbd, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebp  (offset)
-   0xb8, 0xc0, 0x00, 0x00, 0x00,          //mov    $0xc0,%eax (syscall)
-   0xcd, 0x80,                            //int    $0x80
-   0xcc,                                  //Trap
-   0x90                                   //nop
-};
-const unsigned int x86_call_mmap_size = sizeof(x86_64_call_mmap);
-
-const unsigned int x86_munmap_size_position = 10;
-const unsigned int x86_munmap_addr_position = 5;
-const unsigned int x86_munmap_start_position = 4;
-const unsigned char x86_call_munmap[] = {
-   0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
-   0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
-   0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
-   0xb8, 0xc0, 0x00, 0x00, 0x00,          //mov    $0x5b,%eax (syscall)
-   0xcd, 0x80,                            //int    $0x80
-   0xcc,                                  //Trap
-   0x90                                   //nop
-};
-const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
-
-const unsigned int ppc32_mmap_flags_hi_position = 34;
-const unsigned int ppc32_mmap_flags_lo_position = 38;
-const unsigned int ppc32_mmap_size_hi_position = 18;
-const unsigned int ppc32_mmap_size_lo_position = 22;
-const unsigned int ppc32_mmap_addr_hi_position = 10;
-const unsigned int ppc32_mmap_addr_lo_position = 14;
-const unsigned int ppc32_mmap_start_position = 4;
-const unsigned char ppc32_call_mmap[] = {
-     0x60, 0x00, 0x00, 0x00,            // nop
-     0x38, 0x00, 0x00, 0x5a,            // li      r0,<syscall>
-     0x3c, 0x60, 0x00, 0x00,            // lis     r3,<addr_hi>
-     0x60, 0x63, 0x00, 0x00,            // ori     r3,r3,<addr_lo>
-     0x3c, 0x80, 0x00, 0x00,            // lis     r4,<size_hi>
-     0x60, 0x84, 0x00, 0x00,            // ori     r4,r4,<size_lo>
-     0x3c, 0xa0, 0x00, 0x00,            // lis     r5,<perms_hi>
-     0x60, 0xa5, 0x00, 0x07,            // ori     r5,r5,<perms_lo>
-     0x3c, 0xc0, 0x00, 0x00,            // lis     r6,<flags_hi>
-     0x60, 0xc6, 0x00, 0x00,            // ori     r6,r6,<flags_lo>
-     0x3c, 0xe0, 0xff, 0xff,            // lis     r7,<fd_hi>
-     0x60, 0xe7, 0xff, 0xff,            // ori     r7,r7,<fd_lo>
-     0x3d, 0x00, 0x00, 0x00,            // lis     r8,<offset>
-     0x44, 0x00, 0x00, 0x02,            // sc
-     0x7d, 0x82, 0x10, 0x08,            // trap
-     0x60, 0x00, 0x00, 0x00             // nop
-};
-const unsigned int ppc32_call_mmap_size = sizeof(ppc32_call_mmap);
-
-const unsigned int ppc32_munmap_size_hi_position = 18;
-const unsigned int ppc32_munmap_size_lo_position = 22;
-const unsigned int ppc32_munmap_addr_hi_position = 10;
-const unsigned int ppc32_munmap_addr_lo_position = 14;
-const unsigned int ppc32_munmap_start_position = 4;
-const unsigned char ppc32_call_munmap[] = {
-   0x60, 0x60, 0x60, 0x60,              // nop
-   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x44, 0x00, 0x00, 0x02,              // sc
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
-};
-const unsigned int ppc32_call_munmap_size = sizeof(ppc32_call_munmap);
-
-const unsigned int ppc64_mmap_flags_highest_position = 70;
-const unsigned int ppc64_mmap_flags_higher_position = 74;
-const unsigned int ppc64_mmap_flags_hi_position = 82;
-const unsigned int ppc64_mmap_flags_lo_position = 86;
-const unsigned int ppc64_mmap_size_highest_position = 30;
-const unsigned int ppc64_mmap_size_higher_position = 34;
-const unsigned int ppc64_mmap_size_hi_position = 42;
-const unsigned int ppc64_mmap_size_lo_position = 46;
-const unsigned int ppc64_mmap_addr_highest_position = 10;
-const unsigned int ppc64_mmap_addr_higher_position = 14;
-const unsigned int ppc64_mmap_addr_hi_position = 22;
-const unsigned int ppc64_mmap_addr_lo_position = 26;
-const unsigned int ppc64_mmap_start_position = 4;
-const unsigned char ppc64_call_mmap[] = {
-   0x60, 0x00, 0x00, 0x00,              // nop
-   0x38, 0x00, 0x00, 0x5a,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
-   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
-   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
-   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
-   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x3c, 0xa0, 0x00, 0x00,              // lis     r5,<perms_highest>
-   0x60, 0xa5, 0x00, 0x00,              // ori     r5,r5,<perms_higher>
-   0x78, 0xa5, 0x07, 0xc6,              // rldicr  r5,r5,0x32,0x31,
-   0x64, 0xa5, 0x00, 0x00,              // oris    r5,r5,<perms_hi>
-   0x60, 0xa5, 0x00, 0x07,              // ori     r5,r5,<perms_lo>
-   0x3c, 0xc0, 0x00, 0x00,              // lis     r6,<flags_highest>
-   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_higher>
-   0x78, 0xc6, 0x07, 0xc6,              // rldicr  r6,r6,0x32,0x31,
-   0x64, 0xc6, 0x00, 0x00,              // oris    r6,r6,<flags_hi>
-   0x60, 0xc6, 0x00, 0x00,              // ori     r6,r6,<flags_lo>
-   0x3c, 0xe0, 0x00, 0x00,              // lis     r7,<fd=-1>
-   0x7c, 0xe7, 0x3b, 0xb8,              // nand    r7,r7,r7
-   0x3d, 0x00, 0x00, 0x00,              // lis     r8,<offset>
-   0x44, 0x00, 0x00, 0x02,              // sc      
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
-};
-const unsigned int ppc64_call_mmap_size = sizeof(ppc64_call_mmap);
-
-const unsigned int ppc64_munmap_size_highest_position = 30;
-const unsigned int ppc64_munmap_size_higher_position = 34;
-const unsigned int ppc64_munmap_size_hi_position = 42;
-const unsigned int ppc64_munmap_size_lo_position = 46;
-const unsigned int ppc64_munmap_addr_highest_position = 10;
-const unsigned int ppc64_munmap_addr_higher_position = 14;
-const unsigned int ppc64_munmap_addr_hi_position = 22;
-const unsigned int ppc64_munmap_addr_lo_position = 26;
-const unsigned int ppc64_munmap_start_position = 4;
-const unsigned char ppc64_call_munmap[] = {
-   0x60, 0x00, 0x00, 0x00,              // nop
-   0x38, 0x00, 0x00, 0x5b,              // li      r0,<syscall>
-   0x3c, 0x60, 0x00, 0x00,              // lis     r3,<addr_highest>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_higher>
-   0x78, 0x63, 0x07, 0xc6,              // rldicr  r3,r3,0x32,0x31,
-   0x64, 0x63, 0x00, 0x00,              // oris    r3,r3,<addr_hi>
-   0x60, 0x63, 0x00, 0x00,              // ori     r3,r3,<addr_lo>
-   0x3c, 0x80, 0x00, 0x00,              // lis     r4,<size_highest>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_higher>
-   0x78, 0x84, 0x07, 0xc6,              // rldicr  r4,r4,0x32,0x31,
-   0x64, 0x84, 0x00, 0x00,              // oris    r4,r4,<size_hi>
-   0x60, 0x84, 0x00, 0x00,              // ori     r4,r4,<size_lo>
-   0x44, 0x00, 0x00, 0x02,              // sc      
-   0x7d, 0x82, 0x10, 0x08,              // trap
-   0x60, 0x00, 0x00, 0x00               // nop
-};
-const unsigned int ppc64_call_munmap_size = sizeof(ppc64_call_munmap);

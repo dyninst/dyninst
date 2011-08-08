@@ -94,7 +94,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, mmap_alloc_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -111,6 +111,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_detach(result_response::ptr resp);
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool preTerminate();
+   virtual OSType getOS() const;
 
    //The following async functions are only used if a linux debugging mode,
    // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having

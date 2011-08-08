@@ -831,6 +831,7 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 }
 
 int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
+   set_states(false),
    bp(breakpoint_)
 {
 }

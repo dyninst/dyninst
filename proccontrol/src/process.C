@@ -777,9 +777,9 @@ Counter &int_process::getForceGeneratorBlockCount()
    return force_generator_block_count;
 }
 
-Counter &int_process::getTeardownProcs()
+Counter &int_process::getStartupTeardownProcs()
 {
-   return teardown_procs;
+   return startupteardown_procs;
 }
 
 int_process *int_process::in_waitHandleProc = NULL;
@@ -812,7 +812,7 @@ bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc
 #define checkStopPending        (hasStopPending        = (int) Counter::global(Counter::PendingStops))
 #define checkSyncRPCRunningThrd (hasSyncRPCRunningThrd = (int) Counter::global(Counter::SyncRPCRunningThreads))
 #define checkProcStopRPC        (hasProcStopRPC        = (int) Counter::global(Counter::ProcStopRPCs))
-#define checkTeardownProcs      (hasTeardownProc       = (int) Counter::global(Counter::TeardownProcesses))
+#define checkStartupTeardownProcs (hasStartupTeardownProc = (int) Counter::global(Counter::StartupTeardownProcesses))
 #define UNSET_CHECK        -8
 #define printCheck(VAL)    (((int) VAL) == UNSET_CHECK ? '?' : (VAL ? 'T' : 'F'))
 
@@ -842,7 +842,7 @@ bool int_process::waitAndHandleEvents(bool block)
       int hasHandlerThread = UNSET_CHECK, hasAsyncPending = UNSET_CHECK, hasRunningThread = UNSET_CHECK;
       int hasClearingBP = UNSET_CHECK, hasStopPending = UNSET_CHECK, hasSyncRPCRunningThrd = UNSET_CHECK;
       int hasProcStopRPC  = UNSET_CHECK, hasBlock = UNSET_CHECK, hasGotEvent = UNSET_CHECK;
-      int hasTeardownProc = UNSET_CHECK;
+      int hasStartupTeardownProc = UNSET_CHECK;
 
       bool should_block = (!checkHandlerThread && 
                            ((checkBlock && !checkGotEvent && checkRunningThread) ||
@@ -851,7 +851,7 @@ bool int_process::waitAndHandleEvents(bool block)
                             (checkClearingBP) ||
                             (checkProcStopRPC) ||
                             (checkAsyncPending) ||
-                            (checkTeardownProcs)
+                            (checkStartupTeardownProcs)
                            )
                           );
       //Entry for this print match the above tests in order and one-for-one.
@@ -864,7 +864,7 @@ bool int_process::waitAndHandleEvents(bool block)
                    printCheck(hasClearingBP), 
                    printCheck(hasProcStopRPC),
                    printCheck(hasAsyncPending),
-                   printCheck(hasTeardownProc));
+                   printCheck(hasStartupTeardownProc));
 
       //TODO: If/When we move to per-process locks, then we'll need a smarter block check
       //      We don't want the should_block changing between the above measurement
@@ -952,7 +952,7 @@ bool int_process::detach(int_process *proc, bool temporary)
    detach_ev->setThread(proc->threadPool()->initialThread()->thread());
    detach_ev->setSyncType(Event::async);
 
-   proc->getTeardownProcs().inc();
+   proc->getStartupTeardownProcs().inc();
    proc->threadPool()->initialThread()->getDetachState().desyncStateProc(int_thread::stopped);
 
    mbox()->enqueue(detach_ev);
@@ -979,7 +979,7 @@ bool int_process::terminate(bool &needs_sync)
 {
    pthrd_printf("Terminate requested on process %d\n", getPid());
    bool had_error = true;
-   getTeardownProcs().inc();
+   getStartupTeardownProcs().inc();
    ProcPool()->condvar()->lock();
    bool result = plat_terminate(needs_sync);
    if (!result) {
@@ -1024,7 +1024,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
    force_generator_block_count(Counter::ForceGeneratorBlock),
-   teardown_procs(Counter::TeardownProcesses),
+   startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this)
 {
    //Put any object initialization in 'initializeProcess', below.
@@ -1048,7 +1048,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    mem_cache(this),
    async_event_count(Counter::AsyncEvents),
    force_generator_block_count(Counter::ForceGeneratorBlock),
-   teardown_procs(Counter::TeardownProcesses),
+   startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this)
 {
    Process::ptr hlproc = Process::ptr(new Process());
@@ -1688,53 +1688,73 @@ unified_lwp_control_process::~unified_lwp_control_process()
 bool unified_lwp_control_process::plat_syncRunState()
 {
    bool want_ss_running = false;
-   bool want_reg_running = false;
-   bool want_stopped = false;
-   bool has_change = false;
+   bool result = true;
+
+   bool want_all_stopped = true;
+   bool want_all_running = true;
+   bool want_some_stopped = false;
+   bool want_some_running = false;
+
    bool is_all_stopped = true;
    bool is_all_running = true;
+
+   if (getState() == detached || getState() == exited || getState() == errorstate) {
+      pthrd_printf("Process %d is in state %s, doing nothing in plat_syncRunState\n", 
+                   getPid(), int_process::stateName(getState()));
+      return true;
+   }
 
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
       int_thread *thr = *i;
       int_thread::State handler_state = thr->getHandlerState().getState();
       int_thread::State target_state = thr->getTargetState();
+      if (target_state == int_thread::ditto) 
+         target_state = thr->getHandlerState().getState();
+      
+      if (RUNNING_STATE(target_state)) {
+         want_some_running = true;
+         want_all_stopped = false;
+      }
+      else if (target_state == int_thread::stopped) {
+         want_some_stopped = true;
+         want_all_running = false;
+      }
+      else {
+         want_all_stopped = false;
+         want_all_running = false;
+      }
 
-      if (target_state == handler_state)
-         continue;
-      has_change = true;
-
-      if (RUNNING_STATE(target_state))
+      if (RUNNING_STATE(handler_state)) {
          is_all_stopped = false;
-      else if (target_state == int_thread::stopped)
+      }
+      else if (handler_state == int_thread::stopped) {
          is_all_running = false;
+      }
       else {
          is_all_stopped = false;
          is_all_running = false;
       }
 
-      //The process threads are in a mixed running/stopped state
-      if (handler_state == int_thread::running && target_state == int_thread::stopped)
-         want_stopped = true;
-      else if (handler_state == int_thread::stopped && target_state == int_thread::running) {
-         if (thr->singleStep()) 
-            want_ss_running = true;
-         else 
-            want_reg_running = true;
+      if (!RUNNING_STATE(handler_state) && RUNNING_STATE(target_state) && thr->singleStep()) {
+         want_ss_running = true;
       }
    }
 
-   if (!has_change) {
-      pthrd_printf("plat_syncRunState found no changes\n");
-      return true;
-   }
+   pthrd_printf("In plat_syncRunState: want_all_stopped = %s, want_all_running = %s, want_some_stopped = %s, want_some_running = %s, is_all_stopped = %s, is_all_running = %s, want_ss_running = %s\n",
+                want_all_stopped ? "t" : "f",
+                want_all_running ? "t" : "f",
+                want_some_stopped ? "t" : "f",
+                want_some_running ? "t" : "f",
+                is_all_stopped ? "t" : "f",
+                is_all_running ? "t" : "f",
+                want_ss_running ? "t" : "f");
 
-   bool result = true;
    if (want_ss_running) {
-      pthrd_printf("plat_syncRunState found single-stepping threads in %d, continuing those threads\n", getPid());
+      pthrd_printf("Process %d is single-stepping.  Continuing select threads\n", getPid());
       for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
          int_thread *thr = *i;
          if (thr->singleStep() && thr->getHandlerState().getState() == int_thread::stopped &&
-             thr->getTargetState() == int_thread::running)
+             RUNNING_STATE(thr->getTargetState()))
          {
             bool tresult = thr->intCont();
             if (!tresult) {
@@ -1744,28 +1764,38 @@ bool unified_lwp_control_process::plat_syncRunState()
          }
       }
    }
-   else if (is_all_running) {
-      pthrd_printf("plat_syncRunState found process running for %d, running all threads\n", getPid());
+   else if (want_all_running && is_all_running) {
+      pthrd_printf("Process %d is running, needs to run.  Doing nothing\n", getPid());
+   }
+   else if (want_all_running && is_all_stopped) {
+      pthrd_printf("Process %d is stopped, needs to run.  Continuing process\n", getPid());
       result = threadPool()->initialThread()->intCont();
    }
-   else if (is_all_stopped) {
-      pthrd_printf("plat_syncRunState found process stop for %d, stopping all threads\n", getPid());
+   else if (want_all_stopped && is_all_running) {
+      pthrd_printf("Process %d is running, needs to stop.  Stopping process\n", getPid());
       result = threadPool()->initialThread()->intStop();
    }
-   else if (want_reg_running) {
-      pthrd_printf("plat_syncRunState found some threads running in %d, continuing all threads\n", getPid());
+   else if (want_all_stopped && is_all_stopped) {
+      pthrd_printf("Process %d is stopped, needs to stop.  Doing nothing\n", getPid());
+   }
+   else if (want_some_stopped && !is_all_stopped) {
+      pthrd_printf("Process %d is partially stopped, needs to stop.  Stopping process\n", getPid());
+      result = threadPool()->initialThread()->intStop();
+   }
+   else if (want_some_running && !is_all_running) {
+      pthrd_printf("Process %d is partially running, needs to run.  Continuing process\n", getPid());
       result = threadPool()->initialThread()->intCont();
    }
-   else if (want_stopped) {
-      pthrd_printf("plat_syncRunState found some threads stopped in %d with none running, " 
-                   "stopping all threads\n", getPid());
-      result = threadPool()->initialThread()->intStop();
+   else {
+      pthrd_printf("Process %d is in startup or teardown state.  Doing nothing\n", getPid());
    }
-   
+
    if (!result) {
-      pthrd_printf("plat_syncRunState encountered error while stopping/continuing process %d\n", getPid());
+      pthrd_printf("plat_syncRunState operation failed.  Returning false\n");
       return false;
    }
+
+
 
    return true;
 }
@@ -1878,7 +1908,8 @@ bool int_thread::isStopped(int state_id)
 {
    if (getHandlerState().getState() != stopped)
       return false;
-   if (getStateByID(state_id).getState() != stopped)
+   if (getStateByID(state_id).getState() != stopped &&
+       getStateByID(state_id).getState() != ditto)
       return false;
    for (int i=0; i<state_id; i++) {
       if (getStateByID(i).getState() != dontcare)
@@ -4728,6 +4759,18 @@ Dyninst::Architecture Process::getArchitecture() const
    return llproc_->getTargetArch();
 }
 
+Dyninst::OSType Process::getOS() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getOS on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return Dyninst::OSNone;
+   }
+
+   return llproc_->getOS();
+}
+
 bool Process::supportsLWPEvents() const
 {
    MTLock lock_this_func;
@@ -5540,7 +5583,7 @@ Thread::ptr ThreadPool::iterator::operator*() const
 {
    MTLock lock_this_func;
    assert(curp);
-   assert(curi >= 0 && curi < (signed) curp->hl_threads.size());
+   assert(curi >= 0 && curi < (signed) curp->hl_threads.size()); //Likely dereferenced bad thread iterator
    return curh;
 }
 

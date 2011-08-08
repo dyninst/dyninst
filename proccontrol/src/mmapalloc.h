@@ -29,32 +29,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(UNIX_H_)
-#define UNIX_H_
+#if !defined(MMAPALLOC_H_)
+#define MMAPALLOC_H_
 
 #include "int_process.h"
 
 /**
- * For our purposes, a UNIX process is one that supports fork/exec.
- * Note that means that the BlueGene family is not considered a 
- * UNIX process.
+ * A process that can use mmap to allocate memory.
  **/
-class unix_process : virtual public int_process
+class mmap_alloc_process : virtual public int_process
 {
   public:
-   unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+   mmap_alloc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
            std::vector<std::string> envp, std::map<int,int> f);
-   unix_process(Dyninst::PID pid_, int_process *p);
-   virtual ~unix_process();
+   mmap_alloc_process(Dyninst::PID pid_, int_process *p);
+   virtual ~mmap_alloc_process();
 
-   virtual void plat_execv();
-   virtual bool post_forked();
-   virtual unsigned getTargetPageSize();
-
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
-
-   virtual bool plat_supportFork();
-   virtual bool plat_supportExec();
+   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
+   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
+                                             void* &buffer, unsigned long &buffer_size, 
+                                             unsigned long &start_offset);
+   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, 
+                                               unsigned long size, void* &buffer, 
+                                               unsigned long &buffer_size, 
+                                               unsigned long &start_offset);
 };
 
 #endif

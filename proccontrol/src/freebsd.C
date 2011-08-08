@@ -871,6 +871,11 @@ bool freebsd_process::plat_getOSRunningStates(map<Dyninst::LWP, bool> &runningSt
     return true;
 }
 
+OSType freebsd_process::getOS() const
+{
+   return Dyninst::FreeBSD;
+}
+
 bool freebsd_process::plat_attach(bool allStopped) {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
@@ -1816,125 +1821,5 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 // iRPC snippets
-const unsigned int x86_64_mmap_flags_position = 21;
-const unsigned int x86_64_mmap_size_position = 34;
-const unsigned int x86_64_mmap_addr_position = 44;
-const unsigned int x86_64_mmap_start_position = 4;
-const unsigned char x86_64_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9 (offset)
-0x49, 0xc7, 0xc0, 0xff, 0xff, 0xff, 0xff,       //mov    $0xffffffffffffffff,%r8 (fd)
-0x49, 0xc7, 0xc2, 0x12, 0x10, 0x00, 0x00,       //mov    $0x1012,%r10 (flags)
-0x48, 0xc7, 0xc2, 0x07, 0x00, 0x00, 0x00,       //mov    $0x7,%rdx (perms)
-0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi (size)
-0x00, 0x00, 0x00,                               //
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi (addr)
-0x00, 0x00, 0x00,                               //
-0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
-0x0f, 0x05,                                     //syscall
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-const unsigned int x86_64_munmap_size_position = 6;
-const unsigned int x86_64_munmap_addr_position = 16;
-const unsigned int x86_64_munmap_start_position = 4;
-const unsigned char x86_64_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi
-0x00, 0x00, 0x00,                               //
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi
-0x00, 0x00, 0x00,                               //
-0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax
-0x0f, 0x05,                                     //syscall
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
-
-const unsigned int x86_mmap_flags_position = 9;
-const unsigned int x86_mmap_size_position = 16;
-const unsigned int x86_mmap_addr_position = 21;
-const unsigned int x86_mmap_start_position = 4;
-const unsigned char x86_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x6a, 0x00,                                     //push   $0x0 (offset)
-0x6a, 0xff,                                     //push   $0xffffffff (fd)
-0x68, 0x12, 0x10, 0x00, 0x00,                   //push   $0x1012 (flags)
-0x6a, 0x07,                                     //push   $0x7 (perms)
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
-0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
-0x50,                                           //push   %eax (required by calling convention)
-0xcd, 0x80,                                     //int    $0x80
-0x8d, 0x64, 0x24, 0x1c,                         //lea    0x1c(%esp),%esp
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_call_mmap_size = sizeof(x86_call_mmap);
-
-const unsigned int x86_munmap_size_position = 5;
-const unsigned int x86_munmap_addr_position = 10;
-const unsigned int x86_munmap_start_position = 4;
-const unsigned char x86_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
-0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)
-0x50,                                           //push   %eax (required by calling convention)
-0xcd, 0x80,                                     //int    $0x80
-0x8d, 0x64, 0x24, 0x0c,                         //lea    0xc(%esp),%esp 
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
-
-// These are unused on FreeBSD right now but still need to be defined
-
-const unsigned int ppc32_mmap_flags_hi_position = 0;
-const unsigned int ppc32_mmap_flags_lo_position = 0;
-const unsigned int ppc32_mmap_size_hi_position = 0;
-const unsigned int ppc32_mmap_size_lo_position = 0;
-const unsigned int ppc32_mmap_addr_hi_position = 0;
-const unsigned int ppc32_mmap_addr_lo_position = 0;
-const unsigned int ppc32_mmap_start_position = 0;
-const unsigned char ppc32_call_mmap[] = {};
-const unsigned int ppc32_call_mmap_size = 0;
-
-const unsigned int ppc32_munmap_size_hi_position = 0;
-const unsigned int ppc32_munmap_size_lo_position = 0;
-const unsigned int ppc32_munmap_addr_hi_position = 0;
-const unsigned int ppc32_munmap_addr_lo_position = 0;
-const unsigned int ppc32_munmap_start_position = 0;
-const unsigned char ppc32_call_munmap[] = {};
-const unsigned int ppc32_call_munmap_size = 0;
-
-const unsigned int ppc64_mmap_flags_highest_position = 0;
-const unsigned int ppc64_mmap_flags_higher_position = 0;
-const unsigned int ppc64_mmap_flags_hi_position = 0;
-const unsigned int ppc64_mmap_flags_lo_position = 0;
-const unsigned int ppc64_mmap_size_highest_position = 0;
-const unsigned int ppc64_mmap_size_higher_position = 0;
-const unsigned int ppc64_mmap_size_hi_position = 0;
-const unsigned int ppc64_mmap_size_lo_position = 0;
-const unsigned int ppc64_mmap_addr_highest_position = 0;
-const unsigned int ppc64_mmap_addr_higher_position = 0;
-const unsigned int ppc64_mmap_addr_hi_position = 0;
-const unsigned int ppc64_mmap_addr_lo_position = 0;
-const unsigned int ppc64_mmap_start_position = 0;
-const unsigned char ppc64_call_mmap[] = {};
-const unsigned int ppc64_call_mmap_size = 0;
-
-const unsigned int ppc64_munmap_size_highest_position = 0;
-const unsigned int ppc64_munmap_size_higher_position = 0;
-const unsigned int ppc64_munmap_size_hi_position = 0;
-const unsigned int ppc64_munmap_size_lo_position = 0;
-const unsigned int ppc64_munmap_addr_highest_position = 0;
-const unsigned int ppc64_munmap_addr_higher_position = 0;
-const unsigned int ppc64_munmap_addr_hi_position = 0;
-const unsigned int ppc64_munmap_addr_lo_position = 0;
-const unsigned int ppc64_munmap_start_position = 0;
-const unsigned char ppc64_call_munmap[] = {};
-const unsigned int ppc64_call_munmap_size = 0;
 

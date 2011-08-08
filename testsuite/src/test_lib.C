@@ -586,8 +586,7 @@ int setenv(const char *envname, const char *envval, int)
 int getNumProcs(const ParameterDict &dict)
 {
    ParameterDict::const_iterator i = dict.find("mp");
-   assert(i != dict.end());
-   if (i->second->getInt() <= 1) {
+   if (i == dict.end() || i->second->getInt() <= 1) {
       return 1;
    }
    char *e = getenv("DYNINST_MPTEST_WIDTH");

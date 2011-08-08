@@ -303,7 +303,11 @@ class Process
    bool allThreadsRunning() const;
    bool allThreadsRunningWhenAttached() const;
 
+   /**
+    * Queries for machine info
+    **/
    Dyninst::Architecture getArchitecture() const;
+   Dyninst::OSType getOS() const;
 
    /**
     * Query what kind of events this process supports

@@ -40,6 +40,7 @@
 #include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_thread_db.h"
+#include "proccontrol/src/mmapalloc.h"
 
 #define SINGLE_STEP_SIG 32064
 #define DEBUG_REG_SIG 32066
@@ -50,7 +51,7 @@
 
 class ArchEventBlueGene;
 
-class bg_process : public sysv_process, public thread_db_process, public ppc_process, public unified_lwp_control_process
+class bg_process : public sysv_process, public thread_db_process, public ppc_process, public unified_lwp_control_process, public mmap_alloc_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;
@@ -74,6 +75,12 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    std::set<int> initial_lwps;
    std::queue<ArchEventBlueGene *> held_arch_events;
    std::map<uint32_t, uint32_t> auxv_info;
+
+   std::queue<DebuggerInterface::BG_Debugger_Msg> pending_msgs;
+
+   bool setPendingMsg(const DebuggerInterface::BG_Debugger_Msg &msg);
+   bool has_pending_msg;
+   Mutex pending_msg_lock;
 
   public:
    static int protocol_version;
@@ -111,13 +118,9 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    virtual bool plat_individualRegAccess();   
 
-   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer,
-                                               unsigned long &buffer_size, unsigned long &start_offset);
-   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
-                                             void* &buffer, unsigned long &buffer_size, 
-                                             unsigned long &start_offset);
-   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
    virtual bool plat_getInterpreterBase(Address &base);
+
+   virtual OSType getOS() const;
 
    int_process::ThreadControlMode plat_getThreadControlMode() const;
    virtual SymbolReaderFactory *plat_defaultSymReader();
@@ -127,6 +130,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    bool hasHeldArchEvent();
    void readyHeldArchEvent();
 
+   bool BGSend(const DebuggerInterface::BG_Debugger_Msg &msg);
    static void getVersionInfo(int &protocol, int &phys, int &virt);
 };
 
@@ -149,12 +153,14 @@ class bg_thread : public thread_db_thread
                                       result_response::ptr result);   
    bool plat_getAllRegistersAsync(allreg_response::ptr result);
    bool plat_setAllRegistersAsync(int_registerPool &pool, result_response::ptr result);
+
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
    virtual bool attach();   
 
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
   private:
+   bool setAllRegistersHelper(Dyninst::MachRegister reg, int &cur_id);
    bool decoderPendingStop_;
 };
 

@@ -109,6 +109,7 @@ public:
     virtual bool plat_individualRegAccess();
     virtual bool plat_contProcess();
     virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
+    virtual OSType getOS() const;
 
     virtual bool post_attach(bool wasDetached);
     virtual bool post_create();

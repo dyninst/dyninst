@@ -703,7 +703,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
-   proc->getTeardownProcs().dec();
+   proc->getStartupTeardownProcs().dec();
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
@@ -1256,7 +1256,8 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
       pthrd_printf("HandleBreakpointClear on thread without breakpoint.  BP must have been deleted\n");
       return Handler::ret_success;
    }
-   assert(proc->threadPool()->allStopped(int_thread::BreakpointStateID));
+   assert(proc->threadPool()->allStopped(int_thread::BreakpointStateID) ||
+          proc->threadPool()->allStopped(int_thread::AsyncStateID));
 
    /**
     * Suspend breakpoint
@@ -1340,10 +1341,13 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    installed_breakpoint *bp = int_bpc->bp;
    bool result;   
    
-   pthrd_printf("Restoring breakpoint at %lx for %d/%d\n", bp->getAddr(), proc->getPid(), thrd->getLWP());
-   thrd->markClearingBreakpoint(NULL);
-   thrd->setSingleStepMode(false);
-   thrd->getBreakpointResumeState().setState(int_thread::stopped);
+   if (!int_bpc->set_states) {
+      pthrd_printf("Restoring breakpoint at %lx for %d/%d\n", bp->getAddr(), proc->getPid(), thrd->getLWP());
+      thrd->markClearingBreakpoint(NULL);
+      thrd->setSingleStepMode(false);
+      thrd->getBreakpointResumeState().setState(int_thread::stopped);
+      int_bpc->set_states = true;
+   }
    
    //Time to restore this bp (maybe, the BP will actually resume when it's last thread is done restoring)
    pthrd_printf("Restoring breakpoint to process\n");
@@ -1641,7 +1645,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    err = false;
   done:
    int_detach_ev->done = true;
-   proc->getTeardownProcs().dec();
+   proc->getStartupTeardownProcs().dec();
    return err ? ret_error : ret_success;
 }
  

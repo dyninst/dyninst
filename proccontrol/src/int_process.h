@@ -100,7 +100,7 @@ class Counter {
       AsyncEvents = 7,
       ForceGeneratorBlock = 8,
       GeneratorNonExitedThreads = 9,
-      TeardownProcesses = 10
+      StartupTeardownProcesses = 10
    };
 
    Counter(CounterType ct_);
@@ -180,8 +180,9 @@ class int_process
    void setContSignal(int sig);
    int getContSignal() const;
    virtual bool plat_contProcess();
-
    virtual bool forked();
+
+   virtual OSType getOS() const = 0;
   protected:
    virtual bool plat_forked() = 0;
    virtual bool post_forked();
@@ -239,7 +240,7 @@ class int_process
 
    Counter &asyncEventCount();
    Counter &getForceGeneratorBlockCount();
-   Counter &getTeardownProcs();
+   Counter &getStartupTeardownProcs();
 
    static const char *stateName(State s);
 
@@ -361,7 +362,7 @@ class int_process
    memCache mem_cache;
    Counter async_event_count;
    Counter force_generator_block_count;
-   Counter teardown_procs;
+   Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
 };
 

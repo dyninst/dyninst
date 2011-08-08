@@ -70,6 +70,7 @@ class int_eventBreakpointRestore
    int_eventBreakpointRestore(installed_breakpoint *breakpoint_);
    ~int_eventBreakpointRestore();
 
+   bool set_states;
    result_response::ptr memwrite_bp_resume;
    result_response::ptr memwrite_bp_remove;
    installed_breakpoint *bp;

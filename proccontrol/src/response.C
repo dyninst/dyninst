@@ -96,6 +96,9 @@ bool response::isPosted() const
 
 void response::markReady()
 {
+   if (multi_resp_size && multi_resp_size < multi_resp_recvd)
+      return;
+
    assert(state != ready);
    state = ready;
 }
@@ -167,6 +170,11 @@ bool response::isMultiResponse()
 unsigned int response::multiResponseSize()
 {
    return multi_resp_size;
+}
+
+bool response::isMultiResponseComplete()
+{
+   return (multi_resp_size == multi_resp_recvd);
 }
 
 void response::setDecoderEvent(ArchEvent *ae)
@@ -311,7 +319,7 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
       unsigned int id = r->getID();
       unsigned int end = r->getID() + r->multiResponseSize();
       for (unsigned int i = id; i < end; i++) {
-         pending[id + i] = r;
+         pending[i] = r;
       }
    }
 }
@@ -363,14 +371,14 @@ void result_response::postResponse(bool b_)
       b = b_;
       return;
    }
-   //If a multi-response, then set b upon recieving the first response
-   // and AND b if we're on subsequent responses.  This this response
-   // object will be true iff all RESULT_ACKs returned true
+
    multi_resp_recvd++;
-   if (!multi_resp_recvd == 1) {
+   if (multi_resp_recvd == 1) {
       b = b_;
       return;
    }
+   // The 'b = b & b_' logic is so that a multi-response result will 
+   // be true iff all RESULT_ACKs returned success
    b = b & b_;
 }
 
