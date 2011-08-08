@@ -318,10 +318,12 @@ static Process::cb_ret_t lwp_destroy(Event::const_ptr ev)
 
 static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
 {
+#if !defined(os_bg_test)
    if (tinfo.pid != proc->getPid()) {
-      logerror("Error.  Mismatched pids in checkThreadMsg\n");
+      logerror("Error.  Mismatched pids in checkThreadMsg\n", tinfo.pid, proc->getPid());
       has_error = true;
    }
+#endif
 
    ThreadPool::iterator i = proc->threads().find(tinfo.lwp);
    if (i == proc->threads().end()) {
@@ -336,12 +338,15 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
          has_error = true;
       }
       Dyninst::Address a_stack_addr = (Dyninst::Address) tinfo.a_stack_addr;
-      if (has_stack_info && (thr->getStackBase() < a_stack_addr || thr->getStackBase() + thr->getStackSize() > a_stack_addr)) {
-         logerror("Error.  Mismatched stack addresses\n");
+      if (has_stack_info && (thr->getStackBase() < a_stack_addr || thr->getStackBase() + thr->getStackSize() > a_stack_addr)) 
+      {
+         logerror("Error.  Mismatched stack addresses, base = 0x%lx, size = %lx, loc = 0x%lx\n", 
+                  (unsigned long) thr->getStackBase(), (unsigned long) thr->getStackSize(), 
+                  (unsigned long) a_stack_addr);
          has_error = true;
       }
       if (has_initial_func_info && thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
-         logerror("Mismatched initial function (%lx != %lx\n", (unsigned long)thr->getStartFunction(),
+         logerror("Mismatched initial function (%lx != %lx)\n", (unsigned long)thr->getStartFunction(),
                  (unsigned long)tinfo.initial_func);
          has_error = true;
       }
@@ -382,6 +387,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
 #elif defined(os_bg_test)
    has_lwp = false;
    has_thr = true;
+   has_stack_info = false;
 #else
 #error Unknown platform
 #endif
@@ -451,8 +457,7 @@ test_results_t pc_threadMutator::executeTest()
          logerror("Failed to continue process\n");
          has_error = true;
       }
-   }
-   
+   }   
 
    int num_thrds = comp->num_processes * comp->num_threads;
    int num_noninit_thrds = comp->num_processes * (comp->num_threads - 1);

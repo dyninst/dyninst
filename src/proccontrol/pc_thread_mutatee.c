@@ -42,7 +42,7 @@ __thread int thread_test_tls = 0;
 testlock_t sendlock;
 testlock_t synclock;
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_bg_test)
 #include <sys/types.h>
 #include <sys/syscall.h>
 
@@ -61,12 +61,6 @@ int getlwp()
     return getpid();
   }
   return (int) result;
-}
-#elif defined(os_bg_test)
-int getlwp()
-{
-   fprintf(stderr, "TODO: Implement here\n");
-   return 0;
 }
 #endif
 

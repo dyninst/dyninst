@@ -33,7 +33,7 @@
 
 #define SOCKTYPE_UNIX
 extern FILE *debug_log;
-#define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
+#define debug_printf(str, ...) do { if (debug_log) { fprintf(debug_log, str, ## __VA_ARGS__); fflush(debug_log); } } while (0)
 //#define debug_printf(str, args...)
 
 #include <sys/time.h>
@@ -171,7 +171,8 @@ Connection::Connection() :
 }
 
 Connection::Connection(std::string hostname_, int port_, int fd_exists) :
-   fd(-1)
+   fd(-1),
+   has_error(false)
 {
    hostname = hostname_;
    port = port_;
@@ -224,7 +225,18 @@ bool Connection::send_message(MessageBuffer &buffer)
      debug_printf("[%s:%u] - Error sending raw data on socket\n", __FILE__, __LINE__);
       return false;
    }
-  debug_printf("[%d] - Sent buffer %s\n", getpid(), buffer.get_buffer());
+   if (debug_log) {
+      debug_printf("[%d] - Sent buffer ", getpid());
+      char *c = buffer.get_buffer();
+      for (unsigned i=0; i<buffer.get_buffer_size(); i++) {
+         if (*c == '\0')
+            debug_printf(" ");
+         else
+            debug_printf("%c", *c);
+         c++;
+      }
+      debug_printf("\n");
+   }
    return true;
 }
 
@@ -253,7 +265,7 @@ bool Connection::recv_message(char* &buffer)
       return false;
    }
    msg_size = ntohl(enc_msg_size);
-   debug_printf("[%d] - Recv size of %lu, (encoded 0x%lx, result = %d)\n", 
+   debug_printf("[%d] - Recv size of %lu, (encoded 0x%lx, result = %d)\n",
                 getpid(), (unsigned long) msg_size, enc_msg_size, (int) result);
 
    assert(msg_size < (1024*1024)); //No message over 1MB--should be plenty
@@ -262,7 +274,6 @@ bool Connection::recv_message(char* &buffer)
       //Other side hung up.
       return false;
    }
-
    if (msg_size > cur_buffer_size) {
       if (cur_buffer)
          free(cur_buffer);
@@ -281,7 +292,18 @@ bool Connection::recv_message(char* &buffer)
    }
 
    buffer = cur_buffer;
-   debug_printf("[%d] - Recv of buffer %s\n", getpid(), buffer);
+   if (debug_log) {
+      debug_printf("[%d] - Recv of buffer ", getpid());
+      char *c = cur_buffer;
+      for (unsigned i=0; i<msg_size; i++) {
+         if (*c == '\0')
+            debug_printf(" ");
+         else
+            debug_printf("%c", *c);
+         c++;
+      }
+      debug_printf("\n");
+   }
 
    return true;
 }

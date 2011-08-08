@@ -35,6 +35,7 @@
 #include <cassert>
 #include "ParameterDict.h"
 #include "test_info_new.h"
+#include "test_lib.h"
 
 static pid_t run_local(char **args)
 {
@@ -194,7 +195,12 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 
       unlink(signal_file); //Ignore errors
    }
-   char **new_test_args = getLaunchParams(test_args[0], test_args+1, "1", signal_file);
+
+   int num_procs = getNumProcs(params);
+   char num_procs_s[32];
+   snprintf(num_procs_s, 32, "%d", num_procs);
+
+   char **new_test_args = getLaunchParams(test_args[0], test_args+1, num_procs_s, signal_file);
    rc = LMON_fe_createSession(&session);
    if (rc != LMON_OK) {
       fprintf(stderr, "Failed to create session\n");

@@ -376,7 +376,7 @@ void warningVLog(output_stream_t stream, const char *fmt, va_list args) {
    fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
 }
 
-void warningLog(output_stream_t stream, const char *fmt, ...) {
+void warningLog(output_stream_t stream, const char * fmt, ...) {
    fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
 }
 
@@ -563,6 +563,12 @@ void printResultHumanLog(const char *testname, test_results_t result)
       case FAILED:
          output->log(HUMAN, "FAILED\n");
          break;
+      case CRASHED:
+         output->log(HUMAN, "CRASHED");
+         break;
+      case UNKNOWN:
+         output->log(HUMAN, "UNKNOWN");
+         break;
    }
 
    if (stdout == human) {
@@ -587,7 +593,7 @@ void stop_process_()
  * somehow
  */
 void test_passes(const char *testname) {
-   unsigned int i;
+   int i;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
@@ -599,7 +605,7 @@ void test_passes(const char *testname) {
 
 /* This function sets a flag noting that testname ran unsuccessfully */
 void test_fails(const char *testname) {
-   unsigned int i;
+   int i;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
@@ -613,7 +619,7 @@ void test_fails(const char *testname) {
  * otherwise
  */
 static int test_passed(const char *testname) {
-   unsigned int i;
+   int i;
    int retval;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
@@ -676,6 +682,8 @@ void log_testresult(int passed)
 #define _POSIX_C_SOURCE 199309 
 #include <time.h>
 #include <errno.h>
+#elif defined(os_bg_test)
+#include <sys/select.h>
 #endif
 
 int precisionSleep(int milliseconds) {
@@ -697,7 +705,17 @@ int precisionSleep(int milliseconds) {
 
     if( result == -1 ) return 0;
     return 1;
-#elif defined(os_windows)
+#elif defined(os_bg_test)
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = milliseconds*1000;
+    
+    int result;
+    do {
+       result = select(1, NULL, NULL, NULL, &timeout);
+    } while (result == -1 && errno == EINTR);
+
+#elif defined(os_windows_test)
     Sleep(milliseconds);
     return 1;
 #else
@@ -709,7 +727,11 @@ int precisionSleep(int milliseconds) {
 
 static uint64_t eventCounter = 0;
 
-#if defined(os_linux_test) || defined(os_freebsd_test)
+#if defined(os_linux_test) || defined(os_freebsd_test) || defined(os_bg_test)
+#define TIMER_EVENT_SOURCE
+#endif
+
+#if defined(TIMER_EVENT_SOURCE)
 #include <signal.h>
 #include <sys/time.h>
 
@@ -739,7 +761,7 @@ struct event_source_struct {
 
 event_source *startEventSource() {
     event_source *retVal = NULL;
-#if defined(os_linux_test) || defined(os_freebsd_test)
+#if defined(TIMER_EVENT_SOURCE)
     retVal = (event_source *)malloc(sizeof(struct event_source_struct));
 
     /* First, register the signal handler */
@@ -769,7 +791,7 @@ uint64_t getEventCounter() {
 
 int stopEventSource(event_source *eventSource) {
     int retVal = 0;
-#if defined(os_linux_test) || defined(os_freebsd_test)
+#if defined(TIMER_EVENT_SOURCE)
     /* First, turn off the timer */
     eventSource->timer.it_value.tv_sec = 0;
     eventSource->timer.it_value.tv_usec = 0;

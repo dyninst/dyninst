@@ -376,10 +376,12 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    assert(driver_args.size() <= 12); //BlueGene restriction
 
    char **c_driver_args = getCParams(driver_exec, driver_args);
-
    bool attach_mode = (group->createmode == USEATTACH);
+
+   fprintf(debug_log, "[%s:%u] - Calling LMONInvoke\n", __FILE__, __LINE__);
    lmon_session = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode, launcher_pid);
 
+   fprintf(debug_log, "[%s:%u] - Calling server accept\n", __FILE__, __LINE__);
    result = con->server_accept();
    if (!result) {
       fprintf(stderr, "Failed to accept connection from client\n");
@@ -823,8 +825,15 @@ extern int be_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
    if (isRemoteDriver(argc, argv)) {
+      debug_log = fopen("/g/g0/legendre/output_be", "w+");
       return be_main(argc, argv);
    }
+   debug_log = fopen("/g/g0/legendre/output_driver", "w+");
+   struct rlimit infin;
+   infin.rlim_cur = RLIM_INFINITY;
+   infin.rlim_max = RLIM_INFINITY;
+   setrlimit(RLIMIT_CORE, &infin);
+
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));

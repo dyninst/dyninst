@@ -32,10 +32,9 @@ int main(int argc, char *argv[])
    struct rlimit infin;
    int result;
 
-
-   static volatile int loop = 0;
-//   while (loop == 0);
-
+   debug_log = fopen("/g/g0/legendre/output_wrapper", "w+");
+// static volatile int loop = 0;
+// while (loop == 0);
 
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
@@ -126,29 +125,36 @@ static void parse_execargs(char *buffer) {
    assert(arg_count);
    while (*(cur++) != ':');
 
-   args = (char **) malloc(sizeof(char *) * (arg_count+gargc+3));
-   int i, j;
+   args = (char **) malloc(sizeof(char *) * (arg_count+gargc+6));
+   int i, j=0;
+   //args[j++] = "/g/g0/legendre/tools/dyninst/githead/ppc32_bgp_ion/lib/ld.so.1";
+   //args[j++] = "/g/g0/legendre/tools/valgrind/bin/valgrind";
+   //args[j++] = "--tool=memcheck";
    for (i=0; i<arg_count; i++) {
-      args[i] = strdup(cur);
+      args[j++] = strdup(cur);
       while (*(cur++) != '\0');
    }
    
-   args[i++] = const_cast<char *>("-socket_fd");
+   args[j++] = const_cast<char *>("-socket_fd");
    char *socket_fd = (char *) malloc(16);
    snprintf(socket_fd, 16, "%d", connection->getFD());
-   args[i++] = socket_fd;
+   args[j++] = socket_fd;
 
-   for (j=1; j<gargc; j++) {
-      args[i++] = gargv[j];
+   for (i=1; i<gargc; i++) {
+      args[j++] = gargv[i];
    }
 
-   args[i++] = NULL;
+   args[j++] = NULL;
 }
 
 static void parse_go()
 {
+   int error;
+
    assert(args);
    execv(args[0], args);
+   error = errno;
+   fprintf(stderr, "Failed to execv %s: %s\n", args[0], strerror(error));
    assert(0);
 }
 

@@ -46,11 +46,10 @@ using namespace std;
 #include <sys/resource.h>
 #define log_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
 
-
 #if defined(cap_launchmon)
 #include "lmon_api/lmon_be.h"
 
-void init_lmon(int *argc, char ***argv)
+static void init_lmon(int *argc, char ***argv)
 {
    lmon_rc_e rc;
    log_printf("[%s:%u] - Entering LMON_be_init\n", __FILE__, __LINE__);
@@ -115,7 +114,7 @@ void init_lmon(int *argc, char ***argv)
 }
 
 #else
-void init_lmon(int *argc, char ***argv)
+static void init_lmon(int *argc, char ***argv)
 {
 }
 #endif

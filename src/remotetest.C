@@ -40,7 +40,7 @@
 using namespace std;
 
 extern FILE *debug_log;
-#define debug_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
+#define debug_printf(str, ...) do { if (debug_log) { fprintf(debug_log, str, ## __VA_ARGS__); fflush(debug_log); } } while (0)
 
 static void encodeParams(ParameterDict &params, MessageBuffer &buf)
 {
@@ -242,10 +242,12 @@ test_results_t RemoteComponentFE::program_setup(ParameterDict &params)
    comp_header(name, buffer, COMPONENT_PROGRAM_SETUP);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
-
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
+   
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
    decodeTestResult(result, next_ret);
@@ -259,9 +261,11 @@ test_results_t RemoteComponentFE::program_teardown(ParameterDict &params)
    comp_header(name, buffer, COMPONENT_PROGRAM_TEARDOWN);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -278,9 +282,11 @@ test_results_t RemoteComponentFE::group_setup(RunGroup *group, ParameterDict &pa
    encodeGroup(group, buffer);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -297,9 +303,11 @@ test_results_t RemoteComponentFE::group_teardown(RunGroup *group, ParameterDict 
    encodeGroup(group, buffer);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -316,9 +324,11 @@ test_results_t RemoteComponentFE::test_setup(TestInfo *test, ParameterDict &para
    encodeTest(test, buffer);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -335,9 +345,11 @@ test_results_t RemoteComponentFE::test_teardown(TestInfo *test, ParameterDict &p
    encodeTest(test, buffer);
    encodeParams(params, buffer);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return CRASHED;
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return CRASHED;
 
    char *next_ret = decodeParams(params, result_msg);
    test_results_t result;
@@ -351,9 +363,11 @@ std::string RemoteComponentFE::getLastErrorMsg()
    MessageBuffer buffer;
    comp_header(name, buffer, COMPONENT_ERR_MSG);
 
-   connection->send_message(buffer);
+   bool bresult = connection->send_message(buffer);
+   if (!bresult) return std::string("BE DISCONNECT");
    char *result_msg;
-   connection->recv_return(result_msg);
+   bresult = connection->recv_return(result_msg);
+   if (!bresult) return std::string("BE DISCONNECT");
 
    std::string str;
    decodeString(str, result_msg);
@@ -386,11 +400,12 @@ RemoteComponentFE *RemoteComponentFE::createRemoteComponentFE(std::string n, Con
    load_header(buf, LOAD_COMPONENT);
 
    encodeString(n, buf);
-   c->send_message(buf);
+   bool result = c->send_message(buf);
+   if (!result) return NULL;
    char *result_msg;
-   c->recv_return(result_msg);
+   result = c->recv_return(result_msg);
+   if (!result) return NULL;
 
-   bool result;
    decodeBool(result, result_msg);
    
    if (!result)
@@ -408,11 +423,12 @@ bool RemoteComponentFE::setenv_on_remote(std::string var, std::string str, Conne
    encodeString(var, buf);
    encodeString(str, buf);
 
-   c->send_message(buf);
+   bool result = c->send_message(buf);
+   if (!result) return false;
    char *result_msg;
-   c->recv_return(result_msg);
+   result = c->recv_return(result_msg);
+   if (!result) return false;;
    
-   bool result;
    decodeBool(result, result_msg);
    return result;
 }
@@ -422,9 +438,11 @@ bool RemoteTestFE::hasCustomExecutionPath()
    MessageBuffer buffer;
    test_header(test, buffer, TEST_CUSTOM_PATH);
 
-   connection->send_message(buffer);
+   bool result = connection->send_message(buffer);
+   if (!result) return false;
    char *result_msg;
-   connection->recv_return(result_msg);
+   result = connection->recv_return(result_msg);
+   if (!result) return false;
 
    bool b;
    decodeBool(b, result_msg);
@@ -539,11 +557,12 @@ RemoteTestFE *RemoteTestFE::createRemoteTestFE(TestInfo *t, Connection *c) {
    load_header(buf, LOAD_TEST);
    
    encodeTest(t, buf);
-   c->send_message(buf);
+   bool result = c->send_message(buf);
+   if (!result) return NULL;
    char *result_msg;
-   c->recv_return(result_msg);
+   result = c->recv_return(result_msg);
+   if (!result) return NULL;
 
-   bool result;
    decodeBool(result, result_msg);
    
    if (!result)
