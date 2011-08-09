@@ -41,9 +41,9 @@ static testlock_t init_lock;
 
 void bp0(int tid)
 {
-  output->log(STDERR, "Pre-increment in bp0\n");
+  //output->log(STDERR, "Pre-increment in bp0\n");
   func_counts[0][tid]++;
-  output->log(STDERR, "Post-increment in bp0\n");
+  //output->log(STDERR, "Post-increment in bp0\n");
 }
 
 void bp1(int tid)
@@ -73,15 +73,15 @@ static int threadFunc(int myid, void *data)
   testUnlock(&init_lock);
 
   for (i=0; i<NUM_BREAKPOINT_SPINS; i++) {
-  output->log(STDERR, "Entering bp0, myid = %d\n", myid);
+  //output->log(STDERR, "Entering bp0, myid = %d\n", myid);
     bp0(myid);
-  output->log(STDERR, "Finished bp0 OK, myid = %d\n", myid);
+  //output->log(STDERR, "Finished bp0 OK, myid = %d\n", myid);
     bp1(myid);
-  output->log(STDERR, "Finished bp1 OK, myid = %d\n", myid);
+  //output->log(STDERR, "Finished bp1 OK, myid = %d\n", myid);
     bp2(myid);
-  output->log(STDERR, "Finished bp2 OK, myid = %d\n", myid);
+  //output->log(STDERR, "Finished bp2 OK, myid = %d\n", myid);
     bp3(myid);
-  output->log(STDERR, "Finished bp3 OK, myid = %d\n", myid);
+  //output->log(STDERR, "Finished bp3 OK, myid = %d\n", myid);
   }
   return 0;
 }
@@ -138,6 +138,7 @@ int pc_breakpoint_mutatee()
      testUnlock(&init_lock);
      return -1;
    }
+   output->log(STDERR, "Got sync message OK\n");
 
    testUnlock(&init_lock);
    
@@ -154,26 +155,32 @@ int pc_breakpoint_mutatee()
       output->log(STDERR, "Finalization failed\n");
       return -1;
    }
+   output->log(STDERR, "Finalization OK, checking results\n");
 
    for (i = 0; i < actual_threads; i++) {
      if (func_counts[0][i] != NUM_BREAKPOINT_SPINS) {
        output->log(STDERR, "bp0 does not have enough executions\n");
        return -1;
      }
+	   output->log(STDERR, "bp0 OK\n");
      if (func_counts[1][i] != NUM_BREAKPOINT_SPINS) {
        output->log(STDERR, "bp1 does not have enough executions\n");
        return -1;
      }
+	   output->log(STDERR, "bp1 OK\n");
      if (func_counts[2][i] != NUM_BREAKPOINT_SPINS) {
        output->log(STDERR, "bp2 does not have enough executions\n");
        return -1;
      }
+	   output->log(STDERR, "bp2 OK\n");
      if (func_counts[3][i] != NUM_BREAKPOINT_SPINS) {
        output->log(STDERR, "bp3 does not have enough executions\n");
        return -1;
      }
+	   output->log(STDERR, "bp3 OK\n");
    }
 
    test_passes(testname);
+   output->log(STDERR, "pc_breakpoint_mutatee all OK\n");
    return 0;
 }
