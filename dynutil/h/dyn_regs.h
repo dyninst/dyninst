@@ -34,6 +34,8 @@
 #define DYN_REGS_H_
 
 #include "util.h"
+#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dyn_detail/boost/make_shared.hpp"
 
 #include <assert.h>
 #include <map>
@@ -52,14 +54,14 @@ namespace Dyninst
       Arch_ppc64  = 0x28000000
    } Architecture;
 
+
    COMMON_EXPORT bool isSegmentRegister(int regClass);
    unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
 	  typedef std::map<signed int, std::string> NameMap;
-      static NameMap *names;
-	  void init_names();
+      static dyn_detail::boost::shared_ptr<NameMap> names();
    public:
 
 	  MachRegister();
