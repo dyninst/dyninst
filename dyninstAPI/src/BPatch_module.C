@@ -578,7 +578,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
-bool BPatch_module::removeFunction(BPatch_function *bpfunc)
+bool BPatch_module::remove(BPatch_function *bpfunc)
 {
     func_instance *func = bpfunc->lowlevel_func();
 
@@ -635,6 +635,16 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc)
     func_map.erase(fmap_iter);
 
     return true;
+}
+
+bool BPatch_module::remove(instPoint* point)
+{
+    BPatch_instpMap::iterator pit = instp_map.find(point);
+    if (pit != instp_map.end()) {
+        instp_map.erase(pit);
+        return true;
+    }
+    return false;
 }
 
 void BPatch_module::parseTypes() 

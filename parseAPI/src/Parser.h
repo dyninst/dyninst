@@ -129,6 +129,7 @@ class Parser {
     CodeObject & obj() { return _obj; }
 
     // removal
+    void remove_block(Block *);
     void remove_func(Function *);
     void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 

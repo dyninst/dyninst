@@ -57,8 +57,9 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
     virtual void split_block_cb(PatchAPI::PatchBlock *, 
                                 PatchAPI::PatchBlock *);
     virtual void add_block_cb(PatchAPI::PatchFunction *, PatchAPI::PatchBlock *);
+    virtual void destroy_cb(PatchAPI::Point *); // really remove, not destroy
 
-#if 0 // anything we can do with these guys we can do from the ParsAPI callbacks (I think?)
+#if 0 // only activate for things we can't do from the ParseAPI callbacks
     virtual void destroy_cb(PatchBlock *) {};
     virtual void destroy_cb(PatchEdge *) {};
     virtual void destroy_cb(PatchFunction *) {};
@@ -69,7 +70,6 @@ class DynPatchCallback : public PatchAPI::PatchCallback {
     virtual void create_cb(PatchObject *) {};
     virtual void remove_edge_cb(PatchBlock *, PatchEdge *, edge_type_t) {};
     virtual void add_edge_cb(PatchBlock *, PatchEdge *, edge_type_t) {};
-    virtual void destroy_cb(Point *) {};
     virtual void create_cb(Point *) {};
     virtual void change_cb(PatchAPI::Point *, 
                            PatchAPI::PatchBlock *, 

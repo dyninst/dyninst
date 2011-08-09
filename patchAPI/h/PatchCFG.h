@@ -116,6 +116,7 @@ class PatchBlock {
 
     void removeSourceEdge(PatchEdge *e);
     void removeTargetEdge(PatchEdge *e);
+    void destroyPoints();
 
     void addSourceEdge(PatchEdge *e, bool addIfEmpty = true);
     void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
@@ -158,8 +159,7 @@ class PatchFunction {
      const string &name() const { return func_->name(); }
      Address addr() const { return addr_;  }
      ParseAPI::Function *function() const { return func_; }
-     PatchObject* object() const { return obj_; }
-     PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
+     PATCHAPI_EXPORT PatchObject *obj() const { return obj_; }
 
      PATCHAPI_EXPORT const Blockset &getAllBlocks();
      PATCHAPI_EXPORT PatchBlock *getEntryBlock();
@@ -202,6 +202,8 @@ class PatchFunction {
      void removeBlock(PatchBlock *);
      void addBlock(PatchBlock *);
      void splitBlock(PatchBlock *first, PatchBlock *second);
+     void destroyPoints();
+     void destroyBlockPoints(PatchBlock *block);
 
      ParseAPI::Function *func_;
      PatchObject* obj_;

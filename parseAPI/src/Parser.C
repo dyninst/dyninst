@@ -506,11 +506,10 @@ Parser::finalize(Function *f)
     bool firstParse = true;
     if (unlikely( f->_extents.size() )) {
         firstParse = false;
+        _parse_data->remove_extents(f->_extents);
+        f->_extents.clear();
     }
     
-    // extents
-    _parse_data->remove_extents(f->_extents);
-    f->_extents.clear();
 
     if(blocks.empty()) {
         f->_cache_valid = cache_value; // see above
@@ -1610,16 +1609,11 @@ Parser::remove_func(Function *func)
     _parse_data->remove_func(func);
 }
 
-#if 0
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
-    if (block->containingFuncs() == 1) {
-        _pcb.delete_block(block);
-    }
     _parse_data->remove_block(block);
 }
-#endif
 
 void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 {

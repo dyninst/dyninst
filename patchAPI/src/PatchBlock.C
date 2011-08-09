@@ -15,7 +15,7 @@ using namespace InstructionAPI;
 
 PatchBlock*
 PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
-  return f->object()->getBlock(ib);
+  return f->obj()->getBlock(ib);
 }
 
 PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
@@ -353,6 +353,58 @@ void PatchBlock::remove(Point *p) {
       default:
          break;
    }
+}
+
+// destroy points for this block and then each containing function's
+// context specific points for the block
+void PatchBlock::destroyPoints()
+{
+    PatchCallback *cb = obj()->cb();
+    if (points_.entry) {
+        cb->destroy(points_.entry);
+        delete points_.entry;
+        points_.entry = NULL;
+    } 
+    if (points_.during) {
+        cb->destroy(points_.during);
+        delete points_.during;
+        points_.during = NULL;
+    }
+    if (points_.exit) {
+        cb->destroy(points_.exit);
+        delete points_.exit;
+        points_.exit = NULL;
+    }
+    if (!points_.preInsn.empty()) {
+        for (InsnPoints::iterator iit = points_.preInsn.begin(); 
+             iit != points_.preInsn.end(); 
+             iit++) 
+        {
+            cb->destroy(iit->second);
+            delete iit->second;
+        }
+        points_.preInsn.clear();
+    }
+    if (!points_.postInsn.empty()) {
+        for (InsnPoints::iterator iit = points_.postInsn.begin(); 
+             iit != points_.postInsn.end(); 
+             iit++) 
+        {
+            cb->destroy(iit->second);
+            delete iit->second;
+        }
+        points_.postInsn.clear();
+    }
+
+    // now destroy function's context-specific points for this block
+    vector<PatchFunction *> funcs;
+    getFunctions(back_inserter(funcs));
+    for (vector<PatchFunction *>::iterator fit = funcs.begin();
+         fit != funcs.end();
+         fit++)
+    {
+        (*fit)->destroyBlockPoints(this);
+    }
 }
 
 PatchCallback *PatchBlock::cb() const {

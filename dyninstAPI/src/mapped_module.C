@@ -116,7 +116,7 @@ void mapped_module::addVariable(int_variable *var)
 }
 
 // We rely on the mapped_object for pretty much everything...
-void mapped_module::removeFunction(func_instance *func) 
+void mapped_module::remove(func_instance *func) 
 {
    for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {
        if (everyUniqueFunction[fIdx] == func) {

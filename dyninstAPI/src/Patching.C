@@ -64,3 +64,9 @@ void DynPatchCallback::add_block_cb(PatchFunction *func, PatchBlock *block)
 {
     SCAST_FI(func)->add_block_cb(SCAST_BI(block));
 }
+
+// really remove, not destroy
+void DynPatchCallback::destroy_cb(Point *p) 
+{
+    static_cast<instPoint*>(p)->func()->obj()->remove(static_cast<instPoint*>(p));
+}

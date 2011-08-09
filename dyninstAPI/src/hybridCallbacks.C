@@ -352,7 +352,6 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
 		if (!bpfunc) continue;
         PatchAPI::PatchModifier::remove(bpfunc->lowlevel_func());
-		//bpfunc->getModule()->removeFunction(bpfunc, true);
 	}
 
 	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);

@@ -40,16 +40,18 @@ void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block 
 
 void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {
    _obj->removeBlock(block);
-   delete block;
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
    _obj->removeEdge(edge);
-   delete edge;
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
+   PatchFunction *pf = _obj->getFunc(func,false);
    _obj->removeFunc(func);
+   if (pf) {
+       pf->destroyPoints();
+   }
 }
 
 void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
@@ -65,6 +67,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    else pb->removeTargetEdge(pe);
 
    if (pe->points_.during) {
+       pb->obj()->cb()->destroy(pe->points_.during);
        vector<PatchFunction*> funcs;
        pb->getFunctions(back_inserter(funcs));
        for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {

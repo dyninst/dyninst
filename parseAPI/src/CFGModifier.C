@@ -198,7 +198,7 @@ bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever
          deadEdges.push_back(*iter);
          // callbacks
          pcb->removeEdge(b, *iter, ParseCallback::source);
-         pcb->removeEdge((*iter)->src(), *iter, ParseCallback::source);
+         pcb->removeEdge((*iter)->src(), *iter, ParseCallback::target);
          // clear up _call_edges vector in the caller function         
          if ((*iter)->type() == CALL) {
             std::vector<Function *> funcs;
@@ -256,42 +256,25 @@ bool CFGModifier::remove(Function *f) {
        f->obj()->destroy(*cit);
    }
 
-   // remove blocks from func, remove blocks if not shared
-   for (Function::blocklist::iterator iter = f->blocks().begin(); 
-        iter != f->blocks().end(); ++iter) 
+   // remove blocks from func, store unshared block list for destruction
+   vector<Block*> destBs;
+   Function::blocklist blocks = f->blocks();
+   for (Function::blocklist::iterator iter = blocks.begin(); 
+        iter != blocks.end(); ++iter) 
    {
       (*iter)->removeFunc(f);
       if ((*iter)->_func_cnt == 0) {
-          CFGModifier::remove(*iter,true);
-          destroyBs.push_back(*iter);
+          destBs.push_back(*iter);
       }
    }
 
-   f->_start = 0;
-   f->_name = "ERASED";
-   f->_entry = NULL;
-
-   f->_parsed = false;
-   f->_cache_valid = false;
-   f->_blocks.clear();
-
-   vector<FuncExtent *>::iterator eit = f->_extents.begin();
-   for( ; eit != f->_extents.end(); ++eit) {
-      delete *eit;
-   }
-
-   f->_extents.clear();
-   f->_bmap.clear();
-   f->_call_edges.clear();
-   f->_return_blocks.clear();
-
-   CodeObject *obj = f->obj();
+   // destroy function
    f->obj()->destroy(f);
 
-   for (unsigned int bidx = 0; bidx < destroyBs.size(); bidx++) {
-       obj->destroy(destroyBs[bidx]);
+   // destroy function blocks
+   for (unsigned int bidx= 0; bidx < destBs.size(); bidx++) {
+      CFGModifier::remove(destBs[bidx],true);
    }
-   // delete f;
 
    return true;
 }

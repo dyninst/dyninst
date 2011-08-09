@@ -229,7 +229,8 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
     void removeEmptyPages();
-    void removeFunction(func_instance *func);
+    void remove(func_instance *func);
+    void remove(instPoint *p);
     void splitBlock(block_instance *first, block_instance *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,

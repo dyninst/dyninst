@@ -39,6 +39,7 @@
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/h/Symtab.h"
 #include "process.h"
@@ -1883,10 +1884,23 @@ bool mapped_object::updateCodeBytesIfNeeded(Address entry)
     return true;
 }
 
-void mapped_object::removeFunction(func_instance *func) {
-    // remove from func_instance vectore
+void mapped_object::remove(func_instance *func) {
+
+    if (as()->isMemoryEmulated()) {
+        as()->getMemEm()->removeSpringboards(func);
+    }
+    
+    // clear out module- and BPatch-level data structures 
+    BPatch_addressSpace* bpAS = (BPatch_addressSpace*)proc()->up_ptr();
+    BPatch_module *bpmod = bpAS->getImage()->findModule(func->mod());
+    BPatch_function *bpfunc = bpAS->findOrCreateBPFunc(SCAST_FI(func), bpmod);
+    bpfunc->removeCFG();
+    bpmod->remove(bpfunc);
+    func->mod()->remove(func);
+
+    // remove from func_instance vector
     funcs_.erase(func->ifunc());
-    //removeFunc(func) // Remove from parent class, by wenbin
+
     // remove pretty names
     pdvector<func_instance *> *funcsByName = NULL;
     for (unsigned pretty_iter = 0;
@@ -1951,6 +1965,40 @@ void mapped_object::removeFunction(func_instance *func) {
             }
         }
     }
+}
+
+void mapped_object::remove(instPoint *point)
+{
+    BPatch_addressSpace* bpAS = (BPatch_addressSpace*)proc()->up_ptr();
+    BPatch_module *bpmod = bpAS->getImage()->findModule(point->func()->mod());
+    bpmod->remove(point);
+}
+
+void mapped_object::destroy(ParseAPI::Block *b) {
+   BlockMap::iterator iter = blocks_.find(b);
+   if (iter != blocks_.end()) {
+     calleeNames_.erase(SCAST_BI(iter->second));
+     if (as()->isMemoryEmulated()) {
+         as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
+     }
+     block_instance::destroy(SCAST_BI(iter->second));
+     blocks_.erase(iter);
+   }
+}
+
+void mapped_object::destroy(ParseAPI::Edge *e) {
+   EdgeMap::iterator iter = edges_.find(e);
+   if (iter != edges_.end()) {
+   //  edge_instance::destroy(SCAST_EI(iter->second));
+       edges_.erase(iter);
+   }
+}
+
+void mapped_object::destroy(ParseAPI::Function *f) {
+    FuncMap::iterator iter = funcs_.find(f);
+    assert(iter != funcs_.end());
+    func_instance *fi = SCAST_FI(iter->second);
+    remove(fi); // does most of the work
 }
 
 void mapped_object::removeEmptyPages()
@@ -2176,45 +2224,4 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
   if (!f) return NULL;
   return findFunction(f);
 }
-
-void mapped_object::destroy(ParseAPI::Block *b) {
-   BlockMap::iterator iter = blocks_.find(b);
-   if (iter != blocks_.end()) {
-     calleeNames_.erase(SCAST_BI(iter->second));
-     if (as()->isMemoryEmulated()) {
-         as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
-     }
-     block_instance::destroy(SCAST_BI(iter->second));
-     blocks_.erase(iter);
-   }
-}
-
-void mapped_object::destroy(ParseAPI::Edge *e) {
-   EdgeMap::iterator iter = edges_.find(e);
-   if (iter != edges_.end()) {
-   //  edge_instance::destroy(SCAST_EI(iter->second));
-       edges_.erase(iter);
-   }
-}
-
-void mapped_object::destroy(ParseAPI::Function *f) {
-    FuncMap::iterator iter = funcs_.find(f);
-    if (iter != funcs_.end()) {
-        if (as()->isMemoryEmulated()) {
-            as()->getMemEm()->removeSpringboards(SCAST_FI(iter->second));
-        }
-        vector<mapped_module*> mods = getModules();
-        for (unsigned int midx = 0; midx < mods.size(); midx++) {
-            BPatch_addressSpace* bpAS = (BPatch_addressSpace*)proc()->up_ptr();
-            BPatch_module *bpmod = bpAS->getImage()->findModule(mods[midx]);
-            BPatch_function *bpfunc = bpAS->findOrCreateBPFunc(SCAST_FI(iter->second), bpmod);
-            bpmod->removeFunction(bpfunc);
-            mods[midx]->removeFunction(SCAST_FI(iter->second));
-            removeFunction(SCAST_FI(iter->second));
-        }
-        func_instance::destroy(SCAST_FI(iter->second));
-        funcs_.erase(iter);
-   }
-}
-
 

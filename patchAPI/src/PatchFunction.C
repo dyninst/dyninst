@@ -31,14 +31,14 @@ PatchFunction::getAllBlocks() {
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
        iter != func_->blocks().end(); ++iter) {
-    all_blocks_.insert(object()->getBlock(*iter));
+    all_blocks_.insert(obj()->getBlock(*iter));
   }
   return all_blocks_;
 }
 
 PatchBlock*
 PatchFunction::getEntryBlock() {
-  assert(object());
+  assert(obj());
   assert(func_);
 
   ParseAPI::Block* ientry = func_->entry();
@@ -48,7 +48,7 @@ PatchFunction::getEntryBlock() {
     ientry = func_->entry();
   }
   assert(ientry);
-  return object()->getBlock(ientry);
+  return obj()->getBlock(ientry);
 }
 
 const PatchFunction::Blockset&
@@ -57,7 +57,7 @@ PatchFunction::getExitBlocks() {
   {
       for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
            iter != func_->returnBlocks().end(); ++iter) {
-        PatchBlock* pblk = object()->getBlock(*iter);
+        PatchBlock* pblk = obj()->getBlock(*iter);
         exit_blocks_.insert(pblk);
       }
   }
@@ -74,7 +74,7 @@ PatchFunction::getCallBlocks() {
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
          iter != callEdges.end(); ++iter) {
       ParseAPI::Block *src = (*iter)->src();
-      PatchBlock *block = object()->getBlock(src);
+      PatchBlock *block = obj()->getBlock(src);
       assert(block);
       call_blocks_.insert(block);
     }
@@ -94,12 +94,7 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    call_blocks_.erase(b);
 
    // pull all of b's points from blockPoints_
-   std::map<PatchBlock *, BlockPoints>::iterator pit = blockPoints_.find(b);
-   if (pit != blockPoints_.end()) {
-       pit->second.preInsn.clear();
-       pit->second.postInsn.clear();
-       blockPoints_.erase(pit);
-   }
+   destroyBlockPoints(b);
    cb()->remove_block(this, b);
 }
 
@@ -266,6 +261,114 @@ bool PatchFunction::findInsnPoints(Point::Type type,
    }
    else return false;
 }
+
+void PatchFunction::destroyBlockPoints(PatchBlock *block)
+{
+    map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.find(block);
+    if (bit == blockPoints_.end()) {
+        return;
+    }
+
+    PatchCallback *cb = obj()->cb();
+    if (bit->second.during) {
+        bit->first->remove(bit->second.during);
+        cb->destroy(bit->second.during);
+    }
+    if (bit->second.entry) {
+        bit->first->remove(bit->second.entry);
+        cb->destroy(bit->second.entry);
+    }
+    if (bit->second.exit) {
+        bit->first->remove(bit->second.exit);
+        cb->destroy(bit->second.exit);
+    }
+    if (!bit->second.postInsn.empty()) {
+        for (InsnPoints::iterator iit = bit->second.postInsn.begin();
+             iit != bit->second.postInsn.end();
+             iit++)
+        {
+            bit->first->remove(iit->second);
+            cb->destroy(iit->second);
+        }
+        bit->second.postInsn.clear();
+    }
+    if (!bit->second.preInsn.empty()) {
+        for (InsnPoints::iterator iit = bit->second.preInsn.begin();
+             iit != bit->second.preInsn.end();
+             iit++)
+        {
+            bit->first->remove(iit->second);
+            cb->destroy(iit->second);
+        }
+        bit->second.preInsn.clear();
+    }
+    blockPoints_.erase(bit);
+}
+
+void PatchFunction::destroyPoints() 
+{
+    PatchCallback *cb = obj()->cb();
+    // 1) clear blockPoints_ (remove from block as well)
+    // 2) clear edgePoints_ (remove from edge as well)
+    // 3) clear points_
+
+    // 1)
+    for(map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin(); 
+        bit != blockPoints_.end(); bit++) 
+    {
+        destroyBlockPoints(bit->first);
+    }
+    blockPoints_.clear();
+
+    // 2)
+    for(map<PatchEdge *, EdgePoints>::iterator eit = edgePoints_.begin(); 
+        eit != edgePoints_.end(); eit++) 
+    {
+        if (eit->second.during) {
+            eit->first->remove(eit->second.during);
+            cb->destroy(eit->second.during);
+        }
+    }
+    edgePoints_.clear();
+    
+    // 3)
+    if (points_.entry) {
+       cb->destroy(points_.entry);
+       points_.entry = NULL;
+    }
+    if (points_.during) {
+       cb->destroy(points_.during);
+       points_.during = NULL;
+    }
+    if (!points_.exits.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.exits.begin();
+             pit != points_.exits.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.exits.clear();
+    }
+    if (!points_.postCalls.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.postCalls.begin();
+             pit != points_.postCalls.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.postCalls.clear();
+    }
+    if (!points_.preCalls.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.preCalls.begin();
+             pit != points_.preCalls.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.preCalls.clear();
+    }
+}
+
 
 void PatchFunction::remove(Point *p) {
    assert(p->func() == this);

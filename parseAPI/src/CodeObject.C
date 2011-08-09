@@ -330,10 +330,12 @@ void CodeObject::destroy(Edge *e) {
 }
 
 void CodeObject::destroy(Block *b) {
+   parser->remove_block(b);
    _pcb->destroy(b, _fact);
 }
 
 void CodeObject::destroy(Function *f) {
+   parser->remove_func(f);
    _pcb->destroy(f, _fact);
 }
 

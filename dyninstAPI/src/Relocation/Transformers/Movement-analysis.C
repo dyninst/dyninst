@@ -540,10 +540,10 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
   // Look up the block_instances that map to this address. 
 
    block_instance *block = addrSpace->findBlockByEntry(addr);
-
+   if (!block) return;
    std::vector<func_instance *> funcs;
    block->getFuncs(std::back_inserter(funcs));
-   if (funcs.empty()) return;
+   assert(!funcs.empty());
 
    // We arbitrarily go to the first one...
    priMap[block] = std::make_pair(Required, funcs[0]);
