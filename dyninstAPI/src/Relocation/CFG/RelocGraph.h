@@ -98,6 +98,7 @@ class RelocGraph {
   bool interpose(RelocEdge *e, RelocBlock *n);
   bool changeTarget(RelocEdge *e, TargetInt *n);
   bool changeSource(RelocEdge *e, TargetInt *n);
+  bool changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t);
 
   template <class Predicate> 
   void applyPredicate(Predicate &p, RelocEdges *e, RelocEdges &results);
@@ -115,6 +116,8 @@ class RelocGraph {
 #endif
   template <class Predicate>
      bool removeEdge(Predicate &p, RelocEdges *e);
+  template <class Predicate>
+     bool changeType(Predicate &p, RelocEdges *e, ParseAPI::EdgeTypeEnum t);
 
 
   struct InterproceduralPredicate {
@@ -139,6 +142,13 @@ struct Predicates {
    struct CallFallthrough {
       bool operator() (RelocEdge *e);
    };
+   struct NonCall {
+      bool operator() (RelocEdge *e);
+   };
+   struct Call {
+      bool operator() (RelocEdge *e);
+   };
+
    struct Edge {
    Edge(edge_instance *e) : e_(e) {};
       bool operator() (RelocEdge *e);
@@ -188,6 +198,17 @@ template <class Predicate>
    for (RelocEdges::iterator iter = tmp.begin();
         iter != tmp.end(); ++iter) {
       if (!interpose(*iter, t)) return false;
+   }
+   return true;
+}
+
+template <class Predicate>
+   bool RelocGraph::changeType(Predicate &p, RelocEdges *e, ParseAPI::EdgeTypeEnum t) {
+   RelocEdges tmp;
+   applyPredicate(p, e, tmp);
+   for (RelocEdges::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      if (!changeType(*iter, t)) return false;
    }
    return true;
 }

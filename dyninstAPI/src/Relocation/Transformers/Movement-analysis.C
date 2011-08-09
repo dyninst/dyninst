@@ -49,6 +49,7 @@
 #include "dataflowAPI/h/slicing.h"
 
 #include "../CFG/RelocBlock.h"
+#include "../CFG/RelocGraph.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -137,7 +138,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 
     if (insnIsThunkCall(insn, addr, dest)) {
       //relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
-       handleThunkCall(reloc, iter, dest);
+       handleThunkCall(reloc, g, iter, dest);
        intSens_++;
        extSens_++;
        thunk_++;
@@ -216,6 +217,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
 	  // and returns. So we can remove the internal sensitivity by inlining the 
 	  // call.
 	  handleThunkCall(reloc,
+                          g,
 			  iter, 
 			  destination);
 	  continue;
@@ -231,6 +233,7 @@ bool PCSensitiveTransformer::process(RelocBlock *reloc, RelocGraph *g) {
       }
       // And now to the real work. Replace this instruction with an emulation sequence
       emulateInsn(reloc,
+                  g,
 		  iter, 
 		  insn, 
 		  addr);
@@ -482,6 +485,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 }
 
 void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
+                                             RelocGraph *cfg,
 					     RelocBlock::WidgetList::iterator &iter,
 					     Absloc &destination) {
 
@@ -498,10 +502,6 @@ void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
     (*iter).swap(replacement);
   }
   else {
-    CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
-    // We don't want to be doing this pre-CF-creation...
-    assert(cf); 
-    
     // There are two types of thunks we deal with;
     // one is a call to a thunk function (which we want to skip), 
     // and the second is a call forward within the same function.
@@ -510,28 +510,10 @@ void PCSensitiveTransformer::handleThunkCall(RelocBlock *reloc,
     // equivalent doesn't _have_ a fallthrough, so we want to use
     // the taken edge instead.
 
-    // Ignore a taken edge, but create a new CFWidget with the
-    // required fallthrough edge
-    CFWidget::DestinationMap::iterator dest = cf->destMap_.find(CFWidget::Fallthrough);
-    if (dest == cf->destMap_.end()) {
-      dest = cf->destMap_.find(CFWidget::Taken);
-    }
-    if (dest != cf->destMap_.end()) {
-       CFWidget::Ptr newCF = CFWidget::create(cf->addr());
-       // Explicitly do _NOT_ reuse old information - this is just a branch
-       
-       newCF->destMap_[CFWidget::Fallthrough] = dest->second;
-       
-       // And since we delete destMap_ elements, NUKE IT from the original!
-       cf->destMap_.erase(dest);
-       
-       // Before we forget: swap in the PCWidget for the current element
-       (*iter).swap(replacement);
-       
-       reloc->elements().push_back(newCF);
-       // Go ahead and skip it...
-      iter++;
-    }
+     Predicates::Interprocedural pred;
+     bool removed = cfg->removeEdge(pred, reloc->outs());
+     assert(removed);
+     (*iter).swap(replacement);
   }
 }
 
@@ -551,6 +533,7 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
 }
 
 void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
+                                         RelocGraph *cfg,
 					 RelocBlock::WidgetList::iterator &iter,
 					 InstructionAPI::Instruction::Ptr insn,
 					 Address addr) {
@@ -577,51 +560,22 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     
-    // This is a call, so there are two options: direct (known) or indirect.
-    // Direct, we just put in a push/jump <dest> combination.
-
-    // Indirect, we put in a push/jump <reg> combination.
-
-    CFWidget::Ptr newCF = CFWidget::create(cf);
-
-    CFWidget::DestinationMap::iterator dest = cf->destMap_.find(CFWidget::Taken);
-    if (dest != cf->destMap_.end() && !cf->isIndirect_) {
-      // Explicitly do _NOT_ reuse old information - this is just a branch
-      
-      newCF->destMap_[CFWidget::Taken] = dest->second;
-      
-      // And since we delete destMap_ elements, NUKE IT from the original!
-      cf->destMap_.erase(dest);
-    }
-    else {
-      // Indirect!
-      // So we want to use the current CFelement, but strip the "call" part of it
-      // to turn it into an indirect branch.
-
-       if (!newCF->isIndirect_) { 
-          // ???
-          cerr << "Error: unknown insn " << insn->format() 
-               << std::hex << "@" << addr << dec << endl;
-          
-          for (CFWidget::DestinationMap::iterator foo = cf->destMap_.begin();
-               foo != cf->destMap_.end(); ++foo) {
-             //cerr << hex << foo->first << " -> " << foo->second->addr() << dec << endl;
-          }
-          
-       }
-       
-       //assert(newCF->isIndirect_);
-       newCF->isCall_ = false;
-    }
-
-    //cerr << "Swapping in replacement" << endl;
-    // Before we forget: swap in the PCWidget for the current element
+    // Add the <push> part of this whole thing...
     (*iter).swap(replacement);
     
-    //cerr << "And adding new CF" << endl;
+    // And now we need a <jump>, either direct or indirect. 
+    CFWidget::Ptr newCF = CFWidget::create(cf);
+    // Override whatever the insn says; this is no longer a call.
+    newCF->clearIsCall();
     reloc->elements().push_back(newCF);
-    // Go ahead and skip it...
-    iter++;
+    
+    // Remove all non-call edges
+    // Replace a call edge with a taken edge
+    Predicates::NonCall pred;
+    cfg->removeEdge(pred, reloc->outs());
+
+    Predicates::Call pred2;
+    cfg->changeType(pred2, reloc->outs(), ParseAPI::DIRECT);
   }
 }
 

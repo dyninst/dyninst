@@ -66,8 +66,8 @@ class CFWidget : public Widget {
   friend class Transformer;
   friend class LocalizeCF;
   friend class Instrumenter; // For rewiring edge instrumentation
-  friend class adhocMovementTransformer; // Also
-  friend class PCSensitiveTransformer;
+  //friend class adhocMovementTransformer; // Also
+  //friend class PCSensitiveTransformer;
   friend class Modification;
   friend class RelocBlock;
  public:
@@ -100,6 +100,7 @@ class CFWidget : public Widget {
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
   unsigned gap() const { return gap_; };
+  void clearIsCall() { isCall_ = false; };
 
  private:
    CFWidget(Address a)

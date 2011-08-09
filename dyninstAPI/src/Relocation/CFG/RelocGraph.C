@@ -190,6 +190,11 @@ bool RelocGraph::changeSource(RelocEdge *e, TargetInt *n) {
    e->src = n;
    return true;
 }
+
+bool RelocGraph::changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t) {
+   e->type = t;
+   return true;
+}
    
 bool Predicates::Interprocedural::operator()(RelocEdge *e) {
    return (e->type == ParseAPI::CALL ||
@@ -203,6 +208,14 @@ bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
 
 bool Predicates::Fallthrough::operator()(RelocEdge *e) {
    return (e->type == ParseAPI::FALLTHROUGH);
+}
+
+bool Predicates::Call::operator()(RelocEdge *e) {
+   return (e->type == ParseAPI::CALL);
+}
+
+bool Predicates::NonCall::operator()(RelocEdge *e) {
+   return (e->type != ParseAPI::CALL);
 }
 
 bool Predicates::CallFallthrough::operator()(RelocEdge *e) {

@@ -36,22 +36,20 @@
 #include "instructionAPI/h/Instruction.h"
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/emitter.h"
-#include "dyninstAPI/src/RegisterSpace.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/inst-x86.h"
+
+#if defined(cap_mem_emulation)
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#include "dyninstAPI/src/registerSpace.h"
+#endif
 
 #include "../patchapi_debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
-
-
-#if defined(MEMORY_EMULATION_LAYER)
-#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
-#endif
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -421,6 +419,10 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
                                        Register &reg,
                                        const RelocBlock *trace) 
 {
+#if !defined(cap_mem_emulation)
+   return false;
+#else
+
    if (!templ.addrSpace()->isMemoryEmulated() ||
        BPatch_defensiveMode != trace->block()->obj()->hybridMode())
       return true;
@@ -518,6 +520,7 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker(trace));
    reg = REGNUM_ESP;
    return true;
+#endif
 }
 
 std::string CFWidget::format() const {
