@@ -371,7 +371,7 @@ bool IA_IAPI::isGarbageInsn() const
                     break;
                 case 0x0f:
                     if (2 == curInsn()->size() && 
-                        ((0xa0 == ((char*)curInsn()->ptr())[1]) || (0xa8 == ((char*)curInsn()->ptr())[1])))
+                        ((0xa0 == ((unsigned char*)curInsn()->ptr())[1]) || (0xa8 == ((unsigned char*)curInsn()->ptr())[1])))
                     {
                         ret = true;
                         cerr << "REACHED A 2-BYTE PUSH OF A SEGMENT REGISTER "<< std::hex << current 
