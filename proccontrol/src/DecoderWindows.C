@@ -230,7 +230,6 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 {
 	assert(ae);
-//	boost::scoped_ptr<ArchEvent> ae_destructor(ae);
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(ae);
 	assert(winEvt);
 	Event::ptr newEvt = Event::ptr();
@@ -267,26 +266,18 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:
-			{
-				//installed_breakpoint* clearingbp = thread->isClearingBreakpoint();
-				/*if(thread->singleStep() && clearingbp)
-				{
-					pthrd_printf("Decoded event to breakpoint cleanup\n");
-					newEvt = Event::ptr(new EventBreakpointClear(clearingbp));
-				}
-				else
-				{*/
-					newEvt = Event::ptr(new EventSingleStep());
-					pthrd_printf("Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
-/*				}*/
+/*			{
+				newEvt = Event::ptr(new EventSingleStep());
+				pthrd_printf("Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
 			}
-			break;
+			break;*/
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
 			newEvt = decodeBreakpointEvent(e, proc, thread);
 			if(newEvt)
 			{
 				pthrd_printf("Decoded Breakpoint event at 0x%lx, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId, e.u.Exception.ExceptionRecord.ExceptionAddress);
+				break;
 			}
 			else
 			{
@@ -391,10 +382,10 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			newEvt->setProcess(proc->proc());
 			newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
-			thread->setExitingInGenerator(true);
 			  int_threadPool::iterator i = proc->threadPool()->begin();
 			  for (; i != proc->threadPool()->end(); i++) {
-				 (*i)->setGeneratorState(int_thread::exited);
+				(*i)->setGeneratorState(int_thread::exited);
+				(*i)->setExitingInGenerator(true);
 			  }
 			  events.push_back(newEvt);
 
@@ -404,6 +395,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	case EXIT_THREAD_DEBUG_EVENT:
 		pthrd_printf("Decoded ThreadExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 		thread->setGeneratorState(int_thread::exited);
+		thread->setExitingInGenerator(true);
 		newEvt = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
 		break;
 	case LOAD_DLL_DEBUG_EVENT:

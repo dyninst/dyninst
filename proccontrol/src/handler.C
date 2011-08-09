@@ -555,7 +555,8 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
-      delete proc;
+      //delete proc;
+	   pthrd_printf("Skipping delete because Matt's an idiot\n");
    }
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();

@@ -578,7 +578,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    if (curgroup_self_cleaning)
       return PASSED;
 
-   Process::registerEventCallback(EventType(EventType::Exit), on_exit);
+   Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), on_exit);
    do {
       hasRunningProcs = false;
       for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
@@ -615,7 +615,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
          continue;
       }
       if (p->getExitCode() != 0) {
-         logerror("Process has unexpected error code\n");
+         logerror("Process has unexpected error code: 0x%lx (%d)\n", p->getExitCode());
          error = true;
          continue;
       }
@@ -672,8 +672,6 @@ void handleError(const char* msg)
 	logerror(msg, details);
 }
 
-
-#if 1 // !windows
 bool ProcControlComponent::setupServerSocket()
 {
 	SOCKET fd = INVALID_SOCKET; // initialize, dammit.
@@ -999,58 +997,6 @@ bool ProcControlComponent::block_for_events()
 	return true;
 #endif
 }
-#else
-
-bool ProcControlComponent::send_broadcast(unsigned char*, unsigned int)
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::cleanSocket()
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::acceptConnections(int, int*)
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::setupServerSocket()
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::block_for_events()
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::send_message(unsigned char*, unsigned int, Process::ptr)
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::recv_message(unsigned char*, unsigned int, Process::ptr)
-{
-	assert(!"not implemented");
-	return false;
-}
-
-bool ProcControlComponent::recv_broadcast(unsigned char*, unsigned int)
-{
-	assert(!"not implemented");
-	return false;
-}
-
-
-#endif
 
 bool ProcControlComponent::poll_for_events()
 {

@@ -268,7 +268,15 @@ Handler::handler_ret_t WinHandleSingleStep::handleEvent(Event::ptr ev)
 	int_thread* t = ev->getThread()->llthrd();
 	assert(t);
 	t->setSingleStepMode(false);
-	t->markClearingBreakpoint(NULL);
+	installed_breakpoint* bp = t->isClearingBreakpoint();
+	Dyninst::THR_ID tid;
+	t->getTID(tid);
+	if(bp) {
+		pthrd_printf("Clearing breakpoint at 0x%lx (%d/%d)\n", bp->getAddr(), ev->getProcess()->llproc()->getPid(), tid);
+		t->markClearingBreakpoint(NULL);
+	} else {
+		pthrd_printf("Single-step didn't clear breakpoint (%d/%d)\n", ev->getProcess()->llproc()->getPid(), tid);
+	}
 	return ret_success;
 }
 

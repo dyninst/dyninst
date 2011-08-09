@@ -218,6 +218,7 @@ test_results_t pc_breakpointMutator::executeTest()
          logerror("Failed to handle events\n");
          return FAILED;
       }
+	  logerror("%d/%d breakpoints hit OK\n", num_breakpoints_hit, total_breakpoints);
    }
 
    std::map<Thread::const_ptr, unsigned>::iterator l;
