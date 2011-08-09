@@ -39,7 +39,12 @@
 
 using namespace Dyninst;
 
-MachRegister::NameMap *Dyninst::MachRegister::names = NULL;
+dyn_detail::boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
+{
+    static dyn_detail::boost::shared_ptr<MachRegister::NameMap> store =
+        dyn_detail::boost::make_shared<MachRegister::NameMap>();
+    return store;
+}
 
 MachRegister::MachRegister() :
    reg(0)
@@ -54,20 +59,13 @@ MachRegister::MachRegister(signed int r) :
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
-	init_names();
-	(*names)[r] = std::string(n);
+	(*names())[r] = std::string(n);
 }
 
 MachRegister::MachRegister(signed int r, std::string n) :
 reg(r)
 {
-	init_names();
-	(*names)[r] = n;
-}
-
-void MachRegister::init_names() {
-	if (names == NULL)
-		names = new NameMap();
+	(*names())[r] = n;
 }
 
 unsigned int MachRegister::regClass() const
@@ -117,9 +115,9 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
 }
 
 std::string MachRegister::name() const { 
-	assert(names != NULL);
-	NameMap::const_iterator iter = names->find(reg);
-	if (iter != names->end()) {
+	assert(names() != NULL);
+	NameMap::const_iterator iter = names()->find(reg);
+	if (iter != names()->end()) {
 		return iter->second;
 	}
 	return std::string("<INVALID_REG>");
