@@ -375,6 +375,16 @@ SYMTAB_EXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSym
 
 SYMTAB_EXPORT AObject::~AObject() 
 {
+    using std::string;
+    using std::vector;
+
+    dyn_hash_map<string,vector<Symbol *> >::iterator it = symbols_.begin();
+    for( ; it != symbols_.end(); ++it) {
+        vector<Symbol *> & v = (*it).second;
+        for(unsigned i=0;i<v.size();++i)
+            delete v[i];
+        v.clear();
+    }
 }
 
 // explicitly protected
