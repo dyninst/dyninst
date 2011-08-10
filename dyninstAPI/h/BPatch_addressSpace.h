@@ -292,10 +292,13 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
-    // Look, ma, I rock
+    // BPatch_addressSpace::wrapFunction
+    //
+    // Replace oldFunc with newFunc as above; however, also rename oldFunc
+    // to the provided name so it can still be reached. 
 
-    API_EXPORT(Int, (oldFunc, newFunc),
-    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+    API_EXPORT(Int, (oldFunc, newFunc, name),
+    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc, std::string name));
 
     //  BPatch_addressSpace::getSourceLines
     //  

@@ -32,9 +32,10 @@ class Instrumenter : public BatchCommand {
 
     // Function Wrapping
     PATCHAPI_EXPORT virtual bool wrapFunction(PatchFunction* oldfunc,
-                                              PatchFunction* newfunc);
+                                              PatchFunction* newfunc,
+                                              std::string name);
     PATCHAPI_EXPORT virtual bool revertWrappedFunction(PatchFunction* oldfunc);
-    virtual FuncModMap& funcWrapMap() { return functionWraps_; }
+    virtual FuncWrapMap& funcWrapMap() { return functionWraps_; }
 
     // Call Modification
     PATCHAPI_EXPORT bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
@@ -49,7 +50,7 @@ class Instrumenter : public BatchCommand {
   protected:
     AddrSpacePtr as_;
     FuncModMap functionReplacements_;
-    FuncModMap functionWraps_;
+    FuncWrapMap functionWraps_;
     CallModMap callModifications_;
 
     explicit Instrumenter(AddrSpacePtr as) : as_(as) {}

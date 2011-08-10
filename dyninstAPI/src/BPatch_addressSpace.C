@@ -459,7 +459,8 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
 }
 
 bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &oldFunc,
-                                          BPatch_function &newFunc)
+                                          BPatch_function &newFunc,
+                                          std::string name)
 {
    assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
    if (!getMutationsActive())
@@ -471,7 +472,9 @@ bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &oldFunc,
       return true;
    }
 
-   if (!oldFunc.lowlevel_func()->proc()->wrapFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func()))
+   if (!oldFunc.lowlevel_func()->proc()->wrapFunction(oldFunc.lowlevel_func(), 
+                                                      newFunc.lowlevel_func(),
+                                                      name))
       return false;
 
    if (pendingInsertions == NULL) {

@@ -93,6 +93,7 @@ typedef dyn_detail::boost::shared_ptr<void> VoidPtr;
 typedef VoidPtr SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
+typedef std::map<PatchFunction*, std::pair<PatchFunction*, std::string> > FuncWrapMap;
 
 // This is a little complex, so let me explain my logic
 // Map from B -> F_c -> F
