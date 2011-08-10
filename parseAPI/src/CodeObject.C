@@ -251,6 +251,13 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         else {
             parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
                                                             *regs.begin()));
+            // FIXME this is a memory leak; bundles need to go in a frame or
+            // they will never get reclaimed. Flag for Kevin or Drew
+            //
+            // The inline comment was added after I made this observation
+            // but before the commit; I still don't see it, but if I'm
+            // wrong ignore my warning. --nate
+            //
             ParseWorkBundle *bundle = new ParseWorkBundle(); //parse_frames will delete when done
             ParseWorkElem *elem = bundle->add(new ParseWorkElem
                 ( bundle, 

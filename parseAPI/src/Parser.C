@@ -117,7 +117,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
 
 ParseFrame::~ParseFrame()
 {
-    // no locally allocated storage
+    cleanup(); // error'd frames still need cleanup
 }
 
 Parser::~Parser()
@@ -645,6 +645,10 @@ void ParseFrame::cleanup()
 {
     for(unsigned i=0;i<work_bundles.size();++i)
         delete work_bundles[i];
+    work_bundles.clear();
+    if(seed)
+        delete seed;
+    seed = NULL;
 }
 
 namespace {
@@ -778,15 +782,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     Edge * catch_edge = link_tempsink(caller,CATCH);
                 
                     // push on worklist
-                    ParseWorkElem * catch_work = 
-                       work->bundle()->add(
-                        new ParseWorkElem(
+                    frame.pushWork(
+                        frame.mkWork(
                             work->bundle(),
                             catch_edge,
                             catchStart,
-                            true, false)
-                       );
-                    frame.pushWork(catch_work);
+                            true,
+                            false));
                 }
             }
     
@@ -967,6 +969,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,nextBlockAddr);
 
                     frame.pushWork(
+                        frame.mkWork(
+                            NULL,
+                            newedge.second,
+                            nextBlockAddr,
+                            true,
+                            false)
+                    );
+                    /* preserved as example of leaky code; use mkWork instead
+                    frame.pushWork(
                         new ParseWorkElem(
                             NULL,
                             newedge.second,
@@ -974,6 +985,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             true,
                             false)
                         );
+                    */
                     leadersToBlock[nextBlockAddr] = nextBlock;
                 }
                 break;
@@ -1023,7 +1035,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        new ParseWorkElem(
+                        frame.mkWork(
                             NULL,
                             newedge.second,
                             targ->start(),
@@ -1074,7 +1086,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        new ParseWorkElem(
+                        frame.mkWork(
                             NULL,
                             newedge.second,
                             targ->start(),
