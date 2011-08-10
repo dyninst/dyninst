@@ -627,7 +627,7 @@ builtInTypeCollection::~builtInTypeCollection()
     for(;bit!=builtInTypesByName.end();bit++)
 	bit->second->decrRefCount();
     // delete builtInTypesByID collection
-    for(;bitid!=builtInTypesByID.end();bit++)
+    for(;bitid!=builtInTypesByID.end();bitid++)
 	bitid->second->decrRefCount();
 }
 
