@@ -119,7 +119,7 @@ void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
   for (PatchBlock::edgelist::const_iterator iter = itrgs.begin(); iter != itrgs.end(); ++iter) {
     edge_instance* iedge = SCAST_EI(*iter);
     // We don't include interprocedural predecessors in the BPatch layer
-    if (iedge->interproc()) continue;
+    if (iedge->interproc() || iedge->sinkEdge()) continue;
 
     b = flowGraph->findBlock(iedge->trg());
     if (b) tgrts.push_back(b);

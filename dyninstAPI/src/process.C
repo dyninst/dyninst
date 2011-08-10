@@ -4316,6 +4316,11 @@ bool process::getDeadCode
 // rt-lib heap addrs that correspond to the range
 void process::flushAddressCache_RT(Address start, unsigned size)
 {
+    // if rtlib not loaded yet, nothing to flush
+    if (bootstrapState < loadedRT_bs) {
+        return; 
+    }
+
     if (start != 0) {
         mal_printf("Flushing address cache of range [%lx %lx]\n",
                    start, 

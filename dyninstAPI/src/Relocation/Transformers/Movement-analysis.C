@@ -563,16 +563,20 @@ void PCSensitiveTransformer::emulateInsn(RelocBlock *reloc,
     // Add the <push> part of this whole thing...
     (*iter).swap(replacement);
     
-    // And now we need a <jump>, either direct or indirect. 
-    CFWidget::Ptr newCF = CFWidget::create(cf);
-    // Override whatever the insn says; this is no longer a call.
-    newCF->clearIsCall();
-    reloc->elements().push_back(newCF);
-    
+    // And put the CF back in
+    reloc->elements().push_back(cf);
+    // But it's not a call anymore, it's a jump
+    cf->clearIsCall();
+
+    // And skip it
+    ++iter;
+
+#if 0
     // Remove all non-call edges
     // Replace a call edge with a taken edge
     Predicates::NonCall pred;
     cfg->removeEdge(pred, reloc->outs());
+#endif
 
     Predicates::Call pred2;
     cfg->changeType(pred2, reloc->outs(), ParseAPI::DIRECT);
