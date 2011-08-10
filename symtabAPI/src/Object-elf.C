@@ -477,8 +477,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   size_t dynamic_section_size = 0;
   for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if (! scnp->isValid())  // section is malformed
+    if (! scnp->isValid()) {  // section is malformed
+      delete scnp;
       continue; 
+    }
     if ((dynamic_offset_ !=0) && (scnp->sh_offset() == dynamic_offset_)) {
       if (!foundDynamicSection) {
 	dynamic_section_index = i;
@@ -500,6 +502,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
       } 
     }	
+    delete scnp;
   }
 
   if (dynamic_section_index != -1) {
@@ -588,6 +591,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
       it++;
     }
+    delete scnp;
   }
    
   isBlueGeneP_ = false;
@@ -601,7 +605,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     if(i < elfHdr.e_shnum()) {
       scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
       if (! scnp->isValid()) { // section is malformed
-	continue; 
+        delete scnp;
+	    continue; 
       } 
       name = &shnames[scnp->sh_name()];
       sectionsInOriginalBinary.insert(string(name));
@@ -619,7 +624,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	break;
       scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
       if(! scnp->isValid()) {
-	continue;
+        delete scnp;
+        continue;
       }
       name = &shnamesForDebugInfo[scnp->sh_name()];
 
@@ -5151,6 +5157,7 @@ MappedFile *Object::findMappedFileForDebugInfo() {
   for(int i = 0; i < elfHdr.e_shnum(); ++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
     if(! scnp->isValid()) { // section is malformed
+      delete scnp;
       continue;
     }
 
@@ -5167,6 +5174,7 @@ MappedFile *Object::findMappedFileForDebugInfo() {
       string subdir = string(buildId, 2);
       debugFileFromBuildID = "/usr/lib/debug/.build-id/" + subdir + "/" + filename;
     }
+    delete scnp;
   }
 
   if(! debugFileFromBuildID.empty()) {

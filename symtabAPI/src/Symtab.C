@@ -825,7 +825,9 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
       
       char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
       if (prettyName) {
-         sym->prettyName_ = prettyName;
+         sym->prettyName_ = std::string(prettyName);
+         // XXX caller-freed
+         free(prettyName); 
       }
    }
 
