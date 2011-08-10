@@ -35,7 +35,6 @@
 
 #include "util.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/make_shared.hpp"
 
 #include <assert.h>
 #include <map>
