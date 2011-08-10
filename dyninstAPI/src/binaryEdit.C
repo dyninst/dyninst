@@ -277,8 +277,7 @@ BinaryEdit::BinaryEdit() :
    lowWaterMark_(0),
    isDirty_(false),
    memoryTracker_(NULL),
-   multithread_capable_(false)
-{
+   multithread_capable_(false) {
    trapMapping.shouldBlockFlushes(true);
 }
 
@@ -780,7 +779,13 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-   if (relocatedCode_.empty()) return;
+   for (std::vector<SymtabAPI::Symbol *>::iterator iter = newDyninstSyms_.begin();
+        iter != newDyninstSyms_.end(); ++iter) {
+      (*iter)->setModule(newMod);
+      (*iter)->setRegion(newSec);
+      newSyms.push_back(*iter);
+   }
+                                                                              
 
    for (CodeTrackers::iterator i = relocatedCode_.begin();
         i != relocatedCode_.end(); ++i) {
@@ -998,3 +1003,4 @@ bool BinaryEdit::needsPIC()
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
 }
+

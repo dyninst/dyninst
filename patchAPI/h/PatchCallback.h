@@ -36,6 +36,7 @@ class PatchCallback {
    virtual void destroy_cb(PatchFunction *) {};
    virtual void destroy_cb(PatchObject *) {};
 
+
    virtual void create_cb(PatchBlock *) {};
    virtual void create_cb(PatchEdge *) {};
    virtual void create_cb(PatchFunction *) {};

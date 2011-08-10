@@ -49,7 +49,7 @@ using namespace Relocation;
 
 Modification::Modification(const CallModMap &callMod,
                            const FuncModMap &funcRepl,
-                           const FuncModMap &funcWraps) :
+                           const FuncWrapMap &funcWraps) :
   callMods_(callMod),
   funcReps_(funcRepl),
   funcWraps_(funcWraps) {};
@@ -157,12 +157,13 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return true;
 
-   FuncModMap::const_iterator iter = funcWraps_.find(trace->func());
+   FuncWrapMap::const_iterator iter = funcWraps_.find(trace->func());
    if (iter == funcWraps_.end()) return true;
-
+   
    // func_instance* oldfun = SCAST_FI(iter->first);
-   func_instance* newfun = SCAST_FI(iter->second);
-
+   func_instance* newfun = SCAST_FI(iter->second.first);
+   std::string newname = iter->second.second;
+   
 
    relocation_cerr << "Performing function wrapping in trace " << trace->id()
                    << " going to function " << newfun->name()
@@ -196,7 +197,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
       if (!cfg->changeTargets(pred, trace->ins(), newfun->entryBlock())) return false;
    }
    // We also need to track the "new" entry block so we can build a new symbol for it.
-   CallbackWidget::Ptr c = CallbackWidget::create(new WrapperPatch(trace->func()));
+   CallbackWidget::Ptr c = CallbackWidget::create(new WrapperPatch(trace->func(), newname));
    trace->elements().push_front(c);
 
    return true;
@@ -222,7 +223,7 @@ bool Modification::WrapperPredicate::operator()(RelocEdge *e) {
 
 bool Modification::WrapperPatch::apply(codeGen &gen, CodeBuffer *) {
    // Tell our function to create a wrapper symbol at this address
-   func_->createWrapperSymbol(gen.currAddr());
+   func_->createWrapperSymbol(gen.currAddr(), name_);
    return true;
 }
 

@@ -57,7 +57,6 @@ CallbackWidget::~CallbackWidget() {
 bool CallbackWidget::generate(const codeGen &,
                               const RelocBlock *,
                               CodeBuffer &buffer) {
-   cerr << "CallbackWidget::generate" << endl;
    buffer.addPatch(patch_, tracker());
    return true;
 }

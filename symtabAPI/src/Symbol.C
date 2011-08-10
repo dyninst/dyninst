@@ -505,7 +505,7 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
               << (s.isFunction() ? " [FUNC]" : "")
               << (s.isVariable() ? " [VAR]" : "")
               << (s.isInSymtab() ? "[STA]" : "[DYN]")
-              << " }" << endl;
+              << " }";
 }
 
      Offset tryStart_;

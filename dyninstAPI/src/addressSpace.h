@@ -249,6 +249,7 @@ class AddressSpace : public InstructionSource {
     func_instance *findOneFuncByAddr(Address addr);
     // And the one thing that is unique: entry address!
     func_instance *findFuncByEntry(Address addr);
+    block_instance *findBlockByEntry(Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
     func_instance *findFunction(parse_func *ifunc);
@@ -318,7 +319,7 @@ class AddressSpace : public InstructionSource {
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
-    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *original, func_instance *wrapper, SymtabAPI::Symbol *clone);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
 
@@ -449,7 +450,8 @@ class AddressSpace : public InstructionSource {
              const std::set<block_instance*> &delBBIs,
              const std::list<func_instance*> &deadFuncs);
 
-    void addDefensivePad(block_instance *callBlock, Address padStart, unsigned size);
+    void addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                         Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,
@@ -529,6 +531,7 @@ class AddressSpace : public InstructionSource {
     bool emulatePC_;
 
     bool delayRelocation_;
+
   // PatchAPI stuffs
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }

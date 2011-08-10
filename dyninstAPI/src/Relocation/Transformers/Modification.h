@@ -58,12 +58,13 @@ class Modification : public Transformer {
     typedef Dyninst::PatchAPI::CallModMap CallModMap;
     // func -> func
     typedef Dyninst::PatchAPI::FuncModMap FuncModMap;
+    typedef Dyninst::PatchAPI::FuncWrapMap FuncWrapMap;
 
     virtual bool process(RelocBlock *cur, RelocGraph *);
 
     Modification(const CallModMap &callRepl,
                  const FuncModMap &funcRepl,
-                 const FuncModMap &funcWrap);
+                 const FuncWrapMap &funcWrap);
 
     virtual ~Modification() {};
 
@@ -77,7 +78,7 @@ class Modification : public Transformer {
 
     const CallModMap &callMods_;
     const FuncModMap &funcReps_;
-    const FuncModMap &funcWraps_;
+    const FuncWrapMap &funcWraps_;
 
     struct WrapperPredicate {
        WrapperPredicate(func_instance *f);
@@ -86,12 +87,13 @@ class Modification : public Transformer {
     };
 
     struct WrapperPatch : public Patch {
-      WrapperPatch(func_instance *func) : func_(func) {};
+      WrapperPatch(func_instance *func, std::string name) : func_(func), name_(name) {};
        virtual bool apply(codeGen &gen, CodeBuffer *buf);
        virtual unsigned estimate(codeGen &) { return 0; }
        virtual ~WrapperPatch() {};
 
        func_instance *func_;
+       std::string name_;
     };
     
   };

@@ -45,6 +45,8 @@
 
 #include "Parsing.h"
 
+#include "binaryEdit.h"
+
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::Relocation;
@@ -565,29 +567,30 @@ block_instance *func_instance::getBlock(const Address addr) {
 
 using namespace SymtabAPI;
 
-bool func_instance::callWrappedFunction(func_instance *target) {
+bool func_instance::addSymbolsForCopy() {
    // Not implemented for dynamic mode
    if (proc()->proc()) return false;
    // And not implemented for same-module
-   if (obj() == target->obj()) return false;
+
    // Get the old symbol
-   Symbol *oldsym = target->getRelocSymbol();
+   Symbol *oldsym = getRelocSymbol();
 
    // Get the new symbol
-   Symbol *wrapperSym = target->getWrapperSymbol();
+   Symbol *wrapperSym = getWrapperSymbol();
    if (!wrapperSym) {
       return false;
    }
-
    // Now we split. If this is a static binary, we want to point all the relocations
    // in this function at the new symbol. If it's a dynamic binary, we can just relocate
    // the daylights out of it.
-   if (obj()->isStaticExec() || target->obj()->isStaticExec() ) {
+   if (obj()->isStaticExec()) {
+      proc()->edit()->addDyninstSymbol(wrapperSym_);
       if (!updateRelocationsToSym(oldsym, wrapperSym)) return false;
    }
    else {
-      // Not implemented yet
-      return false;
+      // I think we just add this to the dynamic symbol table...
+      wrapperSym->setDynamic(true);
+      proc()->edit()->addDyninstSymbol(wrapperSym_);
    }
 
    return true;
@@ -635,17 +638,14 @@ Symbol *func_instance::getRelocSymbol() {
    return referring;
 }
 
-void func_instance::createWrapperSymbol(Address entry) {
+void func_instance::createWrapperSymbol(Address entry, std::string name) {
    if (wrapperSym_) {
       // Just update the address
       wrapperSym_->setOffset(entry);
       return;
    }
    // Otherwise we need to create a new symbol
-   std::string wrapperName = name();
-   wrapperName += "_dyninst_wrapper";
-
-   wrapperSym_ = new Symbol(wrapperName,
+   wrapperSym_ = new Symbol(name,
                             Symbol::ST_FUNCTION,
                             Symbol::SL_GLOBAL,
                             Symbol::SV_DEFAULT,
@@ -655,7 +655,6 @@ void func_instance::createWrapperSymbol(Address entry) {
                             0, // size - zero okay?
                             false, // Definitely not dynamic ("Static binaries don't have dynamic symbols - Dan")
                             false); // Definitely not absolute
-   obj()->parse_img()->getObject()->addSymbol(wrapperSym_);
 
 }
 

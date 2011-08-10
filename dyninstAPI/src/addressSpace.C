@@ -198,11 +198,11 @@ void AddressSpace::copyAddressSpace(process *parent) {
       frm[from] = to;
     }
 
-    PatchAPI::FuncModMap& fwm = parent->mgr()->instrumenter()->funcWrapMap();
-    for (PatchAPI::FuncModMap::iterator iter = fwm.begin(); iter != fwm.end(); ++iter) {
+    PatchAPI::FuncWrapMap& fwm = parent->mgr()->instrumenter()->funcWrapMap();
+    for (PatchAPI::FuncWrapMap::iterator iter = fwm.begin(); iter != fwm.end(); ++iter) {
       func_instance *from = findFunction(SCAST_FI(iter->first)->ifunc());
-      func_instance *to = findFunction(SCAST_FI(iter->second)->ifunc());
-      fwm[from] = to;
+      func_instance *to = findFunction(SCAST_FI(iter->second.first)->ifunc());
+      fwm[from] = std::make_pair(to, iter->second.second);
     }
 
     if (memEmulator_) assert(0 && "FIXME!");
@@ -211,38 +211,38 @@ void AddressSpace::copyAddressSpace(process *parent) {
 }
 
 void AddressSpace::deleteAddressSpace() {
-    // Methodically clear everything we have - it all went away
-    // We have the following member variables:
+   // Methodically clear everything we have - it all went away
+   // We have the following member variables:
 
-    // bool heapInitialized_
-    // inferiorHeap heap_
+   // bool heapInitialized_
+   // inferiorHeap heap_
 
-    heapInitialized_ = false;
-    heap_.clear();
-    for (unsigned i = 0; i < mapped_objects.size(); i++) 
-        delete mapped_objects[i];
+   heapInitialized_ = false;
+   heap_.clear();
+   for (unsigned i = 0; i < mapped_objects.size(); i++) 
+      delete mapped_objects[i];
 
-    mapped_objects.clear();
+   mapped_objects.clear();
 
-    runtime_lib.clear();
+   runtime_lib.clear();
 
-    trampGuardBase_ = NULL;
-    trampGuardAST_ = AstNodePtr();
+   trampGuardBase_ = NULL;
+   trampGuardAST_ = AstNodePtr();
 
-    // up_ptr_ is untouched
-    costAddr_ = 0;
-    for (CodeTrackers::iterator iter = relocatedCode_.begin(); 
-	 iter != relocatedCode_.end(); ++iter) {
-       delete *iter;
-    }
-    relocatedCode_.clear();
-    modifiedFunctions_.clear();
-    forwardDefensiveMap_.clear();
-    reverseDefensiveMap_.clear();
-    instrumentationInstances_.clear();
+   // up_ptr_ is untouched
+   costAddr_ = 0;
+   for (CodeTrackers::iterator iter = relocatedCode_.begin(); 
+        iter != relocatedCode_.end(); ++iter) {
+      delete *iter;
+   }
+   relocatedCode_.clear();
+   modifiedFunctions_.clear();
+   forwardDefensiveMap_.clear();
+   reverseDefensiveMap_.clear();
+   instrumentationInstances_.clear();
 
-    if (memEmulator_) delete memEmulator_;
-    memEmulator_ = NULL;
+   if (memEmulator_) delete memEmulator_;
+   memEmulator_ = NULL;
 }
 
 
@@ -250,11 +250,11 @@ void AddressSpace::deleteAddressSpace() {
 // Returns the named symbol from the image or a shared object
 bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
 {
-  for (unsigned i = 0; i < mapped_objects.size(); i++) {
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
       if (mapped_objects[i]->getSymbolInfo( name, ret ))
-          return true;
-  }
-  return false;
+         return true;
+   }
+   return false;
 }
 
 bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
@@ -282,322 +282,322 @@ void AddressSpace::inferiorFreeCompact() {
 #endif
 
 
-  /* combine adjacent buffers */
-  bool needToCompact = false;
-  for (i = 1; i < freeList.size(); i++) {
+   /* combine adjacent buffers */
+   bool needToCompact = false;
+   for (i = 1; i < freeList.size(); i++) {
       heapItem *h1 = freeList[i-1];
       heapItem *h2 = freeList[i];
       assert(h1->length != 0);
       if (h1->addr + h1->length > h2->addr) {
-          fprintf(stderr, "Error: heap 1 (%p) (0x%p to 0x%p) overlaps heap 2 (%p) (0x%p to 0x%p)\n",
-                  h1,
-                  (void *)h1->addr, (void *)(h1->addr + h1->length),
-                  h2,
-                  (void *)h2->addr, (void *)(h2->addr + h2->length));
+         fprintf(stderr, "Error: heap 1 (%p) (0x%p to 0x%p) overlaps heap 2 (%p) (0x%p to 0x%p)\n",
+                 h1,
+                 (void *)h1->addr, (void *)(h1->addr + h1->length),
+                 h2,
+                 (void *)h2->addr, (void *)(h2->addr + h2->length));
       }
       assert(h1->addr + h1->length <= h2->addr);
       if (h1->addr + h1->length == h2->addr
           && h1->type == h2->type) {
-          h2->addr = h1->addr;
-          h2->length = h1->length + h2->length;
-          h1->length = 0;
-          nbuf--;
-          needToCompact = true;
+         h2->addr = h1->addr;
+         h2->length = h1->length + h2->length;
+         h1->length = 0;
+         nbuf--;
+         needToCompact = true;
       }
-  }
+   }
 
-  /* remove any absorbed (empty) buffers */ 
-  if (needToCompact) {
-    pdvector<heapItem *> cleanList;
-    unsigned end = freeList.size();
-    for (i = 0; i < end; i++) {
-      heapItem *h1 = freeList[i];
-      if (h1->length != 0) {
-        cleanList.push_back(h1);
-      } else {
-        delete h1;
+   /* remove any absorbed (empty) buffers */ 
+   if (needToCompact) {
+      pdvector<heapItem *> cleanList;
+      unsigned end = freeList.size();
+      for (i = 0; i < end; i++) {
+         heapItem *h1 = freeList[i];
+         if (h1->length != 0) {
+            cleanList.push_back(h1);
+         } else {
+            delete h1;
+         }
       }
-    }
-    assert(cleanList.size() == nbuf);
-    for (i = 0; i < nbuf; i++) {
-      freeList[i] = cleanList[i];
-    }
-    freeList.resize(nbuf);
-    assert(freeList.size() == nbuf);
-  }
+      assert(cleanList.size() == nbuf);
+      for (i = 0; i < nbuf; i++) {
+         freeList[i] = cleanList[i];
+      }
+      freeList.resize(nbuf);
+      assert(freeList.size() == nbuf);
+   }
 }
     
 int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi) {
-    // type is a bitmask: match on any bit in the mask
-    pdvector<heapItem *> &freeList = heap_.heapFree;
+   // type is a bitmask: match on any bit in the mask
+   pdvector<heapItem *> &freeList = heap_.heapFree;
     
-    int best = -1;
-    for (unsigned i = 0; i < freeList.size(); i++) {
-        heapItem *h = freeList[i];
-        // check if free block matches allocation constraints
-        // Split out to facilitate debugging
-        infmalloc_printf("%s[%d]: comparing heap %d: 0x%lx-0x%lx/%d to desired %d bytes in 0x%lx-0x%lx/%d\n",
-                         FILE__, __LINE__, 
-                         i,
-                         h->addr, 
-                         h->addr + h->length,
-                         h->type,
-                         size,
-                         lo, 
-                         hi,
-                         type);
-        if (h->addr >= lo &&
-            (h->addr + size - 1) <= hi &&
-            h->length >= size &&
-            h->type & type) {
-            if (best == -1)
-                best = i;
-            // check for better match
-            if (h->length < freeList[best]->length) best = i;
-        }
-    }
-    infmalloc_printf("%s[%d]: returning match %d\n", FILE__, __LINE__, best);
-    return best;
+   int best = -1;
+   for (unsigned i = 0; i < freeList.size(); i++) {
+      heapItem *h = freeList[i];
+      // check if free block matches allocation constraints
+      // Split out to facilitate debugging
+      infmalloc_printf("%s[%d]: comparing heap %d: 0x%lx-0x%lx/%d to desired %d bytes in 0x%lx-0x%lx/%d\n",
+                       FILE__, __LINE__, 
+                       i,
+                       h->addr, 
+                       h->addr + h->length,
+                       h->type,
+                       size,
+                       lo, 
+                       hi,
+                       type);
+      if (h->addr >= lo &&
+          (h->addr + size - 1) <= hi &&
+          h->length >= size &&
+          h->type & type) {
+         if (best == -1)
+            best = i;
+         // check for better match
+         if (h->length < freeList[best]->length) best = i;
+      }
+   }
+   infmalloc_printf("%s[%d]: returning match %d\n", FILE__, __LINE__, best);
+   return best;
 }
 
 void AddressSpace::addHeap(heapItem *h) {
-    heap_.bufferPool.push_back(h);
-    heapItem *h2 = new heapItem(h);
-    h2->status = HEAPfree;
-    heap_.heapFree.push_back(h2);
-    heap_.totalFreeMemAvailable += h2->length;
+   heap_.bufferPool.push_back(h);
+   heapItem *h2 = new heapItem(h);
+   h2->status = HEAPfree;
+   heap_.heapFree.push_back(h2);
+   heap_.totalFreeMemAvailable += h2->length;
 
-    if (h->dynamic) {
-       addAllocatedRegion(h->addr, h->length);
-    }
+   if (h->dynamic) {
+      addAllocatedRegion(h->addr, h->length);
+   }
 }
 
 void AddressSpace::initializeHeap() {
-    // (re)initialize everything 
-    heap_.heapActive.clear();
-    heap_.heapFree.resize(0);
-    heap_.disabledList.resize(0);
-    heap_.disabledListTotalMem = 0;
-    heap_.freed = 0;
-    heap_.totalFreeMemAvailable = 0;
+   // (re)initialize everything 
+   heap_.heapActive.clear();
+   heap_.heapFree.resize(0);
+   heap_.disabledList.resize(0);
+   heap_.disabledListTotalMem = 0;
+   heap_.freed = 0;
+   heap_.totalFreeMemAvailable = 0;
 
-    heapInitialized_ = true;
+   heapInitialized_ = true;
 }
 
 /* returns true if memory was allocated for a variable starting at address
    "block", otherwise returns false
 */
 bool AddressSpace::isInferiorAllocated(Address block) {
-    heapItem *h = NULL;  
-    return heap_.heapActive.find(block, h);
+   heapItem *h = NULL;  
+   return heap_.heapActive.find(block, h);
 }
 
 Address AddressSpace::inferiorMallocInternal(unsigned size,
                                              Address lo,
                                              Address hi,
                                              inferiorHeapType type) {
-    infmalloc_printf("%s[%d]: inferiorMallocInternal, %d bytes, type %d, between 0x%lx - 0x%lx\n",
-                     FILE__, __LINE__, size, type, lo, hi);
-    int freeIndex = findFreeIndex(size, type, lo, hi);
-    if (freeIndex == -1) return 0; // Failure is often an option
+   infmalloc_printf("%s[%d]: inferiorMallocInternal, %d bytes, type %d, between 0x%lx - 0x%lx\n",
+                    FILE__, __LINE__, size, type, lo, hi);
+   int freeIndex = findFreeIndex(size, type, lo, hi);
+   if (freeIndex == -1) return 0; // Failure is often an option
 
 
-    // adjust active and free lists
-    assert(freeIndex != -1);
-    heapItem *h = heap_.heapFree[freeIndex];
-    assert(h);
+   // adjust active and free lists
+   assert(freeIndex != -1);
+   heapItem *h = heap_.heapFree[freeIndex];
+   assert(h);
     
-    // remove allocated buffer from free list
-    if (h->length != size) {
-        // size mismatch: put remainder of block on free list
-        heapItem *rem = new heapItem(h);
-        rem->addr += size;
-        rem->length -= size;
-        heap_.heapFree[freeIndex] = rem;
-    } else {
-        // size match: remove entire block from free list
-        unsigned last = heap_.heapFree.size();
-        heap_.heapFree[freeIndex] = heap_.heapFree[last-1];
-        heap_.heapFree.resize(last-1);
-    }
-    // add allocated block to active list
-    h->length = size;
-    h->status = HEAPallocated;
-    heap_.heapActive[h->addr] = h;
-    // bookkeeping
-    heap_.totalFreeMemAvailable -= size;
-    assert(h->addr);
+   // remove allocated buffer from free list
+   if (h->length != size) {
+      // size mismatch: put remainder of block on free list
+      heapItem *rem = new heapItem(h);
+      rem->addr += size;
+      rem->length -= size;
+      heap_.heapFree[freeIndex] = rem;
+   } else {
+      // size match: remove entire block from free list
+      unsigned last = heap_.heapFree.size();
+      heap_.heapFree[freeIndex] = heap_.heapFree[last-1];
+      heap_.heapFree.resize(last-1);
+   }
+   // add allocated block to active list
+   h->length = size;
+   h->status = HEAPallocated;
+   heap_.heapActive[h->addr] = h;
+   // bookkeeping
+   heap_.totalFreeMemAvailable -= size;
+   assert(h->addr);
     
-    return(h->addr);
+   return(h->addr);
 }
 
 void AddressSpace::inferiorFreeInternal(Address block) {
-    // find block on active list
-    infmalloc_printf("%s[%d]: inferiorFree for block at 0x%lx\n", FILE__, __LINE__, block);
-    heapItem *h = NULL;  
-    if (!heap_.heapActive.find(block, h)) {
-        // We can do this if we're at process teardown.
-        return;
-    }
-    assert(h);
+   // find block on active list
+   infmalloc_printf("%s[%d]: inferiorFree for block at 0x%lx\n", FILE__, __LINE__, block);
+   heapItem *h = NULL;  
+   if (!heap_.heapActive.find(block, h)) {
+      // We can do this if we're at process teardown.
+      return;
+   }
+   assert(h);
     
-    // Remove from the active list
-    heap_.heapActive.undef(block);
+   // Remove from the active list
+   heap_.heapActive.undef(block);
     
-    // Add to the free list
-    h->status = HEAPfree;
-    heap_.heapFree.push_back(h);
-    heap_.totalFreeMemAvailable += h->length;
-    heap_.freed += h->length;
-    infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %d bytes, type %d\n",
-                     FILE__, __LINE__,
-                     h->addr,
-                     h->addr + h->length,
-                     h->length,
-                     h->type);
+   // Add to the free list
+   h->status = HEAPfree;
+   heap_.heapFree.push_back(h);
+   heap_.totalFreeMemAvailable += h->length;
+   heap_.freed += h->length;
+   infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %d bytes, type %d\n",
+                    FILE__, __LINE__,
+                    h->addr,
+                    h->addr + h->length,
+                    h->length,
+                    h->type);
 }
 
 void AddressSpace::inferiorMallocAlign(unsigned &size) {
-    // Align to the process word
-    unsigned alignment = (getAddressWidth() - 1);
-    size = (size + alignment) & ~alignment;
+   // Align to the process word
+   unsigned alignment = (getAddressWidth() - 1);
+   size = (size + alignment) & ~alignment;
 }
     
 bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
 #if defined (cap_dynamic_heap)
-    // This is why it's not a reference...
-    inferiorMallocAlign(newSize);
+   // This is why it's not a reference...
+   inferiorMallocAlign(newSize);
 #endif
     
-    infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
-                     FILE__, __LINE__, block, newSize);
+   infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
+                    FILE__, __LINE__, block, newSize);
 
-    // find block on active list
-    heapItem *h = NULL;  
-    if (!heap_.heapActive.find(block, h)) {
-        // We can do this if we're at process teardown.
-        infmalloc_printf("%s[%d]: inferiorRealloc unable to find block, returning\n", FILE__, __LINE__);
-        return false;
-    }
-    assert(h);
-    infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
-                     FILE__, __LINE__, h->addr, h->length);
+   // find block on active list
+   heapItem *h = NULL;  
+   if (!heap_.heapActive.find(block, h)) {
+      // We can do this if we're at process teardown.
+      infmalloc_printf("%s[%d]: inferiorRealloc unable to find block, returning\n", FILE__, __LINE__);
+      return false;
+   }
+   assert(h);
+   infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
+                    FILE__, __LINE__, h->addr, h->length);
 
-    if (h->length == newSize)
+   if (h->length == newSize)
       return true;
-    else if (h->length > newSize) {
+   else if (h->length > newSize) {
       // Shrink the block
       return inferiorShrinkBlock(h, block, newSize);
-    }
-    else {
+   }
+   else {
       // See if we can grow this block
       return inferiorExpandBlock(h, block, newSize);
-    }
+   }
 }
 
 bool AddressSpace::inferiorShrinkBlock(heapItem *h, 
 				       Address block, 
 				       unsigned newSize) {
 
-    // We make a new "free" block that is the end of this one.
-    Address freeStart = block + newSize;
-    Address succAddr = h->addr + h->length;
-    int shrink = h->length - newSize;
+   // We make a new "free" block that is the end of this one.
+   Address freeStart = block + newSize;
+   Address succAddr = h->addr + h->length;
+   int shrink = h->length - newSize;
     
-    assert(shrink > 0);
+   assert(shrink > 0);
     
-    h->length = newSize;
+   h->length = newSize;
     
-    // New speedy way. Find the block that is the successor of the
-    // active block; if it exists, simply enlarge it "downwards". Otherwise,
-    // make a new block. 
-    heapItem *succ = NULL;
-    for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
-        heapItem *tmp = heap_.heapFree[i];
-        assert(tmp);
-        if (tmp->addr == succAddr) {
-            succ = tmp;
-            break;
-        }
-    }
-    if (succ != NULL) {
-        infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%d), new 0x%lx - 0x%lx (%d)\n",
-                         FILE__, __LINE__,
-                         succ->addr,
-                         succ->addr + succ->length,
-                         succ->addr,
-                         succ->addr - shrink,
-                         succ->addr + succ->length,
-                         succ->length + shrink);
+   // New speedy way. Find the block that is the successor of the
+   // active block; if it exists, simply enlarge it "downwards". Otherwise,
+   // make a new block. 
+   heapItem *succ = NULL;
+   for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+      heapItem *tmp = heap_.heapFree[i];
+      assert(tmp);
+      if (tmp->addr == succAddr) {
+         succ = tmp;
+         break;
+      }
+   }
+   if (succ != NULL) {
+      infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%d), new 0x%lx - 0x%lx (%d)\n",
+                       FILE__, __LINE__,
+                       succ->addr,
+                       succ->addr + succ->length,
+                       succ->addr,
+                       succ->addr - shrink,
+                       succ->addr + succ->length,
+                       succ->length + shrink);
 
 
-        succ->addr -= shrink;
-        succ->length += shrink;
-    }
-    else {
-        // Must make a new block to represent the free memory
-        infmalloc_printf("%s[%d]: inferiorRealloc: creating new block 0x%lx to 0x%lx (%d), type %d\n",
-                         FILE__, __LINE__, 
-                         freeStart, 
-                         freeStart + shrink,
-                         shrink,
-                         h->type);
+      succ->addr -= shrink;
+      succ->length += shrink;
+   }
+   else {
+      // Must make a new block to represent the free memory
+      infmalloc_printf("%s[%d]: inferiorRealloc: creating new block 0x%lx to 0x%lx (%d), type %d\n",
+                       FILE__, __LINE__, 
+                       freeStart, 
+                       freeStart + shrink,
+                       shrink,
+                       h->type);
 
-        heapItem *freeEnd = new heapItem(freeStart,
-                                         shrink,
-                                         h->type,
-                                         h->dynamic,
-                                         HEAPfree);
-        heap_.heapFree.push_back(freeEnd);
-    }
+      heapItem *freeEnd = new heapItem(freeStart,
+                                       shrink,
+                                       h->type,
+                                       h->dynamic,
+                                       HEAPfree);
+      heap_.heapFree.push_back(freeEnd);
+   }
 
-    heap_.totalFreeMemAvailable += shrink;
-    heap_.freed += shrink;
+   heap_.totalFreeMemAvailable += shrink;
+   heap_.freed += shrink;
 
-    return true;
+   return true;
 }    
 
 bool AddressSpace::inferiorExpandBlock(heapItem *h, 
 				       Address, 
 				       unsigned newSize) {
-  // We attempt to find a free block that immediately succeeds
-  // this one. If we find such a block we expand this block into
-  // the next; if this is possible we return true. Otherwise
-  // we return false.
+   // We attempt to find a free block that immediately succeeds
+   // this one. If we find such a block we expand this block into
+   // the next; if this is possible we return true. Otherwise
+   // we return false.
 
-  Address succAddr = h->addr + h->length;
-  int expand = newSize - h->length;
-  assert(expand > 0);
+   Address succAddr = h->addr + h->length;
+   int expand = newSize - h->length;
+   assert(expand > 0);
     
-  // New speedy way. Find the block that is the successor of the
-  // active block; if it exists, simply enlarge it "downwards". Otherwise,
-  // make a new block. 
-  heapItem *succ = NULL;
-  for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
-    heapItem *tmp = heap_.heapFree[i];
-    assert(tmp);
-    if (tmp->addr == succAddr) {
-      succ = tmp;
-      break;
-    }
-  }
-  if (succ != NULL) {
-    if (succ->length < (unsigned) expand) {
-      // Can't fit
+   // New speedy way. Find the block that is the successor of the
+   // active block; if it exists, simply enlarge it "downwards". Otherwise,
+   // make a new block. 
+   heapItem *succ = NULL;
+   for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+      heapItem *tmp = heap_.heapFree[i];
+      assert(tmp);
+      if (tmp->addr == succAddr) {
+         succ = tmp;
+         break;
+      }
+   }
+   if (succ != NULL) {
+      if (succ->length < (unsigned) expand) {
+         // Can't fit
+         return false;
+      }
+      Address newFreeBase = succAddr + expand;
+      int newFreeLen = succ->length - expand;
+      succ->addr = newFreeBase;
+      succ->length = newFreeLen;
+   }
+   else {
       return false;
-    }
-    Address newFreeBase = succAddr + expand;
-    int newFreeLen = succ->length - expand;
-    succ->addr = newFreeBase;
-    succ->length = newFreeLen;
-  }
-  else {
-    return false;
-  }
+   }
 
-  heap_.totalFreeMemAvailable -= expand;
+   heap_.totalFreeMemAvailable -= expand;
   
-  return true;
+   return true;
 }    
 
 /////////////////////////////////////////
@@ -605,97 +605,97 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
 /////////////////////////////////////////
 
 bool AddressSpace::findFuncsByAll(const std::string &funcname,
-                             pdvector<func_instance *> &res,
-                             const std::string &libname) { // = "", btw
+                                  pdvector<func_instance *> &res,
+                                  const std::string &libname) { // = "", btw
     
-    unsigned starting_entries = res.size(); // We'll return true if we find something
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname.c_str() ||
-            mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
+   unsigned starting_entries = res.size(); // We'll return true if we find something
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      if (libname == "" ||
+          mapped_objects[i]->fileName() == libname.c_str() ||
+          mapped_objects[i]->fullName() == libname.c_str()) {
+         const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+         if (pretty) {
+            // We stop at first match...
+            for (unsigned pm = 0; pm < pretty->size(); pm++) {
+               res.push_back((*pretty)[pm]);
             }
-            else {
-                const pdvector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
-                if (mangled) {
-                    for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                        res.push_back((*mangled)[mm]);
-                    }
-                }
+         }
+         else {
+            const pdvector<func_instance *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
+            if (mangled) {
+               for (unsigned mm = 0; mm < mangled->size(); mm++) {
+                  res.push_back((*mangled)[mm]);
+               }
             }
-        }
-    }
+         }
+      }
+   }
 
-    return (res.size() != starting_entries);
+   return (res.size() != starting_entries);
 }
 
 
 bool AddressSpace::findFuncsByPretty(const std::string &funcname,
-                             pdvector<func_instance *> &res,
-                             const std::string &libname) { // = "", btw
+                                     pdvector<func_instance *> &res,
+                                     const std::string &libname) { // = "", btw
 
-    unsigned starting_entries = res.size(); // We'll return true if we find something
+   unsigned starting_entries = res.size(); // We'll return true if we find something
 
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname.c_str() ||
-            mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      if (libname == "" ||
+          mapped_objects[i]->fileName() == libname.c_str() ||
+          mapped_objects[i]->fullName() == libname.c_str()) {
+         const pdvector<func_instance *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
+         if (pretty) {
+            // We stop at first match...
+            for (unsigned pm = 0; pm < pretty->size(); pm++) {
+               res.push_back((*pretty)[pm]);
             }
-        }
-    }
-    return res.size() != starting_entries;
+         }
+      }
+   }
+   return res.size() != starting_entries;
 }
 
 
 bool AddressSpace::findFuncsByMangled(const std::string &funcname,
-                                 pdvector<func_instance *> &res,
-                                 const std::string &libname) { // = "", btw
-    unsigned starting_entries = res.size(); // We'll return true if we find something
+                                      pdvector<func_instance *> &res,
+                                      const std::string &libname) { // = "", btw
+   unsigned starting_entries = res.size(); // We'll return true if we find something
 
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname.c_str() ||
-            mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<func_instance *> *mangled = 
-               mapped_objects[i]->findFuncVectorByMangled(funcname);
-            if (mangled) {
-                for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                   res.push_back((*mangled)[mm]);
-                }
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      if (libname == "" ||
+          mapped_objects[i]->fileName() == libname.c_str() ||
+          mapped_objects[i]->fullName() == libname.c_str()) {
+         const pdvector<func_instance *> *mangled = 
+            mapped_objects[i]->findFuncVectorByMangled(funcname);
+         if (mangled) {
+            for (unsigned mm = 0; mm < mangled->size(); mm++) {
+               res.push_back((*mangled)[mm]);
             }
-        }
-    }
-    return res.size() != starting_entries;
+         }
+      }
+   }
+   return res.size() != starting_entries;
 }
 
 func_instance *AddressSpace::findOnlyOneFunction(const string &name,
-                                                const string &lib,
-                                                bool /*search_rt_lib*/) 
+                                                 const string &lib,
+                                                 bool /*search_rt_lib*/) 
 {
-    assert(mapped_objects.size());
+   assert(mapped_objects.size());
 
-    pdvector<func_instance *> allFuncs;
+   pdvector<func_instance *> allFuncs;
 
-    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
-        return NULL;
+   if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
+      return NULL;
 
-    if (allFuncs.size() > 1) 
-    {
-        //cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
-    }
+   if (allFuncs.size() > 1) 
+   {
+      //cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
+   }
 
-    return allFuncs[0];
+   return allFuncs[0];
 }
 
 /////////////////////////////////////////
@@ -703,33 +703,33 @@ func_instance *AddressSpace::findOnlyOneFunction(const string &name,
 /////////////////////////////////////////
 
 bool AddressSpace::findVarsByAll(const std::string &varname,
-                            pdvector<int_variable *> &res,
-                            const std::string &libname) { // = "", btw
-    unsigned starting_entries = res.size(); // We'll return true if we find something
+                                 pdvector<int_variable *> &res,
+                                 const std::string &libname) { // = "", btw
+   unsigned starting_entries = res.size(); // We'll return true if we find something
     
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname.c_str() ||
-            mapped_objects[i]->fullName() == libname.c_str()) {
-            const pdvector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      if (libname == "" ||
+          mapped_objects[i]->fileName() == libname.c_str() ||
+          mapped_objects[i]->fullName() == libname.c_str()) {
+         const pdvector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
+         if (pretty) {
+            // We stop at first match...
+            for (unsigned pm = 0; pm < pretty->size(); pm++) {
+               res.push_back((*pretty)[pm]);
             }
-            else {
-                const pdvector<int_variable *> *mangled = mapped_objects[i]->findVarVectorByMangled(varname);
-                if (mangled) {
-                    for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                        res.push_back((*mangled)[mm]);
-                    }
-                }
+         }
+         else {
+            const pdvector<int_variable *> *mangled = mapped_objects[i]->findVarVectorByMangled(varname);
+            if (mangled) {
+               for (unsigned mm = 0; mm < mangled->size(); mm++) {
+                  res.push_back((*mangled)[mm]);
+               }
             }
-        }
-    }
+         }
+      }
+   }
 
-    return res.size() != starting_entries;
+   return res.size() != starting_entries;
 }
 
 
@@ -740,13 +740,13 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 // TODO: is this really worth it? Or should we just use ptrace?
 
 void *AddressSpace::getPtrToInstruction(const Address addr) const {
-    mapped_object *obj = findObject(addr);
-    if (obj) return obj->getPtrToInstruction(addr);
+   mapped_object *obj = findObject(addr);
+   if (obj) return obj->getPtrToInstruction(addr);
 
-    fprintf(stderr,"[%s:%d] failed to find matching range for address %lx\n",
-        FILE__,__LINE__,addr);
-    assert(0);
-    return NULL;
+   fprintf(stderr,"[%s:%d] failed to find matching range for address %lx\n",
+           FILE__,__LINE__,addr);
+   assert(0);
+   return NULL;
 }
 
 bool AddressSpace::isCode(const Address addr) const {
@@ -784,41 +784,41 @@ bool AddressSpace::isValidAddress(const Address addr) const {
 }
 
 mapped_object *AddressSpace::findObject(Address addr) const {
-    for (unsigned i=0; i<mapped_objects.size(); i++)
-    {
-        Address objStart = mapped_objects[i]->codeAbs();
-        Address objEnd; // calculate objEnd
-        if (BPatch_defensiveMode == mapped_objects[i]->hybridMode()) {
-            objEnd = mapped_objects[i]->memoryEnd();
-        } else {
-            objEnd = objStart + mapped_objects[i]->imageSize();
-        }
+   for (unsigned i=0; i<mapped_objects.size(); i++)
+   {
+      Address objStart = mapped_objects[i]->codeAbs();
+      Address objEnd; // calculate objEnd
+      if (BPatch_defensiveMode == mapped_objects[i]->hybridMode()) {
+         objEnd = mapped_objects[i]->memoryEnd();
+      } else {
+         objEnd = objStart + mapped_objects[i]->imageSize();
+      }
 
-        if (addr >= objStart && addr < objEnd)
-        {
-            return mapped_objects[i];
-        }
-    }
-    return NULL;
+      if (addr >= objStart && addr < objEnd)
+      {
+         return mapped_objects[i];
+      }
+   }
+   return NULL;
 }
 
 mapped_object *AddressSpace::findObject(const ParseAPI::CodeObject *co) const {
-    mapped_object *obj = 
-        findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
-            getSymtabObject()->file());
-    return obj;
+   mapped_object *obj = 
+      findObject(static_cast<ParseAPI::SymtabCodeSource*>(co->cs())->
+                 getSymtabObject()->file());
+   return obj;
 }
 
 func_instance *AddressSpace::findFunction(parse_func *ifunc) {
-    assert(ifunc);
+   assert(ifunc);
 
-    return findObject(ifunc->obj())->findFunction(ifunc);
+   return findObject(ifunc->obj())->findFunction(ifunc);
 }
 
 block_instance *AddressSpace::findBlock(parse_block *iblk) {
-    assert(iblk);
+   assert(iblk);
 
-    return findObject(iblk->obj())->findBlock(iblk);
+   return findObject(iblk->obj())->findBlock(iblk);
 }
 
 edge_instance *AddressSpace::findEdge(ParseAPI::Edge *iedge) {
@@ -831,63 +831,63 @@ edge_instance *AddressSpace::findEdge(ParseAPI::Edge *iedge) {
 // images for this resource
 mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildcard)
 {
-    // KLUDGE: first search any shared libraries for the module name 
-    //  (there is only one module in each shared library, and that 
-    //  is the library name)
-    for(u_int j=0; j < mapped_objects.size(); j++){
-        mapped_module *mod = mapped_objects[j]->findModule(mod_name.c_str(), wildcard);
-        if (mod) {
-            return (mod);
-        }
-    }
-    return NULL;
+   // KLUDGE: first search any shared libraries for the module name 
+   //  (there is only one module in each shared library, and that 
+   //  is the library name)
+   for(u_int j=0; j < mapped_objects.size(); j++){
+      mapped_module *mod = mapped_objects[j]->findModule(mod_name.c_str(), wildcard);
+      if (mod) {
+         return (mod);
+      }
+   }
+   return NULL;
 }
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
 {
-    for(u_int j=0; j < mapped_objects.size(); j++){
-        if (mapped_objects[j]->fileName() == obj_name.c_str() ||
-            mapped_objects[j]->fullName() == obj_name.c_str() ||
-           (wildcard &&
-             (wildcardEquiv(obj_name, mapped_objects[j]->fileName()) ||
-              wildcardEquiv(obj_name, mapped_objects[j]->fullName()))))
-            return mapped_objects[j];
-    }
-    return NULL;
+   for(u_int j=0; j < mapped_objects.size(); j++){
+      if (mapped_objects[j]->fileName() == obj_name.c_str() ||
+          mapped_objects[j]->fullName() == obj_name.c_str() ||
+          (wildcard &&
+           (wildcardEquiv(obj_name, mapped_objects[j]->fileName()) ||
+            wildcardEquiv(obj_name, mapped_objects[j]->fullName()))))
+         return mapped_objects[j];
+   }
+   return NULL;
 }
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(fileDescriptor desc) const
 {
-    for(u_int j=0; j < mapped_objects.size(); j++){
-       if (desc == mapped_objects[j]->getFileDesc()) 
-            return mapped_objects[j];
-    }
-    return NULL;
+   for(u_int j=0; j < mapped_objects.size(); j++){
+      if (desc == mapped_objects[j]->getFileDesc()) 
+         return mapped_objects[j];
+   }
+   return NULL;
 }
 
 // getAllFunctions: returns a vector of all functions defined in the
 // a.out and in the shared objects
 
 void AddressSpace::getAllFunctions(pdvector<func_instance *> &funcs) {
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        mapped_objects[i]->getAllFunctions(funcs);
-    }
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      mapped_objects[i]->getAllFunctions(funcs);
+   }
 }
       
 // getAllModules: returns a vector of all modules defined in the
 // a.out and in the shared objects
 
 void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        const pdvector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
-        for (unsigned j = 0; j < obj_mods.size(); j++) {
-            mods.push_back(obj_mods[j]);
-        }
-    }
+   for (unsigned i = 0; i < mapped_objects.size(); i++) {
+      const pdvector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
+      for (unsigned j = 0; j < obj_mods.size(); j++) {
+         mods.push_back(obj_mods[j]);
+      }
+   }
 }
 
 //Acts like findTargetFuncByAddr, but also finds the function if addr
@@ -895,51 +895,51 @@ void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
 //I know this is an odd function, but darn I need it.
 func_instance *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 
-    Address addr2 = 0;
-    func_instance *f = findOneFuncByAddr(addr);
-    if (f)
-        return f;
+   Address addr2 = 0;
+   func_instance *f = findOneFuncByAddr(addr);
+   if (f)
+      return f;
 
-    if (!findObject(addr)) return NULL;
+   if (!findObject(addr)) return NULL;
 
-    using namespace Dyninst::InstructionAPI;
-    InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
-            InstructionDecoder::maxInstructionLength,
-            getArch());
-    Instruction::Ptr curInsn = decoder.decode();
+   using namespace Dyninst::InstructionAPI;
+   InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
+                              InstructionDecoder::maxInstructionLength,
+                              getArch());
+   Instruction::Ptr curInsn = decoder.decode();
     
-    Expression::Ptr target = curInsn->getControlFlowTarget();
-    RegisterAST thePC = RegisterAST::makePC(getArch());
-    target->bind(&thePC, Result(u32, addr));
-    Result cft = target->eval();
-    if(cft.defined)
-    {
+   Expression::Ptr target = curInsn->getControlFlowTarget();
+   RegisterAST thePC = RegisterAST::makePC(getArch());
+   target->bind(&thePC, Result(u32, addr));
+   Result cft = target->eval();
+   if(cft.defined)
+   {
       switch(cft.type)
       {
-      case u32:
-	addr2 = cft.val.u32val;
-	break;
-      case s32:
-	addr2 = cft.val.s32val;
-	break;
-      default:
-	assert(!"Not implemented for non-32 bit CFTs yet!");
-	break;
+         case u32:
+            addr2 = cft.val.u32val;
+            break;
+         case s32:
+            addr2 = cft.val.s32val;
+            break;
+         default:
+            assert(!"Not implemented for non-32 bit CFTs yet!");
+            break;
       }
-    }
-    return findOneFuncByAddr(addr2);
+   }
+   return findOneFuncByAddr(addr2);
 }
 
 AstNodePtr AddressSpace::trampGuardAST() {
-    if (!trampGuardBase_) {
-        // Don't have it yet....
-        return AstNodePtr();
-    }
+   if (!trampGuardBase_) {
+      // Don't have it yet....
+      return AstNodePtr();
+   }
 
-    if (trampGuardAST_) return trampGuardAST_;
+   if (trampGuardAST_) return trampGuardAST_;
 
-    trampGuardAST_ = AstNode::operandNode(AstNode::variableAddr, trampGuardBase_->ivar());
-    return trampGuardAST_;
+   trampGuardAST_ = AstNode::operandNode(AstNode::variableAddr, trampGuardBase_->ivar());
+   return trampGuardAST_;
 }
 
 
@@ -962,32 +962,32 @@ trampTrapMappings::trampTrapMappings(AddressSpace *a) :
 
 void trampTrapMappings::copyTrapMappings(trampTrapMappings *parent)
 {
-  needs_updating = parent->needs_updating;
-  trapTableUsed = NULL;
-  trapTableVersion = NULL;
-  trapTable = NULL;
-  trapTableSorted = NULL;
-  table_version = parent->table_version;
-  table_used = parent->table_used;
-  table_allocated = parent->table_allocated;
-  table_mutatee_size = parent->table_mutatee_size;
-  current_table = parent->current_table;
-  mapping = parent->mapping;
+   needs_updating = parent->needs_updating;
+   trapTableUsed = NULL;
+   trapTableVersion = NULL;
+   trapTable = NULL;
+   trapTableSorted = NULL;
+   table_version = parent->table_version;
+   table_used = parent->table_used;
+   table_allocated = parent->table_allocated;
+   table_mutatee_size = parent->table_mutatee_size;
+   current_table = parent->current_table;
+   mapping = parent->mapping;
 }
 
 void trampTrapMappings::clearTrapMappings()
 {
-  needs_updating = false;
-  trapTableUsed = NULL;
-  trapTableVersion = NULL;
-  trapTable = NULL;
-  trapTableSorted = NULL;
-  table_version = 0;
-  table_used = 0;
-  table_allocated = 0;
-  table_mutatee_size = 0;
-  current_table = 0;
-  mapping.clear();
+   needs_updating = false;
+   trapTableUsed = NULL;
+   trapTableVersion = NULL;
+   trapTable = NULL;
+   trapTableSorted = NULL;
+   table_version = 0;
+   table_used = 0;
+   table_allocated = 0;
+   table_mutatee_size = 0;
+   current_table = 0;
+   mapping.clear();
 }
 
 void trampTrapMappings::addTrapMapping(Address from, Address to, 
@@ -1032,7 +1032,7 @@ bool trampTrapMappings::needsUpdating()
 }
 
 bool trampTrapMappings::empty() {
-    return mapping.empty();
+   return mapping.empty();
 }
 
 
@@ -1227,10 +1227,10 @@ void trampTrapMappings::flush() {
          //Lookup all variables that are in the rtlib
          set<mapped_object *>::iterator rtlib_it;
          for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-             if( !trapTableUsed ) trapTableUsed = (*rtlib_it)->getVariable("dyninstTrapTableUsed");
-             if( !trapTableVersion ) trapTableVersion = (*rtlib_it)->getVariable("dyninstTrapTableVersion");
-             if( !trapTable ) trapTable = (*rtlib_it)->getVariable("dyninstTrapTable");
-             if( !trapTableSorted ) trapTableSorted = (*rtlib_it)->getVariable("dyninstTrapTableIsSorted");
+            if( !trapTableUsed ) trapTableUsed = (*rtlib_it)->getVariable("dyninstTrapTableUsed");
+            if( !trapTableVersion ) trapTableVersion = (*rtlib_it)->getVariable("dyninstTrapTableVersion");
+            if( !trapTable ) trapTable = (*rtlib_it)->getVariable("dyninstTrapTable");
+            if( !trapTableSorted ) trapTableSorted = (*rtlib_it)->getVariable("dyninstTrapTableIsSorted");
          }
          
          if (!trapTableUsed) {
@@ -1301,10 +1301,16 @@ void trampTrapMappings::allocateTable()
    current_table = table_header + sizeof(trap_mapping_header);
 
    SymtabAPI::Symtab *symtab = 
-        binedit->getMappedObject()->parse_img()->getObject();
+      binedit->getMappedObject()->parse_img()->getObject();
    if( !symtab->isStaticBinary() ) {
        symtab->addSysVDynamic(DT_DYNINST, table_header);
        symtab->addLibraryPrereq(proc()->dyninstRT_name);
+      symtab->addSysVDynamic(DT_DYNINST, table_header);
+      symtab->addLibraryPrereq(proc()->dyninstRT_name);
+#if defined (os_windows)
+      symtab->addTrapHeader_win((Address)table_header);
+#endif
+
    }
 }
 
@@ -1325,9 +1331,9 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::set<func_instance*> &funcs
          return true;
       }
    }
-    mapped_object *obj = findObject(addr);
-    if (!obj) return false;
-    return obj->findFuncsByAddr(addr, funcs);
+   mapped_object *obj = findObject(addr);
+   if (!obj) return false;
+   return obj->findFuncsByAddr(addr, funcs);
 }
 
 bool AddressSpace::findBlocksByAddr(Address addr, std::set<block_instance *> &blocks, bool includeReloc) {
@@ -1348,42 +1354,48 @@ bool AddressSpace::findBlocksByAddr(Address addr, std::set<block_instance *> &bl
 }
 
 func_instance *AddressSpace::findFuncByEntry(const block_instance *block) {
-	mapped_object *obj = findObject(block->start());
-	if (!obj) return NULL;
-	return obj->findFuncByEntry(block);
+   mapped_object *obj = findObject(block->start());
+   if (!obj) return NULL;
+   return obj->findFuncByEntry(block);
+}
+
+block_instance *AddressSpace::findBlockByEntry(Address a) {
+   mapped_object *obj = findObject(a);
+   if (!obj) return NULL;
+   return obj->findBlockByEntry(a);
 }
 
 func_instance *AddressSpace::findOneFuncByAddr(Address addr) {
-    std::set<func_instance *> funcs;
-    if (!findFuncsByAddr(addr, funcs)) return NULL;
-    if (funcs.empty()) return NULL;
-    if (funcs.size() == 1) return *(funcs.begin());
-    // Arbitrarily pick one...
-    Address last = 0;
-    func_instance *ret = NULL;
-    for (std::set<func_instance *>::iterator iter = funcs.begin();
+   std::set<func_instance *> funcs;
+   if (!findFuncsByAddr(addr, funcs)) return NULL;
+   if (funcs.empty()) return NULL;
+   if (funcs.size() == 1) return *(funcs.begin());
+   // Arbitrarily pick one...
+   Address last = 0;
+   func_instance *ret = NULL;
+   for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
-            if (ret == NULL ||
-                ((*iter)->entryBlock()->start() > last)) {
-                ret = *iter;
-                last = (*iter)->entryBlock()->start();
-            }
-    }
-    return ret;
+      if (ret == NULL ||
+          ((*iter)->entryBlock()->start() > last)) {
+         ret = *iter;
+         last = (*iter)->entryBlock()->start();
+      }
+   }
+   return ret;
 }
 
 func_instance *AddressSpace::findFuncByEntry(Address addr) {
-    std::set<func_instance *> funcs;
-    if (!findFuncsByAddr(addr, funcs)) return NULL;
-    if (funcs.empty()) return NULL;
+   std::set<func_instance *> funcs;
+   if (!findFuncsByAddr(addr, funcs)) return NULL;
+   if (funcs.empty()) return NULL;
 
-    for (std::set<func_instance *>::iterator iter = funcs.begin();
+   for (std::set<func_instance *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
-        if ((*iter)->entryBlock()->start() == addr) {
-            return *iter;
-        }
-    }
-    return NULL;
+      if ((*iter)->entryBlock()->start() == addr) {
+         return *iter;
+      }
+   }
+   return NULL;
 }
 
 
@@ -1391,7 +1403,7 @@ bool AddressSpace::canUseTraps()
 {
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(this);
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
-   	return false;
+      return false;
 
 #if !defined(cap_mutatee_traps)
    return false;
@@ -1426,52 +1438,68 @@ bool AddressSpace::needsPIC(AddressSpace *s)
 
 bool AddressSpace::sameRegion(Address addr1, Address addr2)
 {
-    mapped_object *mobj = findObject(addr1);
-    if (!mobj || mobj != findObject(addr2)) {
-        return false;
-    }
-    Address baseAddr = mobj->codeBase();
+   mapped_object *mobj = findObject(addr1);
+   if (!mobj || mobj != findObject(addr2)) {
+      return false;
+   }
+   Address baseAddr = mobj->codeBase();
 
-    SymtabAPI::Region *reg1 = 
-        mobj->parse_img()->getObject()->findEnclosingRegion( addr1 - baseAddr );
+   SymtabAPI::Region *reg1 = 
+      mobj->parse_img()->getObject()->findEnclosingRegion( addr1 - baseAddr );
 
-    if (!reg1 || reg1 != mobj->parse_img()->getObject()->
-                         findEnclosingRegion( addr2 - baseAddr )) {
-        return false;
-    }
-    return true;
+   if (!reg1 || reg1 != mobj->parse_img()->getObject()->
+       findEnclosingRegion( addr2 - baseAddr )) {
+      return false;
+   }
+   return true;
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 
 void AddressSpace::modifyCall(block_instance *block, func_instance *newFunc, func_instance *context) {
-  // Just register it for later code generation
-  //callModifications_[block][context] = newFunc;
-  mgr()->instrumenter()->modifyCall(block, newFunc, context);
-  if (context) addModifiedFunction(context);
-  else addModifiedBlock(block);
+   // Just register it for later code generation
+   //callModifications_[block][context] = newFunc;
+   mgr()->instrumenter()->modifyCall(block, newFunc, context);
+   if (context) addModifiedFunction(context);
+   else addModifiedBlock(block);
 }
 
 void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfunc) {
-  mgr()->instrumenter()->replaceFunction(oldfunc, newfunc);
-  addModifiedFunction(oldfunc);
+   mgr()->instrumenter()->replaceFunction(oldfunc, newfunc);
+   addModifiedFunction(oldfunc);
 }
 
-bool AddressSpace::wrapFunction(func_instance *oldfunc, func_instance *newfunc) {
-   if (oldfunc->proc() != this) {
-      return oldfunc->proc()->wrapFunction(oldfunc, newfunc);
+bool AddressSpace::wrapFunction(func_instance *original, 
+                                func_instance *wrapper,
+                                SymtabAPI::Symbol *clone) {
+   if (!original) return false;
+   if (!wrapper) return false;
+   if (!clone) return false;
+
+   if (original->proc() != this) {
+      return original->proc()->wrapFunction(original, wrapper, clone);
    }
-   assert(oldfunc->proc() == this);
+   assert(original->proc() == this);
 
-   // functionWraps_[oldfunc] = newfunc;
-   mgr()->instrumenter()->wrapFunction(oldfunc, newfunc);
-   addModifiedFunction(oldfunc);
 
-   if (edit() && oldfunc->obj() != newfunc->obj()) {
-     if (!AddressSpace::patch(this)) return false;
-     if (!newfunc->callWrappedFunction(oldfunc)) return false;
+   // 1) Replace original with wrapper via entry point jumps;
+   //    this is handled in the instrumenter. 
+   // 2) Create a copy of original with the new provided name. 
+   // 3) (binary editing): update the various Symtab tables
+   //    with the new name.
+
+   // TODO: once we have PatchAPI updated a bit, break this into
+   // steps 1-3. For now, keep it together. 
+   mgr()->instrumenter()->wrapFunction(original, wrapper, clone->getMangledName());
+   addModifiedFunction(original);
+
+   if (edit()) {
+      if (!AddressSpace::patch(this)) return false;
+      if (!original->addSymbolsForCopy()) return false;
    }
    else {
-      addModifiedFunction(newfunc);
+      addModifiedFunction(wrapper);
+      // TODO dynamic mode; we need to update the names. 
+      return false;
    }
    return true;
 }
@@ -1683,6 +1711,15 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
 
    adhocMovementTransformer a(this);
    cm->transform(a);
+
+#if 0
+   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
+   }
+   else {
+       PCSensitiveTransformer pc(this, cm->priorityMap());
+        cm->transform(pc);
+   }
+#endif
 
 #if defined(cap_mem_emulation)
    if (emulateMem_) {
@@ -1921,13 +1958,18 @@ void AddressSpace::addModifiedBlock(block_instance *block) {
 }
 
 
-void AddressSpace::addDefensivePad(block_instance *callBlock, Address padStart, unsigned size) {
+void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                                   Address padStart, unsigned size) {
   // We want to register these in terms of a block_instance that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
-   assert(0 && "TODO");
-   instPoint *point = instPoint::preCall(NULL, callBlock);
-
+   instPoint *point = instPoint::preCall(callFunc, callBlock);
+   if (!point) {
+      // We recorded a gap for some other reason than a return-address-modifying call;
+      // ignore (for now). 
+      //cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
+      return;
+   }
    if (!point || point->empty()) {
        // Kevin didn't instrument it so we don't care :)
        return;

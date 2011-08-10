@@ -210,13 +210,24 @@ PatchBlock::getInsn(Address a) const {
 }
 
 std::string
+PatchBlock::long_format() const {
+  stringstream ret;
+  ret << format() << endl;
+  
+  Insns insns;
+  getInsns(insns);
+  
+  for (Insns::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
+     ret << "\t" << hex << iter->first << " : " << iter->second->format() << dec << endl;
+  }
+  return ret.str();
+}
+
+std::string
 PatchBlock::format() const {
   stringstream ret;
-  ret << "BB["
-      << hex << start()
-      << ","
-      << end() << dec
-      << "]" << endl;
+  ret << "B[" << hex << start() << "," << end() << "]" << dec;
+
   return ret.str();
 }
 

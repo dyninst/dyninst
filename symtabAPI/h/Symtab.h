@@ -134,7 +134,9 @@ class Symtab : public LookupInterface,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                          NameType nameType = anyName,
                                          bool isRegex = false, 
-                                         bool checkCase = false);
+                                         bool checkCase = false,
+                                         bool includeUndefined = false);
+
    SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
@@ -357,12 +359,12 @@ class Symtab : public LookupInterface,
    bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
    bool fixSymModules(std::vector<Symbol *> &raw_syms);
    bool demangleSymbols(std::vector<Symbol *> &rawsyms);
-   bool createIndices(std::vector<Symbol *> &raw_syms);
+   bool createIndices(std::vector<Symbol *> &raw_syms, bool undefined);
    bool createAggregates();
 
    bool fixSymModule(Symbol *&sym);
    bool demangleSymbol(Symbol *&sym);
-   bool addSymbolToIndices(Symbol *&sym);
+   bool addSymbolToIndices(Symbol *&sym, bool undefined);
    bool addSymbolToAggregates(Symbol *&sym);
    bool doNotAggregate(Symbol *&sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
@@ -473,11 +475,16 @@ class Symtab : public LookupInterface,
    std::vector<Symbol *> everyDefinedSymbol;
    // Subset of the above
    std::vector<Symbol *> userAddedSymbols;
+
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
-   std::map <std::string, std::vector<Symbol *> > undefDynSyms;
+   std::vector<Symbol *> undefDynSyms;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
 
+   
    // Symbols by offsets in the symbol table
    dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
 

@@ -91,7 +91,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         break;
     }
 
-    addSymbolToIndices(sym);
+    addSymbolToIndices(sym, false);
     addSymbolToAggregates(sym);
 
     return true;
@@ -147,18 +147,28 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
     // userAddedSymbols
     userAddedSymbols.erase(std::remove(userAddedSymbols.begin(), userAddedSymbols.end(), sym), userAddedSymbols.end());
-    undefDynSyms[sym->getMangledName()].erase(std::remove(undefDynSyms[sym->getMangledName()].begin(),
-        undefDynSyms[sym->getMangledName()].end(), sym), undefDynSyms[sym->getMangledName()].end());
+    undefDynSymsByMangledName[sym->getMangledName()].erase(std::remove(undefDynSymsByMangledName[sym->getMangledName()].begin(),
+                                                                       undefDynSymsByMangledName[sym->getMangledName()].end(), sym),
+                                                           undefDynSymsByMangledName[sym->getMangledName()].end());
+    undefDynSymsByPrettyName[sym->getPrettyName()].erase(std::remove(undefDynSymsByPrettyName[sym->getPrettyName()].begin(),
+                                                                       undefDynSymsByPrettyName[sym->getPrettyName()].end(), sym),
+                                                         undefDynSymsByPrettyName[sym->getPrettyName()].end());
+    undefDynSymsByTypedName[sym->getTypedName()].erase(std::remove(undefDynSymsByTypedName[sym->getTypedName()].begin(),
+                                                                       undefDynSymsByTypedName[sym->getTypedName()].end(), sym),
+                                                           undefDynSymsByTypedName[sym->getTypedName()].end());
+    undefDynSyms.erase(std::remove(undefDynSyms.begin(), undefDynSyms.end(), sym), undefDynSyms.end());
+
     symsByOffset[sym->getOffset()].erase(std::remove(symsByOffset[sym->getOffset()].begin(), symsByOffset[sym->getOffset()].end(),
-        sym), symsByOffset[sym->getOffset()].end());
+                                                     sym), symsByOffset[sym->getOffset()].end());
     symsByMangledName[sym->getMangledName()].erase(std::remove(symsByMangledName[sym->getMangledName()].begin(),
-        symsByMangledName[sym->getMangledName()].end(), sym), symsByMangledName[sym->getMangledName()].end());
+                                                               symsByMangledName[sym->getMangledName()].end(), sym),
+                                                   symsByMangledName[sym->getMangledName()].end());
     symsByPrettyName[sym->getPrettyName()].erase(std::remove(symsByPrettyName[sym->getPrettyName()].begin(),
-        symsByPrettyName[sym->getPrettyName()].end(), sym), symsByPrettyName[sym->getPrettyName()].end());
+                                                             symsByPrettyName[sym->getPrettyName()].end(), sym),
+                                                 symsByPrettyName[sym->getPrettyName()].end());
     symsByTypedName[sym->getTypedName()].erase(std::remove(symsByTypedName[sym->getTypedName()].begin(),
-        symsByTypedName[sym->getTypedName()].end(), sym), symsByTypedName[sym->getTypedName()].end());
-
-
+                                                           symsByTypedName[sym->getTypedName()].end(), sym),
+                                               symsByTypedName[sym->getTypedName()].end());
     return true;
 }
 
@@ -223,6 +233,10 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
 bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
 {
+   if (std::find(userAddedSymbols.begin(), 
+                 userAddedSymbols.end(), 
+                 newSym) != userAddedSymbols.end()) return true;
+
     if (!newSym || !referringSymbol ) return false;
 
     if( !referringSymbol->getSymtab()->isStaticBinary() ) {
@@ -259,27 +273,32 @@ bool Symtab::addSymbol(Symbol *newSym)
    if (!newSym) {
     	return false;
    }
-    // Expected default behavior: if there is no
-    // module use the default.
-    if (newSym->getModule() == NULL) {
-        newSym->setModule(getDefaultModule());
-    }
+   if (std::find(userAddedSymbols.begin(), 
+                 userAddedSymbols.end(), 
+                 newSym) != userAddedSymbols.end()) return true;
 
-    // If there aren't any pretty names, create them
-    if (newSym->getPrettyName() == "") {
-        demangleSymbol(newSym);
-    }
 
-    // Add to appropriate indices
-    addSymbolToIndices(newSym);
-
-    // And to aggregates
-    addSymbolToAggregates(newSym);
-
-    // And to "new symbols added by user"
-    userAddedSymbols.push_back(newSym);
-
-    return true;
+   // Expected default behavior: if there is no
+   // module use the default.
+   if (newSym->getModule() == NULL) {
+      newSym->setModule(getDefaultModule());
+   }
+   
+   // If there aren't any pretty names, create them
+   if (newSym->getPrettyName() == "") {
+      demangleSymbol(newSym);
+   }
+   
+   // Add to appropriate indices
+   addSymbolToIndices(newSym, false);
+   
+   // And to aggregates
+   addSymbolToAggregates(newSym);
+   
+   // And to "new symbols added by user"
+   userAddedSymbols.push_back(newSym);
+   
+   return true;
 }
 
 

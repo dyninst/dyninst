@@ -262,12 +262,12 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void edgePoints(Points*);
 
   // Function wrapping
-  bool callWrappedFunction(func_instance *target);
+  bool addSymbolsForCopy();
   bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
 			      Dyninst::SymtabAPI::Symbol *newsym);
   Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
   Dyninst::SymtabAPI::Symbol *getRelocSymbol();
-  void createWrapperSymbol(Address entry);
+  void createWrapperSymbol(Address entry, std::string name);
 
   static void destroy(func_instance *f);
 
