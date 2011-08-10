@@ -3266,6 +3266,7 @@ Object::~Object()
 
   // This is necessary to free resources held internally by libelf
   elfHdr.end();
+  elfHdrForDebugInfo.end();
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
