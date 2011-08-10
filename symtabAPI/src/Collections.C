@@ -200,17 +200,17 @@ bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 
 			if (!t)
 			{
-				if (Symtab::builtInTypes)
+				if (Symtab::builtInTypes())
 				{
-					t = Symtab::builtInTypes->findBuiltInType(iter->first);
+					t = Symtab::builtInTypes()->findBuiltInType(iter->first);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
 			if (!t)
 			{
-				if (Symtab::stdTypes)
+				if (Symtab::stdTypes())
 				{
-					t = Symtab::stdTypes->findType(iter->first);
+					t = Symtab::stdTypes()->findType(iter->first);
 					if (t && (t->getDataClass() != ldc)) t = NULL;
 				}
 			}
@@ -380,8 +380,8 @@ Type *typeCollection::findType(std::string name)
 {
     if (typesByName.find(name) != typesByName.end())
     	return typesByName[name];
-	else if (Symtab::builtInTypes)
-        return Symtab::builtInTypes->findBuiltInType(name);
+	else if (Symtab::builtInTypes())
+        return Symtab::builtInTypes()->findBuiltInType(name);
     else
 		return NULL;
 }
@@ -412,9 +412,9 @@ Type * typeCollection::findOrCreateType( const int ID )
 
 	Type * returnType = NULL;
 
-	if ( Symtab::builtInTypes ) 
+	if ( Symtab::builtInTypes() ) 
 	{
-		returnType = Symtab::builtInTypes->findBuiltInType(ID);
+		returnType = Symtab::builtInTypes()->findBuiltInType(ID);
 
 		if (returnType)
 			return returnType;
@@ -438,8 +438,8 @@ Type *typeCollection::findType(const int ID)
 	{
 		Type *ret = NULL;
 
-		if (Symtab::builtInTypes) 
-			ret = Symtab::builtInTypes->findBuiltInType(ID);
+		if (Symtab::builtInTypes()) 
+			ret = Symtab::builtInTypes()->findBuiltInType(ID);
 
 		return ret;
 	}

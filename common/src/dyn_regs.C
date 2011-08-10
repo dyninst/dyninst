@@ -31,9 +31,11 @@
 
 #define DYN_DEFINE_REGS
 #include "dynutil/h/dyn_regs.h"
+#include "dyn_detail/boost/make_shared.hpp"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
+
 
 #include <iostream>
 
