@@ -145,6 +145,20 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // of code will need to be rewritten.
    if (false) relocation_cerr << "Adding tracker: " << *e << endl;
 
+   if (!trackers_.empty()) {
+      TrackerElement *previous = trackers_.back();
+      if (previous->type() == e->type() &&
+          e->orig() == previous->orig() &&
+          e->block() == previous->block() &&
+          e->func() == previous->func()) {
+         // Merge!
+         previous->size_ += e->size_;
+         // update relocToOrig_
+         delete e;
+         return;
+      }
+   }
+   
    trackers_.push_back(e);
 }
 
@@ -162,20 +176,6 @@ void CodeTracker::createIndices() {
         iter != trackers_.end(); ++iter) {
       TrackerElement *e = *iter;
 
-      if (previous &&
-          previous->type() == e->type() &&
-          e->orig() == previous->orig() &&
-          e->block() == previous->block() &&
-          e->func() == previous->func()) {
-         // Merge!
-         previous->size_ += e->size_;
-         // update relocToOrig_
-         relocToOrig_.update(e->reloc(), e->reloc() + e->size());
-         delete e;
-         continue;
-      }
-      previous = e;
-      
       relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
       
       if (e->type() == TrackerElement::instrumentation) {
