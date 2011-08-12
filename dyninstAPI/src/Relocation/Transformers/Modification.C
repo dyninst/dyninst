@@ -55,6 +55,7 @@ Modification::Modification(const CallModMap &callMod,
   funcWraps_(funcWraps) {};
 
 bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
+   relocation_cerr << "Modification transformer, processing block" << endl;
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -125,8 +126,8 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
                    << (newfun->entryBlock() ? newfun->entryBlock()->start() : -1) << endl;
    // Stub a jump to the replacement function
    RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
-                           newfun,
-                           cfg);
+                                     newfun,
+                                     cfg);
    RelocBlock *target = cfg->find(newfun->entryBlock());
    if (target) {
       cfg->makeEdge(new Target<RelocBlock *>(stub),
@@ -173,20 +174,24 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    // This is a special case of replaceFunction; the predicate is "all calls except from the
    // wrapper are redirected".
    RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
-                           newfun,
-                           cfg);
+                                     newfun,
+                                     cfg);
    RelocBlock *target = cfg->find(newfun->entryBlock());
    if (target) {
+      relocation_cerr << "\t Also relocated new function, using target " << target->id() << endl;
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<RelocBlock *>(target),
                     ParseAPI::DIRECT);
    }
    else {
+      relocation_cerr << "\t New function " << newfun->name() << " not relocated targeting entry block " 
+                      << hex << newfun->entryBlock()->start() << dec << " directly" << endl;
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<block_instance *>(newfun->entryBlock()),
                     ParseAPI::DIRECT);
    }
-
+   relocation_cerr << "Stub block is " << stub->format() << endl;
+   
    cfg->setSpringboard(trace->block(), stub);
 
    WrapperPredicate pred(trace->func());

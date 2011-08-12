@@ -151,28 +151,49 @@ void CodeTracker::addTracker(TrackerElement *e) {
 void CodeTracker::createIndices() {
   // Take each thing in trackers_ and add it to 
   // the origToReloc_ and relocToOrig_ mapping trees
-  for (TrackerList::iterator iter = trackers_.begin();
-       iter != trackers_.end(); ++iter) {
-    TrackerElement *e = *iter;
 
-    relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
+   // We may have multiple Trackers for the same original address.
+   // If they have different types that's fine; if they have the same type
+   // we accumulate instead of adding one of them.
 
-   if (e->type() == TrackerElement::instrumentation) {
-      InstTracker *inst = static_cast<InstTracker *>(e);
+   TrackerElement *previous = NULL;
 
-      origToReloc_[e->block()->start()]
-                  [e->func() ? e->func()->addr() : 0]
-                  [e->orig()].instrumentation[inst->baseT()->point()] = e->reloc();
+   for (TrackerList::iterator iter = trackers_.begin();
+        iter != trackers_.end(); ++iter) {
+      TrackerElement *e = *iter;
+
+      if (previous &&
+          previous->type() == e->type() &&
+          e->orig() == previous->orig() &&
+          e->block() == previous->block() &&
+          e->func() == previous->func()) {
+         // Merge!
+         previous->size_ += e->size_;
+         // update relocToOrig_
+         relocToOrig_.update(e->reloc(), e->reloc() + e->size());
+         delete e;
+         continue;
+      }
+      previous = e;
+      
+      relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
+      
+      if (e->type() == TrackerElement::instrumentation) {
+         InstTracker *inst = static_cast<InstTracker *>(e);
+         
+         origToReloc_[e->block()->start()]
+            [e->func() ? e->func()->addr() : 0]
+            [e->orig()].instrumentation[inst->baseT()->point()] = e->reloc();
+      }
+      else if (e->type() == TrackerElement::padding) {
+         origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].pad = e->reloc();
+      }
+      else {
+         origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
+      }
    }
-   else if (e->type() == TrackerElement::padding) {
-      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].pad = e->reloc();
-   }
-   else {
-      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
-   }
-  }
-
-  if (patch_debug_relocation) debug();
+   
+   if (patch_debug_relocation) debug();
 }
 
 void CodeTracker::debug() {

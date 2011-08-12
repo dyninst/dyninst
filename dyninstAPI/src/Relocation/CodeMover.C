@@ -149,8 +149,10 @@ bool CodeMover::initialize(const codeGen &templ) {
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       if (!iter->finalizeCF()) return false;
       
-      if (!iter->generate(templ, buffer_))
+      if (!iter->generate(templ, buffer_)) {
+         cerr << "ERROR: failed to generate RelocBlock!" << endl;
          return false; // Catastrophic failure
+      }
    }
    return true;
 }

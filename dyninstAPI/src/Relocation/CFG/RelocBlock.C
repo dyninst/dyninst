@@ -338,7 +338,9 @@ void RelocBlock::preserveBlockGap() {
          block_instance *target = SCAST_EI(*iter)->trg();
          if (target && !(*iter)->sinkEdge()) {
             if (target->start() < block_->end()) {
-                fprintf(stderr,"ERROR: source should precede target edge-type=%lx src[%lx %lx) trg[%lx %lx)\n",(*iter)->type(),target->start(),target->end(), block_->start(),block_->end());
+               cerr << "Error: source should precede target; edge type " << ParseAPI::format((*iter)->type()) << hex
+                    << " src[" << block_->start() << " " << block_->end()
+                    << " trg[" << target->start() << " " << target->end() << dec << endl;
                 assert(0);
             }
             cfWidget()->setGap(target->start() - block_->end());
@@ -442,6 +444,7 @@ bool RelocBlock::generate(const codeGen &templ,
       if (!(*iter)->generate(templ, 
                              this,
                              buffer)) {
+         cerr << "Failed to generate widget: " << (*iter)->format() << endl;
          return false;
          // This leaves the block in an inconsistent state and should only be used
          // for fatal failures.
