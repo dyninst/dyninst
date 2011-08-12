@@ -185,6 +185,9 @@ class BinaryEdit : public AddressSpace {
    std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
 
    bool writing() { return writing_; }
+
+   void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
+
  private:
     Address highWaterMark_;
     Address lowWaterMark_;
@@ -218,12 +221,16 @@ class BinaryEdit : public AddressSpace {
 
     void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
-                             SymtabAPI::Module *mod);
+                             SymtabAPI::Module *newMod);
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
     bool writing_;
+
+    // Symbols that other people (e.g., functions) want us to add
+    std::vector<SymtabAPI::Symbol *> newDyninstSyms_;
+
 };
 
 class depRelocation {

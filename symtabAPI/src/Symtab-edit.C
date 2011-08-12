@@ -223,6 +223,10 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
 bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
 {
+   if (std::find(userAddedSymbols.begin(), 
+                 userAddedSymbols.end(), 
+                 newSym) != userAddedSymbols.end()) return true;
+
     if (!newSym || !referringSymbol ) return false;
 
     if( !referringSymbol->getSymtab()->isStaticBinary() ) {
@@ -259,27 +263,32 @@ bool Symtab::addSymbol(Symbol *newSym)
    if (!newSym) {
     	return false;
    }
-    // Expected default behavior: if there is no
-    // module use the default.
-    if (newSym->getModule() == NULL) {
-        newSym->setModule(getDefaultModule());
-    }
+   if (std::find(userAddedSymbols.begin(), 
+                 userAddedSymbols.end(), 
+                 newSym) != userAddedSymbols.end()) return true;
 
-    // If there aren't any pretty names, create them
-    if (newSym->getPrettyName() == "") {
-        demangleSymbol(newSym);
-    }
 
-    // Add to appropriate indices
-    addSymbolToIndices(newSym);
-
-    // And to aggregates
-    addSymbolToAggregates(newSym);
-
-    // And to "new symbols added by user"
-    userAddedSymbols.push_back(newSym);
-
-    return true;
+   // Expected default behavior: if there is no
+   // module use the default.
+   if (newSym->getModule() == NULL) {
+      newSym->setModule(getDefaultModule());
+   }
+   
+   // If there aren't any pretty names, create them
+   if (newSym->getPrettyName() == "") {
+      demangleSymbol(newSym);
+   }
+   
+   // Add to appropriate indices
+   addSymbolToIndices(newSym);
+   
+   // And to aggregates
+   addSymbolToAggregates(newSym);
+   
+   // And to "new symbols added by user"
+   userAddedSymbols.push_back(newSym);
+   
+   return true;
 }
 
 

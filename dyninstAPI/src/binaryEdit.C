@@ -277,8 +277,7 @@ BinaryEdit::BinaryEdit() :
    lowWaterMark_(0),
    isDirty_(false),
    memoryTracker_(NULL),
-   multithread_capable_(false)
-{
+   multithread_capable_(false) {
    trapMapping.shouldBlockFlushes(true);
 }
 
@@ -607,6 +606,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             */
                
             // Create the relocationEntry
+            cerr << "Creating relocation entry: " << hex << referring->getMangledName() << " -> " << to << dec << endl;
             relocationEntry localRel(to, referring->getMangledName(), referring,
                                      relocationEntry::getGlobalRelType(getAddressWidth()));
             
@@ -770,6 +770,7 @@ bool BinaryEdit::initialize() {
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
+   cerr << "Adding dependent relocation @ " << hex << to << " with symbol " << referring << " " << (*referring) << dec << endl;
     // prevent duplicate relocations
     std::vector<depRelocation *>::iterator it;
     for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)
@@ -801,7 +802,13 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
-   if (relocatedCode_.empty()) return;
+   for (std::vector<SymtabAPI::Symbol *>::iterator iter = newDyninstSyms_.begin();
+        iter != newDyninstSyms_.end(); ++iter) {
+      (*iter)->setModule(newMod);
+      (*iter)->setRegion(newSec);
+      newSyms.push_back(*iter);
+   }
+                                                                              
 
    for (CodeTrackers::iterator i = relocatedCode_.begin();
         i != relocatedCode_.end(); ++i) {
@@ -1024,3 +1031,4 @@ bool BinaryEdit::needsPIC()
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
 }
+

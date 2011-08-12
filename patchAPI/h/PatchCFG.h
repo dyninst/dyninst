@@ -88,6 +88,7 @@ class PatchBlock {
     PATCHAPI_EXPORT bool containsCall();
     PATCHAPI_EXPORT bool containsDynamicCall();
     PATCHAPI_EXPORT std::string format() const;
+    PATCHAPI_EXPORT std::string long_format() const;
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
     PATCHAPI_EXPORT ParseAPI::Block *block() const;

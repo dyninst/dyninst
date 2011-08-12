@@ -45,6 +45,8 @@
 
 #include "Parsing.h"
 
+#include "binaryEdit.h"
+
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 using namespace Dyninst::PatchAPI;
@@ -575,11 +577,14 @@ bool func_instance::addSymbolsForCopy() {
    // in this function at the new symbol. If it's a dynamic binary, we can just relocate
    // the daylights out of it.
    if (obj()->isStaticExec()) {
+      proc()->edit()->addDyninstSymbol(wrapperSym_);
       if (!updateRelocationsToSym(oldsym, wrapperSym)) return false;
    }
    else {
       // I think we just add this to the dynamic symbol table...
-      obj()->parse_img()->getObject()->addSymbol(wrapperSym);
+      cerr << "Adding symbol... " << hex << wrapperSym << " " << (*wrapperSym) << dec << endl;
+      wrapperSym->setDynamic(true);
+      proc()->edit()->addDyninstSymbol(wrapperSym_);
    }
 
    return true;
@@ -644,7 +649,6 @@ void func_instance::createWrapperSymbol(Address entry, std::string name) {
                             0, // size - zero okay?
                             false, // Definitely not dynamic ("Static binaries don't have dynamic symbols - Dan")
                             false); // Definitely not absolute
-   obj()->parse_img()->getObject()->addSymbol(wrapperSym_);
 
 }
 
