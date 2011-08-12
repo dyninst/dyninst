@@ -174,8 +174,6 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 {
    lmon_rc_e rc;
    int session;
-   unsigned proctable_size, actual_proctable_size;
-   MPIR_PROCDESC_EXT *proctable = NULL;
    char *signal_file = NULL;
    char signal_file_name[64];
    char signal_full_path[4092];
@@ -200,7 +198,7 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
    char num_procs_s[32];
    snprintf(num_procs_s, 32, "%d", num_procs);
 
-   char *mode = params["platmode"]->getString().c_str();
+   char *mode = params["platmode"]->getString();
 
    char **new_test_args = getLaunchParams(test_args[0], test_args+1, num_procs_s, signal_file, mode);
    rc = LMON_fe_createSession(&session);
@@ -292,7 +290,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
    new_args[i++] = const_cast<char *>(num);
 
    new_args[i++] = "-mode";
-   new_args[i++] = mode;
+   new_args[i++] = const_cast<char *>(mode);
 
    for (j=0; args[j]; j++)
       new_args[i++] = args[j];

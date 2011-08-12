@@ -134,7 +134,9 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
-   virtual bool plat_supportLWPEvents();
+   virtual bool plat_supportLWPCreate();
+   virtual bool plat_supportLWPPreDestroy();
+   virtual bool plat_supportLWPPostDestroy();
    virtual ThreadControlMode plat_getThreadControlMode() const;
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
@@ -263,5 +265,7 @@ class LinuxHandleLWPDestroy : public Handler
      virtual int getPriority() const;
      void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+SymbolReaderFactory *getElfReader();
 
 #endif

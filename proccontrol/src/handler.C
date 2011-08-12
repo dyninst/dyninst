@@ -284,9 +284,7 @@ bool HandlerPool::insertAsyncPendingEvent(Event::ptr ev)
       }
       else {
          pthrd_printf("Desync'ing async process state of %d\n", proc->getPid());
-         for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-            (*i)->getAsyncState().desyncState(int_thread::ditto);
-         }
+         proc->threadPool()->initialThread()->getAsyncState().desyncStateProc(int_thread::ditto);
       }
    }
    return was_empty;
@@ -311,10 +309,8 @@ bool HandlerPool::removeAsyncPendingEvent(Event::ptr ev)
       thr->getAsyncState().restoreState();
    }
    else {
-      pthrd_printf("Desync'ing async process state of %d\n", proc->getPid());
-      for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
-         (*i)->getAsyncState().restoreState();
-      }
+      pthrd_printf("Restoring'ing async process state of %d\n", proc->getPid());
+      proc->threadPool()->initialThread()->getAsyncState().restoreStateProc();
    }
 
    return true;
@@ -801,6 +797,19 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    int_thread *inherit_from = (thrd == newthr) ? proc->threadPool()->initialThread() : thrd;
    newthr->getUserState().setState(inherit_from->getUserState().getState());
    
+   pthrd_printf("Initializing new thread states to match rest of process\n");
+   map<int, int> &states = proc->getProcDesyncdStates();
+   for (map<int, int>::iterator i = states.begin(); i != states.end(); i++) {
+      if (!i->second)
+         continue;
+      int_thread::StateTracker &statet = thrd->getStateByID(i->first);
+      int_thread::State ns = proc->threadPool()->initialThread()->getStateByID(i->first).getState();
+      
+      for (int j = 0; j < i->second; j++) {
+         statet.desyncState(ns);
+      }
+   }
+
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
@@ -818,7 +827,6 @@ HandleThreadDestroy::~HandleThreadDestroy()
 
 void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-   etypes.push_back(EventType(EventType::Any, EventType::ThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
 }
@@ -833,21 +841,13 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
 
-   pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
+   pthrd_printf("Handling post-thread destroy for %d/%d\n", proc->getPid(), thrd->getLWP());
 
    if (proc->wasForcedTerminated()) {
       //Linux sometimes throws an extraneous thread terminate after
       // calling ptrace(PTRACE_KILL, ...).  It's not a real thread terminate.
       pthrd_printf("Thread terminate was due to process::terminate, not reporting\n");
       ev->setSuppressCB(true);
-   }
-
-   if (ev->getEventType().code() == EventType::LWPDestroy && ev->getEventType().time() != EventType::Pre) {
-      pthrd_printf("Deleting thread object from HandleThreadDestroy\n");
-      int_thread::cleanFromHandler(thrd);
-   }
-   else {
-      pthrd_printf("Skipping delete of thread object from HandleThreadDestroy\n");
    }
 
    return ret_success;
@@ -865,6 +865,7 @@ HandleThreadCleanup::~HandleThreadCleanup()
 void HandleThreadCleanup::getEventTypesHandled(vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
 }
 
 int HandleThreadCleanup::getPriority() const
@@ -875,12 +876,26 @@ int HandleThreadCleanup::getPriority() const
 
 Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
 {
+   /**
+    * This is a seperate handler so that the cleanup happens after any
+    * user callback.
+    **/
    int_process *proc = ev->getProcess()->llproc();
-   if (proc->plat_supportLWPEvents()) {
-      //The LWP handler will clean the thread latter.
+   if ((ev->getEventType().code() == EventType::UserThreadDestroy) &&
+       (proc->plat_supportLWPPreDestroy() || proc->plat_supportLWPPostDestroy()))
+   {
+      //Have a user thread destroy, but platform supports LWP destroys.  Will clean with a latter event.
       pthrd_printf("Nothing to do in HandleThreadCleanup\n");
       return ret_success;
    }
+   if ((ev->getEventType().code() == EventType::LWPDestroy && ev->getEventType().time() == EventType::Pre) &&
+       proc->plat_supportLWPPostDestroy())
+   {
+      //Have a pre-lwp destroy, but platform supports post-lwp destroy.  Will clean with a latter event.
+      pthrd_printf("Nothing to do in HandleThreadCleanup\n");
+      return ret_success;
+   }
+   
    int_thread *thrd = ev->getThread()->llthrd();
    pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n", 
                 proc->getPid(), thrd->getLWP());
@@ -908,12 +923,16 @@ Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 
    if (ev->getSyncType() == Event::sync_process) {
       pthrd_printf("Handling process stop for %d\n", proc->getPid());
+      bool found_pending_stop = false;
       for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
          int_thread *thrd = *i;
          pthrd_printf("Handling process stop for %d/%d\n", proc->getPid(), thrd->getLWP());
-         assert(thrd->hasPendingStop());
-         thrd->setPendingStop(false);
+         if (thrd->hasPendingStop()) {
+            found_pending_stop = true;
+            thrd->setPendingStop(false);
+         }
       }
+      assert(found_pending_stop);
    }
    else {
       int_thread *thrd = ev->getThread()->llthrd();
@@ -1491,7 +1510,7 @@ Handler::handler_ret_t HandlePrepSingleStep::handleEvent(Event::ptr) {
 
     proc->threadPool()->restoreInternalState(false);
 */
-#warning TODO fix emulated single step here
+#warning MATT TODO fix emulated single step here
     return ret_success;
 }
 

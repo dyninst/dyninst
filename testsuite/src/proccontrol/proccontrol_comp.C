@@ -169,7 +169,7 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    }
    else if (group->createmode == USEATTACH) {
       Dyninst::PID pid = getMutateePid(group);
-      if (!pid) {
+      if (pid == NULL_PID) {
          string mutateeString = launchMutatee(exec_name, vargs, group, params);
          if (mutateeString == string("")) {
             logerror("Error creating attach process\n");
@@ -178,7 +178,7 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
          registerMutatee(mutateeString);
          pid = getMutateePid(group);
       }
-      assert(pid);
+      assert(pid != NULL_PID);
 
       int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
       if (signal_fd > 0) {

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #if !defined(INT_THREAD_DB_H_)
-#define INT_THREAD_DB_H
+#define INT_THREAD_DB_H_
 
 #include "proccontrol/src/int_process.h"
 

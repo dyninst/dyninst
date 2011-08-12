@@ -420,7 +420,7 @@ int getMutateePid(RunGroup *group)
       i = spawned_mutatees.find(-1);
    }
    if (i == spawned_mutatees.end())
-      return 0;
+      return NULL_PID;
 
    std::string mutatee_string = i->second;
    int group_id;

@@ -585,7 +585,7 @@ class EventChangePCStop : public Event
    typedef dyn_detail::boost::shared_ptr<EventChangePCStop> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventChangePCStop> const_ptr;
    EventChangePCStop();
-   ~EventChangePCStop();
+   virtual ~EventChangePCStop();
 };
 
 class int_eventDetach;
@@ -599,7 +599,7 @@ class EventDetach : public Event
    typedef dyn_detail::boost::shared_ptr<const EventDetach> const_ptr;
 
    EventDetach();
-   ~EventDetach();
+   virtual ~EventDetach();
    int_eventDetach *getInternal() const;
    virtual bool procStopper() const;
 };
@@ -614,7 +614,7 @@ class EventIntBootstrap : public Event
    typedef dyn_detail::boost::shared_ptr<EventIntBootstrap> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventIntBootstrap> const_ptr;
    EventIntBootstrap(void *d = NULL);
-   ~EventIntBootstrap();
+   virtual ~EventIntBootstrap();
 
    void *getData() const;
    void setData(void *v);
@@ -628,7 +628,7 @@ class EventNop : public Event
    typedef dyn_detail::boost::shared_ptr<EventNop> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventNop> const_ptr;
    EventNop();
-   ~EventNop();
+   virtual ~EventNop();
 };
 
 class EventPrepSingleStep : public Event
@@ -641,7 +641,7 @@ class EventPrepSingleStep : public Event
    typedef dyn_detail::boost::shared_ptr<EventPrepSingleStep> ptr;
    typedef dyn_detail::boost::shared_ptr<const EventPrepSingleStep> const_ptr;
    EventPrepSingleStep(emulated_singlestep *);
-   ~EventPrepSingleStep();
+   virtual ~EventPrepSingleStep();
 
    virtual bool procStopper() const;
    emulated_singlestep *getEmulatedSingleStep() const;
@@ -659,7 +659,7 @@ class EventThreadDB : public Event
    int_eventThreadDB *getInternal() const;
 
    EventThreadDB();
-   ~EventThreadDB();
+   virtual ~EventThreadDB();
 
    virtual bool triggersCB() const;
 };

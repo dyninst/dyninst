@@ -203,6 +203,8 @@ class int_process
    int_thread *findStoppedThread();
 
   public:
+   virtual bool plat_processSyncContinues();
+
    typedef enum {
       neonatal = 0,
       neonatal_intermediate,
@@ -310,10 +312,13 @@ class int_process
    void throwNopEvent();
    void throwRPCPostEvent();
 
-   virtual bool plat_supportThreadEvents();
-   virtual bool plat_supportLWPEvents();
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
+
+   virtual bool plat_supportThreadEvents();
+   virtual bool plat_supportLWPCreate();
+   virtual bool plat_supportLWPPreDestroy();
+   virtual bool plat_supportLWPPostDestroy();
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual bool plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
@@ -337,6 +342,10 @@ class int_process
    static int_process *in_waitHandleProc;
 
    ProcStopEventManager &getProcStopManager();
+
+   std::map<int, int> &getProcDesyncdStates();
+
+   
  protected:
    State state;
    Dyninst::PID pid;
@@ -364,6 +373,7 @@ class int_process
    Counter force_generator_block_count;
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
+   std::map<int, int> proc_desyncd_states;
 };
 
 class indep_lwp_control_process : virtual public int_process
@@ -386,6 +396,8 @@ class unified_lwp_control_process : virtual public int_process
                              std::vector<std::string> envp, std::map<int,int> f);
    unified_lwp_control_process(Dyninst::PID pid_, int_process *p);
    virtual ~unified_lwp_control_process();
+
+   virtual bool plat_processSyncContinues();
 };
 
 class int_registerPool

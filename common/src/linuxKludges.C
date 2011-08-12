@@ -493,7 +493,7 @@ bool AuxvParser::readAuxvInfo()
      guessed_addrs.push_back( dso_start );
     
   /**
-   * We'll make several educated attempts at guessing an address
+   * We'll make several educatbed attempts at guessing an address
    * for the vsyscall page.  After deciding on a guess, we'll try to
    * verify that using /proc/pid/maps.
    **/

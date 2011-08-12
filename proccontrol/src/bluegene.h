@@ -117,7 +117,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    virtual unsigned getTargetPageSize();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    virtual bool plat_individualRegAccess();   
-
+   virtual bool plat_supportLWPPostDestroy();
    virtual bool plat_getInterpreterBase(Address &base);
 
    virtual OSType getOS() const;
@@ -159,10 +159,57 @@ class bg_thread : public thread_db_thread
 
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
+
+   bool pendingDelete();
+   void setPendingDelete(bool b);
   private:
    bool setAllRegistersHelper(Dyninst::MachRegister reg, int &cur_id);
    bool decoderPendingStop_;
+   bool pendingDelete_;
 };
+
+class BGHandleLWPClean : public Handler
+{
+  public:
+   BGHandleLWPClean();
+   virtual ~BGHandleLWPClean();
+
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
+};
+
+/**
+ * BG doesn't tell us about LWP death events, so we don't know
+ * when it's safe to clean up thread destroy events.  We'll keep
+ * a threads that have had their user thread object cleaned, and
+ * poll them to check for LWP death.  
+ **/
+class lwp_poll {
+  private:
+   DThread thrd;
+   CondVar pollLock;
+   std::set<int> pids_to_poll;
+   bool terminate;
+   bool blocked;
+   bool sleeping;
+   int poller_lwp;
+   struct sigaction old_act;
+
+   bool registerHandler();
+  public:
+   lwp_poll();
+   ~lwp_poll();
+
+   void clearProc(int_process *proc);
+   void addProc(int_process *proc);
+   void threadMain();
+   void start();
+   
+   bool unregisterHandler();
+};
+
+lwp_poll *getLWPPoller();
 
 class ArchEventBlueGene : public ArchEvent
 {

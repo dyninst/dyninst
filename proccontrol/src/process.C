@@ -328,10 +328,15 @@ bool int_process::reattach()
            (*i)->getDetachState().setState(int_thread::detached);
 
            Event::ptr destroyEv;
-           if( plat_supportLWPEvents() ) {
-               destroyEv = Event::ptr(new EventLWPDestroy(EventType::Post));
-           }else{
-               destroyEv = Event::ptr(new EventUserThreadDestroy(EventType::Post));
+           if (plat_supportLWPPostDestroy()) {
+              destroyEv = Event::ptr(new EventLWPDestroy(EventType::Post));
+           }
+           else if (plat_supportThreadEvents()) {
+              destroyEv = Event::ptr(new EventUserThreadDestroy(EventType::Post));
+           }
+           else {
+              perr_printf("Platform does not support any thread destroy events.  Now what?\n");
+              assert(0);
            }
 
            destroyEv->setProcess(proc());
@@ -572,6 +577,11 @@ bool int_process::post_attach(bool)
 bool int_process::post_create()
 {
    return initializeAddressSpace();
+}
+
+bool int_process::plat_processSyncContinues()
+{
+   return false;
 }
 
 bool int_process::getThreadLWPs(std::vector<Dyninst::LWP> &)
@@ -1570,7 +1580,17 @@ bool int_process::plat_supportThreadEvents()
    return false;
 }
 
-bool int_process::plat_supportLWPEvents()
+bool int_process::plat_supportLWPCreate() 
+{
+   return false;
+}
+
+bool int_process::plat_supportLWPPreDestroy()
+{
+   return false;
+}
+
+bool int_process::plat_supportLWPPostDestroy()
 {
    return false;
 }
@@ -1592,6 +1612,11 @@ bool int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<Address
 bool int_process::plat_needsPCSaveBeforeSingleStep() 
 {
    return false;
+}
+
+map<int, int> &int_process::getProcDesyncdStates()
+{
+   return proc_desyncd_states;
 }
 
 int_process::~int_process()
@@ -1795,8 +1820,11 @@ bool unified_lwp_control_process::plat_syncRunState()
       return false;
    }
 
+   return true;
+}
 
-
+bool unified_lwp_control_process::plat_processSyncContinues()
+{
    return true;
 }
 
@@ -1888,8 +1916,17 @@ bool int_thread::intCont()
    bool result = plat_cont();
 
    if (result) {
-      getHandlerState().setState(int_thread::running);
-      getGeneratorState().setState(int_thread::running);
+      if (llproc()->plat_processSyncContinues()) {
+         int_threadPool *pool = llproc()->threadPool();
+         for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+            (*i)->getHandlerState().setState(int_thread::running);
+            (*i)->getGeneratorState().setState(int_thread::running);
+         }
+      }
+      else {
+         getHandlerState().setState(int_thread::running);
+         getGeneratorState().setState(int_thread::running);
+      }
       triggerContinueCBs();
    }
 
@@ -1970,8 +2007,19 @@ void int_thread::addContinueCB(continue_cb_t cb)
 
 void int_thread::triggerContinueCBs()
 {
+   bool sync_conts = llproc()->plat_processSyncContinues();
    for (set<continue_cb_t>::iterator i = continue_cbs.begin(); i != continue_cbs.end(); i++) {
-      (*i)(this);
+      if (!sync_conts) {
+         //Independent lwp control--only do this thread.
+         (*i)(this);
+      }
+      else {
+         //All threads are continued at once--do every thread
+         int_threadPool *tp = llproc()->threadPool();
+         for (int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
+            (*i)(*j);
+         }
+      }
    }
 }
 
@@ -2810,6 +2858,11 @@ void int_thread::StateTracker::desyncStateProc(State ns)
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
       (*i)->getStateByID(id).desyncState(ns);
    }
+   
+   //Track the process level desyncs seperately.  This way if a 
+   // new thread appears we can initialized its states to be 
+   // consistent with the other threads.
+   up_thr->llproc()->getProcDesyncdStates()[id]++;
 }
 
 void int_thread::StateTracker::restoreState()
@@ -2831,6 +2884,8 @@ void int_thread::StateTracker::restoreStateProc()
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
       (*i)->getStateByID(id).restoreState();
    }
+
+   up_thr->llproc()->getProcDesyncdStates()[id]--;
 }
 
 int_thread::State int_thread::StateTracker::getState() const
@@ -3867,6 +3922,7 @@ RegisterPool::const_iterator RegisterPool::const_iterator::operator++(int)
 
 void regpoolClearOnCont(int_thread *thr)
 {
+   pthrd_printf("Clearing register pool for %d/%d\n", thr->llproc()->getPid(), thr->getLWP());
    thr->clearRegCache();
 }
 
@@ -4778,7 +4834,8 @@ bool Process::supportsLWPEvents() const
       perr_printf("Support query on deleted process\n");
       return false;
    }
-   return llproc_->plat_supportLWPEvents();
+   //Intentionally not testing plat_supportLWP*Destroy, which is complicated on BG
+   return llproc_->plat_supportLWPCreate(); 
 }
 
 bool Process::supportsUserThreadEvents() const

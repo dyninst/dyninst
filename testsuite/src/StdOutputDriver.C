@@ -84,8 +84,8 @@ void StdOutputDriver::printHeader(FILE *out) {
    if (printed_header)
       return;
    printed_header = true;
-#if defined (ob_bg_test)
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+#if defined (os_bg_test)
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
            name_len, "TEST", 
            compiler_len, "COMP", 
            opt_len, "OPT", 
@@ -191,7 +191,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    if (needs_header)
       printHeader(out);
 #if defined(os_bg_test)
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s ",
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,
            opt_len, last_group->optlevel, 
@@ -201,7 +201,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
            pic_len, picStr,
            pmode_len, last_group->platmode);
 #elif defined(cap_32_64_test)
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s ", 
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,
            opt_len, last_group->optlevel, 
@@ -211,7 +211,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
            link_len, linkage_str, 
            pic_len, picStr);
 #else
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s ", 
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,
            opt_len, last_group->optlevel, 

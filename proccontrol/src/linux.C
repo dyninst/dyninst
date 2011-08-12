@@ -63,6 +63,14 @@
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
 
+#if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
+#define PTRACE_GETREGS PPC_PTRACE_GETREGS
+#endif
+
+#if !defined(PTRACE_SETREGS) && defined(PPC_PTRACE_SETREGS)
+#define PTRACE_SETREGS PPC_PTRACE_SETREGS
+#endif
+
 using namespace Dyninst;
 using namespace std;
 
@@ -955,7 +963,17 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-bool linux_process::plat_supportLWPEvents()
+bool linux_process::plat_supportLWPCreate() 
+{
+   return true;
+}
+
+bool linux_process::plat_supportLWPPreDestroy()
+{
+   return true;
+}
+
+bool linux_process::plat_supportLWPPostDestroy()
 {
    return true;
 }
@@ -1034,7 +1052,7 @@ bool linux_thread::plat_cont()
    return true;
 }
 
-SymbolReaderFactory *linux_process::plat_defaultSymReader()
+SymbolReaderFactory *getElfReader()
 {
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
@@ -1044,12 +1062,17 @@ SymbolReaderFactory *linux_process::plat_defaultSymReader()
   return symreader_factory;
 }
 
+SymbolReaderFactory *linux_process::plat_defaultSymReader()
+{
+   return getElfReader();
+}
+
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
 #endif
 
-pid_t P_gettid()
+static pid_t P_gettid()
 {
   static int gettid_not_valid = 0;
   long int result;
@@ -1535,21 +1558,47 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    volatile unsigned int sentinel2 = 0xfeedface;
    memset(user_area, 0, MAX_USER_SIZE);
 
-   int result = do_ptrace((pt_req) PTRACE_GETREGS, lwp, NULL, user_area);
+   Dyninst::Architecture curplat = llproc()->getTargetArch();
+   init_dynreg_to_user();
+   dynreg_to_user_t::iterator i;
+
+#if defined(PT_GETREGS)
+   long result = do_ptrace((pt_req) PTRACE_GETREGS, lwp, NULL, user_area);
    if (result != 0) {
       perr_printf("Error reading registers from %d\n", lwp);
       setLastError(err_internal, "Could not read user area from thread");
       return false;
    }
+#else
+   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++) {
+      const MachRegister reg = i->first;
+      if (reg.getArchitecture() != curplat)
+         continue;
+      long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) i->second.first, NULL);
+      if (errno == -1) {
+         perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
+         setLastError(err_internal, "Could not read user area from thread");
+         return false;
+      }
+      if (Dyninst::getArchAddressWidth(curplat) == 4) {
+         uint32_t val = (uint32_t) result;
+         *((uint32_t *) (user_area + i->second.first)) = val;
+      }
+      else if (Dyninst::getArchAddressWidth(curplat) == 8) {
+         uint64_t val = (uint64_t) result;
+         *((uint64_t *) (user_area + i->second.first)) = val;
+      }
+      else {
+         assert(0);
+      }
+   }
+#endif
    //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
    // for a new platform.
    assert(sentinel1 == 0xfeedface);
    assert(sentinel2 == 0xfeedface);
 
-   init_dynreg_to_user();
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
    regpool.regs.clear();
-   dynreg_to_user_t::iterator i;
    for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
@@ -1633,9 +1682,10 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
    }
 #endif
 
+#if defined(PT_SETREGS)
    unsigned char user_area[MAX_USER_SIZE];
 
-   //Fill in 'user_area' with the contents of regpool.
+   //Fill in 'user_area' with the contents of regpool.   
    if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
 
    int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
@@ -1644,6 +1694,30 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
       setLastError(err_internal, "Could not read user area from thread");
       return false;
    }
+#else
+   Dyninst::Architecture curplat = llproc()->getTargetArch();
+   init_dynreg_to_user();
+   for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
+      assert(i->first.getArchitecture() == curplat);
+      dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
+      assert(di != dynreg_to_user.end());
+      int result;
+      if (Dyninst::getArchAddressWidth(curplat) == 4) {
+         uint32_t res = (uint32_t) i->second;
+         result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+      }
+      else {
+         uint64_t res = (uint64_t) i->second;
+         result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+      }
+
+      if (result != 0) {
+         perr_printf("Error setting registers for %d at %x\n", lwp, di->second.first);
+         setLastError(err_internal, "Could not read user area from thread");
+         return false;
+      }
+   }
+#endif
    pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
    return true;
 }
@@ -2089,7 +2163,7 @@ void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
     etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
 }
 
-HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+HandlerPool *linux_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
    static LinuxHandleNewThr *lbootstrap = NULL;
@@ -2101,6 +2175,11 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    thread_db_process::addThreadDBHandlers(hpool);
    sysv_process::addSysVHandlers(hpool);
    return hpool;
+}
+
+HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+{
+   return linux_createDefaultHandlerPool(hpool);
 }
 
 bool ProcessPool::LWPIDsAreUnique()

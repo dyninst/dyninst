@@ -38,12 +38,12 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
-
 #include "proccontrol/src/bluegene.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
 
+#include "dynutil/h/SymReader.h"
 #include "common/h/SymLite-elf.h"
 
 #include <sys/types.h>
@@ -52,6 +52,7 @@
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/select.h>
+#include <sys/syscall.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -59,6 +60,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <poll.h>
+#include <elf.h>
 
 using namespace DebuggerInterface;
 using namespace Dyninst;
@@ -72,6 +74,9 @@ static void register_for_crash(int pid);
 static void remove_for_crash(int pid);
 static void on_crash(int sig);
 static bool ll_bgsend(const BG_Debugger_Msg &msg);
+
+static pid_t P_gettid();
+static bool t_kill(int pid, int sig);
 
 #define EXIT_TYPE_EXIT 0
 #define EXIT_TYPE_SIGNAL 1
@@ -690,12 +695,15 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case KILL_ACK:
          pthrd_printf("Decoded KILL_ACK, dropping...\n");
          break;
-      case ATTACH_ACK:
+      case ATTACH_ACK: {
          pthrd_printf("Decoded ATTACH_ACK, creating bootstrap event\n");
          assert(proc->getState() == int_process::neonatal_intermediate);
-         new_event = EventIntBootstrap::ptr(new EventIntBootstrap());         
+         EventIntBootstrap::ptr bs_event = EventIntBootstrap::ptr(new EventIntBootstrap());
+         bs_event->setData((void *) msg->header.returnCode);
+         new_event = bs_event;
          new_event->setSyncType(Event::async);
          break;
+      }
       case PROGRAM_EXITED: {
          int code = msg->dataArea.PROGRAM_EXITED.type;
          int rc = msg->dataArea.PROGRAM_EXITED.rc;
@@ -847,28 +855,46 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       case VERSION_MSG_ACK:
          pthrd_printf("Dropping VERSION_MSG_ACK\n");
          break;
-      case THREAD_ALIVE_ACK:
+      case THREAD_ALIVE_ACK: {
+         bool is_alive = (msg->header.returnCode != RC_BAD_THREAD);
+         pthrd_printf("Decoded THREAD_ALIVE_ACK for %d/%d: alive %s\n",
+                      proc->getPid(), msg->header.thread, is_alive ? "true" : "false");
+            
          if (proc->getState() == int_process::neonatal_intermediate) {
             thrd_alive_ack_t *thrd_alive = (thrd_alive_ack_t *) malloc(sizeof(thrd_alive_ack_t));
             thrd_alive->lwp_id = msg->header.thread;
-            thrd_alive->alive = (msg->header.returnCode != RC_NO_ERROR);
+            thrd_alive->alive = is_alive;
             new_event = EventIntBootstrap::ptr(new EventIntBootstrap(thrd_alive)); 
             new_event->setSyncType(Event::async);
-            pthrd_printf("Decoded THREAD_ALIVE_ACK for %d/%d: alive %d\n",
-                         proc->getPid(), thrd_alive->lwp_id, (int) thrd_alive->alive);
+         }
+         else {
+            if (!thread) {
+               pthrd_printf("Poll found thread already cleaned -- dropping\n");
+            }
+            else if (is_alive) {
+               pthrd_printf("Poll found thread still alive -- dropping\n");               
+            }
+            else {
+               pthrd_printf("Poll found thread dead -- decoding to LWP destroy\n");
+               new_event = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+               new_event->setSyncType(Event::async);
+               new_event->setThread(thread->thread());
+               thread->getGeneratorState().setState(int_thread::exited);
+            }
          }
          break;
+      }
       case GET_PROCESS_DATA_ACK:
+         pthrd_printf("Decoded GET_PROCESS_DATA_ACK for %d/%d\n",
+                      proc->getPid(), thread->getLWP());
          if (proc->getState() == int_process::neonatal_intermediate) {
-            pthrd_printf("Decoded GET_PROCESS_DATA_ACK for %d/%d\n",
-                         proc->getPid(), thread->getLWP());
             BG_Debugger_Msg::DataArea *data;
             data = (BG_Debugger_Msg::DataArea *) malloc(sizeof(BG_Debugger_Msg::DataArea));
             *data = msg->dataArea;
             
             new_event = EventIntBootstrap::ptr(new EventIntBootstrap(data));
             new_event->setSyncType(Event::async);
-         }
+         } 
          break;
       case GET_AUX_VECTORS_ACK:
          pthrd_printf("Decoded GET_AUX_VECTORS_ACK\n");
@@ -1251,12 +1277,17 @@ void bg_process::getVersionInfo(int &protocol, int &phys, int &virt)
    delete ae;
 }
 
+bool bg_process::plat_supportLWPPostDestroy()
+{
+   return true;
+}
+
 int_process::ThreadControlMode bg_process::plat_getThreadControlMode() const
 {
    return int_process::NoLWPControl;
 }
 
-SymbolReaderFactory *bg_process::plat_defaultSymReader()
+SymbolReaderFactory *getElfReader()
 {
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
@@ -1264,6 +1295,11 @@ SymbolReaderFactory *bg_process::plat_defaultSymReader()
 
   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
   return symreader_factory;
+}
+
+SymbolReaderFactory *bg_process::plat_defaultSymReader()
+{
+   return getElfReader();
 }
 
 unsigned bg_process::plat_getRecommendedReadSize()
@@ -1454,7 +1490,8 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 
 bg_thread::bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    thread_db_thread(p, t, l),
-   decoderPendingStop_(false)
+   decoderPendingStop_(false),
+   pendingDelete_(false)
 {
 }
 
@@ -1503,9 +1540,6 @@ bool bg_thread::plat_cont()
          break;
       }
    }
-   lwp_to_cont = getLWP();
-   sig_to_cont = continueSig_;
-   continueSig_ = 0;
    
    pthrd_printf("Sending CONTINUE with signal %d to %d/%d\n", 
                 sig_to_cont, llproc()->getPid(), lwp_to_cont);
@@ -1696,6 +1730,15 @@ bool bg_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned 
    return true;
 }
 
+bool bg_thread::pendingDelete()
+{
+   return pendingDelete_;
+}
+
+void bg_thread::setPendingDelete(bool b)
+{
+   pendingDelete_ = b;
+}
 
 HandleBGAttached::HandleBGAttached() : 
    Handler("BGAttach")
@@ -1748,6 +1791,15 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
    bg_process::getVersionInfo(protocol, phys, virt);
 
    if (proc->bootstrap_state == bg_process::bg_init) {
+      EventIntBootstrap::ptr evib = ev->getEventIntBootstrap();
+      uint32_t ret_code = (uint32_t) evib->getData();
+      if (ret_code != RC_NO_ERROR) {
+         perr_printf("Process %d ATTACH failed with return code %u.\n", proc->getPid(), ret_code);
+         proc->setState(int_process::errorstate);
+         //Yes, return success. The handler succeeded, it's the attach that failed.
+         return ret_success;
+      }
+
       pthrd_printf("Process %d ATTACHED, forcing gen block\n", 
                    proc->getPid());
       ProcPool()->condvar()->lock();
@@ -1936,13 +1988,242 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
    static HandleBGAttached *bg_attach = NULL;
+   static BGHandleLWPClean *bg_clean = NULL;
    if (!initialized) {
       bg_attach = new HandleBGAttached();
+      bg_clean = new BGHandleLWPClean();
       initialized = true;
    }
    hpool->addHandler(bg_attach);
+   hpool->addHandler(bg_clean);
    thread_db_process::addThreadDBHandlers(hpool);
    return hpool;
+}
+
+BGHandleLWPClean::BGHandleLWPClean() :
+   Handler("BG LWP Clean")
+{
+}
+
+BGHandleLWPClean::~BGHandleLWPClean()
+{
+}
+
+int BGHandleLWPClean::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+void BGHandleLWPClean::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
+   etypes.push_back(EventType(EventType::Post, EventType::LWPDestroy));
+}
+
+Handler::handler_ret_t BGHandleLWPClean::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   if (!proc) {
+      //Reminder - this is an asynchronous event.  Have to be careful
+      // about process exits.
+      pthrd_printf("Target process %d exited during BGHandleLWPClean\n", ev->getProcess()->getPid());
+      return ret_success;
+   }
+ 
+   if (ev->getEventType().code() == EventType::LWPDestroy)
+      getLWPPoller()->clearProc(proc);
+   else if (ev->getEventType().code() == EventType::UserThreadDestroy) {
+      bg_thread *thrd = static_cast<bg_thread *>(ev->getThread()->llthrd());
+      thrd->setPendingDelete(true);
+      getLWPPoller()->addProc(proc);
+   }
+   return ret_success;
+}
+
+static lwp_poll *poller = NULL;
+
+lwp_poll *getLWPPoller()
+{
+   static Mutex init_lock;
+   if (poller) 
+      return poller;
+
+   init_lock.lock();
+   if (!poller) {
+      poller = new lwp_poll;
+      poller->start();
+   }
+   init_lock.unlock();
+   return poller;
+}
+
+void cleanLWPPoller()
+{
+   delete poller;
+   poller = NULL;
+}
+
+lwp_poll::lwp_poll() :
+   terminate(false),
+   blocked(false),
+   sleeping(false),
+   poller_lwp(0)
+{
+}
+
+
+lwp_poll::~lwp_poll()
+{
+   pollLock.lock();
+   terminate = true;
+   pollLock.signal();
+   if (poller_lwp && !blocked && registerHandler())
+      t_kill(poller_lwp, SIGUSR1);
+   pollLock.unlock();
+
+   thrd.join();
+}
+
+static void wrap_lwp_poll_main(void *)
+{
+   getLWPPoller()->threadMain();
+}
+
+void lwp_poll::start()
+{
+   thrd.spawn(wrap_lwp_poll_main, NULL);
+}
+
+extern "C" {
+   void pc_on_sigusr1(int sig);
+}
+
+void pc_on_sigusr1(int /*sig*/)
+{
+   getLWPPoller()->unregisterHandler();
+}
+
+bool lwp_poll::registerHandler()
+{
+   //Use a signal to trigger an EINTR and kick the thread out of 
+   // its sleep.
+   struct sigaction act;
+   memset(&act, 0, sizeof(struct sigaction));
+   memset(&old_act, 0, sizeof(struct sigaction));
+   act.sa_handler = pc_on_sigusr1;
+
+   int result = sigaction(SIGUSR1, &act, &old_act);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Could not set sigaction for SIGUSR1: %s\n", strerror(error));
+      return false;
+   }
+   return true;
+}
+
+bool lwp_poll::unregisterHandler()
+{
+   sigaction(SIGUSR1, &old_act, NULL);
+   return true;
+}
+
+
+void lwp_poll::threadMain()
+{
+   poller_lwp = P_gettid();
+   for (;;) {
+      pollLock.lock();
+
+      //This loops until we have pids to poll
+      blocked = true;
+      while (pids_to_poll.empty() && !terminate)
+         pollLock.wait();
+      blocked = false;
+
+      pollLock.unlock();
+
+      if (terminate)
+         break;
+      
+      //Sleep 1 second between polls.
+      struct timespec tp;
+      tp.tv_sec = 1;
+      tp.tv_nsec = 0;
+      sleeping = true;
+      int result = nanosleep(&tp, NULL);
+      sleeping = false;
+      if (result == -1 && errno != EINTR) {
+         int error = errno;
+         perr_printf("Error in nanosleep: %s\n", strerror(error));
+      }
+
+      if (terminate)
+         break;
+
+      ProcPool()->condvar()->lock();
+      pollLock.lock();
+
+      for (set<int>::iterator i = pids_to_poll.begin(); i != pids_to_poll.end();) {
+         pthrd_printf("Polling on pid %d\n", *i);
+         bg_process *proc = dynamic_cast<bg_process *>(ProcPool()->findProcByPid(*i));
+         if (!proc) {
+            pids_to_poll.erase(i++);
+            continue;
+         }
+         
+         if (proc->getState() == int_process::running) {
+            int_threadPool *tpool = proc->threadPool();
+            bool found_thread = false;
+            for (int_threadPool::iterator j = tpool->begin(); j != tpool->end(); j++) {
+               bg_thread *thrd = static_cast<bg_thread *>(*j);
+               pthrd_printf("Polling thread %d/%d: %s\n",
+                            proc->getPid(), thrd->getLWP(), thrd->pendingDelete() ? "true" : "false");
+               if (!thrd->pendingDelete())
+                  continue;
+               found_thread = true;
+
+               BG_Debugger_Msg msg(THREAD_ALIVE, proc->getPid(), thrd->getLWP(), 0, 0);
+               msg.dataArea.THREAD_ALIVE.tid = thrd->getLWP();
+               msg.header.dataLength = sizeof(msg.dataArea.THREAD_ALIVE);
+               pthrd_printf("Sending THREAD_ALIVE to %d/%d as part of thread death poll\n",
+                            proc->getPid(), thrd->getLWP());
+               proc->BGSend(msg);
+            }
+         }
+         i++;
+      }
+
+      pollLock.unlock();
+      ProcPool()->condvar()->unlock();;
+   }
+}
+
+void lwp_poll::clearProc(int_process *proc)
+{
+   pollLock.lock();
+
+   int_threadPool *tp = proc->threadPool();
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+      if (static_cast<bg_thread *>((*i))->pendingDelete())
+         goto done;
+   }
+
+   //No threads are pending delete, remove this process from list.
+   {
+      set<int>::iterator j = pids_to_poll.find(proc->getPid());
+      assert(j != pids_to_poll.end());
+      pids_to_poll.erase(j);
+   }
+
+  done:
+   pollLock.unlock();
+}
+
+void lwp_poll::addProc(int_process *proc)
+{
+   pollLock.lock();
+   pids_to_poll.insert(proc->getPid());
+   pollLock.unlock();
 }
 
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg)
@@ -2059,6 +2340,43 @@ static void on_crash(int sig)
    //signal(SIGABRT, SIG_DFL);
 
    *((int *) 0x0) = 0x0; //Crash here
+}
+
+static pid_t P_gettid()
+{
+  static int gettid_not_valid = 0;
+  long int result;
+
+  if (gettid_not_valid)
+    return getpid();
+
+  result = syscall(SYS_gettid);
+  if (result == -1 && errno == ENOSYS)
+  {
+    gettid_not_valid = 1;
+    return getpid();
+  }
+  return (int) result;
+}
+
+static bool t_kill(int pid, int sig)
+{
+  static bool has_tkill = true;
+  long int result = 0;
+  pthrd_printf("Sending %d to %d\n", sig, pid);
+  if (has_tkill) {
+     result = syscall(SYS_tkill, pid, sig);
+     if (result == -1 && errno == ENOSYS)
+     {
+        pthrd_printf("Using kill instead of tkill on this system\n");
+        has_tkill = false;
+     }
+  }
+  if (!has_tkill) {
+     result = kill(pid, sig);
+  }
+
+  return (result == 0);
 }
 
 DebugPortReader *DebugPortReader::me = NULL;
