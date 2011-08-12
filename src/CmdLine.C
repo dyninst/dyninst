@@ -91,6 +91,7 @@ static bool fileExists(std::string f);
 #define PROCMODE  (1 << 7)
 #define LINKMODE  (1 << 8)
 #define PICMODE   (1 << 9)
+#define PLATMODE  (1 << 10)
 //If you add more modes here, then update the lists in "-all" and "-full" parsing below
 
 ModeGroup mode_args[] = {
@@ -140,6 +141,9 @@ ModeGroup mode_args[] = {
    { "staticlink",  LINKMODE,  defaultOff },
    { "pic",         PICMODE,   defaultOn  },
    { "nonpic",      PICMODE,   defaultOff },
+   { "smp",         PLATMODE,  defaultOn  },
+   { "dual",        PLATMODE,  defaultOff },
+   { "vn",          PLATMODE,  defaultOff },
    { NULL,          NONE,      defaultOff } };
 
 static std::vector<char *> mutatee_list;
@@ -343,12 +347,12 @@ static int handleArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-all") == 0)
       {
-         setAllOn(COMPILERS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE, false);
+         setAllOn(COMPILERS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE | PLATMODE, false);
       }
       else if (strcmp(argv[i], "-full") == 0)
       {
          //Like -all, but with full optimization levels
-         setAllOn(COMPILERS | OPTLEVELS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE, false);
+         setAllOn(COMPILERS | OPTLEVELS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE | PICMODE | PLATMODE, false);
       }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
@@ -357,6 +361,10 @@ static int handleArgs(int argc, char *argv[])
       else if (strcmp(argv[i], "-allopt") == 0)
       {
          setAllOn(OPTLEVELS, true);
+      }
+      else if (strcmp(argv[i], "-allpmode") == 0)
+      {
+         setAllOn(PLATMODE, true);
       }
       else if ( strcmp(argv[i], "-noclean") == 0 )
       {
@@ -628,6 +636,10 @@ struct groupcmp
       
       if (lv->procmode != rv->procmode)
          return ((int) lv->procmode) < ((int) rv->procmode);
+
+      int val = strcmp(lv->platmode, rv->platmode);
+      if (val != 0)
+         return (val == -1);
       
       return false;
    }
@@ -751,6 +763,14 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
 #endif
       if ((groups[i]->pic == nonPIC && !paramOn("nonpic")) ||
           (groups[i]->pic == PIC && !paramOn("pic")))
+      {
+         groups[i]->disabled = true;
+         continue;
+      }
+
+      if ((strcmp(groups[i]->platmode, "DUAL") == 0 && !paramOn("dual")) ||
+          (strcmp(groups[i]->platmode, "VN") == 0 && !paramOn("vn")) ||
+          (strcmp(groups[i]->platmode, "SMP") == 0 && !paramOn("smp"))) 
       {
          groups[i]->disabled = true;
          continue;

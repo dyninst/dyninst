@@ -270,7 +270,7 @@ bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_
 
    registerMutatee(mutatee_string);
    pid = getMutateePid(group);
-   assert(pid);
+   assert(pid != NULL_PID);
 
    result = waitForCompletion(pid, app_crash, app_return);
    if (!result)

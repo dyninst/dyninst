@@ -201,7 +201,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       case USEATTACH:
       {
          int pid = getMutateePid(group);
-         if (!pid) {
+         if (pid == NULL_PID) {
             std::string mutateeString = launchMutatee(group, params);
             if (mutateeString == string("")) {
                logerror("Error creating attach process\n");
@@ -210,7 +210,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
             registerMutatee(mutateeString);
             pid = getMutateePid(group);
          }
-         assert(pid);
+         assert(pid != NULL_PID);
 
          appProc = BPatch::bpatch->processAttach(group->mutatee, pid);
          if (!appProc) {
