@@ -770,7 +770,6 @@ bool BinaryEdit::initialize() {
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
-   cerr << "Adding dependent relocation @ " << hex << to << " with symbol " << referring << " " << (*referring) << dec << endl;
     // prevent duplicate relocations
     std::vector<depRelocation *>::iterator it;
     for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)

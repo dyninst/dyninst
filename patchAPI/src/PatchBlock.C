@@ -45,8 +45,11 @@ const PatchBlock::edgelist&
 PatchBlock::getSources() {
   if (srclist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
-         iter != block_->sources().end(); ++iter) {
-      PatchEdge *newEdge = obj_->getEdge(*iter, NULL, this);
+         iter != block_->sources().end(); ++iter) 
+    {
+      // search for edge in object of source block
+      PatchObject *obj = obj_->addrSpace()->findObject((*iter)->src()->obj()); 
+      PatchEdge *newEdge = obj->getEdge(*iter, NULL, this);
       srclist_.push_back(newEdge);
     }
   }
@@ -112,8 +115,10 @@ PatchBlock::removeSourceEdge(PatchEdge *e) {
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(srclist_.begin(), srclist_.end(), e)) != srclist_.end()) {
     srclist_.erase(iter);
+  } else {
+      cerr << "WARNING: failed to remove target edge from block [" 
+          <<hex <<start() <<" " <<end() <<") from "<< e->source()->last() << dec <<endl;
   }
-
   cb()->remove_edge(this, e, PatchCallback::source);
 }
 
@@ -123,8 +128,10 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
 
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
-     cerr << "Erasing target edge" << endl;
     trglist_.erase(iter);
+  } else {
+      cerr << "WARNING: failed to remove target edge from block [" 
+          <<hex <<start() <<" " <<end() <<") to "<< e->source()->start() << dec <<endl;
   }
   cb()->remove_edge(this, e, PatchCallback::target);
 }
@@ -496,7 +503,13 @@ bool PatchBlock::consistency() const {
          cerr << "Error: block has inconsistent sources size" << endl;
          CONSIST_FAIL;
       }
+      set<PatchBlock*> srcs;
       for (unsigned i = 0; i < srclist_.size(); ++i) {
+         if (srcs.find(srclist_[i]->source()) != srcs.end()) {
+            cerr << "Error: multiple source edges to same block" << endl;
+            CONSIST_FAIL;
+         }
+         srcs.insert(srclist_[i]->source());
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;
             CONSIST_FAIL;
@@ -510,7 +523,13 @@ bool PatchBlock::consistency() const {
               << trglist_.size() << endl;
          CONSIST_FAIL;
       }
+      set<PatchBlock*>trgs;
       for (unsigned i = 0; i < trglist_.size(); ++i) {
+         if (trgs.find(trglist_[i]->target()) != trgs.end()) {
+            cerr << "Error: multiple target edges to same block" << endl;
+            CONSIST_FAIL;
+         }
+         trgs.insert(trglist_[i]->source());
          if (!trglist_[i]->consistency()) {
             cerr << "Error: target edge inconsistent" << endl;
             CONSIST_FAIL;

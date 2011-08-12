@@ -39,7 +39,11 @@ void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block 
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {
-   _obj->removeBlock(block);
+   PatchBlock *pb = _obj->getBlock(block,false);
+   if (pb) {
+       pb->destroyPoints();
+       _obj->removeBlock(block);
+   }
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
@@ -60,7 +64,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    PatchEdge *pe = _obj->getEdge(edge, NULL, NULL, false);
    if (!pe) return;
 
-   PatchBlock *pb = _obj->getBlock(block, false);
+   PatchBlock *pb = _obj->addrSpace()->findObject(block->obj())->getBlock(block, false);
    assert(pb); // If we have an edge we better DAMN well have the block
    
    if (type == source) pb->removeSourceEdge(pe);

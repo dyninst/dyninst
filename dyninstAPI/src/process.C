@@ -4155,7 +4155,7 @@ static void otherFuncBlocks(func_instance *func,
  *          forall f in F(b): B(f) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
- *          EP(f) in ow(f) AND ex(f)-ow(f) is empty
+ *          EP(f) in ow(f) AND ex(f) is empty
  */
 bool process::getDeadCode
 ( const std::list<block_instance*> &owBlocks, // input
@@ -4193,7 +4193,7 @@ bool process::getDeadCode
          bIter++) 
     {
        vector<func_instance*> funcs;
-       (*bIter)->getFuncs(std::inserter(funcs, funcs.end()));
+       (*bIter)->getFuncs(std::back_inserter(funcs));
        for (vector<func_instance*>::iterator fit = funcs.begin(); 
             fit != funcs.end(); 
             fit++) 
@@ -4227,17 +4227,19 @@ bool process::getDeadCode
                 cb_iter != candidateBlocks.end(); ++cb_iter) 
             {
                 block_instance *exB = *cb_iter;
-                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) 
-                {
-                    execBlocks.insert(exB);
+                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) {
+                   set<func_instance*> funcs;
+                   exB->getFuncs(std::inserter(funcs, funcs.end()));
+                   if (funcs.find(fit->first) != funcs.end()) {
+                        execBlocks.insert(exB);
+                   }
                 }
             }
         }
 
-        // calculate DeadF: EP(f) in ow and EP(f) not in ex(f)
-        if (!execBlocks.empty()) {
-            set<block_instance*>::iterator eb = fit->second.find(
-                fit->first->entryBlock());
+        // calculate DeadF: EP(f) in ow and ex(f) is empty
+        if (execBlocks.empty()) {
+            set<block_instance*>::iterator eb = fit->second.find(fit->first->entryBlock());
             if (eb != fit->second.end()) {
                 deadFuncs.push_back(fit->first);
                 continue;// treated specially, don't need elimF, NewF or DelF

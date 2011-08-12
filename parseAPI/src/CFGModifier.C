@@ -159,7 +159,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 }
 
 bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever not want to force removal?
-
+   cerr << "removing ParseAPI block [" << hex <<b->start() <<" " << b->end() << ")"<< dec<< endl;
    if (!b) return false;
 
    // 1) Remove from containing functions
@@ -218,8 +218,13 @@ bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever
    {
       deadEdges.push_back(*iter);
       pcb->removeEdge(b, *iter, ParseCallback::target);
+     (*iter)->trg()->removeSource(*iter); // even sink edge has source list
       if (!(*iter)->sinkEdge()) {
-         (*iter)->trg()->removeSource(*iter);
+         pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
+      } else {
+         // we don't actually wire up edges to the sink block in the PatchAPI, 
+         // but I'm not sure why not, so I'll keep this here in case that
+         // changes in the future
          pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
       }
    }
@@ -232,10 +237,10 @@ bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever
 
    // 5)
    CFGFactory *fact = b->obj()->fact();
-   pcb->destroy(b, fact);
    for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
        pcb->destroy(*eit, fact);
    }
+   pcb->destroy(b, fact);
 
    return true;
 }
@@ -249,11 +254,15 @@ bool CFGModifier::remove(Function *f) {
    Block *entry = f->entry();
    Interproc pred;
    Block::edgelist calls = entry->sources();
-   for (Block::edgelist::iterator cit = calls.begin(&pred);
-        cit != calls.end();
-        cit++)
-   {
-       f->obj()->destroy(*cit);
+   Block::edgelist::iterator cit = calls.begin(&pred);
+   while (cit != calls.end()) {
+       Edge *cur = (*cit);
+       CodeObject *obj = cur->src()->obj();
+       obj->_pcb->removeEdge(cur->src(), cur, ParseCallback::target);
+       obj->_pcb->removeEdge(cur->trg(), cur, ParseCallback::source);
+       cur->uninstall();
+       Edge::destroy(cur,obj);
+       cit = calls.begin(&pred);
    }
 
    // remove blocks from func, store unshared block list for destruction

@@ -337,11 +337,14 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
    if (!isValid())
       return false;
 
-   if (!full_func_parse || func_map.size() != mod->getFuncVectorSize()) {
+   if (!full_func_parse || 
+       func_map.size() != mod->getFuncVectorSize() || 
+       mod->obj()->isExploratoryModeOn())
+   {
       const pdvector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
-            addSpace->findOrCreateBPFunc(funcs[i], this);
+            addSpace->findOrCreateBPFunc(funcs[i], this); // adds func to func_map
          }
       }
       full_func_parse = true;

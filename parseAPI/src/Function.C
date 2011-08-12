@@ -454,7 +454,7 @@ Function::tampersStack(bool recalculate)
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() << "_" 
                               << hex << retnAddr << dec << ".dot";
-                    slGraph->printDOT(graphDump.str());
+                    //slGraph->printDOT(graphDump.str());
                 }
                 DataflowAPI::Result_t slRes;
                 DataflowAPI::SymEval::expand(slGraph,slRes);

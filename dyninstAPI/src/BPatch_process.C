@@ -1904,7 +1904,7 @@ void BPatch_process::overwriteAnalysisUpdate
          nit != newFuncEntries.end();
          nit++)
     {
-        nit->first->setNewEntryPoint(nit->second);
+        nit->first->setNewEntry(nit->second);
     }
 
     // delete delBlocks and set new function entry points, if necessary
@@ -2056,6 +2056,8 @@ void BPatch_process::overwriteAnalysisUpdate
             stubs[fit->first].empty()) 
         {
             // there are no caller stubs for the function, parse it anyway
+            // (this is triggered when we overwrite the entry block of a 
+            // function when the overwritten block is on the call stack) 
             mal_printf("WARNING: didn't have any stub edges for overwritten "
                        "func %lx\n", fit->first->addr());
             vector<edgeStub> svec;
@@ -2063,7 +2065,6 @@ void BPatch_process::overwriteAnalysisUpdate
                                     fit->first->addr(), 
                                     ParseAPI::NOEDGE));
             fit->first->obj()->parseNewEdges(svec);
-            assert(0);
         }
         else { 
             // parse from stubs

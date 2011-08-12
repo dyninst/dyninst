@@ -724,7 +724,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
 // Protects the code in the module
 bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet) 
 {
-	malware_cerr << "HybridAnalysis (" << hex << this << "), instrumenting mod " << mod << dec << endl;
+	malware_cerr << "HybridAnalysis instrumenting mod at " << hex << (Address)mod->getBaseAddr() << dec << endl;
     assert(proc() && mod);
     if (false == mod->isExploratoryModeOn()) {
         return true;

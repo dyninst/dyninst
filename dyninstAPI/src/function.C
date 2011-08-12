@@ -127,7 +127,7 @@ func_instance::~func_instance() {
 // the original entry block is gone, we choose a new entry block from the
 // function, whichever block we can find that has no intraprocedural incoming 
 // edges
-block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
+block_instance * func_instance::setNewEntry(block_instance *defaultBlock)
 {
     block_instance *newEntry = NULL;
     assert(!all_blocks_.empty());
@@ -582,7 +582,7 @@ bool func_instance::addSymbolsForCopy() {
    }
    else {
       // I think we just add this to the dynamic symbol table...
-      cerr << "Adding symbol... " << hex << wrapperSym << " " << (*wrapperSym) << dec << endl;
+      cerr << "Adding symbol... " << hex << wrapperSym << " " << wrapperSym->getName() << dec << endl;
       wrapperSym->setDynamic(true);
       proc()->edit()->addDyninstSymbol(wrapperSym_);
    }

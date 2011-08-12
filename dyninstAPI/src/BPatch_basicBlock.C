@@ -96,18 +96,26 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
   return;
 }
 
-//returns the predecessors of the basic block in aset
+// returns the predecessors of the basic block, provided they are in the same
+// function, since our CFGs at the BPatch level are intraprocedural
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
   BPatch_basicBlock *b;
   pdvector<block_instance *> in_blocks;
-  const PatchBlock::edgelist &isrcs = iblock->getSources();
-  for (PatchBlock::edgelist::const_iterator iter = isrcs.begin(); iter != isrcs.end(); ++iter) {
-    edge_instance* iedge = SCAST_EI(*iter);
-    // We don't include interprocedural predecessors in the BPatch layer
-    if (iedge->interproc()) continue;
-
-    b = flowGraph->findBlock(iedge->src());
-    if (b) srcs.push_back(b);
+  // can't iterate over the PatchAPI cfg since that doesn't allow you to detect
+  // edges from shared blocks into blocks that are not shared and not in the 
+  // target block's function
+  using namespace ParseAPI;
+  const Block::edgelist &isrcs = iblock->llb()->sources();
+  func_instance *func = flowGraph->getFunction()->lowlevel_func();
+  SingleContext epred_(func->ifunc(),false,true);
+  Intraproc epred(&epred_);
+  for (Block::edgelist::iterator eit = isrcs.begin(&epred); 
+       eit != isrcs.end(); 
+       ++eit) 
+  {
+    b = flowGraph->findBlock(func->obj()->findBlock((*eit)->src()));
+    assert(b);
+    srcs.push_back(b);
   }
 }
 

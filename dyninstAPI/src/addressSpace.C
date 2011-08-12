@@ -1676,7 +1676,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address relocAddr = tframe.getPC();
-          mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
+          //mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
 
           RelocInfo ri;
           if (!getRelocInfo(relocAddr, ri)) continue; // Not in instrumentation already

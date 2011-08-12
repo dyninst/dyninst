@@ -48,6 +48,7 @@ namespace Dyninst {
 namespace ParseAPI {
 
 class CFGModifier;
+class CodeObject;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -174,10 +175,10 @@ class Edge : public allocatable {
 
     PARSER_EXPORT void install();
 
-    /* removes from blocks & finalized source functions if of type CALL */
+    /* removes from blocks (and if of type CALL, from finalized source functions ) */
     PARSER_EXPORT void uninstall();
 
-    PARSER_EXPORT static void destroy(Edge *);
+    PARSER_EXPORT static void destroy(Edge *, CodeObject *);
 
  friend class CFGFactory;
  friend class Parser;
