@@ -320,7 +320,7 @@ class AddressSpace : public InstructionSource {
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
-    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc, std::string name);
+    bool wrapFunction(func_instance *original, func_instance *wrapper, SymtabAPI::Symbol *clone);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
     const func_instance *isFunctionReplacement(func_instance *func) const;
@@ -532,6 +532,7 @@ class AddressSpace : public InstructionSource {
     bool emulatePC_;
 
     bool delayRelocation_;
+
   // PatchAPI stuffs
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
