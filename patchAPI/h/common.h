@@ -20,8 +20,6 @@
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include "dyn_detail/boost/enable_shared_from_this.hpp"
 #include "dyntypes.h"
-#include "common/h/IntervalTree.h"
-#include "common/h/Types.h"
 
 // For debug
 extern PATCHAPI_EXPORT bool debug_patchapi_flag;

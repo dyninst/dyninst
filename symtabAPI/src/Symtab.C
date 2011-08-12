@@ -621,12 +621,14 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
-        
+
+#if 0        
 #if !defined(os_vxworks)
         if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
             undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
+#endif
 #endif
 
         // Check whether this symbol has a valid offset. If they do not we have a
@@ -1622,7 +1624,9 @@ Symtab::Symtab(const Symtab& obj) :
    {
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
       //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-      undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
+
+      // Commented out; undefDynSyms is now in the global symbol list
+      //undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
 
    }
 

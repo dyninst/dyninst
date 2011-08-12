@@ -606,7 +606,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             */
                
             // Create the relocationEntry
-            cerr << "Creating relocation entry: " << hex << referring->getMangledName() << " -> " << to << dec << endl;
             relocationEntry localRel(to, referring->getMangledName(), referring,
                                      relocationEntry::getGlobalRelType(getAddressWidth()));
             
@@ -770,7 +769,6 @@ bool BinaryEdit::initialize() {
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
-   cerr << "Adding dependent relocation @ " << hex << to << " with symbol " << referring << " " << (*referring) << dec << endl;
     // prevent duplicate relocations
     std::vector<depRelocation *>::iterator it;
     for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)

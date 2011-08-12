@@ -3,6 +3,7 @@
 #include "AddrSpace.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"
+#include "common/h/Types.h"
 
 using Dyninst::PatchAPI::AddrSpace;
 using Dyninst::PatchAPI::AddrSpacePtr;
