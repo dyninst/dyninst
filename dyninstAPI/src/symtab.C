@@ -2126,6 +2126,7 @@ void image::destroy(ParseAPI::Block *b) {
    for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
         iter != owning_objects_.end(); ++iter) {
       (*iter)->destroy(b);
+        assert(0 && "replace me with a destroy callback from patchapi to dyninst");
    }
 }
 
@@ -2133,6 +2134,7 @@ void image::destroy(ParseAPI::Edge *e) {
    for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
         iter != owning_objects_.end(); ++iter) {
       (*iter)->destroy(e);
+        assert(0 && "replace me with a destroy callback from patchapi to dyninst");
    }
 }
 
@@ -2140,5 +2142,6 @@ void image::destroy(ParseAPI::Function *f) {
    for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
         iter != owning_objects_.end(); ++iter) {
       (*iter)->destroy(f);
+        assert(0 && "replace me with a destroy callback from patchapi to dyninst");
    }
 }

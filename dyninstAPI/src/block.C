@@ -168,5 +168,4 @@ void block_instance::destroy(block_instance *b) {
     func_instance *func = b->findFunction(pFuncs[i]);
     func->destroyBlock(b);
   }
-  delete b;
 }

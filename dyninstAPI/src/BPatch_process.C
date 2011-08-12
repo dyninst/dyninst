@@ -1904,7 +1904,7 @@ void BPatch_process::overwriteAnalysisUpdate
          nit != newFuncEntries.end();
          nit++)
     {
-        nit->first->setNewEntry(nit->second);
+        nit->first->setNewEntry(nit->second,delBlocks);
     }
 
     // delete delBlocks and set new function entry points, if necessary

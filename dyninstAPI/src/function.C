@@ -125,9 +125,11 @@ func_instance::~func_instance() {
 }
 
 // the original entry block is gone, we choose a new entry block from the
-// function, whichever block we can find that has no intraprocedural incoming 
-// edges
-block_instance * func_instance::setNewEntry(block_instance *defaultBlock)
+// function, whichever non-dead block we can find that has no intraprocedural 
+// incoming edges.  If there's no obvious block to choose, we stick with the
+// default block
+block_instance * func_instance::setNewEntry(block_instance *default,
+                                            std::set<block_instance*> &deadBlocks)
 {
     block_instance *newEntry = NULL;
     assert(!all_blocks_.empty());
@@ -139,31 +141,34 @@ block_instance * func_instance::setNewEntry(block_instance *defaultBlock)
          bIter++) 
     {
         block_instance *block = static_cast<block_instance*>(*bIter);
-        ParseAPI::Intraproc epred;
-        Block::edgelist & ib_ins = block->llb()->sources();
-        Block::edgelist::iterator eit = ib_ins.begin(&epred);
-        if (eit == ib_ins.end()) {
-            if (NULL != newEntry) {
-                fprintf(stderr,"WARNING: multiple blocks in function %lx "
-                    "with overwritten entry point have no incoming edges: "
-                    "[%lx %lx) and [%lx %lx) %s[%d]\n",
-                    addr_, newEntry->llb()->start(),
-                    newEntry->llb()->start() + newEntry->llb()->end(),
-                    block->llb()->start(),
-                    block->llb()->start() + block->llb()->end(),
-                    FILE__,__LINE__);
-            } else {
-                newEntry = block;
+        if (deadBlocks.find(block) == deadBlocks.end()) {
+            ParseAPI::Intraproc epred;
+            Block::edgelist & ib_ins = block->llb()->sources();
+            Block::edgelist::iterator eit = ib_ins.begin(&epred);
+            if (eit == ib_ins.end()) 
+            {
+                if (NULL != newEntry) {
+                    fprintf(stderr,"WARNING: multiple blocks in function %lx "
+                        "with overwritten entry point have no incoming edges: "
+                        "[%lx %lx) and [%lx %lx) %s[%d]\n",
+                        addr_, newEntry->llb()->start(),
+                        newEntry->llb()->start() + newEntry->llb()->end(),
+                        block->llb()->start(),
+                        block->llb()->start() + block->llb()->end(),
+                        FILE__,__LINE__);
+                } else {
+                    newEntry = block;
+                }
             }
         }
     }
     // if all blocks have incoming edges, choose the default block
     if( ! newEntry ) {
-        newEntry = defaultBlock;
+        newEntry = default;
         mal_printf("Setting new entry block for func at 0x%lx to "
                 "actively executing block [%lx %lx), as none of the function "
                 "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
-                defaultBlock->start(), defaultBlock->end(), FILE__,__LINE__);
+                default->start(), default->end(), FILE__,__LINE__);
     }
 
     // set the new entry block

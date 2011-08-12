@@ -1382,7 +1382,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
     vector<ParseAPI::Function*> modIFuncs;
     vector<func_instance*> modFuncs;
     for(unsigned sidx=0; sidx < stubs.size(); sidx++) {
-        stubs[sidx].src->llb()->getFuncs(modIFuncs);
+        if (stubs[sidx].src != NULL) {
+            stubs[sidx].src->llb()->getFuncs(modIFuncs);
+        }
     }
 
     for (unsigned fidx=0; fidx < modIFuncs.size(); fidx++)
@@ -1982,7 +1984,6 @@ void mapped_object::destroy(ParseAPI::Block *b) {
          as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
      }
      block_instance::destroy(SCAST_BI(iter->second));
-     blocks_.erase(iter);
    }
 }
 
