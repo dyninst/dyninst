@@ -1,3 +1,4 @@
+#include "common/h/Types.h"
 #include "Point.h"
 #include "PatchMgr.h"
 #include "PatchObject.h"
