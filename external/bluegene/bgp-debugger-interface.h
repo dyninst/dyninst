@@ -23,6 +23,8 @@
 #include <signal.h>
 #include <bpcore/bgp_types.h>
 
+//Printf wrapping added for ProcControlAPI
+#define fprintf wrap_fprintf
 
 namespace DebuggerInterface {
 
@@ -1559,5 +1561,6 @@ private:
 
 
 }
+#undef fprintf
 
 #endif // CIODEBUGGERPROTOCOL_H

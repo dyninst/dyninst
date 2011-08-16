@@ -626,7 +626,7 @@ struct groupcmp
       
       int mutatee_cmp = strcmp(lv->mutatee ? lv->mutatee : "", rv->mutatee ? rv->mutatee : "");
       if (mutatee_cmp)
-         return mutatee_cmp == -1;
+         return mutatee_cmp < 0;
       
       if (lv->createmode != rv->createmode)
          return ((int) lv->createmode) < ((int) rv->createmode);
@@ -639,7 +639,7 @@ struct groupcmp
 
       int val = strcmp(lv->platmode, rv->platmode);
       if (val != 0)
-         return (val == -1);
+         return (val < 0);
       
       return false;
    }

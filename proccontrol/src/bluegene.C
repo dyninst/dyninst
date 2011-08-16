@@ -83,18 +83,34 @@ static bool t_kill(int pid, int sig);
 
 #define NUM_GPRS 41
 
+#define PRINT_BUFFER_SIZE 4096
+static char print_buffer[PRINT_BUFFER_SIZE];
+static int print_buffer_cur = 0;
+int wrap_fprintf(FILE *, char *fmt, ...)
+{
+   va_list args;
+   va_start(args, fmt);
+
+   int remaining = PRINT_BUFFER_SIZE - print_buffer_cur;
+   if (remaining < 0)
+      remaining = 0;
+   int result = vsnprintf(print_buffer+print_buffer_cur, remaining, fmt, args);
+   int new_result = result; // ? result-1 : 0;
+   MEM_CHECK;
+   print_buffer_cur += new_result;
+   va_end(args);
+   return new_result;
+}
+
 static void dumpMessage(BG_Debugger_Msg *msg)
 {
-   char buffer[4096];
-   FILE *f = fmemopen(buffer, 4096, "w+");
-   if (!f) {
-      BG_Debugger_Msg::dump(*msg, pctrl_err_out);
-      return;
-   }
-   BG_Debugger_Msg::dump(*msg, f);
-   fclose(f);
-   char *c = buffer;
-   buffer[4095] = '\0';
+   print_buffer_cur = 0;
+   MEM_CHECK;
+   BG_Debugger_Msg::dump(*msg, pctrl_err_out);
+   MEM_CHECK;
+   
+   char *c = print_buffer;
+   print_buffer[4095] = '\0';
    while (*c == '\n') c++;
    int length = strlen(c);
    if (length > 256) {

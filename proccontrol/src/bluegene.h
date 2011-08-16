@@ -45,7 +45,9 @@
 #define SINGLE_STEP_SIG 32064
 #define DEBUG_REG_SIG 32066
 
+int wrap_fprintf(FILE *f, char *fmt, ...);
 #include "external/bluegene/bgp-debugger-interface.h"
+
 
 #define BG_INITIAL_THREAD_ID 5
 

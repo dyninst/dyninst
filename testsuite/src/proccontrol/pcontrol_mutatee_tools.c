@@ -260,7 +260,7 @@ void getSocketInfo()
    while (MutatorSocket[0] == '\0') {
       usleep(10000); //.01 seconds
       count++;
-      if (count >= 60 * 100) { //1 minute
+      if (count >= MESSAGE_TIMEOUT * 100) {
          logerror("Mutatee timeout\n");
          exit(-2);
       }
@@ -330,6 +330,7 @@ int send_message(unsigned char *msg, size_t msg_size)
 int recv_message(unsigned char *msg, size_t msg_size)
 {
    int result = -1;
+   int timeout = MESSAGE_TIMEOUT * 10;
    while( result != (int) msg_size && result != 0 ) {
        fd_set read_set;
        FD_ZERO(&read_set);
@@ -343,7 +344,11 @@ int recv_message(unsigned char *msg, size_t msg_size)
           return -1;
        }
        if (sresult <= 0) {
-          continue;
+          timeout--;
+          if (timeout > 0)
+             continue;
+          perror("Timeout waiting for message\n");
+          return -1;
        }
        
        

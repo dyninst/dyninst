@@ -125,7 +125,7 @@ bool ProcControlComponent::waitForSignalFD(int signal_fd)
    FD_ZERO(&rd);
    FD_SET(signal_fd, &rd);
    struct timeval timeout;
-   timeout.tv_sec = 30;
+   timeout.tv_sec = RECV_TIMEOUT;
    timeout.tv_usec = 0;
 
    int result = select(signal_fd+1, &rd, NULL, NULL, &timeout);
@@ -576,7 +576,7 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
    addr.sun_family = AF_UNIX;
    snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/tsc%d", getpid());
    
-   int timeout = 30 * 100;
+   int timeout = RECV_TIMEOUT * 100;
    int result;
    for (;;) {
       result = bind(sockfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
@@ -627,7 +627,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
       int nfds = (sockfd > notification_fd ? sockfd : notification_fd)+1;
       
       struct timeval timeout;
-      timeout.tv_sec = 30;
+      timeout.tv_sec = RECV_TIMEOUT;
       timeout.tv_usec = 0;
       int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
       if (result == 0) {

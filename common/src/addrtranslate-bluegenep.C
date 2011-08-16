@@ -47,11 +47,6 @@ using namespace std;
 
 using namespace Dyninst;
 
-#if defined(os_bg_ion) && defined(os_bgp)
-#include "external/bluegene/bgp-debugger-interface.h"
-#endif // defined(os_bg_ion) && defined(os_bgp)
-
-
 ProcessReader *AddressTranslateSysV::createDefaultDebugger(int) {
   return NULL;
 }
@@ -60,7 +55,7 @@ ProcessReader *AddressTranslateSysV::createDefaultDebugger(int) {
 bool AddressTranslateSysV::setAddressSize() 
 {
 #if defined(os_bg_ion) && defined(os_bgp)
-  address_size = sizeof(DebuggerInterface::BG_Addr_t);
+  address_size = sizeof(uint32_t);
   translate_printf("[%s:%u] - Set address size to %z.\n", __FILE__, __LINE__, address_size);
 #else
   address_size = sizeof(void *);

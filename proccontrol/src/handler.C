@@ -1989,7 +1989,7 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
 bool HandleCallbacks::registerCallback_int(EventType ev, Process::cb_func_t func)
 {
    pthrd_printf("Registering event %s with callback function %p\n", ev.name().c_str(), func);
-   std::set<EventType>::iterator i = alleventtypes.find(ev);
+   std::set<EventType, eventtype_cmp>::iterator i = alleventtypes.find(ev);
    if (i == alleventtypes.end()) {
       pthrd_printf("Event %s does not have any handler\n", ev.name().c_str());
       return false;
