@@ -77,8 +77,7 @@ platform_module(P, 'instruction') :- platform('i386', _, _, P).
 platform_module(P, 'instruction') :- platform('x86_64', _, _, P).
 platform_module(P, 'instruction') :- platform('power32', _, _, P).
 platform_module(P, 'instruction') :- platform('power64', _, _, P).
-platform_module(P, 'proccontrol') :- platform('i386', 'linux', _, P).
-platform_module(P, 'proccontrol') :- platform('x86_64', 'linux', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'linux', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'freebsd', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'bluegene', _, P).
    
