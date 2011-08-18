@@ -568,9 +568,6 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
       lwp = (Dyninst::LWP) info->ti_lid;
       pthrd_printf("initThreadWithHandle found thread %d/%d\n", getPid(), lwp);
    }
-   if (lwp == getPid()) {
-      lwp = threadPool()->initialThread()->getLWP();
-   }
    thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadPool()->findThreadByLWP(lwp));
    if (!tdb_thread) {
       perr_printf("Error.  Thread_db reports thread %d/%d, but couldn't find existing LWP\n",
@@ -1468,7 +1465,12 @@ async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &new_ev_set) {
             pthrd_printf("Async return in getEventForThread from td_ta_event_getmsg\n");
             return aret_async;
          }
-         break;
+         else if (msgErr == TD_DBERR) {
+            pthrd_printf("No more messages ready in thread_db\n");
+            return aret_success;
+         }
+         else
+            break;
       }
       Event::ptr newEvent = decodeThreadEvent(&evMsg, local_async);
       if (local_async) {

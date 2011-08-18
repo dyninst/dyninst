@@ -96,7 +96,6 @@ int wrap_fprintf(FILE *, char *fmt, ...)
       remaining = 0;
    int result = vsnprintf(print_buffer+print_buffer_cur, remaining, fmt, args);
    int new_result = result; // ? result-1 : 0;
-   MEM_CHECK;
    print_buffer_cur += new_result;
    va_end(args);
    return new_result;
@@ -105,9 +104,7 @@ int wrap_fprintf(FILE *, char *fmt, ...)
 static void dumpMessage(BG_Debugger_Msg *msg)
 {
    print_buffer_cur = 0;
-   MEM_CHECK;
    BG_Debugger_Msg::dump(*msg, pctrl_err_out);
-   MEM_CHECK;
    
    char *c = print_buffer;
    print_buffer[4095] = '\0';
@@ -640,6 +637,10 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
    bool result = getProcAndThread(archbg, proc, thread);
    if (!result)
       return false;
+   if (!proc) {
+      pthrd_printf("Got event on non-existant process %d.  Proc exited?\n", archbg->getMsg()->header.nodeNumber);
+      return true;
+   }
    if (!thread) 
       thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
    
@@ -1857,6 +1858,7 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
          proc->auxv_info[data[i]] = data[i+1];
       }
       delete ae;
+      evib->setData(NULL);
       if (end) {
          pthrd_printf("Received last entry in AUXV\n");
          proc->bootstrap_state = bg_process::bg_auxv_done;
@@ -2046,12 +2048,13 @@ Handler::handler_ret_t BGHandleLWPClean::handleEvent(Event::ptr ev)
       return ret_success;
    }
  
-   if (ev->getEventType().code() == EventType::LWPDestroy)
-      getLWPPoller()->clearProc(proc);
+   if (ev->getEventType().code() == EventType::LWPDestroy) {
+      //getLWPPoller()->clearProc(proc);
+   }
    else if (ev->getEventType().code() == EventType::UserThreadDestroy) {
       bg_thread *thrd = static_cast<bg_thread *>(ev->getThread()->llthrd());
       thrd->setPendingDelete(true);
-      getLWPPoller()->addProc(proc);
+      //getLWPPoller()->addProc(proc);
    }
    return ret_success;
 }
