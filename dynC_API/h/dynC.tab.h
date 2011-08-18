@@ -82,7 +82,7 @@
      LOCAL = 298,
      PARAM = 299,
      GLOBAL = 300,
-     INF = 301,
+     FUNC = 301,
      DYNINST = 302,
      INST = 303,
      REGISTER = 304,
@@ -92,36 +92,37 @@
      SWITCH = 308,
      RETURN = 309,
      NILL = 310,
-     COMMA = 311,
-     AMPERSAND = 312,
-     ASTERISK = 313,
-     DOT = 314,
-     NOT = 315,
-     OR = 316,
-     AND = 317,
-     NOT_EQ = 318,
-     EQ = 319,
-     GREATER_EQ = 320,
-     LESS_EQ = 321,
-     COLON = 322,
-     SEMI = 323,
-     END_BLOCK = 324,
-     START_BLOCK = 325,
-     DOLLAR = 326,
-     BACKTICK = 327,
-     ASSIGN = 328,
-     SUB_ASSIGN = 329,
-     ADD_ASSIGN = 330,
-     MOD_ASSIGN = 331,
-     DIV_ASSIGN = 332,
-     MUL_ASSIGN = 333,
-     OR_OP = 334,
-     AND_OP = 335,
-     NCLOSE = 336,
-     NOPEN = 337,
-     LOWER_THAN_ELSE = 338,
-     ELSE = 339,
-     LOWER_THAN_DEREF = 340
+     EOF_TOK = 311,
+     COMMA = 312,
+     AMPERSAND = 313,
+     ASTERISK = 314,
+     DOT = 315,
+     NOT = 316,
+     OR = 317,
+     AND = 318,
+     NOT_EQ = 319,
+     EQ = 320,
+     GREATER_EQ = 321,
+     LESS_EQ = 322,
+     COLON = 323,
+     SEMI = 324,
+     END_BLOCK = 325,
+     START_BLOCK = 326,
+     DOLLAR = 327,
+     BACKTICK = 328,
+     ASSIGN = 329,
+     SUB_ASSIGN = 330,
+     ADD_ASSIGN = 331,
+     MOD_ASSIGN = 332,
+     DIV_ASSIGN = 333,
+     MUL_ASSIGN = 334,
+     OR_OP = 335,
+     AND_OP = 336,
+     NCLOSE = 337,
+     NOPEN = 338,
+     LOWER_THAN_ELSE = 339,
+     ELSE = 340,
+     LOWER_THAN_DEREF = 341
    };
 #endif
 /* Tokens.  */
@@ -168,7 +169,7 @@
 #define LOCAL 298
 #define PARAM 299
 #define GLOBAL 300
-#define INF 301
+#define FUNC 301
 #define DYNINST 302
 #define INST 303
 #define REGISTER 304
@@ -178,43 +179,44 @@
 #define SWITCH 308
 #define RETURN 309
 #define NILL 310
-#define COMMA 311
-#define AMPERSAND 312
-#define ASTERISK 313
-#define DOT 314
-#define NOT 315
-#define OR 316
-#define AND 317
-#define NOT_EQ 318
-#define EQ 319
-#define GREATER_EQ 320
-#define LESS_EQ 321
-#define COLON 322
-#define SEMI 323
-#define END_BLOCK 324
-#define START_BLOCK 325
-#define DOLLAR 326
-#define BACKTICK 327
-#define ASSIGN 328
-#define SUB_ASSIGN 329
-#define ADD_ASSIGN 330
-#define MOD_ASSIGN 331
-#define DIV_ASSIGN 332
-#define MUL_ASSIGN 333
-#define OR_OP 334
-#define AND_OP 335
-#define NCLOSE 336
-#define NOPEN 337
-#define LOWER_THAN_ELSE 338
-#define ELSE 339
-#define LOWER_THAN_DEREF 340
+#define EOF_TOK 311
+#define COMMA 312
+#define AMPERSAND 313
+#define ASTERISK 314
+#define DOT 315
+#define NOT 316
+#define OR 317
+#define AND 318
+#define NOT_EQ 319
+#define EQ 320
+#define GREATER_EQ 321
+#define LESS_EQ 322
+#define COLON 323
+#define SEMI 324
+#define END_BLOCK 325
+#define START_BLOCK 326
+#define DOLLAR 327
+#define BACKTICK 328
+#define ASSIGN 329
+#define SUB_ASSIGN 330
+#define ADD_ASSIGN 331
+#define MOD_ASSIGN 332
+#define DIV_ASSIGN 333
+#define MUL_ASSIGN 334
+#define OR_OP 335
+#define AND_OP 336
+#define NCLOSE 337
+#define NOPEN 338
+#define LOWER_THAN_ELSE 339
+#define ELSE 340
+#define LOWER_THAN_DEREF 341
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 70 "../src/C.y"
+#line 66 "../src/C.y"
 {
    int   ival;
    long  lval;
@@ -245,7 +247,7 @@ typedef union YYSTYPE
    std::pair<BPatch_snippet *, char *> *snippetStringPair;   
 }
 /* Line 1529 of yacc.c.  */
-#line 249 "dynC.tab.h"
+#line 251 "dynC.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

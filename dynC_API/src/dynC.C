@@ -28,7 +28,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-//command.C
+
 #include "dynC.h"
 #include "ast.h"
 #include "snippetGen.h"
@@ -45,17 +45,19 @@ extern char *dynCSnippetName;
 extern int dyn_debug_ast;
 extern SnippetGenerator *snippetGen;
 extern BPatch_point *snippetPoint;
-
+//extern int dynCdebug;
 namespace dynC_API{
 
    const std::string varNameBase = "dynC_mangled_";
-   const bool debug = false;
+   const bool debug = true;
    static int snippetCount = 0;
 
-
   std::map<BPatch_point *, BPatch_snippet *> *createSnippet(const char *s, std::vector<BPatch_point *> points){
-
+//     dynCdebug = 1;
       char *mutS = strdup(s);
+      printf("Set lex input to:\n");
+      printf("---->%s<-", s);
+      printf("---\n");
       set_lex_input(mutS);
 
       std::map<BPatch_point *, BPatch_snippet *> *ret_map = new std::map<BPatch_point *, BPatch_snippet *>();
@@ -65,6 +67,7 @@ namespace dynC_API{
          return NULL;
       }
 
+      //keep track of number of snippets for internal variable names
       snippetCount++;
 
       std::vector<BPatch_point *>::iterator it;
@@ -75,10 +78,18 @@ namespace dynC_API{
       dynCSnippetName = mutName;
 
       for(it = points.begin(); it != points.end(); ++it){
+         printf("%s", s);
+         set_lex_input(mutS);
          snippetPoint = (*it);
          snippetGen = new SnippetGenerator(**it, mutName);
 
          if(dynCparse() == 0){
+            printf("parse_result is %s\n", (parse_result == NULL ? "null" : "not null"));
+            if(parse_result != NULL){
+               dyn_debug_ast = 1;
+               parse_result->ast_wrapper->debugPrint();
+               dyn_debug_ast = 0;
+            }
             ret_map->insert(std::pair<BPatch_point *, BPatch_snippet *>((*it), parse_result));
          }else{
             free(mutName);
@@ -88,8 +99,10 @@ namespace dynC_API{
             return NULL; //error
          }
          delete snippetGen;
+         
       }
       free(mutName);
+
       return ret_map;
    }
 
@@ -136,6 +149,7 @@ namespace dynC_API{
       {
          fileString += (unsigned char)c;
       }
+      fileString += '\0';
       rewind(f);
 
       char *cstr = strdup(fileString.c_str());
@@ -155,6 +169,7 @@ namespace dynC_API{
       {
          fileString += (unsigned char)c;
       }
+      fileString += '\0';
       rewind(f);
 
       char *cstr = strdup(fileString.c_str());
@@ -175,6 +190,7 @@ namespace dynC_API{
       {
          fileString += (unsigned char)c;
       }
+      fileString += '\0';
       rewind(f);
       char *cstr = strdup(fileString.c_str());
       BPatch_snippet *retSn = createSnippet(cstr, addSpace);

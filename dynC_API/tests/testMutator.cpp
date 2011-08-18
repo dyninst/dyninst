@@ -72,7 +72,6 @@ int main(){
   }
   std::map<BPatch_point *, BPatch_snippet *>::iterator it;
   for(it = entry_snippets->begin(); it != entry_snippets->end(); ++it){
-     printf("Why, hello der!\n");
      if((*it).first == NULL){
         fprintf(stderr, "point is null.\n");
         exit(-1);
@@ -80,7 +79,11 @@ int main(){
      if((*it).second == NULL){
         fprintf(stderr, "snippet is null.\n");
      } else{
-        appProc->insertSnippet(*(*it).second, *(*it).first);       
+        printf("Snippet inserted\n");
+        char funcName[512];
+        printf("Point's function is %s.\n",((*it).first)->getFunction()->getName(funcName, 512));
+        BPatchSnippetHandle *handle = appProc->insertSnippet(*(*it).second, *(*it).first);     
+        printf("Handle is %s.\n", handle == NULL ? "null": "not null");
      }
   }
 
@@ -118,11 +121,9 @@ int main(){
 
   if (aProc->terminationStatus() == ExitedNormally) {
      printf("Application exited with code %d\n", aProc->getExitCode());
-  }
-  else if (aProc->terminationStatus() == ExitedViaSignal) {
-     printf("Application exited with signal %d\n", aProc->getExitSignal());
-  }
-  else {
+  } else if (aProc->terminationStatus() == ExitedViaSignal)  {
+     printf("!!! Application exited with signal %d\n", aProc->getExitSignal());
+  } else {
      printf("Unknown application exit\n");
   }
   }else{
