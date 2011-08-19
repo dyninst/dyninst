@@ -141,13 +141,13 @@ bool Generator::getAndQueueEventInt(bool block)
 
    setState(decoding);
    ProcPool()->condvar()->lock();
-   for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); i++) {
+   for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); ++i) {
       Decoder *decoder = *i;
       bool result = decoder->decode(arch_event, events);
       if (!result)
          break;
    }
-   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
+   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
       Event::ptr event = *i;
 	  if(event)
 	      event->getProcess()->llproc()->updateSyncState(event, true);
@@ -155,10 +155,10 @@ bool Generator::getAndQueueEventInt(bool block)
    ProcPool()->condvar()->unlock();
 
    setState(queueing);
-   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
+   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
       mbox()->enqueue(*i);
       Generator::cb_lock->lock();
-      for (set<gen_cb_func_t>::iterator j = CBs.begin(); j != CBs.end(); j++) {
+      for (set<gen_cb_func_t>::iterator j = CBs.begin(); j != CBs.end(); ++j) {
          (*j)();
       }
       Generator::cb_lock->unlock(); 
@@ -179,7 +179,7 @@ bool Generator::allStopped(int_process *proc, void *)
    bool all_exited = true;
    int_threadPool *tp = proc->threadPool();
    assert(tp);
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
       if ((*i)->getGeneratorState() == int_thread::running ||
           (*i)->getGeneratorState() == int_thread::neonatal_intermediate) 
       {

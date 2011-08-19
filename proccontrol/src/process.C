@@ -152,7 +152,7 @@ bool int_process::attachThreads()
          return false;
       }
       
-      for (vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); i++) {
+      for (vector<Dyninst::LWP>::iterator i = lwps.begin(); i != lwps.end(); ++i) {
          int_thread *thr = threadpool->findThreadByLWP(*i);
          if (thr) {
             pthrd_printf("Already have thread %d in process %d\n", *i, pid);
@@ -376,7 +376,7 @@ bool int_process::reattach()
    }
 
    waitForAsyncEvent(async_responses);
-   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
+   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); ++i) {
       if ((*i)->hasError()) {
          perr_printf("Failed to resuming breakpoints\n");
          setLastError(err_internal, "Error resuming breakpoint before detach\n");
@@ -404,7 +404,7 @@ bool int_process::reattach()
        mbox()->enqueue(*i, true);
    }
 
-   if( observedEvents.size()  > 0 ) {
+   if( !observedEvents.empty() ) {
       // As a sanity check, don't block
       bool proc_exited;
       bool result = waitAndHandleForProc(false, this, proc_exited);
@@ -446,7 +446,7 @@ bool int_process::execed()
    while (!proc_stoppers.empty()) proc_stoppers.pop();
 
    int_threadPool::iterator i = threadpool->begin(); 
-   for (; i != threadpool->end(); i++) {
+   for (; i != threadpool->end(); ++i) {
       int_thread *thrd = *i;
       thrd->setHandlerState(int_thread::exited);
       thrd->setInternalState(int_thread::exited);
@@ -623,7 +623,7 @@ void int_process::setState(int_process::State s)
    }
    pthrd_printf("Setting state of all threads in %d to %s\n", pid, 
                 int_thread::stateStr(new_thr_state));
-   for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); i++)
+   for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); ++i)
    {
       (*i)->setUserState(new_thr_state);
       (*i)->setInternalState(new_thr_state);
@@ -736,7 +736,7 @@ bool syncRunState(int_process *p, void *r)
    }
 
    if (dyninst_debug_proccontrol) {
-      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
       {
          int_thread *thr = *i;
          pthrd_printf("Pre-Thread %d/%d is in handler state %s with internal state %s (user is %s)\n",
@@ -751,7 +751,7 @@ bool syncRunState(int_process *p, void *r)
     * RPC Handling. 
     **/
    bool force_leave_stopped = false;
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
       int_thread *thr = *i;
 
@@ -770,7 +770,7 @@ bool syncRunState(int_process *p, void *r)
       }
    }
 
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
       int_thread *thr = *i;
 
@@ -835,7 +835,7 @@ bool syncRunState(int_process *p, void *r)
    }
    pthrd_printf("Finished syncing runState for %d\n", p->getPid());
    if (dyninst_debug_proccontrol) {
-      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
       {
          int_thread *thr = *i;
          pthrd_printf("Post-Thread %d/%d is in handler state %s with internal state %s (user is %s)\n",
@@ -861,7 +861,7 @@ bool int_process::waitForAsyncEvent(response::ptr resp)
 bool int_process::waitForAsyncEvent(std::set<response::ptr> resp)
 {
    bool has_error = false;
-   for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); i++) {
+   for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); ++i) {
       bool result = waitForAsyncEvent(*i);
       if (!result)
          has_error = true;
@@ -910,7 +910,7 @@ bool int_process::waitAndHandleEvents(bool block)
       syncRunStateRet_t ret;
       ProcPool()->for_each(syncRunState, &ret);
 
-      if (ret.readyProcStoppers.size()) {
+      if (!ret.readyProcStoppers.empty()) {
          int_process *proc = ret.readyProcStoppers[0];
          Event::ptr ev = proc->getProcStopper();
          if (ev->triggersCB() &&
@@ -1095,7 +1095,7 @@ bool int_process::detach(bool &should_delete, bool temporary)
    }
 
    waitForAsyncEvent(async_responses);
-   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
+   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); ++i) {
       if ((*i)->hasError()) {
          perr_printf("Failed to remove breakpoints\n");
          setLastError(err_internal, "Error removing breakpoint before detach\n");
@@ -1216,7 +1216,7 @@ void int_process::initializeProcess(Process::ptr p)
 int_thread *int_process::findStoppedThread()
 {
    int_thread *result = NULL;
-   for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); i++)
+   for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); ++i)
    {
       int_thread *thr = *i;
       if (thr->getHandlerState() == int_thread::stopped) {
@@ -1325,7 +1325,7 @@ Dyninst::Address int_process::mallocExecMemory(unsigned size)
 {
    Dyninst::Address max = 0;
    std::map<Dyninst::Address, unsigned>::iterator i;
-   for (i = exec_mem_cache.begin(); i != exec_mem_cache.end(); i++) {
+   for (i = exec_mem_cache.begin(); i != exec_mem_cache.end(); ++i) {
       if (i->first + i->second > max)
          max = i->first + i->second;
    }
@@ -1585,7 +1585,7 @@ installed_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
 int_library *int_process::getLibraryByName(std::string s) const
 {
    for (set<int_library *>::iterator i = mem->libs.begin(); 
-        i != mem->libs.end(); i++) 
+        i != mem->libs.end(); ++i) 
    {
       if (s == (*i)->getName())
          return *i;
@@ -1763,7 +1763,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          pthrd_printf("Event %s is process synchronous, marking process %d stopped\n", 
                       etype.name().c_str(), getPid());
          int_threadPool *tp = threadPool();
-         for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+         for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
             int_thread *thrd = *i;
             int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
             if (old_state != int_thread::running &&
@@ -1898,7 +1898,7 @@ bool int_threadPool::cont(bool user_cont)
 
    ProcPool()->condvar()->lock();
 
-   for (iterator i = begin(); i != end(); i++) {
+   for (iterator i = begin(); i != end(); ++i) {
       int_thread *thr = *i;
       assert(thr);
 
@@ -2169,7 +2169,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
        }
 
        // Indicates that an emulated single step is needed
-       if( breakAddrs.size() ) {
+       if( !breakAddrs.empty() ) {
            emulated_singlestep *newSingleStep = new emulated_singlestep(user_single_step, single_step);
 
            for(vector<Address>::iterator i = breakAddrs.begin();
@@ -2271,7 +2271,7 @@ bool int_threadPool::stop(bool user_stop, bool sync)
    bool finished = true;
 
    do{
-       for (iterator i = begin(); i != end(); i++) {
+       for (iterator i = begin(); i != end(); ++i) {
           int_thread *thr = *i;
 
           pthrd_printf("Process %d performing %s stop on thread %d\n", proc()->getPid(),
@@ -2614,6 +2614,9 @@ bool int_thread::setAnyState(int_thread::State *from, int_thread::State to)
 
    pthrd_printf("Changing %s for %d/%d from %s to %s\n", s, llproc()->getPid(), lwp, 
                 stateStr(*from), stateStr(to));
+   pthrd_printf("Gen      = %s\n", stateStr(generator_state));
+   pthrd_printf("Handler  = %s\n", stateStr(handler_state));
+   pthrd_printf("Internal = %s\n", stateStr(internal_state));
    *from = to;
 
    if (internal_state == stopped)  assert(handler_state == stopped || handler_state == exited || handler_state == detached );
@@ -3360,7 +3363,7 @@ int_thread *int_threadPool::initialThread() const
 
 bool int_threadPool::allStopped()
 {
-   for (iterator i = begin(); i != end(); i++) {
+   for (iterator i = begin(); i != end(); ++i) {
       if ((*i)->getInternalState() == int_thread::running)
          return false;
    }
@@ -3387,7 +3390,9 @@ void int_threadPool::addThread(int_thread *thrd)
 
 void int_threadPool::rmThread(int_thread *thrd)
 {
+#if !defined(os_windows)
    assert(thrd != initial_thread);
+#endif
    Dyninst::LWP lwp = thrd->getLWP();
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
    assert (i != thrds_by_lwp.end());
@@ -3413,14 +3418,14 @@ void int_threadPool::clear()
 
 void int_threadPool::desyncInternalState()
 {
-   for (iterator i = begin(); i != end(); i++) {
+   for (iterator i = begin(); i != end(); ++i) {
       (*i)->desyncInternalState();
    }
 }
 
 void int_threadPool::restoreInternalState(bool sync)
 {
-   for (iterator i = begin(); i != end(); i++) {
+   for (iterator i = begin(); i != end(); ++i) {
       (*i)->restoreInternalState(false);
    }
    if (sync)
@@ -3459,7 +3464,7 @@ int_threadPool::~int_threadPool()
    assert(up_pool);
    delete up_pool;
 
-   for (vector<int_thread*>::iterator i = threads.begin(); i != threads.end(); i++)
+   for (vector<int_thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
    {
       delete *i;
    }
@@ -3682,7 +3687,7 @@ bool installed_breakpoint::rmClearingThread(int_thread *thrd, bool &uninstalled,
 bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
 {
    if (bp->isCtrlTransfer()) {
-      for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); i++)
+      for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); ++i)
       {
          if ((*i)->isCtrlTransfer()) {
             perr_printf("Error.  Attempted to add two control transfer breakpoints " 
@@ -3881,7 +3886,7 @@ mem_state::mem_state(mem_state &m, int_process *p)
    */
 
    map<Dyninst::Address, installed_breakpoint *>::iterator j;
-   for (j = m.breakpoints.begin(); j != m.breakpoints.end(); j++)
+   for (j = m.breakpoints.begin(); j != m.breakpoints.end(); ++j)
    {
       Address orig_addr = j->first;
       installed_breakpoint *orig_bp = j->second;
@@ -3895,7 +3900,7 @@ mem_state::~mem_state()
 {
    pthrd_printf("Destroy memory image of old process\n");
    set<int_library *>::iterator i;
-   for (i = libs.begin(); i != libs.end(); i++)
+   for (i = libs.begin(); i != libs.end(); ++i)
    {
       int_library *lib = *i;
       delete lib;
@@ -3903,7 +3908,7 @@ mem_state::~mem_state()
    libs.clear();
 
    map<Dyninst::Address, installed_breakpoint *>::iterator j;
-   for (j = breakpoints.begin(); j != breakpoints.end(); j++)
+   for (j = breakpoints.begin(); j != breakpoints.end(); ++j)
    {
       installed_breakpoint *ibp = j->second;
       delete ibp;
@@ -3968,7 +3973,7 @@ void int_notify::noteEvent()
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
    set<EventNotify::notify_cb_t>::iterator i;
-   for (i = cbs.begin(); i != cbs.end(); i++) {
+   for (i = cbs.begin(); i != cbs.end(); ++i) {
       pthrd_printf("Calling notification CB\n");
       (*i)();
    }
@@ -4717,7 +4722,7 @@ bool Process::detach()
 
    bool pendingRPCs = false;
    int_threadPool *tp = llproc()->threadPool();
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
        int_thread *thr = *i;
        if( thr->getPostedRPCs()->size() > 0 ) {
            pendingRPCs = true;
@@ -4764,7 +4769,7 @@ bool Process::temporaryDetach()
 
     bool pendingRPCs = false;
     int_threadPool *tp = llproc()->threadPool();
-    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
         int_thread *thr = *i;
         if( thr->getPostedRPCs()->size() > 0 ) {
             pendingRPCs = true;
@@ -4876,7 +4881,7 @@ bool Process::hasStoppedThread() const
    }
 
    int_threadPool::iterator i;
-   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
+   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
       if ((*i)->getUserState() == int_thread::stopped)
          return true;
    }
@@ -4893,7 +4898,7 @@ bool Process::hasRunningThread() const
    }
 
    int_threadPool::iterator i;
-   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
+   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
       if ((*i)->getUserState() == int_thread::running)
          return true;
    }
@@ -4910,7 +4915,7 @@ bool Process::allThreadsStopped() const
    }
 
    int_threadPool::iterator i;
-   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
+   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
       if ((*i)->getUserState() == int_thread::running || (*i)->getUserState() == int_thread::detached)
          return false;
    }
@@ -4927,7 +4932,7 @@ bool Process::allThreadsRunning() const
    }
 
    int_threadPool::iterator i;
-   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); i++) {
+   for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
       if ((*i)->getUserState() == int_thread::stopped || (*i)->getUserState() == int_thread::detached)
          return false;
    }
@@ -5000,11 +5005,11 @@ bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
       return false;
    }
    int_threadPool *tp = llproc()->threadPool();
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
       int_thread *thr = *i;
       rpc_list_t *rpc_list = thr->getPostedRPCs();
-      for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); j++) {
+      for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); ++j) {
          IRPC::ptr up_rpc = (*j)->getIRPC().lock();
          if (up_rpc == IRPC::ptr()) 
             continue;
@@ -5591,7 +5596,7 @@ bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
       return false;
    }
    rpc_list_t *rpc_list = llthread_->getPostedRPCs();
-   for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); j++) {
+   for (rpc_list_t::iterator j = rpc_list->begin(); j != rpc_list->end(); ++j) {
       IRPC::ptr up_rpc = (*j)->getIRPC().lock();
       if (up_rpc == IRPC::ptr()) 
          continue;

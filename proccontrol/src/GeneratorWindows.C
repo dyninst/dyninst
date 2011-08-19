@@ -4,6 +4,8 @@
 #include "windows.h"
 #include "procpool.h"
 
+#include <iostream>
+
 using namespace Dyninst;
 using namespace std;
 
@@ -97,7 +99,15 @@ void GeneratorWindows::plat_continue(ArchEvent* evt)
 		return;
 	}
 	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
+	/*int_thread* t = ProcPool()->findThread((Dyninst::LWP)(winEvt->evt.dwThreadId));
+	windows_thread* w = static_cast<windows_thread*>(t);
+	if(w) {
+		std::cerr << "ContinueDebugEvent on process " << winEvt->evt.dwProcessId << std::endl;
+		std::cerr << w->dumpThreadContext() << std::endl;
+	}*/
 	::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
+	//cerr << "Thread " << winEvt->evt.dwThreadId << " is " << w->getSuspendedStatus() << " at ContinueDebugEvent() call"
+	//	<< endl;
 	waiters[winEvt->evt.dwProcessId]->unhandled_exception = false;
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with ::ContinueDebugEvent()\n", winEvt->evt.dwProcessId);
 	::SetEvent(theWaiter->user_wait);

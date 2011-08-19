@@ -1023,11 +1023,11 @@ void HandleBreakpoint::getEventTypesHandled(vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 {
-   pthrd_printf("Handling breakpoint\n");
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
+   pthrd_printf("Handling breakpoint at %p\n", ebp->getAddress());
    std::vector<Breakpoint::ptr> hl_bps;
    ebp->getBreakpoints(hl_bps);
    bool has_user_breakpoints = !hl_bps.empty();

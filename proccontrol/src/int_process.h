@@ -810,6 +810,7 @@ class int_notify {
 		void writeToPipe();
 		void readFromPipe();
 	public:
+		unix_details();
 		typedef int wait_object_t;
 		void noteEvent();
 		void clearEvent();

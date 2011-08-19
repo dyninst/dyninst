@@ -200,6 +200,7 @@ bool windows_process::plat_forked()
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
                                  Dyninst::Address remote, size_t size)
 {
+	//fprintf(stderr, "reading %d bytes from %p\n", size, remote);
 	int errcode = ::ReadProcessMemory(hproc, (unsigned char*)remote, (unsigned char*)local, size, NULL);
 	if(!errcode) {
 		errcode = ::GetLastError();
@@ -212,6 +213,7 @@ bool windows_process::plat_writeMem(int_thread *thr, const void *local,
                                   Dyninst::Address remote, size_t size)
 {
 	int lasterr = 0;
+	//fprintf(stderr, "writing %d bytes to %p, first byte %x\n", size, remote, *((unsigned char*)local));
 	bool ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
 	if(ok)
 	{
@@ -221,6 +223,7 @@ bool windows_process::plat_writeMem(int_thread *thr, const void *local,
 		}
 	}
 	lasterr = GetLastError();
+	pthrd_printf("Error writing memory: %d\n", lasterr);
 	return false;
 }
 
@@ -248,7 +251,7 @@ bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 
 int_process::ThreadControlMode int_process::getThreadControlMode() 
 {
-    return int_process::IndependentLWPControl;
+	return int_process::HybridLWPControl;
 }
 #if !defined(TF_BIT)
 #define TF_BIT 0x100
@@ -290,11 +293,63 @@ void WinHandleSingleStep::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::SingleStep));
 }
 
+std::string windows_thread::dumpThreadContext()
+{
+	bool did_suspend = false;
+	if(isResumed()) {
+		plat_suspend();
+		did_suspend = true;
+	}
+	std::stringstream s;
+	CONTEXT context;
+	context.ContextFlags = CONTEXT_FULL;
+	int result = GetThreadContext(hthread, &context);
+	if(!result) {
+		pthrd_printf("Error getting thread context: %d\n", GetLastError());
+	}
+	s << "TID " << tid << std::hex << ", EIP=" << context.Eip <<
+		", Single stepping " << ((context.EFlags & TF_BIT) ? "on" : "off");
+	if(did_suspend) plat_resume();
+	return s.str();
+}
+
+bool windows_process::plat_contProcess()
+{
+    ProcPool()->condvar()->lock();
+    for(int_threadPool::iterator i = threadPool()->begin();
+        i != threadPool()->end(); ++i)
+    {
+        if( (*i)->isResumed() ) {
+            (*i)->setInternalState(int_thread::running);
+            (*i)->setHandlerState(int_thread::running);
+            (*i)->setGeneratorState(int_thread::running);
+            (*i)->setResumed(false);
+        }else if( (*i)->getInternalState() == int_thread::stopped ) {
+            pthrd_printf("Suspending before continue %d/%d\n",
+                    getPid(), (*i)->getLWP());
+            if( !(*i)->plat_suspend() ) {
+                perr_printf("Failed to suspend thread %d/%d\n",
+                        getPid(), (*i)->getLWP());
+                setLastError(err_internal, "low-level continue failed");
+                return false;
+            }
+        }
+    }
+    ProcPool()->condvar()->signal();
+    ProcPool()->condvar()->unlock();
+	// This implementation presumes that all threads are in correct suspended/resumed state.
+	// With HybridLWPControl, this should be correct.
+	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	wGen->wake(pid);
+	return true;
+}
+
 bool windows_thread::plat_cont()
 {
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	if(singleStep())
 	{
+		plat_suspend();
 		CONTEXT context;
 		int result;
 		context.ContextFlags = CONTEXT_FULL;
@@ -302,22 +357,21 @@ bool windows_thread::plat_cont()
 		if(!result) {
 			pthrd_printf("Couldn't get thread context\n");
 			return false;
-		}
+		} else {
 
-		context.ContextFlags = CONTEXT_FULL;
-		pthrd_printf("Enabling single-step on %d/%d\n", proc()->getPid(), tid);
-		context.EFlags |= TF_BIT;
-		result = SetThreadContext(hthread, &context);
-		if(!result)
-		{
-			pthrd_printf("Couldn't set thread context to single-step thread\n");
-			return false;
+			context.ContextFlags = CONTEXT_FULL;
+			pthrd_printf("Enabling single-step on %d/%d\n", proc()->getPid(), tid);
+			context.EFlags |= TF_BIT;
+			result = SetThreadContext(hthread, &context);
+			if(!result)
+			{
+				pthrd_printf("Couldn't set thread context to single-step thread\n");
+				return false;
+			}
 		}
 	}
-	::ResumeThread(hthread);
-	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
+	plat_resume();
 	wGen->wake(llproc()->getPid());
-	//wGen->wait(llproc()->getPid());
 	return true;
 }
 
@@ -367,6 +421,7 @@ bool windows_thread::plat_stop()
 		result = ::DebugBreakProcess(wproc->plat_getHandle());
 		if(result == -1) {
 			int err = ::GetLastError();
+			pthrd_printf("Error from DebugBreakProcess: %d\n", err);
 		}
 		wproc->setPendingDebugBreak();
 	}
@@ -428,6 +483,12 @@ Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, un
 
 bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+	bool did_suspend = false;
+	bool ret = false;
+	if(isResumed()) {
+		plat_suspend();
+		did_suspend = true;
+	}
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	if(::GetThreadContext(hthread, &c))
@@ -454,12 +515,10 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		regpool.regs[x86::gs] = c.SegGs;
 		regpool.regs[x86::ss] = c.SegSs;
 		regpool.regs[x86::eip] = c.Eip;
-		return true;
+		ret = true;
 	}
-	else
-	{
-		return false;
-	}
+	if(did_suspend) plat_resume();
+	return ret;
 }
 
 bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
@@ -470,6 +529,11 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
+	bool did_suspend = false;
+	if(isResumed()) {
+		plat_suspend();
+		did_suspend = true;
+	}
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	c.Eax = regpool.regs[x86::eax];
@@ -494,8 +558,9 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	c.SegGs = regpool.regs[x86::gs];
 	c.SegSs = regpool.regs[x86::ss];
 	c.Eip = regpool.regs[x86::eip];
-	return ::SetThreadContext(hthread, &c);
-
+	bool ok = ::SetThreadContext(hthread, &c);
+	if(did_suspend) plat_resume();
+	return ok;
 }
 
 bool windows_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) 
@@ -724,12 +789,14 @@ bool windows_process::plat_isStaticBinary()
 bool windows_thread::plat_suspend()
 {
 	int result = ::SuspendThread(hthread);
+	pthrd_printf("Suspending %d/%d\n", llproc()->getPid(), tid);
 	return result != -1;
 }
 
 bool windows_thread::plat_resume()
 {
 	int result = ::ResumeThread(hthread);
+	pthrd_printf("Resuming %d/%d\n", llproc()->getPid(), tid);
 	return result != -1;
 }
 

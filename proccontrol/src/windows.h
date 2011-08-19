@@ -78,7 +78,7 @@ class windows_process : public arch_process
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
-   virtual bool plat_contProcess() { return true; }
+   virtual bool plat_contProcess();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
    virtual bool plat_supportLWPEvents() const;
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
@@ -141,6 +141,10 @@ class windows_thread : public int_thread
    bool getStackSize(unsigned long& stack_size);
    bool getTLSPtr(Dyninst::Address& tls_ptr);
    void setHandle(HANDLE h);
+   std::string dumpThreadContext();
+   std::string getSuspendedStatus() const {
+	   return isResumed() ? "resumed" : "suspended";
+   }
 private:
 	HANDLE hthread;
 };

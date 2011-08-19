@@ -211,7 +211,7 @@ bool responses_pending::hasAsyncPending()
    bool ret = false;
    cvar.lock();
    map<unsigned, response::ptr>::const_iterator i;
-   for (i = pending.begin(); i != pending.end(); i++) {
+   for (i = pending.begin(); i != pending.end(); ++i) {
       if (i->second->getEvent()) {
          ret = true;
          break;

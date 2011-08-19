@@ -116,7 +116,7 @@ bool Event::triggersCB() const
    if (cbhandler->requiresCB(shared_from_this()))
      return true;
    std::vector<Event::ptr>::const_iterator i = subservient_events.begin();
-   for (; i != subservient_events.end(); i++) {
+   for (; i != subservient_events.end(); ++i) {
       if ((*i)->triggersCB())
          return true;
    }
@@ -316,7 +316,7 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
    if (!ibp)
       return;
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
+   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); ++i) {
       bps.push_back(*i);
    }
 }
