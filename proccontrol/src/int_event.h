@@ -40,8 +40,9 @@ class int_eventBreakpoint
   public:
    int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr);
    ~int_eventBreakpoint();
-
-   installed_breakpoint *ibp;
+   installed_breakpoint *lookupInstalledBreakpoint();
+   
+   //installed_breakpoint *ibp;
    Dyninst::Address addr;
    result_response::ptr pc_regset;
    int_thread *thrd;

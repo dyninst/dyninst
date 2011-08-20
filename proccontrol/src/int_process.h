@@ -321,7 +321,7 @@ class int_process
    virtual bool plat_supportLWPPostDestroy();
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
-   virtual bool plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
+   virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
 
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
@@ -578,6 +578,7 @@ class int_thread
    //Process control
    bool intStop();
    bool intCont();
+   async_ret_t handleSingleStepContinue();
 
    void setContSignal(int sig);
    int getContSignal();
@@ -600,16 +601,12 @@ class int_thread
    void markClearingBreakpoint(installed_breakpoint *bp);
    installed_breakpoint *isClearingBreakpoint();
    void markStoppedOnBP(installed_breakpoint *bp);
-   installed_breakpoint *isStoppedOnBP() const;
-
-   void setPreSingleStepPC(Dyninst::MachRegisterVal pc);
-   Dyninst::MachRegisterVal getPreSingleStepPC() const;
+   installed_breakpoint *isStoppedOnBP();
 
    // Emulating single steps with breakpoints
-   emulated_singlestep *isEmulatedSingleStep(installed_breakpoint *bp);
    void addEmulatedSingleStep(emulated_singlestep *es);
    void rmEmulatedSingleStep(emulated_singlestep *es);
-   bool isEmulatingSingleStep();
+   emulated_singlestep *getEmulatedSingleStep();
 
    //RPC Management
    void addPostedRPC(int_iRPC_ptr rpc_);
@@ -735,11 +732,11 @@ class int_thread
    bool handler_exiting_state;
    bool generator_exiting_state;
 
-   installed_breakpoint *stopped_on_breakpoint;
+   Address stopped_on_breakpoint_addr;
+
    installed_breakpoint *clearing_breakpoint;
    bool running_when_attached;
-   std::set<emulated_singlestep *> singlesteps;
-   MachRegisterVal pre_ss_pc;
+   emulated_singlestep *em_singlestep;
 
    static std::set<continue_cb_t> continue_cbs;
 };
@@ -889,7 +886,6 @@ class installed_breakpoint
    bool saveBreakpointData(int_process *proc, mem_response::ptr read_response);
    bool restoreBreakpointData(int_process *proc, result_response::ptr res_resp);
 
-
  public:
    installed_breakpoint(mem_state::ptr memory_, Dyninst::Address addr_);
    installed_breakpoint(mem_state::ptr memory_, const installed_breakpoint *ip);
@@ -918,25 +914,25 @@ class installed_breakpoint
 };
 
 class emulated_singlestep {
-    // Breakpoints that are added and removed in a group to emulate
-    // a single step with breakpoints
-    private:
-        bool saved_user_single_step;
-        bool saved_single_step;
-        typedef std::pair<Address, int_breakpoint *> addr_bp_pair;
-        std::list<addr_bp_pair> bps;
+   // Breakpoints that are added and removed in a group to emulate
+   // a single step with breakpoints
+  private:
+   bool saved_user_single_step;
+   bool saved_single_step;
+   int_breakpoint *bp;
+   int_thread *thr;
+   std::set<Address> addrs;
+   
+  public:
+   emulated_singlestep(int_thread *thr);
+   ~emulated_singlestep();
+   
+   bool containsBreakpoint(Address addr) const;
+   async_ret_t add(Address addr);
+   async_ret_t clear();
+   void restoreSSMode();
 
-    public:
-        emulated_singlestep(bool saved_user_single_step_, bool saved_single_step_);
-        ~emulated_singlestep();
-
-        bool containsBreakpoint(installed_breakpoint *bp) const;
-        bool rmFromProcess(int_process *p, result_response::ptr async_resp);
-        bool addToProcess(int_process *p);
-        void add(Address addr, int_breakpoint *bp);
-        bool savedSingleStepUserMode() const;
-        bool savedSingleStepMode() const;
-        unsigned breakpointCount() const;
+   std::set<response::ptr> clear_resps;
 };
 
 class int_notify {

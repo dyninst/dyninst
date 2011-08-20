@@ -191,7 +191,6 @@ std::string EventType::name() const
       STR_CASE(Detach);
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
-      STR_CASE(PrepSingleStep);
       STR_CASE(Nop);
       STR_CASE(ThreadDB);
       default: return prefix + std::string("Unknown");
@@ -315,8 +314,9 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
 {
    if (!int_bp)
       return;
+   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = int_bp->ibp->hl_bps.begin(); i != int_bp->ibp->hl_bps.end(); i++) {
+   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
    }
 }
@@ -325,8 +325,9 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 {
    if (!int_bp)
       return;
+   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = int_bp->ibp->hl_bps.begin(); i != int_bp->ibp->hl_bps.end(); i++) {
+   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
    }
 }
@@ -334,7 +335,8 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 bool EventBreakpoint::suppressCB() const
 {
    if (Event::suppressCB()) return true;
-   return int_bp->ibp->hl_bps.empty();
+   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   return ibp->hl_bps.empty();
 }
 
 int_eventBreakpoint *EventBreakpoint::getInternal() const
@@ -345,7 +347,10 @@ int_eventBreakpoint *EventBreakpoint::getInternal() const
 bool EventBreakpoint::procStopper() const
 {
    int num_proc_stoppers = 0;
-   installed_breakpoint *bp = int_bp->ibp;
+   installed_breakpoint *bp = int_bp->lookupInstalledBreakpoint();
+   if (!bp) {
+      return false;
+   }
 
    for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
       if (!(*i)->isProcessStopper())
@@ -757,26 +762,6 @@ EventNop::~EventNop()
 {
 }
 
-EventPrepSingleStep::EventPrepSingleStep(emulated_singlestep *newSingleStep) :
-    Event(EventType(EventType::None, EventType::PrepSingleStep)), 
-    es(newSingleStep)
-{
-}
-
-EventPrepSingleStep::~EventPrepSingleStep()
-{
-}
-
-bool EventPrepSingleStep::procStopper() const {
-#warning fix EventPrepSingleStep
-   assert(0); 
-   return true;
-}
-
-emulated_singlestep *EventPrepSingleStep::getEmulatedSingleStep() const {
-    return es;
-}
-
 EventThreadDB::EventThreadDB() :
    Event(EventType(EventType::None, EventType::ThreadDB))
 {
@@ -807,8 +792,7 @@ bool EventThreadDB::triggersCB() const
    return false;
 }
 
-int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr) :
-   ibp(i),
+int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *, int_thread *thr) :
    addr(a),
    thrd(thr),
    stopped_proc(false)
@@ -817,6 +801,11 @@ int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *i, int
 
 int_eventBreakpoint::~int_eventBreakpoint()
 {
+}
+
+installed_breakpoint *int_eventBreakpoint::lookupInstalledBreakpoint()
+{
+   return thrd->llproc()->getBreakpoint(addr);
 }
 
 int_eventBreakpointClear::int_eventBreakpointClear() :
@@ -966,5 +955,4 @@ DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventDetach, Detach)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop);
-DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
 DEFN_EVENT_CAST(EventThreadDB, ThreadDB)

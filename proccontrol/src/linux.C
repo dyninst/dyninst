@@ -293,8 +293,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
-            Dyninst::MachRegisterVal pre_ss_pc = lthread->getPreSingleStepPC();
-
             if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
                pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
                             proc->getPid(), thread->getLWP(), adjusted_addr);
@@ -302,12 +300,17 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
 
-            installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
-
             installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
-            if(thread->singleStep() && clearingbp) {
+            if (thread->singleStep() && clearingbp) {
                 pthrd_printf("Decoded event to breakpoint restore\n");
                 event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
+                if (thread->singleStepUserMode()) {
+                   Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
+                   subservient_ss->setProcess(proc->proc());
+                   subservient_ss->setThread(thread->thread());
+                   subservient_ss->setSyncType(Event::sync_thread);
+                   event->addSubservientEvent(subservient_ss);
+                }
                 break;
             }
 
@@ -316,7 +319,8 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             //
             // If no forward progress was made due to a single step, then a
             // breakpoint was hit
-            if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != addr) || !ibp)) {
+            installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+            if (thread->singleStep() && !ibp) {
                pthrd_printf("Decoded event to single step on %d/%d\n",
                        proc->getPid(), thread->getLWP());
                event = Event::ptr(new EventSingleStep());
@@ -329,6 +333,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
                event = event_bp;
                event->setThread(thread->thread());
+
+               if (thread->singleStepUserMode() && !proc->plat_breakpointAdvancesPC()) {
+                  Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
+                  subservient_ss->setProcess(proc->proc());
+                  subservient_ss->setThread(thread->thread());
+                  subservient_ss->setSyncType(Event::sync_thread);
+                  event->addSubservientEvent(subservient_ss);
+               }
 
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
@@ -361,23 +373,6 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   }
                }
 
-               /*if (thread->isEmulatingSingleStep() && thread->isEmulatedSingleStep(ibp)) {
-                   pthrd_printf("Breakpoint is emulated single step\n");
-                   installed_breakpoint *ibp = thread->isClearingBreakpoint();
-                   if( ibp ) {
-                       pthrd_printf("Decoded emulated single step to breakpoint cleanup\n");
-                       EventBreakpointClear::ptr bc_event = EventBreakpointClear::ptr(new EventBreakpointClear(ibp));
-                       bc_event->setThread(thread->thread());
-                       bc_event->setProcess(proc->proc());
-                       event->addSubservientEvent(bc_event);
-                   }else{
-                       pthrd_printf("Decoded emulated single step to normal single step\n");
-                       EventSingleStep::ptr ss_event = EventSingleStep::ptr(new EventSingleStep());
-                       ss_event->setThread(thread->thread());
-                       ss_event->setProcess(proc->proc());
-                       event->addSubservientEvent(ss_event);
-                   }
-                 }*/
                break;
             }
 
@@ -385,9 +380,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 1
+#if 0
             //Debugging code
-            if (stopsig == 11) {
+            if (stopsig == 11 || stopsig == 4) {
                Dyninst::MachRegisterVal addr;
                result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
                if (!result) {
@@ -1072,6 +1067,8 @@ SymbolReaderFactory *linux_process::plat_defaultSymReader()
 #define SYS_tkill 238
 #endif
 
+#if 0
+//Currently unused
 static pid_t P_gettid()
 {
   static int gettid_not_valid = 0;
@@ -1088,6 +1085,7 @@ static pid_t P_gettid()
   }
   return (int) result;
 }
+#endif
 
 static bool t_kill(int pid, int sig)
 {
@@ -1242,29 +1240,35 @@ bool linux_process::preTerminate() {
     // events being delivered to the debugger, so we stop the process and disable these
     // events for all threads in the process
 
-    if (!threadPool()->allHandlerStopped()) {
-        pthrd_printf("Stopping process %d for pre-terminate handling\n",
-                getPid());
-        if( !threadPool()->userStop() ) {
-            perr_printf("Failed to stop process %d for pre-terminate handling\n",
-                    getPid());
-            return false;
-        }
-    }
+   pthrd_printf("Stopping process %d for pre-terminate handling\n", getPid());
+   threadPool()->initialThread()->getInternalState().desyncStateProc(int_thread::stopped);
+   bool threw_event = false;
+   while (!threadPool()->allStopped(int_thread::InternalStateID)) {
+      if (!threw_event) {
+         throwNopEvent();
+         threw_event = true;
+      }
+      bool exited = false;
+      int_process::waitAndHandleForProc(true, this, exited);
+      if (exited) {
+         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", getPid());
+         return false;
+      }
+   }
 
 
-    for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end();
-            ++i)
-    {
-        linux_thread *thr = static_cast<linux_thread *>(*i);
-        pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
-                getPid(), thr->getLWP());
-        if( !thr->unsetOptions() ) {
-            perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
-                    getPid(), thr->getLWP());
-            return false;
-        }
-    }
+   int_threadPool::iterator i;
+   for(i = threadPool()->begin(); i != threadPool()->end(); i++)
+   {
+      linux_thread *thr = static_cast<linux_thread *>(*i);
+      pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
+                   getPid(), thr->getLWP());
+      if( !thr->unsetOptions() ) {
+         perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
+                     getPid(), thr->getLWP());
+         return false;
+      }
+   }
 #endif
 
     return true;
@@ -1538,10 +1542,20 @@ static void init_dynreg_to_user()
    init_lock.unlock();
 }
 
+#if defined(PT_GETREGS)
+#define MY_PTRACE_GETREGS PTRACE_GETREGS
+#elif defined(arch_power)
+//Kernel value for PPC_PTRACE_SETREGS 0x99
+#define MY_PTRACE_GETREGS 12
+#endif
+
 //912 is currently the x86_64 size, 128 bytes for just-because padding
 #define MAX_USER_SIZE (912+128)
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+   static bool have_getregs = true;
+   static bool tested_getregs = false;
+
 #if defined(bug_registers_after_exit)
    /* On some kernels, attempting to read registers from a thread in a pre-Exit
     * state causes an oops
@@ -1562,37 +1576,49 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i;
 
-#if defined(PT_GETREGS)
-   long result = do_ptrace((pt_req) PTRACE_GETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error reading registers from %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
+   if (have_getregs)
+   {
+      long result = do_ptrace((pt_req) MY_PTRACE_GETREGS, lwp, user_area, user_area);
+      if (result != 0) {
+         int error = errno;
+         if (error == EIO && !tested_getregs) {
+            pthrd_printf("PTRACE_GETREGS not working.  Trying PTRACE_PEEKUSER\n");
+            have_getregs = false;
+         }
+         else {
+            perr_printf("Error reading registers from %d\n", lwp);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+      }
+      tested_getregs = true;
    }
-#else
-   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++) {
-      const MachRegister reg = i->first;
-      if (reg.getArchitecture() != curplat)
-         continue;
-      long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) i->second.first, NULL);
-      if (errno == -1) {
-         perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
-         setLastError(err_internal, "Could not read user area from thread");
-         return false;
-      }
-      if (Dyninst::getArchAddressWidth(curplat) == 4) {
-         uint32_t val = (uint32_t) result;
-         *((uint32_t *) (user_area + i->second.first)) = val;
-      }
-      else if (Dyninst::getArchAddressWidth(curplat) == 8) {
-         uint64_t val = (uint64_t) result;
-         *((uint64_t *) (user_area + i->second.first)) = val;
-      }
-      else {
-         assert(0);
+   if (!have_getregs)
+   {
+      for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++) {
+         const MachRegister reg = i->first;
+         if (reg.getArchitecture() != curplat)
+            continue;
+         long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) i->second.first, NULL);
+         if (errno == -1) {
+            perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+         if (Dyninst::getArchAddressWidth(curplat) == 4) {
+            uint32_t val = (uint32_t) result;
+            *((uint32_t *) (user_area + i->second.first)) = val;
+         }
+         else if (Dyninst::getArchAddressWidth(curplat) == 8) {
+            uint64_t val = (uint64_t) result;
+            *((uint64_t *) (user_area + i->second.first)) = val;
+         }
+         else {
+            assert(0);
+         }
       }
    }
-#endif
+
    //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
    // for a new platform.
    assert(sentinel1 == 0xfeedface);
@@ -1670,7 +1696,17 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    return true;
 }
 
-bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
+#if defined(PT_SETREGS)
+#define MY_PTRACE_SETREGS PT_SETREGS
+#else
+//Common kernel value for PTRACE_SETREGS
+#define MY_PTRACE_SETREGS 13
+#endif
+
+bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) 
+{
+   static bool have_setregs = true;
+   static bool tested_setregs = false;
 #if defined(bug_registers_after_exit)
    /* On some kernels, attempting to read registers from a thread in a pre-Exit
     * state causes an oops
@@ -1682,42 +1718,70 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) {
    }
 #endif
 
-#if defined(PT_SETREGS)
-   unsigned char user_area[MAX_USER_SIZE];
-
-   //Fill in 'user_area' with the contents of regpool.   
-   if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
-
-   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error setting registers for %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
-   }
-#else
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
-   init_dynreg_to_user();
-   for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
-      assert(i->first.getArchitecture() == curplat);
-      dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
-      assert(di != dynreg_to_user.end());
-      int result;
-      if (Dyninst::getArchAddressWidth(curplat) == 4) {
-         uint32_t res = (uint32_t) i->second;
-         result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
-      }
-      else {
-         uint64_t res = (uint64_t) i->second;
-         result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
-      }
-
+   if (have_setregs)
+   {
+      unsigned char user_area[MAX_USER_SIZE];
+      //Fill in 'user_area' with the contents of regpool.   
+      if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
+      
+      //Double up the user_area parameter because if MY_PTRACE_SETREGS is
+      // defined to PPC_PTRACE_SETREGS than the parameters data and addr
+      // pointers get swapped (just because linux hates us).  Since the 
+      // other is ignored, we pass it in twice.
+      int result = do_ptrace((pt_req) MY_PTRACE_SETREGS, lwp, user_area, user_area);
       if (result != 0) {
-         perr_printf("Error setting registers for %d at %x\n", lwp, di->second.first);
-         setLastError(err_internal, "Could not read user area from thread");
-         return false;
+         int error = errno;
+         if (error == EIO && !tested_setregs) {
+            pthrd_printf("PTRACE_SETREGS not working.  Trying PTRACE_POKEUSER\n");
+            have_setregs = false;
+         }
+         else {
+            perr_printf("Error setting registers for %d\n", lwp);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+      }
+      tested_setregs = true;
+   }
+   if (!have_setregs)
+   {
+      Dyninst::Architecture curplat = llproc()->getTargetArch();
+      init_dynreg_to_user();
+      for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
+         assert(i->first.getArchitecture() == curplat);
+         dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
+         assert(di != dynreg_to_user.end());
+         
+         //Don't treat errors on these registers as real errors.
+         bool not_present = true;
+         if (curplat == Arch_ppc32)
+            not_present = (i->first == ppc32::mq || i->first == ppc32::dar || 
+                           i->first == ppc32::dsisr || i->first == ppc32::trap ||
+                           i->first == ppc32::or3);
+         
+         if (not_present)
+            continue;
+         
+         int result;
+         if (Dyninst::getArchAddressWidth(curplat) == 4) {
+            uint32_t res = (uint32_t) i->second;
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+         }
+         else {
+            uint64_t res = (uint64_t) i->second;
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+         }
+         
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error setting register %s for %d at %d: %s\n", i->first.name().c_str(),
+                        lwp, (int) di->second.first, strerror(error));
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
       }
    }
-#endif
+
    pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
    return true;
 }

@@ -988,6 +988,13 @@ bool int_process::detach(int_process *proc, bool temporary)
 bool int_process::terminate(bool &needs_sync)
 {
    pthrd_printf("Terminate requested on process %d\n", getPid());
+
+   if (!preTerminate()) {
+       perr_printf("pre-terminate hook failed\n");
+       setLastError(err_internal, "Pre-terminate hook failed\n");
+       return false;
+   }
+
    bool had_error = true;
    getStartupTeardownProcs().inc();
    ProcPool()->condvar()->lock();
@@ -1605,8 +1612,8 @@ bool int_process::plat_supportExec()
    return false;
 }
 
-bool int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<Address> &) {
-    return true;
+async_ret_t int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<Address> &) {
+   return aret_success;
 }
 
 bool int_process::plat_needsPCSaveBeforeSingleStep() 
@@ -1862,10 +1869,10 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    single_step(false),
    handler_exiting_state(false),
    generator_exiting_state(false),
-   stopped_on_breakpoint(NULL),
+   stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
    running_when_attached(true),
-   pre_ss_pc(0)
+   em_singlestep(NULL)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -1911,6 +1918,18 @@ bool int_thread::intCont()
    assert(RUNNING_STATE(target_state));
    assert(!RUNNING_STATE(getHandlerState().getState()));
 
+   async_ret_t aret = handleSingleStepContinue();
+   if (aret == aret_async) {
+      pthrd_printf("Postponing intCont on %d/%d due to single-step handling\n", 
+                   llproc()->getPid(), getLWP());
+      return true;
+   }
+   else if (aret == aret_error) {
+      pthrd_printf("Error in intCont %d/%d during single-step handling\n",
+                   llproc()->getPid(), getLWP());
+      return false;
+   }
+
    ProcPool()->condvar()->lock();
    
    bool result = plat_cont();
@@ -1939,6 +1958,95 @@ bool int_thread::intCont()
    }
 
    return true;
+}
+
+async_ret_t int_thread::handleSingleStepContinue()
+{
+   async_ret_t ret;
+   set<int_thread *> thrds;
+
+   if (llproc()->plat_processSyncContinues()) {
+      int_threadPool *pool = llproc()->threadPool();
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+         if ((*i)->singleStep()) {
+            thrds.insert(*i);
+         }
+      }
+      
+   }
+   else if (singleStep()) {
+      thrds.insert(this);
+   }
+
+   if (thrds.empty()) {
+      //No threads are single-steping.
+      return aret_success;
+   }
+   pthrd_printf("Found %d threads doing single step under continue.  Handling\n", thrds.size());
+
+   if (llproc()->plat_needsAsyncIO()) {
+      /**
+       * We want any async responses associated with an event, but this is under
+       * a continue, which never has an associated event.  We'll make an EventNop
+       * to accompany the async request.  However, since this isn't going to be 
+       * a common thing to have happen, we'll set a flag that just tells the 
+       * HandlerPool to create the nop event lazily only if anyone asks for it.
+       **/
+      llproc()->handlerPool()->setNopAsCurEvent();
+   }
+
+   for (set<int_thread *>::iterator i = thrds.begin(); i != thrds.end(); i++) {
+      int_thread *thr = *i;
+      vector<Address> addrs;
+      async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
+      if (aresult == aret_async) {
+         pthrd_printf("Async return from plat_needsEmulatedSingleStep on %d/%d",
+                      llproc()->getPid(), thr->getLWP());
+         ret = aret_async;
+         goto done;
+      }
+      else if (aresult == aret_error) {
+         pthrd_printf("Error in plat_needsEmultatedSingleStep on %d/%d\n",
+                      llproc()->getPid(), thr->getLWP());
+         ret = aret_error;
+         goto done;
+      }
+      else if (addrs.empty()) {
+         pthrd_printf("Thread %d/%d does not need emulated single-step\n",
+                      llproc()->getPid(), thr->getLWP());
+         continue;
+      }
+
+      pthrd_printf("Creating emulated single step for %d/%d\n",
+                   llproc()->getPid(), thr->getLWP());
+      emulated_singlestep *new_es = thr->getEmulatedSingleStep();
+      if (!new_es)
+         new_es = new emulated_singlestep(thr);
+      for (vector<Address>::iterator j = addrs.begin(); j != addrs.end(); j++) {
+         Address addr = *j;
+         pthrd_printf("Installing emulated single-step breakpoint for %d/%d at %lx\n",
+                      llproc()->getPid(), thr->getLWP(), addr);                      
+         aresult = new_es->add(addr);
+         if (aresult == aret_async) {
+            pthrd_printf("Async return while installing breakpoint for emulated_singlestep\n");
+            ret = aret_async;
+            goto done;
+         }
+         if (aresult == aret_error) {
+            pthrd_printf("Error return while installing breakpoint for emulated_singlestep\n");
+            ret = aret_error;
+            goto done;
+         }
+      }
+   }
+
+   ret = aret_success;
+  done:
+
+   if (llproc()->plat_needsAsyncIO())
+      llproc()->handlerPool()->clearNopAsCurEvent();      
+      
+   return ret;
 }
 
 bool int_thread::isStopped(int state_id)
@@ -2743,12 +2851,12 @@ void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
 
 void int_thread::markStoppedOnBP(installed_breakpoint *bp)
 {
-   stopped_on_breakpoint = bp;
+   stopped_on_breakpoint_addr = bp ? bp->getAddr() : 0x0;
 }
 
-installed_breakpoint *int_thread::isStoppedOnBP() const
+installed_breakpoint *int_thread::isStoppedOnBP()
 {
-   return stopped_on_breakpoint;
+   return stopped_on_breakpoint_addr ? llproc()->getBreakpoint(stopped_on_breakpoint_addr) : NULL;
 }
 
 void int_thread::setTID(Dyninst::THR_ID tid_)
@@ -2791,27 +2899,22 @@ bool int_thread::getTLSPtr(Dyninst::Address &)
    return false;
 }
 
-bool int_thread::isEmulatingSingleStep()
+void int_thread::addEmulatedSingleStep(emulated_singlestep *es) 
 {
-    return (singlesteps.size() != 0);
+   assert(!em_singlestep);
+   em_singlestep = es;
 }
 
-void int_thread::addEmulatedSingleStep(emulated_singlestep *es) {
-    singlesteps.insert(es);
+void int_thread::rmEmulatedSingleStep(emulated_singlestep *es)
+{
+   assert(em_singlestep == es);
+   delete em_singlestep;
+   em_singlestep = NULL;
 }
 
-void int_thread::rmEmulatedSingleStep(emulated_singlestep *es) {
-    singlesteps.erase(es);
-}
-
-emulated_singlestep *int_thread::isEmulatedSingleStep(installed_breakpoint *bp) {
-    for(set<emulated_singlestep *>::iterator i = singlesteps.begin();
-            i != singlesteps.end(); ++i)
-    {
-        if( (*i)->containsBreakpoint(bp) ) return *i;
-    }
-
-    return NULL;
+emulated_singlestep *int_thread::getEmulatedSingleStep()
+{
+   return em_singlestep;
 }
 
 void int_thread::clearRegCache()
@@ -2820,14 +2923,6 @@ void int_thread::clearRegCache()
    cached_regpool.regs.clear();
    cached_regpool.full = false;
    regpool_lock.unlock();
-}
-
-void int_thread::setPreSingleStepPC(MachRegisterVal pc) {
-    pre_ss_pc = pc;
-}
-
-MachRegisterVal int_thread::getPreSingleStepPC() const {
-    return pre_ss_pc;
 }
 
 int_thread::StateTracker::StateTracker(int_thread *t, int id_, int_thread::State initial) :
@@ -3488,6 +3583,8 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
       }
    }
    else {
+      pthrd_printf("installed_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
+                   addr);
        async_resp->setResponse(true);
    }
    
@@ -3706,7 +3803,7 @@ int_notify *notify()
 
 void int_notify::noteEvent()
 {
-#warning TODO lock around event pipe write/read when using process locks
+//MATT TODO lock around event pipe write/read when using process locks
    assert(isHandlerThread());
    if (events_noted == 0)
       writeToPipe();
@@ -4625,12 +4722,6 @@ bool Process::terminate()
    }
 
    pthrd_printf("User terminating process %d\n", llproc_->getPid());
-
-   if( !llproc_->preTerminate() ) {
-       perr_printf("pre-terminate hook failed\n");
-       setLastError(err_internal, "Pre-terminate hook failed\n");
-       return false;
-   }
 
    bool needsSync = false;
    bool result = llproc_->terminate(needsSync);
@@ -6182,73 +6273,70 @@ bool ProcStopEventManager::threadStoppedTo(int_thread *thr, int state_id)
    return thr->isStopped(state_id);
 }
 
-emulated_singlestep::emulated_singlestep(bool saved_user_single_step_, bool saved_single_step_)
-    : saved_user_single_step(saved_user_single_step_),
-      saved_single_step(saved_single_step_)
+emulated_singlestep::emulated_singlestep(int_thread *thr_) :
+   thr(thr_)
 {
+   bp = new int_breakpoint(Breakpoint::ptr());
+   bp->setOneTimeBreakpoint(true);
+   bp->setThreadSpecific(thr->thread());
+
+   saved_user_single_step = thr->singleStepUserMode();
+   saved_single_step = thr->singleStepMode();
+   
+   thr->setSingleStepMode(false);
+   thr->setSingleStepUserMode(false);
+
+   thr->addEmulatedSingleStep(this);
 }
 
-emulated_singlestep::~emulated_singlestep() {
-    for(list<addr_bp_pair>::iterator i = bps.begin(); i != bps.end(); ++i) {
-        delete i->second;
-    }
+emulated_singlestep::~emulated_singlestep() 
+{
+   delete bp;
+   bp = NULL;
 }
 
-bool emulated_singlestep::containsBreakpoint(installed_breakpoint *bp) const {
-    for(list<addr_bp_pair>::const_iterator i = bps.begin();
-            i != bps.end(); ++i)
-    {
-        if( bp->containsIntBreakpoint(i->second) ) return true;
-    }
-
-    return false;
+bool emulated_singlestep::containsBreakpoint(Address addr) const
+{
+   return addrs.find(addr) != addrs.end();
 }
 
-bool emulated_singlestep::rmFromProcess(int_process *p, result_response::ptr async_resp) {
-    // Note: this function is written to be called from a handler and therefore, doesn't
-    // wait for results if the action is asynchronous
-    while( bps.size() ) {
-        addr_bp_pair curPair = bps.front();
-        bps.pop_front();
+async_ret_t emulated_singlestep::add(Address addr) {
+   if (addrs.find(addr) != addrs.end())
+      return aret_success;
 
-        if( !p->rmBreakpoint(curPair.first, curPair.second, async_resp) ) return false;
+   int_process *proc = thr->llproc();
+   proc->addBreakpoint(addr, bp);
+   addrs.insert(addr);
 
-        // Wait for the current remove to be completed before moving onto the next one
-        if( async_resp->isPosted() && !async_resp->isReady() ) return true;
-
-        // Allow higher level code to handle error
-        if( async_resp->hasError() ) return true;
-
-        if( bps.size() ) {
-            async_resp = result_response::createResultResponse();
-        }
-    }
-
-    return true;
+   return aret_success;
 }
 
-bool emulated_singlestep::addToProcess(int_process *p) {
-    for(list<addr_bp_pair>::iterator i = bps.begin();
-            i != bps.end(); ++i)
-    {
-        if( !p->addBreakpoint(i->first, i->second) ) return false;
-    }
+async_ret_t emulated_singlestep::clear()
+{
+   int_process *proc = thr->llproc();
+   if (clear_resps.empty())
+   {
+      for (set<Address>::iterator i = addrs.begin(); i != addrs.end(); i++) {
+         result_response::ptr resp = result_response::createResultResponse();
+         proc->rmBreakpoint(*i, bp, resp);
+         clear_resps.insert(resp);
+      }
+   }
 
-    return true;
+   for (set<response::ptr>::iterator i = clear_resps.begin(); i != clear_resps.end();) {
+      response::ptr resp = *i;
+      if (resp->isReady()) {
+         clear_resps.erase(i++);
+         continue;
+      }
+      i++;
+   }
+
+   return clear_resps.empty() ? aret_success : aret_async;
 }
 
-void emulated_singlestep::add(Address addr, int_breakpoint *bp) {
-    bps.push_back(make_pair(addr, bp));
-}
-
-bool emulated_singlestep::savedSingleStepUserMode() const {
-    return saved_user_single_step;
-}
-
-bool emulated_singlestep::savedSingleStepMode() const {
-    return saved_single_step;
-}
-
-unsigned emulated_singlestep::breakpointCount() const {
-    return bps.size();
+void emulated_singlestep::restoreSSMode()
+{
+   thr->setSingleStepMode(saved_single_step);
+   thr->setSingleStepUserMode(saved_user_single_step);
 }

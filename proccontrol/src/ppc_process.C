@@ -77,11 +77,8 @@ static bool atomicStore(const instruction &insn) {
              && (XFORM_XO(insn) == STWCXxop) );
 }
 
-bool ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult) {
-#if defined(os_bg)
-   //MATT TODO: Get this working
-   return true;
-#endif
+async_ret_t ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult) {
+#warning MATT TODO: Make this function async safe
     assert(thr->singleStep());
 
     pthrd_printf("Checking for atomic instruction sequence before single step\n");
@@ -102,18 +99,18 @@ bool ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> 
     bool result = thr->getRegister(MachRegister::getPC(getTargetArch()), pcResponse);
     if( !result ) {
         perr_printf("Failed to read PC address to check for emulated single step condition\n");
-        return false;
+        return aret_error;
     }
 
     result = waitForAsyncEvent(pcResponse);
     if( !result ) {
         pthrd_printf("Error waiting for async events\n");
-        return false;
+        return aret_error;
     }
     assert(pcResponse->isReady());
     if( pcResponse->hasError() ) {
         pthrd_printf("Async error getting PC register\n");
-        return false;
+        return aret_error;
     }
 
     Address pc = (Address)pcResponse->getResult();
@@ -132,14 +129,14 @@ bool ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> 
         result = readMem(pc, memresult);
         if( !result ) {
             pthrd_printf("Error reading from memory 0x%lx\n", pc);
-            return false;
+            return aret_error;
         }
 
         waitForAsyncEvent(memresult);
 
         if( memresult->hasError() ) {
             pthrd_printf("Error reading from memory 0x%lx\n", pc);
-            return false;
+            return aret_error;
         }
 
         // Decode the current instruction
@@ -173,12 +170,12 @@ bool ppc_process::plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> 
     }else if( sequenceStarted || addrResult.size() ) {
         addrResult.clear();
         pthrd_printf("Failed to find end of atomic instruction sequence\n");
-        return false;
+        return aret_error;
     }else{
         pthrd_printf("No atomic instruction sequence found, safe to single step\n");
     }
 
-    return true;
+    return aret_success;
 }
 
 bool ppc_process::plat_convertToBreakpointAddress(Address &addr, int_thread *thr) {

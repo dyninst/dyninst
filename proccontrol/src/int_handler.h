@@ -71,7 +71,10 @@ class HandlerPool
    void markEventAsyncPending(Event::ptr ev);
    
    void addLateEvent(Event::ptr ev);
-   Event::ptr curEvent() const;
+   Event::ptr curEvent();
+
+   void setNopAsCurEvent();
+   void clearNopAsCurEvent();
  private:
    HandlerMap_t handlers;
    void addHandlerInt(EventType etype, Handler *handler);
@@ -89,6 +92,7 @@ class HandlerPool
    std::set<Event::ptr> late_events;
    int_process *proc;
    Event::ptr cur_event;
+   bool nop_cur_event;
 
    static void markProcAsyncPending(HandlerPool *p);
    static void clearProcAsyncPending(HandlerPool *p);
@@ -291,6 +295,17 @@ class HandleBreakpointRestore : public Handler
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
+class HandleEmulatedSingleStep : public Handler
+{
+  public:
+   HandleEmulatedSingleStep();
+   ~HandleEmulatedSingleStep();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+};
+
 class HandleLibrary : public Handler
 {
  public:
@@ -327,16 +342,6 @@ class HandleNop : public Handler
    HandleNop();
    virtual ~HandleNop();
    
-   virtual handler_ret_t handleEvent(Event::ptr ev);
-   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
-};
-
-class HandlePrepSingleStep : public Handler
-{
-  public:
-   HandlePrepSingleStep();
-   virtual ~HandlePrepSingleStep();
-
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };

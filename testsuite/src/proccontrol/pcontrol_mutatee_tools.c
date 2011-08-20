@@ -329,6 +329,7 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
+   static int warned_syscall_restart = 0;
    int result = -1;
    int timeout = MESSAGE_TIMEOUT * 10;
    while( result != (int) msg_size && result != 0 ) {
@@ -339,11 +340,26 @@ int recv_message(unsigned char *msg, size_t msg_size)
        s_timeout.tv_sec = 0;
        s_timeout.tv_usec = 100000; //.1 sec
        int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
-       if (sresult == -1 && errno != EINTR) {
-          perror("Mutatee unable to receive message during select\n");
-          return -1;
+       int error = errno;
+       if (sresult == -1)
+       {
+          if (error == EINVAL || error == EBADF) {
+             fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
+             return -1;
+          }
+          else if (error == EINTR) {
+             continue;
+          }
+          else {
+             //Seen as kernels with broken system call restarting during IRPC test.
+             if (!warned_syscall_restart) {
+                fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
+                warned_syscall_restart = 1;
+             }
+             continue;
+          }
        }
-       if (sresult <= 0) {
+       if (sresult == 0) {
           timeout--;
           if (timeout > 0)
              continue;

@@ -70,7 +70,8 @@ std::string Handler::getName() const
 }
 
 HandlerPool::HandlerPool(int_process *p) :
-   proc(p)
+   proc(p),
+   nop_cur_event(false)
 {
 }
 
@@ -168,9 +169,27 @@ struct eh_cmp_func
    }
 };
 
-Event::ptr HandlerPool::curEvent() const
+Event::ptr HandlerPool::curEvent()
 {
+   if (!cur_event && nop_cur_event) {
+      //Lazily create a NOP event as the current event.
+      EventNop::ptr nop_event = EventNop::ptr(new EventNop());
+      cur_event = nop_event;
+   }
+
    return cur_event;
+}
+
+void HandlerPool::setNopAsCurEvent()
+{
+   assert(!cur_event);
+   nop_cur_event = true;
+}
+
+void HandlerPool::clearNopAsCurEvent()
+{
+   nop_cur_event = false;
+   cur_event = Event::ptr();
 }
 
 void HandlerPool::addLateEvent(Event::ptr ev)
@@ -1085,7 +1104,13 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
    int_eventBreakpoint *int_ebp = ebp->getInternal();
-   installed_breakpoint *breakpoint = int_ebp->ibp;
+   installed_breakpoint *breakpoint = int_ebp->lookupInstalledBreakpoint();
+
+   if (!breakpoint) {
+      //Likely someone cleaned the breakpoint.
+      pthrd_printf("No breakpoint installed at location of BP hit.\n");
+      return ret_success;
+   }
 
    /**
     * Move the PC if it's a control transfer breakpoint, or if the
@@ -1139,6 +1164,8 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    }
    pthrd_printf("In breakpoint handler, %ld breakpoints for user callback\n",
                 (long int) int_ebp->cb_bps.size());
+   if (int_ebp->cb_bps.empty())
+      ebp->setSuppressCB(true);
 
    /**
     * Handle onetime breakpoints.  These are essentially auto-deleted
@@ -1192,19 +1219,6 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    if (!transferbp) {
       thrd->markStoppedOnBP(breakpoint);
    }
-
-   /**
-    * Restore original single step modes if this breakpoint corresponds to
-    * an emulated single step
-   emulated_singlestep *es;
-   if (thrd->isEmulatingSingleStep()) {
-      es = thrd->isEmulatedSingleStep(ebp->installedbp());
-      if (es) {
-         thrd->setSingleStepUserMode(es->savedSingleStepUserMode());
-         thrd->setSingleStepMode(es->savedSingleStepMode());
-      }
-   }
-   **/
 
    return ret_success;
 }
@@ -1273,6 +1287,8 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 
    if (!ibp || !ibp->isInstalled()) {
       pthrd_printf("HandleBreakpointClear on thread without breakpoint.  BP must have been deleted\n");
+      thrd->getBreakpointState().restoreStateProc();
+      thrd->markStoppedOnBP(NULL);
       return Handler::ret_success;
    }
    assert(proc->threadPool()->allStopped(int_thread::BreakpointStateID) ||
@@ -1331,7 +1347,7 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    else {
       pthrd_printf("HandleBreakpointClear will not restore BP.  Restoring process state.\n");
    }
-   thrd->getBreakpointState().restoreStateProc();      
+   thrd->getBreakpointState().restoreStateProc();
 
    return Handler::ret_success;
 }
@@ -1474,44 +1490,58 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    return ret_success;
 }
 
-HandlePrepSingleStep::HandlePrepSingleStep() :
-    Handler("PrepSingleStep")
+HandleEmulatedSingleStep::HandleEmulatedSingleStep() :
+   Handler("Emulated Single Step")
 {
 }
 
-HandlePrepSingleStep::~HandlePrepSingleStep()
+HandleEmulatedSingleStep::~HandleEmulatedSingleStep()
 {
 }
 
-void HandlePrepSingleStep::getEventTypesHandled(std::vector<EventType> &etypes)
+
+void HandleEmulatedSingleStep::getEventTypesHandled(vector<EventType> &etypes)
 {
-    etypes.push_back(EventType(EventType::Any, EventType::PrepSingleStep));
+   etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
 }
 
-Handler::handler_ret_t HandlePrepSingleStep::handleEvent(Event::ptr) {
-/*
-    int_process *proc = ev->getProcess()->llproc();
-    int_thread *thrd = ev->getThread()->llthrd();
+Handler::handler_ret_t HandleEmulatedSingleStep::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thrd = ev->getThread()->llthrd();
 
-    pthrd_printf("Prepping emulated single step breakpoint on %d/%d\n",
-            proc->getPid(), thrd->getLWP());
+   emulated_singlestep *em_singlestep = thrd->getEmulatedSingleStep();
+   if (!em_singlestep)
+      return ret_success;
+   
+   EventBreakpoint::ptr ev_bp = ev->getEventBreakpoint();
+   Address addr = ev_bp->getInternal()->addr;
+   assert(ev_bp);
+   if (!em_singlestep->containsBreakpoint(addr))
+      return ret_success;
 
-    EventPrepSingleStep::ptr ssEv = ev->getEventPrepSingleStep();
-    emulated_singlestep *es = ssEv->getEmulatedSingleStep();
-    assert(es);
+   pthrd_printf("Breakpoint %lx corresponds to emulated single step.  Clearing BPs\n", addr);
+   async_ret_t aresult = em_singlestep->clear();
+   if (aresult == aret_async) {
+      proc->handlerPool()->notifyOfPendingAsyncs(em_singlestep->clear_resps, ev);
+      return ret_async;
+   }
 
-    if( !es->addToProcess(proc) ) {
-        perr_printf("Failed to insert emulated single step breakpoint\n");
-        delete es;
-        return ret_error;
-    }
+   EventSingleStep::ptr ev_ss = EventSingleStep::ptr(new EventSingleStep());
+   ev_ss->setProcess(proc->proc());
+   ev_ss->setThread(thrd->thread());
+   ev_ss->setSyncType(ev->getSyncType());
+   proc->handlerPool()->addLateEvent(ev_ss);
 
-    thrd->addEmulatedSingleStep(es);
+   em_singlestep->restoreSSMode();
+   thrd->rmEmulatedSingleStep(em_singlestep);
+   
+   return ret_success;
+}
 
-    proc->threadPool()->restoreInternalState(false);
-*/
-#warning MATT TODO fix emulated single step here
-    return ret_success;
+int HandleEmulatedSingleStep::getPriority() const
+{
+   return PostPlatformPriority;
 }
 
 HandleLibrary::HandleLibrary() :
@@ -2164,8 +2194,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleAsync *hasync = NULL;
    static HandleForceTerminate *hforceterm = NULL;
    static HandleNop *hnop = NULL;
-   static HandlePrepSingleStep *hprepsinglestep = NULL;
    static HandleDetach *hdetach = NULL;
+   static HandleEmulatedSingleStep *hemulatedsinglestep = NULL;
    static iRPCHandler *hrpc = NULL;
    static iRPCLaunchHandler *hrpclaunch = NULL;
    if (!initialized) {
@@ -2193,8 +2223,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hasync = new HandleAsync();
       hforceterm = new HandleForceTerminate();
       hnop = new HandleNop();
-      hprepsinglestep = new HandlePrepSingleStep();
       hdetach = new HandleDetach();
+      hemulatedsinglestep = new HandleEmulatedSingleStep();
       initialized = true;
    }
    HandlerPool *hpool = new HandlerPool(p);
@@ -2222,8 +2252,8 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hasync);
    hpool->addHandler(hforceterm);
    hpool->addHandler(hnop);
-   hpool->addHandler(hprepsinglestep);
    hpool->addHandler(hdetach);
+   hpool->addHandler(hemulatedsinglestep);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }
