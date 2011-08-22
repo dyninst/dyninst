@@ -697,23 +697,58 @@ int precisionSleep(int milliseconds) {
     req.tv_sec = 0;
     req.tv_nsec = milliseconds*1000*1000;
 
-    int result;
-    do{
+    int result, error;
+    do {
         result = nanosleep(&req, &rem);
-        req = rem;
-    }while(result == -1 && errno == EINTR);
+        error = errno;
+        if (req.tv_nsec == rem.tv_nsec) {
+           //Buggy kernel - rem never set.  Just decrement it by 1/10th
+           unsigned long decrement = milliseconds*1000*100;
+           if (decrement >= req.tv_nsec)
+              break;
+           else {
+              req.tv_nsec -= decrement;
+           }
+        }
+        else {
+           req = rem;
+        }
+    }while(result == -1 && error == EINTR);
 
     if( result == -1 ) return 0;
     return 1;
 #elif defined(os_bg_test)
     struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = milliseconds*1000;
     
     int result;
-    do {
+    struct timeval start, cur;
+    unsigned long long istart, icur, microseconds;
+    microseconds = milliseconds * 1000;
+    int tresult = gettimeofday(start, NULL);
+    assert(tresult != -1);
+    istart = (start.tv_sec * 1000000) + start.tv_usec;
+    
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = microseconds;
+
+    for (;;) {
        result = select(1, NULL, NULL, NULL, &timeout);
-    } while (result == -1 && errno == EINTR);
+       if (result == -1 && errno != EINTR) {
+          perror("precisionSleep select failed");
+          return 0;
+       }
+       if (result == 0) {
+          return 1;
+       }
+       tresult = gettimeofday(cur, NULL);
+       assert(tresult != -1);
+       icur = (cur.tv_sec * 1000000) + cur.tv_usec;
+       if (icur - istart >= microseconds) {
+          return 1;
+       }
+       timeout.tv_usec = microseconds - (icur - istart);
+    } 
 
 #elif defined(os_windows_test)
     Sleep(milliseconds);
