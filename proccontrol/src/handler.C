@@ -174,6 +174,9 @@ Event::ptr HandlerPool::curEvent()
    if (!cur_event && nop_cur_event) {
       //Lazily create a NOP event as the current event.
       EventNop::ptr nop_event = EventNop::ptr(new EventNop());
+      nop_event->setProcess(proc->proc());
+      nop_event->setThread(proc->threadPool()->initialThread()->thread());
+      nop_event->setSyncType(Event::async);
       cur_event = nop_event;
    }
 
@@ -1408,85 +1411,6 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    pthrd_printf("Restoring thread state after breakpoint restore\n");
    thrd->getBreakpointResumeState().restoreStateProc();
 
-   
-   /*
-   bool uninstalled = false;
-   if( !int_bpc->memwrite_bp_remove ) {
-      int_bpc->memwrite_bp_remove = result_response::createResultResponse();
-      if( !bp->rmClearingThread(thrd, uninstalled, int_bpc->memwrite_bp_remove) ) {
-         pthrd_printf("Error removing breakpoint in handler\n");
-         return ret_error;
-      }
-      
-      // If the thread was just removed from the breakpoint's collection,
-      // the breakpoint should be resumed
-      if( !uninstalled ) {
-         int_bpc->memwrite_bp_remove->isReady();
-         int_bpc->memwrite_bp_remove = result_response::ptr();
-      }
-   }
-   
-   emulated_singlestep *es;
-   if (thrd->isEmulatingSingleStep() 
-       && ( (es = thrd->isEmulatedSingleStep(bp)) != NULL) ) 
-   {
-      pthrd_printf("Removing single step breakpoint\n");
-      
-      assert( !uninstalled );
-      while( es->breakpointCount() ) { 
-         if( !int_bpc->memwrite_bp_resume ) {
-            int_bpc->memwrite_bp_resume = result_response::createResultResponse();
-            bool result = es->rmFromProcess(proc, int_bpc->memwrite_bp_resume);
-            if( !result ) {
-               pthrd_printf("Error removing breakpoint in handler\n");
-               return ret_error;
-            }
-         }
-         
-         assert( int_bpc->memwrite_bp_resume );
-         
-         if( int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady() ) {
-            pthrd_printf("Suspending breakpoint removal for emulated single step\n");
-            proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
-            return ret_async;
-         }
-         
-         if( int_bpc->memwrite_bp_resume->hasError() ) {
-            pthrd_printf("Error removing emulated single step\n");
-            return ret_error;
-         }
-         
-         int_bpc->memwrite_bp_resume = result_response::ptr();
-      }
-      
-      thrd->rmEmulatedSingleStep(es);
-      delete es;
-   }
-   
-   if( proc->getBreakpoint(breakpointAddr) != NULL ) {
-      if( int_bpc->memwrite_bp_remove ) {
-         if (int_bpc->memwrite_bp_remove->isPosted() && !int_bpc->memwrite_bp_remove->isReady()) {
-            pthrd_printf("Postponing breakpoint remove while waiting for memwrite\n");
-            proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_remove, ev);
-            return ret_async;
-         }
-         
-         if(int_bpc->memwrite_bp_remove->hasError()) {
-            pthrd_printf("Error resuming breakpoint\n");
-            return ret_error;
-         }
-         
-         pthrd_printf("Breakpoint at %lx, removed instead of resumed\n", bp->getAddr());
-         
-         // At this point, there are no more int_breakpoints that reference
-         // the installed_breakpoint and no more threads reference it, so
-         // it is safe to clean it up
-         delete bp;
-      }else{
-      }
-   }
-   */
-   
    return ret_success;
 }
 

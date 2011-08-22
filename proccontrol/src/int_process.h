@@ -322,6 +322,7 @@ class int_process
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
+   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
 
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
@@ -684,7 +685,6 @@ class int_thread
 
    State getTargetState() const;
    void setTargetState(State s);
-
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -922,7 +922,7 @@ class emulated_singlestep {
    int_breakpoint *bp;
    int_thread *thr;
    std::set<Address> addrs;
-   
+
   public:
    emulated_singlestep(int_thread *thr);
    ~emulated_singlestep();

@@ -32,6 +32,7 @@
 #if !defined(ppc_process_h_)
 #define ppc_process_h_
 
+#include <map>
 #include "int_process.h"
 
 class ppc_process : virtual public int_process
@@ -49,6 +50,17 @@ class ppc_process : virtual public int_process
   virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult);
   virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
   virtual bool plat_needsPCSaveBeforeSingleStep();
+  virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
+
+
+  void cleanupSSOnContinue(int_thread *thr);
+ private:
+  async_ret_t readPCForSS(int_thread *thr, Address &pc);
+  async_ret_t readInsnForSS(Address pc, int_thread *thr, unsigned int &rawInsn);
+  void registerSSClearCB();
+
+  std::map<int_thread *, reg_response::ptr> pcs_for_ss;
+  std::map<Address, mem_response::ptr> mem_for_ss;
 };
 
 #endif

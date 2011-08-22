@@ -1616,6 +1616,10 @@ async_ret_t int_process::plat_needsEmulatedSingleStep(int_thread *, std::vector<
    return aret_success;
 }
 
+void int_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<response::ptr>) {
+   assert(0);
+}
+
 bool int_process::plat_needsPCSaveBeforeSingleStep() 
 {
    return false;
@@ -1968,13 +1972,13 @@ async_ret_t int_thread::handleSingleStepContinue()
    if (llproc()->plat_processSyncContinues()) {
       int_threadPool *pool = llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-         if ((*i)->singleStep()) {
+         if ((*i)->singleStepUserMode()) {
             thrds.insert(*i);
          }
       }
       
    }
-   else if (singleStep()) {
+   else if (singleStepUserMode()) {
       thrds.insert(this);
    }
 
@@ -2000,8 +2004,15 @@ async_ret_t int_thread::handleSingleStepContinue()
       vector<Address> addrs;
       async_ret_t aresult = llproc()->plat_needsEmulatedSingleStep(thr, addrs);
       if (aresult == aret_async) {
-         pthrd_printf("Async return from plat_needsEmulatedSingleStep on %d/%d",
+         pthrd_printf("Async return from plat_needsEmulatedSingleStep on %d/%d\n",
                       llproc()->getPid(), thr->getLWP());
+         //We're not actually under a handler, so fake all the async handling
+         // the handlerpool would have done if we were.
+         set<response::ptr> resps;
+         Event::ptr cur_nop_event = llproc()->handlerPool()->curEvent();
+         llproc()->plat_getEmulatedSingleStepAsyncs(thr, resps);
+         llproc()->handlerPool()->notifyOfPendingAsyncs(resps, cur_nop_event);
+         llproc()->handlerPool()->markEventAsyncPending(cur_nop_event);
          ret = aret_async;
          goto done;
       }
