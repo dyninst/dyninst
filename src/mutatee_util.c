@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -724,7 +725,7 @@ int precisionSleep(int milliseconds) {
     struct timeval start, cur;
     unsigned long long istart, icur, microseconds;
     microseconds = milliseconds * 1000;
-    int tresult = gettimeofday(start, NULL);
+    int tresult = gettimeofday(&start, NULL);
     assert(tresult != -1);
     istart = (start.tv_sec * 1000000) + start.tv_usec;
     
@@ -741,7 +742,7 @@ int precisionSleep(int milliseconds) {
        if (result == 0) {
           return 1;
        }
-       tresult = gettimeofday(cur, NULL);
+       tresult = gettimeofday(&cur, NULL);
        assert(tresult != -1);
        icur = (cur.tv_sec * 1000000) + cur.tv_usec;
        if (icur - istart >= microseconds) {
