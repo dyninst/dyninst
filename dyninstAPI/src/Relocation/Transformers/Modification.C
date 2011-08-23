@@ -98,7 +98,7 @@ bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
       return true;
    }
 
-   RelocBlock *target = cfg->find(repl->entryBlock());
+   RelocBlock *target = cfg->find(repl->entryBlock(), repl);
    if (target) {
       if (!cfg->changeTargets(pred, trace->outs(), target)) return false;
    }
@@ -128,7 +128,7 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
                                      newfun,
                                      cfg);
-   RelocBlock *target = cfg->find(newfun->entryBlock());
+   RelocBlock *target = cfg->find(newfun->entryBlock(), newfun);
    if (target) {
       cfg->makeEdge(new Target<RelocBlock *>(stub),
                     new Target<RelocBlock *>(target),
@@ -176,7 +176,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
                                      newfun,
                                      cfg);
-   RelocBlock *target = cfg->find(newfun->entryBlock());
+   RelocBlock *target = cfg->find(newfun->entryBlock(), newfun);
    if (target) {
       relocation_cerr << "\t Also relocated new function, using target " << target->id() << endl;
       cfg->makeEdge(new Target<RelocBlock *>(stub),
