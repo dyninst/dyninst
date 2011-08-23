@@ -120,14 +120,15 @@ PatchMgrPtr PatchApiMutator::makePatchMgr(CodeObject* co) {
 
 PatchFunction* PatchApiMutator::findFunction(const char* name) {
   AddrSpacePtr as = mgr_->as();
-  AddrSpace::ObjSet& obj_set = as->objSet();
+  AddrSpace::ObjMap& obj_map = as->objMap();
 
-  for (AddrSpace::ObjSet::iterator i = obj_set.begin(); i != obj_set.end(); i++) {
-    PatchObject* obj = *i;
+  for (AddrSpace::ObjMap::iterator i = obj_map.begin(); i != obj_map.end(); i++) {
+    PatchObject* obj = i->second;
     CodeObject* co = obj->co();
     CodeObject::funclist& funcs = co->funcs();
     for (CodeObject::funclist::iterator j = funcs.begin(); j != funcs.end(); j++) {
       Function* fun = *j;
+      assert(fun);
       if (0 == fun->name().compare(name)) return obj->getFunc(fun);
     }
   }
