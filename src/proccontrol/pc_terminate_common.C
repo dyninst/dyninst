@@ -72,7 +72,7 @@ static Process::cb_ret_t on_exit(Event::const_ptr ev)
 static Process::cb_ret_t on_crash(Event::const_ptr ev) 
 {
    if (ev->getEventType().code() != EventType::Crash) {
-      logerror("Recieved non-exit in on_exit\n");
+      logerror("Recieved non-crash in on_crash\n");
       error = true;
    }
    num_post_crashed++;
@@ -119,10 +119,19 @@ test_results_t PC_TERMINATE(Mutator::executeTest) ()
       }
    }
 
+#if defined(os_bg_test)
+   //On BlueGene terminating one process causes a SIGTERM to be sent to
+   // all others.  Thus not all processes exit on a force-terminate.
+   bool count_crash = false;
+#else
+   bool count_crash = true;
+#endif
+
+
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
       result = proc->terminate();
-      if (!result) {
+      if (count_crash && !result) {
          logerror("Failed to terminate process\n");
          error = true;
       }
@@ -141,6 +150,8 @@ test_results_t PC_TERMINATE(Mutator::executeTest) ()
       //We'll give the kernel a few tries to clean up the pipe and give us
       //an error.  If the mutatee didn't exit, then none of these sends
       //should error out.
+      //
+      //Update, BG just completely fails to give the error.  Oh, well...
       bool got_failure = false;
       for (unsigned i=0; i<5; i++) {
          result = comp->send_broadcast((unsigned char *) &sync_point, sizeof(syncloc));
@@ -150,13 +161,16 @@ test_results_t PC_TERMINATE(Mutator::executeTest) ()
          }
          sleep(1);
       }
+#if !defined(os_bg_test)
       if (!got_failure) {
          logerror("Error.  Succeeded at send sync broadcast\n");
          error = true;
       }
+#endif
    }
 
-   if (num_pre_exited || num_post_exited || num_post_crashed) {
+   if (num_pre_exited || num_post_exited || (count_crash && num_post_crashed))
+   {
       logerror("Error.  Recieved event callbacks for terminate\n");
       logerror("pre_exit = %d, post_exit = %d, post_crash = %d\n",
                num_pre_exited, num_post_exited, num_post_crashed);
@@ -173,7 +187,7 @@ test_results_t PC_TERMINATE(Mutator::executeTest) ()
          logerror("Error.  Process was marked as having a normal exit\n");
          error = true;
       }
-      if (proc->isCrashed() || proc->getCrashSignal()) {
+      if (count_crash && (proc->isCrashed() || proc->getCrashSignal())) {
          logerror("Error.  Process was marked as having crashed\n");
          error = true;
       }
