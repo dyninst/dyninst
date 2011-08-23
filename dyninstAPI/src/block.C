@@ -59,12 +59,14 @@ block_instance::block_instance(const block_instance *parent,
   // been created
 }
 
-block_instance::~block_instance() {}
+// Edges are deleted at the mapped_object layer
+block_instance::~block_instance() 
+{
+}
 
 AddressSpace *block_instance::addrSpace() const {
   return obj()->proc();
 }
-
 
 edge_instance *block_instance::getFallthrough() {
   for (edgelist::const_iterator iter = getTargets().begin(); iter != getTargets().end(); ++iter) {
@@ -97,23 +99,27 @@ edge_instance *block_instance::getTarget() {
   return NULL;
 }
 
-block_instance *block_instance::getTargetBlock() {
-  edge_instance *t = getFallthrough();
-  if (t &&
-      !t->sinkEdge())
-    return t->trg();
-  else
-    return NULL;
-}
-
 int block_instance::id() const {
   return llb()->id();
 }
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {
-  // Relocation info caching...
-  //PCSensitiveTransformer::invalidateCache(this);
+    //KEVINTODO: implement this
+    // Relocation info caching...
+   //PCSensitiveTransformer::invalidateCache(this);
+}
+
+void block_instance::setNotAbruptEnd()
+{
+    llb()->setAbruptEnd(false);
+    vector<func_instance*> funcs;
+    getFuncs(std::back_inserter(funcs));
+    for (vector<func_instance*>::iterator fit = funcs.begin();
+         fit != funcs.end(); fit++)
+    {
+        (*fit)->removeAbruptEnd(this);
+    }
 }
 
 std::string block_instance::calleeName() {
@@ -128,7 +134,6 @@ void block_instance::updateCallTarget(func_instance *func) {
   assert(e->sinkEdge());
   e->trg_ = func->entryBlock();
 }
-
 
 func_instance *block_instance::entryOfFunc() const {
   parse_block *b = SCAST_PB(llb());

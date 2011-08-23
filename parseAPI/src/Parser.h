@@ -129,8 +129,8 @@ class Parser {
     CodeObject & obj() { return _obj; }
 
     // removal
+    void remove_block(Block *);
     void remove_func(Function *);
-    //void remove_block(Block *);
     void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
  public: 
@@ -175,6 +175,9 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+
+    // defensive parsing details
+    void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
@@ -182,8 +185,7 @@ class Parser {
         ParseFrame&,
         Block*,
         InstructionAdapter_t&,
-        Address target,
-        EdgeTypeEnum etype);
+        Address target);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,

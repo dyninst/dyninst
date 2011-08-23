@@ -74,7 +74,9 @@ baseTramp::baseTramp() :
 {
 }
 
-baseTramp::~baseTramp() {
+baseTramp::~baseTramp()
+{
+   //TODO: implement me
 }
 
 baseTramp *baseTramp::create(instPoint *p) {

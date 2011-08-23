@@ -223,16 +223,15 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     bool isExploratoryModeOn();
     bool parseNewEdges(const std::vector<edgeStub>& sources);
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
-    void registerNewFunctions(); // register funcs found by recursive parsing
     bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
     void updateCodeBytes(const std::list<std::pair<Address,Address> > &owRanges );
     void setCodeBytesUpdated(bool);
     void addProtectedPage(Address pageAddr); // adds to protPages_
     void removeProtectedPage(Address pageAddr);
     void removeEmptyPages();
-    void removeFunction(func_instance *func);
-    bool splitIntLayer();
-    void splitBlock(ParseAPI::Block *first, ParseAPI::Block *second);
+    void remove(func_instance *func);
+    void remove(instPoint *p);
+    void splitBlock(block_instance *first, block_instance *second);
     bool findBlocksByRange(Address startAddr,
                           Address endAddr,
                           std::list<block_instance*> &pageBlocks);
@@ -243,6 +242,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     bool isEmulInsn(Address insnAddr);
     Register getEmulInsnReg(Address insnAddr);
     void setEmulInsnVal(Address insnAddr, void * val);
+    int codeByteUpdates() { return codeByteUpdates_; }
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg);
@@ -357,6 +357,7 @@ public:
     map<Address,WriteableStatus> protPages_;
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;
     bool pagesUpdated_;
+    int codeByteUpdates_;
     typedef std::map<Address, std::pair<Register,void*> > EmulInsnMap;
     EmulInsnMap emulInsns_;
 

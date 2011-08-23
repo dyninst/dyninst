@@ -45,6 +45,11 @@ struct DummySnippet {
   Snippet<DummySnippet*>::Ptr snip ## NAME = Snippet<DummySnippet*>::create(&s ## NAME);
 
 test_results_t patch1_2_Mutator::executeTest() {
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test entry!\n");
+      return FAILED;
+   }
+
   PatchFunction* func = findFunction("patch1_2_func");
   if (func == NULL) {
     logerror("**Failed patch1_2 (snippet insertion order)\n");
@@ -56,7 +61,7 @@ test_results_t patch1_2_Mutator::executeTest() {
   /* Step 1: find Points */
   vector<Point*> pts;
   Point::Type type = Point::FuncEntry;
-  mgr_->findPoints(PatchAPI::Location(func), type, back_inserter(pts));
+  mgr_->findPoints(PatchAPI::Location::Function(func), type, back_inserter(pts));
   if (1 != pts.size()) {
     logerror("**Failed patch1_2 (snippet insertion order)\n");
     logerror("  cannot find correct point at function entry\n");
@@ -101,5 +106,10 @@ test_results_t patch1_2_Mutator::executeTest() {
     }
     ++counter;
   }
+
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test exit!\n");
+      return FAILED;
+   }
   return PASSED;
 }

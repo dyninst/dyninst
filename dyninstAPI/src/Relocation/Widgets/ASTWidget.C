@@ -55,7 +55,7 @@ bool ASTWidget::generate(const codeGen &,
 }
 
 TrackerElement *ASTWidget::tracker() const {
-   OriginalTracker *e = new OriginalTracker(point_->nextExecutedAddr(), point_->block());
+   OriginalTracker *e = new OriginalTracker(point_->addr_compat(), point_->block(), point_->func());
    return e;
 }
 

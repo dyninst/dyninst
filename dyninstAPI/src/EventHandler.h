@@ -94,6 +94,7 @@ typedef enum {
   evtStopThread, /* executed stop thread code snippet */
   evtSignalHandlerCB, /* invoke SignalHandlerCallback in response to signal */
   evtCodeOverwrite, /* Analysis invalidated by code being over-written */
+  evtEmulatePOPAD, /* mutator-side memory emulation needed for POPAD */
   evtProcessInit, /*aka "initialized" */
   evtProcessLoadedRT, /* dyninst RTlib has been loaded */
   evtProcessInitDone, /* aka bootstrapped */

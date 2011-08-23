@@ -62,7 +62,6 @@
 #endif
 #include <dbghelp.h>
 
-using namespace std;
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -96,6 +95,7 @@ class Object : public AObject
                 : name(_name),
                 addr(_addr),
                 type(_type),
+                linkage(_linkage),
                 size(_size),
                 region(_region)
 		{}
@@ -109,7 +109,7 @@ class Object : public AObject
             void	SetSize( DWORD cb )					{ size = cb; }
 
             void DefineSymbol( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
-                               map<Symbol *, std::string> &symsToMods,
+                               std::map<Symbol *, std::string> &symsToMods,
                                const std::string& modName ) const;
 	};
 
@@ -130,7 +130,7 @@ class Object : public AObject
 		}
 
             void DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
-                                map<Symbol *, std::string> &symsToMods,
+                                std::map<Symbol *, std::string> &symsToMods,
                                 const std::string& modName ) const;
             std::string GetName( void ) const		{ return name; }
             const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
@@ -161,7 +161,7 @@ class Object : public AObject
 
             void DefineSymbols( const Object* obj,
                                 dyn_hash_map<std::string, std::vector< Symbol *> > & syms,
-                                map<Symbol *, std::string> &symsToMods ) const;
+                                std::map<Symbol *, std::string> &symsToMods ) const;
             void BuildSymbolMap( const Object* obj ) const; 
 
             std::string GetName( void ) const            { return name; }
@@ -205,27 +205,49 @@ class Object : public AObject
     SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
     SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
-		std::vector<Symbol *>&allSymbols, unsigned flag);
-	SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
-	 virtual char *mem_image() const 
-  {
-     assert(mf);
-     return (char *)mf->base_addr();
-  }
+		                            std::vector<Symbol *>&allSymbols, unsigned flag);
+    SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
+    SYMTAB_EXPORT void insertPrereqLibrary(std::string lib);
+    virtual char *mem_image() const 
+    {
+        assert(mf);
+        return (char *)mf->base_addr();
+    }
+    void setTrapHeader(Offset ptr);
+    Offset trapHeader();
 
+    SYMTAB_EXPORT DWORD ImageOffset2SectionNum(DWORD dwRO);
+    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageOffset2Section(DWORD dwRO);
+    SYMTAB_EXPORT PIMAGE_SECTION_HEADER ImageRVA2Section(DWORD dwRVA);
+    SYMTAB_EXPORT DWORD RVA2Offset(DWORD dwRVA);
+    SYMTAB_EXPORT DWORD Offset2RVA(DWORD dwRO);
+    SYMTAB_EXPORT void addReference(Offset, std::string, std::string);
+    SYMTAB_EXPORT std::map<std::string, std::map<Offset, std::string> > & getRefs() { return ref; }
+
+    std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > & getImportDescriptorTable();
+    std::map<std::string, std::map<std::string, WORD> > & getHintNameTable();
+    PIMAGE_NT_HEADERS getPEHdr() { return peHdr; }
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
     SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
+    void AddTLSFunctions();
 
     Offset baseAddr;     // location of this object in mutatee address space
 
     Offset imageBase; // Virtual Address at which the binary is loaded in its address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
-    PIMAGE_OPTIONAL_HEADER optHdr;
+    Offset trapHeaderPtr_; // address & size
 	unsigned int SecAlignment; //Section Alignment
+
+	//structure of import table
+    std::vector<std::pair<std::string, IMAGE_IMPORT_DESCRIPTOR> > idt_;
+    std::map<std::string, std::map<std::string, WORD> > hnt_;
+
+	//external reference info
+   std::map<std::string,std::map<Offset, std::string> > ref;
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)

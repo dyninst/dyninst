@@ -38,9 +38,6 @@
 #include "instPoint.h"
 #include "Parsing.h"
 #include "debug.h"
-#include "BPatch.h"
-#include "process.h"
-#include "mapped_object.h"
 
 #if defined(os_aix)
 #include "parRegion.h"
@@ -62,6 +59,14 @@ using namespace Dyninst::InstructionAPI;
 #define record_func_alloc(x) do { } while(0)
 #define record_edge_alloc(x,s) do { } while(0)
 #define record_block_alloc(s) do { } while(0)
+#endif
+
+#ifdef __GNUC__
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#define likely(x) x
+#define unlikely(x) x
 #endif
 
 void DynCFGFactory::dump_stats()
@@ -178,7 +183,9 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     image_edge * ret;
-
+    if (src->lastInsnAddr() == 0x1d1) {
+        cerr << "here we are" <<endl; //KEVINTODO: erase this
+    }
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
     ret = new image_edge((parse_block*)src,
@@ -189,19 +196,15 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::abruptEnd_cf(Address addr,ParseAPI::Block *b,default_details*)
+DynParseCallback::abruptEnd_cf(Address /*addr*/,ParseAPI::Block *b,default_details*)
 {
+  static_cast<parse_block*>(b)->setAbruptEnd(true);
 }
 
 void
 DynParseCallback::newfunction_retstatus(Function *func)
 {
     dynamic_cast<parse_func*>(func)->setinit_retstatus( func->retstatus() );
-}
-
-void
-DynParseCallback::split_block_cb(Block *first, Block *second)
-{
 }
 
 void DynParseCallback::destroy_cb(Block *b) {
@@ -217,21 +220,13 @@ void DynParseCallback::destroy_cb(Function *f) {
 }
 
 void DynParseCallback::remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
-   assert(0 && "Unimplemented!");
-}
-
-void DynParseCallback::add_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
-   assert(0 && "Unimplemented!");
+   //cerr << "Warning: edge removal callback unimplemented" << endl;
 }
 
 void DynParseCallback::remove_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
-   assert(0 && "Unimplemented!");
+   // we currently do all necessary cleanup during destroy
+   //cerr << "Warning: block removal callback unimplemented" << endl;
 }
-
-void DynParseCallback::add_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
-   assert(0 && "Unimplemented!");
-}
-
 
 void
 DynParseCallback::patch_nop_jump(Address addr)
@@ -245,7 +240,7 @@ DynParseCallback::patch_nop_jump(Address addr)
 }
 
 void
-DynParseCallback::interproc_cf(Function*f,Block *b,Address addr,interproc_details*det)
+DynParseCallback::interproc_cf(Function*f,Block *b,Address /*addr*/,interproc_details*det)
 {
 if((_img->hybridMode() == BPatch_normalMode) &&
    (det->type == ParseCallback::interproc_details::unres_branch)) {
@@ -258,9 +253,11 @@ if((_img->hybridMode() == BPatch_normalMode) &&
         parse_func * ifunc = static_cast<parse_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);
     }
-#else
-    f = f; // compiler warning
 #endif
+    f = f; // compiler warning
+    if (det->type == ParseCallback::interproc_details::unresolved) {
+        static_cast<parse_block*>(b)->setUnresolvedCF(true);
+    }
 }
 
 void
@@ -282,23 +279,9 @@ DynParseCallback::updateCodeBytes(Address target)
                               target + _img->desc().loadAddr() );
 }
 
-bool 
-DynParseCallback::loadAddr(Address absoluteAddr, Address & loadAddr) 
-{ 
-    std::vector<BPatch_process*> * procs = BPatch::bpatch->getProcesses();
-    for (unsigned pidx=0; pidx < procs->size(); pidx++) {
-        if ((*procs)[pidx]->lowlevel_process()->findObject(_img->desc())) {
-            mapped_object * obj = (*procs)[pidx]->lowlevel_process()->
-                findObject(absoluteAddr);
-            if (obj) {
-                loadAddr = obj->codeBase();
-                return true;
-            }
-            return false;
-        }
-    }
-    return false; 
-}
+// KEVINTODO: add callback for deleted blocks and functions that 
+// trigger deletions at the int-layer.  Also make sure that the places
+// from which we were deleting blocks allow this to happen correctly. 
 
 bool
 DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
@@ -314,3 +297,19 @@ DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
     static_cast<parse_func*>(func)->setHasWeirdInsns(true);
 }
 
+void DynParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second)
+{
+    if (SCAST_PB(first)->abruptEnd()) {
+        SCAST_PB(first)->setAbruptEnd(false);
+        SCAST_PB(second)->setAbruptEnd(true);
+    }
+    if (SCAST_PB(first)->unresolvedCF()) {
+        SCAST_PB(first)->setUnresolvedCF(false);
+        SCAST_PB(second)->setUnresolvedCF(true);
+    }
+    if (SCAST_PB(first)->needsRelocation()) {
+        SCAST_PB(second)->markAsNeedingRelocation();
+    }
+    //parse_block::canBeRelocated_ doesn't need to be set, it's only ever
+    // true for the sink block, which is never split
+}

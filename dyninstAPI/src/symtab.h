@@ -92,6 +92,8 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
+#define NUMBER_OF_MAIN_POSSIBILITIES 8
+
 class image;
 class lineTable;
 class parse_func;
@@ -130,6 +132,12 @@ class fileDescriptor {
         shared_(isShared),
         pid_(0),
         loadAddr_(0)
+#if defined (os_windows)
+        ,procHandle_(0)
+        ,fileHandle_(0)
+        ,length_(0)
+        ,rawPtr_(0)
+#endif
         {}
 
      ~fileDescriptor() {}
@@ -369,17 +377,10 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
-   void addSplitBlock(parse_block *first,
-                      parse_block *second);
-   typedef std::set<std::pair<parse_block *, parse_block *> > SplitBlocks;
-   const SplitBlocks & getSplitBlocks() const;
-   bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
-   void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<parse_block*> & getNewBlocks() const;
    void clearNewBlocks();
@@ -520,7 +521,6 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   SplitBlocks splitBlocks_;
    vector<parse_block*> newBlocks_;
    bool trackNewBlocks_;
 

@@ -55,6 +55,11 @@ bool df_init_debug() {
 
   char *p;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4996) 
+#endif
+
   if ((p=getenv("DATAFLOW_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling DataflowAPI stack analysis debugging\n");
     df_debug_stackanalysis = 1;
@@ -74,6 +79,11 @@ bool df_init_debug() {
     fprintf(stderr, "Enabling DataflowAPI symbolic expansion debugging\n");
     df_debug_expand = 1;
   }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif
+
   return true;
 }
 

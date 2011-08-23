@@ -18,20 +18,27 @@ PatchFunction::PatchFunction(ParseAPI::Function *f,
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getAllBlocks() {
-  if (!all_blocks_.empty()) return all_blocks_;
+  if (all_blocks_.size() == func_->blocks().size()) 
+      return all_blocks_;
+
+  if (!all_blocks_.empty()) { // recompute other block lists if block list grew
+      if (!call_blocks_.empty()) call_blocks_.clear();
+      if (!exit_blocks_.empty()) exit_blocks_.clear();
+  }
+
   // Otherwise we need to create them
   for (ParseAPI::Function::blocklist::iterator iter = func_->blocks().begin();
        iter != func_->blocks().end(); ++iter) {
-    all_blocks_.insert(object()->getBlock(*iter));
+    all_blocks_.insert(obj()->getBlock(*iter));
   }
   return all_blocks_;
 }
 
 PatchBlock*
 PatchFunction::getEntryBlock() {
-  assert(object());
+  assert(obj());
   assert(func_);
 
   ParseAPI::Block* ientry = func_->entry();
@@ -41,30 +48,33 @@ PatchFunction::getEntryBlock() {
     ientry = func_->entry();
   }
   assert(ientry);
-  return object()->getBlock(ientry);
+  return obj()->getBlock(ientry);
 }
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getExitBlocks() {
-  if (!exit_blocks_.empty()) return exit_blocks_;
-
-  for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
-       iter != func_->returnBlocks().end(); ++iter) {
-    PatchBlock* pblk = object()->getBlock(*iter);
-    exit_blocks_.insert(pblk);
+  if (func_->returnBlocks().size() != exit_blocks_.size()) 
+  {
+      for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
+           iter != func_->returnBlocks().end(); ++iter) {
+        PatchBlock* pblk = obj()->getBlock(*iter);
+        exit_blocks_.insert(pblk);
+      }
   }
   return exit_blocks_;
 }
 
-const PatchFunction::blockset&
+const PatchFunction::Blockset&
 PatchFunction::getCallBlocks() {
-  // Check the list...
-  if (call_blocks_.empty()) {
+  // Compute the list if it's empty or if the list of function blocks
+  // has grown
+  if (call_blocks_.size() != func_->callEdges().size())
+  {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
          iter != callEdges.end(); ++iter) {
       ParseAPI::Block *src = (*iter)->src();
-      PatchBlock *block = object()->getBlock(src);
+      PatchBlock *block = obj()->getBlock(src);
       assert(block);
       call_blocks_.insert(block);
     }
@@ -83,6 +93,8 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    exit_blocks_.erase(b);
    call_blocks_.erase(b);
 
+   // pull all of b's points from blockPoints_
+   destroyBlockPoints(b);
    cb()->remove_block(this, b);
 }
 
@@ -90,25 +102,6 @@ void PatchFunction::addBlock(PatchBlock *b) {
    if (all_blocks_.empty() && exit_blocks_.empty() && call_blocks_.empty()) return;
 
    all_blocks_.insert(b);
-
-   // Check to see if it's call or exit...
-   const ParseAPI::Function::blocklist &retblocks = function()->returnBlocks();
-   for (ParseAPI::Function::blocklist::iterator iter = retblocks.begin();
-        iter != retblocks.end(); ++iter) {
-      if (b->block() == *iter) {
-         exit_blocks_.insert(b);
-         break;
-      }
-   }
-   
-   const ParseAPI::Function::edgelist &calls = function()->callEdges();
-   for (ParseAPI::Function::edgelist::iterator iter = calls.begin();
-        iter != calls.end(); ++iter) {
-      if (b->block() == (*iter)->src()) {
-         call_blocks_.insert(b);
-         break;
-      }
-   }
 
    cb()->add_block(this, b);
 }
@@ -207,7 +200,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
             return points_.during;
          case Point::FuncExit: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyExit(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyExit(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.exits.find(loc.block);
             if (iter == points_.exits.end()) {
                if (!create) return NULL;
@@ -219,7 +212,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
          }
          case Point::PreCall: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyCall(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyCall(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.preCalls.find(loc.block);
             if (iter == points_.preCalls.end()) {
                if (!create) return NULL;
@@ -231,7 +224,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
          }
          case Point::PostCall: {
             if (!loc.block) return NULL;
-            if (create && loc.untrusted && !verifyCall(loc.block)) return NULL;
+            if (create && !loc.trusted && !verifyCall(loc.block)) return NULL;
             std::map<PatchBlock *, Point *>::iterator iter = points_.postCalls.find(loc.block);
             if (iter == points_.postCalls.end()) {
                if (!create) return NULL;
@@ -245,6 +238,7 @@ Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
             return NULL;
       }
    }
+   assert(0); return NULL; // unreachable, but keep compiler happy
 };
 
 bool PatchFunction::findInsnPoints(Point::Type type,
@@ -268,41 +262,157 @@ bool PatchFunction::findInsnPoints(Point::Type type,
    else return false;
 }
 
-void PatchFunction::destroy(Point *p) {
-   assert(p->getFunction() == this);
+void PatchFunction::destroyBlockPoints(PatchBlock *block)
+{
+    map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.find(block);
+    if (bit == blockPoints_.end()) {
+        return;
+    }
+
+    PatchCallback *cb = obj()->cb();
+    if (bit->second.during) {
+        bit->first->remove(bit->second.during);
+        cb->destroy(bit->second.during);
+    }
+    if (bit->second.entry) {
+        bit->first->remove(bit->second.entry);
+        cb->destroy(bit->second.entry);
+    }
+    if (bit->second.exit) {
+        bit->first->remove(bit->second.exit);
+        cb->destroy(bit->second.exit);
+    }
+    if (!bit->second.postInsn.empty()) {
+        for (InsnPoints::iterator iit = bit->second.postInsn.begin();
+             iit != bit->second.postInsn.end();
+             iit++)
+        {
+            bit->first->remove(iit->second);
+            cb->destroy(iit->second);
+        }
+        bit->second.postInsn.clear();
+    }
+    if (!bit->second.preInsn.empty()) {
+        for (InsnPoints::iterator iit = bit->second.preInsn.begin();
+             iit != bit->second.preInsn.end();
+             iit++)
+        {
+            bit->first->remove(iit->second);
+            cb->destroy(iit->second);
+        }
+        bit->second.preInsn.clear();
+    }
+    blockPoints_.erase(bit);
+}
+
+void PatchFunction::destroyPoints() 
+{
+    PatchCallback *cb = obj()->cb();
+    // 1) clear blockPoints_ (remove from block as well)
+    // 2) clear edgePoints_ (remove from edge as well)
+    // 3) clear points_
+
+    // 1)
+    for(map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin(); 
+        bit != blockPoints_.end(); bit++) 
+    {
+        destroyBlockPoints(bit->first);
+    }
+    blockPoints_.clear();
+
+    // 2)
+    for(map<PatchEdge *, EdgePoints>::iterator eit = edgePoints_.begin(); 
+        eit != edgePoints_.end(); eit++) 
+    {
+        if (eit->second.during) {
+            eit->first->remove(eit->second.during);
+            cb->destroy(eit->second.during);
+        }
+    }
+    edgePoints_.clear();
+    
+    // 3)
+    if (points_.entry) {
+       cb->destroy(points_.entry);
+       points_.entry = NULL;
+    }
+    if (points_.during) {
+       cb->destroy(points_.during);
+       points_.during = NULL;
+    }
+    if (!points_.exits.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.exits.begin();
+             pit != points_.exits.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.exits.clear();
+    }
+    if (!points_.postCalls.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.postCalls.begin();
+             pit != points_.postCalls.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.postCalls.clear();
+    }
+    if (!points_.preCalls.empty()) {
+        for (map<PatchBlock *, Point *>::iterator pit = points_.preCalls.begin();
+             pit != points_.preCalls.end();
+             pit++)
+        {
+            cb->destroy(pit->second);
+        }
+        points_.preCalls.clear();
+    }
+}
+
+
+void PatchFunction::remove(Point *p) {
+   assert(p->func() == this);
 
    switch(p->type()) {
       case Point::PreInsn:
-         delete blockPoints_[p->getBlock()].preInsn[p->address()];
+         blockPoints_[p->block()].preInsn.erase(p->addr());
          break;
       case Point::PostInsn:
-         delete blockPoints_[p->getBlock()].postInsn[p->address()];
+         blockPoints_[p->block()].postInsn.erase(p->addr());
          break;
       case Point::BlockEntry:
-         delete blockPoints_[p->getBlock()].entry;
+         blockPoints_[p->block()].entry = NULL;
          break;
       case Point::BlockExit:
-         delete blockPoints_[p->getBlock()].exit;
+         blockPoints_[p->block()].exit = NULL;
          break;
       case Point::BlockDuring:
-         delete blockPoints_[p->getBlock()].during;
+         blockPoints_[p->block()].during = NULL;
          break;
       case Point::FuncEntry:
-         delete points_.entry;
+         points_.entry = NULL;
          break;
       case Point::FuncExit:
-         delete points_.exits[p->getBlock()];
+         points_.exits.erase(p->block());
          break;
       case Point::FuncDuring:
-         delete points_.during;
+         points_.during = NULL;
          break;
       case Point::PreCall:
-         delete points_.preCalls[p->getBlock()];
+         points_.preCalls.erase(p->block());
          break;
       case Point::PostCall:
-         delete points_.postCalls[p->getBlock()];
+         points_.postCalls.erase(p->block());
          break;
+      case Point::EdgeDuring: {
+         map<PatchEdge *, EdgePoints>::iterator eit = edgePoints_.find(p->edge());
+         if (eit != edgePoints_.end()) {
+            edgePoints_.erase(p->edge());
+         }
+         break;
+      }
       default:
+         assert(0 && "deleting point of unexpected type");
          break;
    }
 }
@@ -311,16 +421,59 @@ PatchCallback *PatchFunction::cb() const {
    return obj_->cb();
 }
 
-void PatchFunction::splitPoints(PatchBlock *first, PatchBlock *second) {
-   std::map<PatchBlock *, BlockPoints>::iterator iter = blockPoints_.find(first);
-   if (iter == blockPoints_.end()) return;
+// the "first" block should already be in the function
+void PatchFunction::splitBlock(PatchBlock *first, PatchBlock *second)
+{
+   // 1) add second block to the function
+   // 2) fix function's call, exit Blocksets to include second block
+   // 3) fix function's funcPoints_ map for preCall, postCall, and exit points
+   // 4) if the block has no points, we're done
+   // 5) fix block's blockPoints_ map for exit, preInsn, and postInsn points
 
+   // 1)
+   addBlock(second);
+
+   // 2)
+   Blockset::iterator bit = call_blocks_.find(first);
+   if (bit != call_blocks_.end()) {
+       call_blocks_.erase(*bit);
+       call_blocks_.insert(second);
+   }
+
+   bit = exit_blocks_.find(first);
+   if (bit != exit_blocks_.end()) {
+       exit_blocks_.erase(*bit);
+       exit_blocks_.insert(second);
+   }
+
+   // 3)
+   map<PatchBlock*,Point*>::iterator pit = points_.exits.find(first);
+   if (pit != points_.exits.end()) {
+       pit->second->changeBlock(second);
+       points_.exits[second] = pit->second;
+       points_.exits.erase(pit);
+   }
+   pit = points_.preCalls.find(first);
+   if (pit != points_.preCalls.end()) {
+       pit->second->changeBlock(second);
+       points_.preCalls[second] = pit->second;
+       points_.preCalls.erase(pit);
+   }
+   pit = points_.postCalls.find(first);
+   if (pit != points_.postCalls.end()) {
+       pit->second->changeBlock(second);
+       points_.postCalls[second] = pit->second;
+       points_.postCalls.erase(pit);
+   }
+
+   // 4)
+   std::map<PatchBlock *, BlockPoints>::iterator iter = blockPoints_.find(first);
+   if (iter == blockPoints_.end()) 
+       return;
+
+   // 5)
    BlockPoints &points = iter->second;
    BlockPoints &succ = blockPoints_[second];
-
-   // Check our points. 
-   // Entry stays here
-   // During stays here
    if (points.exit) {      
       succ.exit = points.exit;
       points.exit = NULL;
@@ -340,4 +493,201 @@ void PatchFunction::splitPoints(PatchBlock *first, PatchBlock *second) {
       succ.postInsn[tmp->first] = tmp->second;
    }
    points.postInsn.erase(post, points.postInsn.end());
+
 }
+
+
+bool PatchFunction::consistency() const {
+   if (!obj_) {
+      cerr << "Error: no object!" << endl;
+      CONSIST_FAIL;
+   }
+
+   if (!all_blocks_.empty()) {
+      if (all_blocks_.size() != func_->blocks().size()) {
+         cerr << "Error: size mismatch in all_blocks; PatchAPI " << all_blocks_.size() 
+              << " and ParseAPI " << func_->blocks().size() << endl;
+         CONSIST_FAIL;
+      }
+      for (Blockset::const_iterator iter = all_blocks_.begin(); iter != all_blocks_.end(); ++iter) {
+         bool found = false;
+         for (ParseAPI::Function::blocklist::iterator iter2 = func_->blocks().begin();
+              iter2 != func_->blocks().end(); ++iter2) {
+            if ((*iter)->block() == *iter2) {
+               found = true;
+               break;
+            }
+         }
+         if (!found) {
+            cerr << "Error: found block not in ParseAPI" << endl;
+            CONSIST_FAIL;
+         }
+      }
+   }
+
+   if (!exit_blocks_.empty()) {
+      if (exit_blocks_.size() != func_->returnBlocks().size()) CONSIST_FAIL;
+      for (Blockset::const_iterator iter = exit_blocks_.begin(); iter != exit_blocks_.end(); ++iter) {
+         bool found = false;
+         for (ParseAPI::Function::blocklist::iterator iter2 = func_->returnBlocks().begin();
+              iter2 != func_->returnBlocks().end(); ++iter2) {
+            if ((*iter)->block() == *iter2) {
+               found = true;
+               break;
+            }
+         }
+         if (!found) {
+            cerr << "Error: found exit block not in ParseAPI" << endl;
+            CONSIST_FAIL;
+         }
+      }
+   }
+
+   if (!call_blocks_.empty()) {
+      // Comparing edges to blocks; may not be safe. 
+      set<ParseAPI::Block*> llcbs;
+      for (ParseAPI::Function::edgelist::iterator llit = func_->callEdges().begin();
+           llit != func_->callEdges().end(); ++llit) 
+      {
+          llcbs.insert((*llit)->src());
+      }
+      if (call_blocks_.size() != llcbs.size()) CONSIST_FAIL;
+      for (Blockset::const_iterator cit = call_blocks_.begin(); 
+           cit != call_blocks_.end(); ++cit) 
+      {
+          if (llcbs.find((*cit)->block()) == llcbs.end()) {
+              CONSIST_FAIL;
+          }
+      }
+      // don't need to check that llcbs are in call_blocks_ since we've 
+      // verified the sets are the same size
+   }
+
+   if (!points_.consistency(this))  {
+      cerr << "Error: failed point consistency" << endl;
+      CONSIST_FAIL;
+   }
+
+   for (std::map<PatchBlock *, BlockPoints>::const_iterator iter = blockPoints_.begin();
+        iter != blockPoints_.end(); ++iter) {
+      if (!(iter->second.consistency(iter->first, this))) {
+         cerr << "Error: failed block point consistency" << endl;
+         CONSIST_FAIL;
+      }
+      if (all_blocks_.find(iter->first) == all_blocks_.end()) {
+         cerr << "Error: points for a block not in the function" << endl;
+         CONSIST_FAIL;
+      }
+   }
+
+   for (std::map<PatchEdge *, EdgePoints>::const_iterator iter = edgePoints_.begin();
+        iter != edgePoints_.end(); ++iter) {
+      if (!iter->second.consistency(iter->first, this)) 
+          CONSIST_FAIL;
+   }
+
+   return true;
+}
+
+
+bool FuncPoints::consistency(const PatchFunction *func) const {
+   if (entry) {
+      if (entry->type() != Point::FuncEntry) {
+         cerr << "Error: entry point has wrong type" << endl;
+         CONSIST_FAIL;
+      }
+      if (!entry->consistency()) {
+         cerr << "Error: entry point inconsistent" << endl; 
+         CONSIST_FAIL;
+      }
+      if (entry->func() != func) {
+         cerr << "Error: entry point has wrong func" << endl;
+         CONSIST_FAIL;
+      }
+   }
+   if (during) {
+      if (during->type() != Point::FuncDuring) {
+         cerr << "Error: during point has wrong type" << endl;
+         CONSIST_FAIL;
+      }
+      if (!during->consistency()) {
+         cerr << "Error: during point inconsistent" << endl; 
+         CONSIST_FAIL;
+      }
+      if (during->func() != func) {
+         cerr << "Error: during point has wrong func" << endl;
+         CONSIST_FAIL;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = exits.begin();
+        iter != exits.end(); ++iter) {
+      if (iter->second->type() != Point::FuncExit) {
+         cerr << "Error: exit point has non-exit type" << endl;
+         CONSIST_FAIL;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: exit point inconsistent" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: exit point has a different func" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: exit point has incorrect block" << endl;
+         CONSIST_FAIL;
+      }
+      if (!func->verifyExitConst(iter->first)) {
+         cerr << "Error: exit point has non-exit block" << endl;
+         CONSIST_FAIL;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = preCalls.begin();
+        iter != preCalls.end(); ++iter) {
+      if (iter->second->type() != Point::PreCall) {
+         cerr << "Error: preCall point has wrong type" << endl;
+         CONSIST_FAIL;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: preCall point inconsistent" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: preCall point has wrong function" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: preCall point has wrong block" << endl;
+         CONSIST_FAIL;
+      }
+      if (!func->verifyCallConst(iter->first)) {
+         cerr << "Error: preCall point has non-call block" << endl;
+         CONSIST_FAIL;
+      }
+   }
+   for (std::map<PatchBlock *, Point *>::const_iterator iter = postCalls.begin();
+        iter != postCalls.end(); ++iter) {
+      if (iter->second->type() != Point::PostCall) {
+         cerr << "Error: postCall point has wrong type" << endl;
+         CONSIST_FAIL;
+      }
+      if (!iter->second->consistency()) {
+         cerr << "Error: postCall point inconsistent" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->func() != func) {
+         cerr << "Error: postCall function incorrect" << endl;
+         CONSIST_FAIL;
+      }
+      if (iter->second->block() != iter->first) {
+         cerr << "Error: postCall block incorrect" << endl;
+         CONSIST_FAIL;
+      }
+      if (!func->verifyCallConst(iter->first)) {
+         cerr << "Error: postCall has non-call block" << endl;
+         CONSIST_FAIL;
+      }
+   }
+   return true;
+}
+

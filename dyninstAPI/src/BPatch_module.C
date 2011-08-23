@@ -578,7 +578,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
-bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
+bool BPatch_module::remove(BPatch_function *bpfunc)
 {
     func_instance *func = bpfunc->lowlevel_func();
 
@@ -592,6 +592,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         return false;
     }
 
+#if 0
     if (deepRemoval) {
         std::map<func_instance*,block_instance*> newFuncEntries;
 
@@ -612,7 +613,7 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         // at the source blocks
         Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
         Block::edgelist::iterator eit = callEdges.begin();
-        CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
+        //CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
         bool foundSinkEdge = false;
         for( ; eit != callEdges.end(); ++eit) {
             if ( (*eit)->sinkEdge() ) {
@@ -629,10 +630,21 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         func->removeFromAll();
 
     } // end deepRemoval
+#endif
 
-    this->func_map.erase(fmap_iter);
+    func_map.erase(fmap_iter);
 
     return true;
+}
+
+bool BPatch_module::remove(instPoint* point)
+{
+    BPatch_instpMap::iterator pit = instp_map.find(point);
+    if (pit != instp_map.end()) {
+        instp_map.erase(pit);
+        return true;
+    }
+    return false;
 }
 
 void BPatch_module::parseTypes() 

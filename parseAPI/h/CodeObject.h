@@ -119,6 +119,8 @@ class CodeObject {
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
 
+    PARSER_EXPORT bool isIATcall(Address insn, std::string &calleeName);
+
     // This is for callbacks; it is often much more efficient to 
     // batch callbacks and deliver them all at once than one at a time. 
     // Particularly if we're deleting code, it's better to get
@@ -142,6 +144,11 @@ class CodeObject {
     PARSER_EXPORT void destroy(Edge *);
     PARSER_EXPORT void destroy(Block *);
     PARSER_EXPORT void destroy(Function *);
+
+    /*
+     * Hacky "for insertion" method
+     */
+    PARSER_EXPORT Address getFreeAddr() const;
 
  private:
     void process_hints();

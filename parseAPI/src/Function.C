@@ -317,137 +317,74 @@ void Function::setEntryBlock(Block *new_entry)
     _entry = new_entry;
 }
 
-#if 0
 void 
-Function::deleteBlocks(vector<Block*> dead_blocks)
+Function::removeBlock(Block* dead)
 {
     _cache_valid = false;
-    bool deleteAll = (dead_blocks.size() == _blocks.size());
-    bool hasSharedDeadBlocks = false;
+    bool found = false;
 
-    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
-        bool found = false;
-        Block *dead = dead_blocks[didx];
-
-        // remove dead block from _blocks
-        std::vector<Block *>::iterator biter = _blocks.begin();
-        while ( !found && _blocks.end() != biter ) {
-            if (dead == *biter) {
-                found = true;
-                biter = _blocks.erase(biter);
-            }
-            else {
-                biter++;
-            }
+    // remove dead block from _blocks // KEVINTODO: use binary search
+    std::vector<Block *>::iterator biter = _blocks.begin();
+    while ( !found && _blocks.end() != biter ) {
+        if (dead == *biter) {
+            found = true;
+            biter = _blocks.erase(biter);
         }
-        if (!found) {
-            fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
-                    "function at %lx that it does not belong to at %s[%d]\n",
-                    dead->start(),dead->end(), addr(), FILE__,__LINE__);
-            assert(0);
+        else {
+            biter++;
         }
+    }
+    if (!found) {
+        fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
+                "function at %lx that it does not belong to at %s[%d]\n",
+                dead->start(),dead->end(), addr(), FILE__,__LINE__);
+        assert(0);
+    }
 
-        // specify replacement entry prior to deleting entry block, unless 
-        // deleting all blocks
-        assert(deleteAll || dead != _entry);
+    // specify replacement entry prior to deleting entry block, unless 
+    // deleting all blocks
+    if (dead == _entry) {
+        mal_printf("Warning: removing entry block [%lx %lx) for function at "
+                   "%lx\n", dead->start(), dead->end(), addr());
+        _entry = NULL;
+        //assert(0);
+    }
 
-        // remove dead block from _return_blocks and its call edges from vector
-        Block::edgelist & outs = dead->targets();
-        found = false;
-        for (Block::edgelist::iterator oit = outs.begin();
-             !found && outs.end() != oit; 
-             oit++ ) 
-        {
-            switch((*oit)->type()) {
-                case CALL:
-                    for (set<Edge*>::iterator cit = _call_edges.begin(); 
-                         _call_edges.end() != cit;
-                         cit++) 
-                    {
-                        if (*oit == *cit) {
-                            found = true;
-                            _call_edges.erase(cit);
-                            break;
-                        }
-                    }
-                    assert(found || (*oit)->sinkEdge());
-                    break;
-                case RET:
-                    _return_blocks.erase(std::remove(_return_blocks.begin(),
-                                                     _return_blocks.end(),
-                                                     dead),
-                                         _return_blocks.end());
-                    found = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-        // remove dead block from block map
-        _bmap.erase(dead->start());
-
-        // disconnect dead block from CFG (if not shared by other funcs)
-        if (1 == dead->containingFuncs()) {
-            for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
-                Edge *edge = dead->_sources[sidx];
-                if (edge->type() == CALL) {
-                    std::vector<Function *> funcs;
-                    edge->src()->getFuncs(funcs);
-                    for (unsigned k = 0; k < funcs.size(); ++k) {
-                        funcs[k]->_call_edges.erase(edge);
-                    }
-                    Block::edgelist & trgs = edge->src()->targets();
-                    bool hasSinkEdge = false;
-                    for (Block::edgelist::iterator tit = trgs.begin();
-                         tit != trgs.end(); tit++) 
-                    {
-                        if ((*tit)->sinkEdge() && CALL == (*tit)->type()) {
-                            hasSinkEdge = true;
-                            break;
-                        }
-                    }
-                    if (!hasSinkEdge) {
-                        _obj->add_edge(edge->src(), NULL, CALL);
+    // remove dead block from _return_blocks and _call_edges
+    Block::edgelist & outs = dead->targets();
+    for (Block::edgelist::iterator oit = outs.begin();
+         outs.end() != oit; 
+         oit++ ) 
+    {
+        switch((*oit)->type()) {
+            case CALL: {
+                bool foundEdge = false;
+                for (set<Edge*>::iterator cit = _call_edges.begin();
+                     _call_edges.end() != cit;
+                     cit++) 
+                {
+                    if (*oit == *cit) {
+                        foundEdge = true;
+                        _call_edges.erase(cit);
+                        break;
                     }
                 }
-                edge->src()->removeTarget( edge );
-                obj()->fact()->free_edge(edge);
+                assert(foundEdge || (*oit)->sinkEdge());
+                break;
             }
-            for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
-                Edge *edge = dead->_targets[tidx];
-                edge->trg()->removeSource( edge );
-                obj()->fact()->free_edge(edge);
-            }
-        }
-        // KEVINTODO
-        // Moved remove_block farther down to guard against shared code
-    }
-
-    // delete the blocks
-    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
-        Block *dead = dead_blocks[didx];
-        if (dead->_func_cnt >= 2) {
-            dead->removeFunc(this);
-            hasSharedDeadBlocks = true;
-            mal_printf("WARNING: removing shared block [%lx %lx] rather "
-                       "than deleting it, refcount is now %d %s[%d]\n", dead->start(), 
-                       dead->end(), dead->_func_cnt, FILE__,__LINE__);
-        } else {
-            // remove from internal parsing datastructures
-            obj()->parser->remove_block(dead);
-
-            obj()->fact()->free_block(dead);
+            case RET:
+                _return_blocks.erase(std::remove(_return_blocks.begin(),
+                                                 _return_blocks.end(),
+                                                 dead),
+                                     _return_blocks.end());
+                break;
+            default:
+                break;
         }
     }
-
-    // call finalize, fixes extents
-    _cache_valid = false;
-    if (!deleteAll && !hasSharedDeadBlocks) {
-        //Don't think this is necessary or wanted, Jan 4, 2011
-        //obj()->parser->finalize(this);
-    }
+    // remove dead block from block map
+    _bmap.erase(dead->start());
 }
-#endif
 
 class ST_Predicates : public Slicer::Predicates {};
 
@@ -513,7 +450,7 @@ Function::tampersStack(bool recalculate)
 
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                if (dyn_debug_malware && 0) {
+                if (dyn_debug_malware) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() << "_" 
                               << hex << retnAddr << dec << ".dot";
@@ -555,9 +492,10 @@ Function::tampersStack(bool recalculate)
                 fprintf(stderr, "WARNING! Unhandled case in stackTamper "
                         "analysis, func at %lx has distinct tamperAddrs "
                         "%d:%lx %d:%lx at different return instructions, "
-                        "discarding second tamperAddr %s[%d]\n", 
+                        "setting to TAMPER_NONZERO %s[%d]\n", 
                         this->addr(), _tamper,_tamper_addr, curtamper, 
                         curTamperAddr, FILE__, __LINE__);
+                _tamper = TAMPER_NONZERO; // let instrumentation take care of it
             }
         }
         assgns.clear();
@@ -569,21 +507,6 @@ Function::tampersStack(bool recalculate)
         _tamper = TAMPER_NONZERO;
     }
 
-    //if (TAMPER_ABS == _tamper) {
-        //Address loadAddr = 0;
-        //if (_tamper_addr <  obj()->cs()->loadAddress()) {
-        //    _tamper = TAMPER_NONZERO;
-        //}
-        //else {
-        //    _tamper_addr -= obj()->cs()->loadAddress();
-        //    if (! obj()->cs()->isCode(_tamper_addr)) {
-        //        mal_printf("WARNING: function at %lx tampers its stack to point at "
-        //                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
-        //                   FILE__,__LINE__);
-        //        _tamper = TAMPER_NONZERO;
-        //    }
-        //}
-    //}
     if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
         _rs = NORETURN;
     }

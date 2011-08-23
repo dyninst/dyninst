@@ -6,6 +6,8 @@
 #include "PatchObject.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
+#include "Point.h"
+#include <dyn_detail/boost/shared_ptr.hpp>
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -13,31 +15,15 @@ using namespace InstructionAPI;
 
 PatchBlock*
 PatchBlock::create(ParseAPI::Block *ib, PatchFunction *f) {
-  return f->object()->getBlock(ib);
+  return f->obj()->getBlock(ib);
 }
 
 PatchBlock::PatchBlock(ParseAPI::Block *blk, PatchObject *obj)
   : block_(blk),   obj_(obj) {
-  ParseAPI::CodeObject::funclist& all = obj->co()->funcs();
-  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
-       fit != all.end(); ++fit) {
-    if ((*fit)->contains(blk)) {
-      function_ = obj->getFunc(*fit);
-      break;
-    }
-  }
 }
 
 PatchBlock::PatchBlock(const PatchBlock *parent, PatchObject *child)
   : block_(parent->block_), obj_(child) {
-  ParseAPI::CodeObject::funclist& all = child->co()->funcs();
-  for (ParseAPI::CodeObject::funclist::iterator fit = all.begin();
-       fit != all.end(); ++fit) {
-    if ((*fit)->contains(block_)) {
-      function_ = child->getFunc(*fit);
-      break;
-    }
-  }
 }
 
 void
@@ -73,10 +59,32 @@ PatchBlock::getTargets() {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
       PatchEdge *newEdge = obj_->getEdge(*iter, this, NULL);
+      assert(newEdge);
       trglist_.push_back(newEdge);
     }
   }
   return trglist_;
+}
+
+PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
+   getSources();
+   for (edgelist::iterator iter = srclist_.begin();
+        iter != srclist_.end(); ++iter) {
+      if ((*iter)->type() == type) return *iter;
+   }
+   return NULL;
+}
+
+PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
+   getTargets();
+   for (edgelist::iterator iter = trglist_.begin();
+        iter != trglist_.end(); ++iter) {
+      assert(*iter);
+      assert((*iter)->edge());
+      cerr << "Looking for " << ParseAPI::format(type) << ", found edge with " << ParseAPI::format((*iter)->type()) << endl;
+      if ((*iter)->type() == type) return *iter;
+   }
+   return NULL;
 }
 
 void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
@@ -88,6 +96,7 @@ void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
 }
 
 void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {
+   assert(e);
    if (!addIfEmpty && trglist_.empty()) return;
 
    trglist_.push_back(e);
@@ -114,6 +123,7 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
 
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
+     cerr << "Erasing target edge" << endl;
     trglist_.erase(iter);
   }
   cb()->remove_edge(this, e, PatchCallback::target);
@@ -183,8 +193,28 @@ PatchBlock::containsDynamicCall() {
   ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
-     if ( ParseAPI::CALL == (*eit)->type() && ((*eit)->sinkEdge())) {
-         return true;
+     if ( ParseAPI::CALL == (*eit)->type() ) { 
+         // see if it's a static call to a bad address
+         if ((*eit)->sinkEdge()) {
+             using namespace InstructionAPI;
+             Instruction::Ptr insn = getInsn(last());
+             if (insn->readsMemory()) { // memory indirect
+                 return true;
+             } else { // check for register indirect
+                 set<InstructionAST::Ptr> regs;
+                 Expression::Ptr tExpr = insn->getControlFlowTarget();
+                 tExpr->getUses(regs);
+                 for (set<InstructionAST::Ptr>::iterator rit = regs.begin(); 
+                      rit != regs.end(); rit++)
+                 {
+                     if (RegisterAST::makePC(obj()->co()->cs()->getArch()).getID() != 
+                         dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(*rit)->getID()) 
+                     {
+                         return true;
+                     }
+                 }
+             }
+         }
       }
    }
    return false;
@@ -233,11 +263,8 @@ PatchBlock::format() const {
 
 PatchFunction*
 PatchBlock::getFunction(ParseAPI::Function* f) {
-  return function()->object()->getFunc(f);
+  return obj_->getFunc(f);
 }
-
-PatchFunction*
-PatchBlock::function() const { return function_; }
 
 ParseAPI::Block*
 PatchBlock::block() const { return block_; }
@@ -247,13 +274,14 @@ PatchBlock::object() const { return obj_; }
 
 PatchFunction*
 PatchBlock::getCallee() {
-   PatchBlock::edgelist::const_iterator it = getTargets().begin();
-   for (; it != getTargets().end(); ++it) {
-      if ((*it)->type() == ParseAPI::CALL) {
-         PatchBlock* trg = (*it)->target();
-         return trg->function();
-      }
-   }
+  PatchBlock::edgelist::const_iterator it = getTargets().begin();
+  for (; it != getTargets().end(); ++it) {
+    if ((*it)->type() == ParseAPI::CALL) {
+      PatchBlock* trg = (*it)->target();
+      return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
+                                                       trg->start()));
+    }
+  }
   return NULL;
 }
 
@@ -310,41 +338,132 @@ Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
       default:
          return NULL;
    }
+   assert(0); return NULL; // unreachable, but keep compiler happy
 }
 
 
-void PatchBlock::destroy(Point *p) {
-   assert(p->getBlock() == this);
+void PatchBlock::remove(Point *p) {
+   assert(p->block() == this);
 
    switch(p->type()) {
       case Point::PreInsn:
-         delete points_.preInsn[p->address()];
+         points_.preInsn.erase(p->addr());
          break;
       case Point::PostInsn:
-         delete points_.postInsn[p->address()];
+         points_.postInsn.erase(p->addr());
          break;
       case Point::BlockEntry:
-         delete points_.entry;
+         points_.entry = NULL;
          break;
       case Point::BlockExit:
-         delete points_.exit;
+         points_.exit = NULL;
          break;
       case Point::BlockDuring:
-         delete points_.during;
+         points_.during = NULL;
          break;
       default:
          break;
    }
 }
 
+// destroy points for this block and then each containing function's
+// context specific points for the block
+void PatchBlock::destroyPoints()
+{
+    PatchCallback *cb = obj()->cb();
+    if (points_.entry) {
+        cb->destroy(points_.entry);
+        delete points_.entry;
+        points_.entry = NULL;
+    } 
+    if (points_.during) {
+        cb->destroy(points_.during);
+        delete points_.during;
+        points_.during = NULL;
+    }
+    if (points_.exit) {
+        cb->destroy(points_.exit);
+        delete points_.exit;
+        points_.exit = NULL;
+    }
+    if (!points_.preInsn.empty()) {
+        for (InsnPoints::iterator iit = points_.preInsn.begin(); 
+             iit != points_.preInsn.end(); 
+             iit++) 
+        {
+            cb->destroy(iit->second);
+            delete iit->second;
+        }
+        points_.preInsn.clear();
+    }
+    if (!points_.postInsn.empty()) {
+        for (InsnPoints::iterator iit = points_.postInsn.begin(); 
+             iit != points_.postInsn.end(); 
+             iit++) 
+        {
+            cb->destroy(iit->second);
+            delete iit->second;
+        }
+        points_.postInsn.clear();
+    }
+
+    // now destroy function's context-specific points for this block
+    vector<PatchFunction *> funcs;
+    getFunctions(back_inserter(funcs));
+    for (vector<PatchFunction *>::iterator fit = funcs.begin();
+         fit != funcs.end();
+         fit++)
+    {
+        (*fit)->destroyBlockPoints(this);
+    }
+}
+
 PatchCallback *PatchBlock::cb() const {
    return obj_->cb();
 }
 
-void PatchBlock::splitPoints(PatchBlock *succ) {
-   // Check our points. 
-   // Entry stays here
-   // During stays here
+void PatchBlock::splitBlock(PatchBlock *succ)
+{
+
+   // Okay, get our edges right and stuff. 
+   // We want to modify when possible so that we keep Points on affected edges the same. 
+   // Therefore:
+   // 1) Incoming edges are unchanged. 
+   // 2) Outgoing edges from p1 are switched to p2 (except the fallthrough from p1 to p2)
+   // 3) Fallthrough edge from p1 to p2 added if it wasn't already (depends on the status
+   //    of our lazy block & edge creation when parseAPI added the edge)
+   // 4) We fix up Points on the block, entry and during points stay here
+
+   // 2)
+   bool hasFTEdge = false;
+   unsigned tidx= 0; 
+   while (tidx < trglist_.size()) {
+      PatchEdge *cur = trglist_[tidx];
+      if (cur->target() == succ) {
+          hasFTEdge = true;
+          tidx++;
+      } else {
+          cur->src_ = succ;
+          succ->trglist_.push_back(cur);
+          int last = trglist_.size()-1;
+          trglist_[tidx] = trglist_[last];
+          trglist_.pop_back();
+      }
+   }
+
+   // 3)
+   if (!hasFTEdge) { // may have been created by ParseAPI callbacks
+       ParseAPI::Block::edgelist &tmp = this->block()->targets();
+       if (tmp.size() != 1) {
+          cerr << "ERROR: split block has " << tmp.size() 
+              << " edges, not 1 as expected!" << endl;
+          assert(0);
+       }
+       ParseAPI::Edge *ft = *(tmp.begin());
+       obj_->getEdge(ft, this, succ);
+   }
+
+   // 4)
    if (points_.exit) {
       succ->points_.exit = points_.exit;
       points_.exit = NULL;
@@ -365,11 +484,85 @@ void PatchBlock::splitPoints(PatchBlock *succ) {
    }
    points_.postInsn.erase(post, points_.postInsn.end());
 
-   std::vector<PatchFunction *> funcs;
-   getFunctions(std::back_inserter(funcs));
-   for (unsigned i = 0; i < funcs.size(); ++i) {
-      funcs[i]->splitPoints(this, succ);
-   }
 }
 
+bool PatchBlock::consistency() const {
+   if (!block_) {
+      cerr << "Error: block has no associated ParseAPI block, failed consistency" << endl;
+      CONSIST_FAIL;
+   }
+   if (!srclist_.empty()) {
+      if (srclist_.size() != block_->sources().size()) {
+         cerr << "Error: block has inconsistent sources size" << endl;
+         CONSIST_FAIL;
+      }
+      for (unsigned i = 0; i < srclist_.size(); ++i) {
+         if (!srclist_[i]->consistency()) {
+            cerr << "Error: source edge inconsistent" << endl;
+            CONSIST_FAIL;
+         }
+      }
+   }
+   if (!trglist_.empty()) {
+      if (trglist_.size() != block_->targets().size()) {
+         cerr << "Error: block has inconsistent targets size; ParseAPI "
+              << block_->targets().size() << " and PatchAPI " 
+              << trglist_.size() << endl;
+         CONSIST_FAIL;
+      }
+      for (unsigned i = 0; i < trglist_.size(); ++i) {
+         if (!trglist_[i]->consistency()) {
+            cerr << "Error: target edge inconsistent" << endl;
+            CONSIST_FAIL;
+         }
+      }
+   }
+   if (!obj_) {
+      cerr << "Error: block has no object" << endl;
+      CONSIST_FAIL;
+   }
+   if (!points_.consistency(this, NULL)) {
+      cerr << "Error: block has inconsistent points" << endl;
+      CONSIST_FAIL;
+   }
+   return true;
+}
+
+bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const {
+   if (entry) {
+      if (!entry->consistency()) CONSIST_FAIL;
+      if (entry->block() != b) CONSIST_FAIL;
+      if (entry->func() != f) CONSIST_FAIL;
+      if (entry->type() != Point::BlockEntry) CONSIST_FAIL;
+   }
+   if (during) {
+      if (!during->consistency()) CONSIST_FAIL;
+      if (during->block() != b) CONSIST_FAIL;
+      if (during->func() != f) CONSIST_FAIL;
+      if (during->type() != Point::BlockDuring) CONSIST_FAIL;
+   }
+   if (exit) {
+      if (!exit->consistency()) CONSIST_FAIL;
+      if (exit->block() != b) CONSIST_FAIL;
+      if (exit->func() != f) CONSIST_FAIL;
+      if (exit->type() != Point::BlockExit) CONSIST_FAIL;
+   }
+   for (InsnPoints::const_iterator iter = preInsn.begin(); iter != preInsn.end(); ++iter) {
+      if (!iter->second->consistency()) CONSIST_FAIL;
+      if (iter->second->block() != b) CONSIST_FAIL;
+      if (iter->second->func() != f) CONSIST_FAIL;
+      if (iter->second->addr() != iter->first) CONSIST_FAIL;
+      if (iter->second->type() != Point::PreInsn) CONSIST_FAIL;
+      if (!b->getInsn(iter->first)) CONSIST_FAIL;
+   }
+   for (InsnPoints::const_iterator iter = postInsn.begin(); iter != postInsn.end(); ++iter) {
+      if (!iter->second->consistency()) CONSIST_FAIL;
+      if (iter->second->block() != b) CONSIST_FAIL;
+      if (iter->second->func() != f) CONSIST_FAIL;
+      if (iter->second->addr() != iter->first) CONSIST_FAIL;
+      if (iter->second->type() != Point::PostInsn) CONSIST_FAIL;
+      if (!b->getInsn(iter->first)) CONSIST_FAIL;
+   }
+   return true;
+}
    

@@ -125,6 +125,11 @@ public:
     // relocation.
     API_EXPORT(Int, (), bool, usesTrap, ());
 
+    // mtHandles_ is not empty, , returns the function that the 
+    // instrumentation was added to 
+    API_EXPORT(Int, (),
+    BPatch_function *, getFunc, ());
+
     API_EXPORT(Int, (),
     BPatch_addressSpace *, getAddressSpace, ());
 
@@ -162,7 +167,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
                                     instPoint *ip,
-                                    BPatch_procedureLocation pointType = BPatch_locUnknownLocation);
+                                    BPatch_procedureLocation pointType);
 
   BPatch_variableExpr *findOrCreateVariable(int_variable *v,
                                             BPatch_type *type = NULL);

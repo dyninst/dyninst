@@ -47,6 +47,11 @@ extern "C" DLLEXPORT TestMutator* patch2_1_factory() {
 }
 
 test_results_t patch2_1_Mutator::executeTest() {
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test entry!\n");
+      return FAILED;
+   }
+
   PatchFunction* func = findFunction("patch2_1_func");
   if (func == NULL) {
     logerror("**Failed patch2_1 (delete snippet)\n");
@@ -58,7 +63,7 @@ test_results_t patch2_1_Mutator::executeTest() {
   /* Step 1: find Points */
   vector<Point*> pts;
   Point::Type type = Point::FuncEntry;
-  mgr_->findPoints(PatchAPI::Location(func), type, back_inserter(pts));
+  mgr_->findPoints(PatchAPI::Location::Function(func), type, back_inserter(pts));
   if (1 != pts.size()) {
     logerror("**Failed patch2_1 (snippet removal)\n");
     logerror("  cannot find correct point at function entry\n");
@@ -105,6 +110,11 @@ test_results_t patch2_1_Mutator::executeTest() {
     }
     ++counter;
   }
+
+   if (!mgr_->consistency()) {
+      logerror("PatchMgr inconsistent at test exit!\n");
+      return FAILED;
+   }
 
   return PASSED;
 }

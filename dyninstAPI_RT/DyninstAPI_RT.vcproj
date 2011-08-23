@@ -42,9 +42,10 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories=".."
-				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
+				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;cap_mutatee_traps;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -63,7 +64,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/SECTION:.bss,RWE"
-				AdditionalDependencies="Ws2_32.lib"
+				AdditionalDependencies="Ws2_32.lib dbghelp.lib psapi.lib"
 				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -228,6 +229,19 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\RTmemEmulator.c"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\RTthread-index.c"
 				>
 				<FileConfiguration
@@ -268,19 +282,6 @@
 			</File>
 			<File
 				RelativePath=".\src\RTwinnt.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\RTmemEmulator.c"
 				>
 				<FileConfiguration
 					Name="Release|Win32"

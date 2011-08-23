@@ -100,7 +100,9 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
   // not up front; however, several transformers depend
   // on this behavior
   newRelocBlock->createCFWidget();
-  
+
+  newRelocBlock->preserveBlockGap();
+
   return newRelocBlock;
 }
   
@@ -321,22 +323,36 @@ void RelocBlock::preserveBlockGap() {
   /*   const block_instance::edgelist &targets = block_->targets();
        for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
    const PatchBlock::edgelist &targets = block_->getTargets();
+   bool hasCall = false;
+   bool hasFT = false;
    for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+      if ((*iter)->type() == ParseAPI::CALL) {
+         hasCall = true;
+      }
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
           (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
          // Okay, I admit - I want to see this code trigger in the
          // fallthrough or cond_not_taken cases...
+         hasFT = true;
          block_instance *target = SCAST_EI(*iter)->trg();
-         if (target) {
+         if (target && !(*iter)->sinkEdge()) {
+            if (target->start() < block_->end()) {
+               cerr << "Error: source should precede target; edge type " << ParseAPI::format((*iter)->type()) << hex
+                    << " src[" << block_->start() << " " << block_->end()
+                    << " trg[" << target->start() << " " << target->end() << dec << endl;
+                assert(0);
+            }
             cfWidget()->setGap(target->start() - block_->end());
             return;
          }
          else {
-            // No target... very odd
             cfWidget()->setGap(DEFENSIVE_GAP_SIZE);
          }
       }
+   }
+   if (hasCall && !hasFT) {
+      cfWidget()->setGap(DEFENSIVE_GAP_SIZE);
    }
 }
 
@@ -428,6 +444,7 @@ bool RelocBlock::generate(const codeGen &templ,
       if (!(*iter)->generate(templ, 
                              this,
                              buffer)) {
+         cerr << "Failed to generate widget: " << (*iter)->format() << endl;
          return false;
          // This leaves the block in an inconsistent state and should only be used
          // for fatal failures.

@@ -53,7 +53,8 @@ Point::getCallee() {
   for (; it != b->getTargets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
-      return trg->function();
+      return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
+                                                 trg->start()));
     }
   }
   return NULL;
@@ -66,6 +67,19 @@ Point::initCodeStructure() {
   assert(mgr_);
 
   cb()->create(this);
+}
+
+PatchObject *Point::obj() const {
+   if (the_func_) { 
+      return the_func_->obj();
+   }
+   else if (the_block_) {
+      return the_block_->obj();
+   }
+   else if (the_edge_) {
+      return the_edge_->source()->obj();
+   }
+   return NULL;
 }
 
 /* for single instruction */
@@ -228,4 +242,55 @@ PatchCallback *Point::cb() const {
    else if (the_block_) return the_block_->cb();
    else if (the_edge_) return the_edge_->cb();
    else return NULL;
+}
+
+bool Point::consistency() const {
+   if (!obj()) return false;
+
+   // Assert that our data matches our type.
+   switch (type()) {
+      case PreInsn:
+      case PostInsn:
+         if (!insn()) return false;
+         if (!addr()) return false;
+         if (!block()) return false;
+         // Can have a function or not, that's okay
+         if (edge()) return false;
+         break;
+      case BlockEntry:
+      case BlockExit:
+      case BlockDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (!block()) return false;
+         if (edge()) return false;
+         break;
+      case FuncEntry:
+      case FuncDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (block()) return false;
+         if (edge()) return false;
+         if (!func()) return false;
+         break;
+      case PreCall:
+      case PostCall:
+      case FuncExit:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (!block()) return false;
+         if (edge()) return false;
+         if (!func()) return false;
+         break;
+      case EdgeDuring:
+         if (insn()) return false;
+         if (addr()) return false;
+         if (block()) return false;
+         if (!edge()) return false;
+         if (!func()) return false;
+         break;
+      default:
+         return false;
+   }
+   return true;
 }

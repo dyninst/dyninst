@@ -291,6 +291,13 @@ bool IA_IAPI::isAbortOrInvalidInsn() const
             e == e_hlt;
 }
 
+/* This function determines if a given instruction is weird enough that we've
+ * probably veered into non-code bytes and are parsing garbage.  
+ * note: yes, some of the code in here is does low-level things like 
+ *       grab instruction bytes directly instead of relying on the parseAPI,
+ *       but since this code executes for every parsed instruction, it needs
+ *       to be efficient.  
+ */
 bool IA_IAPI::isGarbageInsn() const
 {
     bool ret = false;
@@ -328,7 +335,7 @@ bool IA_IAPI::isGarbageInsn() const
             }
             break;
         }
-        case e_add: {
+        case e_add:
             if (2 == curInsn()->size() && 
                 0 == ((char*)curInsn()->ptr())[0] && 
                 0 == ((char*)curInsn()->ptr())[1]) 
@@ -338,7 +345,43 @@ bool IA_IAPI::isGarbageInsn() const
                 ret = true;
             }
             break;
-        }
+        case e_push: // pushes of segment registers do not occur frequently in real code (and crash Rose)
+#if 0 // instructionAPI implementation
+            set<RegisterAST::Ptr> regs;
+            curInsn()->getWriteSet(regs);
+            for (set<RegisterAST::Ptr>::iterator rit = regs.begin();
+                 rit != regs.end(); rit++) 
+            {
+                if (Dyninst::isSegmentRegister((*rit)->getID().regClass())) {
+                    cerr << "REACHED A PUSH OF A SEGMENT REGISTER AT "<< std::hex 
+                        << current << std::dec <<" COUNTING AS INVALID" << endl;
+                    ret = true;
+                    break;
+                }
+            }
+#else // faster raw-byte implementation 
+            switch (((char*)curInsn()->ptr())[0]) {
+                case 0x06:
+                case 0x0e:
+                case 0x16:
+                case 0x1e:
+                    ret = true;
+                    cerr << "REACHED A PUSH OF A SEGMENT REGISTER "<< std::hex << current 
+                         << std::dec <<" COUNTING AS INVALID" << endl;
+                    break;
+                case 0x0f:
+                    if (2 == curInsn()->size() && 
+                        ((0xa0 == ((unsigned char*)curInsn()->ptr())[1]) || (0xa8 == ((unsigned char*)curInsn()->ptr())[1])))
+                    {
+                        ret = true;
+                        cerr << "REACHED A 2-BYTE PUSH OF A SEGMENT REGISTER "<< std::hex << current 
+                             << std::dec <<" COUNTING AS INVALID" << endl;
+                    }
+                    break;
+                default:
+                    break;
+            }
+#endif
         default:
             break;
         }
@@ -453,7 +496,8 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         {
             if (!success || isDynamicCall()) 
             {
-                if ( ! isIATcall() )
+                std::string empty;
+               if ( ! isIATcall(empty) )
                     ftEdge = false;
             }
             else if ( ! _isrc->isValidAddress(target) )

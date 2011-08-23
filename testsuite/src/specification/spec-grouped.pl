@@ -92,7 +92,8 @@ mutatee('patchapi_group_test', [
    'patch1_2_mutatee.c',
    'patch2_1_mutatee.c',
    'patch3_1_mutatee.c',
-   'patch3_2_mutatee.c'
+   'patch3_2_mutatee.c',
+   'patch_modifier_mutatee.c'
    ]).
 compiler_for_mutatee('patchapi_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -139,7 +140,8 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test2_11_mutatee.c',
 	'test2_12_mutatee.c',
 	'test2_13_mutatee.c',
-   'test_write_param_mutatee.c'
+   'test_write_param_mutatee.c',
+        'test_modification_mutatee.c'
     ]).
 compiler_for_mutatee('dyninst_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -705,6 +707,18 @@ mutator('test_write_param', ['test_write_param.C']).
 test_runmode('test_write_param', 'staticdynamic').
 test_start_state('test_write_param', 'stopped').
 tests_module('test_write_param', 'dyninst').
+
+test('test_modification', 'test_modification', 'dyninst_group_test').
+test_description('test_modification', 'writing to parameters').
+test_platform('test_modification', 'i386-unknown-linux2.4').
+test_platform('test_modification', 'x86_64-unknown-linux2.4').
+test_platform('test_modification', 'i386-unknown-nt4.0').
+test_platform('test_modification', 'rs6000-ibm-aix5.1').
+groupable_test('test_modification').
+mutator('test_modification', ['test_modification.C']).
+test_runmode('test_modification', 'staticdynamic').
+test_start_state('test_modification', 'stopped').
+tests_module('test_modification', 'dyninst').
 
 test('test_pt_ls', 'test_pt_ls', none).
 test_description('test_pt_ls', 'Run parseThat on ls').
@@ -2188,6 +2202,15 @@ mutator('patch4_1', ['patch4_1.C']).
 test_runmode('patch4_1', 'createProcess').
 test_start_state('patch4_1', 'stopped').
 tests_module('patch4_1', 'patchapi').
+
+test('patch_modifier', 'patch_modifier', 'patchapi_group_test').
+test_description('patch_modifier', 'transactional semantics').
+test_runs_everywhere('patch_modifier').
+groupable_test('patch_modifier').
+mutator('patch_modifier', ['patch_modifier.C']).
+test_runmode('patch_modifier', 'createProcess').
+test_start_state('patch_modifier', 'stopped').
+tests_module('patch_modifier', 'patchapi').
 
 % SymtabAPI tests
 

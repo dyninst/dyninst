@@ -47,6 +47,7 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
+#include "Patching.h"
 
 #include "PatchMgr.h"
 #include "Command.h"
@@ -84,7 +85,6 @@ class int_symbol;
 class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
-
 class baseTramp;
 
 namespace Dyninst {
@@ -316,12 +316,14 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
+
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
     bool wrapFunction(func_instance *original, func_instance *wrapper, SymtabAPI::Symbol *clone);
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
+    const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
     typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
@@ -432,7 +434,7 @@ class AddressSpace : public InstructionSource {
 
 
     bool getAddrInfo(Address relocAddr,//input
-					  Address &origAddr,
+                     Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
     typedef Relocation::CodeTracker::RelocInfo RelocInfo;

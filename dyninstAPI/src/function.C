@@ -49,6 +49,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
+using namespace Dyninst::PatchAPI;
 using namespace Dyninst::Relocation;
 using namespace Dyninst::PatchAPI;
 
@@ -60,6 +61,8 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
+  prevBlocksUnresolvedCF_(0),
+  prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -76,9 +79,17 @@ func_instance::func_instance(parse_func *f,
             func_instance_count, func_instance_count*sizeof(func_instance));
 #endif
 
-  parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
-                 symTabName().c_str(), addr_);
+    parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
+                   symTabName().c_str(), addr_);
+}
 
+unsigned func_instance::footprint() {
+    unsigned totalSize = 0;
+    vector<FuncExtent*> exts = ifunc()->extents();
+    for (unsigned i=0; i < exts.size(); i++) {
+        totalSize += (exts[i]->end() - exts[i]->start());
+    }
+    return totalSize;
 }
 
 func_instance::func_instance(const func_instance *parFunc,
@@ -86,6 +97,8 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
+  prevBlocksUnresolvedCF_(0),
+  prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
 #if defined(os_windows)
@@ -102,14 +115,68 @@ func_instance::func_instance(const func_instance *parFunc,
    // fork/exec case.
 }
 
-func_instance::~func_instance() {
-  // We don't delete blocks, since they're shared between functions
-  // We _do_ delete context instPoints, though
-  // Except that should get taken care of normally since the
-  // structures are static.
-  for (unsigned i = 0; i < parallelRegions_.size(); i++)
-    delete parallelRegions_[i];
+func_instance::~func_instance() { 
+   // We don't delete blocks, since they're shared between functions
+   // We _do_ delete context instPoints, though
+   // Except that should get taken care of normally since the
+   // structures are static. 
+    for (unsigned i = 0; i < parallelRegions_.size(); i++)
+      delete parallelRegions_[i];
+}
 
+// the original entry block is gone, we choose a new entry block from the
+// function, whichever block we can find that has no intraprocedural incoming 
+// edges
+block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
+{
+    block_instance *newEntry = NULL;
+    assert(!all_blocks_.empty());
+
+    // choose block with no intraprocedural incoming edges
+    PatchFunction::Blockset::iterator bIter;
+    for (bIter = all_blocks_.begin(); 
+         bIter != all_blocks_.end(); 
+         bIter++) 
+    {
+        block_instance *block = static_cast<block_instance*>(*bIter);
+        ParseAPI::Intraproc epred;
+        Block::edgelist & ib_ins = block->llb()->sources();
+        Block::edgelist::iterator eit = ib_ins.begin(&epred);
+        if (eit == ib_ins.end()) {
+            if (NULL != newEntry) {
+                fprintf(stderr,"WARNING: multiple blocks in function %lx "
+                    "with overwritten entry point have no incoming edges: "
+                    "[%lx %lx) and [%lx %lx) %s[%d]\n",
+                    addr_, newEntry->llb()->start(),
+                    newEntry->llb()->start() + newEntry->llb()->end(),
+                    block->llb()->start(),
+                    block->llb()->start() + block->llb()->end(),
+                    FILE__,__LINE__);
+            } else {
+                newEntry = block;
+            }
+        }
+    }
+    // if all blocks have incoming edges, choose the default block
+    if( ! newEntry ) {
+        newEntry = defaultBlock;
+        mal_printf("Setting new entry block for func at 0x%lx to "
+                "actively executing block [%lx %lx), as none of the function "
+                "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
+                defaultBlock->start(), defaultBlock->end(), FILE__,__LINE__);
+    }
+
+    // set the new entry block
+    ifunc()->setEntryBlock(newEntry->llb());
+    addr_ = newEntry->start();
+
+    // debug output
+    if (newEntry->isShared()) {
+        mal_printf("New entry block chosen for func 0x%lx is shared\n",addr_);
+    }
+    mal_printf("Func has new entry block [%lx %lx)\n",addr_, 
+               newEntry->start(), newEntry->end());
+    return newEntry;
 }
 
 void func_instance::setHandlerFaultAddr(Address fa) {
@@ -152,104 +219,6 @@ void func_instance::setHandlerFaultAddrAddr(Address faa, bool set) {
   }
 }
 
-// Set the handler return addr to the most recent instrumented or
-// relocated address, similar to instPoint::instrSideEffect.
-// Also, make sure that we update our mapped view of memory,
-// we may have overwritten memory that was previously not code
-void func_instance::fixHandlerReturnAddr(Address /*faultAddr*/) {
-    if ( !proc()->proc() || ! handlerFaultAddrAddr_ ) {
-        assert(0);
-        return;
-    }
-#if 0 //KEVINTODO: this function doesn't work, I tried setting newPC to 0xdeadbeef and it had no impact on the program's behavior.  If the springboards work properly this code is unneeded
-    // Do a straightfoward forward map of faultAddr
-    // First, get the original address
-    func_instance *func;
-    block_instance *block; baseTrampInstance *ignored;
-    Address origAddr;
-    if (!proc()->getRelocInfo(faultAddr, origAddr, block, ignored)) {
-       func = dynamic_cast<process *>(proc())->findActiveFuncByAddr(faultAddr);
-       origAddr = faultAddr;
-    }
-    else {
-       func = block->func();
-    }
-    std::list<Address> relocAddrs;
-    proc()->getRelocAddrs(origAddr, func, relocAddrs, true);
-    Address newPC = (!relocAddrs.empty() ? relocAddrs.back() : origAddr);
-
-    if (newPC != faultAddr) {
-       if(!proc()->writeDataSpace((void*)handlerFaultAddrAddr_,
-                                  sizeof(Address),
-                                  (void*)&newPC)) {
-          assert(0);
-       }
-    }
-#endif
-}
-
-// Remove funcs from:
-//   mapped_object & mapped_module datastructures
-//   addressSpace::textRanges codeRangeTree<func_instance*>
-//   image-level & SymtabAPI datastructures
-//   BPatch_addressSpace::BPatch_funcMap <func_instance -> BPatch_function>
-void func_instance::removeFromAll()
-{
-    mal_printf("purging blocks_ of size = %d from func at %lx\n",
-               all_blocks_.size(), addr());
-
-    // remove from mapped_object & mapped_module datastructures
-    obj()->removeFunction(this);
-    mod()->removeFunction(this);
-
-    delete(this);
-}
-
-#if 0
-
-/* Find parse_blocks that are missing from these datastructures and add
- * them.  The block_instance constructor does pretty much all of the work in
- * a chain of side-effects extending all the way into the mapped_object class
- *
- * We have to take into account that additional parsing may cause basic block splitting,
- * in which case it is necessary not only to add new int-level blocks, but to update
- * block_instance and BPatch_basicBlock objects.
- */
-void func_instance::addMissingBlocks()
-{
-   assert(0 && "TODO");
-    // A bit of a hack, but be sure that we've re-checked the blocks in the
-    // parse_func as well.
-    ifunc()->invalidateCache();
-
-   blocks();
-   // Add new blocks
-
-   const vector<parse_block*> & nblocks = obj()->parse_img()->getNewBlocks();
-   // add blocks by looking up new blocks, if it promises to be more
-   // efficient than looking through all of the llfunc's blocks
-   vector<parse_block*>::const_iterator nit = nblocks.begin();
-   for( ; nit != nblocks.end(); ++nit) {
-       if (ifunc()->contains(*nit)) {
-           addMissingBlock(*nit);
-       }
-   }
-
-   if (ifunc()->blocks().size() > blocks_.size()) { //not just the else case!
-       // we may have parsed into an existing function and added its blocks
-       // to ours, or this may just be a more efficient lookup method
-       Function::blocklist & iblks = ifunc()->blocks();
-       for (Function::blocklist::iterator bit = iblks.begin();
-            bit != iblks.end();
-            bit++)
-       {
-           if (!findBlock(*bit)) {
-               addMissingBlock(SCAST_PB(*bit));
-           }
-       }
-   }
-}
-
 void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
                                       const list<block_instance*> &seedBlocks,
                                       set<block_instance*> &reachBlocks)//output
@@ -277,10 +246,9 @@ void func_instance::getReachableBlocks(const set<block_instance*> &exceptBlocks,
          rit != imgReach.end();
          rit++)
     {
-        reachBlocks.insert( findBlock(*rit) );
+        reachBlocks.insert( obj()->findBlock(*rit) );
     }
 }
-#endif
 
 void print_func_vector_by_pretty_name(std::string prefix,
                                       pdvector<func_instance *>*funcs) {
@@ -296,13 +264,16 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (unresolvedCF_.empty()) {
-      // A block has unresolved control flow if it has an indirect
-      // out-edge.
-     for (blockset::const_iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
-       block_instance* iblk = SCAST_BI(*iter);
-         if (iblk->llb()->unresolvedCF()) {
-            unresolvedCF_.insert(iblk);
+   if (prevBlocksUnresolvedCF_ < ifunc()->blocks().size()) {
+       prevBlocksUnresolvedCF_ = getAllBlocks().size();
+       // A block has unresolved control flow if it has an indirect
+       // out-edge.
+       for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
+            iter != all_blocks_.end(); ++iter) 
+       {
+          block_instance* iblk = SCAST_BI(*iter);
+          if (iblk->llb()->unresolvedCF()) {
+             unresolvedCF_.insert(iblk);
          }
       }
    }
@@ -310,18 +281,32 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-   if (abruptEnds_.empty()) {
-      // A block has unresolved control flow if it has an indirect
-      // out-edge.
-     for (blockset::const_iterator iter = getAllBlocks().begin(); iter != getAllBlocks().end(); ++iter) {
-       block_instance* iblk = SCAST_BI(*iter);
-         if (iblk->llb()->abruptEnd()) {
-            abruptEnds_.insert(iblk);
-         }
-      }
-   }
-   return abruptEnds_;
+    if (prevBlocksAbruptEnds_ < ifunc()->blocks().size()) {
+        prevBlocksUnresolvedCF_ = getAllBlocks().size();
+        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
+             iter != all_blocks_.end(); ++iter) 
+        {
+            block_instance* iblk = SCAST_BI(*iter);
+            if (iblk->llb()->abruptEnd()) {
+                abruptEnds_.insert(iblk);
+            }
+        }
+    }
+    return abruptEnds_;
 }
+
+void func_instance::removeAbruptEnd(const block_instance *block)
+{
+    if (abruptEnds_.empty()) {
+        return;
+    }
+
+    BlockSet::iterator bit = abruptEnds_.find(const_cast<block_instance*>(block));
+    if (abruptEnds_.end() != bit) {
+        abruptEnds_.erase(bit);
+    }
+}
+
 
 block_instance *func_instance::entryBlock() {
   return SCAST_BI(getEntryBlock());
@@ -330,8 +315,10 @@ block_instance *func_instance::entryBlock() {
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (blockset::const_iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
-     block_instance* iblk = SCAST_BI(*iter);
+   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
+        iter != getCallBlocks().end(); ++iter) 
+   {
+      block_instance* iblk = SCAST_BI(*iter);
       if (iblk->containsDynamicCall()) {
          count++;
       }
@@ -361,7 +348,7 @@ void func_instance::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (blockset::const_iterator
+    for (Blockset::const_iterator
          cb = all_blocks_.begin();
          cb != all_blocks_.end();
          cb++)
@@ -417,7 +404,7 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
     bool ret = false;
 
     // Create the block list.
-    blockset::const_iterator bIter;
+    PatchFunction::Blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -456,7 +443,7 @@ bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
     bool ret = false;
 
     // Create the block list.
-    blockset::const_iterator bIter;
+    PatchFunction::Blockset::const_iterator bIter;
     for (bIter = getAllBlocks().begin();
          bIter != getAllBlocks().end();
          bIter++) {
@@ -504,10 +491,14 @@ bool func_instance::consistency() const {
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);
-      assert(all_blocks_.find(b_inst) != all_blocks_.end());
+      assert(b_inst->llb() == img_block);
    }
 
    return true;
+}
+
+void func_instance::triggerModified() {
+    // KEVINTODO: is there anything to do here? 
 }
 
 Address func_instance::get_address() const { assert(0); return 0; }
@@ -521,7 +512,9 @@ bool func_instance::isInstrumentable() {
 
    // Hack: avoid things that throw exceptions
    // Make sure we parsed calls
-   for (blockset::const_iterator iter = getCallBlocks().begin(); iter != getCallBlocks().end(); ++iter) {
+   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
+        iter != getCallBlocks().end(); ++iter) 
+   {
       block_instance* iblk = SCAST_BI(*iter);
       if (iblk->calleeName().find("cxa_throw") != std::string::npos) {
          cerr << "Func " << symTabName() << " found exception ret false" << endl;
@@ -597,7 +590,7 @@ bool func_instance::addSymbolsForCopy() {
 }
 
 bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
-   for (blockset::const_iterator iter = getAllBlocks().begin();
+   for (Blockset::const_iterator iter = getAllBlocks().begin();
         iter != getAllBlocks().end(); ++iter) {
       obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
    }
@@ -662,12 +655,12 @@ void func_instance::createWrapperSymbol(Address entry, std::string name) {
 
 instPoint *func_instance::funcEntryPoint(bool create) {
    // Lookup the cached points
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this), Point::FuncEntry, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::Function(this), Point::FuncEntry, create));
    return p;
 }
 
 instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::FuncExit, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::ExitSite(this, b), Point::FuncExit, create));
    return p;
 }
 
@@ -682,12 +675,12 @@ void func_instance::funcExitPoints(Points* pts) {
 }
 
 instPoint *func_instance::preCallPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PreCall, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::CallSite(this, b), Point::PreCall, create));
   return p;
 }
 
 instPoint *func_instance::postCallPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PostCall, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::CallSite(this, b), Point::PostCall, create));
    return p;
 }
 
@@ -701,25 +694,20 @@ void func_instance::callPoints(Points* pts) {
 }
 
 instPoint *func_instance::blockEntryPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockEntry, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::BlockInstance(this, b), Point::BlockEntry, create));
    return p;
 }
 
 instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockExit, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::BlockInstance(this, b), Point::BlockExit, create));
    return p;
 }
 
 instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
                                        InstructionAPI::Instruction::Ptr ptr,
                                        bool trusted, bool create) {
-   Location loc;
-   if (trusted) {
-      loc = Location(this, InsnLoc(b, a, ptr));
-   }
-   else {
-      loc = Location(this, b, a, ptr);
-   }
+   Location loc = Location::InstructionInstance(this, b, a, ptr, trusted);
+
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PreInsn, create));
    return p;
 }
@@ -727,13 +715,8 @@ instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
 instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
                                         InstructionAPI::Instruction::Ptr ptr,
                                         bool trusted, bool create) {
-   Location loc;
-   if (trusted) {
-      loc = Location(this, InsnLoc(b, a, ptr));
-   }
-   else {
-      loc = Location(this, b, a, ptr);
-   }
+   Location loc = Location::InstructionInstance(this, b, a, ptr, trusted);
+
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PostInsn, create));
    return p;
 }
@@ -749,7 +732,7 @@ void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
 }
 
 instPoint* func_instance::edgePoint(edge_instance* e, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, e), Point::EdgeDuring, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location::EdgeInstance(this, e), Point::EdgeDuring, create));
    return p;
 }
 
@@ -758,16 +741,55 @@ void func_instance::edgePoints(Points* pts) {
    proc()->mgr()->findPoints(Scope(this), Point::EdgeDuring, back_inserter(points));
    for (std::vector<Point*>::iterator i = points.begin(); i != points.end(); i++) {
       instPoint* pt = static_cast<instPoint*>(*i);
-      edge_instance* e = static_cast<edge_instance*>(pt->edge());
       pts->push_back(pt);
    }
 }
 
 void func_instance::destroyBlock(block_instance *block) {
-   // Put things here that go away from the perspective of this function
+    // Put things here that go away from the perspective of this function
+    BlockSet::iterator bit = unresolvedCF_.find(block);
+    if (bit != unresolvedCF_.end()) {
+        unresolvedCF_.erase(bit);
+        prevBlocksUnresolvedCF_ --;
+    }
+    bit = abruptEnds_.find(block);
+    if (bit != abruptEnds_.end()) {
+        abruptEnds_.erase(block);
+        prevBlocksAbruptEnds_ --;
+    }
 }
 
 void func_instance::destroy(func_instance *f) {
    // Put things here that go away when we destroy this function
    delete f;
 }
+
+void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
+{
+
+    BlockSet::iterator bit = unresolvedCF_.find(b1);
+    if (bit != unresolvedCF_.end()) {
+        unresolvedCF_.erase(*bit);
+        unresolvedCF_.insert(b2);
+    }
+    bit = abruptEnds_.find(b1);
+    if (bit != abruptEnds_.end()) {
+        abruptEnds_.erase(*bit);
+        abruptEnds_.insert(b2);
+    }
+}
+
+void func_instance::add_block_cb(block_instance *block)
+{
+    if (block->llb()->unresolvedCF() && 
+        prevBlocksUnresolvedCF_ == ifunc()->blocks().size()) 
+    {
+        unresolvedCF_.insert(block);
+    }
+    if (block->llb()->abruptEnd() && 
+        prevBlocksAbruptEnds_ == ifunc()->blocks().size())
+    {
+        abruptEnds_.insert(block);
+    }
+}
+

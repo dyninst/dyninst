@@ -11,11 +11,13 @@ namespace PatchAPI {
 
 class PatchFunction;
 class PatchCallback;
+class PatchParseCallback;
 
 /* PatchObject represents a binary object, which could be either a library or
    executable. It is also an instrumentation  unit. */
 class PatchObject {
   friend class AddrSpace;
+  friend class PatchParseCallback;
 
   public:
     PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
@@ -51,12 +53,11 @@ class PatchObject {
     PATCHAPI_EXPORT void addBlock(PatchBlock*);
     PATCHAPI_EXPORT void removeBlock(PatchBlock*);
     PATCHAPI_EXPORT void removeBlock(ParseAPI::Block*);
-    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
     template <class Iter>
      void blocks(Iter iter); 
 
     // Edge
-    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, bool create = true);
+    PATCHAPI_EXPORT PatchEdge *getEdge(ParseAPI::Edge*, PatchBlock* = NULL, PatchBlock* = NULL, bool create = true);
     PATCHAPI_EXPORT void addEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(PatchEdge*);
     PATCHAPI_EXPORT void removeEdge(ParseAPI::Edge*);
@@ -64,6 +65,8 @@ class PatchObject {
       void edges(Iter iter); 
 
     PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
+
+    PATCHAPI_EXPORT bool consistency(const AddrSpace *as) const;
     
   protected:
     ParseAPI::CodeObject* co_;
@@ -78,8 +81,10 @@ class PatchObject {
     PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
+    PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 
     PatchCallback *cb_;
+    PatchParseCallback *pcb_;
 };
 
 template <class Iter>

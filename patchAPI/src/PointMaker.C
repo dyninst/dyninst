@@ -4,6 +4,8 @@
 #include "PatchObject.h"
 #include "PatchCFG.h"
 
+using namespace Dyninst::PatchAPI;
+using Dyninst::PatchAPI::Location;
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PointMaker;

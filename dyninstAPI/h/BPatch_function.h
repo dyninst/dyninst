@@ -66,6 +66,8 @@ namespace Dyninst {
   };
 };
 
+
+
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -157,7 +159,6 @@ public:
     void getCallPoints(BPatch_Vector<BPatch_point *> &entryPoints);
 
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
-    void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
@@ -347,12 +348,18 @@ public:
     //  Get the underlying PatchAPI Function
     API_EXPORT( Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
 
+    // And the PatchAPI PatchFunction
+    API_EXPORT (Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));
 
     API_EXPORT(Int, (start, end),
                bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
+
+    API_EXPORT(Int, (),
+    unsigned int,getFootprint,());
+
 };
 
 #endif /* _BPatch_function_h_ */

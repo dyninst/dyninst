@@ -55,14 +55,38 @@ PatchBlock* DynCFGMaker::copyBlock(PatchBlock* b, PatchObject* o) {
   return  newBlock;
 }
 
+// assumes edges do not cross object boundaries
 PatchEdge* DynCFGMaker::makeEdge(ParseAPI::Edge* e,
                                  PatchBlock* s,
                                  PatchBlock* t,
-                                 PatchObject* o) {
-  mapped_object* mo = SCAST_MO(o);
+                                 PatchObject* o) 
+{
+# if 1 // allows inter-object edges
+  mapped_object* moS = NULL;
+  mapped_object* moT = NULL;
+  if (!s) {
+      if (e->src()->obj() == o->co()) 
+          moS = SCAST_MO(o);
+      else 
+          moS = SCAST_MO(o)->as()->findObject(e->src()->obj());
+  }
+  if (!t) {
+      if (e->trg()->obj() == o->co()) 
+          moT = SCAST_MO(o);
+      else 
+          moT = SCAST_MO(o)->as()->findObject(e->trg()->obj());
+  }
+
+  edge_instance *inst = new edge_instance(e,
+                         s ? SCAST_BI(s) : moS->findBlock(e->src()),
+                         t ? SCAST_BI(t) : moT->findBlock(e->trg()));
+
+#else // doesn't allow inter-object edges
+  mapped_object* mo = t ? t->obj() : NULL;
   edge_instance *inst = new edge_instance(e,
                          s ? SCAST_BI(s) : mo->findBlock(e->src()),
                          t ? SCAST_BI(t) : mo->findBlock(e->trg()));
+#endif
   return inst;
 }
 

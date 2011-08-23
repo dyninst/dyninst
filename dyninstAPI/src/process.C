@@ -1408,8 +1408,12 @@ bool process::setAOut(fileDescriptor &desc)
    startup_printf("%s[%d]:  enter setAOut\n", FILE__, __LINE__);
     assert(reachedBootstrapState(attached_bs));
     assert(mapped_objects.size() == 0);
+    bool parseGaps = true;
+    if (BPatch_defensiveMode == getHybridMode()) {
+        parseGaps = false;
+    }
     mapped_object *aout = mapped_object::createMappedObject
-        (desc, this, getHybridMode());
+        (desc, this, getHybridMode(), parseGaps);
     if (!aout) {
        startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
@@ -1427,15 +1431,7 @@ bool process::setAOut(fileDescriptor &desc)
 }
 
 // Here's the list of functions to look for:
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-    "main",
-    "DYNINST_pltMain",
-    "_main",
-    "WinMain",
-    "_WinMain",
-    "wWinMain",
-    "_wWinMain"};
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
 
 bool process::setMainFunction() 
 {
@@ -3383,7 +3379,9 @@ bool process::removeASharedObject(mapped_object *obj) {
         }
     }
 	flushAddressCache_RT(obj);
-	getMemEm()->removeRegion(obj);
+    if (isMemoryEmulated()) {
+    	getMemEm()->removeRegion(obj);
+    }
 
     if (runtime_lib.end() != runtime_lib.find(obj)) {
         runtime_lib.erase( runtime_lib.find(obj) );
@@ -3802,7 +3800,7 @@ bool process::isRuntimeHeapAddr(Address addr)
 Address process::stopThreadCtrlTransfer (instPoint* intPoint, 
                                          Address target)
 {
-   Address pointAddr = intPoint->nextExecutedAddr();
+   Address pointAddr = intPoint->addr_compat();
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
@@ -3822,15 +3820,13 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
         // b. We're in an analyzed fallthrough block
         // c. The stack was tampered with and we need the (mod_pc - pc) 
         //    offset to figure out where we should be
-        cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
+        malware_cerr << "Looking for matches to incoming address " 
+            << hex << target << dec << endl;
         instPoint *callPt = NULL;
-        block_instance *callBBI = NULL;
 
         if ( reverseDefensiveMap_.find(target,callPt) ) {
             // a. 
-            cerr << "\t Found in defensive map" << endl;
-            callBBI = callPt->block();
-            unrelocTarget = callBBI->end();
+            unrelocTarget = callPt->block()->end();
         }
         else {
             // b. 
@@ -3839,6 +3835,11 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            AddressSpace::RelocInfo ri;
            bool hasFT = getRelocInfo(target, ri);
            assert(hasFT); // otherwise we should be in the defensive map
+           if (ri.pad) {
+               unrelocTarget = ri.block->end();
+           } else {
+               unrelocTarget = ri.block->start();
+           }
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
             target, unrelocTarget, FILE__, __LINE__);
@@ -3954,7 +3955,7 @@ bool process::handleStopThread(EventRecord &ev)
     }
 
     mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
-               ri.reloc, relocPointAddr, (long)calculation, FILE__,__LINE__); 
+               ri.orig, relocPointAddr, (long)calculation, FILE__,__LINE__); 
 
 /* 2. If the callbackID is negative, the calculation is meant to be
    interpreted as the address of code, so we call stopThreadCtrlTransfer
@@ -4018,7 +4019,8 @@ bool process::getOverwrittenBlocks
         if (isMemoryEmulated()) {
             bool valid = false;
             boost::tie(valid,readAddr) = getMemEm()->translate(curPageAddr);
-			cerr << "\t\t Reading from shadow page " << hex << readAddr << " instead of original " << curPageAddr << endl;
+			malware_cerr << "\t\t Reading from shadow page " << hex << readAddr 
+                << " instead of original " << curPageAddr << endl;
             assert(valid);
         }
         readTextSpace((void*)readAddr, MEM_PAGE_SIZE, memVersion);
@@ -4030,8 +4032,8 @@ bool process::getOverwrittenBlocks
                 regionStart = curPageAddr+mIdx;
             } else if (foundStart && curShadow[mIdx] == memVersion[mIdx]) {
                 foundStart = false;
-				cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + mIdx << dec << endl;
-
+				malware_cerr << "\t\t Adding overwritten range " << hex << regionStart 
+                    << " -> " << curPageAddr + mIdx << dec << endl;
                 overwrittenRanges.push_back(
                     pair<Address,Address>(regionStart,curPageAddr+mIdx));
             }
@@ -4039,7 +4041,8 @@ bool process::getOverwrittenBlocks
         if (foundStart) {
 
             foundStart = false;
-			cerr << "\t\t Adding overwritten range " << hex << regionStart << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
+			malware_cerr << "\t\t Adding overwritten range " << hex << regionStart 
+                << " -> " << curPageAddr + MEM_PAGE_SIZE << dec << endl;
 
             overwrittenRanges.push_back(
                 pair<Address,Address>(regionStart,curPageAddr+MEM_PAGE_SIZE));
@@ -4053,7 +4056,7 @@ bool process::getOverwrittenBlocks
         mapped_object *curObject = findObject((*rIter).first);
 
         curObject->findBlocksByRange((*rIter).first,(*rIter).second,curBBIs);
-        if (curBBIs.size()) {
+        if (!curBBIs.empty()) {
             mal_printf("overwrote %d blocks in range %lx %lx \n",
                        curBBIs.size(),(*rIter).first,(*rIter).second);
             writtenBBIs.splice(writtenBBIs.end(), curBBIs);
@@ -4064,7 +4067,7 @@ bool process::getOverwrittenBlocks
     }
 
     free(memVersion);
-    if (writtenBBIs.size()) {
+    if (!writtenBBIs.empty()) {
         return true;
     } else {
         return false;
@@ -4108,9 +4111,9 @@ static void otherFuncBlocks(func_instance *func,
          bit != allBlocks.end(); 
          bit++) 
   */
-  const PatchFunction::blockset &allBlocks = 
+  const PatchFunction::Blockset &allBlocks = 
         func->getAllBlocks();
-    for (PatchFunction::blockset::const_iterator bit =
+    for (PatchFunction::Blockset::const_iterator bit =
          allBlocks.begin();
          bit != allBlocks.end(); 
          bit++) 
@@ -4126,32 +4129,33 @@ static void otherFuncBlocks(func_instance *func,
 /* Summary
  * Given a list of overwritten blocks, find blocks that are unreachable,
  * functions that have been overwritten at their entry points and can go away,
- * and new function entry for functions that are being overwritten while still
+ * and new function entries for functions that are being overwritten while still
  * executing
  *
  * variables
  * f:  the overwritten function
  * ow: the set of overwritten blocks
- * ex: the set of blocks that are executing on the call stack
+ * ex: the set of blocks that are executing on the call stack that were not overwritten
  * 
  * primitives
  * R(b,s): yields set of reachable blocks for collection of blocks b, starting
  *         at seed blocks s.
  * B(f):   the blocks pertaining to function f
  * EP(f):  the entry point of function f
- * 
+ * F(b):   functions containing block b
+ *
  * calculations
  * Elim(f): the set of blocks to eliminate from function f.
  *          Elim(f) = B(f) - R( B(f)-ow , EP(f) )
  * New(f):  new function entry candidates for f's surviving blocks.
  *          If EB(f) not in ow(f), empty set
- *          Else, all blocks e such that ( e in ex AND e in Elim(f) )
+ *          Else, all blocks b such that ( b in ex AND b in Elim(f) )
  *          Eliminate New(f) elements that have ancestors in New(f)
- * Del(f):  Blocks that can be deleted altogether
- *          F - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
+ * Del:     A block can be deleted altogether if
+ *          forall f in F(b): B(f) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
- *          EP(f) in ow(f) AND ex(f) is empty
+ *          EP(f) in ow(f) AND ex(f)-ow(f) is empty
  */
 bool process::getDeadCode
 ( const std::list<block_instance*> &owBlocks, // input
@@ -4160,9 +4164,7 @@ bool process::getDeadCode
   std::list<func_instance*> &deadFuncs, //output: DeadF
   std::map<func_instance*,block_instance*> &newFuncEntries) //output: newF
 {
-   assert(0 && "TODO");
-   return false;
-#if 0
+    //KEVINTODO: test
     // do a stackwalk to see which functions are currently executing
     pdvector<pdvector<Frame> >  stacks;
     pdvector<Address> pcs;
@@ -4181,19 +4183,27 @@ bool process::getDeadCode
         }
     }
 
-    // group blocks by function
+    // group blocks by function and find functions with dead entry blocks
     std::map<func_instance*,set<block_instance*> > deadMap;
     std::set<func_instance*> deadEntryFuncs;
     std::set<Address> owBlockAddrs;
+    std::map<block_instance*,vector<func_instance*> > deletableBlocks;
     for (list<block_instance*>::const_iterator bIter=owBlocks.begin();
          bIter != owBlocks.end(); 
          bIter++) 
     {
-       deadMap[(*bIter)->func()].insert(*bIter);
-       owBlockAddrs.insert((*bIter)->start());
-       if ((*bIter)->llb() == (*bIter)->func()->ifunc()->entry()) {
-          deadEntryFuncs.insert((*bIter)->func());
+       vector<func_instance*> funcs;
+       (*bIter)->getFuncs(std::inserter(funcs, funcs.end()));
+       for (vector<func_instance*>::iterator fit = funcs.begin(); 
+            fit != funcs.end(); 
+            fit++) 
+       {
+           deadMap[*fit].insert(*bIter);
+           if ((*bIter) == (*fit)->entryBlock()) {
+              deadEntryFuncs.insert(*fit);
+           }
        }
+       owBlockAddrs.insert((*bIter)->start());
     }
 
     // for each modified function, calculate ex, ElimF, NewF, DelF
@@ -4206,27 +4216,33 @@ bool process::getDeadCode
         set<block_instance*> execBlocks;
         for (unsigned pidx=0; pidx < pcs.size(); pidx++) {
             std::set<block_instance *> candidateBlocks;
-            fit->first->findBlocksByAddr(pcs[pidx], candidateBlocks);
+            Address realPC = pcs[pidx];
+            vector<func_instance*> dontcare1;
+            baseTramp * dontcare2;
+            if (isRuntimeHeapAddr(realPC)) {
+                getAddrInfo(pcs[pidx], realPC, dontcare1, dontcare2);
+            }
+            fit->first->obj()->findBlocksByAddr(realPC, candidateBlocks);
             for (std::set<block_instance *>::iterator cb_iter = candidateBlocks.begin();
-                cb_iter != candidateBlocks.end(); ++cb_iter) {
+                cb_iter != candidateBlocks.end(); ++cb_iter) 
+            {
                 block_instance *exB = *cb_iter;
-                if (exB && owBlockAddrs.end() == owBlockAddrs.find(
-                                                        exB->start())) 
+                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) 
                 {
                     execBlocks.insert(exB);
                 }
             }
         }
 
-        // calculate DeadF: EP(f) in ow and EP(f) not in ex
-        if ( 0 == execBlocks.size() ) {
+        // calculate DeadF: EP(f) in ow and EP(f) not in ex(f)
+        if (!execBlocks.empty()) {
             set<block_instance*>::iterator eb = fit->second.find(
                 fit->first->entryBlock());
             if (eb != fit->second.end()) {
                 deadFuncs.push_back(fit->first);
                 continue;// treated specially, don't need elimF, NewF or DelF
             }
-        } 
+        }
 
         // calculate elimF
         set<block_instance*> keepF;
@@ -4253,27 +4269,45 @@ bool process::getDeadCode
         // calculate Del(f)
         seedBs.clear();
         if (deadEntryFuncs.end() == deadEntryFuncs.find(fit->first)) {
-            seedBs.push_back(fit->first->entryBlock());
+            seedBs.push_back(fit->first->entryBlock()); // add non-overwritten function entry blocks
         }
         else if (newFuncEntries.end() != newFuncEntries.find(fit->first)) {
-            seedBs.push_back(newFuncEntries[fit->first]);
+            seedBs.push_back(newFuncEntries[fit->first]); // add new function entry blocks
         }
         for (set<block_instance*>::iterator xit = execBlocks.begin();
              xit != execBlocks.end();
              xit++) 
         {
             if (elimMap[fit->first].end() != elimMap[fit->first].find(*xit)) {
-                seedBs.push_back(*xit);
+                seedBs.push_back(*xit); // add executing blocks, but only need
+                                        // to add them if they aren't reachable
+                                        // after removing overwritten blocks
             }
         }
         keepF.clear();
         fit->first->getReachableBlocks(fit->second, seedBs, keepF);
-        otherFuncBlocks(fit->first, keepF, delBlocks);
-        
+        set<block_instance*> delBlocks_f;
+        otherFuncBlocks(fit->first, keepF, delBlocks_f);
+        for (set<block_instance*>::iterator bit = delBlocks_f.begin();
+            bit != delBlocks_f.end();
+            bit++)
+        {
+            deletableBlocks[*bit].push_back(fit->first);
+        }
+    }
+
+    // can delete a block only if it's deletable in each function that it 
+    // appears in, i.e., reachable only from overwritten blocks in each func
+    for (map<block_instance*,vector<func_instance*> >::iterator bit = deletableBlocks.begin();
+         bit != deletableBlocks.end();
+         bit++) 
+    {
+        if ((unsigned int)bit->first->containingFuncs() == bit->second.size()) {
+            delBlocks.insert(bit->first);
+        }
     }
 
     return true;
-#endif
 }
 
 
@@ -4282,6 +4316,11 @@ bool process::getDeadCode
 // rt-lib heap addrs that correspond to the range
 void process::flushAddressCache_RT(Address start, unsigned size)
 {
+    // if rtlib not loaded yet, nothing to flush
+    if (bootstrapState < loadedRT_bs) {
+        return; 
+    }
+
     if (start != 0) {
         mal_printf("Flushing address cache of range [%lx %lx]\n",
                    start, 
@@ -4295,9 +4334,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
         std::string arg_str ("DYNINST_target_cache");
         pdvector<int_variable *> vars;
         if ( ! findVarsByAll(arg_str, vars) ) {
-            fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+           fprintf(stderr, "WARNING: %s[%d]:  cannot find var %s\n", 
                     FILE__, __LINE__, arg_str.c_str());
-            assert(0);
+            return;
         }
         if (vars.size() != 1) {
             fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
@@ -4444,6 +4483,7 @@ func_instance *process::findActiveFuncByAddr(Address addr)
 
 bool process::patchPostCallArea(instPoint *callPt)
 {
+   //malware_cerr << "patchPostCallArea for point " << hex << callPt->addr() << dec << endl;
    // 1) Find all the post-call patch areas that correspond to this 
    //    call point
    // 2) Generate and install the branches that will be inserted into 
@@ -4453,14 +4493,14 @@ bool process::patchPostCallArea(instPoint *callPt)
    AddrPairSet patchAreas;
    if ( ! generateRequiredPatches(callPt, patchAreas) ) {
       return false;
-    }
+   }
    
    // 2...
    generatePatchBranches(patchAreas);
    return true;
 }
 
-bool process::generateRequiredPatches(instPoint *callPt, 
+bool process::generateRequiredPatches(instPoint *callPoint, 
                                       AddrPairSet &patchAreas)
 {
     // We need to figure out where this patch should branch to.
@@ -4470,41 +4510,68 @@ bool process::generateRequiredPatches(instPoint *callPt,
     // 2) For each padding area, create a (padAddr,target) pair
 
     // 1)
-    block_instance *callbbi = callPt->block();
-    block_instance *ftbbi = callbbi->getFallthroughBlock();
-    assert(ftbbi);
 
-    std::vector<func_instance *> funcs;
-    ftbbi->getFuncs(std::back_inserter(funcs));
-
-    Relocation::CodeTracker::RelocatedElements reloc;
-    CodeTrackers::reverse_iterator rit;
-    for (unsigned i = 0; i < funcs.size(); ++i) {
-       for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++) {
-          if ((*rit)->origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
-             break;
-          }
-       }
-    }
-    assert(rit != relocatedCode_.rend());
-    
-    Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
-
-    // 2) 
-    if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callPt)) {
-        set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
-        for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
+    // ensure that we patch other callPts at the same address
+    vector<ParseAPI::Function*> callFuncs;
+    callPoint->block()->llb()->getFuncs(callFuncs);
+    for (vector<ParseAPI::Function*>::iterator fit = callFuncs.begin();
+         fit != callFuncs.end();
+         fit++)
+    {
+        func_instance *callF = findFunction((parse_func*)*fit);
+        block_instance *callB = callPoint->block();
+        instPoint *callP = instPoint::preCall(callF, callB);
+        block_instance *ftBlk = callB->getFallthrough()->trg();
+        if (!ftBlk) {
+            // find the block at the next address, if there's no fallthrough block
+            ftBlk = callF->obj()->findBlockByEntry(callB->end());
+            assert(ftBlk);
+        }
+        Relocation::CodeTracker::RelocatedElements reloc;
+        CodeTrackers::reverse_iterator rit;
+        for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
         {
-          Address jumpAddr = d_iter->first;
-          patchAreas.insert(std::make_pair(jumpAddr, to));
-          mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                     callbbi->end(), jumpAddr, to, FILE__,__LINE__);
+            if ((*rit)->origToReloc(ftBlk->start(), ftBlk, callF, reloc)) {
+                break;
+            }
+        }
+        if (rit == relocatedCode_.rend()) {
+            mal_printf("WARNING: no relocs of call-fallthrough at %lx "
+                       "in func at %lx, will not patch its post-call "
+                       "padding\n", callP->block()->last(),callF->addr());
+            (*relocatedCode_.rbegin())->debug();
+            continue;
+        }
+
+        Address to = reloc.instruction;
+        if (!reloc.instrumentation.empty()) {
+           // There could be a lot of instrumentation at this point. Bias towards the lowest,
+           // non-edge instrumentation
+           to = 0;
+           for (std::map<instPoint *, Address>::iterator inst_iter = reloc.instrumentation.begin();
+                inst_iter != reloc.instrumentation.end(); ++inst_iter) {
+              if (inst_iter->first->type() == PatchAPI::Point::EdgeDuring) continue;
+              to = (inst_iter->second < to) ? inst_iter->second : to;
+           }
+           if (to == 0) to = reloc.instruction;
+        }
+
+        // 2) 
+        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callP)) {
+            set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callP].begin();
+            for (; d_iter != forwardDefensiveMap_[callP].end(); ++d_iter) 
+            {
+              Address jumpAddr = d_iter->first;
+              patchAreas.insert(std::make_pair(jumpAddr, to));
+              mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                         callB->end(), jumpAddr, to, FILE__,__LINE__);
+            }
         }
     }
-    if (!patchAreas.size()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
+    if (patchAreas.empty()) {
+       mal_printf("no relocs to patch for call at %lx\n", callPoint->addr_compat());
     }
-    return true;
+    return ! patchAreas.empty();
 }
 
 void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
@@ -4634,7 +4701,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
 		  /*                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
 				       iter != func->exitBlocks().end(); ++iter) {*/
-                   for (PatchFunction::blockset::const_iterator iter = func->getExitBlocks().begin();
+                   for (PatchFunction::Blockset::const_iterator iter = func->getExitBlocks().begin();
                         iter != func->getExitBlocks().end(); ++iter) {
 		     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
                       if (mt) 
@@ -4659,7 +4726,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 {
 		  /*                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
                         iter != func->callBlocks().end(); ++iter) {*/
-                   for (PatchFunction::blockset::const_iterator iter = func->getCallBlocks().begin();
+                   for (PatchFunction::Blockset::const_iterator iter = func->getCallBlocks().begin();
                         iter != func->getCallBlocks().end(); ++iter) {
 		     block_instance* iblk = SCAST_BI(*iter);
                       miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);

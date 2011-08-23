@@ -75,7 +75,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   friend class block_instance;
   friend class edge_instance;
   friend class instPoint;
-  friend class BPatch_function;
   public:
     // Almost everythcing gets filled in later.
     func_instance(parse_func *f,
@@ -131,9 +130,17 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   // Kevin's defensive mode shtuff
   // Blocks that have a sink target, essentially.
-  const BlockSet &unresolvedCF();
-  // Blocks where we provisionally stopped parsing because things looked weird.
-  const BlockSet &abruptEnds();
+  const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
+  const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
+                                // parsing because things looked weird.
+  block_instance * setNewEntryPoint(block_instance *defaultNewEntryBlock);
+  // kevin signal-handler information
+  bool isSignalHandler() {return handlerFaultAddr_ != 0;}
+  Address getHandlerFaultAddr() {return handlerFaultAddr_;}
+  Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
+  void setHandlerFaultAddr(Address fa);
+  void setHandlerFaultAddrAddr(Address faa, bool set);
+  void triggerModified();
 
   block_instance *getBlock(const Address addr);
 
@@ -149,17 +156,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   ////////////////////////////////////////////////
   func_instance *findCallee(block_instance *callBlock);
 
-  bool isSignalHandler() {return handlerFaultAddr_ != 0;}
-  Address getHandlerFaultAddr() {return handlerFaultAddr_;}
-  Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
-  void fixHandlerReturnAddr(Address newAddr);
-  void setHandlerFaultAddr(Address fa);
-  void setHandlerFaultAddrAddr(Address faa, bool set);
-
   bool isInstrumentable();
 
   Address get_address() const;
   unsigned get_size() const;
+  unsigned footprint(); // not const, calls ifunc()->extents()
   std::string get_name() const;
 
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -230,7 +231,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void setParamSize(int s) { paramSize = s; }
 #endif
 
-  void removeFromAll();
   void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
                           const std::list<block_instance*> &seedBlocks,
                           std::set<block_instance*> &reachBlocks);//output
@@ -270,10 +270,15 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void createWrapperSymbol(Address entry, std::string name);
 
   static void destroy(func_instance *f);
-
   void destroyBlock(block_instance *block);
 
+  void split_block_cb(block_instance *b1, block_instance *b2);
+  void add_block_cb(block_instance *block);
+
  private:
+
+  // helper func for block_instance::setNotAbruptEnd(), do not call directly 
+  void removeAbruptEnd(const block_instance *); 
 
   ///////////////////// Basic func info
   //Address addr_; // Absolute address of the start of the function
@@ -287,6 +292,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
+  unsigned int prevBlocksUnresolvedCF_; // num func blocks when calculated
+  unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
 
 
   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is
@@ -305,7 +312,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 #endif
 
    Dyninst::SymtabAPI::Symbol *wrapperSym_;
-
 };
 
 template <class OutputIterator>
@@ -320,9 +326,12 @@ void func_instance::getCallerBlocks(OutputIterator result)
   */
   const PatchBlock::edgelist &ins = entryBlock()->getSources();
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
-       iter != ins.end(); ++iter) {
-    *result = SCAST_EI(*iter)->src();
-    ++result;
+       iter != ins.end(); ++iter) 
+  {
+      if ((*iter)->type() == ParseAPI::CALL) {
+        *result = SCAST_EI(*iter)->src();
+        ++result;
+      }
   }
 }
 

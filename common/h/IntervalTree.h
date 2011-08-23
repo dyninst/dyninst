@@ -42,6 +42,7 @@ class IntervalTree {
   typedef typename std::map<K, std::pair<K, V> > Tree;
   typedef typename Tree::const_iterator c_iter;
   typedef typename Tree::const_reverse_iterator c_r_iter;
+  typedef typename Tree::iterator Iter;
 
  public:
   typedef typename std::pair<K, K> Range;
@@ -135,6 +136,12 @@ class IntervalTree {
   }
 
   void clear() { tree_.clear(); }
+
+  bool update(K lb, K newUB) {
+     Iter iter = tree_.find(lb);
+     if (iter == tree_.end()) return false;
+     iter->second.first = newUB;
+  }
 
  private:
   

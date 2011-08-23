@@ -34,15 +34,15 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
-  typedef std::pair<PatchFunction *, InsnLoc> InsnInstance;
+  typedef std::pair<PatchFunction *, InsnLoc_t> InsnInstance;
   typedef std::vector<PatchFunction *> Functions;
   typedef std::vector<PatchBlock *> Blocks;
   typedef std::vector<PatchEdge *> Edges;
   typedef std::vector<BlockInstance> BlockInstances;
   typedef std::vector<InsnInstance> InsnInstances;
-  typedef std::vector<CallSite> CallSites;
-  typedef std::vector<ExitSite> ExitSites;
-  typedef std::vector<InsnLoc> Insns;
+  typedef std::vector<CallSite_t> CallSites;
+  typedef std::vector<ExitSite_t> ExitSites;
+  typedef std::vector<InsnLoc_t> Insns;
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
@@ -150,9 +150,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     //   we then filter those locations. Points are stored in
     //   their contexts (e.g., Functions or Blocks). 
     //----------------------------------------------------
+    PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
+
+    PATCHAPI_EXPORT bool consistency() const;
 
   private:
-    PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
 
     bool findInsnPointsByType(Location *, Point::Type, PointSet&, bool create = true);
     bool findBlockPointsByType(Location *, Point::Type, PointSet&, bool create = true);
@@ -193,6 +195,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
     bool match(Point *, Location *);
+    bool verify(Location &loc);
     PointMakerPtr point_maker_;
     InstrumenterPtr instor_;
     AddrSpacePtr as_;

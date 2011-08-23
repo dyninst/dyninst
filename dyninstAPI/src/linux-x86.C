@@ -713,7 +713,7 @@ bool process::instrumentLibcStartMain()
        libcIdx++;
     }
     assert(libcIdx != maps_size);
-    //KEVINTODO: address code and data are not always 0,0: need to fix this
+    //TODO: address code and data are not always 0,0: need to fix this
     fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path,0,0,true);
     mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
     addASharedObject(libc);
@@ -824,7 +824,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
                        __FILE__, __LINE__,(int)regionStart, 
                        (int)regionEnd, namebuf);
 
-        //KEVINTODO: address code and data are not always 0,0: need to fix this
+        //TODO: address code and data are not always 0,0: need to fix this
         // create a fileDescriptor and a new mapped_object for the region
         // create it as though it were a shared object
         fileDescriptor fdesc = fileDescriptor(namebuf, 0, 0, true);

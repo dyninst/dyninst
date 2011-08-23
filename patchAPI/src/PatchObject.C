@@ -5,6 +5,7 @@
 #include "AddrSpace.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
+#include "ParseCallback.h"
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -13,7 +14,7 @@ using namespace PatchAPI;
 PatchObject*
 PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm, PatchCallback *cb) {
    PatchObject* obj = new PatchObject(co, base, cm, cb);
-  return obj;
+   return obj;
 }
 
 PatchObject*
@@ -32,6 +33,9 @@ PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, Pat
    else {
       cb_ = cb;
    }
+   // Set up a new callback
+   pcb_ = new PatchParseCallback(this);
+   co_->registerCallback(pcb_);
 }
 
 PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
@@ -43,6 +47,10 @@ PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb
    else  {
       cb_ = cb;
    }
+
+   // Set up a new callback
+   pcb_ = new PatchParseCallback(this);
+   co_->registerCallback(pcb_);
 }
 
 PatchObject::~PatchObject() {
@@ -55,6 +63,7 @@ PatchObject::~PatchObject() {
   for (EdgeMap::iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
     delete iter->second;
   }
+  co_->unregisterCallback(pcb_);
   delete cb_;
 }
 
@@ -90,7 +99,6 @@ void
 PatchObject::removeFunc(ParseAPI::Function* f) {
    FuncMap::iterator iter = funcs_.find(f);
    if (iter == funcs_.end()) return;
-   cb()->destroy(iter->second);
    funcs_.erase(iter);
 }
 
@@ -99,7 +107,8 @@ PatchObject::getBlock(ParseAPI::Block* b, bool create) {
   if (co_ != b->obj()) {
     cerr << "ERROR: block starting at 0x" << b->start()
          << " doesn't exist in this object!\n";
-    exit(0);
+    cerr << "This: " << hex << this << " and our code object: " << co_ << " and block is " << b->obj() << dec << endl;
+    assert(0);
   }
   BlockMap::iterator iter = blocks_.find(b);
   if (iter != blocks_.end()) return iter->second;
@@ -126,7 +135,6 @@ void
 PatchObject::removeBlock(ParseAPI::Block* b) {
    BlockMap::iterator iter = blocks_.find(b);
    if (iter == blocks_.end()) return;
-   cb()->destroy(iter->second);
    blocks_.erase(iter);
 }
 
@@ -135,6 +143,9 @@ PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool c
    EdgeMap::iterator iter = edges_.find(e);
    if (iter != edges_.end()) return iter->second;
    else if (!create) return NULL;
+
+   // We can only create if we have src or trg
+   if (!src && !trg) return NULL;
 
    PatchEdge *ret = cfg_maker_->makeEdge(e, src, trg, this);
    addEdge(ret);
@@ -157,7 +168,6 @@ void
 PatchObject::removeEdge(ParseAPI::Edge *e) {
    EdgeMap::iterator iter = edges_.find(e);
    if (iter == edges_.end()) return;
-   cb()->destroy(iter->second);
    edges_.erase(iter);
 }
 
@@ -165,59 +175,25 @@ void
 PatchObject::copyCFG(PatchObject* parObj) {
   for (EdgeMap::const_iterator iter = parObj->edges_.begin();
        iter != parObj->edges_.end(); ++iter) {
-    cfg_maker_->copyEdge(iter->second, this);
+     edges_[iter->first] = cfg_maker_->copyEdge(iter->second, this);
   }
   // Duplicate all copied blocks
   for (BlockMap::const_iterator iter = parObj->blocks_.begin();
        iter != parObj->blocks_.end(); ++iter) {
-    cfg_maker_->copyBlock(iter->second, this);
+     blocks_[iter->first] = cfg_maker_->copyBlock(iter->second, this);
   }
   // Aaand now functions
   for (FuncMap::const_iterator iter = parObj->funcs_.begin();
        iter != parObj->funcs_.end(); ++iter) {
-    cfg_maker_->copyFunction(iter->second, this);
+     funcs_[iter->first] = cfg_maker_->copyFunction(iter->second, this);
   }
 }
 
 
 bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
    PatchBlock *p2 = getBlock(second, false);
-   if (p2) return true; // ???
+   if (p2) return true;
    p2 = getBlock(second);
-
-   // Okay, get our edges right and stuff. 
-   // We want to modify when possible so that we keep Points on affected edges the same. 
-   // Therefore:
-   // 1) Incoming edges are unchanged. 
-   // 2) Outgoing edges from p1 are switched to p2.
-   // 3) An entirely new edge is created between p1 and p2. 
-   // 4) We fix up Points on the block
-
-   // 1)
-   // ...
-
-   // 2)
-   for (PatchBlock::edgelist::iterator iter = p1->trglist_.begin();
-        iter != p1->trglist_.end(); ++iter) {
-      (*iter)->src_ = p2;
-      p2->trglist_.push_back(*iter);
-   }
-   p1->trglist_.clear();
-
-   // 3)
-   ParseAPI::Block::edgelist &tmp = p1->block()->targets();
-   assert(tmp.size() == 1);
-   ParseAPI::Edge *ft = *(tmp.begin());
-   getEdge(ft, p1, p2);
-
-   // 4) We need to reassign any Points that were in the first block and are
-   // now in the second. This can also include points in any function that
-   // contained p1, but the following call handles that. 
-   p1->splitPoints(p2);
-
-
-   // 5) ??
-   cb()->split_block(p1, p2);
 
    return true;
 }
@@ -228,10 +204,34 @@ std::string PatchObject::format() const {
    stringstream ret;
 
    if (symtab) {
-      ret << symtab->getSymtabObject()->name();
+      //ret << symtab->getSymtabObject()->name();
    }
 
-   ret << hex << "(" << this << ")" << dec << endl;
+   ret << hex << "(" << this << ")" << dec;
    return ret.str();
 
+}
+
+bool PatchObject::consistency(const AddrSpace *as) const {
+   if (!co_) return false;
+   if (as != addr_space_.get()) return false;
+
+   for (FuncMap::const_iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
+      if (!iter->second->consistency()) {
+         cerr << "Error: " << iter->second->name() << " failed consistency!" << endl;
+         return false;
+      }
+   }
+   for (BlockMap::const_iterator iter = blocks_.begin(); iter != blocks_.end(); ++iter) {
+      if (!iter->second->consistency()) {
+         cerr << "Error: block @ " << hex << iter->second->start() << " failed consistency" << endl;
+         return false;
+      }
+   }
+   for (EdgeMap::const_iterator iter = edges_.begin(); iter != edges_.end(); ++iter) {
+      if (!iter->second->consistency()) return false;
+   }
+   if (!cfg_maker_) return false;
+   if (!cb_) return false;
+   return true;
 }

@@ -475,9 +475,7 @@ class Function : public allocatable, public AnnotatableSparse {
     /* Parse updates and obfuscation */
     PARSER_EXPORT void setEntryBlock(Block *new_entry);
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-
-    // Dangerous and should not be used
-    //PARSER_EXPORT void deleteBlocks( vector<Block*> dead_blocks );
+    PARSER_EXPORT void removeBlock( Block* );
 
     PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 

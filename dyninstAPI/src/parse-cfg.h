@@ -93,11 +93,14 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     // cfg access & various predicates 
     bool isShared() const { return containingFuncs() > 1; }
     bool isExitBlock();
+    bool isCallBlock();
     bool isEntryBlock(parse_func * f) const;
     parse_func *getEntryFunc() const;  // func starting with this bock
 
     bool unresolvedCF() const { return unresolvedCF_; }
     bool abruptEnd() const { return abruptEnd_; }
+    void setUnresolvedCF(bool newVal) { unresolvedCF_ = newVal; }
+    void setAbruptEnd(bool newVal) { abruptEnd_ = newVal; }
 
     // misc utility
     int id() const { return blockNumber_; }
@@ -317,7 +320,7 @@ class parse_func : public ParseAPI::Function
    ( const std::set<parse_block*> &exceptBlocks, // input
      const std::list<parse_block*> &seedBlocks, // input
      std::set<parse_block*> &reachableBlocks ); // output
-   ParseAPI::FuncReturnStatus init_retstatus() const;
+   ParseAPI::FuncReturnStatus init_retstatus() const; // only call on defensive binaries
    void setinit_retstatus(ParseAPI::FuncReturnStatus rs); //also sets retstatus
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
                                 // parse at a weird instruction (e.g., arpl)

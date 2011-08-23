@@ -355,6 +355,7 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
     for (; iter != llBinEdits.end(); iter++) {
         if (iter->second->usedATrap()) {
             usedATrap = true;
+            break;
         }
     }
 

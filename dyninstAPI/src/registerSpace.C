@@ -39,7 +39,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
-
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
@@ -164,6 +165,10 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
 
 registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
 {
+    // We just can't trust liveness in defensive mode. 
+    if (BPatch_defensiveMode == iP->func()->obj()->hybridMode()) {
+        return conservativeRegSpace(iP->proc());
+    }
 #if defined(cap_liveness)
    if (BPatch::bpatch->livenessAnalysisOn()) {
       assert(iP);

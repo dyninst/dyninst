@@ -156,7 +156,7 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
    switch(i->type()) {
       case None:
          assert(0);
-         return std::pair<instPoint *, instPoint *>(NULL, NULL);
+         return std::pair<instPoint *, instPoint *>((instPoint*)NULL, (instPoint*)NULL);
       case PreInsn:
          return std::pair<instPoint *, instPoint *>(i,
                                                     postInsn(i->func(),
@@ -180,10 +180,10 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
                                                             i->block()),
                                                     i);
       default:
-         return std::pair<instPoint *, instPoint *>(i, NULL);
+         return std::pair<instPoint *, instPoint *>(i, (instPoint*)NULL);
    }
    assert(0);
-   return std::pair<instPoint *, instPoint *>(NULL, NULL);
+   return std::pair<instPoint *, instPoint *>((instPoint*)NULL, (instPoint*)NULL);
 }
 
 instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
@@ -344,7 +344,7 @@ baseTramp *instPoint::tramp() {
 // In some cases we may not know; function exit points
 // and the like. In this case we return the current block
 // as a "well, this is what we've got..."
-block_instance *instPoint::nextExecutedBlock() const {
+block_instance *instPoint::block_compat() const {
    switch (type_) {
       case FuncEntry:
 	return func()->entryBlock();
@@ -354,6 +354,7 @@ block_instance *instPoint::nextExecutedBlock() const {
       case PostInsn:
       case FuncExit:
       case BlockEntry:
+      case BlockExit:
       case PreCall:
 	return block();
       case PostCall: {
@@ -369,12 +370,13 @@ block_instance *instPoint::nextExecutedBlock() const {
    }
 }
 
-Address instPoint::nextExecutedAddr() const {
+Address instPoint::addr_compat() const {
    // As the above, but our best guess at an address
    switch (type_) {
       case FuncEntry:
 	return func()->addr();
       case FuncExit:
+      case BlockExit:
          // Not correct, but as close as we can get
 	return block()->last();
       case BlockEntry:
@@ -397,6 +399,9 @@ Address instPoint::nextExecutedAddr() const {
 	   return block()->end();
       }
       default:
+          mal_printf("ERROR: returning 0 from instPoint::nextExecutedAddr "
+                  "for point of type %lx in block [%lx %lx)\n", type(),
+                  block()->start(), block()->end());
          return 0;
    }
 }

@@ -621,6 +621,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
+
 #if !defined(os_vxworks)
         if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
            undefDynSyms.push_back(sym);
@@ -1627,6 +1628,14 @@ Symtab::Symtab(const Symtab& obj) :
    for (i=0; i<relocation_table_.size();i++) 
    {
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
+<<<<<<< HEAD:symtabAPI/src/Symtab.C
+=======
+      //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+
+      // Commented out; undefDynSyms is now in the global symbol list
+      //undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
+
+>>>>>>> Defensive:symtabAPI/src/Symtab.C
    }
 
    for (i=0;i<excpBlocks.size();i++)
@@ -2747,9 +2756,15 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     // Find the symbol.
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
+<<<<<<< HEAD:symtabAPI/src/Symtab.C
     if (symsByMangledName[name].size() != 1) 
         fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
                 (unsigned) symsByMangledName[name].size(), name); // */
+=======
+    if (symsByMangledName[name].size() != 1)
+        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
+                (int)symsByMangledName[name].size(), name); // */
+>>>>>>> Defensive:symtabAPI/src/Symtab.C
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.
@@ -3611,20 +3626,61 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_linux) || defined(os_freebsd)
-	Object *obj = getObject();
+#if defined(os_aix)
+   return false;
+#endif
+
+   Object *obj = getObject();
 	if (!obj)
 	{
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
+   // remove forward slashes and back slashes
    size_t size = name.find_last_of("/");
+   size_t lastBS = name.find_last_of("\\");
+   if (lastBS > size) {
+      size = lastBS;
+   }
+
    string filename = name.substr(size+1);
+
+#if ! defined(os_windows) 
    obj->insertPrereqLibrary(filename);
-   return true;
-#else
-   return false;
+#else 
+   // must add a symbol for an exported function belonging to the library 
+   // to get the Windows loader to load the library
+
+   Symtab *symtab = Symtab::findOpenSymtab(name);
+   if (!symtab) {
+      if (!Symtab::openFile(symtab, name)) {
+         return false;
+      }
+   }
+   
+   // find an exported function
+   vector<Symbol*> funcs;
+   symtab->getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
+   vector<Symbol*>::iterator fit = funcs.begin(); 
+   for (; fit != funcs.end() && !(*fit)->isInDynSymtab(); fit++);
+   if (fit == funcs.end()) {
+      return false;
+   }
+   
+   string funcName = string((*fit)->getPrettyName());
+   if (funcName.empty()) {
+      funcName = string((*fit)->getMangledName());
+      if (funcName.empty()) {
+         assert(0);
+         return false;
+      }
+   }
+   symtab->getObject()->addReference((*fit)->getOffset(), 
+                                     name, 
+                                     funcName);
+   obj->addReference((*fit)->getOffset(), filename, funcName);
 #endif
+   return true;
 }
 
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
@@ -3673,6 +3729,20 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
    explicitSymtabRefs_.insert(externalSym->getSymtab());
 
    return true;
+}
+
+// on windows we can't specify the trap table's location by adding a dynamic
+// symbol as we don on windows
+SYMTAB_EXPORT bool Symtab::addTrapHeader_win(Address ptr)
+{
+#if defined(os_windows)
+   getObject()->setTrapHeader(ptr);
+   return true;
+#else
+   ptr = ptr; //keep compiler happy
+   assert(0);
+   return false;
+#endif
 }
 
 bool Symtab::getExplicitSymtabRefs(std::set<Symtab *> &refs) {

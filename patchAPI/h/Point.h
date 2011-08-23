@@ -11,27 +11,27 @@ namespace PatchAPI {
 
    class PatchCallback;
 
-struct EntrySite {
+struct EntrySite_t {
    PatchFunction *func;
    PatchBlock *block;
-EntrySite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+EntrySite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
-struct CallSite {
+struct CallSite_t {
    PatchFunction *func;
    PatchBlock *block;
-CallSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+CallSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
-struct ExitSite {
+struct ExitSite_t {
    PatchFunction *func;
    PatchBlock *block;
-ExitSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+ExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
 
-struct InsnLoc {
+struct InsnLoc_t {
    PatchBlock *block;
    Address addr;
    InstructionAPI::Instruction::Ptr insn;
-InsnLoc(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
+InsnLoc_t(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
    block(b), addr(a), insn(i) {};
 };
       
@@ -39,52 +39,83 @@ InsnLoc(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) :
 // Uniquely identify the location of a point; this + a type
 // uniquely identifies a point.
 struct Location {
-Location() : func(NULL), block(NULL), addr(0), edge(NULL), untrusted(false), type(Illegal) {};
-   // Function
-Location(PatchFunction *f) : func(f), block(NULL), addr(0), edge(NULL), untrusted(false), type(Function) {};
-Location(EntrySite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Entry) {};
-Location(CallSite c) : func(c.func), block(c.block), addr(0), edge(NULL), untrusted(false), type(Call) {};
-Location(ExitSite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Exit) {};
-   // A block in a particular function
-Location(PatchFunction *f, PatchBlock *b) : func(f), block(b), addr(0), edge(NULL), untrusted(true), type(BlockInstance) {};
-   // A trusted instruction (in a particular function)
-Location(PatchFunction *f, InsnLoc l) : func(f), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(InstructionInstance) {};
-   // An untrusted (raw) instruction (in a particular function)
-Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : func(f), block(b), addr(a), insn(i), edge(NULL), untrusted(true), type(InstructionInstance) {};
-   // An edge (in a particular function)
-Location(PatchFunction *f, PatchEdge *e) : func(f), block(NULL), addr(0), edge(e), untrusted(true), type(Edge) {};
-   // A block in general
-Location(PatchBlock *b) : func(NULL), block(b), addr(0), edge(NULL), untrusted(false), type(Block) {};
-   // A trusted instruction in general
-Location(InsnLoc l) : func(NULL), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(Instruction) {};
-   // An untrusted (raw) instruction
-Location(PatchBlock *b, Address a) : func(NULL), block(b), addr(a), edge(NULL), untrusted(true), type(Instruction) {};
-   // An edge
-Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(false), type(Edge) {};
+   static Location Function(PatchFunction *f) { 
+      return Location(f, NULL, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Function_); 
+   }
+   static Location Block(PatchBlock *b) { 
+      return Location(NULL, b, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Block_);
+   }
+   static Location BlockInstance(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, BlockInstance_); 
+   }
+   static Location Instruction(InsnLoc_t l) { 
+      return Location(NULL, l.block, l.addr, l.insn, NULL, true, Instruction_); 
+   }
+   static Location Instruction(PatchBlock *b, Address a) { 
+      return Location(NULL, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, Instruction_); 
+   }
+   static Location InstructionInstance(PatchFunction *f, InsnLoc_t l, bool trusted = false) { 
+      return Location(f, l.block, l.addr, l.insn, NULL, trusted, InstructionInstance_); 
+   }
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a) { 
+      return Location(f, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, InstructionInstance_); 
+   }
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, bool trusted = false) { 
+      return Location(f, b, a, i, NULL, trusted, InstructionInstance_); 
+   }
+   static Location Edge(PatchEdge *e) {
+      return Location(NULL, NULL, 0, InstructionAPI::Instruction::Ptr(), e, true, Edge_); 
+   }
+   static Location EdgeInstance(PatchFunction *f, PatchEdge *e) { 
+      return Location(f, NULL, 0, InstructionAPI::Instruction::Ptr(), e, false, EdgeInstance_);
+   }
+   static Location EntrySite(EntrySite_t e) { 
+      return Location(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Entry_); 
+   }
+   static Location EntrySite(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, Entry_); 
+   }
+   static Location CallSite(CallSite_t c) {
+      return Location(c.func, c.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Call_); 
+   }
+   static Location CallSite(PatchFunction *f, PatchBlock *b) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Call_);
+   }
+   static Location ExitSite(ExitSite_t e) { 
+      return Location(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Exit_);
+   }
+   static Location ExitSite(PatchFunction *f, PatchBlock *b) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Exit_); }
 
    typedef enum {
-      Function,
-      Block,
-      BlockInstance,
-      Instruction,
-      InstructionInstance,
-      Edge,
-      Entry,
-      Call,
-      Exit,
-      Illegal } type_t;
+      Function_,
+      Block_,
+      BlockInstance_,
+      Instruction_,
+      InstructionInstance_,
+      Edge_,
+      EdgeInstance_,
+      Entry_,
+      Call_,
+      Exit_,
+      Illegal_ } type_t;
 
    bool legal(type_t t) { return t == type; }
 
-   InsnLoc insnLoc() { return InsnLoc(block, addr, insn); }
+   InsnLoc_t insnLoc() { return InsnLoc_t(block, addr, insn); }
    
    PatchFunction *func;
    PatchBlock *block;
    Address addr;
    InstructionAPI::Instruction::Ptr insn;
    PatchEdge *edge;
-   bool untrusted;
+   bool trusted;
    type_t type;
+
+private:
+Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, PatchEdge *e, bool u, type_t t) :
+   func(f), block(b), addr(a), insn(i), edge(e), trusted(u), type(t) {};
+
 };
 
 // Used in PointType definition
@@ -167,20 +198,18 @@ class Point {
 
     // Getters
     PATCHAPI_EXPORT size_t size();
-    Address address() const { return addr_; }
-    Type type() const {return type_;}
+    Address addr() const { return addr_; }
+    PATCHAPI_EXPORT Type type() const {return type_;}
     bool empty() const { return instanceList_.empty();}
 
     PATCHAPI_EXPORT PatchFunction* getCallee();
 
-    const ParseAPI::CodeObject* co() const { return co_; }
-    const ParseAPI::CodeSource* cs() const { return cs_; }
-    const PatchObject* obj() const { return obj_; }
+    PATCHAPI_EXPORT PatchObject* obj() const;
     const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-    PatchFunction* getFunction() const { return the_func_; }
-    PatchBlock* getBlock() const { return the_block_; }
-    PatchEdge* getEdge() const { return the_edge_; }
+    PATCHAPI_EXPORT PatchFunction *func() const { return the_func_; }
+    PATCHAPI_EXPORT PatchBlock *block() const { return the_block_; }
+    PATCHAPI_EXPORT PatchEdge *edge() const { return the_edge_; }
 
     // Point type utilities
     
@@ -192,6 +221,8 @@ class Point {
     PATCHAPI_EXPORT static void RemoveType(Point::Type& types, Point::Type trg);
 
     PATCHAPI_EXPORT PatchCallback *cb() const;
+
+    bool consistency() const;
     
   protected:
     bool destroy();
@@ -207,9 +238,6 @@ class Point {
     PatchEdge* the_edge_;
     PatchFunction* the_func_;
     InstructionAPI::Instruction::Ptr insn_;
-    ParseAPI::CodeObject* co_;
-    ParseAPI::CodeSource* cs_;
-    PatchObject* obj_;
 };
 
 inline Point::Type operator|(Point::Type a, Point::Type b) {
@@ -320,6 +348,7 @@ struct BlockPoints {
    InsnPoints preInsn;
    InsnPoints postInsn;
 BlockPoints() : entry(NULL), during(NULL), exit(NULL) {};
+   bool consistency(const PatchBlock *block, const PatchFunction *func) const;
    ~BlockPoints();
 };
 
@@ -327,6 +356,7 @@ struct EdgePoints {
    Point *during;
 EdgePoints() : during(NULL) {};
    ~EdgePoints() { if (during) delete during; };
+   bool consistency(const PatchEdge *edge, const PatchFunction *func) const;
 };
 
 struct FuncPoints {
@@ -337,6 +367,7 @@ struct FuncPoints {
    std::map<PatchBlock *, Point *> postCalls;
 FuncPoints() : entry(NULL), during(NULL) {};
    ~FuncPoints();
+   bool consistency(const PatchFunction *func) const;
 };
 
 

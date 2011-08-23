@@ -149,8 +149,10 @@ bool CodeMover::initialize(const codeGen &templ) {
    for (RelocBlock *iter = cfg_->begin(); iter != cfg_->end(); iter = iter->next()) {
       if (!iter->finalizeCF()) return false;
       
-      if (!iter->generate(templ, buffer_))
+      if (!iter->generate(templ, buffer_)) {
+         cerr << "ERROR: failed to generate RelocBlock!" << endl;
          return false; // Catastrophic failure
+      }
    }
    return true;
 }
@@ -253,8 +255,9 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-   // Needs to be reworked for PatchAPI separation; possibly unnecessary due to 
-   // augmented address lookup capability.
+   // For now, we're doing an annoying iteration over all CodeTracker elements looking
+   // for any padding structures. TODO: roll this into the address lookup
+   // mechanism.
    const CodeTracker::TrackerList &trackers = tracker_->trackers();
    for (CodeTracker::TrackerList::const_iterator iter = trackers.begin(); iter != trackers.end(); ++iter) {
       if ((*iter)->type() == TrackerElement::padding) {

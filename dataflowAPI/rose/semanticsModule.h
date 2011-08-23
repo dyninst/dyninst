@@ -25,7 +25,11 @@ static inline int numBytesInAsmType(SgAsmType* ty) {
     case V_SgAsmTypeWord: return 2;
     case V_SgAsmTypeDoubleWord: return 4;
     case V_SgAsmTypeQuadWord: return 8;
-    default: {std::cerr << "Unhandled type " << ty->class_name() << " in numBytesInAsmType" << std::endl; abort();}
+    default: {
+        std::cerr << "Unhandled type " << ty->class_name() << " in numBytesInAsmType" << std::endl; 
+        abort();
+        return 0;
+    }
   }
 }
 

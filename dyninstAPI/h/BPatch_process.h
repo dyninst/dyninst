@@ -282,7 +282,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     unsigned char *makeShadowPage(Dyninst::Address pageAddress);
     void overwriteAnalysisUpdate
         ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-          std::vector<Dyninst::Address>& deadBlockAddrs, //output
+          std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
           std::vector<BPatch_function*>& owFuncs,     //output
           std::set<BPatch_function *> &monitorFuncs, //output
           bool &changedPages, bool &changedCode ); //output
@@ -541,6 +541,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // it is being debugged, so this is not a complete solution.  
     API_EXPORT(Int, (),
     bool,hideDebugger,());
+
+    API_EXPORT_V(Int, (),
+    void, printDefensiveStats, ());
 
     //  BPatch_process::enableDumpPatchedImage
     //  

@@ -405,7 +405,7 @@ bool IA_IAPI::isFakeCall() const
                 //mal_printf("Saw enter instruction at %lx in isFakeCall, "
                 //           "quitting early, assuming not fake "
                 //           "%s[%d]\n",curAddr, FILE__,__LINE__);
-                //KEVIN: unhandled case, but not essential for correct analysis
+                // unhandled case, but not essential for correct analysis
                 delete ah;
                 return false;
                 break;
@@ -413,7 +413,7 @@ bool IA_IAPI::isFakeCall() const
                 mal_printf("WARNING: saw leave instruction "
                            "at %lx that is not handled by isFakeCall %s[%d]\n",
                            curAddr, FILE__,__LINE__);
-                //KEVIN: unhandled, not essential for correct analysis, would
+                // unhandled, not essential for correct analysis, would
                 // be a red flag if there wasn't an enter ins'n first and 
                 // we didn't end in a return instruction
                 break;
@@ -465,13 +465,11 @@ bool IA_IAPI::isFakeCall() const
                 break;
             }
             default: {
-                //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "
                         "ins'n at %lx (in first block of function at "
                         "%lx) modifies the sp by an unknown amount. "
                         "%s[%d]\n", ah->getAddr(), entry, 
                         FILE__, __LINE__);
-                assert(0); // what stack-altering instruction is this?
                 break;
             } // end default block
             } // end switch
@@ -510,25 +508,25 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-const char* IA_IAPI::isIATcall() const
+bool IA_IAPI::isIATcall(std::string &calleeName) const
 {
     if (!isDynamicCall()) {
-        return NULL;
+        return false;
     }
 
     if (!curInsn()->readsMemory()) {
-        return NULL;
+        return false;
     }
 
     std::set<Expression::Ptr> memReads;
     curInsn()->getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
-        return NULL;
+        return false;
     }
 
     Result memref = (*memReads.begin())->eval();
     if (!memref.defined) {
-        return NULL;
+        return false;
     }
     Address entryAddr = memref.convert<Address>();
 
@@ -538,24 +536,24 @@ const char* IA_IAPI::isIATcall() const
     }
     
     if (!_obj->cs()->isValidAddress(entryAddr)) {
-        return NULL;
+        return false;
     }
 
     // calculate the address of the ASCII string pointer, 
     // skip over the IAT entry's two-byte hint
     void * asciiPtr = _obj->cs()->getPtrToInstruction(entryAddr);
     if (!asciiPtr) {
-        return NULL;
+        return false;
     }
     Address funcAsciiAddr = 2 + *(Address*) asciiPtr;
     if (!_obj->cs()->isValidAddress(funcAsciiAddr)) {
-        return NULL;
+        return false;
     }
 
     // see if it's really a string that could be a function name
     char *funcAsciiPtr = (char*) _obj->cs()->getPtrToData(funcAsciiAddr);
     if (!funcAsciiPtr) {
-        return NULL;
+        return false;
     }
     char cur = 'a';
     int count=0;
@@ -567,10 +565,11 @@ const char* IA_IAPI::isIATcall() const
             ((cur >= 'A' && cur <= 'z') ||
              (cur >= '0' && cur <= '9')));
     if (cur != 0 || count <= 1) 
-        return NULL;
+        return false;
 
     mal_printf("found IAT call at %lx to %s\n", current, funcAsciiPtr);
-    return funcAsciiPtr;
+    calleeName = string(funcAsciiPtr);
+    return true;
 }
 
 bool IA_IAPI::isNopJump() const

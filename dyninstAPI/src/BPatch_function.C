@@ -324,16 +324,13 @@ BPatch_type *BPatch_function::getReturnTypeInt()
 bool BPatch_function::parseNewEdge(Dyninst::Address source, 
                                    Dyninst::Address target)
 {
-   assert(0 && "TODO");
-   return false;
-#if 0
     // mark code bytes as needing an update
     if (BPatch_defensiveMode == func->obj()->hybridMode()) {
         func->obj()->setCodeBytesUpdated(false);
     }
 
     // set up arguments to lower level parseNewEdges and call it
-    block_instance *sblock = func->findBlockByEntry(source);
+    block_instance *sblock = func->obj()->findBlockByEntry(source);
     assert(sblock);
     vector<edgeStub> stubs;
     stubs.push_back(edgeStub(sblock, target, ParseAPI::NOEDGE));
@@ -346,7 +343,6 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
     }
 
     return true;
-#endif
 }
 
 // Removes all instrumentation and relocation from the function and 
@@ -400,7 +396,12 @@ void BPatch_function::getUnresolvedControlTransfers
       // We want to instrument before the last instruction, since we can pull out
       // the target at that point. Technically, we want to instrument the sink edge;
       // but we can't do that yet. 
-      instPoint *point = instPoint::preInsn(func, *iter, (*iter)->last());
+      instPoint *point = NULL;
+      if ((*iter)->containsCall()) {
+          point = instPoint::preCall(func, *iter);
+      } else {
+          point = instPoint::preInsn(func, *iter, (*iter)->last());
+      }
       BPatch_procedureLocation ptType = 
          BPatch_point::convertInstPointType_t(point->type());
       if (ptType == BPatch_locInstruction) {
@@ -408,7 +409,7 @@ void BPatch_function::getUnresolvedControlTransfers
          // jump or a direct jump
          mal_printf("WARNING: ambiguous point type translation for "
                     "insn at %lx, setting to locLongJump %s[%d]\n",
-                    point->nextExecutedAddr(), FILE__,__LINE__);
+                    point->block()->start(), FILE__,__LINE__);
          ptType = BPatch_locLongJump;
       }
       BPatch_point *curPoint = addSpace->findOrCreateBPPoint
@@ -422,8 +423,6 @@ void BPatch_function::getUnresolvedControlTransfers
 void BPatch_function::getAbruptEndPoints
 (BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
 {
-  cerr << "getAbruptEndPoints\n";
-
    const func_instance::BlockSet &blocks = func->abruptEnds();
    for (func_instance::BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       // We just want to know if this code is executed, so use a "start of block" point.
@@ -438,15 +437,24 @@ void BPatch_function::getAbruptEndPoints
 // That we know about. 
 void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
 {
-  // TODO (wenbin) add PreCaller point and PostCaller point types
    std::vector<block_instance *> callerBlocks;
    func->getCallerBlocks(std::back_inserter(callerBlocks));
    for (std::vector<block_instance *>::iterator iter = callerBlocks.begin(); 
-        iter != callerBlocks.end(); ++iter) {
-      instPoint *point = instPoint::preCall(func, *iter);
-      BPatch_point *curPoint = addSpace->findOrCreateBPPoint
-         (this, point, BPatch_locSubroutine);
-      callerPoints.push_back(curPoint);
+        iter != callerBlocks.end(); ++iter) 
+   {
+      vector<func_instance*> callerFuncs;
+      (*iter)->getFuncs(std::back_inserter(callerFuncs));
+      for (vector<func_instance*>::iterator fit = callerFuncs.begin();
+           fit != callerFuncs.end();
+           fit++)
+      {
+          instPoint *point = instPoint::preCall(*fit, *iter);
+          BPatch_function *callerFunc = addSpace->findOrCreateBPFunc
+             (*fit, NULL);
+          BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+             (callerFunc, point, BPatch_locSubroutine);
+          callerPoints.push_back(curPoint);
+      }
    }
 }
 
@@ -456,8 +464,8 @@ void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
   for (func_instance::BlockSet::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {
 */
-  const PatchFunction::blockset &blocks = func->getCallBlocks();
-  for (PatchFunction::blockset::const_iterator iter = blocks.begin();
+  const PatchFunction::Blockset &blocks = func->getCallBlocks();
+  for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {
     block_instance* iblk = SCAST_BI(*iter);
     instPoint *point = instPoint::preCall(func, iblk);
@@ -508,12 +516,6 @@ bool BPatch_function::setHandlerFaultAddrAddr
     }
     return false;
 }
-
-void BPatch_function::fixHandlerReturnAddr(Dyninst::Address addr)
-{
-    func->fixHandlerReturnAddr(addr);    
-}
-
 
 /*
  * BPatch_function::getModule
@@ -920,7 +922,7 @@ bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Addre
    
    // end is a little tougher
    end = func->addr();
-   for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
+   for (PatchFunction::Blockset::const_iterator iter = func->getAllBlocks().begin();
         iter != func->getAllBlocks().end(); ++iter) {
       end = (end < (*iter)->end()) ? (*iter)->end() : end;
    }
@@ -1036,3 +1038,10 @@ bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
    }
    return true;
 }
+
+unsigned int BPatch_function::getFootprintInt()
+{
+    return func->footprint();
+}
+
+

@@ -464,6 +464,21 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
+#if 0
+static unsigned long addTrapTableSpace_win(AddressSpace *as)
+{
+#if defined (os_windows)
+    return as->getAddressWidth() + 16;
+#else
+    return 0;
+#endif
+}
+
+void addTrapTable_win(newSectionPtr, Address tableAddr)
+{
+}
+#endif
+
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
    // Step 1: changes. 
@@ -472,6 +487,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
+
+      // link to the runtime library if tramp guards are currently enabled
+      if ( !symObj->isStaticBinary() && !BPatch::bpatch->isTrampRecursive() ) {
+          assert(!runtime_lib.empty());
+          symObj->addLibraryPrereq((*runtime_lib.begin())->fileName());
+      }
 
       if( symObj->isStaticBinary() && isDirty() ) {
          if( !doStaticBinarySpecialCases() ) {
@@ -937,49 +958,54 @@ bool BinaryEdit::usedATrap() {
     return (!trapMapping.empty());
 }
 
+// Find all calls to sigaction equivalents and replace with
+// calls to dyn_<sigaction_equivalent_name>. 
 bool BinaryEdit::replaceTrapHandler() {
-    // Find all calls to sigaction and replace with
-    // calls to dyn_sigaction. 
 
-    // We haven't code generated yet, so we're working 
-    // with addInst.
-
-    func_instance *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
-    assert(dyn_sigaction);
-
-    func_instance *dyn_signal = findOnlyOneFunction("dyn_signal");
-    assert(dyn_signal);
+    vector<string> sigaction_names;
+    OS::get_sigaction_names(sigaction_names);
 
     pdvector<func_instance *> allFuncs;
     getAllFunctions(allFuncs);
+    
     bool replaced = false;
-    for (unsigned i = 0; i < allFuncs.size(); i++) {
-        func_instance *func = allFuncs[i];        
-        assert(func);
-	//        for (func_instance::BlockSet::const_iterator iter = func->blocks().begin();
-	//   iter != func->blocks().end(); ++iter) {
-        for (PatchFunction::blockset::const_iterator iter = func->getAllBlocks().begin();
-             iter != func->getAllBlocks().end(); ++iter) {
-	  block_instance* iblk = SCAST_BI(*iter);
-           if (iblk->containsCall()) {
-              std::string calleeName = iblk->calleeName();
-              
-              if ((calleeName == "sigaction") ||
-                  (calleeName == "_sigaction") ||
-                  (calleeName == "__sigaction")) {
-                 modifyCall(iblk, dyn_sigaction, func);
-                 replaced = true;
-              }
-              else if ((calleeName == "signal") ||
-                       (calleeName == "_signal") ||
-                       (calleeName == "__signal"))
-              {
-                 modifyCall(iblk, dyn_sigaction, func);
-                 replaced = true;
-              }
-           }
-        }
+    for (unsigned nidx = 0; nidx < sigaction_names.size(); nidx++) 
+    {
+        // find replacement function
+        std::stringstream repname;
+        repname << "dyn_" << sigaction_names[nidx];
+        func_instance *repfunc = findOnlyOneFunction(repname.str().c_str());
+        assert(repfunc);
+    
+        // replace all callsites to current sigaction function
+        for (unsigned i = 0; i < allFuncs.size(); i++) {
+            func_instance *func = allFuncs[i];        
+            assert(func);
+
+            for (PatchFunction::Blockset::const_iterator iter = func->getAllBlocks().begin();
+                 iter != func->getAllBlocks().end(); ++iter) {
+                block_instance* iblk = SCAST_BI(*iter);
+                if (iblk->containsCall()) {
+                    
+                    // the function name could have up to two underscores
+                    // prepended (e.g., sigaction, _sigaction, __sigaction),
+                    // try all three possibilities for each name
+                    std::string calleeName = iblk->calleeName();
+                    std::string sigactName = sigaction_names[nidx];
+                    for (int num_s=0; 
+                         num_s <= 2; 
+                         num_s++, sigactName.append(string("_"),0,1)) {
+                        if (calleeName == sigactName) {
+                            modifyCall(iblk, repfunc, func);
+                            replaced = true;
+                            break;
+                        }
+                    }
+                }
+            } // for each func in the rewritten binary
+        } // for each sigaction-equivalent function to replace
     }
+
     if (!replaced) return true;
 
     /* PatchAPI stuffs */

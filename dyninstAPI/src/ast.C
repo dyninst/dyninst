@@ -1105,7 +1105,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          // Yay.
         
          BPatch_addressSpace *bproc = (BPatch_addressSpace *) gen.addrSpace()->up_ptr();
-         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         
          const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
          assert(ma);
@@ -1620,7 +1620,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(gen.point());
         
         BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
                     gen.point(), gen.point()->insnAddr());
@@ -1647,7 +1647,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(gen.point());
         
         BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point(), BPatch_point::convertInstPointType_t(gen.point()->type()));
         ma = bpoint->getMemoryAccess();
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");
@@ -1926,7 +1926,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     if (retReg == REG_NULL) return false;
 
     emitVload(loadConstOp, 
-              (Address) gen.point()->nextExecutedAddr(),
+              (Address) gen.point()->addr_compat(),
               retReg, retReg, gen, noCost);
     return true;
 }
@@ -1951,10 +1951,12 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
 bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             bool noCost,
                                             Address & retAddr,
-                                            Register &retReg) {
-   if (gen.point()->type() != instPoint::PreCall &&
+                                            Register &retReg) 
+{
+    if (gen.point()->type() != instPoint::PreCall &&
        gen.point()->type() != instPoint::FuncExit &&
-       gen.point()->type() != instPoint::PreInsn) return false;
+       gen.point()->type() != instPoint::PreInsn) 
+       return false;
 
    InstructionAPI::Instruction::Ptr insn = gen.point()->block()->getInsn(gen.point()->block()->last());
    if (insn->getCategory() == c_ReturnInsn) {
@@ -2882,7 +2884,7 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         index = 0;
         return;
     }
-    Address addr = gen.point()->nextExecutedAddr();     //Offset of inst point from function base address
+    Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
     for(unsigned i=0; i< ranges_->size();i++){
         if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
             index = i;

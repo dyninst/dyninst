@@ -466,66 +466,16 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     }
     // Otherwise keep the current value
     springboard_cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
-
-
-#if 0
-    // We don't want to delete these, actually, because we can conflict between a springboard
-    // addition and a synchronization operation.
-
-    while (true)
-    {
-        std::map<Address, int>::iterator lb = smap.lower_bound(offset);
-        if (lb != smap.end()) {
-            // Found a legal lower bound
-            if (lb->first >= offset &&
-                lb->first < (offset + size)) 
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-            if ((lb->first + lb->second) >= offset &&
-                (lb->first + lb->second) < (offset + size))
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-        }
-        // Lower bound is "first entry that is greater than the search term",
-        // so we need to try and back it up to check that one too
-        if (lb != smap.begin()) {
-            lb--;
-            if (lb->first >= offset &&
-                lb->first < (offset + size)) 
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-            if ((lb->first + lb->second) >= offset &&
-                (lb->first + lb->second) < (offset + size))
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-        }
-        break;
-    }
-#endif
-
-
 }
 
 void MemoryEmulator::removeSpringboards(func_instance * func) 
 {
    malware_cerr << "untracking springboards from deadfunc " << hex << func->addr() << dec << endl;
 
-   const func_instance::BlockSet & blocks = func->blocks();
-   func_instance::BlockSet::const_iterator bit = blocks.begin();
+   const PatchFunction::Blockset & blocks = func->getAllBlocks();
+   PatchFunction::Blockset::const_iterator bit = blocks.begin();
    for (; bit != blocks.end(); bit++) {
-      removeSpringboards((*bit));
+      removeSpringboards(SCAST_BI(*bit));
    }
 }
 
@@ -556,4 +506,20 @@ void  MemoryEmulator::debug() const {
 	}
 	elements.clear();
 
+}
+
+void MemoryEmulator::addPOPAD(Address addr)
+{
+    emulatedPOPADs_.insert(addr);
+}
+
+bool MemoryEmulator::isEmulPOPAD(Address addr)
+{
+    Address orig = -1;
+    std::vector<func_instance*> dontcare1;
+    baseTramp *dontcare2;
+    if (!aS_->getAddrInfo(addr, orig, dontcare1, dontcare2)) {
+        assert(0);
+    }
+    return emulatedPOPADs_.end() != emulatedPOPADs_.find(orig);
 }

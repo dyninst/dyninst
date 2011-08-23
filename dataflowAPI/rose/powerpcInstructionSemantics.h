@@ -116,6 +116,7 @@ struct PowerpcInstructionSemantics {
       }
       default: fprintf(stderr, "Bad variant %s in read32\n", e->class_name().c_str()); abort();
     }
+    return number<32>(0);
   }
 
   Word(32) readEffectiveAddress(SgAsmExpression* expr) {
@@ -139,6 +140,7 @@ struct PowerpcInstructionSemantics {
 
       default: fprintf(stderr, "Bad variant %s in read16\n", e->class_name().c_str()); abort();
     }
+    return number<16>(0);
   }
 
 
@@ -154,6 +156,7 @@ struct PowerpcInstructionSemantics {
 
       default: fprintf(stderr, "Bad variant %s in read8\n", e->class_name().c_str()); abort();
     }
+    return number<8>(0);
   }
 
 

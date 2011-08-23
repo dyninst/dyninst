@@ -247,6 +247,16 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
    return catchup_threads;
 }
 
+BPatch_function * BPatchSnippetHandle::getFuncInt()
+{
+    if (!mtHandles_.empty()) {
+        func_instance *func = mtHandles_.back()->instP()->func();
+        BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
+        return bpfunc;
+    }
+    return NULL;
+}
+
 
 BPatch_image * BPatch_addressSpace::getImageInt()
 {
@@ -277,6 +287,11 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      return false;
    }
 
+   mal_printf("deleting snippet handle %p from func at %lx, point at %lx of type %d\n",
+              (Address)handle->getFunc()->getBaseAddr(), 
+              handle->mtHandles_.empty() ? 0 : handle->mtHandles_[0]->instP()->addr(),
+              handle->mtHandles_.empty() ? -1 : handle->mtHandles_[0]->instP()->type());
+
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
    if ( handle->getProcess() && handle->mtHandles_.size() > 0 &&
@@ -300,7 +315,6 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        bPoint->removeSnippet(handle);
      }
 
-   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
    handle->mtHandles_.clear();
 
    if (pendingInsertions == NULL) {
@@ -309,6 +323,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      finalizeInsertionSet(false, &tmp);
    }
 
+   //delete handle;
    return true;
 }
 
@@ -321,8 +336,8 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
  * snippet     The replacing snippet
  */
 
-bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
-      BPatch_snippet *snippet)
+bool BPatch_addressSpace::replaceCodeInt(BPatch_point * /*point*/,
+                                         BPatch_snippet * /*snippet*/)
 {
    // Need to reevaluate how this code works. I don't think it should be
    // point-based, though.
@@ -894,12 +909,12 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
         bppoint->recordSnippet(when, order, retHandle);
       }
    }
-
    if (pendingInsertions == NULL) {
-     // Trigger it now
+     // There's no insertion set, instrument now
      bool tmp;
-     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
-   }
+     finalizeInsertionSet(false, &tmp);
+   }   
+
    return retHandle;
 }
 

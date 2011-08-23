@@ -37,7 +37,7 @@
 #if !defined (_R_E_MEM_EMULATOR_H_)
 #define _R_E_MEM_EMULATOR_H_
 
-#include "dyninstAPI/src/Relocation/Atoms/Atom.h"
+#include "dyninstAPI/src/Relocation/Widgets/Widget.h"
 #include "dyninstAPI/src/codegen.h"
 #include <stack>
 class registerSlot;
@@ -48,9 +48,9 @@ namespace Relocation {
 
 class MemEmulatorTranslator;
 
-class MemEmulator : public Atom {
+class MemEmulator : public Widget {
   friend class MemEmulatorTranslator;
-  typedef std::map<Register, TracePtr> TranslatorMap;
+  typedef std::map<Register, RelocBlockPtr> TranslatorMap;
  public:
    typedef dyn_detail::boost::shared_ptr<MemEmulator> Ptr;
    
@@ -58,7 +58,7 @@ class MemEmulator : public Atom {
 		     Address addr,
 		     instPoint *point);
 
-   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
+   virtual bool generate(const codeGen &, const RelocBlock *, CodeBuffer &);
 
    virtual ~MemEmulator() {};
    virtual std::string format() const;
@@ -77,7 +77,7 @@ class MemEmulator : public Atom {
       {};
 
    // Set up the codeGen structures we use to hold code. 
-   bool initialize(const codeGen &templ, const Trace *);
+   bool initialize(const codeGen &templ, const RelocBlock *);
 
    // Handle a0-a3 implicit EAX uses, or ESI/EDI instructions
    bool generateViaOverride(CodeBuffer &buffer);
@@ -90,6 +90,9 @@ class MemEmulator : public Atom {
 
    // Handle ESI/EDI instructions
    bool generateESI_EDI(CodeBuffer &buffer);
+
+   // Handle POPAD instructions
+   bool generatePOPAD(CodeBuffer &buffer);
 
    // Drop in a trap for later debugging assistance
    void insertDebugMarker();
@@ -142,50 +145,6 @@ class MemEmulator : public Atom {
    bool pop(Register);
    Address getTranslatorAddr(bool wantShiftFunc);
 
-#if 0
-
-
-
-   bool generateViaModRM(const codeGen &gen, const Trace *, CodeBuffer &buffer);
-   bool generateViaOverride(const codeGen &gen, const Trace *, CodeBuffer &buffer);
-
-   bool initialize(codeGen &gen);
-   bool checkLiveness(codeGen &gen);   
-   bool setupFrame(bool, codeGen &gen);
-   bool computeEffectiveAddress(codeGen &gen);
-   bool teardownFrame(codeGen &gen);
-   bool trailingTeardown(codeGen &gen);
-
-   bool saveFlags(codeGen &gen);
-
-   bool restoreFlags(codeGen &gen);
-
-   bool preCallSave(codeGen &gen);
-   bool emitCallToTranslator(CodeBuffer &buffer);
-   bool postCallRestore(codeGen &gen);
-
-
-   bool pushRegIfLive(registerSlot *reg, codeGen &gen);
-   bool popRegIfSaved(registerSlot *reg, codeGen &gen);
-   Address getTranslatorAddr(bool wantShift);
-   
-   bool generateOrigAccess(codeGen &gen); 
-
-   bool stealEffectiveAddr(Register &ret, codeGen &gen);
-
-   bool usesESP();
-   bool emulateESPUse(codeGen &gen);
-
-   std::pair<bool, bool> getImplicitRegs(codeGen &gen);
-   bool emulateCommon(codeGen &gen);
-   bool emulatePush(codeGen &gen);
-   bool emulatePop(codeGen &gen);
-
-
-
-   bool generateImplicit(const codeGen &templ, const Trace *t, CodeBuffer &buffer);
-   bool generateEAXMove(int opcode, const codeGen &templ, const Trace *t, CodeBuffer &buffer);
-#endif
 
    /// Members
    Register effAddr;

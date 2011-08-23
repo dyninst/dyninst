@@ -32,7 +32,3 @@ block_instance *edge_instance::src() const {
 block_instance *edge_instance::trg() const {
   return SCAST_BI(trg_);
 }
-
-void edge_instance::destroy(edge_instance *e) {
-   delete e;
-}

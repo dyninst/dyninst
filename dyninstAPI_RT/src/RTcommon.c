@@ -235,6 +235,7 @@ void DYNINSTBaseInit()
  *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
+ *    Windows: called from DllMain, which exists in lieu of libdyninstAPI_RT_init
  *
  * This is only called in the Dynamic instrumentation case.  Static
  * libraries don't call this.
@@ -798,8 +799,12 @@ void* dyninstTrapTranslate(void *source,
          
          for (;;) {
             mid = (min + max) / 2;
-            if (mid == prev)
+            if (mid == prev) {
+                fprintf(stderr,"ERROR: dyninstTrapTranslate couldn't find "
+                        "entry for 0x%lx: min=%lx mid=%lx max=%lx prev=%lx\n",
+                        source,min,mid,max,prev);
                break;
+            }
             prev = mid;
             
             if ((*trap_table)[mid].source < source)
@@ -822,7 +827,7 @@ void* dyninstTrapTranslate(void *source,
       }         
    } while (local_version != *table_version);
 
-   /*   fprintf(stderr, "Mapped %p to %p\n", source, target);*/
+   // rtdebug_printf "Mapped %p to %p\n", source, target);
    return target;
 }
 

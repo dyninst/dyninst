@@ -40,6 +40,8 @@
 using namespace Dyninst;
 using namespace Relocation;
 
+extern int dyn_debug_traps;
+
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
 std::set<Address> SpringboardBuilder::relocTraps_; 
@@ -112,7 +114,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
-
    if (patch_debug_springboard) {
       cerr << "SPRINGBOARD GENERATION" << endl;
       debugRanges();
@@ -213,11 +214,11 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
-   
+
    bool usedTrap = false;
    generateBranch(r.from, r.destinations.begin()->second.second, gen);
 
-   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if (dyn_debug_traps || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 

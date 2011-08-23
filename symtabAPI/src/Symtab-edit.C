@@ -470,5 +470,3 @@ SYMTAB_EXPORT bool Symtab::updateRelocations(Address start,
    return true;
 }
 
-
-

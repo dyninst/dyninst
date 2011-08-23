@@ -78,6 +78,7 @@ public:
   static bool execute_file(char *);
   static void unlink(char *);
   static bool executableExists(const std::string &file);
+  static void get_sigaction_names(std::vector<std::string> &names);
 };
 
 // Temporary prototype for a remote debugging BPatch interface.

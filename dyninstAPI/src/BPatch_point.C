@@ -82,10 +82,6 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
 {
    assert(point->func() == _func->lowlevel_func());
 
-   if (_pointType == BPatch_subroutine)
-      dynamic_call_site_flag = 2; // dynamic status unknown
-   else
-      dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
    // I'd love to have a "loop" constructor, but the code structure
    // doesn't work right. We create an entry point as a set of edge points,
    // but not all edge points are loop points.
@@ -115,7 +111,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
-   dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
+   dynamic_point_monitor_func(NULL),edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -239,111 +235,6 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
-std::string BPatch_point::getCalledFunctionNameInt() {
-        assert(point->block());
-        return point->block()->obj()->getCalleeName(point->block());
-}
-
-/*  BPatch_point::getCFTargets
- *  Returns true if the point corresponds to a control flow
- *  instruction whose target can be statically determined, in which
- *  case "target" is set to the targets of the control flow instruction
- */
-bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
-{
-   assert(0 && "TODO");
-   return false;
-#if 0
-    bool ret = true;
-    if (point->isDynamic()) {
-        if (point->getSavedTargets(targets)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    switch(point->getPointType())
-    {
-      case callSite:
-      {
-        Address targ = point->callTarget();
-        if (targ) {
-            targets.push_back(targ);
-        } else {
-            ret = false;
-        }
-        break;
-      }
-      case abruptEnd:
-        targets.push_back( point->block()->end() );
-        break;
-      default:
-      { // branch or jump.
-        // don't miss targets to invalid addresses
-        // (these get linked to the sink block by ParseAPI)
-        using namespace ParseAPI;
-        Address baseAddr = point->block()->start()
-                         - point->block()->llb()->start();
-        Block::edgelist & trgs = point->block()->llb()->targets();
-        Block::edgelist::iterator iter = trgs.begin();
-        mapped_object *obj = point->func()->obj();
-        Architecture arch = point->proc()->getArch();
-
-        for ( ; iter != trgs.end(); iter++) {
-            if ( ! (*iter)->sinkEdge() ) {
-                targets.push_back( baseAddr + (*iter)->trg()->start() );
-            } else {
-                // if this is a cond'l branch taken or direct
-                // edge, decode the instruction to get its target,
-                // otherwise we won't find a target for this insn
-                switch((*iter)->type()) {
-                case INDIRECT:
-                    break;
-                case COND_NOT_TAKEN:
-                case FALLTHROUGH:
-                    if (point->proc()->proc() &&
-                        BPatch_defensiveMode ==
-                        point->proc()->proc()->getHybridMode())
-                    {
-                        assert( 0 && "should be an abrupt end point");
-                    }
-                    break;
-                default:
-                { // this is a cond'l taken or jump target
-#if defined(cap_instruction_api)
-                using namespace InstructionAPI;
-                RegisterAST::Ptr thePC = RegisterAST::Ptr
-                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
-
-                void *ptr = obj->getPtrToInstruction(point->addr());
-                assert(ptr);
-                InstructionDecoder dec
-                    (ptr, InstructionDecoder::maxInstructionLength, arch);
-                Instruction::Ptr insn = dec.decode();
-                Expression::Ptr trgExpr = insn->getControlFlowTarget();
-                    // FIXME: templated bind()
-                trgExpr->bind(thePC.get(),
-                              Result(s64, point->block()->llb()->lastInsnOffset()));
-                Result actualTarget = trgExpr->eval();
-                if(actualTarget.defined)
-                {
-                    Address targ = actualTarget.convert<Address>() + baseAddr;
-                    targets.push_back( targ );
-                }
-                break;
-                } // end default case
-                } // end edge-type switch
-#endif
-            }
-        }
-        break;
-      }
-    }
-
-    return ret;
-#endif
-}
-
 Address BPatch_point::getCallFallThroughAddr()
 {
     assert(point);
@@ -352,12 +243,6 @@ Address BPatch_point::getCallFallThroughAddr()
     edge_instance *fte = point->block()->getFallthrough();
     if (fte && !fte->sinkEdge()) return fte->trg()->start();
     else return point->block()->end();
-}
-
-bool BPatch_point::getSavedTargets(vector<Address> & targs)
-{
-   assert(0);
-   return false;
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
@@ -381,6 +266,7 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     assert(point);
     // Try to find it... we do so through an InstrucIter
     Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
+    if (!i) return NULL;
     BPatch_memoryAccessAdapter converter;
 
     attachMemAcc(converter.convert(i, point->insnAddr(), point->proc()->getAddressWidth() == 8));
@@ -454,7 +340,7 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &)
  */
 void *BPatch_point::getAddressInt()
 {
-    return (void *)point->nextExecutedAddr();
+    return (void *)point->addr_compat();
 }
 
 
@@ -487,11 +373,36 @@ bool BPatch_point::isDynamicInt()
       case instPoint::PreCall:
       case instPoint::PostCall:
          return point->block()->containsDynamicCall();
-         break;
       case instPoint::EdgeDuring:
-         return point->edge()->sinkEdge();
-         break;
+         switch(point->edge()->type()) {
+            case ParseAPI::INDIRECT:
+               return true;
+            case ParseAPI::CALL:
+               return point->edge()->src()->containsDynamicCall();
+               break;
+            default:
+               return false;
+          }
+         return false;
+      case instPoint::FuncExit:
+      case instPoint::BlockEntry:
+      case instPoint::BlockExit:
+         return false;
       default:
+         if (point->addr() == point->block()->last()) {
+             if (point->block()->containsCall()) {
+                 return point->block()->containsDynamicCall();
+             }
+             PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
+             for (PatchAPI::PatchBlock::edgelist::iterator eit = trgs.begin();
+                  eit != trgs.end(); 
+                  eit++)
+             {
+                 if ((*eit)->type() == ParseAPI::INDIRECT) {
+                     return true;
+                 }
+             }
+         }
          return false;
    }
 }
@@ -613,7 +524,7 @@ bool BPatch_point::stopMonitoringInt()
  * insns        A pointer to a buffer in which to return the instructions.
  */
 
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
+int BPatch_point::getDisplacedInstructionsInt(int /*maxSize*/, void* /*insns*/)
 {
    return 0;
 }
@@ -702,7 +613,6 @@ bool BPatchToInternalArgs(BPatch_point *point,
 
 BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
 {
-    BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
     switch((instPoint::Type) intType) {
        case instPoint::FuncEntry:
           return BPatch_locEntry;
@@ -815,4 +725,9 @@ instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
    }
    assert(0);
    return NULL;
+}
+
+std::string BPatch_point::getCalledFunctionNameInt() {
+	assert(point->block());
+	return point->block()->obj()->getCalleeName(point->block());
 }

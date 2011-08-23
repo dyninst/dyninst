@@ -47,6 +47,7 @@ class BPatch_process;
 class BPatch_point;
 class BPatch_thread;
 class HybridAnalysisOW;
+class DefenseReport;
 class BPatchSnippetHandle;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
@@ -85,22 +86,52 @@ private:
 
 public:
 
+    class AnalysisStats {
+      public: 
+        AnalysisStats() {
+            exceptions = 0; 
+            winApiCallbacks = 0;
+            unpackCount = 0;
+            owCount = 0; 
+            owBytes = 0; 
+            owExecFunc = 0; 
+            owFalseAlarm = 0; 
+        }
+        int exceptions;     //done
+        int winApiCallbacks;
+        int unpackCount;    //done
+        int owCount;        //done
+        int owBytes;        //done
+        int owExecFunc;
+        int owFalseAlarm;   //done
+    };
+
+
     HybridAnalysis(BPatch_hybridMode mode, BPatch_process *proc);
     ~HybridAnalysis();
 
     // sets up instrumentation, if there will be any
     bool init(); 
+
     // returns false if conversion has no effect or is not possible
     bool setMode(BPatch_hybridMode mode);
+
+    const HybridAnalysis::AnalysisStats & getStats();
 
     HybridAnalysisOW * hybridOW() { return hybridow_; };
     BPatch_process *proc() { return proc_; };
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
-    bool needsSynchronization(BPatch_point *point);
+    //bool needsSynchronization(BPatch_point *point);
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
+
+    void getCallBlocks(Address retAddr, 
+                       func_instance *retFunc,
+                       block_instance *retBlock,
+                       pair<ParseAPI::Block*, Address> & returningCallB, // output
+                       set<ParseAPI::Block*> & callBlocks); // output
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
     std::map< BPatch_point* , SynchHandle* > & synchMap_post();
@@ -146,8 +177,11 @@ private:
                             bool instrumentReturns=false,
                             bool syncShadow = false);
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
-                        BPatch_function *calledFunc) ;
-    void removeInstrumentation(BPatch_function *func, bool useInsertionSet);
+                        BPatch_function *calledFunc,
+                        bool foundByRet) ;
+    void removeInstrumentation(BPatch_function *func, 
+                               bool useInsertionSet, 
+                               bool handlesWereDeleted = false);
     int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
     bool hasEdge(BPatch_function *func, Dyninst::Address source, Dyninst::Address target);
@@ -166,19 +200,34 @@ private:
                              bool useInsertionSet );
     bool addIndirectEdgeIfNeeded(BPatch_point *srcPt, Dyninst::Address target);
 
+    // utility functions that could go in another class, but that no one else 
+    // really needs
+    bool getCallAndBranchTargets(block_instance *block, std::vector<Address> & targs);
+    bool getCFTargets(BPatch_point *point, vector<Address> &targets);
+
+    // needs to call removeInstrumentation
+    friend void BPatch_process::overwriteAnalysisUpdate
+        ( std::map<Dyninst::Address,unsigned char*>& owPages, 
+        std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
+          std::vector<BPatch_function*>& owFuncs,     
+          std::set<BPatch_function *> &monitorFuncs, 
+          bool &changedPages, bool &changedCode ); 
+
     // variables
     std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 
-    std::map < BPatch_function*, 
-               std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
+    std::map< BPatch_function*, 
+              std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     std::map< BPatch_point* , SynchHandle* > synchMap_pre_; // maps from prePt
     std::map< BPatch_point* , SynchHandle* > synchMap_post_; // maps from postPt
     std::set< BPatch_function *> instShadowFuncs_;
     std::set< std::string > skipShadowFuncs_;
     std::map< BPatch_function *, BPatch_function *> replacedFuncs_;
+    std::set< BPatch_point* > cachePoints_;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;
     HybridAnalysisOW *hybridow_;
+    AnalysisStats stats_;
 
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;
@@ -304,9 +353,13 @@ public:
 
 private:
     // gets biggest loop without unresolved/multiply resolved indirect ctrl flow that it can find
-    BPatch_basicBlockLoop* getWriteLoop(BPatch_function &func, Dyninst::Address writeAddr);
+    BPatch_basicBlockLoop* getWriteLoop(BPatch_function &func, 
+                                        Dyninst::Address writeAddr, 
+                                        bool allowParentLoop = true);
 
-    // recursively add all functions that contain calls, 
+    BPatch_basicBlockLoop* getParentLoop(BPatch_function &func, Dyninst::Address writeAddr);
+
+// recursively add all functions that contain calls, 
     // return true if the function contains no unresolved control flow
     // and the function returns normally
     bool addFuncBlocks(owLoop *loop, std::set<BPatch_function*> &addFuncs, 
@@ -337,6 +390,12 @@ private:
     std::set<owLoop*> loops;
     std::map<Dyninst::Address,int> blockToLoop;//KEVINCOMMENT: makes non-guaranteed assumption that only one loop per block, would it be better to use the last instruction address?
     std::map<int, owLoop*> idToLoop;
+
+    // number of times a write instruction has hit, used to trigger
+    // stackwalks for finding inter-function loops when number of hits 
+    // exceeds a threshold
+    map<Dyninst::Address,int> writeHits;
+    static const int HIT_THRESHOLD = 0;
 
     BPatchCodeOverwriteBeginCallback bpatchBeginCB;
     BPatchCodeOverwriteEndCallback bpatchEndCB;

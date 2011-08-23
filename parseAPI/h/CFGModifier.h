@@ -60,18 +60,24 @@ class CFGModifier {
 
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
-   PARSER_EXPORT static bool split(Block *, Address, bool trust = false);
+   // Newlast is the new "last insn" of the original block; provide it if
+   // you don't want to waste time disassembling to figure it out.
+   PARSER_EXPORT static Block *split(Block *, Address, bool trust = false, Address newlast = -1);
    
    // Parse and add a new region of code to a CodeObject
    // The void * becomes "owned" by the CodeObject, as it's used
    // as a backing store; it cannot be ephemeral.
-   PARSER_EXPORT static bool insert(CodeObject *obj, 
+   // Returns the new entry block. 
+   PARSER_EXPORT static Block *insert(CodeObject *obj, 
                                     Address base, void *data, 
-                                    unsigned size, Architecture arch);
+                                    unsigned size);
 
    // Remove a block from the CFG; the block must be unreachable
-   // (that is, have no in-edges). 
-   PARSER_EXPORT static bool remove(Block *);
+   // (that is, have no in-edges) unless force is true.
+   PARSER_EXPORT static bool remove(Block *, bool force = false);
+
+   // As the above, but for functions. 
+   PARSER_EXPORT static bool remove(Function *);
 };
 
 class InsertedRegion : public CodeRegion {

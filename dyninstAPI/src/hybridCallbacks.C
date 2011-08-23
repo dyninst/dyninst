@@ -38,6 +38,7 @@
 #include "instPoint.h"
 #include "function.h"
 #include "MemoryEmulator/memEmulator.h"
+#include "PatchModifier.h"
 
 #include "mapped_object.h"
 
@@ -253,6 +254,7 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, Address excRecAdd
 {
     mal_printf("\nAt signalHandlerEntry(%lx , %lx)\n", 
                point->getAddress(), (Address)excRecAddr);
+    stats_.exceptions++;
     // calculate the offset of the fault address in the EXCEPTION_RECORD
     EXCEPTION_RECORD record;
     proc()->lowlevel_process()->readDataSpace(
@@ -349,7 +351,7 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 	{
 		BPatch_function * bpfunc = proc()->findOrCreateBPFunc(*iter, NULL);
 		if (!bpfunc) continue;
-		bpfunc->getModule()->removeFunction(bpfunc, true);
+        PatchAPI::PatchModifier::remove(bpfunc->lowlevel_func());
 	}
 
 	proc()->lowlevel_process()->getMemEm()->removeRegion(virtualFreeAddr_, virtualFreeSize_);
@@ -387,24 +389,20 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *)
     if (diter->second.isInterrupt) {
         resumePC += 1;
     }
-    mal_printf("Program will resume at %lx\n", resumePC);
 
     // parse at the resumePC address, if necessary
     vector<BPatch_function *> funcs;
     proc()->findFunctionsByAddr((Address)resumePC,funcs);
     if (funcs.empty()) {
-        analyzeNewFunction(point, (Address)resumePC, true, true);
+        mal_printf("Program will resume in new function at %lx\n", resumePC);
     }
     else {
-        // add a springboard at resumePC
-        for (vector<BPatch_function*>::iterator fit= funcs.begin();
-             fit != funcs.end();
-             fit++) 
-        {
-            //KEVINTODO: force springboard to be added at resumePC
-        }
+        mal_printf("Program will resume at %lx in %d existing functions, "
+                   "will add shared function starting at %lx\n", 
+                   resumePC, funcs.size(), resumePC);
     }
-    point->getFunction()->fixHandlerReturnAddr((Address)resumePC);
+    analyzeNewFunction(point, (Address)resumePC, true, true);
+
     mal_printf("Exception handler exiting at %lx will resume execution at "
                 "%lx %s[%d]\n",
                 point->getAddress(), resumePC, FILE__,__LINE__);
@@ -442,7 +440,8 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     // parse, immediately after the current block
     vector<Address> *targets = new vector<Address>;
     Address nextInsn =0;
-    point->getCFTargets(*targets);
+    point->llpoint()->block()->setNotAbruptEnd();
+    getCFTargets(point,*targets);
     assert(!targets->empty());
     nextInsn = (*targets)[0];
     delete(targets);
@@ -457,6 +456,143 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     proc()->finalizeInsertionSet(false);
 }
 #endif
+
+static int getPreCallPoints(ParseAPI::Block* blk, 
+                         BPatch_process *proc, 
+                         vector<BPatch_point*> &points) 
+{
+    if (!((parse_block*)blk)->isCallBlock()) {
+        return 0;
+    }
+
+    using namespace ParseAPI;
+    process *llproc = proc->lowlevel_process();
+    vector<ParseAPI::Function*> pFuncs;
+
+    blk->getFuncs(pFuncs); 
+    for (vector<Function*>::iterator fit = pFuncs.begin(); 
+         fit != pFuncs.end(); 
+         fit++) 
+    {
+        func_instance *iFunc = llproc->findFunction((parse_func*)(*fit));
+        instPoint *iPoint = instPoint::preCall(iFunc, iFunc->obj()->findBlock(blk));
+        if (iPoint) {
+            BPatch_function *bpFunc = proc->findOrCreateBPFunc(iFunc,NULL);
+            BPatch_point *bpPoint = proc->findOrCreateBPPoint(
+                bpFunc, iPoint, BPatch_subroutine);
+            points.push_back(bpPoint);
+        }
+    }
+    return points.size();
+}
+
+// Find the call blocks preceding the address that we're returning 
+// past, but only set returningCallB if we can be sure that 
+// that we've found a call block that actually called the function
+// we're returning from 
+void HybridAnalysis::getCallBlocks(Address retAddr, 
+                   func_instance *retFunc,
+                   block_instance *retBlock,
+                   pair<ParseAPI::Block*, Address> & returningCallB, // output
+                   set<ParseAPI::Block*> & callBlocks) // output
+{
+   // find blocks at returnAddr -1 
+   using namespace ParseAPI;
+   process *llproc = retFunc->proc()->proc();
+   mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
+   std::set<CodeRegion*> callRegs;
+   if (callObj) {
+      callObj->parse_img()->codeObject()->cs()->
+          findRegions(retAddr - 1 - callObj->codeBase(),callRegs);
+   }
+   if (!callRegs.empty()) {
+      callObj->parse_img()->codeObject()->
+          findBlocks(*callRegs.begin(), 
+                     retAddr - 1 - callObj->codeBase(),
+                     callBlocks);
+   }
+
+   // remove blocks at returnAddr -1 that either have no call from callBlocks,
+   // or that don't end at the correct address
+   for (set<Block*>::iterator bit = callBlocks.begin();
+       bit != callBlocks.end();)
+   {
+      if ((*bit)->end() == (retAddr - callObj->codeBase()) &&
+          ((parse_block*)(*bit))->isCallBlock()) 
+      {
+          bit++;
+      }
+      else {
+          callBlocks.erase(bit);
+          bit = callBlocks.begin();
+      }
+   }
+
+   // set returningCallB, which must call the func that has the return
+   // ins'n, or call a function that tail-calls to the return func
+   for (set<Block*>::iterator bit = callBlocks.begin();
+       returningCallB.first == NULL && bit != callBlocks.end();
+       bit++) 
+   {
+      if (BPatch_defensiveMode != retFunc->obj()->hybridMode()) {
+          const func_instance *origF = llproc->isFunctionReplacement(retFunc);
+          if (origF) {
+              retFunc = const_cast<func_instance*>(origF);
+          }
+      }
+
+      // check that the target function contains the return insn, 
+      // or that it tail-calls to the function containing the ret, 
+      // or that the return insn is in a replacement for the called 
+      // or tail-called func
+      Block::edgelist & trgs = (*bit)->targets();
+      for (Block::edgelist::iterator eit = trgs.begin();
+           eit != trgs.end(); 
+           eit++)
+      {
+          if ((*eit)->type() == ParseAPI::CALL && 
+              !(*eit)->sinkEdge()) 
+          {
+              Block *calledB = (*eit)->trg();
+              Function *calledF = calledB->obj()->
+                  findFuncByEntry(calledB->region(), calledB->start());
+              if (calledF == retFunc->ifunc() || 
+                  calledF->contains(retBlock->llb()))
+              {
+                  returningCallB.first = *bit;
+                  returningCallB.second = calledB->start() + 
+                      llproc->findObject(calledB->obj())->codeBase();
+                  break; // calledF contains return instruction
+              }
+              // see if calledF tail-calls to func that has ret point
+              // or if calledF has been replaced, by hideDebugger
+              Function::edgelist & calls = calledF->callEdges();
+              for (Function::edgelist::iterator cit = calls.begin();
+                   cit != calls.end();
+                   cit++)
+              {
+                  if (!(*cit)->sinkEdge()) {
+                      Block *tailCalledB = (*cit)->trg();
+                      Function *tCalledF = tailCalledB->obj()->
+                          findFuncByEntry(tailCalledB->region(), 
+                                          tailCalledB->start());
+                      if (retFunc->ifunc() == tCalledF || 
+                          tCalledF->contains(retBlock->llb()))
+                      {
+                          // make sure it really is a tail call
+                          // (i.e., the src has no CALL_FT)
+                          returningCallB.first = *bit;
+                          returningCallB.second = tailCalledB->start() + 
+                              llproc->findObject(tailCalledB->obj())->
+                              codeBase();
+                          break;
+                      }
+                  }
+              }
+          }
+      }
+   }
+}
 
 /* CASES (sub-numbering are cases too)
  * 1. the target address is in a shared library
@@ -479,7 +615,6 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
  * 4.1 if the point is a direct transfer: 
  * 4.1.1 remove instrumentation
  * 4. parse at the target if it is code
- * KEVINTODO: split into phases: parse, instrument
  */
 extern bool debug_blocks;
 void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue) 
@@ -495,7 +630,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     strftime(timeStr, 64, "%X", tmstruct);
 
     printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
-
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
         mal_printf( "ERROR, NO MODULE for target addr %lx %s[%d]\n", 
@@ -503,13 +637,17 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         assert(0);
     }
 
-// 1. the target address is in a shared library
-    bool processTargMod = false;
-    if ( targMod != point->getFunction()->getModule() ) {
-        // process the edge, decide if we should instrument target function
-        processTargMod = processInterModuleEdge(point, target, targMod);
+    if (targMod == point->getFunction()->getModule() && targMod->isSystemLib()) {
+        return;
+    }
 
-        if (!processTargMod) {
+// 1. the target address is in a shared library
+    if ( targMod != point->getFunction()->getModule()) 
+    {
+        // process the edge, decide if we should instrument target function
+        bool doMoreProcessing = processInterModuleEdge(point, target, targMod);
+
+        if (!doMoreProcessing) {
             return;
         }
     }
@@ -552,7 +690,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("stopThread instrumentation found call %lx=>%lx, "
                       "parsing at call target %s[%d]\n",
                      (long)point->getAddress(), target,FILE__,__LINE__);
-            if (!analyzeNewFunction( point,target,true,false )) {
+            if (!analyzeNewFunction( point,target,false,false )) {
                 //this happens for some single-instruction functions
                 mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
@@ -567,7 +705,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
             //         (long)point->getAddress(), target);
-            parseAfterCallAndInstrument(point, targFunc);
+            parseAfterCallAndInstrument(point, targFunc, false);
         } else {
             instrumentModules(false);
         }
@@ -579,17 +717,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 // 3. the point is a return instruction:
     if ( point->getPointType() == BPatch_locExit ) {
 
-        // 3.1 if the return address has been parsed as code, return
-        vector<BPatch_function*> callFuncs;
-        if ( proc()->findFunctionsByAddr( target,callFuncs ) ) {
-            for (unsigned i = 0; i < callFuncs.size(); ++i) 
-            {
-               if (callFuncs[i]->lowlevel_func()->obj()->findBlockByEntry(target))
-                {
-                    return;
-                }
-            }
-        }
         // 3.2 find the call point so we can parse after it
         //   ( In this case "point" is the return statement and 
         //   "target" is the fallthrough address of the call insn )
@@ -597,74 +724,88 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         //   corresponds to the non-returning call, we traverse list of
         //   the caller's points to find the callpoint that is nearest
         //   to the return address
+
         Address returnAddr = target;
-        BPatch_point *callPoint = NULL;
-        proc()->findFunctionsByAddr( ( (Address)returnAddr - 1 ) , callFuncs );
-        if ( !callFuncs.empty() ) {
-            // get the call point whose fallthrough addr matches the ret target
-            vector<BPatch_point *> *callPoints = 
-                callFuncs[0]->findPoint(BPatch_subroutine);
-            for (int pIdx = callPoints->size() -1; pIdx >= 0; pIdx--) {
-                if ((*callPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
-                    callPoint = (*callPoints)[pIdx];
-                    break;
+        using namespace ParseAPI;
+
+
+        // Find the call blocks preceding the address that we're returning 
+        // past, but only set set returningCallB if we can be sure that 
+        // that we've found a call block that actually called the function
+        // we're returning from 
+        pair<Block*, Address> returningCallB((Block*)NULL,0); 
+        set<Block*> callBlocks;
+        getCallBlocks(returnAddr, point->llpoint()->func(), 
+                      point->llpoint()->block(), returningCallB, callBlocks);
+
+        // 3.2.1 parse at returnAddr as the fallthrough of the preceding
+        // call block, if there is one 
+        if (!callBlocks.empty()) {
+
+            // we don't know if the function we called returns, so 
+            // invoke parseAfterCallAndInstrument with NULL as the
+            // called func, so we won't try to parse after other 
+            // callers to the called func, as it may not actually
+            // return in a normal fashion
+            if (NULL == returningCallB.first) {
+                vector<BPatch_point*> callPts; 
+                for (set<Block*>::iterator bit = callBlocks.begin(); 
+                     bit != callBlocks.end(); 
+                     bit++)
+                {
+                    getPreCallPoints(*bit, proc(), callPts);
+                }
+                for (vector<BPatch_point*>::iterator pit = callPts.begin(); 
+                     pit != callPts.end(); 
+                     pit++)
+                {
+                    parseAfterCallAndInstrument( *pit, NULL, true );
                 }
             }
-			if (!callPoint) {
-				// It's possible that this was an entry point that overlapped with
-				// the call site. Dyninst doesn't handle that well...
-				vector<BPatch_point *> *entryPoints = callFuncs[0]->findPoint(BPatch_entry);
-				for (int pIdx = entryPoints->size() - 1; pIdx >= 0; pIdx--) {
-					if ((*entryPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
-						callPoint = (*entryPoints)[pIdx];
-						break;
-						}
-					}
-				}
 
-            if (callPoint && callFuncs.size() > 1) {
-                //KEVINTODO: implement this case
-                mal_printf("ERROR: callPoint %lx is shared, test this case\n",
-                           callPoint->getAddress());
-            } 
-        }
-
-        // 3.2.1 if point->func() was called by callPoint, point->func() 
-        // returns normally, tell parseAfterCallAndInstrument to parse after 
-        // other callers to point->func()
-
-        if (callPoint) {
-            BPatch_function *calledFunc = NULL;
-            vector<Address> targs;
-            callPoint->getSavedTargets(targs);
-            // unfortunately, because of pc emulation, if the return point is 
-            // shared we may have flipped between functions that share the 
-            // return point, so check both
-            vector<ParseAPI::Function*> retfuncs;
-            point->llpoint()->block()->llb()->getFuncs(retfuncs);
-            Address base = point->llpoint()->func()->obj()->codeBase();
-            for (unsigned tidx=0; !calledFunc && tidx < targs.size(); tidx++) {
-                for (unsigned fidx=0; !calledFunc && fidx < retfuncs.size(); fidx++) {
-                    if (targs[tidx] == (base + retfuncs[fidx]->addr()) ) {
-                        calledFunc = proc()->findOrCreateBPFunc(
-                            point->llpoint()->func()->obj()->
-                            findFunction(static_cast<parse_func*>(retfuncs[fidx])),
-                            NULL);
-                    }
+            // if the return address has been parsed as the entry point
+            // of a block, patch post-call areas and return
+            else if ( returningCallB.first->obj()->findBlockByEntry(
+                          returningCallB.first->region(), 
+                          target))
+            {
+                vector<BPatch_point*> callPts; 
+                getPreCallPoints(returningCallB.first, proc(), callPts);
+                for (unsigned j=0; j < callPts.size(); j++) {
+                    callPts[j]->patchPostCallArea();
                 }
             }
-            mal_printf("stopThread instrumentation found return at %lx, "
-                      "parsing return addr %lx as fallthrough of call "
-                      "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
-                      target,callPoint->getAddress(),FILE__,__LINE__);
-            if (point->getFunction() != calledFunc) {
-                cerr << "Warning: new code believes the callee was " << (calledFunc ? calledFunc->getName() : "<NULL>") << " and not original " << (point ? point->getFunction()->getName() : "<NULL>") << endl;
+
+            else { // parse at the call fallthrough
+
+                // find one callPoint, any other ones will 
+                // be found by parseAfterCallAndInstrument
+                vector<BPatch_point*> callPoints;
+                getPreCallPoints(returningCallB.first, proc(), callPoints);
+                assert(!callPoints.empty());
+
+                mal_printf("stopThread instrumentation found return at %lx, "
+                          "parsing return addr %lx as fallthrough of call "
+                          "instruction at %lx %s[%d]\n", (long)point->getAddress(), 
+                          target,callPoints[0]->getAddress(),FILE__,__LINE__);
+
+                if (point->llpoint()->block()->llb()->isShared()) {
+                    // because of pc emulation, if the return point is shared, 
+                    // we may have flipped between functions that share the 
+                    // return point, so use the call target function
+                    BPatch_function *calledFunc = proc()->
+                        findFunctionByEntry(returningCallB.second);
+                    parseAfterCallAndInstrument( callPoints[0], calledFunc, true );
+                }
+                else {
+                    parseAfterCallAndInstrument( callPoints[0], 
+                                                 point->getFunction(),
+                                                 true);
+                }
             }
-            //parseAfterCallAndInstrument( callPoint, point->getFunction() );
-            parseAfterCallAndInstrument( callPoint, calledFunc );
         }
 
-        // 3.2.2 else parse the return addr as a new function
+        // 3.2.2 no call blocks, parse the return addr as a new function
         else {
             if ( point->getFunction()->getModule()->isExploratoryModeOn() ) {
                 // otherwise we've instrumented a function in trusted library
@@ -675,77 +816,99 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                         __LINE__, point->getAddress(), returnAddr);
             }
             analyzeNewFunction( point, returnAddr, true , true );
+
+            // if there are call points that we're returning to, make
+            // sure to patch out any illegal instructions following the
+            // calls, as we may be returning normally but obfuscation
+            // may have caused us to split up the called function into
+            // chunks, resulting in failure to identify this as a normal
+            // return
+            vector<BPatch_point*> callPoints;
+            for (set<Block*>::iterator bit = callBlocks.begin(); 
+                 bit != callBlocks.end(); 
+                 bit++)
+            {
+                getPreCallPoints(*bit, proc(), callPoints);
+            }
+            for (vector<BPatch_point*>::iterator pit = callPoints.begin(); 
+                 pit != callPoints.end(); 
+                 pit++)
+            {
+                (*pit)->patchPostCallArea();
+            }
         }
 
         // 3. return
         return;
     }
-    else {
+
     // 4. else case: the point is a jump/branch 
-        proc()->beginInsertionSet();
-        // 4.1 if the point is a direct branch, remove any instrumentation
-        if (!point->llpoint()->block() &&
-            !point->llpoint()->block()->containsDynamicCall()) {
-            BPatch_function *func = point->getFunction();
-            if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
-                &&
-                (*instrumentedFuncs)[func]->end() != 
-                (*instrumentedFuncs)[func]->find(point))
-            {
-                proc()->deleteSnippet(
-                    (*(*instrumentedFuncs)[func])[point] );
-                (*instrumentedFuncs)[func]->erase(point);
-            }
-            //point is set to resolved in handleStopThread
-        } 
-
-        bool newParsing;
-        vector<BPatch_function*> targFuncs;
-        proc()->findFunctionsByAddr(target, targFuncs);
-        if ( 0 == targFuncs.size() ) { 
-            newParsing = true;
-            mal_printf("stopThread instrumentation found jump "
-                    "at 0x%lx leading to an unparsed target at 0x%lx\n",
-                    (long)point->getAddress(), target);
-        } else {
-            newParsing = false;
-            mal_printf("stopThread instrumentation added an edge for jump "
-                    " at 0x%lx leading to a previously parsed target at 0x%lx\n",
-                    (long)point->getAddress(), target);
-        }
-
-        // add the new edge to the program, parseNewEdgeInFunction will figure
-        // out whether to extend the current function or parse as a new one. 
-        if (targMod != point->getFunction()->getModule()) {
-            // Don't put in inter-module branches
-            if (newParsing)
-                analyzeNewFunction(point, target, true, false);
-        }
-        else
+    proc()->beginInsertionSet();
+    // 4.1 if the point is a direct branch, remove any instrumentation
+    if ((point->llpoint()->block() &&
+        !point->llpoint()->block()->containsDynamicCall())
+        ||
+        (point->llpoint()->edge() && point->isDynamic()))
+    {
+        BPatch_function *func = point->getFunction();
+        if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
+            &&
+            (*instrumentedFuncs)[func]->end() != 
+            (*instrumentedFuncs)[func]->find(point))
         {
-            parseNewEdgeInFunction(point, target, false);
+            proc()->deleteSnippet(
+                (*(*instrumentedFuncs)[func])[point] );
+            (*instrumentedFuncs)[func]->erase(point);
         }
+        //point is set to resolved in handleStopThread
+    } 
 
-        if (0 == targFuncs.size()) {
-            proc()->findFunctionsByAddr( target, targFuncs );
-        }
-
-        // manipulate init_retstatus so that we will instrument the function's 
-        // return addresses, since this jump might be a tail call
-        for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
-            parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
-            FuncReturnStatus initStatus = imgfunc->init_retstatus();
-            if (ParseAPI::RETURN == initStatus) {
-                imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
-                removeInstrumentation(targFuncs[tidx],false);
-                instrumentFunction(targFuncs[tidx],false,true);
-            } 
-        }
-
-        // re-instrument the function or the whole module, as needed
-        if (newParsing) {
-            instrumentModules(false);
-        }
-        proc()->finalizeInsertionSet(false);
+    bool newParsing;
+    vector<BPatch_function*> targFuncs;
+    proc()->findFunctionsByAddr(target, targFuncs);
+    if ( 0 == targFuncs.size() ) { 
+        newParsing = true;
+        mal_printf("stopThread instrumentation found jump "
+                "at 0x%lx leading to an unparsed target at 0x%lx\n",
+                (long)point->getAddress(), target);
+    } else {
+        newParsing = false;
+        mal_printf("stopThread instrumentation added an edge for jump "
+                " at 0x%lx leading to a previously parsed target at 0x%lx\n",
+                (long)point->getAddress(), target);
     }
+
+    // add the new edge to the program, parseNewEdgeInFunction will figure
+    // out whether to extend the current function or parse as a new one. 
+    if (targMod != point->getFunction()->getModule()) {
+        // Don't put in inter-module branches
+        if (newParsing)
+            analyzeNewFunction(point, target, true, false);
+    }
+    else
+    {
+        parseNewEdgeInFunction(point, target, false);
+    }
+
+    if (0 == targFuncs.size()) {
+        proc()->findFunctionsByAddr( target, targFuncs );
+    }
+
+    // manipulate init_retstatus so that we will instrument the function's 
+    // return addresses, since this jump might be a tail call
+    for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
+        parse_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+        FuncReturnStatus initStatus = imgfunc->init_retstatus();
+        if (ParseAPI::RETURN == initStatus) {
+            imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
+            removeInstrumentation(targFuncs[tidx],false,false);
+            instrumentFunction(targFuncs[tidx],false,true);
+        } 
+    }
+
+    // re-instrument the function or the whole module, as needed
+    if (newParsing) {
+        instrumentModules(false);
+    }
+    proc()->finalizeInsertionSet(false);
 } // end badTransferCB

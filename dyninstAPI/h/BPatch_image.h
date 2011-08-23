@@ -85,6 +85,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //BPatch_image(BPatch_process *_proc);
     BPatch_image(BPatch_addressSpace *addSpace);
     BPatch_image();
+    BPatch_module *findModule(mapped_module *base);
     virtual ~BPatch_image();
     void getNewCodeRegions
         (std::vector<BPatch_function*>&newFuncs, 
@@ -320,7 +321,6 @@ private:
     BPatch_addressSpace *addSpace;
     BPatch_module *defaultModule;
 
-    BPatch_module *findModule(mapped_module *base);
     BPatch_module *findOrCreateModule(mapped_module *base);
     void removeModule(BPatch_module *mod);
     void removeAllModules();

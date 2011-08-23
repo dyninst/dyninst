@@ -49,18 +49,6 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
    assert(inBatch_);
    // And now we do work. Hard work. 
    // Collect up all the info we've copied and send it up to the user
-   for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
-        iter != destroyedEdges_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
-   for (std::vector<Block *>::iterator iter = destroyedBlocks_.begin();
-        iter != destroyedBlocks_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
-   for (std::vector<Function *>::iterator iter = destroyedFunctions_.begin();
-        iter != destroyedFunctions_.end(); ++iter) {
-      destroy_cb(*iter);
-   }
 
    // Inform about changes
    for (std::vector<BlockMod>::iterator iter = blockMods_.begin();
@@ -71,6 +59,12 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
          add_edge_cb(iter->block, iter->edge, iter->type);
    }
    blockMods_.clear();
+
+   for (std::vector<EdgeMod>::iterator iter = edgeMods_.begin();
+        iter != edgeMods_.end(); ++iter) {
+      modify_edge_cb(iter->edge, iter->block, iter->action);
+   }
+   edgeMods_.clear();
 
    for (std::vector<FuncMod>::iterator iter = funcMods_.begin();
         iter != funcMods_.end(); ++iter) {
@@ -86,6 +80,20 @@ void ParseCallbackManager::batch_end(CFGFactory *fact) {
       split_block_cb(iter->first, iter->second);
    }
    blockSplits_.clear();
+
+   // destroy (KEVINTODO: test this, shouldn't delete, but I think it does)
+   for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
+        iter != destroyedEdges_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
+   for (std::vector<Block *>::iterator iter = destroyedBlocks_.begin();
+        iter != destroyedBlocks_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
+   for (std::vector<Function *>::iterator iter = destroyedFunctions_.begin();
+        iter != destroyedFunctions_.end(); ++iter) {
+      destroy_cb(*iter);
+   }
 
    // now that we're done with callbacks, delete dangling objects
    for (std::vector<Edge *>::iterator iter = destroyedEdges_.begin();
@@ -140,12 +148,18 @@ void ParseCallbackManager::addEdge(Block *b, Edge *e, ParseCallback::edge_type_t
    else add_edge_cb(b, e, t);
 }
 
+void ParseCallbackManager::modifyEdge(Edge *e, Block *b, ParseCallback::edge_type_t t) {
+   if (inBatch_) edgeMods_.push_back(EdgeMod(e, b, t));
+   else modify_edge_cb(e, b, t);
+}
+
 void ParseCallbackManager::removeBlock(Function *f, Block *b) {
    if (inBatch_) funcMods_.push_back(FuncMod(f, b, removed));
    else remove_block_cb(f, b);
 }
 
 void ParseCallbackManager::addBlock(Function *f, Block *b) {
+   
    if (inBatch_) funcMods_.push_back(FuncMod(f, b, added));
    else add_block_cb(f, b);
 }
@@ -192,10 +206,10 @@ void ParseCallbackManager::abruptEnd_cf(Address a, Block *b, ParseCallback::defa
       (*iter)->abruptEnd_cf(a, b, d);
 };
 
-bool ParseCallbackManager::loadAddr(Address a, Address &b) {
+bool ParseCallbackManager::absAddr(Address abs, Address &load, CodeObject *&obj) {
    bool ret = true;
    for (iterator iter = begin(); iter != end(); ++iter)
-      if (!(*iter)->loadAddr(a, b)) ret = false;
+      if (!(*iter)->absAddr(abs, load, obj)) ret = false;
    return ret;
 };
 
@@ -241,6 +255,11 @@ void ParseCallbackManager::add_edge_cb(Block *b, Edge *e, ParseCallback::edge_ty
       (*iter)->add_edge_cb(b, e, t);
 };
 
+void ParseCallbackManager::modify_edge_cb(Edge *e, Block *b, ParseCallback::edge_type_t t) {
+   for (iterator iter = begin(); iter != end(); ++iter)
+      (*iter)->modify_edge_cb(e, b, t);
+};
+
 void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
       (*iter)->remove_block_cb(f, b);
@@ -249,8 +268,17 @@ void ParseCallbackManager::remove_block_cb(Function *f, Block *b) {
 
 void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
    for (iterator iter = begin(); iter != end(); ++iter)
-      (*iter)->remove_block_cb(f, b);
+      (*iter)->add_block_cb(f, b);
 };
 
+void ParseCallbackManager::unregisterCallback(ParseCallback *cb) {
+   for (iterator iter = cbs_.begin(); iter != cbs_.end(); ++iter) {
+      if (*iter == cb) {
+         cbs_.erase(iter);
+         return;
+      }
+   }
+}
 
+   
 

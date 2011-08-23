@@ -134,12 +134,6 @@ private:
     // and later need to override it to a specific type (e.g., loop entry)
     void overrideType(BPatch_procedureLocation loc) { pointType = loc; }
 
-    //  dynamic_call_site_flag:
-    //    0:  is not dynamic call site
-    //    1:  is dynamic call site
-    //    2:  dynamic status unknown (initial value)
-    int dynamic_call_site_flag;
-
     //  a snippet used in monitoring of dynamic calls
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;
@@ -181,9 +175,7 @@ public:
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
     instPoint *llpoint() { return point; } 
-    bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
-    bool getSavedTargets(std::vector<Dyninst::Address> & targs);
     bool patchPostCallArea();
     // End internal functions
 

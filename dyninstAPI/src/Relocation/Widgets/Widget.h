@@ -38,7 +38,6 @@
 #include <list> // stl::list
 
 class baseTramp;
-class baseTrampInstance;
 class codeGen;
 
 namespace Dyninst {

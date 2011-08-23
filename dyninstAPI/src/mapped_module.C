@@ -116,7 +116,7 @@ void mapped_module::addVariable(int_variable *var)
 }
 
 // We rely on the mapped_object for pretty much everything...
-void mapped_module::removeFunction(func_instance *func) 
+void mapped_module::remove(func_instance *func) 
 {
    for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {
        if (everyUniqueFunction[fIdx] == func) {
@@ -347,9 +347,9 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
       /*        const func_instance::BlockSet&
             blocks = funcs[fidx]->blocks();
 	    func_instance::BlockSet::const_iterator bIter;*/
-      const PatchFunction::blockset&
+      const PatchFunction::Blockset&
             blocks = funcs[fidx]->getAllBlocks();
-      PatchFunction::blockset::const_iterator bIter;
+      PatchFunction::Blockset::const_iterator bIter;
         for (bIter = blocks.begin(); 
             bIter != blocks.end(); 
             bIter++) 

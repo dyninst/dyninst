@@ -210,23 +210,39 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
 
         if (trgB) {
-            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
-            if (CALL == worklist[idx].edge_type) {
-                // if it's a call edge, add it to Function::_call_edges
-                // since we won't re-finalize the function
-                vector<Function*> funcs;
-                worklist[idx].source->getFuncs(funcs);
-                for(vector<Function*>::iterator fit = funcs.begin();
-                    fit != funcs.end();
-                    fit++) 
+            // don't add edges that already exist 
+            // (this could happen because of shared code)
+            bool edgeExists = false;
+            Block::edgelist & existingTs = worklist[idx].source->targets();
+            for (Block::edgelist::iterator tit = existingTs.begin();
+                 tit != existingTs.end();
+                 tit++)
+            {
+                if ((*tit)->trg() == trgB && 
+                    (*tit)->type() == worklist[idx].edge_type) 
                 {
-                    Block::edgelist & tedges = worklist[idx].source->targets();
-                    for(Block::edgelist::iterator eit = tedges.begin();
-                        eit != tedges.end();
-                        eit++)
+                    edgeExists = true;
+                }
+            }
+            if (!edgeExists) {
+                add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+                if (CALL == worklist[idx].edge_type) {
+                    // if it's a call edge, add it to Function::_call_edges
+                    // since we won't re-finalize the function
+                    vector<Function*> funcs;
+                    worklist[idx].source->getFuncs(funcs);
+                    for(vector<Function*>::iterator fit = funcs.begin();
+                        fit != funcs.end();
+                        fit++) 
                     {
-                        if ((*eit)->trg() == trgB) {
-                            (*fit)->_call_edges.insert(*eit);
+                        Block::edgelist & tedges = worklist[idx].source->targets();
+                        for(Block::edgelist::iterator eit = tedges.begin();
+                            eit != tedges.end();
+                            eit++)
+                        {
+                            if ((*eit)->trg() == trgB) {
+                                (*fit)->_call_edges.insert(*eit);
+                            }
                         }
                     }
                 }
@@ -235,7 +251,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         else {
             parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
                                                             *regs.begin()));
-            ParseWorkBundle *bundle = new ParseWorkBundle();
+            ParseWorkBundle *bundle = new ParseWorkBundle(); //parse_frames will delete when done
             ParseWorkElem *elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
@@ -246,7 +262,9 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         }
     }
 
+    parser->_pcb.batch_begin(); // must batch callbacks and deliver after parsing structures are stable
     parser->parse_edges( work_elems );
+    parser->_pcb.batch_end(_fact);
 
     if (defensiveMode()) {
         // update tampersStack for modified funcs
@@ -261,8 +279,37 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             }
         }
     }
-
     return true;
+}
+
+// set things up to pass through to IA_IAPI
+bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
+{
+   // find region
+   std::set<CodeRegion*> regs;
+   cs()->findRegions(insnAddr, regs);
+   if (regs.size() != 1) {
+      return false;
+   }
+   CodeRegion *reg = *regs.begin();
+
+   // find block
+   std::set<Block*> blocks;
+   findBlocks(reg, insnAddr, blocks);
+   if (blocks.empty()) {
+      return false;
+   }
+   Block *blk = *blocks.begin();
+
+   const unsigned char* bufferBegin = 
+      (const unsigned char *)(cs()->getPtrToInstruction(insnAddr));
+   using namespace InstructionAPI;
+   InstructionDecoder dec = InstructionDecoder(bufferBegin,
+      InstructionDecoder::maxInstructionLength, reg->getArch());
+   InstructionAdapter_t ah = InstructionAdapter_t(
+      dec, insnAddr, this, reg, cs(), blk);
+
+   return ah.isIATcall(calleeName);
 }
 
 void CodeObject::startCallbackBatch() {
@@ -283,9 +330,32 @@ void CodeObject::destroy(Edge *e) {
 }
 
 void CodeObject::destroy(Block *b) {
+   parser->remove_block(b);
    _pcb->destroy(b, _fact);
 }
 
 void CodeObject::destroy(Function *f) {
+   parser->remove_func(f);
    _pcb->destroy(f, _fact);
+}
+
+void CodeObject::registerCallback(ParseCallback *cb) {
+   assert(_pcb);
+   _pcb->registerCallback(cb);
+}
+
+void CodeObject::unregisterCallback(ParseCallback *cb) {
+   _pcb->unregisterCallback(cb);
+}
+
+Address CodeObject::getFreeAddr() const {
+   // Run over the code regions and return the highest address. We do this
+   // so we can allocate more space...
+   Address hi = 0;
+   const std::vector<CodeRegion *> &regions = _cs->regions();
+   for (std::vector<CodeRegion *>::const_iterator iter = regions.begin();
+        iter != regions.end(); ++iter) {
+      hi = (hi > (*iter)->high()) ? hi : (*iter)->high();
+   }
+   return hi;
 }

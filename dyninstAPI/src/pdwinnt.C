@@ -417,8 +417,6 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events) {
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
-
-
    bool ret = false;
    switch (ev.info.dwDebugEventCode) {
      case EXCEPTION_DEBUG_EVENT:
@@ -543,24 +541,24 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-#if 0
-	 cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-                 << " (DEBUG:" 
-                 << "EAX: " << activeFrame.eax
-                 << ", ECX: " << activeFrame.ecx
-                 << ", EDX: " << activeFrame.edx
-                 << ", EBX: " << activeFrame.ebx
-                 << ", ESP: " << activeFrame.esp
-                 << ", EBP: " << activeFrame.ebp
-                 << ", ESI: " << activeFrame.esi 
-                 << ", EDI " << activeFrame.edi
-				 << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-	 for (unsigned i = 0; i < 10; ++i) {
-			Address stackTOPVAL =0;
-		    ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
-			cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
-	 }
-#endif
+     if (dyn_debug_traps) {
+	     cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+                     << " (DEBUG:" 
+                     << "EAX: " << activeFrame.eax
+                     << ", ECX: " << activeFrame.ecx
+                     << ", EDX: " << activeFrame.edx
+                     << ", EBX: " << activeFrame.ebx
+                     << ", ESP: " << activeFrame.esp
+                     << ", EBP: " << activeFrame.ebp
+                     << ", ESI: " << activeFrame.esi 
+                     << ", EDI " << activeFrame.edi
+				     << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+	     for (unsigned i = 0; i < 10; ++i) {
+			    Address stackTOPVAL =0;
+		        ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+			    cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
+	     }
+     }
 	 ret = true;
   }
   else if (decodeRTSignal(ev)) {
@@ -568,40 +566,54 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   }
   else if (BPatch_defensiveMode == ev.proc->getHybridMode()) {
      Frame activeFrame = ev.lwp->getActiveFrame();
-     if (!ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
+     if (ev.proc->inEmulatedCode(activeFrame.getPC() - 1)) {
+        requested_wait_until_active = false; // i.e., return exception to mutatee
+        ret = true;
+        if (ev.proc->getMemEm() && 
+            ev.proc->getMemEm()->isEmulPOPAD(activeFrame.getPC()-1)) 
+        {
+            ev.type = evtEmulatePOPAD;
+        } 
+        else 
+        {
+            ev.type = evtIgnore;
+        }
+        if (dyn_debug_traps) {
+            cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+				    << " (DEBUG:" 
+				    << "EAX: " << activeFrame.eax
+				    << ", ECX: " << activeFrame.ecx
+				    << ", EDX: " << activeFrame.edx
+				    << ", EBX: " << activeFrame.ebx
+				    << ", ESP: " << activeFrame.esp
+				    << ", EBP: " << activeFrame.ebp
+				    << ", ESI: " << activeFrame.esi 
+				    << ", EDI: " << activeFrame.edi
+				    << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+            if (activeFrame.getUninstAddr() >= 0x406392 && activeFrame.getUninstAddr() <= 0x406398 ) {
+                const int SDEPTH = 20;
+			    Address stackTOPVAL[SDEPTH];
+                ev.proc->readDataSpace((void *) activeFrame.esp, 
+                                       sizeof(ev.proc->getAddressWidth())*SDEPTH, 
+                                       stackTOPVAL, 
+                                       false);
+                for (int i = 0; i < SDEPTH; ++i) 
+                {
+                    Address remapped = 0;
+                    vector<func_instance *> funcs;
+                    baseTramp *bti;
+				    ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
+				    cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] 
+                          << ", orig @ " << remapped << " in " << funcs.size() 
+                          << "functions" << dec << endl;
+			    }
+		    }
+        }
+	 }
+     else { // return exception to mutatee
         requested_wait_until_active = true;//i.e., return exception to mutatee
         decodeHandlerCallback(ev);
      }
-     else {
-	    requested_wait_until_active = false;
-        ret = true;
-		ev.type = evtIgnore;
-		static bool debug1 = true;
-		if (debug1)
-		{
-			cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
-				<< " (DEBUG:" 
-				<< "EAX: " << activeFrame.eax
-				<< ", ECX: " << activeFrame.ecx
-				<< ", EDX: " << activeFrame.edx
-				<< ", EBX: " << activeFrame.ebx
-				<< ", ESP: " << activeFrame.esp
-				<< ", EBP: " << activeFrame.ebp
-				<< ", ESI: " << activeFrame.esi 
-				<< ", EDI: " << activeFrame.edi
-				<< ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-			Address stackTOPVAL[200];
-            ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(ev.proc->getAddressWidth())*200, stackTOPVAL, false);
-            for (int i = 0; i < 200; ++i) 
-            {
-                Address remapped = 0;
-                vector<func_instance *> funcs;
-                baseTramp *bti;
-				ev.proc->getAddrInfo(stackTOPVAL[i], remapped, funcs, bti);
-				cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] << ", orig @ " << remapped << " in " << funcs.size() << "functions" << dec << endl;
-			}
-		}
-	 }
   }
   else {
 	  ev.type = evtProcessStop;
@@ -629,8 +641,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
             vector<func_instance *> funcs;
-            baseTramp *bti = NULL;
-            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
+            baseTramp *bt = NULL;
+            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bt);
             mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
@@ -662,15 +674,15 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 1: {// bad write 
         Address origAddr = ev.address;
         vector<func_instance *> writefuncs;
-        baseTramp *bti = NULL;
-        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+        baseTramp *bt = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bt);
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
 			Address shadowAddr = 0;
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
 
-			cerr << "Overwrite insn @ " << hex << origAddr << endl;
+			cerr << "Overwrite insn @ " << hex << origAddr << dec << endl;
             vector<func_instance *> writefuncs;
             baseTramp *bti = NULL;
             bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
@@ -679,7 +691,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                         "function\"%s\" [%lx], writing to %lx (%lx) \n",
                         FILE__,__LINE__, ev.address, origAddr,
 						writefuncs.empty() ? "<NO FUNC>" : writefuncs[0]->get_name().c_str(), 
-						writefuncs.empty() ? 0 : writefuncs[0]->get_address(), 
+						writefuncs.empty() ? 0 : writefuncs[0]->addr(), 
                         violationAddr, shadowAddr);
             } else { 
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
@@ -781,8 +793,10 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             faultObj = ev.proc->findObject(origAddr);
         }
         if (!faultObj || BPatch_defensiveMode == faultObj->hybridMode()) {
-            // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
-            // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+            // KEVINTODO: we're emulating the instruction, pop saved regs off 
+            // of the stack and into the appropriate registers,
+            // signalHandlerEntry will have to fix up the saved 
+            // context information on the stack 
             assert(1 || "stack imbalance and bad reg values resulting from incomplete memory emulation of instruction that caused a fault");
         }
     }
@@ -823,7 +837,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
    // trigger callback if we haven't resolved the signal and a 
    // signalHandlerCallback is registered
    if (!ret) {
-       requested_wait_until_active = true;//i.e., return exception to mutatee
+       requested_wait_until_active = true; //i.e., return signal to mutatee
        decodeHandlerCallback(ev);
        ret = true;
    }
@@ -1011,14 +1025,7 @@ bool process::setMemoryAccessRights
     mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
-        bool wasRunning = true;
-        stoppedlwp = stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
-        return false;
-        }
-    }
+    assert( stoppedlwp );
     if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
         mapped_object *obj = findObject(start);
         int page_size = getMemoryPageSize();
@@ -1030,10 +1037,10 @@ bool process::setMemoryAccessRights
     return true;
 }
 
-bool process::getMemoryAccessRights(Address start, Address size, int rights)
+int process::getMemoryAccessRights(Address start, Address size)
 {
    assert(0 && "Unimplemented!");
-   return false;
+   return 0;
 }
 
 int dyn_lwp::changeMemoryProtections
@@ -1048,8 +1055,8 @@ int dyn_lwp::changeMemoryProtections
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
-          //         rights, idx , idx + pageSize);
+        mal_printf("setting rights to %lx for [%lx %lx)\n", 
+                   rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -1899,12 +1906,22 @@ bool dyn_lwp::representativeLWP_attach_() {
 void dyn_lwp::realLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (!DebugActiveProcessStop(getPid())) {
+      int errNo = GetLastError();
+      fprintf(stderr, "Couldn't detach from %d Error %d:\n", getPid(), errNo);
+      printSysError(errNo);
+   }
    return;
 }
 
 void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
+   if (!DebugActiveProcessStop(getPid())) {
+      int errNo = GetLastError();
+      fprintf(stderr, "Couldn't detach from %d Error %d:\n", getPid(), errNo);
+      printSysError(errNo);
+   }
    return;
 }
 
@@ -2692,11 +2709,12 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
          return false;
 	}
-	block_instance *faultBBI = faultFuncs[0]->getBlock(origAddr);
+    func_instance *faultFunc = faultFuncs[0];
+	block_instance *faultBBI = faultFunc->getBlock(origAddr);
     if (ev.proc->isMemoryEmulated() && 
-        BPatch_defensiveMode == faultFuncs[0]->obj()->hybridMode())
+        BPatch_defensiveMode == faultFunc->obj()->hybridMode())
     {
-        if (faultFuncs[0]->obj()->isEmulInsn(origAddr)) {
+        if (faultFunc->obj()->isEmulInsn(origAddr)) {
             void * val =0;
             assert( sizeof(void*) == ev.proc->getAddressWidth() );
             ev.proc->readDataSpace((void*)(activeFrame.getSP() + MemoryEmulator::STACK_SHIFT_VAL), 
@@ -2710,7 +2728,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
                     << ") getLastError: " << endl;
                 printSysError(GetLastError());
             }
-            Register reg = faultFuncs[0]->obj()->getEmulInsnReg(origAddr);
+            Register reg = faultFunc->obj()->getEmulInsnReg(origAddr);
             switch(reg) {
                 case REGNUM_ECX:
                     context.Ecx = (DWORD) val;
@@ -2742,7 +2760,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     // 3. create instPoint at faulting instruction & trigger callback
 
-	instPoint *point = instPoint::preInsn(faultFuncs[0], faultBBI, origAddr);
+	instPoint *point = instPoint::preInsn(faultFunc, faultBBI, origAddr);
     if (!point) {
         fprintf(stderr,"Failed to create an instPoint for faulting "
             "instruction at %lx[%lx] %s[%d]\n",
@@ -2752,7 +2770,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     //4. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, faultFuncs[0], ev.what, &handlers);
+            (point, faultFunc, ev.what, &handlers);
 
     //5. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
@@ -2779,6 +2797,68 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     return true;
 }
 
+bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
+{
+#if 0
+    Address orig;
+    std::vector<int_function*> dontcare1;
+    baseTramp *dontcare2;
+    if (!ev.proc->getAddrInfo(ev.address, orig, dontcare1, dontcare2)) {
+        assert(0);
+        return false;
+    }
+	mal_printf("handleEmulatePOPAD: 0x%lx[0x%lx]\n", 
+               orig, ev.address);
+#else
+	mal_printf("handleEmulatePOPAD: 0x%lx\n", ev.address);
+#endif
+
+    CONTEXT cont;
+    cont.ContextFlags = CONTEXT_FULL;
+    if (!GetThreadContext((HANDLE)ev.lwp->get_fd(), &cont)) {
+        assert(0);
+        return false;
+    }
+
+    Address emulatedSP = cont.Esp;
+    pair<bool,Address> transSP = ev.proc->getMemEm()->translate(cont.Esp);
+    if (transSP.first) {
+       emulatedSP = transSP.second;
+    }
+    int regsize = ev.proc->getAddressWidth();
+    unsigned char *regbuf = (unsigned char*) malloc(regsize * 8);
+    if (!ev.proc->readDataSpace((void*)emulatedSP, 
+                                regsize * 8, 
+                                (void*)regbuf, 
+                                true)) 
+    {
+        assert(0);
+        return false;
+    }
+
+    cont.Edi = 0;
+    cont.Esi = 0;
+    cont.Ebp = 0;
+    cont.Ebx = 0;
+    cont.Edx = 0;
+    cont.Ecx = 0;
+    cont.Eax = 0;
+    for (int bidx =0; bidx < regsize; bidx++) {
+       cont.Edi = cont.Edi | (regbuf[regsize*0+bidx] << bidx*8);
+       cont.Esi = cont.Esi | (regbuf[regsize*1+bidx] << bidx*8);
+       cont.Ebp = cont.Ebp | (regbuf[regsize*2+bidx] << bidx*8);
+       cont.Ebx = cont.Ebx | (regbuf[regsize*4+bidx] << bidx*8);
+       cont.Edx = cont.Edx | (regbuf[regsize*5+bidx] << bidx*8);
+       cont.Ecx = cont.Ecx | (regbuf[regsize*6+bidx] << bidx*8);
+       cont.Eax = cont.Eax | (regbuf[regsize*7+bidx] << bidx*8);
+    }
+    cont.Esp += regsize * 8;
+    if (!SetThreadContext((HANDLE)ev.lwp->get_fd(), &cont)) {
+       printf("SetThreadContext failed %s[%d]\n",FILE__,__LINE__);
+       return false;
+    }
+    return true;
+}
 
 /* An access violation occurred to a memory page that contains code
  * and was originally write-protected was protected 
@@ -2833,10 +2913,9 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         ev.proc->flushAddressCache_RT(writtenFuncs[0]->obj());
 
         if (writtenFuncs.size() > 1) {
-            fprintf(stderr, "WARNING: overwrote shared code, we may not "
-                    "handle this correctly %lx->%lx[%lx] %s[%d]\n",
+            fprintf(stderr, "WARNING: overwrote shared code, this case is "
+                    "sparsely tested %lx->%lx[%lx] %s[%d]\n",
                     ev.address, writtenAddr, origWritten, FILE__,__LINE__);
-            //assert(0 && "overwrote shared code"); //KEVINTODO: test this case
         }
     }
 
@@ -2866,7 +2945,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     } else { 
         writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
     }
-	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(ev.address), ev.address);
+	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(origWrite), origWrite);
 
     assert(writePoint);
 
@@ -3087,6 +3166,11 @@ bool OS::executableExists(const std::string &file) {
    if (stat_result == -1)
        stat_result = stat((file + std::string(".exe")).c_str(), &file_stat);
    return (stat_result != -1);
+}
+
+void OS::get_sigaction_names(std::vector<std::string> &names)
+{
+   names.push_back(string("AddVectoredExceptionHandler"));
 }
 
 func_instance *dyn_thread::map_initial_func(func_instance *ifunc) {

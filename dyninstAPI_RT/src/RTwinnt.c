@@ -36,6 +36,8 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include <windows.h>
+#include <Dbghelp.h>
+#include <Psapi.h>
 #include <stdio.h>
 #include <stdlib.h>
 //#define WIN32_LEAN_AND_MEAN
@@ -49,7 +51,14 @@
 #include <sys/stat.h>
 #include <io.h>
 #include <stdio.h>
+#include <assert.h>
 //#include <winsock2.h>
+
+extern unsigned long dyninstTrapTableUsed;
+extern unsigned long dyninstTrapTableVersion;
+extern trapMapping_t *dyninstTrapTable;
+extern unsigned long dyninstTrapTableIsSorted;
+extern void DYNINSTBaseInit();
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -60,9 +69,7 @@
 void DYNINSTbreakPoint(void) {
   /* TODO: how do we stop all threads? */
     DYNINST_break_point_event = 1;
-	fprintf(stderr, "About to execute DebugBreak!\n");
     DebugBreak();
-	fprintf(stderr, "Back from DebugBreak!\n");
 	DYNINST_break_point_event = 0;
 }
 
@@ -89,6 +96,7 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
    static int DllMainCalledOnce = 0;
+   fprintf(stderr,"RTLIB: In DllMain staticmode=%d %s[%d]\n", DYNINSTstaticMode, __FILE__,__LINE__);
 
    if(DllMainCalledOnce)
       return 1;
@@ -98,6 +106,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
                   libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
 
+#if defined(cap_mutatee_traps)
+   if (DYNINSTstaticMode) {
+      DYNINSTinitializeTrapHandler();
+   }
+   else {
+      fprintf(stderr,"DllMain: Runtime lib initialized for dynamic mode\n");
+   }
+#endif
 
    return 1; 
 }
@@ -280,6 +296,168 @@ int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
 }
 
+// Check that the address is backed by a file,
+// get the binary's load address,
+// get the PE header, assuming there is one,
+// see if the last section has been tagged with "DYNINST_REWRITE"
+// get trap-table header from last binary section's end - label - size
+// sets allocBase to the binary's load address
+static struct trap_mapping_header *getStaticTrapMap(unsigned long addr, unsigned long *allocBase)
+{
+   struct trap_mapping_header *header = NULL;
+   char fileName[ERROR_STRING_LENGTH];
+   DWORD actualNameLen = 0;
+   MEMORY_BASIC_INFORMATION memInfo;
+   int numSections = 0;
+   PIMAGE_NT_HEADERS peHdr = NULL;
+   IMAGE_SECTION_HEADER curSecn;
+   int sidx=0;
+   char *str=NULL;
+
+   //check that the address is backed by a file
+   actualNameLen = GetMappedFileName(GetCurrentProcess(), 
+                                     (LPVOID)addr, 
+                                     fileName, 
+                                     ERROR_STRING_LENGTH);
+   if (!actualNameLen) {
+      fileName[0] = '\0';
+      goto done; // no file mapped at trap address
+   }
+   fileName[ERROR_STRING_LENGTH-1] = '\0';
+
+   // get the binary's load address, size
+   if (!VirtualQuery((LPCVOID)addr, &memInfo, sizeof(memInfo)) 
+       || MEM_COMMIT != memInfo.State) 
+   {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
+      goto done; // shouldn't be possible given previous query, but hey
+   }
+   *allocBase = (unsigned long) memInfo.AllocationBase;
+
+   rtdebug_printf("RTLIB: getStaticTrapMap addr=%lx meminfo.BaseAddress=%lx "
+                  "meminfo.AllocationBase = %lx, memInfo.RegionSize = %lx, "
+                  "%s[%d]\n", addr, memInfo.BaseAddress, 
+                  memInfo.AllocationBase, memInfo.RegionSize, 
+                  __FILE__,__LINE__);
+
+   // get the PE header, assuming there is one
+   peHdr = ImageNtHeader( memInfo.AllocationBase );
+   if (!peHdr) {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
+      goto done; // no pe header
+   }
+
+   // see if the last section has been tagged with "DYNINST_REWRITE"
+   numSections = peHdr->FileHeader.NumberOfSections;
+   curSecn = *(PIMAGE_SECTION_HEADER)
+            (((unsigned char*)peHdr) 
+            + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) 
+            + peHdr->FileHeader.SizeOfOptionalHeader
+            + sizeof(IMAGE_SECTION_HEADER)*(numSections-1));
+
+   //fprintf(stderr, "RTLIB: PE section header address = %lx\n", curSecn);
+   //fprintf(stderr, "curSecn.chars = %lx %s[%d]\n",curSecn.Characteristics, __FILE__,__LINE__);
+   if ((sizeof(void*) + 16) > curSecn.SizeOfRawData) {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap %s[%d]\n", __FILE__,__LINE__);
+      goto done; // last section is uninitialized, doesn't have trap table
+   }
+
+   //fprintf(stderr, "RTLIB %s[%d]\n", __FILE__,__LINE__);
+   //fprintf(stderr, "RTLIB mi.ab =%lx cs.va =%lx cs.srd=%lx %s[%d]\n", memInfo.AllocationBase, curSecn.VirtualAddress, curSecn.SizeOfRawData, __FILE__,__LINE__);
+   str = (char*)((long)memInfo.AllocationBase 
+                 + curSecn.VirtualAddress 
+                 + curSecn.SizeOfRawData 
+                 - 16);
+   if (0 != strncmp("DYNINST_REWRITE", str, 15)) {
+      fprintf(stderr, "ERROR IN RTLIB: getStaticTrapMap found bad string [%s] at %lx %s[%d]\n", 
+              str, str, __FILE__,__LINE__);
+      goto done; // doesn't have DYNINST_REWRITE label
+   }
+
+   // get trap-table header
+   header = (struct trap_mapping_header*) 
+       ( (unsigned long)memInfo.AllocationBase + *((unsigned long*)(str - sizeof(void*))) );
+
+done: 
+   if (header) {
+       rtdebug_printf( "RTLIB: found trap map header at %lx: [%lx %lx]\n", 
+              (unsigned long) header, header->low_entry, header->high_entry);
+   } else {
+      rtdebug_printf( "ERROR: didn't find trap table\n");
+   }
+   return header;
+}
+
+// Find the target IP and substitute. Leave everything else untouched.
+LONG dyn_trapHandler(PEXCEPTION_POINTERS e)
+{
+   void *trap_to=0;
+   void *trap_addr = (void*) ((unsigned char*)e->ExceptionRecord->ExceptionAddress);
+   unsigned long zero = 0;
+   unsigned long one = 1;
+   unsigned long loadAddr = 0;
+   struct trap_mapping_header *hdr = NULL;
+   trapMapping_t *mapping = NULL;
+   rtdebug_printf("RTLIB: In dyn_trapHandler for exception type 0x%lx at 0x%lx\n",
+           e->ExceptionRecord->ExceptionCode, trap_addr);
+ 
+   assert(DYNINSTstaticMode && "detach on the fly not implemented on Windows");
+
+   if (EXCEPTION_BREAKPOINT != e->ExceptionRecord->ExceptionCode) {
+      fprintf(stderr,"RTLIB: dyn_trapHandler exiting early, exception "
+              "type = 0x%lx triggered at 0x%lx is not breakpoint %s[%d]\n", 
+              e->ExceptionRecord->ExceptionCode, trap_addr, __FILE__,__LINE__);
+      return EXCEPTION_CONTINUE_SEARCH;
+   }
+
+   hdr = getStaticTrapMap((unsigned long) trap_addr, &loadAddr);
+   assert(hdr);
+   mapping = &(hdr->traps[0]);
+
+   rtdebug_printf("RTLIB: calling dyninstTrapTranslate(\n\t0x%lx, \n\t"
+           "0x%lx, \n\t0x%lx, \n\t0x%lx, \n\t0x%lx)\n", 
+           (unsigned long)trap_addr - loadAddr + 1, 
+           hdr->num_entries, zero, mapping, one);
+
+   trap_to = dyninstTrapTranslate((void*)((unsigned long)trap_addr - loadAddr + 1),
+                                  (unsigned long *) &hdr->num_entries,
+                                  &zero, 
+                                  (volatile trapMapping_t **) &mapping,
+                                  &one);
+
+   rtdebug_printf("RTLIB: changing Eip from trap at 0x%lx to 0x%lx\n", 
+           e->ContextRecord->Eip, (long)trap_to + loadAddr);
+   e->ContextRecord->Eip = (long) trap_to + loadAddr;
+   return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+PVOID fake_AVEH_handle;
+/* registers the trap handler by calling AddVectoredExceptionHandler
+ */
+int DYNINSTinitializeTrapHandler()
+{
+   fake_AVEH_handle = AddVectoredExceptionHandler
+      (RT_TRUE, (PVECTORED_EXCEPTION_HANDLER)dyn_trapHandler);
+   rtdebug_printf("RTLIB: added vectored trap handler\n");
+   return fake_AVEH_handle != 0;
+}
+
+PVOID dyn_AddVectoredExceptionHandler
+(ULONG isFirst, PVECTORED_EXCEPTION_HANDLER handler)
+{
+   PVOID handlerHandle;
+   if (isFirst) {
+      RemoveVectoredExceptionHandler(fake_AVEH_handle);
+      handlerHandle = AddVectoredExceptionHandler(isFirst,handler);
+      fake_AVEH_handle = AddVectoredExceptionHandler
+         (isFirst,(PVECTORED_EXCEPTION_HANDLER)dyn_trapHandler);
+   }
+   else {
+      handlerHandle = AddVectoredExceptionHandler(isFirst,handler);
+   }
+   return handlerHandle;
+}
+
 extern int fakeTickCount;
 extern FILE *stOut;
 DWORD __stdcall DYNINST_FakeTickCount()
@@ -328,4 +506,5 @@ VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
     lpSystemTime->wMinute = 1;
     lpSystemTime->wSecond = 33;
     lpSystemTime->wMilliseconds = 855;
+    fprintf(stOut,"called DYNINST_FakeGetSystemTime()\n");
 }

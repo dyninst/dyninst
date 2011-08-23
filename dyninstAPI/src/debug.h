@@ -54,6 +54,7 @@ extern void showInfoCallback(std::string msg);
 void BPatch_reportError(int errLevel, int num, const char *str);
 
 extern int dyn_debug_malware;
+extern int dyn_debug_traps; // or rather, debug with traps
 extern int dyn_debug_signal;
 extern int dyn_debug_infrpc;
 extern int dyn_debug_startup;
@@ -127,6 +128,7 @@ extern StatContainer stats_codegen;
 #define relocation_cerr   if (dyn_debug_reloc) cerr
 #define springboard_cerr  if (dyn_debug_springboard) cerr
 #define malware_cerr      if (dyn_debug_malware) cerr
+#define trap_cerr         if (dyn_debug_traps) cerr
 #define sensitivity_cerr  if (dyn_debug_sensitivity) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
 #define thread_cerr       if (dyn_debug_thread) cerr

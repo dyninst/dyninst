@@ -75,8 +75,7 @@ class ParseCallback {
         call,
         branch_interproc, // tail calls, branches to plts
         syscall,
-        unres_call,
-        unres_branch
+        unresolved
     } type_t;
     unsigned char * ibuf;
     size_t isize;
@@ -133,7 +132,12 @@ class ParseCallback {
   virtual void patch_nop_jump(Address) { }
   virtual bool updateCodeBytes(Address) { return false; }
   virtual void abruptEnd_cf(Address, Block *,default_details*) { }
-  virtual bool loadAddr(Address, Address &) { return false; }
+
+  // returns the load address of the code object containing an absolute address
+  virtual bool absAddr(Address /*absolute*/, 
+                       Address & /*loadAddr*/, 
+                       CodeObject *& /*containerObject*/) 
+      { return false; }
   virtual bool hasWeirdInsns(const Function*) const { return false; };
   virtual void foundWeirdInsns(Function*) {};
 
@@ -151,6 +155,8 @@ class ParseCallback {
   virtual void remove_block_cb(Function *, Block *) {};
   virtual void add_block_cb(Function *, Block *) {};
 
+  virtual void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t) {};
+
   private:
 };
 
@@ -166,7 +172,7 @@ class ParseCallbackManager {
   typedef Callbacks::const_iterator const_iterator;
 
   void registerCallback(ParseCallback *a) { cbs_.push_back(a); }
-  void unregisterCallback(iterator iter) { cbs_.erase(iter); }
+  void unregisterCallback(ParseCallback *a);
   const_iterator begin() const { return cbs_.begin(); }
   const_iterator end() const { return cbs_.end(); }
   iterator begin() { return cbs_.begin(); }
@@ -184,7 +190,7 @@ class ParseCallbackManager {
   void removeBlock(Function *, Block *);
   void addBlock(Function *, Block *);  
   void splitBlock(Block *, Block *);
-
+  void modifyEdge(Edge *, Block *, ParseCallback::edge_type_t);
 
   void interproc_cf(Function*,Block *,Address,ParseCallback::interproc_details*);
   void instruction_cb(Function*,Block *,Address,ParseCallback::insn_details*);
@@ -193,7 +199,9 @@ class ParseCallbackManager {
   void patch_nop_jump(Address);
   bool updateCodeBytes(Address);
   void abruptEnd_cf(Address, Block *,ParseCallback::default_details*);
-  bool loadAddr(Address, Address &);
+  bool absAddr(Address /*absolute*/, 
+               Address & /*loadAddr*/, 
+               CodeObject *& /*containerObject*/);
   bool hasWeirdInsns(const Function*);
   void foundWeirdInsns(Function*);
   void split_block_cb(Block *, Block *);
@@ -209,7 +217,7 @@ class ParseCallbackManager {
   void add_edge_cb(Block *, Edge *, ParseCallback::edge_type_t);
   void remove_block_cb(Function *, Block *);
   void add_block_cb(Function *, Block *);
-
+  void modify_edge_cb(Edge *, Block *, ParseCallback::edge_type_t);
 
   private:
   Callbacks cbs_;
@@ -218,6 +226,7 @@ class ParseCallbackManager {
 
   typedef enum { removed, added } mod_t;
 
+
   struct BlockMod {
      Block *block;
      Edge *edge;
@@ -225,6 +234,15 @@ class ParseCallbackManager {
      mod_t action;
   BlockMod(Block *b, Edge *e, ParseCallback::edge_type_t t, mod_t m) : block(b), edge(e), type(t), action(m) {};
   };     
+
+  struct EdgeMod {
+     Edge *edge;
+     Block *block;
+     ParseCallback::edge_type_t action;
+     
+  EdgeMod(Edge *e, Block *b, ParseCallback::edge_type_t t) : 
+     edge(e), block(b), action(t) {};
+  };
 
   struct FuncMod {
      Function *func;
@@ -239,6 +257,7 @@ class ParseCallbackManager {
   std::vector<Block *> destroyedBlocks_;
   std::vector<Function *> destroyedFunctions_;
   std::vector<BlockMod> blockMods_;
+  std::vector<EdgeMod> edgeMods_;
   std::vector<FuncMod> funcMods_;
   std::vector<BlockSplit> blockSplits_;
 

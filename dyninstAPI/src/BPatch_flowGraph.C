@@ -217,7 +217,8 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
     // representation...
     BPatch_point *p = getAddSpace()->findOrCreateBPPoint(func_,
                                                          instPoint::blockEntry(loop->getLoopHead()->ifunc(),
-                                                                               llHead));
+                                                                               llHead),
+                                                         BPatch_locBasicBlockEntry);
     p->overrideType(BPatch_locLoopStartIter);
     p->setLoop(loop);
     points->push_back(p);
@@ -332,7 +333,7 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
   /*   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
        iter != ll_func()->exitBlocks().end(); ++iter) { */
-  for (PatchFunction::blockset::const_iterator iter = ll_func()->getExitBlocks().begin();
+  for (PatchFunction::Blockset::const_iterator iter = ll_func()->getExitBlocks().begin();
        iter != ll_func()->getExitBlocks().end(); ++iter) {
     nbb.push_back(findBlock(SCAST_BI(*iter)));
   }
@@ -533,9 +534,9 @@ bool BPatch_flowGraph::createBasicBlocks()
 {
   assert(ll_func());
   // create blocks from block_instances
-  const PatchFunction::blockset&
+  const PatchFunction::Blockset&
     iblocks = ll_func()->getAllBlocks();
-  PatchFunction::blockset::const_iterator ibIter;
+  PatchFunction::Blockset::const_iterator ibIter;
   //for( unsigned int i = 0; i < iblocks.size(); i++ )
   for (ibIter = iblocks.begin();
        ibIter != iblocks.end();
@@ -912,8 +913,8 @@ void BPatch_flowGraph::createLoopHierarchy()
 
   dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-  const PatchFunction::blockset &blocks = ll_func()->getAllBlocks();
-  for (PatchFunction::blockset::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
+  const PatchFunction::Blockset &blocks = ll_func()->getAllBlocks();
+  for (PatchFunction::Blockset::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
     block_instance* iblk = SCAST_BI(*iter);
     func_instance *callee = iblk->callee();
     if (callee) {

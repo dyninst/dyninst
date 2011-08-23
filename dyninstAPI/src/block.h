@@ -27,7 +27,6 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
     edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
     edge_instance(const edge_instance *parent, mapped_object *child);
     ~edge_instance();
-   static void destroy(edge_instance *);
 };
 
 // This is somewhat mangled, but allows Dyninst to access the
@@ -71,6 +70,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
        void getFuncs(OutputIterator result);
 
     void triggerModified();
+    void setNotAbruptEnd();
     parse_block * llb() const { return SCAST_PB(block_); }
     void *getPtrToInstruction(Address addr) const;
 
@@ -82,7 +82,6 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     edge_instance *getFallthrough();
     // NULL if not conclusive
     block_instance *getFallthroughBlock();
-    block_instance *getTargetBlock();
 
     func_instance *callee();
     std::string calleeName();

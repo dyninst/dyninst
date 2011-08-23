@@ -74,7 +74,7 @@ std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
 }
 
 bool SymEval::expand(Result_t &res, 
-                     std::set<Instruction::Ptr> &failedInsns,
+                     std::set<InstructionPtr> &failedInsns,
                      bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
@@ -109,7 +109,7 @@ bool edgeSort(Edge::Ptr ptr1, Edge::Ptr ptr2) {
     Address addr1 = ptr1->target()->addr();
     Address addr2 = ptr2->target()->addr();
 
-    return (addr1 <= addr2);
+    return (addr1 < addr2);
 }
 
 void dfs(Node::Ptr source,
@@ -302,7 +302,7 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
+SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
    bool failedTranslation = false;
    bool skippedInput = false;
 

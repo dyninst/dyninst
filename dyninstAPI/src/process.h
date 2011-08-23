@@ -647,7 +647,7 @@ public:
   bool isExploratoryModeOn();
   bool isRuntimeHeapAddr(Address addr);
   bool setMemoryAccessRights(Address start, Address size, int rights);
-  bool getMemoryAccessRights(Address start, Address size, int rights);
+  int getMemoryAccessRights(Address start, Address size);
 
 
  private:
@@ -1071,8 +1071,4 @@ inline void process::independentLwpControlInit() { }
 #endif
 
 extern pdvector<process *> processVec;
-
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
-
 #endif

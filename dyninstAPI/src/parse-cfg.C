@@ -126,7 +126,7 @@ parse_func::parse_func(
 parse_func::~parse_func() 
 {
     /* FIXME */ 
-  fprintf(stderr,"SCREAMING FIT IN UNIMPL ~parse_func()\n");
+  mal_printf("~image_func() for func at %lx\n",_start);
   delete usedRegisters;
 }
 
@@ -224,7 +224,9 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
-    canBeRelocated_(true)
+    canBeRelocated_(true),
+    unresolvedCF_(false),
+    abruptEnd_(false)
 { 
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();
@@ -350,6 +352,23 @@ bool parse_block::isExitBlock()
         }
     }
     return true;
+}
+
+bool parse_block::isCallBlock()
+{
+    Block::edgelist & trgs = targets();
+    if(!trgs.empty())
+    {
+        for (Block::edgelist::iterator eit = trgs.begin();
+             eit != trgs.end();
+             eit++) 
+        {
+            if ((*eit)->type() == CALL) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 image *parse_block::img()
@@ -568,6 +587,10 @@ void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 }
 ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 {
+    if (UNSET == init_retstatus_) {
+        assert(!obj()->defensiveMode()); // should have been set for defensive binaries
+        return retstatus();
+    }
     if (init_retstatus_ > retstatus()) {
         return retstatus();
     }
