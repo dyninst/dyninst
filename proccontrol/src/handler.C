@@ -617,6 +617,7 @@ HandlePostExitCleanup::~HandlePostExitCleanup()
 void HandlePostExitCleanup::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Post, EventType::Exit));
+   etypes.push_back(EventType(EventType::None, EventType::Crash));
 }
 
 Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
@@ -625,7 +626,7 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
    assert(proc);
    assert(thrd);
-   pthrd_printf("Handling post-exit cleanup for process %d on thread %d\n",
+   pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
 
    if (int_process::in_waitHandleProc == proc) {
@@ -658,12 +659,13 @@ void HandleCrash::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
 {
+   pthrd_printf("Handling crash for process %d on thread %d\n",
+                ev->getProcess()->getPid(), ev->getThread()->getLWP());
+//                evproc->getPid(), thrd->getLWP());   
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
    assert(proc);
    assert(thrd);
-   pthrd_printf("Handling crash for process %d on thread %d\n",
-                proc->getPid(), thrd->getLWP());
    EventCrash *event = static_cast<EventCrash *>(ev.get());
 
    if (proc->wasForcedTerminated()) {
@@ -681,12 +683,6 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
-
-   if (int_process::in_waitHandleProc == proc) {
-      pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
-   } else {
-      delete proc;
-   }
 
    return ret_success;
 }

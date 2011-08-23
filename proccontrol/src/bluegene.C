@@ -125,12 +125,10 @@ ArchEventBlueGene::ArchEventBlueGene(BG_Debugger_Msg *m) :
    msg(m),
    pc_resp(response::ptr())
 {
-   pthrd_printf("In constructor for ArchEvent %p\n", this);
 }
 
 ArchEventBlueGene::~ArchEventBlueGene()
 {
-   pthrd_printf("In destructor for ArchEvent %p\n", this);
    if (msg) {
       delete msg;
       msg = NULL;
@@ -269,6 +267,7 @@ static bool messageAllowedOnStoppedProc(const BG_Debugger_Msg &msg)
       case MAP_MEM_ACK:
       case FAST_TRAP_ACK:
       case DEBUG_IGNORE_SIG_ACK:
+      case PROGRAM_EXITED:
          return true;
       default:
          return false;
@@ -730,7 +729,12 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
             new_event = EventExit::ptr(new EventExit(EventType::Post, rc));
          }
          else if (msg->dataArea.PROGRAM_EXITED.type == EXIT_TYPE_SIGNAL) {
-            new_event = EventCrash::ptr(new EventCrash(rc));
+            if (proc->wasForcedTerminated()) {
+               new_event = EventForceTerminate::ptr(new EventForceTerminate(rc));
+            }
+            else {
+               new_event = EventCrash::ptr(new EventCrash(rc));
+            }
          }
          else {
             perr_printf("Unknown exit type %d\n", code);

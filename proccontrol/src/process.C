@@ -4062,7 +4062,7 @@ Library::Library()
 
 Library::~Library()
 {
-   MTLock lock_this_func;
+   MTLock lock_this_func(MTLock::allow_generator);
    if (lib) {
       delete lib;
       lib = NULL;

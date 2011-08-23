@@ -71,7 +71,7 @@ static set<pair<PID, LWP> > post_dead_lwps;
 static set<pair<PID, Address> > all_stack_addrs;
 static set<pair<PID, Address> > all_tls;
 static set<PID> all_initial_threads;
-
+static set<Process::const_ptr> exited_processes;
 
 void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
 {
@@ -81,6 +81,14 @@ void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
       has_error = true;
    }
 }
+
+static Process::cb_ret_t proc_exit(Event::const_ptr ev)
+{
+   exited_processes.insert(ev->getProcess());
+   return Process::cbDefault;
+}
+
+
 
 static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
 {
@@ -396,6 +404,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    registerCB(EventType::UserThreadDestroy, uthr_destroy);
    registerCB(EventType::LWPCreate, lwp_create);
    registerCB(EventType::LWPDestroy, lwp_destroy);
+   registerCB(EventType::Terminate, proc_exit);
 
    is_attach = (create_mode_t) param["createmode"]->getInt() == USEATTACH;
    if (has_error) return FAILED;
@@ -490,6 +499,13 @@ test_results_t pc_threadMutator::executeTest()
       if (!result) {
          logerror("Failed to wait for thread terminate events\n");
          has_error = true;
+         break;
+      }
+      if (exited_processes.size() >= comp->num_processes) {
+#if !defined(os_bg_test)
+         logerror("Process exited while waiting for thread termination events.\n");
+         has_error = true;
+#endif
          break;
       }
    }
