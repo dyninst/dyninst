@@ -47,21 +47,21 @@
     % Document Title
 % older versions of pgf have a bug for matrices in overlay mode;
 % have to specify positions manually
-%    \matrix (Title) [%
-%        matrix of nodes,%
-%        nodes={font=\sffamily,right},%
-%        matrix anchor=west,%
-%        row sep=12pt
-%        ] at ($(origin)+(0.75in,-3.0in)$)
-%    {
-%        \fontsize{48}{56}\selectfont ParseAPI \\
-%        \fontsize{44}{56}\selectfont Programmer's Guide \\
-%    };
+    \matrix (Title) [%
+        matrix of nodes,%
+        nodes={font=\sffamily,right},%
+        matrix anchor=west,%
+        row sep=12pt
+        ] at ($(origin)+(0.75in,-3.0in)$)
+    {
+        \fontsize{48}{56}\selectfont PatchAPI \\ \\ \\ \\
+        \fontsize{48}{56}\selectfont Programmer's Guide \\
+    };
 
-    \node [anchor=west,font=\sffamily] (title1) at ($(origin)+(0.75in,-3.0in)$)
-        {\fontsize{48}{56}\selectfont PatchAPI};
-    \node [anchor=west,font=\sffamily] (title2) at ($(title1.west)+(0in,-56pt)$)
-        {\fontsize{48}{56}\selectfont Programmer's Guide};
+%    \node [anchor=west,font=\sffamily] (title1) at ($(origin)+(0.75in,-3.0in)$)
+%        {\fontsize{48}{56}\selectfont PatchAPI};
+%    \node [anchor=west,font=\sffamily] (title2) at ($(title1.west)+(0in,-56pt)$)
+%        {\fontsize{48}{56}\selectfont Programmer's Guide};
 
     % Release information
 %    \matrix (Releaseinfo) [%
