@@ -1628,14 +1628,6 @@ Symtab::Symtab(const Symtab& obj) :
    for (i=0; i<relocation_table_.size();i++) 
    {
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-<<<<<<< HEAD:symtabAPI/src/Symtab.C
-=======
-      //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-
-      // Commented out; undefDynSyms is now in the global symbol list
-      //undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
-
->>>>>>> Defensive:symtabAPI/src/Symtab.C
    }
 
    for (i=0;i<excpBlocks.size();i++)
@@ -2756,15 +2748,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     // Find the symbol.
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
-<<<<<<< HEAD:symtabAPI/src/Symtab.C
     if (symsByMangledName[name].size() != 1) 
         fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
                 (unsigned) symsByMangledName[name].size(), name); // */
-=======
-    if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
-                (int)symsByMangledName[name].size(), name); // */
->>>>>>> Defensive:symtabAPI/src/Symtab.C
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.

@@ -242,12 +242,6 @@ DynParseCallback::patch_nop_jump(Address addr)
 void
 DynParseCallback::interproc_cf(Function*f,Block *b,Address /*addr*/,interproc_details*det)
 {
-if((_img->hybridMode() == BPatch_normalMode) &&
-   (det->type == ParseCallback::interproc_details::unres_branch)) {
-			          parse_func * ifunc = static_cast<parse_func*>(f);
-						 ifunc->setInstLevel(UNINSTRUMENTABLE);
-}
-
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
         parse_func * ifunc = static_cast<parse_func*>(f);
