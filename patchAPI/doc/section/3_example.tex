@@ -1,1 +1,127 @@
-\section{Examples}
+\section{Examples} \label{sec-3}
+To illustrate the ideas of PatchAPI, we present some simple code examples that
+demonstrate how the API can be used.
+
+\subsection{Using the public interface}
+The basic flow of doing code patching is to first find some points in a program,
+and then to insert, delete or update a piece of code at these points.
+\subsubsection{Point Finding}
+
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+PatchFunction *func = ...;
+PatchBlock *block = ...;
+PatchEdge *edge = ...;
+
+PatchMgr *mgr = ...;
+
+std::vector<Point*> pts;
+mgr->findPoints(Scope(func),
+                Point::FuncEntry | 
+                Point::PreCall | 
+                Point::FuncExit,
+                back_inserter(pts));
+mgr->findPoints(Scope(block),
+                Point::BlockEntry,
+                back_inserter(pts));
+mgr->findPoints(Scope(edge),
+                Point::EdgeDuring,
+                back_inserter(pts));
+\end{lstlisting}
+
+
+\subsubsection{Code Patching}
+
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+MySnippet snip;
+Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+
+Patcher patcher(mgr);
+for (vector<Point*>::iterator iter = pts.begin();
+     iter != pts.end(); ++iter) {
+  Point* pt = *iter;
+  patcher.add(PushFrontCommand::create(pt, snippet));
+}
+patcher.commit();
+\end{lstlisting}
+
+\subsection{Using the plugin interface}
+
+\subsubsection{Address Space}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+class MyAddrSpace : public AddrSpace {
+  public:
+    ...
+    virtual Address malloc(PatchObject* obj, size_t size, Address near) {
+      Address buffer = ...
+      // do memory allocation here
+      return buffer;
+    }
+    ...
+};
+
+\end{lstlisting}
+
+\subsubsection{Snippet Generator}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+struct MySnippet {
+  void* binary_blob;
+};
+
+MySnippet snip;
+Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+\end{lstlisting}
+
+\subsubsection{Code Parser}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+class MyFunction : public PatchFunction {
+  ...
+};
+
+class MyCFGMaker : public CFGMaker {
+  public:
+    ...
+    virtual PatchFunction* makeFunction(ParseAPI::Function *f, PatchObject* o) {
+      return new MyFunction(f, o);
+    }
+    ...
+};
+\end{lstlisting}
+
+\subsubsection{Instrumentation Engine}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+class MyInstrumenter : public Instrumenter {
+  public:
+    virtual bool run() {
+      // Specify how to generate code here
+    }
+};
+\end{lstlisting}
+
+\subsubsection{Plugin Registration}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=none}
+\begin{lstlisting}
+MyCFGMakerPtr cm = ...
+PatchObject* obj = PatchObject::create(..., cm);
+
+MyAddrSpacePtr as = ...
+as->loadObject(obj);
+
+MyInstrumenter inst = ...
+PatchMgrPtr mgr = PatchMgr::create(as, ..., inst);
+
+MySnippet* snip = ...
+Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+\end{lstlisting}

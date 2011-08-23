@@ -1,14 +1,14 @@
 \section{Abstractions}
-\label{sec-2}
+\label{sec-abs}
 
-\begin{figure}[htb]
+\begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/abstraction/img.pdf}}
 \caption{\label{fig:abs}Object Ownership}
 \end{figure}
 
 
 PatchAPI contains two interfaces: the public interface and the plugin interface.
-The public interface is used to find instrumentation points, insert / delete
+The public interface is used to find instrumentation points, insert or delete
 code snippets, and register plugins provided by programmers. The plugin
 interface is used to customize different aspects in the binary code patching.
 PatchAPI provides a set of default plugins for first party code patching, which
@@ -48,10 +48,11 @@ The address space abstraction determines whether the code patching is 1st party,
 3rd party or binary rewriting.
 \begin{itemize}
 \item \emph{AddrSpace} - The AddrSpace class represents the address space of a
-    \textbf{Mutatee}, where it contains a collection of \textbf{PatchObjects} that represent
-    shared libraries or a binary executable. In addition, programmers implement
-    some memory management interfaces in the AddrSpace class to determines the
-    type of the code patching - 1st party, 3rd party, or binary rewriting.
+  \textbf{Mutatee} (a program that is instrumented), where it contains a
+  collection of \textbf{PatchObjects} that represent shared libraries or a
+  binary executable. In addition, programmers implement some memory management
+  interfaces in the AddrSpace class to determines the type of the code patching
+  - 1st party, 3rd party, or binary rewriting.
 \end{itemize}
 Programmers can decide the representation of a \textbf{Snippet}, for example, the
 representation can be in high level language (e.g., C or C++), or can simply be
@@ -84,7 +85,7 @@ parse the binary code into CFG structures.
     binary code into CFG structures, e.g., to parse during the runtime of code
     patching or to reuse the previously parsed result.
 \end{itemize}
-\begin{figure}[htb]
+\begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/command/img.pdf}}
 \caption{\label{fig:inh}Inheritance Hierarchy}
 \end{figure}
@@ -94,14 +95,15 @@ The implementation of an instrumentation engine may be very sophisticated (e.g.,
 relocating a function), or be very simple (e.g., simply overwrite an
 instruction). Therefore, PatchAPI provides a flexible framework for programmers
 to customize the instrumentation engine. This framework is based on Command
-Pattern. The instrumentation engine has transactional semantics, where all
-instrumentation requests should succeed or all should fail. In our framework,
-the \textbf{Command} abstraction represents an instrumentation request or a logical
-step in the code patching process. We accumulate a list of \textbf{Commands}, and
-execute them one by one. If one \textbf{Command} fails, we undo all executed
-\textbf{Commands}. Figure \ref{fig:inh} illustrates the inheritance hierarchy for
-related classes. There is a default implementation of instrumentation engine in
-PatchAPI for 1st party code patching.
+Pattern~\footnote{http://en.wikipedia.org/wiki/Command\_pattern}. The
+instrumentation engine has transactional semantics, where all instrumentation
+requests should succeed or all should fail. In our framework, the
+\textbf{Command} abstraction represents an instrumentation request or a logical
+step in the code patching process. We accumulate a list of \textbf{Commands},
+and execute them one by one. If one \textbf{Command} fails, we undo all executed
+\textbf{Commands}. Figure \ref{fig:inh} illustrates the inheritance hierarchy
+for related classes. There is a default implementation of instrumentation engine
+in PatchAPI for 1st party code patching.
 \begin{itemize}
 \item \emph{Command} - The Command class represents an instrumentation request (e.g.,
     snippet insertion or removal), or a logical step in the code patching (e.g.,
