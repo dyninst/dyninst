@@ -56,6 +56,8 @@ typedef std::list<WidgetPtr> WidgetList;
 
 class RelocGraph {
   public:
+   typedef std::map<func_instance *, RelocBlock *> SubMap;
+   typedef std::map<block_instance *, SubMap> InstanceMap;
    typedef std::map<block_instance *, RelocBlock *> Map;
    typedef std::vector<RelocEdge *> Edges;
    
@@ -87,9 +89,9 @@ class RelocGraph {
    Edges edges;
    
    Map springboards;
-   Map reloc;
+   InstanceMap reloc;
 
-   RelocBlock *find(block_instance *) const;
+   RelocBlock *find(block_instance *, func_instance *) const;
    bool setSpringboard(block_instance *from, RelocBlock *to);
    RelocBlock *findSpringboard(block_instance *from) const;
 
