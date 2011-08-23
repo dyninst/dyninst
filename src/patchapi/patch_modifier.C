@@ -226,6 +226,9 @@ bool patchModifier_Mutator::insert() {
 
 
 test_results_t patchModifier_Mutator::executeTest() {
+   return ::SKIPPED;
+
+   // TODO reimplement...
    if (!redirect()) return ::FAILED;
 
    if (!splitBlock()) return ::FAILED;
