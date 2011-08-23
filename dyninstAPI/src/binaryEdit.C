@@ -606,7 +606,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             */
                
             // Create the relocationEntry
-            cerr << "Creating relocation entry: " << hex << referring->getMangledName() << " -> " << to << dec << endl;
             relocationEntry localRel(to, referring->getMangledName(), referring,
                                      relocationEntry::getGlobalRelType(getAddressWidth()));
             

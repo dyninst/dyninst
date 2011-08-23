@@ -1,0 +1,132 @@
+\section{Introduction}
+\label{sec-1}
+
+This manual describes PatchAPI, a programming interface and library
+for binary code patching. A programmer uses PatchAPI to instrument
+(insert code into) and modify a binary executable or library by
+manipulating the binary's control flow graph (CFG). We allow the user
+to instrument a binary by annotating a CFG with \emph{snippets}, or
+sequences of inserted code, and to modify the binary by directly
+manipulating the CFG. The PatchAPI interface, and thus tools written
+with PatchAPI, is designed to be flexible and extensible. First, users
+may \emph{inherit} from PatchAPI abstractions in order to store their
+own data. Second, users may create \emph{plugins} to extend PatchAPI
+to handle new types of instrumentation, different binary types, or
+different patching techniques. 
+
+PatchAPI represents the binary as an annotatable and modifiable
+CFG. The CFG consists of four primary abstractions, which are similar
+to the CFG abstractions used by the ParseAPI component:
+\begin{description}
+\item[PatchBlock:] A PatchBlock represents a single basic block, a
+  contiguous sequence of instructions that are executed as a single
+  unit. These objects form the nodes of our CFG. 
+\item[PatchEdge:] A PatchEdge represents a possible control flow path
+  between two PatchBlocks. PatchEdges are \emph{typed} to represent
+  when the edge is traversed. 
+\item[PatchFunction:] A PatchFunction represents a collection of
+  PatchBlocks that are analogous to a source function. There is not
+  always a clear mapping between source functions and functions in the
+  binary due to compiler optimizations (e.g., function inlining). We
+  define a function as the collection of blocks between a unique
+  \emph{entry block} and an \emph{exit block} that contains a return
+  instruction. As a result, functions may \emph{overlap} and contain
+  a common subset of blocks; an example of this can be found in the
+  ParseAPI documentation.
+\item[PatchObject:] A PatchObject represents a binary file (or its
+  memory equivalent), and represents a ParseAPI CodeObject.
+\end{description}
+
+Users instrument the binary by annotating this CFG using three
+additional abstractions:
+\begin{description}
+\item[Point]: A Point supports instrumentation by representing a
+  particular aspect of program behavior (e.g., entering a function or
+  traversing an edge) and containing instances of Snippets. We define
+  several classes of Points, as can be seen in Figure \ref{Points}.
+\item[Snippet]: A Snippet represents a sequence of inserted code. To
+  maximize flexibility, PatchAPI does not prescribe a particular
+  snippet form; instead, users may provide their own (e.g., a binary
+  buffer, a Dyninst abstract syntax tree (AST), or code written in the
+  DynC language). Users instrument the binary by adding Snippets to
+  the desired Points. 
+\item[Instance]: An Instance represents the insertion of a particular
+  Snippet at a particular Point.
+\end{description}
+
+Point lookup is performed with a single PatchAPI manager (PatchMgr)
+object. This object represents a binary along with all of its
+dependent libraries. Points are looked up in the manager by Scope
+(e.g., a CFG object) and Type (e.g., function entry). In addition, a
+user may provide an optional Filter which selects a subset of matching
+Points.
+
+The following C++ code snippet demonstrates the Point/Snippet
+interface:
+
+\begin{verbatim}
+// We are interested in instrumenting a function, block, and edge
+PatchFunction *func = ...;
+PatchBlock *block = ...;
+PatchEdge *edge = ...;
+
+// Point lookup is done via a manager (PatchMgr) object
+PatchMgr *mgr = ...;
+
+// Find the following points: function entry, function exit,
+// pre-call (immediately before a call is executed), block entry,
+// and edge traversal
+
+PointVector pts;
+
+mgr->findPoints(Scope(func),
+                Point::FuncEntry | 
+                Point::PreCall | 
+                Point::FuncExit,
+                back_inserter(pts));
+mgr->findPoints(Scope(block),
+                Point::BlockEntry,
+                back_inserter(pts));
+mgr->findPoints(Scope(edge),
+                Point::EdgeDuring,
+                back_inserter(pts));
+
+// Insert a single Snippet at each Point
+Snippet::ptr snippet = ...;
+
+for (PointVector::iterator iter = pts.begin(); 
+     iter != pts.end(); ++iter) {
+  (*iter)->push_back(snippet);
+}
+
+// For efficiency, we can batch instrumentation
+mgr->commit();
+
+\end{verbatim}
+
+
+The core PatchAPI representation of an annotatable and modifiable CFG
+operates in several domains, including on a running process (dynamic
+instrumentation) or a file on disk (binary rewriting). Furthermore,
+PatchAPI may be used both in the same address space as the process
+(1st-party instrumentation) or in a different address space via the
+debug interface (3rd-party instrumentation). Similarly, developers may
+define their own types of Snippets to encapsulate their own code
+generation techniques. These capabilities are provided by a plugin
+interface; by implementing a plugin a developer may extend PatchAPI's
+capabilities. The core plugin abstractions are:
+
+\begin{description}
+\item[AddressSpace]: An AddressSpace defines the low-level mechanisms
+  necessary to manipulate a process or binary, including reading,
+  writing, and allocating new memory.
+\item[Snippet Generator]: A Snippet Generator defines how to convert a
+  provided Snippet into the binary code that is injected into the
+  process.
+\item[Code Parser]: The Code Parser is responsible for creating the
+  PatchAPI CFG. 
+\item[Instrumentation Engine]: An Instrumentation Engine is
+  responsible for generating the instrumented binary, including all
+  CFG modifications and inserted snippets.
+\end{description}
+

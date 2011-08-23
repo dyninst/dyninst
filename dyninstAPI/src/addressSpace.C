@@ -1304,6 +1304,8 @@ void trampTrapMappings::allocateTable()
    SymtabAPI::Symtab *symtab = 
       binedit->getMappedObject()->parse_img()->getObject();
    if( !symtab->isStaticBinary() ) {
+       symtab->addSysVDynamic(DT_DYNINST, table_header);
+       symtab->addLibraryPrereq(proc()->dyninstRT_name);
       symtab->addSysVDynamic(DT_DYNINST, table_header);
       symtab->addLibraryPrereq(proc()->dyninstRT_name);
 #if defined (os_windows)
@@ -1466,31 +1468,36 @@ void AddressSpace::replaceFunction(func_instance *oldfunc, func_instance *newfun
    addModifiedFunction(oldfunc);
 }
 
-bool AddressSpace::wrapFunction(func_instance *oldfunc, 
-                                func_instance *newfunc,
-                                std::string name) {
-   if (oldfunc->proc() != this) {
-      return oldfunc->proc()->wrapFunction(oldfunc, newfunc, name);
-   }
-   assert(oldfunc->proc() == this);
+bool AddressSpace::wrapFunction(func_instance *original, 
+                                func_instance *wrapper,
+                                SymtabAPI::Symbol *clone) {
+   if (!original) return false;
+   if (!wrapper) return false;
+   if (!clone) return false;
 
-   // 1) Replace oldfunc with newfunc via entry point jumps;
+   if (original->proc() != this) {
+      return original->proc()->wrapFunction(original, wrapper, clone);
+   }
+   assert(original->proc() == this);
+
+
+   // 1) Replace original with wrapper via entry point jumps;
    //    this is handled in the instrumenter. 
-   // 2) Create a copy of oldfunc with the new provided name. 
+   // 2) Create a copy of original with the new provided name. 
    // 3) (binary editing): update the various Symtab tables
    //    with the new name.
 
    // TODO: once we have PatchAPI updated a bit, break this into
    // steps 1-3. For now, keep it together. 
-   mgr()->instrumenter()->wrapFunction(oldfunc, newfunc, name);
-   addModifiedFunction(oldfunc);
+   mgr()->instrumenter()->wrapFunction(original, wrapper, clone->getMangledName());
+   addModifiedFunction(original);
 
    if (edit()) {
       if (!AddressSpace::patch(this)) return false;
-      if (!oldfunc->addSymbolsForCopy()) return false;
+      if (!original->addSymbolsForCopy()) return false;
    }
    else {
-      addModifiedFunction(newfunc);
+      addModifiedFunction(wrapper);
       // TODO dynamic mode; we need to update the names. 
       return false;
    }
@@ -1714,7 +1721,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
 
-   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
+   if (0 && proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
        adhocMovementTransformer a(this);
        cm->transform(a);
    }
@@ -1722,6 +1729,15 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
        PCSensitiveTransformer pc(this, cm->priorityMap());
         cm->transform(pc);
    }
+
+#if 0
+   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
+   }
+   else {
+       PCSensitiveTransformer pc(this, cm->priorityMap());
+        cm->transform(pc);
+   }
+#endif
 
 #if defined(cap_mem_emulation)
    if (emulateMem_) {
@@ -1969,7 +1985,16 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
-   assert(point);
+   if (!point || point->empty()) {
+      // We recorded a gap for some other reason than a return-address-modifying call;
+      // ignore (for now). 
+      //cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
+      return;
+   }
+   if (!point || point->empty()) {
+       // Kevin didn't instrument it so we don't care :)
+       return;
+   }
 
    mal_printf("Adding pad for callBlock [%lx %lx), pad at 0%lx\n", 
               callBlock->start(), callBlock->end(), padStart);

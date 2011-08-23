@@ -55,7 +55,10 @@ namespace PatchAPI {
   class Patcher;
   typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
   typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
-}
+};
+namespace SymtabAPI {
+   class Symbol;
+};
 }
 
 class BPatch_statement;
@@ -297,8 +300,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // Replace oldFunc with newFunc as above; however, also rename oldFunc
     // to the provided name so it can still be reached. 
 
-    API_EXPORT(Int, (oldFunc, newFunc, name),
-    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc, std::string name));
+    API_EXPORT(Int, (oldFunc, newFunc, clone),
+               bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
 
     //  BPatch_addressSpace::getSourceLines
     //  

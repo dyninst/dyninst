@@ -1656,7 +1656,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     }
     if (!obj->isStaticBinary()) {
     	if(allSymbols[i]->isInDynSymtab()) {
-      		allDynSymbols.push_back(allSymbols[i]);
+           allDynSymbols.push_back(allSymbols[i]);
     	}
     }
   }

@@ -114,7 +114,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
-
    if (patch_debug_springboard) {
       cerr << "SPRINGBOARD GENERATION" << endl;
       debugRanges();
@@ -215,7 +214,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
-   
+
    bool usedTrap = false;
    generateBranch(r.from, r.destinations.begin()->second.second, gen);
 

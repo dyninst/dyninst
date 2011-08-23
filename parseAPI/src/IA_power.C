@@ -156,7 +156,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
       if ( outReg.absloc().isPC() ) {
           Slicer slicer(*ait,bit,func);
           Graph::Ptr slGraph = slicer.backwardSlice(preds);
-          DataflowAPI::SymEval::Result_t slRes;
+          DataflowAPI::Result_t slRes;
           DataflowAPI::SymEval::expand(slGraph,slRes);
           pcDef = slRes[*ait];
           /*
@@ -341,7 +341,7 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-const char* IA_IAPI::isIATcall() const
+bool IA_IAPI::isIATcall(std::string &) const
 {
     return false;
 }

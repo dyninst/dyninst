@@ -1,7 +1,10 @@
+#include "common/h/Types.h"
+
 #include "DynPointMaker.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-
+#include "common/h/Types.h"
+#include "instructionAPI/h/Instruction.h"
 
 Point *DynPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
    return new instPoint(t, m, SCAST_FI(f));

@@ -258,7 +258,6 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
    // For now, we're doing an annoying iteration over all CodeTracker elements looking
    // for any padding structures. TODO: roll this into the address lookup
    // mechanism.
-   // addDefensivePad(block_instance *, Address, size)
    const CodeTracker::TrackerList &trackers = tracker_->trackers();
    for (CodeTracker::TrackerList::const_iterator iter = trackers.begin(); iter != trackers.end(); ++iter) {
       if ((*iter)->type() == TrackerElement::padding) {
