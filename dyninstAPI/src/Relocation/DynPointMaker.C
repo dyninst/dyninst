@@ -1,3 +1,5 @@
+#include "common/h/Types.h"
+
 #include "DynPointMaker.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"

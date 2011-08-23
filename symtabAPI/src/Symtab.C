@@ -622,13 +622,11 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
 
-#if 0        
 #if !defined(os_vxworks)
         if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
-            undefDynSyms[sym->getMangledName()].push_back(sym);
-            continue;
+           undefDynSyms.push_back(sym);
+           continue;
         }
-#endif
 #endif
 
         // Check whether this symbol has a valid offset. If they do not we have a
@@ -690,9 +688,9 @@ bool Symtab::demangleSymbols(std::vector<Symbol *> &raw_syms)
  * indices here. 
  */
 
-bool Symtab::createIndices(std::vector<Symbol *> &raw_syms) {
+bool Symtab::createIndices(std::vector<Symbol *> &raw_syms, bool undefined) {
     for (unsigned i = 0; i < raw_syms.size(); i++) {
-        addSymbolToIndices(raw_syms[i]);
+       addSymbolToIndices(raw_syms[i], undefined);
     }
     return true;
 }
@@ -734,102 +732,109 @@ bool Symtab::fixSymModule(Symbol *&sym)
     // do it as well.
     Module *mod = NULL;
     if (getObjectType() == obj_SharedLib) {
-        mod = getDefaultModule();
+       mod = getDefaultModule();
     }
     else {
-		Object *obj = getObject();
-		if (!obj)
-		{
+       Object *obj = getObject();
+       if (!obj)
+       {
 #if !defined(os_vxworks)
-			fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 #endif
-			return false;
-		}
-        std::string modName = obj->findModuleForSym(sym);
-        if (modName.length() == 0) {
-            mod = getDefaultModule();
-        }
-        else {
-            mod = getOrCreateModule(modName, sym->getOffset());
-        }
+          return false;
+       }
+       std::string modName = obj->findModuleForSym(sym);
+       if (modName.length() == 0) {
+          mod = getDefaultModule();
+       }
+       else {
+          mod = getOrCreateModule(modName, sym->getOffset());
+       }
     }
-    if (!mod)
-        return false;
 
+
+    if (!mod)
+       return false;
+    
     sym->setModule(mod);
     return true;
 }
 
 bool Symtab::demangleSymbol(Symbol *&sym) {
-    switch (sym->getType()) {
-    case Symbol::ST_FUNCTION: {
-        Module *rawmod = sym->getModule();
-        assert(rawmod);
-        
-        // At this point we need to generate the following information:
-        // A symtab name.
-        // A pretty (demangled) name.
-        // The symtab name goes in the global list as well as the module list.
-        // Same for the pretty name.
-        // Finally, check addresses to find aliases.
-        
-        std::string mangled_name = sym->getMangledName();
-        std::string working_name = mangled_name;
-        
-#if !defined(os_windows)        
-        //Remove extra stabs information
-        const char *p = strchr(working_name.c_str(), ':');
-        if( p ) {
-            unsigned nchars = p - mangled_name.c_str();
-            working_name = std::string(mangled_name.c_str(), nchars);
-        }
-#endif        
-        
-        std::string pretty_name = working_name;
-        std::string typed_name = working_name;
-        
-        if (!buildDemangledName(working_name, pretty_name, typed_name,
-                                nativeCompiler, rawmod->language())) {
-            pretty_name = working_name;
-        }
+   bool typed_demangle = false;
+   if (sym->getType() == Symbol::ST_FUNCTION) typed_demangle = true;
 
-        sym->prettyName_ = pretty_name;
-        sym->typedName_ = typed_name;
-        
-        break;
-    }
-    default: {
-        // All cases where there really shouldn't be a mangled
-        // name, since mangling is for functions.
-        
-        char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
-        if (prettyName) {
-            sym->prettyName_ = prettyName;
-        }
-        break;
-    }
-    }
-    return true;
+   // This is a bit of a hack; we're trying to demangle undefined symbols which don't necessarily
+   // have a ST_FUNCTION type. 
+   if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage())
+      typed_demangle = true;
+
+   if (typed_demangle) {
+      Module *rawmod = sym->getModule();
+
+      // At this point we need to generate the following information:
+      // A symtab name.
+      // A pretty (demangled) name.
+      // The symtab name goes in the global list as well as the module list.
+      // Same for the pretty name.
+      // Finally, check addresses to find aliases.
+      
+      std::string mangled_name = sym->getMangledName();
+      std::string working_name = mangled_name;
+      
+#if !defined(os_windows)        
+      //Remove extra stabs information
+      const char *p = strchr(working_name.c_str(), ':');
+      if( p ) {
+         unsigned nchars = p - mangled_name.c_str();
+         working_name = std::string(mangled_name.c_str(), nchars);
+      }
+#endif        
+      
+      std::string pretty_name = working_name;
+      std::string typed_name = working_name;
+      
+      if (!buildDemangledName(working_name, pretty_name, typed_name,
+                              nativeCompiler, (rawmod ? rawmod->language() : lang_Unknown))) {
+         pretty_name = working_name;
+      }
+      
+      sym->prettyName_ = pretty_name;
+      sym->typedName_ = typed_name;
+   }
+   else {
+       // All cases where there really shouldn't be a mangled
+      // name, since mangling is for functions.
+      
+      char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
+      if (prettyName) {
+         sym->prettyName_ = prettyName;
+      }
+   }
+
+   return true;
 }
 
-bool Symtab::addSymbolToIndices(Symbol *&sym) 
+bool Symtab::addSymbolToIndices(Symbol *&sym, bool undefined) 
 {
-	assert(sym);
-//	sym->index_ = everyDefinedSymbol.size();
-
-    everyDefinedSymbol.push_back(sym);
-
+   assert(sym);
+   if (!undefined) {
+      everyDefinedSymbol.push_back(sym);
+      symsByMangledName[sym->getMangledName()].push_back(sym);
+      symsByPrettyName[sym->getPrettyName()].push_back(sym);
+      symsByTypedName[sym->getTypedName()].push_back(sym);
 #if !defined(os_vxworks)    
-    // VxWorks doesn't know symbol addresses until object is loaded.
-    symsByOffset[sym->getAddr()].push_back(sym);
+      // VxWorks doesn't know symbol addresses until object is loaded.
+      symsByOffset[sym->getAddr()].push_back(sym);
 #endif
-
-    symsByMangledName[sym->getMangledName()].push_back(sym);
-
-    symsByPrettyName[sym->getPrettyName()].push_back(sym);
-
-    symsByTypedName[sym->getTypedName()].push_back(sym);
-
+   }
+   else {
+      // We keep a different index for undefined symbols
+      undefDynSymsByMangledName[sym->getMangledName()].push_back(sym);
+      undefDynSymsByPrettyName[sym->getPrettyName()].push_back(sym);
+      undefDynSymsByTypedName[sym->getTypedName()].push_back(sym);
+      // And undefDynSyms is already filled in
+   }
     return true;
 }
 
@@ -1486,19 +1491,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         return false;
     }
 
-#ifdef BINEDIT_DEBUG
-    printf("== in Symtab now...\n");
-    //print_symbols(raw_syms);
-    std::vector<Symbol *> undefsyms;
-    std::map<std::string, std::vector<Symbol *> >::iterator iter;
-    std::vector<Symbol *>::iterator siter;
-    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
-        for (siter = iter->second.begin(); siter != iter->second.end(); siter++)
-            undefsyms.push_back(*siter);
-    //print_symbols(undefsyms);
-    printf("%d total symbol(s)\n", raw_syms.size() + undefsyms.size());
-#endif
-
     // don't sort the symbols--preserve the original ordering
     //sort(raw_syms.begin(),raw_syms.end(),symbol_compare);
 
@@ -1541,8 +1533,21 @@ bool Symtab::extractInfo(Object *linkedFile)
         serr = Syms_To_Functions;
         return false;
     }
+    
+    if (!demangleSymbols(undefDynSyms)) {
+       err = false;
+       serr = Syms_To_Functions;
+       return false;
+    }
 
-    if (!createIndices(raw_syms)) 
+    if (!createIndices(raw_syms, false)) 
+    {
+        err = false;
+        serr = Syms_To_Functions;
+        return false;
+    }
+
+    if (!createIndices(undefDynSyms, true)) 
     {
         err = false;
         serr = Syms_To_Functions;
@@ -1623,11 +1628,6 @@ Symtab::Symtab(const Symtab& obj) :
    for (i=0; i<relocation_table_.size();i++) 
    {
       relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-      //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-
-      // Commented out; undefDynSyms is now in the global symbol list
-      //undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
-
    }
 
    for (i=0;i<excpBlocks.size();i++)
@@ -1798,6 +1798,9 @@ Symtab::~Symtab()
    // Symbols are copied from linkedFile, and NOT deleted
    everyDefinedSymbol.clear();
    undefDynSyms.clear();
+   undefDynSymsByMangledName.clear();
+   undefDynSymsByPrettyName.clear();
+   undefDynSymsByTypedName.clear();
 
    // TODO make annotation
    userAddedSymbols.clear();
@@ -2603,17 +2606,13 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 {
     // Start with all the defined symbols
     std::vector<Symbol *> allSyms;
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-        allSyms.push_back(everyDefinedSymbol[i]);
-    }
+    allSyms.insert(allSyms.end(), everyDefinedSymbol.begin(), everyDefinedSymbol.end());
 
     // Add the undefined dynamic symbols
     map<string, std::vector<Symbol *> >::iterator iter;
     std::vector<Symbol *>::iterator siter;
 
-    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
-        for (siter=iter->second.begin(); siter != iter->second.end(); siter++)
-            allSyms.push_back(*siter);
+    allSyms.insert(allSyms.end(), undefDynSyms.begin(), undefDynSyms.end());
 
     // Write the new file
     return linkedFile->emitDriver(this, filename, allSyms, flag);
@@ -2749,9 +2748,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     // Find the symbol.
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
-    if (symsByMangledName[name].size() != 1)
-        fprintf(stderr, "*** Found %d symbols with name %s.  Expecting 1.\n",
-                (int)symsByMangledName[name].size(), name); // */
+    if (symsByMangledName[name].size() != 1) 
+        fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
+                (unsigned) symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.

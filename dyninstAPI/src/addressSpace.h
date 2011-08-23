@@ -452,7 +452,8 @@ class AddressSpace : public InstructionSource {
              const std::set<block_instance*> &delBBIs,
              const std::list<func_instance*> &deadFuncs);
 
-    void addDefensivePad(block_instance *callBlock, func_instance *callFunc, Address padStart, unsigned size);
+    void addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                         Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,

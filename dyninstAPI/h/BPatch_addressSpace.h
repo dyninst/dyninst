@@ -301,7 +301,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // to the provided name so it can still be reached. 
 
     API_EXPORT(Int, (oldFunc, newFunc, clone),
-    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc, Dyninst::SymtabAPI::Symbol *clone));
+               bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
 
     //  BPatch_addressSpace::getSourceLines
     //  

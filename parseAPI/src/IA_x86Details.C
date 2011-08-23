@@ -479,8 +479,8 @@ Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset)
                         block.advance();
                         addInsn = block.getInstruction();
                     }
-                    if(addInsn && (addInsn->getOperation().getID() == e_add) ||
-		       (addInsn->getOperation().getID() == e_lea))
+                    if(addInsn && ((addInsn->getOperation().getID() == e_add) ||
+				   (addInsn->getOperation().getID() == e_lea)))
                     {
 		      Expression::Ptr op0 = addInsn->getOperand(0).getValue();
 		      Expression::Ptr op1 = addInsn->getOperand(1).getValue();

@@ -140,8 +140,7 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test2_11_mutatee.c',
 	'test2_12_mutatee.c',
 	'test2_13_mutatee.c',
-   'test_write_param_mutatee.c',
-        'test_modification_mutatee.c'
+   'test_write_param_mutatee.c'
     ]).
 compiler_for_mutatee('dyninst_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -707,18 +706,6 @@ mutator('test_write_param', ['test_write_param.C']).
 test_runmode('test_write_param', 'staticdynamic').
 test_start_state('test_write_param', 'stopped').
 tests_module('test_write_param', 'dyninst').
-
-test('test_modification', 'test_modification', 'dyninst_group_test').
-test_description('test_modification', 'writing to parameters').
-test_platform('test_modification', 'i386-unknown-linux2.4').
-test_platform('test_modification', 'x86_64-unknown-linux2.4').
-test_platform('test_modification', 'i386-unknown-nt4.0').
-test_platform('test_modification', 'rs6000-ibm-aix5.1').
-groupable_test('test_modification').
-mutator('test_modification', ['test_modification.C']).
-test_runmode('test_modification', 'staticdynamic').
-test_start_state('test_modification', 'stopped').
-tests_module('test_modification', 'dyninst').
 
 test('test_pt_ls', 'test_pt_ls', none).
 test_description('test_pt_ls', 'Run parseThat on ls').
@@ -2465,6 +2452,32 @@ tests_module('pc_launch', 'proccontrol').
 mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate', 'pc_terminate', 'pc_terminate').
+test_description('pc_terminate', 'Terminate a process').
+test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate', ['pc_terminate.C']).
+test_runmode('pc_terminate', 'dynamic').
+test_threadmode('pc_terminate', 'Threading').
+test_processmode('pc_terminate', 'Processes').
+test_start_state('pc_terminate', 'stopped').
+tests_module('pc_terminate', 'proccontrol').
+mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
+
+test('pc_terminate_stopped', 'pc_terminate_stopped', 'pc_terminate_stopped').
+test_description('pc_terminate_stopped', 'Terminate a stopped process').
+test_platform('pc_terminate_stopped', Platform) :- pcPlatforms(Platform).
+mutator('pc_terminate_stopped', ['pc_terminate_stopped.C']).
+test_runmode('pc_terminate_stopped', 'dynamic').
+test_threadmode('pc_terminate_stopped', 'Threading').
+test_processmode('pc_terminate_stopped', 'Processes').
+test_start_state('pc_terminate_stopped', 'stopped').
+tests_module('pc_terminate_stopped', 'proccontrol').
+mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
 
 test('pc_thread_cont', 'pc_thread_cont', 'pc_thread_cont').
 test_description('pc_thread_cont', 'Test process running').

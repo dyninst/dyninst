@@ -16,11 +16,6 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
-// Old Dyninst
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/enable_shared_from_this.hpp"
-#include "dyntypes.h"
-
 // For debug
 extern PATCHAPI_EXPORT bool debug_patchapi_flag;
 #define patch_cerr if (debug_patchapi_flag) std::cerr

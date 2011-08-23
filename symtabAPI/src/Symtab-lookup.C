@@ -79,70 +79,69 @@ std::vector<Symbol *> *Symtab::findSymbolByOffset(Offset o)
 
 bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string& name,
                         Symbol::SymbolType sType, NameType nameType,
-                        bool isRegex, bool checkCase)
+                        bool isRegex, bool checkCase, bool includeUndefined)
 {
+
     unsigned old_size = ret.size();
 
-    std::vector<Symbol *> symsMangled;
-    std::vector<Symbol *> symsPretty;
-    std::vector<Symbol *> symsTyped;
+    std::vector<Symbol *> candidates;
 
     if (!isRegex) {
         // Easy case
         if (nameType & mangledName) {
-            symsMangled = symsByMangledName[name];
+           candidates.insert(candidates.end(), symsByMangledName[name].begin(), symsByMangledName[name].end());
+           if (includeUndefined) candidates.insert(candidates.end(), 
+                                                   undefDynSymsByMangledName[name].begin(), 
+                                                   undefDynSymsByMangledName[name].end());
         }
         if (nameType & prettyName) {
-            symsPretty = symsByPrettyName[name];
+           candidates.insert(candidates.end(), symsByPrettyName[name].begin(), symsByPrettyName[name].end());
+           if (includeUndefined) candidates.insert(candidates.end(), 
+                                                   undefDynSymsByPrettyName[name].begin(), 
+                                                   undefDynSymsByPrettyName[name].end());
         }
         if (nameType & typedName) {
-            symsTyped = symsByTypedName[name];
+           candidates.insert(candidates.end(), symsByTypedName[name].begin(), symsByTypedName[name].end());
+           if (includeUndefined) candidates.insert(candidates.end(), 
+                                                   undefDynSymsByTypedName[name].begin(), 
+                                                   undefDynSymsByTypedName[name].end());
         }
     }
     else {
         // Build the regex list of symbols
         // We need to iterate over every single symbol. Ugh.
-        for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-            if (nameType & mangledName) {
-                if (regexEquiv(name, everyDefinedSymbol[i]->getName(), checkCase))
-                    symsMangled.push_back(everyDefinedSymbol[i]);
-            }
-            if (nameType & prettyName) {
-                if (regexEquiv(name, everyDefinedSymbol[i]->getPrettyName(), checkCase))
-                    symsPretty.push_back(everyDefinedSymbol[i]);
-            }
-            if (nameType & typedName) {
-                if (regexEquiv(name, everyDefinedSymbol[i]->getTypedName(), checkCase))
-                    symsTyped.push_back(everyDefinedSymbol[i]);
-            }
-        }
+       if (includeUndefined) {
+          cerr << "Warning: regex search of undefined symbols is not supported" << endl;
+       }
+
+       for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
+          if (nameType & mangledName) {
+             if (regexEquiv(name, everyDefinedSymbol[i]->getName(), checkCase))
+                candidates.push_back(everyDefinedSymbol[i]);
+
+          }
+          if (nameType & prettyName) {
+             if (regexEquiv(name, everyDefinedSymbol[i]->getPrettyName(), checkCase))
+                candidates.push_back(everyDefinedSymbol[i]);
+          }
+          if (nameType & typedName) {
+             if (regexEquiv(name, everyDefinedSymbol[i]->getTypedName(), checkCase))
+                candidates.push_back(everyDefinedSymbol[i]);
+          }
+       }
     }
 
-    std::vector<Symbol *> allSyms;
-    
-    for (unsigned i = 0; i < symsMangled.size(); i++) {
-        if (   (sType == Symbol::ST_UNKNOWN) 
-            || (sType == Symbol::ST_NOTYPE)
-            || (symsMangled[i]->getType() == sType))
-            allSyms.push_back(symsMangled[i]);
+    std::set<Symbol *> matches;
+
+    for (std::vector<Symbol *>::iterator iter = candidates.begin();
+         iter != candidates.end(); ++iter) {
+       if (sType == Symbol::ST_UNKNOWN ||
+           sType == Symbol::ST_NOTYPE ||
+           sType == (*iter)->getType()) {
+          matches.insert(*iter);
+       }
     }
-    for (unsigned i = 0; i < symsPretty.size(); i++) {
-        if    ((sType == Symbol::ST_UNKNOWN) 
-           || (sType == Symbol::ST_NOTYPE)
-           || (symsPretty[i]->getType() == sType))
-            allSyms.push_back(symsPretty[i]);
-    }
-    for (unsigned i = 0; i < symsTyped.size(); i++) {
-        if     ((sType == Symbol::ST_UNKNOWN) 
-            || (sType == Symbol::ST_NOTYPE)
-            || (symsTyped[i]->getType() == sType))
-            allSyms.push_back(symsTyped[i]);
-    }
-    
-    std::sort(allSyms.begin(), allSyms.end(), sort_by_sym_ptr);
-    std::vector<Symbol *>::iterator endIter;
-    endIter = std::unique(allSyms.begin(), allSyms.end());
-    ret.insert(ret.end(), allSyms.begin(), endIter);
+    ret.insert(ret.end(), matches.begin(), matches.end());
 
     if (ret.size() == old_size) {
         serr = No_Such_Symbol;
@@ -210,11 +209,7 @@ bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
-    map<string, std::vector<Symbol *> >::iterator it;
-    std::vector<Symbol *>::iterator it2;
-    for (it = undefDynSyms.begin(); it != undefDynSyms.end(); it++)
-        for (it2 = it->second.begin(); it2 != it->second.end(); it2++)
-            ret.push_back(*it2);
+    ret.insert(ret.end(), undefDynSyms.begin(), undefDynSyms.end());
     if(ret.size()>size)
         return true;
     serr = No_Such_Symbol;

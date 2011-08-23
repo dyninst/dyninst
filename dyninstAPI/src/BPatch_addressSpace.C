@@ -459,22 +459,22 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
   return true;
 }
 
-bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &original,
-                                          BPatch_function &wrapper,
+bool BPatch_addressSpace::wrapFunctionInt(BPatch_function *original,
+                                          BPatch_function *wrapper,
                                           Dyninst::SymtabAPI::Symbol *clone)
 {
-   assert(original.lowlevel_func() && wrapper.lowlevel_func());
+   assert(original->lowlevel_func() && wrapper->lowlevel_func());
    if (!getMutationsActive())
       return false;
 
    // Self replacement is a nop
    // We should just test direct equivalence here...
-   if (original.lowlevel_func() == wrapper.lowlevel_func()) {
+   if (original->lowlevel_func() == wrapper->lowlevel_func()) {
       return true;
    }
 
-   if (!original.lowlevel_func()->proc()->wrapFunction(original.lowlevel_func(), 
-                                                      wrapper.lowlevel_func(),
+   if (!original->lowlevel_func()->proc()->wrapFunction(original->lowlevel_func(), 
+                                                      wrapper->lowlevel_func(),
                                                       clone))
       return false;
 

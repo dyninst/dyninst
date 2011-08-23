@@ -100,7 +100,7 @@ class PatchBlock {
     PATCHAPI_EXPORT PatchEdge *findSource(ParseAPI::EdgeTypeEnum type);
     PATCHAPI_EXPORT PatchEdge *findTarget(ParseAPI::EdgeTypeEnum type);
 
-    template <class OutputIterator>
+    template <class OutputIterator> 
     void getFunctions(OutputIterator result);
 
     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);

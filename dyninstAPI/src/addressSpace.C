@@ -1304,6 +1304,8 @@ void trampTrapMappings::allocateTable()
    SymtabAPI::Symtab *symtab = 
       binedit->getMappedObject()->parse_img()->getObject();
    if( !symtab->isStaticBinary() ) {
+       symtab->addSysVDynamic(DT_DYNINST, table_header);
+       symtab->addLibraryPrereq(proc()->dyninstRT_name);
       symtab->addSysVDynamic(DT_DYNINST, table_header);
       symtab->addLibraryPrereq(proc()->dyninstRT_name);
 #if defined (os_windows)
@@ -1728,6 +1730,15 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
         cm->transform(pc);
    }
 
+#if 0
+   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
+   }
+   else {
+       PCSensitiveTransformer pc(this, cm->priorityMap());
+        cm->transform(pc);
+   }
+#endif
+
 #if defined(cap_mem_emulation)
    if (emulateMem_) {
       MemEmulatorTransformer m;
@@ -1974,11 +1985,15 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
-   if (!point) {
+   if (!point || point->empty()) {
       // We recorded a gap for some other reason than a return-address-modifying call;
       // ignore (for now). 
       //cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
       return;
+   }
+   if (!point || point->empty()) {
+       // Kevin didn't instrument it so we don't care :)
+       return;
    }
 
    mal_printf("Adding pad for callBlock [%lx %lx), pad at 0%lx\n", 

@@ -358,7 +358,6 @@ case R_PPC_SECTOFF_HA:/*      36*/
             << " currently unimplemented";
         errMsg = tmp.str();
       rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
-      fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
         return false;
 
 /* PowerPC relocations defined for the TLS access ABI.  */
@@ -394,7 +393,6 @@ case R_PPC_GOT_DTPREL16_HA:/* 94  half16*   (sym+add)@got@dtprel@ha */
       relocation_pos = 16;
       relocation = symbolOffset + addend;
       rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
-      fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
       break;
 
 /* GNU relocs used in PIC code sequences.  */
@@ -432,7 +430,6 @@ default:
      tmp << "Relocation type " << rel.getRelType() 
          << " currently unimplemented";
      rewrite_printf(" Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
-     fprintf(stderr, " Relocation type %s  currently unimplemented \n", relocationEntry::relType2Str(rel.getRelType(), addressWidth_));
      errMsg = tmp.str();
      return false;
         }

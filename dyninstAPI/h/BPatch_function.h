@@ -345,9 +345,8 @@ public:
 
     //  Get the underlying ParseAPI Function
     API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
-
-    // And the PatchAPI PatchFunction
-    API_EXPORT (Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
+    //  Get the underlying PatchAPI Function
+    API_EXPORT( Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));
