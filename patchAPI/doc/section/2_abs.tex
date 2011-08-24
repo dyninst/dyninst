@@ -17,14 +17,15 @@ is easy to extend to meet different requirements in practice.
 Figure \ref{fig:abs} shows the ownership hierarchy for PatchAPI's classes.
 Ownership is a ``contains'' relationship. If one class owns another, then
 instances of the owner class maintain exactly one or possibly more than one
-instances of the other, which depends whether the relationship is a ``1:1'' or a
-``1:n'' relationship. In Figure \ref{fig:abs}, for example, each PatchMgr instance
-contains exactly one instance of a AddrSpace object, while a PatchMgr may
-contains more than one instances of a Point object.
+instances of the other, which depends on whether the relationship is a ``1:1''
+or a ``1:n'' relationship. In Figure \ref{fig:abs}, for example, each PatchMgr
+instance contains exactly one instance of a AddrSpace object, while a PatchMgr
+instance may contains more than one instances of a Point object.
 
 The remainder of this section briefly describes the classes that make up
-PatchAPI's two interfaces. For more details, see the class descriptions in the
-next section.
+PatchAPI's two interfaces. For more details, see the class descriptions in
+Section~\ref{sec-api}.
+
 \subsection{Public Interface}
 \label{sec-2.1}
 
@@ -63,12 +64,12 @@ in binary code (e.g., 0s and 1s).
     mini-compiler to translate the representation into the binary code.
 \end{itemize}
 PatchAPI provides a thin layer on top of ParseAPI's Control Flow Graph (CFG)
-layer, which associates some usefully information for the ease of binary code
+layer, which associates some useful information for the ease of binary code
 patching, for example, a shared library's load address. This layer of CFG
 structures include PatchObject, PatchFunction, PatchBlock and PatchEdge classes.
 Programmers can extend these four CFG classes, and use the derived class of
-CFGMaker to build a CFG, so that programmers have the freedom to decide when to
-parse the binary code into CFG structures.
+CFGMaker to build a CFG with the augmented CFG structures.
+
 \begin{itemize}
 \item \emph{PatchObject} - The PatchObject class is a wrapper of ParseAPI's CodeObject
     class, which represents an individual binary code object, such as an
@@ -81,9 +82,8 @@ parse the binary code into CFG structures.
     which join two basic blocks in the CFG, indicating the type of control flow
     transfer instruction that joins the basic blocks to each other.
 \item \emph{CFGMaker} - The CFGMaker class is a factory class that constructs the above
-    CFG structures. Programmers can use this class to decide when to parse the
-    binary code into CFG structures, e.g., to parse during the runtime of code
-    patching or to reuse the previously parsed result.
+    CFG structures. This class is used in CFG parsing.
+
 \end{itemize}
 \begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/command/img.pdf}}
@@ -100,7 +100,7 @@ instrumentation engine has transactional semantics, where all instrumentation
 requests should succeed or all should fail. In our framework, the
 \textbf{Command} abstraction represents an instrumentation request or a logical
 step in the code patching process. We accumulate a list of \textbf{Commands},
-and execute them one by one. If one \textbf{Command} fails, we undo all executed
+and execute them one by one. If one \textbf{Command} fails, we undo all finished
 \textbf{Commands}. Figure \ref{fig:inh} illustrates the inheritance hierarchy
 for related classes. There is a default implementation of instrumentation engine
 in PatchAPI for 1st party code patching.
