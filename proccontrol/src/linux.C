@@ -929,6 +929,7 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
    if (!b) {
       result->markError(getLastError());      
    }
+   result->setLastBase(addr);
    fake_async_msgs.push_back(result->getID());
    return true;
 }

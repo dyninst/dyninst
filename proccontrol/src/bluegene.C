@@ -490,7 +490,8 @@ Event::ptr DecoderBlueGene::decodeGetMemAck(BG_Debugger_Msg *msg, response::ptr 
    mem_response::ptr mem_resp = resp->getMemResponse();
    assert(mem_resp);
 
-   mem_resp->postResponse((char *) msg->dataArea.GET_MEM_ACK.data, msg->dataArea.GET_MEM_ACK.len);
+   mem_resp->postResponse((char *) msg->dataArea.GET_MEM_ACK.data, msg->dataArea.GET_MEM_ACK.len,
+                          msg->dataArea.GET_MEM_ACK.addr);
          
    if (msg->header.returnCode > 0)
       resp->markError(msg->header.returnCode);
@@ -1175,17 +1176,33 @@ bool bg_process::plat_readMemAsync(int_thread *, Dyninst::Address addr,
 {
    pthrd_printf("Reading from memory %lx +%lx on %d with response ID %d\n", 
                 addr, (unsigned long) resp->getSize(), getPid(), resp->getID());
-   assert(resp->getSize() < BG_Debugger_Msg_MAX_MEM_SIZE); //MATT TODO
 
-   BG_Debugger_Msg msg(GET_MEM, getPid(), 0, resp->getID(), 0);
-   msg.dataArea.GET_MEM.addr = addr;
-   msg.dataArea.GET_MEM.len = resp->getSize();
-   msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
+   uint32_t size = resp->getSize();
+   int num_reads_needed = (size / BG_Debugger_Msg_MAX_MEM_SIZE);
+   if (size % BG_Debugger_Msg_MAX_MEM_SIZE)
+      num_reads_needed += 1;
+   if (num_reads_needed > 1)
+      resp->markAsMultiResponse(num_reads_needed);
+   resp->setLastBase(addr);
+
+   for (unsigned cur = 0, j = 0; cur < size; cur += BG_Debugger_Msg_MAX_MEM_SIZE, j++) {
+      BG_Debugger_Msg msg(GET_MEM, getPid(), 0, resp->getID() + j, 0);
+
+      uint32_t read_size;
+      if (cur + BG_Debugger_Msg_MAX_MEM_SIZE >= size)
+         read_size = size - cur;
+      else
+         read_size = BG_Debugger_Msg_MAX_MEM_SIZE;
+
+      msg.dataArea.GET_MEM.addr = addr + cur;
+      msg.dataArea.GET_MEM.len = read_size;
+      msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
    
-   bool result = BGSend(msg);
-   if (!result) {
-      pthrd_printf("Error sending GET_MEM message\n");
-      return false;
+      bool result = BGSend(msg);
+      if (!result) {
+         pthrd_printf("Error sending GET_MEM message\n");
+         return false;
+      }
    }
    return true;   
 }
@@ -1195,19 +1212,32 @@ bool bg_process::plat_writeMemAsync(int_thread *, const void *local, Dyninst::Ad
 {
    pthrd_printf("Writing memory %lx +%lx on %d with response ID %d\n", 
                 addr, (unsigned long) size, getPid(), resp->getID());
-#warning MATT TODO: Break up large writes
-   assert(size < BG_Debugger_Msg_MAX_MEM_SIZE);
 
-   BG_Debugger_Msg msg(SET_MEM, getPid(), 0, resp->getID(), 0);
-   msg.dataArea.SET_MEM.addr = addr;
-   msg.dataArea.SET_MEM.len = size;
-   memcpy(msg.dataArea.SET_MEM.data, local, size);
-   msg.header.dataLength = sizeof(msg.dataArea.SET_MEM);
-   
-   bool result = BGSend(msg);
-   if (!result) {
-      pthrd_printf("Error sending SET_MEM message\n");
-      return false;
+   int num_writes_needed = (size / BG_Debugger_Msg_MAX_MEM_SIZE);
+   if (size % BG_Debugger_Msg_MAX_MEM_SIZE)
+      num_writes_needed += 1;
+   if (num_writes_needed > 1)
+      resp->markAsMultiResponse(num_writes_needed);
+
+   for (unsigned cur = 0, j = 0; cur < size; cur += BG_Debugger_Msg_MAX_MEM_SIZE, j++) {
+      BG_Debugger_Msg msg(SET_MEM, getPid(), 0, resp->getID() + j, 0);
+      msg.dataArea.SET_MEM.addr = addr + cur;
+      uint32_t write_size;
+
+      if (cur + BG_Debugger_Msg_MAX_MEM_SIZE >= size)
+         write_size = size - cur;
+      else
+         write_size = BG_Debugger_Msg_MAX_MEM_SIZE;
+
+      msg.dataArea.SET_MEM.len = write_size;
+      memcpy((char *) msg.dataArea.SET_MEM.data, ((char *) local) + cur, write_size);
+      msg.header.dataLength = sizeof(msg.dataArea.SET_MEM);
+      
+      bool result = BGSend(msg);
+      if (!result) {
+         pthrd_printf("Error sending SET_MEM message\n");
+         return false;
+      }
    }
    return true;
 }

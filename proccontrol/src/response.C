@@ -490,7 +490,8 @@ mem_response::ptr mem_response::createMemResponse(char *targ, unsigned targ_size
 mem_response::mem_response() :
    buffer(NULL),
    size(0),
-   buffer_set(false)
+   buffer_set(false),
+   last_base(0)
 {
    resp_type = rt_mem;
 }
@@ -498,7 +499,8 @@ mem_response::mem_response() :
 mem_response::mem_response(char *targ, unsigned targ_size) :
    buffer(targ),
    size(targ_size),
-   buffer_set(true)
+   buffer_set(true),
+   last_base(0)
 {
    resp_type = rt_mem;
 }
@@ -527,12 +529,24 @@ void mem_response::setResponse()
    markReady();
 }
 
-void mem_response::postResponse(char *src, unsigned src_size)
+void mem_response::postResponse(char *src, unsigned src_size, Address src_addr)
 {
    assert(buffer_set);
-   assert(src_size >= size);
 
-   memcpy(buffer, src, size);
+   if (!isMultiResponse()) {
+      assert(src_size >= size);
+      memcpy(buffer, src, size);
+      return;
+   }
+
+   multi_resp_recvd++;
+   unsigned long offset = src_addr - last_base;
+   memcpy(buffer + offset, src, src_size);
+}
+
+void mem_response::setLastBase(Address a) 
+{
+   last_base = a;
 }
 
 void mem_response::postResponse()

@@ -225,6 +225,7 @@ class mem_response : public response
    char *buffer;
    unsigned size;
    bool buffer_set;
+   Address last_base;
    mem_response();
    mem_response(char *targ, unsigned targ_size);
 
@@ -243,8 +244,9 @@ class mem_response : public response
    void setBuffer(char *targ, unsigned targ_size);
    void setResponse(char *src, unsigned src_size);
    void setResponse();
-   void postResponse(char *src, unsigned src_size);
+   void postResponse(char *src, unsigned src_size, Address src_addr = 0);
    void postResponse();
+   void setLastBase(Address a);
 };
 
 
