@@ -147,7 +147,9 @@ void CodeTracker::addTracker(TrackerElement *e) {
 
    if (!trackers_.empty()) {
       TrackerElement *previous = trackers_.back();
-      if (previous->type() == e->type() &&
+      if (previous->mergeable() &&
+          e->mergeable() && 
+          previous->type() == e->type() &&
           e->orig() == previous->orig() &&
           e->block() == previous->block() &&
           e->func() == previous->func()) {
