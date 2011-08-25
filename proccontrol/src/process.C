@@ -1035,6 +1035,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    crashSignal(0),
    hasExitCode(false),
    forcedTermination(false),
+   silent_mode(false),
    exitCode(0),
    mem(NULL),
    continueSig(0),
@@ -1628,6 +1629,21 @@ bool int_process::plat_needsPCSaveBeforeSingleStep()
 map<int, int> &int_process::getProcDesyncdStates()
 {
    return proc_desyncd_states;
+}
+
+bool int_process::isRunningSilent()
+{
+   return silent_mode;
+}
+
+void int_process::setRunningSilent(bool b)
+{
+   silent_mode = b;
+}
+
+bool int_process::plat_supportDOTF()
+{
+   return true;
 }
 
 int_process::~int_process()
@@ -4667,6 +4683,11 @@ bool Process::temporaryDetach()
         setLastError(err_exited, "Process is exited\n");
         return false;
     }
+    if (!llproc_->plat_supportDOTF()) {
+       perr_printf("Temporary detach not supported on this platform\n");
+       setLastError(err_unsupported, "Temporary detach not supported on this platform\n");
+       return false;
+    }
 
     if( llproc_->getState() == int_process::detached ) {
         perr_printf("temporary detach on already detached process\n");
@@ -4706,6 +4727,11 @@ bool Process::reAttach()
         perr_printf("reAttach on deleted process\n");
         setLastError(err_exited, "Process is exited\n");
         return false;
+    }
+    if (!llproc_->plat_supportDOTF()) {
+       perr_printf("reAttach not supported on this platform\n");
+       setLastError(err_unsupported, "reAttach not supported on this platform\n");
+       return false;
     }
 
     bool result = llproc_->reattach();

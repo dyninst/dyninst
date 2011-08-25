@@ -67,6 +67,9 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+unsigned int bg_process::num_attached_procs;
+Mutex bg_process::attached_procs_lock;
+
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg);
 static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum);
 
@@ -638,8 +641,18 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
       return false;
    if (!proc) {
       pthrd_printf("Got event on non-existant process %d.  Proc exited?\n", archbg->getMsg()->header.nodeNumber);
+      //Seen lingering signals after detaches, or early events after attach
+      if (msg->header.messageType == SIGNAL_ENCOUNTERED) {
+         pthrd_printf("Forwarding signal back to unknown process %d/%d\n",
+                      msg->header.nodeNumber, msg->header.thread);
+         BG_Debugger_Msg nmsg(CONTINUE, msg->header.nodeNumber, msg->header.thread, 0, 0);
+         nmsg.dataArea.CONTINUE.signal = msg->dataArea.SIGNAL_ENCOUNTERED.signal;
+         nmsg.header.dataLength = sizeof(nmsg.dataArea.CONTINUE);
+         ll_bgsend(nmsg);
+      }
       return true;
    }
+
    if (!thread) 
       thread = static_cast<bg_thread *>(proc->threadPool()->initialThread());
    
@@ -1106,21 +1119,23 @@ bool bg_process::post_forked()
 
 bool bg_process::plat_detach(result_response::ptr resp)
 {
-   pthrd_printf("Continuing process %d for plat detach\n", getPid());
-   int_thread *initial_thread = threadPool()->initialThread();
-   bool result = initial_thread->plat_cont();
-   if (!result) {
-      pthrd_printf("Error continuing proc %d for detach.\n", getPid());
-      return false;
+   if (threadPool()->initialThread()->getHandlerState().getState() == int_thread::stopped) {
+      pthrd_printf("Continuing process %d for plat detach\n", getPid());
+      int_thread *initial_thread = threadPool()->initialThread();
+      bool result = initial_thread->plat_cont();
+      if (!result) {
+         pthrd_printf("Error continuing proc %d for detach.\n", getPid());
+         return false;
+      }
    }
 
-   pthrd_printf("Finished continue, now detaching from %d\n", getPid());
-   BG_Debugger_Msg msg(DETACH, getPid(), 0, resp->getID(), 0);
+   pthrd_printf("Detaching from %d\n", getPid());
+   BG_Debugger_Msg msg(DETACH, getPid(), 0, resp ? resp->getID() : 0, 0);
    msg.header.dataLength = sizeof(msg.dataArea.DETACH);
 
    getResponses().lock();
 
-   result = BGSend(msg);
+   bool result = BGSend(msg);
    if (!result) {
       pthrd_printf("Error sending DETACH message\n");
       getResponses().unlock();
@@ -1128,7 +1143,6 @@ bool bg_process::plat_detach(result_response::ptr resp)
    }
    
    getResponses().addResponse(resp, this);
-
    getResponses().unlock();
    getResponses().noteResponse();
 
@@ -1301,6 +1315,11 @@ void bg_process::getVersionInfo(int &protocol, int &phys, int &virt)
 bool bg_process::plat_supportLWPPostDestroy()
 {
    return true;
+}
+
+bool bg_process::plat_supportDOTF()
+{
+   return false;
 }
 
 int_process::ThreadControlMode bg_process::plat_getThreadControlMode() const
@@ -1486,6 +1505,16 @@ bool bg_process::setPendingMsg(const BG_Debugger_Msg &msg)
    return result;
 }
 
+int bg_process::numAttachedProcsAdd(int i)
+{
+   int result;
+   attached_procs_lock.lock();
+   num_attached_procs += i;
+   result = num_attached_procs;
+   attached_procs_lock.unlock();
+   return result;
+}
+
 bool ProcessPool::LWPIDsAreUnique()
 {
    return false;
@@ -1550,7 +1579,7 @@ bool bg_thread::plat_cont()
    if (tp->initialThread() != this) {
       pthrd_printf("Not continuing non-initial thread\n");
       return true;
-   }
+ }
    
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bg_thread *thr = static_cast<bg_thread *>(*i);
@@ -1820,6 +1849,7 @@ Handler::handler_ret_t HandleBGAttached::handleEvent(Event::ptr ev)
          //Yes, return success. The handler succeeded, it's the attach that failed.
          return ret_success;
       }
+      bg_process::numAttachedProcsAdd(1);
 
       pthrd_printf("Process %d ATTACHED, forcing gen block\n", 
                    proc->getPid());

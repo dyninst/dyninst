@@ -83,6 +83,8 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    bool setPendingMsg(const DebuggerInterface::BG_Debugger_Msg &msg);
    bool has_pending_msg;
    Mutex pending_msg_lock;
+   static unsigned int num_attached_procs;
+   static Mutex attached_procs_lock;
 
   public:
    static int protocol_version;
@@ -121,7 +123,7 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    virtual bool plat_individualRegAccess();   
    virtual bool plat_supportLWPPostDestroy();
    virtual bool plat_getInterpreterBase(Address &base);
-
+   virtual bool plat_supportDOTF();
    virtual OSType getOS() const;
 
    int_process::ThreadControlMode plat_getThreadControlMode() const;
@@ -131,9 +133,10 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    void addHeldArchEvent(ArchEventBlueGene *ae);
    bool hasHeldArchEvent();
    void readyHeldArchEvent();
-
+   bool pendingDetach();
    bool BGSend(const DebuggerInterface::BG_Debugger_Msg &msg);
    static void getVersionInfo(int &protocol, int &phys, int &virt);
+   static int numAttachedProcsAdd(int i);
 };
 
 class bg_thread : public thread_db_thread
@@ -316,4 +319,5 @@ struct thrd_alive_ack_t {
    int lwp_id;
    bool alive;
 };
+
 #endif

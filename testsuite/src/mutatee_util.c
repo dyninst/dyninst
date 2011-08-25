@@ -763,7 +763,7 @@ int precisionSleep(int milliseconds) {
 
 static uint64_t eventCounter = 0;
 
-#if defined(os_linux_test) || defined(os_freebsd_test) || defined(os_bg_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
 #define TIMER_EVENT_SOURCE
 #endif
 

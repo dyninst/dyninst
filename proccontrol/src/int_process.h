@@ -314,6 +314,7 @@ class int_process
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
+   virtual bool plat_supportDOTF();
 
    virtual bool plat_supportThreadEvents();
    virtual bool plat_supportLWPCreate();
@@ -346,6 +347,8 @@ class int_process
 
    std::map<int, int> &getProcDesyncdStates();
 
+   bool isRunningSilent(); //No callbacks
+   void setRunningSilent(bool b);
    
  protected:
    State state;
@@ -364,6 +367,7 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forcedTermination;
+   bool silent_mode;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;

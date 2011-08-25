@@ -84,10 +84,12 @@ HandlerPool::~HandlerPool()
    handlers.clear();
 }
 
+static bool print_add_handler = true;
 void HandlerPool::addHandlerInt(EventType etype, Handler *handler)
 {
-   pthrd_printf("Handler %s will handle event %s\n", handler->getName().c_str(), 
-                etype.name().c_str());
+   if (print_add_handler)
+      pthrd_printf("Handler %s will handle event %s\n", handler->getName().c_str(), 
+                   etype.name().c_str());
    assert(etype.time() != EventType::Any);
    HandlerMap_t::iterator i = handlers.find(etype);
    HandlerSet_t *theset = NULL;
@@ -1820,6 +1822,13 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    int_thread *thr = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    assert(proc);
+
+   if (proc->isRunningSilent()) {
+      pthrd_printf("Suppressing callback for event %s due to process being in silent mode\n",
+                   ev->name().c_str());
+      return ret_success;
+   }
+
    int_thread::StateTracker &cb_state = thr ? thr->getCallbackState() : proc->threadPool()->initialThread()->getCallbackState();
    if (!ev->cb_started) {
       pthrd_printf("Changing callback state of %d before CB\n", proc->getPid());
@@ -2175,5 +2184,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hdetach);
    hpool->addHandler(hemulatedsinglestep);
    plat_createDefaultHandlerPool(hpool);
+
+   print_add_handler = false;
    return hpool;
 }
