@@ -9,7 +9,7 @@ DEP=patchapi.tex \
 
 $(MAIN).pdf: $(DEP)
 	$(TEX) $(MAIN)
-
+	$(TEX) $(MAIN)
 
 clean:
 	@rm -f *.dvi $(MAIN).pdf *.log *.aux *.ent *.bak *.bbl *.blg *.out *.toc
