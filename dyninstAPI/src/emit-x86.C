@@ -1824,8 +1824,11 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
          return true;
       }
    }
-       
-   Register ptr = gen.rs()->allocateRegister(gen, false);
+   
+   pdvector<Register> excluded;
+   excluded.push_back(REGNUM_RAX);
+   
+   Register ptr = gen.rs()->getScratchRegister(gen, excluded);
    gen.markRegDefined(ptr);
    Register effective = ptr;
    emitMovImmToReg64(ptr, callee->addr(), true, gen);
@@ -1836,7 +1839,6 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
    *insn++ = 0xFF;
    *insn++ = static_cast<unsigned char>(0xD0 | effective);
    SET_PTR(insn, gen);
-   gen.rs()->freeRegister(ptr);
 
    return true;
 }
