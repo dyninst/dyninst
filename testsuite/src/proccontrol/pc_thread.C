@@ -384,6 +384,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    post_dead_tids.clear();
    pre_dead_lwps.clear();
    post_dead_lwps.clear();
+   exited_processes.clear();
 
 #if defined(os_linux_test)
    has_lwp = true;
@@ -495,17 +496,17 @@ test_results_t pc_threadMutator::executeTest()
    while ((has_thr && user_exit_cb_count < num_noninit_thrds) ||
           (has_lwp && lwp_exit_cb_count < num_noninit_thrds)) 
    {
-      bool result = comp->block_for_events();
-      if (!result) {
-         logerror("Failed to wait for thread terminate events\n");
-         has_error = true;
-         break;
-      }
       if (exited_processes.size() >= comp->num_processes) {
 #if !defined(os_bg_test)
          logerror("Process exited while waiting for thread termination events.\n");
          has_error = true;
 #endif
+         break;
+      }
+      bool result = comp->block_for_events();
+      if (!result) {
+         logerror("Failed to wait for thread terminate events\n");
+         has_error = true;
          break;
       }
    }
