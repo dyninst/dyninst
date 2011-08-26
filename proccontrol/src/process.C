@@ -1060,6 +1060,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    crashSignal(p->crashSignal),
    hasExitCode(p->hasExitCode),
    forcedTermination(false),
+   silent_mode(false),
    exitCode(p->exitCode),
    exec_mem_cache(exec_mem_cache),
    continueSig(p->continueSig),
@@ -2002,7 +2003,7 @@ async_ret_t int_thread::handleSingleStepContinue()
       //No threads are single-steping.
       return aret_success;
    }
-   pthrd_printf("Found %d threads doing single step under continue.  Handling\n", thrds.size());
+   pthrd_printf("Found %d threads doing single step under continue.  Handling\n", (int) thrds.size());
 
    if (llproc()->plat_needsAsyncIO()) {
       /**
