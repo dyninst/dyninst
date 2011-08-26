@@ -1721,13 +1721,26 @@ bool HandleCallbacks::requiresCB(Event::const_ptr ev)
 
 Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 {
+   int_thread *thr = ev->getThread()->llthrd();
+   int_process *proc = ev->getProcess()->llproc();
+   
+   if (ev->noted_event) {
+      //Reset the event status here if the callback already had a delivery attempt
+      notify()->clearEvent();
+      if (thr)
+         thr->getCallbackState().restoreStateProc();
+      else
+         proc->threadPool()->initialThread()->getCallbackState().restoreStateProc();
+      ev->noted_event = false;
+   }
+
    EventType evtype = ev->getEventType();
    std::map<EventType, std::set<Process::cb_func_t>, eventtype_cmp>::iterator i = cbfuncs.find(evtype);
    if (i == cbfuncs.end()) {
       pthrd_printf("No callback registered for event type '%s'\n", ev->name().c_str());
       return ret_success;
    }
-   int_process *proc = ev->getProcess()->llproc();
+
    if (proc &&
        (proc->getState() == int_process::neonatal ||
         proc->getState() == int_process::neonatal_intermediate))
@@ -1737,6 +1750,17 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
    }
    const std::set<Process::cb_func_t> &cbs = i->second;
 
+   if (ev->suppressCB()) {
+      pthrd_printf("Suppressing callbacks for event %s\n", ev->name().c_str());
+      return ret_success;
+   }
+
+   if (proc->isRunningSilent()) {
+      pthrd_printf("Suppressing callback for event %s due to process being in silent mode\n",
+                   ev->name().c_str());
+      return ret_success;
+   }
+   
    return deliverCallback(ev, cbs);
 }
 
@@ -1813,28 +1837,14 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
 
 Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset)
 {
-   if (ev->suppressCB()) {
-      pthrd_printf("Suppressing callbacks for event %s\n", ev->name().c_str());
-      return ret_success;
-   }
-
    //We want the thread to remain in its appropriate state while the CB is in flight.
    int_thread *thr = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    assert(proc);
 
-   if (proc->isRunningSilent()) {
-      pthrd_printf("Suppressing callback for event %s due to process being in silent mode\n",
-                   ev->name().c_str());
-      return ret_success;
-   }
-
+   pthrd_printf("Changing callback state of %d before CB\n", proc->getPid());
    int_thread::StateTracker &cb_state = thr ? thr->getCallbackState() : proc->threadPool()->initialThread()->getCallbackState();
-   if (!ev->cb_started) {
-      pthrd_printf("Changing callback state of %d before CB\n", proc->getPid());
-      cb_state.desyncStateProc(int_thread::ditto);
-      ev->cb_started = true;
-   }
+   cb_state.desyncStateProc(int_thread::ditto);
 
    if (isHandlerThread() && mt()->getThreadMode() != Process::CallbackThreading) {
       //We're not going to allow a handler thread to deliver a callback in this mode
@@ -1911,11 +1921,6 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
    }
    if (event_has_child)
       handleCBReturn(child_proc, child_thread, child_result);
-
-   if (ev->noted_event)
-   {
-      notify()->clearEvent();
-   }
 
    pthrd_printf("Restoring callback state of %d/%d after CB\n", ev->getProcess()->getPid(), 
                 ev->getThread()->getLWP());

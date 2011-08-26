@@ -226,7 +226,6 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    bool suppress_cb;
    bool user_event;
    bool handling_started;
-   bool cb_started;
    bool noted_event;
 };
 

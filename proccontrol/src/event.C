@@ -65,7 +65,6 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    suppress_cb(false),
    user_event(false),
    handling_started(false),
-   cb_started(false),
    noted_event(false)
 {
 }
