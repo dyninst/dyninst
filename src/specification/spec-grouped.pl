@@ -2421,7 +2421,9 @@ optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
 
 test('pc_thread_cont', 'pc_thread_cont', 'pc_thread_cont').
 test_description('pc_thread_cont', 'Test process running').
-test_platform('pc_thread_cont', Platform) :- pcPlatforms(Platform).
+test_platform('pc_thread_cont', Platform) :- 
+   pcPlatforms(Platform),
+   \+ platform(_, 'bluegene', _, Platform).
 mutator('pc_thread_cont', ['pc_thread_cont.C']).
 test_runmode('pc_thread_cont', 'dynamic').
 test_threadmode('pc_thread_cont', 'Threading').
@@ -2548,7 +2550,8 @@ optimization_for_mutatee('pc_detach', _, Opt) :- member(Opt, ['none']).
 
 test('pc_temp_detach', 'pc_temp_detach', 'pc_temp_detach').
 test_description('pc_temp_detach', 'Temoprarily detach from processes').
-test_platform('pc_temp_detach', Platform) :- pcPlatforms(Platform).
+test_platform('pc_temp_detach', Platform) :- pcPlatforms(Platform),
+   \+ platform(_, 'bluegene', _, Platform).
 mutator('pc_temp_detach', ['pc_temp_detach.C']).
 test_runmode('pc_temp_detach', 'dynamic').
 test_threadmode('pc_temp_detach', 'Threading').
