@@ -604,7 +604,11 @@ int getNumProcs(const ParameterDict &dict)
    if (i->second->getInt() <= 1) {
       return 1;
    }
+#if defined(os_bg_test)
    int base = 16;
+#else
+   int base = 8;
+#endif
    char *e = getenv("DYNINST_MPTEST_WIDTH");
    if (e) {
       int result = atoi(e);

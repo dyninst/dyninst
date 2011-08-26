@@ -435,7 +435,7 @@ static int handleArgs(int argc, char *argv[])
             return NOTESTS;
          }
          if (testLimit && groupLimit) {
-            fprintf(stderr, "-group-limit and -group-limit are mutually exclusive options\n");
+            fprintf(stderr, "-test-limit and -group-limit are mutually exclusive options\n");
             return NOTESTS;
          } 
       }
