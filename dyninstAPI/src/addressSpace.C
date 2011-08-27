@@ -66,14 +66,10 @@
 // class.
 
 using namespace Dyninst;
-using PatchAPI::DynObjectPtr;
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
-using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
 using PatchAPI::Patcher;
-using PatchAPI::PointMakerPtr;
-using PatchAPI::DynInstrumenterPtr;
 using PatchAPI::DynInstrumenter;
 
 AddressSpace::AddressSpace () :
@@ -2124,12 +2120,13 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 
 /* PatchAPI Stuffs */
 void AddressSpace::initPatchAPI(mapped_object* aout) {
-   DynAddrSpacePtr addr_space = DynAddrSpace::create(aout);
+   DynAddrSpace* addr_space = DynAddrSpace::create(aout);
    assert(addr_space);
 
   mgr_ = PatchMgr::create(addr_space,
-                           DynPointMakerPtr(new DynPointMaker),
-                           DynInstrumenterPtr(new DynInstrumenter));
+                          new DynInstrumenter,
+                          new DynPointMaker);
+
    patcher_ = Patcher::create(mgr_);
 
    assert(mgr());
@@ -2144,5 +2141,5 @@ bool AddressSpace::patch(AddressSpace* as) {
 
 void AddressSpace::addMappedObject(mapped_object* obj) {
   mapped_objects.push_back(obj);
-  DYN_CAST(DynAddrSpace, mgr_->as())->loadLibrary(obj);
+  dynamic_cast<DynAddrSpace*>(mgr_->as())->loadLibrary(obj);
 }

@@ -538,14 +538,14 @@ class AddressSpace : public InstructionSource {
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
-    void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
+    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);
     void addMappedObject(mapped_object* obj);
-    Dyninst::PatchAPI::PatcherPtr patcher() { return patcher_; }
+    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
     static bool patch(AddressSpace*);
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    Dyninst::PatchAPI::PatcherPtr patcher_;
+    Dyninst::PatchAPI::Patcher* patcher_;
 };
 
 

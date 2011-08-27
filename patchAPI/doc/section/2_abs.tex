@@ -24,7 +24,7 @@ instance may contains more than one instances of a Point object.
 
 The remainder of this section briefly describes the classes that make up
 PatchAPI's two interfaces. For more details, see the class descriptions in
-Section~\ref{sec-api}.
+Section~\ref{sec-public-api} and Section~\ref{sec-plugin-api}.
 
 \subsection{Public Interface}
 \label{sec-2.1}
@@ -41,6 +41,16 @@ patching: 1) find some \textbf{Point}; 2) insert or delete \textbf{Snippet} at s
     to put instrumentation from them at the same place.
 \item \emph{Instance} - The Instance class is a representation of a particular snippet
     inserted at a particular point.
+\item \emph{PatchObject} - The PatchObject class is a wrapper of ParseAPI's CodeObject
+    class, which represents an individual binary code object, such as an
+    executable or a library.
+\item \emph{PatchFunction} - The PatchFunction class is a wrapper of ParseAPI's
+    Function class, which represents a function.
+\item \emph{PatchBlock} - The PatchBlock class is a wrapper of ParseAPI's Block class,
+    which represents a basic block.
+\item \emph{PatchEdge} - The PatchEdge class is a wrapper of ParseAPI's Edge class,
+    which join two basic blocks in the CFG, indicating the type of control flow
+    transfer instruction that joins the basic blocks to each other.
 \end{itemize}
 \subsection{Plugin Interface}
 \label{sec-2.2}
@@ -71,16 +81,6 @@ Programmers can extend these four CFG classes, and use the derived class of
 CFGMaker to build a CFG with the augmented CFG structures.
 
 \begin{itemize}
-\item \emph{PatchObject} - The PatchObject class is a wrapper of ParseAPI's CodeObject
-    class, which represents an individual binary code object, such as an
-    executable or a library.
-\item \emph{PatchFunction} - The PatchFunction class is a wrapper of ParseAPI's
-    Function class, which represents a function.
-\item \emph{PatchBlock} - The PatchBlock class is a wrapper of ParseAPI's Block class,
-    which represents a basic block.
-\item \emph{PatchEdge} - The PatchEdge class is a wrapper of ParseAPI's Edge class,
-    which join two basic blocks in the CFG, indicating the type of control flow
-    transfer instruction that joins the basic blocks to each other.
 \item \emph{CFGMaker} - The CFGMaker class is a factory class that constructs the above
     CFG structures. This class is used in CFG parsing.
 

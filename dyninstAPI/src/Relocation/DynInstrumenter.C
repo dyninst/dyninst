@@ -11,7 +11,7 @@ using Dyninst::PatchAPI::DynRemoveCallCommand;
 
 /* Instrumenter Command, which is called implicitly by Patcher's run()  */
 bool DynInstrumenter::run() {
-  DynAddrSpacePtr das = DYN_CAST(DynAddrSpace, as_);
+  DynAddrSpace* das = dynamic_cast<DynAddrSpace*>(as_);
   std::set<AddressSpace*> seen;
   bool ret = true;
   for (DynAddrSpace::AsSet::iterator i = das->asSet().begin();
@@ -37,9 +37,9 @@ DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, callOrder order,
   mini_ = pt->insert(order, ast, recursive);
 }
 
-DynInsertSnipCommand::Ptr DynInsertSnipCommand::create(instPoint* pt, callOrder order,
+DynInsertSnipCommand* DynInsertSnipCommand::create(instPoint* pt, callOrder order,
                       AstNodePtr ast, bool recursive) {
-  return Ptr(new DynInsertSnipCommand(pt, order, ast, recursive));
+  return new DynInsertSnipCommand(pt, order, ast, recursive);
 }
 
 bool DynInsertSnipCommand::run() {
@@ -55,8 +55,8 @@ bool DynInsertSnipCommand::undo() {
 DynRemoveSnipCommand::DynRemoveSnipCommand(miniTramp* mini) : mini_(mini) {
 }
 
-DynRemoveSnipCommand::Ptr DynRemoveSnipCommand::create(miniTramp* mini) {
-  return Ptr(new DynRemoveSnipCommand(mini));
+DynRemoveSnipCommand* DynRemoveSnipCommand::create(miniTramp* mini) {
+  return new DynRemoveSnipCommand(mini);
 }
 
 bool DynRemoveSnipCommand::run() {
@@ -76,10 +76,10 @@ DynReplaceFuncCommand::DynReplaceFuncCommand(AddressSpace* as,
       : as_(as), old_func_(old_func), new_func_(new_func) {
 }
 
-DynReplaceFuncCommand::Ptr DynReplaceFuncCommand::create(AddressSpace* as,
+DynReplaceFuncCommand* DynReplaceFuncCommand::create(AddressSpace* as,
                       func_instance* old_func,
                       func_instance* new_func) {
-  return Ptr(new DynReplaceFuncCommand(as, old_func, new_func));
+  return (new DynReplaceFuncCommand(as, old_func, new_func));
 }
 
 bool DynReplaceFuncCommand::run() {
@@ -100,11 +100,11 @@ DynModifyCallCommand::DynModifyCallCommand(AddressSpace* as,
       : as_(as), block_(block), new_func_(new_func), context_(context) {
 }
 
-DynModifyCallCommand::Ptr DynModifyCallCommand::create(AddressSpace* as,
+DynModifyCallCommand* DynModifyCallCommand::create(AddressSpace* as,
                       block_instance* block,
                       func_instance* new_func,
                       func_instance* context) {
-      return Ptr(new DynModifyCallCommand(as, block, new_func, context));
+      return new DynModifyCallCommand(as, block, new_func, context);
     }
 
 bool DynModifyCallCommand::run() {
@@ -124,10 +124,10 @@ DynRemoveCallCommand::DynRemoveCallCommand(AddressSpace* as,
       : as_(as), block_(block), context_(context) {
 }
 
-DynRemoveCallCommand::Ptr DynRemoveCallCommand::create(AddressSpace* as,
+DynRemoveCallCommand* DynRemoveCallCommand::create(AddressSpace* as,
                       block_instance* block,
                       func_instance* context) {
-      return Ptr(new DynRemoveCallCommand(as, block, context));
+      return new DynRemoveCallCommand(as, block, context);
 }
 
 

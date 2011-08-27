@@ -74,13 +74,10 @@
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-using PatchAPI::DynObjectPtr;
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::PatchMgr;
-using PatchAPI::PointMakerPtr;
 using PatchAPI::Patcher;
-using PatchAPI::PatcherPtr;
 
 int BPatch_process::getAddressWidthInt(){
         return llproc->getAddressWidth();
@@ -888,9 +885,6 @@ void BPatch_process::beginInsertionSetInt()
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
     // Nothing else to do...
-
-    /* PatchAPI Stuffs */
-    //llproc->mgr()->batchStart();
 }
 
 
@@ -1291,7 +1285,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
 
    /* PatchAPI stuffs */
    mapped_object* plib = llproc->findObject(libname);
-   if (plib) DYN_CAST(DynAddrSpace, llproc->mgr()->as())->loadLibrary(plib);
+   if (plib) dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
    /* End of PatchAPi stuffs */
 
    return true;

@@ -5,6 +5,38 @@ demonstrate how the API can be used.
 \subsection{Using the public interface}
 The basic flow of doing code patching is to first find some points in a program,
 and then to insert, delete or update a piece of code at these points.
+\subsubsection{CFG Traversal}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}
+ParseAPI::CodeObject* co = ...
+PatchObject* obj = PatchObject::create(co, code_base);
+
+// Find all functions in the object
+std::vector<PatchFunction*> all;
+obj->funcs(back_inserter(all));
+
+for (std::vector<PatchFunction*>::iterator fi = all.begin();
+     fi != all.end(); fi++) {
+  // Print out each function's name
+  PatchFunction* func = *fi;
+  std::cout << func->name() << std::endl;
+
+  const PatchFunction::Blockset& blks = func->blocks();
+  for (PatchFunction::BlockSet::iterator bi = blks.begin();
+       bi != blks.end(); bi++) {
+    // Print out each block's size
+    PatchBlock* blk = *bi;
+    std::cout << "\tBlock size:" << blk->size() << std::endl;
+  }
+}
+\end{lstlisting}
+In the above code, we illustrate how to traverse CFG structures in
+PatchAPI. First, we construct an instance of PatchObject using an instance of
+ParseAPI's CodeObject. Then, we traverse all functions in that object, and print
+out each function's name. For each function, we also print out the size of each
+basic block.
+
 \subsubsection{Point Finding} \label{sec-example-pt}
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}

@@ -54,7 +54,7 @@ Point::getCallee() {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
       return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
-                                                 trg->start()));
+                                                         trg->block()->start()));
     }
   }
   return NULL;

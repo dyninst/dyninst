@@ -14,7 +14,6 @@ namespace PatchAPI {
 
 class Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<Command> Ptr;
     Command() {}
     virtual ~Command() {}
 
@@ -29,7 +28,7 @@ class Command {
 
 class BatchCommand : public Command {
   public:
-    PATCHAPI_EXPORT BatchCommandPtr create();
+    PATCHAPI_EXPORT BatchCommand* create();
     BatchCommand() {}
     virtual ~BatchCommand() {}
 
@@ -37,7 +36,8 @@ class BatchCommand : public Command {
     PATCHAPI_EXPORT virtual bool undo();
 
     /* Add/Remove Commands to to_do_ list. */
-    PATCHAPI_EXPORT void add(CommandPtr);
+    typedef std::list<Command*> CommandList;
+    PATCHAPI_EXPORT void add(Command*);
     PATCHAPI_EXPORT void remove(CommandList::iterator);
 
   protected:
@@ -52,9 +52,8 @@ class BatchCommand : public Command {
 
 class Patcher : public BatchCommand {
   public:
-    typedef dyn_detail::boost::shared_ptr<Patcher> Ptr;
-    PATCHAPI_EXPORT static PatcherPtr create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
-      return Ptr(new Patcher(mgr));
+    PATCHAPI_EXPORT static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
+      return new Patcher(mgr);
     }
     Patcher(Dyninst::PatchAPI::PatchMgrPtr mgr) : mgr_(mgr) {}
     virtual ~Patcher() {}
@@ -68,10 +67,9 @@ class Patcher : public BatchCommand {
 
 class PushFrontCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<PushFrontCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::Point* pt,
+    static PushFrontCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
-      return Ptr(new PushFrontCommand(pt, snip));
+      return new PushFrontCommand(pt, snip);
     }
     PushFrontCommand(Dyninst::PatchAPI::Point* pt,
                      Dyninst::PatchAPI::SnippetPtr snip) : pt_(pt), snip_(snip) {}
@@ -88,10 +86,9 @@ class PushFrontCommand : public Command {
 
 class PushBackCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<PushBackCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::Point* pt,
+    static PushBackCommand* create(Dyninst::PatchAPI::Point* pt,
                       Dyninst::PatchAPI::SnippetPtr snip) {
-      return Ptr(new PushBackCommand(pt, snip));
+      return new PushBackCommand(pt, snip);
     }
     PushBackCommand(Dyninst::PatchAPI::Point* pt,
                     Dyninst::PatchAPI::SnippetPtr snip)
@@ -110,9 +107,8 @@ class PushBackCommand : public Command {
 
 class RemoveSnippetCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<RemoveSnippetCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::InstancePtr instance) {
-      return Ptr(new RemoveSnippetCommand(instance));
+    static RemoveSnippetCommand* create(Dyninst::PatchAPI::InstancePtr instance) {
+      return new RemoveSnippetCommand(instance);
     }
     RemoveSnippetCommand(Dyninst::PatchAPI::InstancePtr instance)
       : instance_(instance) {}
@@ -126,11 +122,10 @@ class RemoveSnippetCommand : public Command {
 
 class RemoveCallCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<RemoveCallCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr,
+    static RemoveCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
                       Dyninst::PatchAPI::PatchFunction* context = NULL) {
-      return Ptr(new RemoveCallCommand(mgr, call_block, context));
+      return new RemoveCallCommand(mgr, call_block, context);
     }
     RemoveCallCommand(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
@@ -148,12 +143,11 @@ class RemoveCallCommand : public Command {
 
 class ReplaceCallCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<ReplaceCallCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr,
+    static ReplaceCallCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchBlock* call_block,
                       Dyninst::PatchAPI::PatchFunction* new_callee,
                       Dyninst::PatchAPI::PatchFunction* context) {
-      return Ptr(new ReplaceCallCommand(mgr, call_block, new_callee, context));
+      return new ReplaceCallCommand(mgr, call_block, new_callee, context);
     }
     ReplaceCallCommand(Dyninst::PatchAPI::PatchMgrPtr mgr,
                        Dyninst::PatchAPI::PatchBlock* call_block,
@@ -173,11 +167,10 @@ class ReplaceCallCommand : public Command {
 
 class ReplaceFuncCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<ReplaceFuncCommand> Ptr;
-    static Ptr create(Dyninst::PatchAPI::PatchMgrPtr mgr,
+    static ReplaceFuncCommand* create(Dyninst::PatchAPI::PatchMgrPtr mgr,
                       Dyninst::PatchAPI::PatchFunction* old_func,
                       Dyninst::PatchAPI::PatchFunction* new_func) {
-      return Ptr(new ReplaceFuncCommand(mgr, old_func, new_func));
+      return new ReplaceFuncCommand(mgr, old_func, new_func);
     }
     ReplaceFuncCommand(Dyninst::PatchAPI::PatchMgrPtr mgr,
                        Dyninst::PatchAPI::PatchFunction* old_func,

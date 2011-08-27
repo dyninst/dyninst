@@ -12,7 +12,6 @@
 #include "patchapi_comp.h"
 
 using Dyninst::PatchAPI::Instrumenter;
-using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::CallModMap;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PatchBlock;
@@ -72,9 +71,9 @@ test_results_t patch3_1_Mutator::executeTest() {
 
   /* Step 2: replace / remove function call */
   Patcher patcher(mgr_);
-  ReplaceCallCommand::Ptr c1;
-  RemoveCallCommand::Ptr c2;
-  ReplaceCallCommand::Ptr c3;
+  ReplaceCallCommand* c1;
+  RemoveCallCommand* c2;
+  ReplaceCallCommand* c3;
 
   PatchBlock* call_blk1;
   PatchBlock* call_blk2;
@@ -112,7 +111,7 @@ test_results_t patch3_1_Mutator::executeTest() {
   patcher.commit();
 
   /* Step 3: verify */
-  InstrumenterPtr inst = mgr_->instrumenter();
+  Instrumenter* inst = mgr_->instrumenter();
   CallModMap& mod_map = inst->callModMap();
   if (mod_map[call_blk1][pfunc] != call1_1) {
     logerror("**Failed patch3_1 (call replacement and removal)\n");

@@ -152,7 +152,6 @@ instPoint::instPoint(Type          t,
 // If there is a logical "pair" (e.g., before/after) of instPoints return them.
 // The return result is a pair of <before, after>
 std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
-  patch_cerr << "getInstpointPair\n";
    switch(i->type()) {
       case None:
          assert(0);

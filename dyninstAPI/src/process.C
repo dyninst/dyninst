@@ -100,12 +100,10 @@
 #include "Relocation/DynObject.h"
 
 using namespace Dyninst;
-using PatchAPI::DynObjectPtr;
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
-using PatchAPI::PointMakerPtr;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 

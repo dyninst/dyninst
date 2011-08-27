@@ -22,7 +22,6 @@
 #include "patchapi_comp.h"
 
 using Dyninst::PatchAPI::Instrumenter;
-using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::FuncModMap;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::PatchFunction;
@@ -93,10 +92,10 @@ test_results_t patch3_2_Mutator::executeTest() {
 
   /* Step 1: replace function */
   Patcher patcher(mgr_);
-  ReplaceFuncCommand::Ptr c1_to_2;   // a.out -> a.out
-  ReplaceFuncCommand::Ptr c3_to_4;   // a.out -> lib
-  ReplaceFuncCommand::Ptr c5a_to_5b; // lib -> lib
-  ReplaceFuncCommand::Ptr c6_to_7;   // lib -> a.out
+  ReplaceFuncCommand* c1_to_2;   // a.out -> a.out
+  ReplaceFuncCommand* c3_to_4;   // a.out -> lib
+  ReplaceFuncCommand* c5a_to_5b; // lib -> lib
+  ReplaceFuncCommand* c6_to_7;   // lib -> a.out
   c1_to_2 = ReplaceFuncCommand::create(mgr_, call1, call2);
   c3_to_4 = ReplaceFuncCommand::create(mgr_, call3, call4);
   c5a_to_5b = ReplaceFuncCommand::create(mgr_, call5a, call5b);
@@ -108,7 +107,7 @@ test_results_t patch3_2_Mutator::executeTest() {
   patcher.commit();
 
   /* Step 2: verify */
-  InstrumenterPtr inst = mgr_->instrumenter();
+  Instrumenter* inst = mgr_->instrumenter();
   FuncModMap& mod_map = inst->funcRepMap();
   if (!verify(mod_map, call1, call2)) return FAILED;
   if (!verify(mod_map, call3, call4)) return FAILED;

@@ -1,12 +1,13 @@
 \section{Public API Reference}
 \label{sec-public-api}
 
-This section describes functions in PatchAPI. The API is organized as a
+This section describes public interfaces in PatchAPI. The API is organized as a
 collection of C++ classes. The classes in PatchAPI fall under the C++ namespace
 Dyninst::PatchAPI. To access them, programmers should refer to them using the
 ``Dyninst::PatchAPI::'' prefix, e.g., Dyninst::PatchAPI::Point. Alternatively,
-programmers can add the C++ \emph{using} keyword above any references to PatchAPI
-objects, e.g.,\emph{using namespace Dyninst::PatchAPI} or \emph{using Dyninst::PatchAPI::Point}.
+programmers can add the C++ \emph{using} keyword above any references to
+PatchAPI objects, e.g.,\emph{using namespace Dyninst::PatchAPI} or \emph{using
+  Dyninst::PatchAPI::Point}.
 
 Most classes in PatchAPI use boost shared pointer (\emph{boost::shared\_ptr<T>}) for
 memory management, where we typedef a class's shared pointer by appending the

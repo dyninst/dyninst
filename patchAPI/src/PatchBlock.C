@@ -279,14 +279,14 @@ PatchBlock::getCallee() {
     if ((*it)->type() == ParseAPI::CALL) {
       PatchBlock* trg = (*it)->target();
       return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
-                                                       trg->start()));
+                                                       trg->block()->start()));
     }
   }
   return NULL;
 }
 
 Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
-   PointMakerPtr maker = obj_->addrSpace()->mgr()->pointMaker();
+   PointMaker* maker = obj_->addrSpace()->mgr()->pointMaker();
    PatchMgrPtr mgr = obj_->addrSpace()->mgr();
    Point *ret = NULL;
 

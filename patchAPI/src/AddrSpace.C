@@ -7,7 +7,6 @@
 #include "common/h/Types.h"
 
 using Dyninst::PatchAPI::AddrSpace;
-using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchMgr;
 
@@ -20,10 +19,10 @@ AddrSpace::init(PatchObject* obj) {
   return true;
 }
 
-AddrSpacePtr
+AddrSpace*
 AddrSpace::create(PatchObject* obj) {
-  AddrSpacePtr ret = AddrSpacePtr(new AddrSpace());
-  if (!ret) return AddrSpacePtr();
+  AddrSpace* ret = new AddrSpace();
+  if (!ret) return NULL;
   ret->init(obj);
   return ret;
 }
@@ -31,7 +30,7 @@ AddrSpace::create(PatchObject* obj) {
 bool
 AddrSpace::loadObject(PatchObject* obj) {
   obj_map_[obj->co()] = obj;
-  obj->setAddrSpace(shared_from_this());
+  obj->setAddrSpace(this);
   return true;
 }
 

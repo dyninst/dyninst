@@ -7,15 +7,11 @@
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::Command;
-using Dyninst::PatchAPI::CommandPtr;
-using Dyninst::PatchAPI::CommandList;
 using Dyninst::PatchAPI::SnippetPtr;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::BatchCommand;
 using Dyninst::PatchAPI::PatchFunction;
-using Dyninst::PatchAPI::InstrumenterPtr;
-using Dyninst::PatchAPI::BatchCommandPtr;
 using Dyninst::PatchAPI::PushBackCommand;
 using Dyninst::PatchAPI::PushFrontCommand;
 using Dyninst::PatchAPI::RemoveCallCommand;
@@ -32,14 +28,14 @@ bool Command::commit() {
   return true;
 }
 
-BatchCommandPtr BatchCommand::create() {
-  BatchCommandPtr ret = BatchCommandPtr(new BatchCommand);
+BatchCommand* BatchCommand::create() {
+  BatchCommand* ret = new BatchCommand;
   return ret;
 }
 
 /* Batch Command */
 
-void BatchCommand::add(CommandPtr c) {
+void BatchCommand::add(Command* c) {
   to_do_.push_back(c);
 }
 
@@ -71,7 +67,7 @@ bool BatchCommand::undo() {
 bool Patcher::run() {
 
   // We implicitly add the instrumentation engine
-  InstrumenterPtr inst = mgr_->instrumenter();
+  Instrumenter* inst = mgr_->instrumenter();
   add(inst);
 
   // The "common" BatchCommand stuffs

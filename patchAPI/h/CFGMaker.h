@@ -30,7 +30,6 @@ class CFGMaker {
                                 PatchBlock*, PatchObject*);
     PATCHAPI_EXPORT virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*);
 };
-typedef dyn_detail::boost::shared_ptr<CFGMaker> CFGMakerPtr;
 
 }
 }

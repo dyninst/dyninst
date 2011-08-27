@@ -17,14 +17,10 @@ namespace PatchAPI {
 class Instrumenter : public BatchCommand {
   public:
     friend class Patcher;
-    PATCHAPI_EXPORT static InstrumenterPtr create(AddrSpacePtr as);
+    PATCHAPI_EXPORT static Instrumenter* create(AddrSpace* as);
     virtual ~Instrumenter() {}
-    /*
-    // Iterate all Objects and call their process method to do instrumentation
-    PATCHAPI_EXPORT virtual bool process();
-    */
-    // Code Modification interfaces
 
+    // Code Modification interfaces
     // Function Replacement
     PATCHAPI_EXPORT virtual bool replaceFunction(PatchFunction* oldfunc,
                                                  PatchFunction* newfunc);
@@ -46,17 +42,17 @@ class Instrumenter : public BatchCommand {
     virtual CallModMap& callModMap() { return callModifications_; }
 
     // Getters and setters
-    AddrSpacePtr as() const { return as_; }
-    void setAs(AddrSpacePtr as) { as_ = as; }
+    AddrSpace* as() const { return as_; }
+    void setAs(AddrSpace* as) { as_ = as; }
 
   protected:
-    AddrSpacePtr as_;
+    AddrSpace* as_;
     CommandList user_commands_;
     FuncModMap functionReplacements_;
     FuncWrapMap functionWraps_;
     CallModMap callModifications_;
 
-    explicit Instrumenter(AddrSpacePtr as) : as_(as) {}
+    explicit Instrumenter(AddrSpace* as) : as_(as) {}
     Instrumenter() {}
 };
 }

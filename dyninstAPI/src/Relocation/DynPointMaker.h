@@ -28,6 +28,5 @@ class DynPointMaker : public Dyninst::PatchAPI::PointMaker {
     virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *, PatchFunction *f);
 
 };
-typedef dyn_detail::boost::shared_ptr<DynPointMaker> DynPointMakerPtr;
 
 #endif /* PATCHAPI_DYNPOINTMAKER_H_ */

@@ -11,7 +11,6 @@
 
 
 using Dyninst::PatchAPI::DynAddrSpace;
-using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::Command;
 
 class BPatch_point;
@@ -27,15 +26,13 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
     virtual bool run();
     virtual bool undo();
 };
-typedef dyn_detail::boost::shared_ptr<DynInstrumenter> DynInstrumenterPtr;
 
 /* Dyninst-specific Insert Snippet Command  */
 class DynInsertSnipCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<DynInsertSnipCommand> Ptr;
     DynInsertSnipCommand(instPoint* pt, callOrder order,
                          AstNodePtr ast, bool recursive);
-    static Ptr create(instPoint* pt, callOrder order,
+    static DynInsertSnipCommand* create(instPoint* pt, callOrder order,
                       AstNodePtr ast, bool recursive);
     virtual ~DynInsertSnipCommand() {}
 
@@ -51,9 +48,8 @@ class DynInsertSnipCommand : public Command {
 /* Dyninst-specific Remove Snippet Command  */
 class DynRemoveSnipCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<DynRemoveSnipCommand> Ptr;
     DynRemoveSnipCommand(miniTramp* mini);
-    static Ptr create(miniTramp* mini);
+    static DynRemoveSnipCommand* create(miniTramp* mini);
     virtual ~DynRemoveSnipCommand() {}
 
     virtual bool run();
@@ -66,11 +62,10 @@ class DynRemoveSnipCommand : public Command {
 /* Dyninst-specific Function Replacement */
 class DynReplaceFuncCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<DynReplaceFuncCommand> Ptr;
     DynReplaceFuncCommand(AddressSpace* as,
                           func_instance* old_func,
                           func_instance* new_func);
-    static Ptr create(AddressSpace* as,
+    static DynReplaceFuncCommand* create(AddressSpace* as,
                       func_instance* old_func,
                       func_instance* new_func);
     virtual ~DynReplaceFuncCommand() {}
@@ -87,12 +82,11 @@ class DynReplaceFuncCommand : public Command {
 /* Dyninst-specific Modify Function call */
 class DynModifyCallCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<DynModifyCallCommand> Ptr;
     DynModifyCallCommand(AddressSpace* as,
                          block_instance* block,
                          func_instance* new_func,
                          func_instance* context);
-    static Ptr create(AddressSpace* as,
+    static DynModifyCallCommand* create(AddressSpace* as,
                       block_instance* block,
                       func_instance* new_func,
                       func_instance* context);
@@ -111,11 +105,10 @@ class DynModifyCallCommand : public Command {
 /* Dyninst-specific Remove Function call */
 class DynRemoveCallCommand : public Command {
   public:
-    typedef dyn_detail::boost::shared_ptr<DynRemoveCallCommand> Ptr;
     DynRemoveCallCommand(AddressSpace* as,
                          block_instance* block,
                          func_instance* context);
-    static Ptr create(AddressSpace* as,
+    static DynRemoveCallCommand* create(AddressSpace* as,
                       block_instance* block,
                       func_instance* context);
     virtual ~DynRemoveCallCommand() {}

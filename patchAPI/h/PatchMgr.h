@@ -46,14 +46,14 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
-  typedef std::pair<Location, Point::Type> Candidate;
-  typedef std::vector<Candidate> Candidates;
+    typedef std::pair<Location, Point::Type> Candidate;
+    typedef std::vector<Candidate> Candidates;
 
-  PatchMgr(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst);
+    PatchMgr(AddrSpace* as,  Instrumenter* inst, PointMaker* pf);
     PATCHAPI_EXPORT virtual ~PatchMgr();
-    PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpacePtr as,
-                                              PointMakerPtr pf = PointMakerPtr(new PointMaker),
-                                              InstrumenterPtr inst = InstrumenterPtr());
+    PATCHAPI_EXPORT static PatchMgrPtr create(AddrSpace* as,
+                                              Instrumenter* inst = NULL,
+                                              PointMaker* pf = NULL);
 
     // Default implementation for filter function,
     // used in findPoins and removeSnippets
@@ -141,9 +141,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     }
 
     // Getters
-    PATCHAPI_EXPORT AddrSpacePtr as() const { return as_; }
-    PATCHAPI_EXPORT PointMakerPtr pointMaker() const { return point_maker_; }
-    PATCHAPI_EXPORT InstrumenterPtr instrumenter() const { return instor_; }
+    PATCHAPI_EXPORT AddrSpace* as() const { return as_; }
+    PATCHAPI_EXPORT PointMaker* pointMaker() const { return point_maker_; }
+    PATCHAPI_EXPORT Instrumenter* instrumenter() const { return instor_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
     //   The Scope x Type provides us a list of matching locations;
@@ -196,9 +196,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     bool match(Point *, Location *);
     bool verify(Location &loc);
-    PointMakerPtr point_maker_;
-    InstrumenterPtr instor_;
-    AddrSpacePtr as_;
+    PointMaker* point_maker_;
+    Instrumenter* instor_;
+    AddrSpace* as_;
 
 };
 

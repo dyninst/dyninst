@@ -308,7 +308,7 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
     /* PatchAPI stuffs */
     mapped_object* plib = lib.second->getAOut();
     assert(plib);
-    DYN_CAST(DynAddrSpace, origBinEdit->mgr()->as())->loadLibrary(plib);
+    dynamic_cast<DynAddrSpace*>(origBinEdit->mgr()->as())->loadLibrary(plib);
     lib.second->setMgr(origBinEdit->mgr());
     lib.second->setPatcher(origBinEdit->patcher());
     /* End of PatchAPi stuffs */
