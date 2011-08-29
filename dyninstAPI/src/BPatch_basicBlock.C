@@ -623,3 +623,11 @@ BPatch_flowGraph *BPatch_basicBlock::getFlowGraphInt() CONST_EXPORT {
 func_instance *BPatch_basicBlock::ifunc() CONST_EXPORT {
   return flowGraph->ll_func();
 }
+
+Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *b) {
+   return b->iblock->block();
+}
+
+Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *b) {
+   return b->iblock;
+}

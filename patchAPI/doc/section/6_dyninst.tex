@@ -42,6 +42,14 @@ As a result, multiple DyninstAPI blocks may map to the same PatchAPI
 block. If instrumenting a particular block instance is desired, the
 user should provide both the DyninstAPI basic block and function. 
 
+In addition, DyninstAPI uses a \emph{module} abstraction, where
+a \texttt{BPatch\_module} represents a collection of functions from a
+particular source file (for the executable) or from an entire library
+(for all libraries). PatchAPI, like ParseAPI, instead uses
+an \emph{object} representation, where a \texttt{PatchObject} object
+represents a collection of functions from a file on disk (executable
+or libraries). 
+
 The instrumentation point (\emph{instPoint}) models also differ
 between DyninstAPI and PatchAPI. We classify an instPoint either as
 a \emph{behavior} point (e.g., function entry) or \emph{location}
@@ -83,8 +91,15 @@ CFG objects and instPoints.
 
 \subsection{PatchAPI accessor methods in Dyninst}
 
-To access a PatchAPI class from a Dyninst class, use an explicit
-cast. We support the following mappings, where all PatchAPI objects
+To access a PatchAPI class from a Dyninst class, use
+the \texttt{PatchAPI::convert} function, as in the following example:
+
+\begin{apient}
+  BPatch_basicBlock *bp_block = ...;
+  PatchAPI::PatchBlock *block = PatchAPI::convert(bp_block);
+\end{apient}
+
+We support the following mappings, where all PatchAPI objects
 are within the \texttt{Dyninst::PatchAPI} namespace:
 
 \begin{tabular}{|l|l|l|}
@@ -94,27 +109,14 @@ From & To & Comments \\
 \texttt{BPatch\_function} & \texttt{PatchFunction} & \\
 \texttt{BPatch\_basicBlock} & \texttt{PatchBlock} & See above. \\
 \texttt{BPatch\_edge} & \texttt{PatchEdge} & See above. \\
-\texttt{BPatch\_module} & \texttt{PatchObject} & Many to one mapping \\
+\texttt{BPatch\_module} & \texttt{PatchObject} & See above. \\
 \texttt{BPatch\_image} & \texttt{PatchMgr} & \\
 \texttt{BPatch\_addressSpace} & \texttt{PatchMgr} & \\
 \texttt{BPatch\_snippet} & \texttt{DynASTSnippet} & Child of \texttt{Snippet} \\
 \hline
 \end{tabular}
 
-In addition, a user can use a \texttt{BPatchSnippetHandle} to access
-the set of \texttt{Instances} it contains. This is done with the
-following calls:
-\begin{apient}
-instances_iterator instances_begin();
-instances_iterator instances_end();
-\end{apient}
-\apidesc { 
-  These methods return a pair of iterators pointing to the start and
-  end of the list of \texttt{Instance}s mapped to by
-  the \texttt{BPatchSnippetHandle}. 
-}
-
-Finally, we do not support a direct mapping between \texttt{BPatch\_point}s
+We do not support a direct mapping between \texttt{BPatch\_point}s
 and \texttt{Point}s, as the failure of Dyninst to properly represent
 behavior instPoints leads to confusing results. Instead, use
 the PatchAPI point lookup methods. 

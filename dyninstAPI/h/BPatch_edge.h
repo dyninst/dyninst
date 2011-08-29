@@ -39,11 +39,23 @@ class BPatch_flowGraph;
 class BPatch_basicBlock;
 class BPatch_point;
 class edge_instance;
+class BPatch_edge; 
 
 // XXX ignores indirect jumps
 typedef enum { 
     CondJumpTaken, CondJumpNottaken, UncondJump, NonJump 
 } BPatch_edgeType;
+
+namespace Dyninst {
+   namespace ParseAPI {
+      class Edge;
+      Edge *convert(const BPatch_edge *);
+   };
+   namespace PatchAPI {
+      class PatchEdge;
+      PatchEdge *convert(const BPatch_edge *);
+   };
+};
 
 
 #ifdef DYNINST_CLASS_NAME
@@ -54,6 +66,8 @@ typedef enum {
 /** An edge between two blocks
  */
 class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
+   friend Dyninst::ParseAPI::Edge *Dyninst::ParseAPI::convert(const BPatch_edge *);
+   friend Dyninst::PatchAPI::PatchEdge *Dyninst::PatchAPI::convert(const BPatch_edge *);
 
  public:
 
@@ -82,6 +96,7 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     API_EXPORT(Int, (), BPatch_point *, getPoint, ());
     API_EXPORT(Int, (), BPatch_edgeType, getType, ());
     API_EXPORT(Int, (), BPatch_flowGraph *, getFlowGraph, ());
+
  private:
 
     BPatch_point *createInstPointAtEdge();

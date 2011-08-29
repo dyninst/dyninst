@@ -48,18 +48,22 @@
 // PatchAPI stuffs
 //#include "Command.h"
 
+class BPatch_addressSpace;
+
 namespace Dyninst {
 namespace PatchAPI { 
-  class PatchMgr;
-  class DynAddrSpace;
-  class Patcher;
-  typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
-  typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+   class PatchMgr;
+   class DynAddrSpace;
+   class Patcher;
+   typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+   typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+   PatchMgrPtr convert(const BPatch_addressSpace *);
 };
 namespace SymtabAPI {
    class Symbol;
 };
 }
+
 
 class BPatch_statement;
 class BPatch_snippet;
@@ -159,6 +163,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
     friend class BPatch_instruction;
+    friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *);
   
  public:
     
@@ -418,5 +423,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
             bool, isStaticExecutable,());
 
 };
+
 
 #endif 

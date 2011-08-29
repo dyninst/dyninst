@@ -1005,16 +1005,12 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
     return true;
 }
 
-ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
-  assert(func);
- 
-  return func->ifunc();
+Dyninst::ParseAPI::Function *Dyninst::ParseAPI::convert(const BPatch_function *f) {
+   return f->func->ifunc();
 }
 
-PatchAPI::PatchFunction * BPatch_function::getPatchAPIFuncInt() {
-  assert(func);
- 
-  return func;
+Dyninst::PatchAPI::PatchFunction *Dyninst::PatchAPI::convert(const BPatch_function *f) {
+   return f->func;
 }
 
 void BPatch_function::relocateFunction()

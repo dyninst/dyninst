@@ -56,13 +56,16 @@ class BPatch_flowGraph;
 class BPatchTranslatorBase;
 class ParameterType;
 class ReturnParameterType;
+class BPatch_function;
 
 namespace Dyninst {
   namespace ParseAPI {
     class Function;
+    Function *convert(const BPatch_function *);
   };
   namespace PatchAPI {
      class PatchFunction;
+     PatchFunction *convert(const BPatch_function *);
   };
 };
 
@@ -93,6 +96,8 @@ class BPATCH_DLL_EXPORT BPatch_function :
 						   InstrucIter &ii, 
 						   BPatch_process *proc,
 						   BPatch_function *bpf);
+    friend Dyninst::ParseAPI::Function *Dyninst::ParseAPI::convert(const BPatch_function *);
+    friend Dyninst::PatchAPI::PatchFunction *Dyninst::PatchAPI::convert(const BPatch_function *);
 
     //BPatch_process *proc;
     BPatch_addressSpace *addSpace;
@@ -344,9 +349,10 @@ public:
     API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
 
     //  Get the underlying ParseAPI Function
-    API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
-    //  Get the underlying PatchAPI Function
-    API_EXPORT( Int, (), Dyninst::PatchAPI::PatchFunction *, getPatchAPIFunc, () );
+    operator Dyninst::ParseAPI::Function *() const;
+
+    // Get the underlying PatchAPI Function
+    operator Dyninst::PatchAPI::PatchFunction *() const;
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));

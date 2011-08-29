@@ -254,3 +254,7 @@ bool PatchObject::consistency(const AddrSpace *as) const {
    if (!cb_) return false;
    return true;
 }
+
+PatchMgrPtr PatchObject::mgr() const { 
+   return addr_space_->mgr();
+}

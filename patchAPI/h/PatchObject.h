@@ -43,6 +43,7 @@ class PatchObject {
     //ParseAPI::CodeSource* cs() const { return cs_; }
     AddrSpace* addrSpace() const { return addr_space_; }
     void setAddrSpace(AddrSpace* as) { addr_space_ = as; }
+    PatchMgrPtr mgr() const;
 
     // Function
     PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
@@ -70,6 +71,7 @@ class PatchObject {
     PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
 
     PATCHAPI_EXPORT bool consistency(const AddrSpace *as) const;
+
 
   protected:
     ParseAPI::CodeObject* co_;

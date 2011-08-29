@@ -1276,3 +1276,6 @@ void BPatch_image::clearNewCodeRegions()
     }
 }
 
+Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *i) {
+   return Dyninst::PatchAPI::convert(i->addSpace);
+}

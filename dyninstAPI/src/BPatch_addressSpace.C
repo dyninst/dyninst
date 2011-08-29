@@ -71,6 +71,8 @@
 #include "Command.h"
 #include "Relocation/DynInstrumenter.h"
 
+#include "PatchMgr.h"
+
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
@@ -1069,3 +1071,13 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(
                                                 (void *) at_addr, type);
 }
 
+Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *a) {
+   const BPatch_binaryEdit *edit = dynamic_cast<const BPatch_binaryEdit *>(a);
+   if (edit) {
+      return edit->lowlevel_edit()->mgr();
+   }
+   else {
+      const BPatch_process *proc = dynamic_cast<const BPatch_process *>(a);
+      return proc->lowlevel_process()->mgr();
+   }
+}
