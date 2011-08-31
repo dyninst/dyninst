@@ -137,7 +137,7 @@ void PatchApiMutator::loadLibrary(char* libname) {
   char fullname[128];
   char lib_name[128];
   sprintf(lib_name, "%s", libname);
-  CodeObject* lib = mgr_->as()->getFirstObject()->co();
+  CodeObject* lib = mgr_->as()->executable()->co();
   SymtabCodeSource* scs = static_cast<SymtabCodeSource*>(lib->cs());
   bool isStatic = scs->getSymtabObject()->isStaticBinary();
 
