@@ -8,7 +8,7 @@ and then to insert, delete or update a piece of code at these points.
 \subsubsection{CFG Traversal}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of CFG traversal]
 ParseAPI::CodeObject* co = ...
 PatchObject* obj = PatchObject::create(co, code_base);
 
@@ -41,7 +41,7 @@ basic block.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of point finding]
 PatchFunction *func = ...;
 PatchBlock *block = ...;
 PatchEdge *edge = ...;
@@ -76,7 +76,7 @@ that connects two basic blocks.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of code patching]
 MySnippet snip;
 Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
 
@@ -103,7 +103,7 @@ invoked. That is, all snippet insertions would succeed or all would fail.
 \subsubsection{Address Space}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of implementing address space plugin]
 class MyAddrSpace : public AddrSpace {
   public:
     ...
@@ -130,7 +130,7 @@ space, and then \emph{write} the code snippet into this buffer.
 \subsubsection{Snippet Representation} \label{sec-example-snip}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of implementing snippet plugin]
 struct MySnippet {
   void* binary_blob;
 };
@@ -147,7 +147,7 @@ generation phase.
 \subsubsection{Code Parsing}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of customizing CFG parsing]
 class MyFunction : public PatchFunction {
   ...
 };
@@ -165,10 +165,36 @@ In this case, a factory class should be built by inheriting from the
 CFGMaker class, to create the augmented CFG structures. The factory class will
 be used for CFG parsing.
 
+\subsubsection{Point Making}
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=left}
+\begin{lstlisting}[caption=Example of point making]
+class MyPoint : public Point {
+  public:
+    MyPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
+    ...
+};
+
+class MyPointMaker: public PointMaker {
+  protected:
+    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
+    ...
+};
+
+Point *MyPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
+  return new MyPoint(t, m, f);
+}
+\end{lstlisting}
+In the above example, the MyPoint class inherits from the Point class, and the
+MyPointMaker class inherits from the PointMaker class. The mkFuncPoint method in
+MyPointMaker simply returns a new instance of MyPoint. The mkFuncPoint method
+will be invoked by PatchMgr::findPoint(s).
+
+
 \subsubsection{Instrumentation Engine}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of customizing instrumentation engine]
 class MyInstrumenter : public Instrumenter {
   public:
     virtual bool run() {
@@ -183,7 +209,7 @@ method \emph{run()}.
 \subsubsection{Plugin Registration}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Example of registering plugins]
 MyCFGMakerPtr cm = ...
 PatchObject* obj = PatchObject::create(..., cm);
 

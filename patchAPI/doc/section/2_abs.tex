@@ -83,13 +83,20 @@ CFGMaker to build a CFG with the augmented CFG structures.
 \begin{itemize}
 \item \emph{CFGMaker} - The CFGMaker class is a factory class that constructs the above
     CFG structures. This class is used in CFG parsing.
-
 \end{itemize}
+
+Similar to customizing the PatchAPI layer, programmers can also customize the
+Point class by extending it.
+\begin{itemize}
+\item \emph{PointMaker} - The PointMaker class is a factory class that
+  constructs a subclass of the Point class.
+\end{itemize}
+
+
 \begin{figure}[ht!]
 \centerline{\includegraphics[width=0.85\textwidth]{./figure/command/img.pdf}}
 \caption{\label{fig:inh}Inheritance Hierarchy}
 \end{figure}
-
 
 The implementation of an instrumentation engine may be very sophisticated (e.g.,
 relocating a function), or be very simple (e.g., simply overwrite an

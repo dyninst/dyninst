@@ -9,9 +9,16 @@ programmers can add the C++ \emph{using} keyword above any references to
 PatchAPI objects, e.g.,\emph{using namespace Dyninst::PatchAPI} or \emph{using
   Dyninst::PatchAPI::Point}.
 
-Most classes in PatchAPI use boost shared pointer (\emph{boost::shared\_ptr<T>}) for
-memory management, where we typedef a class's shared pointer by appending the
-Ptr to the class name, e.g., PatchMgrPtr for PatchMgr.
+Classes in PatchAPI use either the C++ raw pointer or the boost shared pointer
+(\emph{boost::shared\_ptr<T>}) for memory management. A class uses a raw pointer
+whenever it is returning a handle to the user that is controlled and destroyed
+by the PatchAPI runtime library. Classes that use a raw pointer include the CFG
+objects, a Point, and various plugins, e.g., AddrSpace, CFGMaker, PointMaker,
+and Instrumenter.  A class uses a shared\_pointer whenever it is handing
+something to the user that the PatchAPI runtime library is not controlling and
+destroying. Classes that use a boost shared pointer include a Snippet, PatchMgr,
+and Instance, where we typedef a class's shared pointer by appending the Ptr to
+the class name, e.g., PatchMgrPtr for PatchMgr.
 
 \subsection{CFG Interface}
 
@@ -26,36 +33,45 @@ represents an individual binary code object, such as an executable or a library.
 
 \begin{apient}
 static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                           CFGMakerPtr cm = CFGMakerPtr(new CFGMaker),
-                           PatchCallback *cb = NULL);
+                           CFGMakerPtr cm = NULL, PatchCallback *cb = NULL);
 \end{apient}
 
 
 \apidesc{
-Creates an instance of PatchObject, which has \emph{co} as its on-disk representation
-(ParseAPI::CodeObject), and \emph{base} as the base address where this object is
-loaded in the memory. For binary rewriting, base should be 0. The \emph{cm} and \emph{cb}
-parameters are for registering plugins.
+
+Creates an instance of PatchObject, which has \emph{co} as its on-disk
+representation (ParseAPI::CodeObject), and \emph{base} as the base address where
+this object is loaded in the memory. For binary rewriting, base should be 0. The
+\emph{cm} and \emph{cb} parameters are for registering plugins. If \emph{cm} or
+\emph{cb} is NULL, then we use the default implementation of CFGMaker or
+PatchCallback.
+
 }
 
 \begin{apient}
-static PatchObject* clone(PatchObject* par_obj, Address base, PatchCallback *cb);
+static PatchObject* clone(PatchObject* par_obj, Address base,
+                          CFGMaker* cm = NULL, PatchCallback *cb = NULL);
 \end{apient}
 
 
 \apidesc{
-Returns a new object that is copied from the specified object \emph{par\_obj} at the
-loaded address \emph{base}. The parameter \emph{cb} is for registering the PatchCallback
-plugin.
+
+Returns a new object that is copied from the specified object \emph{par\_obj} at
+the loaded address \emph{base} in the memory.  For binary rewriting, base should
+be 0. The \emph{cm} and \emph{cb} parameters are for registering plugins. If
+\emph{cm} or \emph{cb} is NULL, then we use the default implementation of
+CFGMaker or PatchCallback.
+
 }
 
 \begin{apient}
 Address codeBase();
 \end{apient}
 
-
 \apidesc{
+
 Returns the base address where this object is loaded in memory.
+
 }
 
 \begin{apient}
@@ -64,14 +80,17 @@ PatchFunction *getFunc(ParseAPI::Function *func, bool create = true);
 
 
 \apidesc{
-Returns an instance of PatchFunction in this object, according to the \emph{func}
+
+Returns an instance of PatchFunction in this object, based on the \emph{func}
 parameter. PatchAPI creates a PatchFunction on-demand, so if there is not any
-PatchFunction created for the ParseAPI function \emph{func}, and the \emph{create}
-parameter is false, then no any instance of PatchFunction will be created.
+PatchFunction created for the ParseAPI function \emph{func}, and the
+\emph{create} parameter is false, then no any instance of PatchFunction will be
+created.
 
 It returns NULL in two cases. First, the function \emph{func} is not in this
-PatchObject. Second, the PatchFunction is not yet created and the \emph{create} is
-false. Otherwise, it returns a PatchFunction.
+PatchObject. Second, the PatchFunction is not yet created and the \emph{create}
+is false. Otherwise, it returns a PatchFunction.
+
 }
 
 \begin{apient}
@@ -80,8 +99,10 @@ void funcs(Iter iter);
 \end{apient}
 
 \apidesc{
+
 Outputs all instances of PatchFunction in this PatchObject to the STL inserter
 \emph{iter}.
+
 }
 
 \begin{apient}
@@ -90,14 +111,16 @@ PatchBlock *getBlock(ParseAPI::Block* blk, bool create = true);
 
 
 \apidesc{
-Returns an instance of PatchBlock in this object, according to the \emph{blk}
-parameter. PatchAPI creates a PatchBlock on-demand, so if there is not any
-PatchBlock created for the ParseAPI block \emph{blk}, and the \emph{create} parameter is
-false, then no any instance of PatchBlock will be created.
 
-It returns NULL in two cases. First, the ParseAPI block \emph{blk} is not in this
-PatchObject. Second, the PatchBlock is not yet created and the \emph{create} is
-false. Otherwise, it returns a PatchBlock.
+Returns an instance of PatchBlock in this object, based on the \emph{blk}
+parameter. PatchAPI creates a PatchBlock on-demand, so if there is not any
+PatchBlock created for the ParseAPI block \emph{blk}, and the \emph{create}
+parameter is false, then no any instance of PatchBlock will be created.
+
+It returns NULL in two cases. First, the ParseAPI block \emph{blk} is not in
+this PatchObject. Second, the PatchBlock is not yet created and the
+\emph{create} is false. Otherwise, it returns a PatchBlock.
+
 }
 
 \begin{apient}
@@ -106,7 +129,10 @@ void blocks(Iter iter);
 \end{apient}
 
 \apidesc{
-Outputs all instances of PatchBlock in this object to the STL inserter \emph{iter}.
+
+Outputs all instances of PatchBlock in this object to the STL inserter
+\emph{iter}.
+
 }
 
 \begin{apient}
@@ -115,15 +141,17 @@ PatchEdge *getEdge(ParseAPI::Edge* edge, PatchBlock* src, PatchBlock* trg, bool 
 
 
 \apidesc{
+
 Returns an instance of PatchEdge in this object, according to the parameters
 ParseAPI::Edge \emph{edge}, source PatchBlock \emph{src}, and target PatchBlock
-\emph{trg}. PatchAPI creates a PatchEdge on-demand, so if there is not any PatchEdge
-created for the ParseAPI \emph{edge}, and the \emph{create} parameter is false, then no
-any instance of PatchEdge will be created.
+\emph{trg}. PatchAPI creates a PatchEdge on-demand, so if there is not any
+PatchEdge created for the ParseAPI \emph{edge}, and the \emph{create} parameter
+is false, then no any instance of PatchEdge will be created.
 
 It returns NULL in two cases. First, the ParseAPI \emph{edge} is not in this
 PatchObject. Second, the PatchEdge is not yet created and the \emph{create} is
 false. Otherwise, it returns a PatchEdge.
+
 }
 
 \begin{apient}
@@ -133,7 +161,10 @@ void edges(Iter iter);
 
 
 \apidesc{
-Outputs all instances of PatchEdge in this object to the STL inserter \emph{iter}.
+
+Outputs all instances of PatchEdge in this object to the STL inserter
+\emph{iter}.
+
 }
 
 \begin{apient}
@@ -152,7 +183,6 @@ Returns the PatchCallback object associated with this PatchObject.
 
 The PatchFunction class is a wrapper of ParseAPI's Function class (has-a), which
 represents a function.
-
 
 \begin{apient}
 const string &name();
@@ -183,7 +213,7 @@ Returns the ParseAPI::Function associated with this PatchFunction.
 }
 
 \begin{apient}
-PatchObject* object();
+PatchObject* obj();
 \end{apient}
 
 \apidesc{
@@ -260,8 +290,10 @@ Address end() const;
 
 
 \apidesc{
+
 Returns the upper bound (open) of this block (the address immediately following
 the last byte in the last instruction).
+
 }
 
 \begin{apient}
@@ -376,7 +408,7 @@ Returns the ParseAPI::Block associated with this PatchBlock.
 }
 
 \begin{apient}
-PatchObject* object() const;
+PatchObject* obj() const;
 \end{apient}
 
 \apidesc{
@@ -386,7 +418,7 @@ Returns the PatchObject that contains this block.
 \begin{apient}
 typedef std::vector<PatchEdge*> PatchBlock::edgelist;
 
-const edgelist &sources();
+const edgelist &getSources();
 \end{apient}
 
 \apidesc{
@@ -395,7 +427,7 @@ the returned edges.
 }
 
 \begin{apient}
-const edgelist &targets();
+const edgelist &getTargets();
 \end{apient}
 
 \apidesc{
@@ -482,14 +514,6 @@ calls, returns, direct branches under certain circumstances).
 }
 
 \begin{apient}
-void destroy(Point *pt);
-\end{apient}
-
-\apidesc{
-Destroys a Point associated with this block.
-}
-
-\begin{apient}
 PatchCallback *cb() const;
 \end{apient}
 
@@ -510,32 +534,60 @@ inserting or deleting \textbf{Snippets}, and registering user-provided plugins.
 
 
 \begin{apient}
-static PatchMgrPtr create(AddrSpacePtr as, PointMakerPtr pf = PointMakerPtr(new PointMaker),
-                          InstrumenterPtr inst = InstrumenterPtr());
+static PatchMgrPtr create(AddrSpace* as, Instrumenter* inst = NULL, PointMaker* pm = NULL);
 \end{apient}
 
 
 \apidesc{
+
 This factory method creates a new PatchMgr object that performs binary code
-patching. It takes input three plugins, including AddrSpace \emph{as}, PointMaker
-\emph{pf}, and Instrumenter \emph{inst}. PatchAPI uses default plugins for PointMaker and
-Instrumenter, if \emph{pf} and \emph{inst} are not specified.
+patching. It takes input three plugins, including AddrSpace \emph{as},
+Instrumenter \emph{inst}, and PointMaker \emph{pm}. PatchAPI uses default
+plugins for PointMaker and Instrumenter, if \emph{pm} and \emph{inst} are not
+specified (NULL by default).
 
 This method returns PatchMgrPtr() if it was unable to create a new PatchMgr
 object.
+
 }
 
 \begin{apient}
 Point *findPoint(Location loc, Point::Type type, bool create = true);
-
 \end{apient}
 
 \apidesc{
+
 This method returns a unique Point according to a Location \emph{loc} and a Type
-\emph{type}. If we cannot find a Point, this method returns NULL. PatchAPI creates
-Points on demand, so if a Point is not yet created, and the \emph{create} parameter
-is false, this method returns NULL.
+\emph{type}. The Location structure is to specify a physical location of a Point
+(e.g., at function entry, at block entry, etc.), details of Location will be
+covered in Section~\ref{sec-3.1.2}. PatchAPI creates Points on demand, so if
+a Point is not yet created, the \emph{create} parameter is to indicate whether
+to create this Point. If the Point we want to find is already created, this
+method simply returns a pointer to this Point from a buffer, no matter whether
+\emph{create} is true or false. If the Point we want to find is not yet created,
+and \emph{create} is true, then this method constructs this Point and put it in
+a buffer, and finally returns a Pointer to this Point. If the Point creation
+fails, this method also returns false. If the Point we want to find is not yet
+created, and \emph{create} is false, this method returns NULL. The basic logic
+of finding a point can be found in the Listing~\ref{findpt}.
+
 }
+
+\lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
+\lstset{numbers=none}
+\begin{lstlisting}[label=findpt, caption=Pseudocode of finding a point]
+if (point is in the buffer) {
+  return point;
+} else {
+  if (create == true) {
+    create point
+    if (point creation fails) return NULL;
+    put the point in the buffer
+  } else {
+    return NULL;
+  }
+}
+\end{lstlisting}
 
 \begin{apient}
 template <class OutputIterator>
@@ -544,11 +596,16 @@ bool findPoint(Location loc, Point::Type type, OutputIterator outputIter,
 \end{apient}
 
 \apidesc{
-This method finds a Point at a physical Location \emph{loc} with a \emph{type}.  It adds
-the found Point to \emph{outputIter} that is a STL inserter.
+
+This method finds a Point at a physical Location \emph{loc} with a \emph{type}.
+It adds the found Point to \emph{outputIter} that is a STL inserter. The point
+is created on demand. If the Point is already created, then this method outputs
+a pointer to this Point from a buffer. Otherwise, the \emph{create} parameter
+indicates whether to create this Point.
 
 This method returns true if a point is found, or the \emph{create} parameter is
 false; otherwise, it returns false.
+
 }
 
 \begin{apient}
@@ -558,9 +615,13 @@ bool findPoints(Location loc, Point::Type types, OutputIterator outputIter,
 \end{apient}
 
 \apidesc{
-This method finds Points at a physical Location \emph{loc} with composite \emph{types}
-that are combined using the overloaded operator ``|''. This function outputs
-Points to the STL inserter \emph{outputIter}.
+
+This method finds Points at a physical Location \emph{loc} with composite
+\emph{types} that are combined using the overloaded operator ``|''. This
+function outputs Points to the STL inserter \emph{outputIter}. The point is
+created on demand. If the Point is already created, then this method outputs a
+pointer to this Point from a buffer. Otherwise, the \emph{create} parameter
+indicates whether to create this Point.
 
 This method returns true if a point is found, or the \emph{create} parameter is
 false; otherwise, it returns false.
@@ -575,10 +636,15 @@ bool findPoints(Location loc, Point::Type types, FilterFunc filter_func,
 \end{apient}
 
 \apidesc{
-This method finds Points at a physical Location \emph{loc} with composite \emph{types}
-that are combined using the overloaded operator ``|''. Then, this method applies a
-filter functor \emph{filter\_func} with an argument \emph{filter\_arg} on each found Point.
-The method outputs Points to the inserter \emph{outputIter}.
+
+This method finds Points at a physical Location \emph{loc} with composite
+\emph{types} that are combined using the overloaded operator ``|''. Then, this
+method applies a filter functor \emph{filter\_func} with an argument
+\emph{filter\_arg} on each found Point.  The method outputs Points to the
+inserter \emph{outputIter}. The point is created on demand. If the Point is
+already created, then this method returns a pointer to this Point from a
+buffer. Otherwise, the \emph{create} parameter indicates whether to create this
+Point.
 
 If no any Point is created, then this method returns false; otherwise, true is
 returned. The code below shows the prototype of an example functor.
@@ -586,7 +652,7 @@ returned. The code below shows the prototype of an example functor.
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=none}
-\begin{lstlisting}
+\begin{lstlisting}[caption=Code template for the filter function in findPoint]
 template <class T>
 class FilterFunc {
   public:
@@ -627,13 +693,18 @@ bool findPoints(Scope scope, Point::Type types, FilterFunc filter_func,
 \end{apient}
 
 \apidesc{
-This method finds points in a \emph{scope} with certain \emph{types} that are combined
-together by using the overloaded operator ``|''. Then, this method applies the
-filter functor \emph{filter\_func} on each found Point. It outputs Points where
-\emph{filter\_func} returns true to the STL inserter \emph{output\_iter}.
+
+This method finds points in a \emph{scope} with certain \emph{types} that are
+combined together by using the overloaded operator ``|''. Then, this method
+applies the filter functor \emph{filter\_func} on each found Point. It outputs
+Points where \emph{filter\_func} returns true to the STL inserter
+\emph{output\_iter}. Points are created on demand. If some points are already
+created, then this method outputs pointers to them from a buffer. Otherwise, the
+\emph{create} parameter indicates whether to create Points.
 
 If no any Point is created, then this function returns false; otherwise, true is
 returned.
+
 }
 
 
@@ -643,9 +714,12 @@ bool findPoints(Scope scope, Point::Type types, OutputIterator output_iter, bool
 \end{apient}
 
 \apidesc{
-This method finds points in a \emph{scope} with certain \emph{types} that are combined
-together by using the overloaded operator ``|''. It outputs the found points to
-the STL inserter \emph{output\_iter}.
+
+This method finds points in a \emph{scope} with certain \emph{types} that are
+combined together by using the overloaded operator ``|''. It outputs the found
+points to the STL inserter \emph{output\_iter}. If some points are already
+created, then this method outputs pointers to them from a buffer. Otherwise, the
+\emph{create} parameter indicates whether to create Points.
 
 If no any Point is created, then this method returns false; otherwise, true is
 returned.
@@ -670,8 +744,10 @@ bool removeSnippets(Scope scope, Point::Type types, FilterFunc filter_func,
 \end{apient}
 
 \apidesc{
-This method deletes ALL snippet instances at certain points in certain \emph{scope}
-with certain \emph{types}, and those points pass the test of \emph{filter\_func}.
+
+This method deletes ALL snippet instances at certain points in certain
+\emph{scope} with certain \emph{types}, and those points pass the test of
+\emph{filter\_func}.
 
 If no any point can be found, this method returns false; otherwise, true is
 returned.
@@ -684,6 +760,10 @@ bool removeSnippets(Scope scope, Point::Type types);
 \apidesc{
 This method deletes ALL snippet instances at certain points in certain \emph{scope}
 with certain \emph{types}.
+
+If no any point can be found, this method returns false; otherwise, true is
+returned.
+
 }
 
 \begin{apient}
@@ -691,13 +771,13 @@ void destroy(Point *point);
 \end{apient}
 
 \apidesc{
-This method is to destroy the specified \emph{point}.
+This method is to destroy the specified \emph{Point}.
 }
 
 \begin{apient}
-AddrSpacePtr as() const;
-PointMakerPtr pointMaker() const;
-InstrumenterPtr instrumenter() const;
+AddrSpace* as() const;
+PointMaker* pointMaker() const;
+Instrumenter* instrumenter() const;
 \end{apient}
 
 \apidesc{
@@ -731,17 +811,20 @@ struct Location {
 };
 \end{apient}
 
-\apidesc{ The Location structure uniquely identifies the physical location of a
-  point.  A Location object plus a Point::Type value uniquely identifies a
-  point, because multiple Points with different types can exist at the same
-  physical location.  The Location structure provides a set of static functions
-  to create an object of Location, where each function takes the corresponding
-  CFG structures to identify a physical location. In addition, some functions
-  above (e.g., InstructionInstance) takes input the \emph{trusted} parameter
-  that is to indicate PatchAPI whether the CFG structures passed in is
-  trusted. If the \emph{trusted} parameter is false, then PatchAPI would have
-  additional checking to verify the CFG structures passed by users, which causes
-  nontrivial overhead.}
+\apidesc{
+
+The Location structure uniquely identifies the physical location of a point. A
+Location object plus a Point::Type value uniquely identifies a point, because
+multiple Points with different types can exist at the same physical location.
+The Location structure provides a set of static functions to create an object of
+Location, where each function takes the corresponding CFG structures to identify
+a physical location. In addition, some functions above (e.g.,
+InstructionInstance) takes input the \emph{trusted} parameter that is to
+indicate PatchAPI whether the CFG structures passed in is trusted. If the
+\emph{trusted} parameter is false, then PatchAPI would have additional checking
+to verify the CFG structures passed by users, which causes nontrivial overhead.
+
+}
 
 
 \begin{apient}
@@ -828,7 +911,7 @@ Returns the number of snippet instances inserted at this Point.
 }
 
 \begin{apient}
-Address address() const;
+Address addr() const;
 \end{apient}
 
 
@@ -885,7 +968,7 @@ Returns the Instruction where the Point resides.
 }
 
 \begin{apient}
-PatchFunction* getFunction() const;
+PatchFunction* func() const;
 \end{apient}
 
 
@@ -894,7 +977,7 @@ Returns the function where the Point resides.
 }
 
 \begin{apient}
-PatchBlock* getBlock() const;
+PatchBlock* block() const;
 \end{apient}
 
 
@@ -903,7 +986,7 @@ Returns the PatchBlock where the Point resides.
 }
 
 \begin{apient}
-PatchEdge* getEdge() const;
+PatchEdge* edge() const;
 \end{apient}
 
 

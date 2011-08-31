@@ -1,13 +1,13 @@
 \section{Plugin API Reference}
 \label{sec-plugin-api}
 
-This section describes the various plugin interfaces for extending
-PatchAPI. We expect that most users should not have to ever explicitly
-use an interface from this section; instead, they will use plugins
-previously implemented by PatchAPI developers. 
+This section describes the various plugin interfaces for extending PatchAPI. We
+expect that most users should not have to ever explicitly use an interface from
+this section; instead, they will use plugins previously implemented by PatchAPI
+developers.
 
-As with the public interface, all objects and methods in this section
-are in the ``Dyninst::PatchAPI'' namespace. 
+As with the public interface, all objects and methods in this section are in the
+``Dyninst::PatchAPI'' namespace.
 
 \subsection{AddrSpace}
 \label{sec-3.2.1}
@@ -15,10 +15,10 @@ are in the ``Dyninst::PatchAPI'' namespace.
 \textbf{Declared in}: AddrSpace.h
 
 The AddrSpace class represents the address space of a \textbf{Mutatee}, where it
-contains a collection of \textbf{PatchObjects} that represent shared libraries or a
-binary executable. In addition, programmers implement some memory management
-interfaces in the AddrSpace class to determines the type of the code patching -
-1st party, 3rd party, or binary rewriting.
+contains a collection of \textbf{PatchObjects} that represent shared libraries
+or a binary executable. In addition, programmers implement some memory
+management interfaces in the AddrSpace class to determine the type of the code
+patching - 1st party, 3rd party, or binary rewriting.
 
 
 \begin{apient}
@@ -28,10 +28,11 @@ virtual bool write(PatchObject* obj, Address to, Address from, size_t size);
 
 \apidesc{
 
-This method copies \emph{size}-byte data stored at the address \emph{from} on the
-\textbf{Mutator} side to the address \emph{to} on the \textbf{Mutatee} side. The parameter \emph{to} is
-the relative offset for the PatchObject \emph{obj}, if the instrumentation is for
-binary rewriting; otherwise \emph{to} is an absolute address.
+This method copies \emph{size}-byte data stored at the address \emph{from} on
+the \textbf{Mutator} side to the address \emph{to} on the \textbf{Mutatee}
+side. The parameter \emph{to} is the relative offset for the PatchObject
+\emph{obj}, if the instrumentation is for binary rewriting; otherwise \emph{to}
+is an absolute address.
 
 If the write operation succeeds, this method returns true; otherwise, false.
 }
@@ -42,10 +43,12 @@ virtual Address malloc(PatchObject* obj, size_t size, Address near);
 
 
 \apidesc{
-This method allocates a buffer of \emph{size} bytes on the \textbf{Mutatee} side. The
-address \emph{near} is a relative address in the object \emph{obj}, if the instrumentation
-is for binary rewriting; otherwise, \emph{near} is an absolute address, where this
-method tries to allocates a buffer near the address \emph{near}.
+
+This method allocates a buffer of \emph{size} bytes on the \textbf{Mutatee}
+side. The address \emph{near} is a relative address in the object \emph{obj}, if
+the instrumentation is for binary rewriting; otherwise, \emph{near} is an
+absolute address, where this method tries to allocates a buffer near the address
+\emph{near}.
 
 If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
 }
@@ -89,18 +92,21 @@ returns true; otherwise, it returns false.
 }
 
 \begin{apient}
-typedef std::set<PatchObject*> AddrSpace::ObjSet;
+typedef std::map<const ParseAPI::CodeObject*, PatchObject*> AddrSpace::ObjMap;
 
-ObjSet& objSet();
+ObjMap& objMap();
 \end{apient}
 
-
 \apidesc{
-Returns a set of PatchObjects.
+
+Returns a set of mappings from ParseAPI::CodeObjects to PatchObjects, where
+PatchObjects in all mappings represent all binary objects (either executable or
+libraries loaded) in this address space.
+
 }
 
 \begin{apient}
-PatchObject* getFirstObject();
+PatchObject* executable();
 \end{apient}
 
 
@@ -144,7 +150,7 @@ static Ptr create(T rep);
 
 
 \apidesc{
-Creates an object of the Snippet. It takes input of the actual representation of
+Creates an object of the Snippet. It takes input the actual representation of
 a snippet, which is a user-defined structure.
 }
 
@@ -543,8 +549,8 @@ forking a new process).
 
 The PointMaker class is a factory class that constructs instances of the Point
 class. The methods of the PointMaker class are invoked by PatchMgr's findPoint
-methods. Programmers can extend the Point class, and then implement this class
-to instantiate the subclasses of Point.
+methods. Programmers can extend the Point class, and then implement a set of
+virtual methods in this class to instantiate the subclasses of Point.
 
 
 \begin{apient}
@@ -556,12 +562,19 @@ The constructor takes input the relevant PatchMgr \emph{mgr}.
 }
 
 \begin{apient}
-virtual Point *createPoint(Location loc, Point::Type type);
+virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
+virtual Point *mkFuncSitePoint(Point::Type t, PatchMgrPtr m, PatchFunction *f, PatchBlock *b);
+virtual Point *mkBlockPoint(Point::Type t, PatchMgrPtr m, PatchBlock *b, PatchFunction *context);
+virtual Point *mkInsnPoint(Point::Type t, PatchMgrPtr m, PatchBlock *, Address a,
+                           InstructionAPI::Instruction::Ptr i, PatchFunction *context);
+virtual Point *mkEdgePoint(Point::Type t, PatchMgrPtr m, PatchEdge *e, PatchFunction *context);
 \end{apient}
 
 \apidesc{
-Create a Point at a particular location \emph{loc}, with a particular \emph{type}. If the
-point creation fails, it returns NULL; otherwise, it returns a new Point.
+
+Programmers implement the above virtual methods to instantiate the subclasses of
+Point.
+
 }
 
 \subsection{Default Plugin}

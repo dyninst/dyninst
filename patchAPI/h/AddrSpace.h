@@ -41,7 +41,7 @@ class AddrSpace {
     ObjMap& objMap() { return obj_map_; }
     PatchObject* findObject(const ParseAPI::CodeObject*) const;
     template <class Iter> void objs(Iter iter); // EXPORTED
-    PATCHAPI_EXPORT PatchObject* getFirstObject() { return first_object_; }
+    PATCHAPI_EXPORT PatchObject* executable() { return first_object_; }
     PATCHAPI_EXPORT PatchMgrPtr mgr() const { return mgr_; }
 
     std::string format() const;
