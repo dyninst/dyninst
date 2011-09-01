@@ -496,6 +496,20 @@ void  MemoryEmulator::debug() const {
 	for (std::vector<MemoryMapTree::Entry>::iterator iter = elements.begin(); iter != elements.end(); ++iter)
 	{
 		cerr << "\t\t " << hex << "[" << iter->first.first << "," << iter->first.second << "]: " << iter->second << dec << endl;
+      if (iter->first.first == 0x40d000) {
+         Address val;
+         Address addr = (iter->second + 0x40d84b);
+         assert(sizeof(Address) == aS_->getAddressWidth());
+         Address width = aS_->getAddressWidth();
+         for (Address idx=0; idx < 0x40; idx+=width) {
+            aS_->readDataSpace((void*)(addr+idx), width, &val, true);
+            cerr << hex << " " << 0x40d84b + idx << "[" << addr+idx << "]:  ";
+            fprintf(stderr,"%2x",((unsigned char*)&val)[3]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[2]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[1]);
+            fprintf(stderr,"%2x\n",((unsigned char*)&val)[0]);
+         }
+      }
 	}
 	elements.clear();
 	cerr << "\t Backwards map: " << endl;

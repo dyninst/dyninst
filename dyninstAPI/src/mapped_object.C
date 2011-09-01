@@ -101,8 +101,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   memEnd_(-1),
   memoryImg_(false)
 {
-   image_->addOwner(this);
-
    // Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
 #if defined(os_windows)
@@ -293,8 +291,6 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    codeByteUpdates_(0),
    memoryImg_(s->memoryImg_)
 {
-   image_->addOwner(this);
-
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
       // Doesn't copy things like line info. Ah, well.
@@ -366,7 +362,6 @@ mapped_object::~mapped_object()
 
    // codeRangesByAddr_ is static
     // Remainder are static
-   image_->removeOwner(this);
    image::removeImage(image_);
 }
 
@@ -1307,15 +1302,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
             // figure it out from the instruction class, since that's
             // the easy way to do things.
 
-            bool indirect = false;
-            Block::edgelist &edges = stubs[idx].src->llb()->targets();
-            for (Block::edgelist::iterator eit = edges.begin(); eit != edges.end(); ++eit) {
-                if ((*eit)->sinkEdge()) {
-                    indirect = true;
-                    break;
-                }
-            }
-
             block_instance::Insns insns;
             stubs[idx].src->getInsns(insns);
             InstructionAPI::Instruction::Ptr cf = insns[stubs[idx].src->last()];
@@ -1337,7 +1323,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
                 edgeType = INDIRECT;
                 break;
             case c_BranchInsn:
-                if (indirect)
+                if (cf->readsMemory())
                 {
                     edgeType = INDIRECT;
                 }
@@ -1976,30 +1962,17 @@ void mapped_object::remove(instPoint *point)
     bpmod->remove(point);
 }
 
-void mapped_object::destroy(ParseAPI::Block *b) {
-   BlockMap::iterator iter = blocks_.find(b);
-   if (iter != blocks_.end()) {
-     calleeNames_.erase(SCAST_BI(iter->second));
-     if (as()->isMemoryEmulated()) {
-         as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
-     }
-     block_instance::destroy(SCAST_BI(iter->second));
+// does not delete
+void mapped_object::destroy(PatchAPI::PatchBlock *b) {
+   calleeNames_.erase(SCAST_BI(b));
+   if (as()->isMemoryEmulated()) {
+      as()->getMemEm()->removeSpringboards(SCAST_BI(b));
    }
 }
 
-void mapped_object::destroy(ParseAPI::Edge *e) {
-   EdgeMap::iterator iter = edges_.find(e);
-   if (iter != edges_.end()) {
-   //  edge_instance::destroy(SCAST_EI(iter->second));
-       edges_.erase(iter);
-   }
-}
-
-void mapped_object::destroy(ParseAPI::Function *f) {
-    FuncMap::iterator iter = funcs_.find(f);
-    assert(iter != funcs_.end());
-    func_instance *fi = SCAST_FI(iter->second);
-    remove(fi); // does most of the work
+// does not delete
+void mapped_object::destroy(PatchAPI::PatchFunction *f) {
+    remove(SCAST_FI(f));
 }
 
 void mapped_object::removeEmptyPages()

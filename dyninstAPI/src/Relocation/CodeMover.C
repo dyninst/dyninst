@@ -57,6 +57,8 @@ CodeMover::CodeMover(CodeTracker *t) :
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
 
+   cerr << "Created CodeMover with tracker " << hex << t << dec << endl;
+
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));
    if (!ret) 
@@ -235,7 +237,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
       }
       
       // And instrumentation that needs updating
-      createInstrumentationSpringboards(as);
+      //createInstrumentationSpringboards(as);
    }
 
    return sboardMap_;
@@ -265,33 +267,5 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
          AS->addDefensivePad(tmp->block(), tmp->func(), tmp->reloc(), tmp->pad());
       }
    }
-}
-
-void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
-   return;
-#if 0
-  for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
-        iter != gen().getInstrumentation().end(); ++iter) {
-      std::set<Address>::iterator begin, end;
-      as->getPreviousInstrumentationInstances(iter->first, begin, end);
-      for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         //relocation_cerr << "\t Added inst SB " << hex
-//                         << *begin << " -> " << iter->second << dec << endl;
-      }
-      as->addInstrumentationInstance(iter->first, iter->second);
-   }
-   for (std::map<baseTramp *, Address>::iterator iter = gen().getRemovedInstrumentation().begin();
-        iter != gen().getRemovedInstrumentation().end(); ++iter) {
-      // As above, without the add
-      std::set<Address>::iterator begin, end;
-      as->getPreviousInstrumentationInstances(iter->first, begin, end);
-      for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         //relocation_cerr << "\t Added inst SB " << hex
-//                         << *begin << " -> " << iter->second << dec << endl;
-      }
-   }
-#endif
 }
 

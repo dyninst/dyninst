@@ -236,8 +236,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b) 
-     : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
+   PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b);
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
    virtual ~PaddingPatch() {};

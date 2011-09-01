@@ -259,7 +259,8 @@ bool PatchFunction::findInsnPoints(Point::Type type,
       end = iter->second.postInsn.end();
       return (start != end);
    }
-   else return false;
+   else 
+      return false;
 }
 
 // remove block points from points_ and blockPoints_
@@ -296,14 +297,17 @@ void PatchFunction::destroyBlockPoints(PatchBlock *block)
     if (bit->second.during) {
         bit->first->remove(bit->second.during);
         cb->destroy(bit->second.during);
+        bit->second.during = NULL;
     }
     if (bit->second.entry) {
         bit->first->remove(bit->second.entry);
         cb->destroy(bit->second.entry);
+        bit->second.entry = NULL;
     }
     if (bit->second.exit) {
         bit->first->remove(bit->second.exit);
         cb->destroy(bit->second.exit);
+        bit->second.exit = NULL;
     }
     if (!bit->second.postInsn.empty()) {
         for (InsnPoints::iterator iit = bit->second.postInsn.begin();
@@ -336,10 +340,11 @@ void PatchFunction::destroyPoints()
     // 3) clear points_
 
     // 1)
-    for(map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin(); 
-        bit != blockPoints_.end(); bit++) 
+    map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin();
+    while (bit != blockPoints_.end()) 
     {
-        destroyBlockPoints(bit->first);
+        destroyBlockPoints(bit->first); // eliminates bit from blockPoints_
+        bit = blockPoints_.begin();
     }
     blockPoints_.clear();
 
@@ -350,6 +355,7 @@ void PatchFunction::destroyPoints()
         if (eit->second.during) {
             eit->first->remove(eit->second.during);
             cb->destroy(eit->second.during);
+            eit->second.during = NULL;
         }
     }
     edgePoints_.clear();

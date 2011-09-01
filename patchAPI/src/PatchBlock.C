@@ -505,7 +505,13 @@ bool PatchBlock::consistency() const {
       }
       set<PatchBlock*> srcs;
       for (unsigned i = 0; i < srclist_.size(); ++i) {
-         if (srcs.find(srclist_[i]->source()) != srcs.end()) {
+         // shouldn't have multiple edges to the same block unless one
+         // is a conditional taken and the other a conditional not-taken
+         // (even this is weird, but it happens in obfuscated code)
+         if (srcs.find(srclist_[i]->source()) != srcs.end() &&
+             srclist_[i]->type() != ParseAPI::COND_TAKEN && 
+             srclist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
+         {
             cerr << "Error: multiple source edges to same block" << endl;
             CONSIST_FAIL;
          }
@@ -525,7 +531,13 @@ bool PatchBlock::consistency() const {
       }
       set<PatchBlock*>trgs;
       for (unsigned i = 0; i < trglist_.size(); ++i) {
-         if (trgs.find(trglist_[i]->target()) != trgs.end()) {
+         // shouldn't have multiple edges to the same block unless one
+         // is a conditional taken and the other a conditional not-taken
+         // (even this is weird, but it happens in obfuscated code)
+         if (trgs.find(trglist_[i]->target()) != trgs.end() &&
+             trglist_[i]->type() != ParseAPI::COND_TAKEN && 
+             trglist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
+         {
             cerr << "Error: multiple target edges to same block" << endl;
             CONSIST_FAIL;
          }

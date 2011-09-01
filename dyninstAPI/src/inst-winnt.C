@@ -177,8 +177,11 @@ func_instance *block_instance::callee()
 	 * Since we're interpreting callees, we want to track this down
 	 * and represent the callee as bar, not stub.
 	 */
+   if (!containsCall()) {
+      return NULL;
+   }
 
-	edge_instance *tEdge = getTarget();
+   edge_instance *tEdge = getTarget();
 	if (!tEdge) return NULL;
 
     // Otherwise use the target function...
@@ -230,18 +233,25 @@ func_instance *block_instance::callee()
 	              
 				// obtain the target address from memory if it is available
 			  Address targetAddr = ADDR_NULL;
-			  proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
-			  &targetAddr, true );
-			  if( targetAddr != ADDR_NULL )
-			  {
-	        
-			// see whether we already know anything about the target
-			// this may be the case with implicitly-loaded and delay-loaded
-			// DLLs, and it is possible with other types of indirect calls
-			func_instance *target = proc()->findFuncByEntry( targetAddr );
-			updateCallTarget(target);
-			return target;
-			  }
+              if (insn->readsMemory()) {
+                 proc()->readDataSpace( (const void*)funcPtrAddress, 
+                                        sizeof(Address), &targetAddr, true );
+              } 
+              else { // this is not an indirect call at all, but a call to 
+                     // an uninitialized or invalid address
+                  targetAddr = funcPtrAddress;
+              }
+              if( targetAddr != ADDR_NULL )
+              {
+                 // see whether we already know anything about the target
+                 // this may be the case with implicitly-loaded and delay-loaded
+                 // DLLs, and it is possible with other types of indirect calls
+                 func_instance *target = proc()->findFuncByEntry( targetAddr );
+                 if (target) {
+                     updateCallTarget(target);
+                     return target;
+                 }
+              }
 		  }
 	  }
   return NULL;

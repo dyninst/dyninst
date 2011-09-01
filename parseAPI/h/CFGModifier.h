@@ -72,9 +72,9 @@ class CFGModifier {
                                     Address base, void *data, 
                                     unsigned size);
 
-   // Remove a block from the CFG; the block must be unreachable
+   // Remove blocks from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.
-   PARSER_EXPORT static bool remove(Block *, bool force = false);
+   PARSER_EXPORT static bool remove(std::vector<Block *> &, bool force = false);
 
    // As the above, but for functions. 
    PARSER_EXPORT static bool remove(Function *);

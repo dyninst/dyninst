@@ -1000,7 +1000,7 @@ bool BPatch_image::parseNewFunctionsInt
                 "implemented for live processes\n", __FILE__, __LINE__);
         return false;
     }
-    if (funcEntryAddrs.size() == 0) {
+    if (funcEntryAddrs.empty()) {
         fprintf(stderr,"%s[%d] parseNewFunctions requires a non-empty vector "
                 "of function entry points\n", __FILE__, __LINE__);
         return false;
@@ -1021,7 +1021,7 @@ bool BPatch_image::parseNewFunctionsInt
     vector<ParseAPI::Function *> blockFuncs;
 
     // group funcEntryAddrs by the mapped_objects that they fit into
-    for (unsigned int i=0; i < allobjs.size() && funcEntryAddrs_.size(); i++) { 
+    for (unsigned int i=0; i < allobjs.size() && !funcEntryAddrs_.empty(); i++) { 
 
         Symtab *curSymtab = allobjs[i]->parse_img()->getObject();
         Address baseAddress = allobjs[i]->codeBase();
@@ -1040,7 +1040,7 @@ bool BPatch_image::parseNewFunctionsInt
         }
 
         /* 2. Trigger parsing in mapped_objects that contain function entry points */
-        if (objEntries.size()) {
+        if (!objEntries.empty()) {
             allobjs[i]->parseNewFunctions(objEntries);
 
             /* 3. Construct list of modules affected by parsing */
@@ -1071,7 +1071,7 @@ bool BPatch_image::parseNewFunctionsInt
         return false;
     }
 
-    if (affectedModules.size() == 0) {
+    if (affectedModules.empty()) {
         return false;
     }
     return true;

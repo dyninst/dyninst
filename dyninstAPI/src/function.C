@@ -551,17 +551,45 @@ bool func_instance::isInstrumentable() {
    return true;
 }
 
-block_instance *func_instance::getBlock(const Address addr) {
-        block_instance *block = obj()->findOneBlockByAddr(addr);
-        // Make sure it's one of ours
-        std::set<func_instance *> funcs;
-        block->getFuncs(std::inserter(funcs, funcs.end()));
-        if (funcs.find(this) != funcs.end()) {
-          //addBlock(block); // Update parent class's bookkeeping stuffs
-          return block;
-        }
-        return NULL;
+block_instance *func_instance::getBlockByEntry(const Address addr) {
+   block_instance *block = obj()->findBlockByEntry(addr);
+   if (block && all_blocks_.find(block) != all_blocks_.end()) {
+      return block;
+   }
+   return NULL;
 }
+
+
+// get all blocks that have an instruction starting at addr, or if 
+// there are none, return all blocks containing addr
+bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
+   set<block_instance*> objblks;
+   obj()->findBlocksByAddr(addr, objblks);
+   getAllBlocks(); // ensure that all_blocks_ is filled in 
+   for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end();) {
+      // Make sure it's one of ours
+      if (all_blocks_.find(*bit) == all_blocks_.end()) {
+         bit = objblks.erase(bit);
+      } else {
+         bit++;
+      }
+   }
+   if (objblks.size() > 1) { 
+      // only add blocks that have an instruction at "addr"
+      for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
+         if ((*bit)->getInsn(addr)) {
+            blks.insert(*bit);
+         }
+      }
+   }
+   // if there are no blocks containing an instruction that starts at addr, 
+   // but there are blocks that contain addr, add those to blks
+   if (blks.empty() && !objblks.empty()) {
+      std::copy(objblks.begin(), objblks.end(), std::inserter(blks, blks.end()));
+   }
+   return ! blks.empty();
+}
+
 
 using namespace SymtabAPI;
 
@@ -751,7 +779,7 @@ void func_instance::edgePoints(Points* pts) {
    }
 }
 
-void func_instance::destroyBlock(block_instance *block) {
+void func_instance::removeBlock(block_instance *block) {
     // Put things here that go away from the perspective of this function
     BlockSet::iterator bit = unresolvedCF_.find(block);
     if (bit != unresolvedCF_.end()) {

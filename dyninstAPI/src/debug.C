@@ -253,7 +253,7 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
   }
-  if ( (p=getenv("DYNINST_DEBUG_TRAPS"))) {
+  if ( (p=getenv("DYNINST_DEBUG_TRAP"))) {
     fprintf(stderr, "Enabling DyninstAPI debugging using traps\n");
     dyn_debug_traps = 1;
   }

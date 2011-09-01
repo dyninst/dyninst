@@ -293,9 +293,9 @@ public:
     std::string getCalleeName(block_instance *);
     void setCalleeName(block_instance *, std::string name);
 
-    void destroy(ParseAPI::Function *f);
-    void destroy(ParseAPI::Block *b);
-    void destroy(ParseAPI::Edge *e);
+    void destroy(PatchAPI::PatchFunction *f);
+    void destroy(PatchAPI::PatchBlock *b);
+    // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
 
   private:
     //

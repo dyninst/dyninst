@@ -1655,8 +1655,6 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  */
 bool BPatch_process::hideDebuggerInt()
 {
-    return true; //KEVINTODO: re-enable this function
-
     // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
 
@@ -1885,10 +1883,10 @@ void BPatch_process::overwriteAnalysisUpdate
         findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
     }
 
+    finalizeInsertionSet(false);
+
     // update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owRegions);
-
-    finalizeInsertionSet(false);
 
     // create stub edge set which is: all edges such that:
     //     e->trg() in owBBIs and
@@ -1908,15 +1906,17 @@ void BPatch_process::overwriteAnalysisUpdate
     }
 
     // delete delBlocks and set new function entry points, if necessary
+    vector<PatchBlock*> delVector;
     for(set<block_instance*>::reverse_iterator bit = delBlocks.rbegin(); 
         bit != delBlocks.rend();
         bit++)
     {
         mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
         deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
-        if (false == PatchAPI::PatchModifier::remove(*bit,true)) {
-            assert(0);
-        }
+        delVector.push_back(*bit);
+    }
+    if (!delVector.empty() && ! PatchAPI::PatchModifier::remove(delVector,true)) {
+        assert(0);
     }
     mal_printf("Done deleting blocks\n"); 
 
@@ -2006,18 +2006,10 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // set up data structures for re-parsing dead functions from stubs
     map<mapped_object*,vector<edgeStub> > dfstubs;
-    set<Address> reParsedFuncs;
-    vector<BPatch_module*> dontcare;
-    vector<Address> targVec;
     for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
          bit != deadFuncCallers.end();
          bit++)
     {
-        // the function is still reachable, reparse it
-        if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
-            reParsedFuncs.insert(bit->second);
-            targVec.push_back(bit->second);
-        }
         // re-instate call edges to the function
         dfstubs[bit->first->obj()].push_back(edgeStub(bit->first,
                                                       bit->second,
@@ -2028,21 +2020,24 @@ void BPatch_process::overwriteAnalysisUpdate
     for (map<mapped_object*,vector<edgeStub> >::iterator mit= dfstubs.begin();
          mit != dfstubs.end(); mit++)
     {
-        if (getImage()->parseNewFunctions(dontcare, targVec)) {
-            // add function to output vector
-            for (unsigned tidx=0; tidx < targVec.size(); tidx++) {
-                BPatch_function *bpfunc = findFunctionByEntry(targVec[tidx]);
-                if (!bpfunc) {
-                    owFuncs.push_back(bpfunc);
-                } else {
-                    // couldn't reparse
-                    mal_printf("WARNING: Couldn't re-parse an overwritten "
-                               "function at %lx %s[%d]\n", targVec[tidx], 
-                               FILE__,__LINE__);
-                }
+        mit->first->setCodeBytesUpdated(false);
+        if (mit->first->parseNewEdges(mit->second)) {
+            // add functions to output vector
+            for (unsigned fidx=0; fidx < mit->second.size(); fidx++) {
+               BPatch_function *bpfunc = findFunctionByEntry(mit->second[fidx].trg);
+               if (bpfunc) {
+                  owFuncs.push_back(bpfunc);
+               } else {
+                  // couldn't reparse
+                  mal_printf("WARNING: Couldn't re-parse an overwritten "
+                             "function at %lx %s[%d]\n", mit->second[fidx].trg, 
+                             FILE__,__LINE__);
+               }
             }
+        } else {
+            mal_printf("ERROR: Couldn't re-parse overwritten "
+                       "functions %s[%d]\n", FILE__,__LINE__);
         }
-        mit->first->parseNewEdges(mit->second);
     }
 
     //3. parse new code, one overwritten function at a time
@@ -2052,7 +2047,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         // parse new edges in the function
-        if (newFuncEntries.end() == newFuncEntries.find(fit->first) || 
+        if (newFuncEntries.end() == newFuncEntries.find(fit->first) &&
             stubs[fit->first].empty()) 
         {
             // there are no caller stubs for the function, parse it anyway
@@ -2198,7 +2193,7 @@ void BPatch_process::printDefensiveStatsInt()
     int nonRetRets = 0; // debug
     int nonCallCalls = 0; // debug // calls with known targets, that don't return
     int sharedBlocks = 0; // done
-	int sharedFuncs = 0; // done
+    int sharedFuncs = 0; // done
     int overlapBlocks = 0; // done
     int overlapFuncs = 0; // debug
     int vAllocObjs = 0; // done
@@ -2246,7 +2241,7 @@ void BPatch_process::printDefensiveStatsInt()
                 }
 
                 // is block in PE header? 
-                if (block->llb()->start() < (header->getMemOffset() + header->getMemSize())) {
+                if (header && block->llb()->start() < (header->getMemOffset() + header->getMemSize())) {
                     peHeaderCode += block->size();
                 }
 

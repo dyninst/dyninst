@@ -158,89 +158,108 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    return ret;
 }
 
-bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever not want to force removal?
-   cerr << "removing ParseAPI block [" << hex <<b->start() <<" " << b->end() << ")"<< dec<< endl;
-   if (!b) return false;
+bool CFGModifier::remove(vector<Block*> &blks, bool force) { 
+
+   cerr << "removing "<< blks.size() << " ParseAPI blocks" << endl; 
+   if (blks.empty()) return false;
+
+   set<Function*> allFuncs;
+   map<Block*,vector<Function*> > blocksToFuncs;
+   for (vector<Block*>::iterator bit = blks.begin(); bit != blks.end(); bit++) {
+      (*bit)->getFuncs(blocksToFuncs[*bit]);
+   }
 
    // 1) Remove from containing functions
    // 2) Remove all source edges (and clear up src func's _call_edges)
    // 3) Remove all target edges. 
    // 4) Remove from Parser data structures;
-   // 5) destroy the block and related edges
+   // 5) Destroy the block and related edges
+   // 6) Finalize owner funcs so that they re-build their extents
 
-   ParseCallbackManager *pcb = b->obj()->_pcb;
-   vector<Edge*> deadEdges;
+   for (vector<Block*>::iterator bit = blks.begin(); bit != blks.end(); bit++) {
+      Block *b = *bit;
+      ParseCallbackManager *pcb = b->obj()->_pcb;
+      vector<Edge*> deadEdges;
 
-   // 1)
-   std::vector<Function *> funcs;
-   b->getFuncs(funcs);
-   for (std::vector<Function *>::iterator iter = funcs.begin(); 
-        iter != funcs.end(); ++iter) 
-   {
-      Function *func = *iter;
-      pcb->removeBlock(func, b);
-      func->removeBlock(b);
-      if (b->_func_cnt > 0) {// remove func if count is not 0, in which case 
-                             // we haven't finalized the block
-          b->removeFunc(func);
+      // 1)
+      for (std::vector<Function *>::iterator iter = blocksToFuncs[b].begin(); 
+           iter != blocksToFuncs[b].end(); ++iter) 
+      {
+         Function *func = *iter;
+         pcb->removeBlock(func, b);
+         func->removeBlock(b);
+         if (b->_func_cnt > 0) {// remove func if count is not 0, in which case 
+                                // we haven't finalized the block
+             b->removeFunc(func);
+         }
+         b->obj()->parser->_parse_data->remove_extents(func->_extents);
+         func->_extents.clear();
+         allFuncs.insert(func);
       }
-      b->obj()->parser->_parse_data->remove_extents(func->_extents);
-      func->_extents.clear();
-   }
-   
-   // 2)
-   if (!b->_sources.empty()) {
-      if (!force) return false;
+      
+      // 2)
+      if (!b->_sources.empty()) {
+         if (!force) return false;
 
-      for (std::vector<Edge *>::iterator iter = b->_sources.begin();
-           iter != b->_sources.end(); ++iter) 
+         for (std::vector<Edge *>::iterator iter = b->_sources.begin();
+              iter != b->_sources.end(); ++iter) 
+         {
+            deadEdges.push_back(*iter);
+            // callbacks
+            pcb->removeEdge(b, *iter, ParseCallback::source);
+            pcb->removeEdge((*iter)->src(), *iter, ParseCallback::target);
+            // clear up _call_edges vector in the caller function         
+            if ((*iter)->type() == CALL) {
+               std::vector<Function *> funcs;
+               (*iter)->src()->getFuncs(funcs);
+               for (unsigned k = 0; k < funcs.size(); ++k) {
+                   funcs[k]->_call_edges.erase(*iter);
+               }
+            }
+            // remove edge from source block
+            (*iter)->src()->removeTarget(*iter);
+         }
+      }
+
+      // 3)
+      for (std::vector<Edge *>::iterator iter = b->_targets.begin();
+           iter != b->_targets.end(); ++iter) 
       {
          deadEdges.push_back(*iter);
-         // callbacks
-         pcb->removeEdge(b, *iter, ParseCallback::source);
-         pcb->removeEdge((*iter)->src(), *iter, ParseCallback::target);
-         // clear up _call_edges vector in the caller function         
-         if ((*iter)->type() == CALL) {
-            std::vector<Function *> funcs;
-            (*iter)->src()->getFuncs(funcs);
-            for (unsigned k = 0; k < funcs.size(); ++k) {
-                funcs[k]->_call_edges.erase(*iter);
-            }
+         pcb->removeEdge(b, *iter, ParseCallback::target);
+        (*iter)->trg()->removeSource(*iter); // even sink edge has source list
+         if (!(*iter)->sinkEdge()) {
+            pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
+         } else {
+            // we don't actually wire up edges to the sink block in the PatchAPI, 
+            // but I'm not sure why not, so I'll keep this here in case that
+            // changes in the future
+            pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
          }
-         // remove edge from source block
-         (*iter)->src()->removeTarget(*iter);
       }
+
+      // 4)
+      region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
+      assert(rd);
+      rd->blocksByRange.remove(b);
+      rd->blocksByAddr.erase(b->start());
+
+      // 5)
+      CFGFactory *fact = b->obj()->fact();
+      for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
+          pcb->destroy(*eit, fact);
+      }
+      pcb->destroy(b, fact);
    }
 
-   // 3)
-   for (std::vector<Edge *>::iterator iter = b->_targets.begin();
-        iter != b->_targets.end(); ++iter) 
+   // 6)
+   for (std::set<Function *>::iterator iter = allFuncs.begin(); 
+        iter != allFuncs.end(); ++iter) 
    {
-      deadEdges.push_back(*iter);
-      pcb->removeEdge(b, *iter, ParseCallback::target);
-     (*iter)->trg()->removeSource(*iter); // even sink edge has source list
-      if (!(*iter)->sinkEdge()) {
-         pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
-      } else {
-         // we don't actually wire up edges to the sink block in the PatchAPI, 
-         // but I'm not sure why not, so I'll keep this here in case that
-         // changes in the future
-         pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
-      }
+      Function *func = *iter;
+      func->_cache_valid = false;
+      func->finalize();
    }
-
-   // 4)
-   region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
-   assert(rd);
-   rd->blocksByRange.remove(b);
-   rd->blocksByAddr.erase(b->start());
-
-   // 5)
-   CFGFactory *fact = b->obj()->fact();
-   for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
-       pcb->destroy(*eit, fact);
-   }
-   pcb->destroy(b, fact);
 
    return true;
 }
@@ -281,9 +300,7 @@ bool CFGModifier::remove(Function *f) {
    f->obj()->destroy(f);
 
    // destroy function blocks
-   for (unsigned int bidx= 0; bidx < destBs.size(); bidx++) {
-      CFGModifier::remove(destBs[bidx],true);
-   }
+   CFGModifier::remove(destBs,true);
 
    return true;
 }

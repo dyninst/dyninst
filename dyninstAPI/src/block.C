@@ -36,6 +36,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
+#include "PatchModifier.h"
 #include <set>
 #include <sstream>
 #include "Relocation/Transformers/Movement-analysis.h"
@@ -132,7 +133,7 @@ void block_instance::updateCallTarget(func_instance *func) {
   // have an inter-module target
   edge_instance *e = getTarget();
   assert(e->sinkEdge());
-  e->trg_ = func->entryBlock();
+  PatchAPI::PatchModifier::redirect(e, func->entryBlock());
 }
 
 func_instance *block_instance::entryOfFunc() const {
@@ -158,14 +159,3 @@ void *block_instance::getPtrToInstruction(Address addr) const {
   return obj()->getPtrToInstruction(addr);
 }
 
-void block_instance::destroy(block_instance *b) {
-  // Put things here that should go away when we destroy a block.
-  // Iterate through functions...
-
-  std::vector<ParseAPI::Function *> pFuncs;
-  b->llb()->getFuncs(pFuncs);
-  for (unsigned i = 0; i < pFuncs.size(); ++i) {
-    func_instance *func = b->findFunction(pFuncs[i]);
-    func->destroyBlock(b);
-  }
-}

@@ -137,8 +137,6 @@ class CodeMover {
 
   bool addRelocBlock(block_instance *block, func_instance *f);
 
-  void createInstrumentationSpringboards(AddressSpace *as);
-
   void finalizeRelocBlocks();
 
   RelocGraph *cfg_;

@@ -3822,11 +3822,19 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
         //    offset to figure out where we should be
         malware_cerr << "Looking for matches to incoming address " 
             << hex << target << dec << endl;
-        instPoint *callPt = NULL;
+        std::pair<func_instance*,Address> tmp;
 
-        if ( reverseDefensiveMap_.find(target,callPt) ) {
+        if ( reverseDefensiveMap_.find(target,tmp) ) {
             // a. 
-            unrelocTarget = callPt->block()->end();
+           std::set<block_instance*> callBs;
+           tmp.first->getBlocks(tmp.second, callBs);
+           block_instance *callB = (*callBs.begin());
+           edge_instance *fallthrough = callB->getFallthrough();
+           if (fallthrough) {
+              unrelocTarget = fallthrough->target()->start();
+           } else {
+              unrelocTarget = callB->end();
+           }
         }
         else {
             // b. 
@@ -4121,6 +4129,7 @@ static void otherFuncBlocks(func_instance *func,
       block_instance* iblk = SCAST_BI(*bit);
         if (blks.end() == blks.find(iblk)) {
             otherBlks.insert(iblk);
+            mal_printf("block [%lx %lx) is in other blocks\n",iblk->start(),iblk->end());
         }
     }
 }
@@ -4511,9 +4520,18 @@ bool process::generateRequiredPatches(instPoint *callPoint,
     //    its most recent relocated version (if that exists)
     // 2) For each padding area, create a (padAddr,target) pair
 
-    // 1)
+    // 3)
+
+    block_instance *callB = callPoint->block();
+    block_instance *ftBlk = callB->getFallthrough()->trg();
+    if (!ftBlk) {
+        // find the block at the next address, if there's no fallthrough block
+        ftBlk = callB->obj()->findBlockByEntry(callB->end());
+        assert(ftBlk);
+    }
 
     // ensure that we patch other callPts at the same address
+
     vector<ParseAPI::Function*> callFuncs;
     callPoint->block()->llb()->getFuncs(callFuncs);
     for (vector<ParseAPI::Function*>::iterator fit = callFuncs.begin();
@@ -4521,14 +4539,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
          fit++)
     {
         func_instance *callF = findFunction((parse_func*)*fit);
-        block_instance *callB = callPoint->block();
         instPoint *callP = instPoint::preCall(callF, callB);
-        block_instance *ftBlk = callB->getFallthrough()->trg();
-        if (!ftBlk) {
-            // find the block at the next address, if there's no fallthrough block
-            ftBlk = callF->obj()->findBlockByEntry(callB->end());
-            assert(ftBlk);
-        }
         Relocation::CodeTracker::RelocatedElements reloc;
         CodeTrackers::reverse_iterator rit;
         for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
@@ -4559,19 +4570,25 @@ bool process::generateRequiredPatches(instPoint *callPoint,
         }
 
         // 2) 
-        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callP)) {
-            set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callP].begin();
-            for (; d_iter != forwardDefensiveMap_[callP].end(); ++d_iter) 
-            {
-              Address jumpAddr = d_iter->first;
-              patchAreas.insert(std::make_pair(jumpAddr, to));
-              mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                         callB->end(), jumpAddr, to, FILE__,__LINE__);
+        Address callInsnAddr = callP->block()->last();
+        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callInsnAddr)) {
+            map<func_instance*,set<DefensivePad> >::iterator mit = forwardDefensiveMap_[callInsnAddr].begin();
+            for (; mit != forwardDefensiveMap_[callInsnAddr].end(); ++mit) {
+              if (callF == mit->first) {
+                  set<DefensivePad>::iterator dit = mit->second.begin();
+                  for (; dit != mit->second.end(); ++dit) {
+                     Address jumpAddr = dit->first;
+                     patchAreas.insert(std::make_pair(jumpAddr, to));
+                     mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                                callB->end(), jumpAddr, to, FILE__,__LINE__);
+                  }
+              }
             }
         }
     }
     if (patchAreas.empty()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPoint->addr_compat());
+       mal_printf("WARNING: no relocs to patch for call at %lx, block end %lx\n", 
+                  callPoint->addr_compat(),ftBlk->start());
     }
     return ! patchAreas.empty();
 }
@@ -4588,7 +4605,7 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 
     // Safety check: make sure we didn't overrun the patch area
     Address lb, ub;
-    instPoint *tmp;
+    std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!
       assert(0);

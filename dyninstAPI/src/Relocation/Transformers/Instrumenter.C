@@ -156,9 +156,10 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       if (postAddr == (*elem)->addr()) {
          if (!post->second->empty()) {
             // We can split an instruction into multiple widgets so skip over all of them...
-            while ((*elem)->addr() == postAddr) ++elem;
             RelocBlock::WidgetList::iterator tmp = elem;
-            ++tmp;
+            while (((*tmp)->addr() == postAddr) &&
+                   (tmp != trace->elements().end()) &&
+                   ((*tmp)->insn())) ++tmp;
             Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) return false;
             trace->elements().insert(tmp, inst);
@@ -191,7 +192,7 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
    InstructionAPI::Instruction::Ptr call_insn = (*riter)->insn();
    if (call_insn) {
-      while ((*riter)->insn() == call_insn) ++riter;
+      while (riter != elements.rend() && (*riter)->insn() == call_insn) ++riter;
    }
    elements.insert(riter.base(), inst);
 

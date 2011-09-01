@@ -692,21 +692,29 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                      (long)point->getAddress(), target,FILE__,__LINE__);
             if (!analyzeNewFunction( point,target,false,false )) {
                 //this happens for some single-instruction functions
-                mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
+                mal_printf("ERROR: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
+                assert(0);
+                instrumentModules(false);
+                proc()->finalizeInsertionSet(false);
+                return;
             }
             targFunc = proc()->findFunctionByEntry(target);
         }
 
         // 2.2 if the target is a returning function, parse at the fallthrough
+        bool instrument = true;
         if ( ParseAPI::RETURN == 
              targFunc->lowlevel_func()->ifunc()->retstatus() ) 
         {
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
             //         (long)point->getAddress(), target);
-            parseAfterCallAndInstrument(point, targFunc, false);
-        } else {
+            if (parseAfterCallAndInstrument(point, targFunc, false)) {
+               instrument = false;
+            }
+        } 
+        if (instrument) {
             instrumentModules(false);
         }
         proc()->finalizeInsertionSet(false);

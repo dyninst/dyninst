@@ -143,7 +143,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void setHandlerFaultAddrAddr(Address faa, bool set);
   void triggerModified();
 
-  block_instance *getBlock(const Address addr);
+  block_instance *getBlockByEntry(const Address addr);
+  // get all blocks that have an instruction starting at addr, or if 
+  // there are none, return all blocks containing addr
+  bool getBlocks(const Address addr, std::set<block_instance*> &blks);
 
   Offset addrToOffset(const Address addr) const;
 
@@ -271,7 +274,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void createWrapperSymbol(Address entry, std::string name);
 
   static void destroy(func_instance *f);
-  void destroyBlock(block_instance *block);
+  void removeBlock(block_instance *block);
 
   void split_block_cb(block_instance *b1, block_instance *b2);
   void add_block_cb(block_instance *block);

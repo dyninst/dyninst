@@ -1730,15 +1730,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
         cm->transform(pc);
    }
 
-#if 0
-   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
-   }
-   else {
-       PCSensitiveTransformer pc(this, cm->priorityMap());
-        cm->transform(pc);
-   }
-#endif
-
 #if defined(cap_mem_emulation)
    if (emulateMem_) {
       MemEmulatorTransformer m;
@@ -1882,11 +1873,14 @@ void AddressSpace::getRelocAddrs(Address orig,
                                  func_instance *func,
                                  std::list<Address> &relocs,
                                  bool getInstrumentationAddrs) const {
+  springboard_cerr << "getRelocAddrs for orig addr " << hex << orig << " /w/ block start " << block->start() << dec << endl;
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
+    springboard_cerr << "\t Checking CodeTracker " << hex << *iter << dec << endl;
     if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
+       springboard_cerr << "\t\t ... match" << endl;
        if (!reloc.instrumentation.empty() && getInstrumentationAddrs) {
           for (std::map<instPoint *, Address>::iterator iter2 = reloc.instrumentation.begin();
                iter2 != reloc.instrumentation.end(); ++iter2) {
@@ -1985,21 +1979,19 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
-   if (!point || point->empty()) {
-      // We recorded a gap for some other reason than a return-address-modifying call;
-      // ignore (for now). 
-      //cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
+   if (!point) {
+      cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
       return;
-   }
-   if (!point || point->empty()) {
-       // Kevin didn't instrument it so we don't care :)
-       return;
    }
 
    mal_printf("Adding pad for callBlock [%lx %lx), pad at 0%lx\n", 
               callBlock->start(), callBlock->end(), padStart);
-   forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));
-   reverseDefensiveMap_.insert(padStart, padStart+size, point);
+
+   forwardDefensiveMap_[callBlock->last()][callFunc].insert(std::make_pair(padStart, size));
+   std::pair<func_instance*,Address> padContext;
+   padContext.first = callFunc;
+   padContext.second = callBlock->last();
+   reverseDefensiveMap_.insert(padStart, padStart+size, padContext);
 }
 
 void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
@@ -2057,14 +2049,12 @@ void AddressSpace::invalidateMemory(Address addr, Address size) {
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBlocks and e->src() not in delBlocks, 
 //     in which case, choose stub from among e->src()->sources()
-// KEVINTODO: this should keep crawling farther and farther back until it hits a dead end or finds a valid stub, but only goes 2 levels
 std::map<func_instance*,vector<edgeStub> > 
 AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                        const std::set<block_instance*> &delBlocks,
                        const std::list<func_instance*> &deadFuncs)
 {
     std::map<func_instance*,vector<edgeStub> > stubs;
-    //KEVINTODO: test
 
     for (list<block_instance*>::const_iterator bit = owBlocks.begin();
          bit != owBlocks.end(); 
@@ -2083,39 +2073,57 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
            }
         }
         if (inDeadFunc) {
-            continue;
+           mal_printf("block [%lx %lx) is in a dead function, will not reparse\n", 
+                      (*bit)->start(), (*bit)->end());
+           continue;
         }
 
-        // search for stubs in all functions containing the overwritten block
         using namespace ParseAPI;
         bool foundStub = false;
+        parse_block *curImgBlock = (*bit)->llb();
+        set<ParseAPI::Edge*> visited; // prevents multiple additions of edge to worklist
+        Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
+        Block::edgelist & sourceEdges = curImgBlock->sources();
+
+        // search for stubs in all functions containing the overwritten block
         for (set<func_instance*>::iterator fit = bFuncs.begin();
              !foundStub && fit != bFuncs.end();
              fit++)
         {
+            // build "srcList" worklist
             SingleContext epred_((*fit)->ifunc(),true,true);
             Intraproc epred(&epred_);
-            parse_block *curImgBlock = (*bit)->llb();
-            ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
-            Address baseAddr = (*bit)->start() - curImgBlock->firstInsnOffset();
-            ParseAPI::Block::edgelist::iterator eit;
+            std::list<ParseAPI::Edge*> srcList;
+            for(Block::edgelist::iterator eit = sourceEdges.begin(&epred); eit != sourceEdges.end(); ++eit) {
+               if (visited.find(*eit) == visited.end()) {
+                  srcList.push_back(*eit);
+                  visited.insert(*eit);
+               }
+            }
 
             // find all stub blocks for this edge
-            for(eit = sourceEdges.begin(&epred); 
-                eit != sourceEdges.end(); 
-                ++eit) 
-            {
-                parse_block *sourceBlock = (parse_block*)((*eit)->src());
-                block_instance *src = (*fit)->obj()->
-                    findBlockByEntry(baseAddr + sourceBlock->start());
+            for (list<ParseAPI::Edge*>::iterator eit = srcList.begin(); eit != srcList.end(); eit++) {
+                parse_block *isrc = (parse_block*)((*eit)->src());
+                block_instance *src = (*fit)->obj()->findBlockByEntry(base + isrc->start());
                 assert(src);
 
-                edgeStub st(src, 
-                            curImgBlock->start() + baseAddr, 
-                            (*eit)->type());
                 if (delBlocks.end() == delBlocks.find(src) ) {
-                    stubs[*fit].push_back(st);
+                   edgeStub st(src, curImgBlock->start() + base, (*eit)->type());
+                   stubs[*fit].push_back(st);
+                   foundStub = true;
                 } 
+                else {
+                   Block::edgelist &srcSrcs = isrc->sources();
+                   for (Block::edgelist::iterator sit = srcSrcs.begin(&epred);
+                        sit != srcSrcs.end();
+                        sit++)
+                   {
+                      if (visited.find(*sit) != visited.end()) {
+                         srcList.push_back(*sit);
+                         visited.insert(*sit);
+                      }
+                   }
+                }
             }
         }
     }

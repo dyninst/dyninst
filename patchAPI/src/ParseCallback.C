@@ -43,11 +43,16 @@ void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {
    if (pb) {
        pb->destroyPoints();
        _obj->removeBlock(block);
+       _obj->cb()->destroy(pb);
    }
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
+   PatchEdge *pe = _obj->getEdge(edge,NULL,NULL,false);
    _obj->removeEdge(edge);
+   if (pe) {
+       _obj->cb()->destroy(pe, _obj);
+   }
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
@@ -55,6 +60,7 @@ void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
    _obj->removeFunc(func);
    if (pf) {
        pf->destroyPoints();
+       _obj->cb()->destroy(pf);
    }
 }
 
@@ -65,15 +71,26 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    if (!pe) return;
 
    PatchBlock *pb = _obj->addrSpace()->findObject(block->obj())->getBlock(block, false);
+   vector<PatchFunction*> funcs;
    assert(pb); // If we have an edge we better DAMN well have the block
    
    if (type == source) pb->removeSourceEdge(pe);
-   else pb->removeTargetEdge(pe);
+   else { 
+      pb->removeTargetEdge(pe);
+      // remove call edges
+      if (pb->containsCall()) {
+         pb->getFunctions(std::back_inserter(funcs));
+         for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
+            (*fit)->call_blocks_.erase(pb);
+         }
+      }
+   }
 
    if (pe->points_.during) {
        pb->obj()->cb()->destroy(pe->points_.during);
-       vector<PatchFunction*> funcs;
-       pb->getFunctions(back_inserter(funcs));
+       if (funcs.empty()) {
+          pb->getFunctions(std::back_inserter(funcs));
+       }
        for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
            (*fit)->remove(pe->points_.during);
        }

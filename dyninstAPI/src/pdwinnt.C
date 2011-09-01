@@ -555,7 +555,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				     << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
 	     for (unsigned i = 0; i < 10; ++i) {
 			    Address stackTOPVAL =0;
-		        ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
+             ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 			    cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 	     }
      }
@@ -1022,7 +1022,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
 bool process::setMemoryAccessRights
 (Address start, Address size, int rights)
 {
-    mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
+    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
     assert( stoppedlwp );
@@ -1055,8 +1055,8 @@ int dyn_lwp::changeMemoryProtections
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
-        //           rights, idx , idx + pageSize);
+      mal_printf("setting rights to %lx for [%lx %lx)\n", 
+                 rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -1087,8 +1087,8 @@ int dyn_lwp::changeMemoryProtections
 				}
 
 				if (shadowRights != oldRights) {
-					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+					mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
 				}
 			}
 		}
@@ -2668,7 +2668,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     vector<func_instance*> faultFuncs;
     baseTramp *bti = NULL;
     ev.proc->getAddrInfo(ev.address, origAddr, faultFuncs, bti);
-	Frame activeFrame = ev.lwp->getActiveFrame();
+    Frame activeFrame = ev.lwp->getActiveFrame();
 
     // 1. gather the list of handlers by walking the SEH datastructure in the TEB
     Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
@@ -2690,9 +2690,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         }
         prevEvtReg = handler.prev;
         if (!proc->findOneFuncByAddr((Address)prevEvtReg)) {
-            mal_printf("EUREKA! Found handler at 0x%x while handling "
-                   "exceptionCode=0x%X for exception at %lx %s[%d]\n",
-                   handler.handler, ev.what, ev.address, FILE__,__LINE__);
+            mal_printf("Found handler at 0x%x for exception at %lx, code=0x%X %s[%d]\n",
+                       handler.handler, ev.address, ev.what, FILE__,__LINE__);
             handlers.push_back(handler.handler);
         }
     }
@@ -2710,7 +2709,12 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
          return false;
 	}
     func_instance *faultFunc = faultFuncs[0];
-	block_instance *faultBBI = faultFunc->getBlock(origAddr);
+    block_instance* faultBBI = NULL;
+    set<block_instance*> faultBBIs;
+    faultFunc->getBlocks(origAddr,faultBBIs);
+    assert(!faultBBIs.empty());
+    faultBBI = *faultBBIs.begin(); // we can't be any more sure that we've got the right block
+
     if (ev.proc->isMemoryEmulated() && 
         BPatch_defensiveMode == faultFunc->obj()->hybridMode())
     {
@@ -2799,19 +2803,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
 bool SignalHandler::handleEmulatePOPAD(EventRecord &ev)
 {
-#if 0
-    Address orig;
-    std::vector<int_function*> dontcare1;
-    baseTramp *dontcare2;
-    if (!ev.proc->getAddrInfo(ev.address, orig, dontcare1, dontcare2)) {
-        assert(0);
-        return false;
-    }
-	mal_printf("handleEmulatePOPAD: 0x%lx[0x%lx]\n", 
-               orig, ev.address);
-#else
-	mal_printf("handleEmulatePOPAD: 0x%lx\n", ev.address);
-#endif
+    mal_printf("handleEmulatePOPAD: 0x%lx\n", ev.address);
 
     CONTEXT cont;
     cont.ContextFlags = CONTEXT_FULL;
@@ -2945,7 +2937,13 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     } else { 
         writeFunc = ev.proc->findActiveFuncByAddr(ev.address);
     }
-	instPoint *writePoint = instPoint::preInsn(writeFunc, writeFunc->getBlock(origWrite), origWrite);
+ 
+    block_instance *writeBlock = NULL;
+    set<block_instance*> writeBlocks;
+    writeFunc->getBlocks(origWrite, writeBlocks);
+    assert(!writeBlocks.empty());
+    writeBlock = *writeBlocks.begin(); // we can't be any more sure that we've got the right block
+    instPoint *writePoint = instPoint::preInsn(writeFunc, writeBlock, origWrite);
 
     assert(writePoint);
 

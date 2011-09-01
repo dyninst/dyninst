@@ -279,13 +279,14 @@ class ExpandOrder {
     set<SliceNode::Ptr> done;
 };
 
+// implements < , <= causes failures when used to sort Windows vectors
 bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
     AssignmentPtr assign1 = ptr1->assign();
     AssignmentPtr assign2 = ptr2->assign();
 
-    if (!assign1) return true;
-    else if (!assign2) return false;
+    if (!assign2) return false;
+    else if (!assign1) return true;
 
     Address addr1 = assign1->addr();
     Address addr2 = assign2->addr();
@@ -293,8 +294,7 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
     if (addr1 == addr2) {
         AbsRegion &out1 = assign1->out();
         AbsRegion &out2 = assign2->out();
-        if (out1 == out2) return true;
-        else return out1 < out2;
+        return out1 < out2;
     } else {
         return addr1 < addr2;
     }

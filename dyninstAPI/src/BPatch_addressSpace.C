@@ -287,7 +287,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      return false;
    }
 
-   mal_printf("deleting snippet handle %p from func at %lx, point at %lx of type %d\n",
+   mal_printf("deleting snippet handle from func at %lx, point at %lx of type %d\n",
               (Address)handle->getFunc()->getBaseAddr(), 
               handle->mtHandles_.empty() ? 0 : handle->mtHandles_[0]->instP()->addr(),
               handle->mtHandles_.empty() ? -1 : handle->mtHandles_[0]->instP()->type());

@@ -104,23 +104,29 @@ PatchBlock *PatchModifier::insert(PatchObject *obj, void *start, unsigned size) 
    return obj->getBlock(newBlock);
 }
 
-bool PatchModifier::remove(PatchBlock *block, bool force)
+bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
 {
-    vector<PatchFunction*> funcs;
-    block->getFunctions(std::back_inserter(funcs));
-    bool success = ParseAPI::CFGModifier::remove(block->block(), force);
+    //vector<PatchFunction*> funcs;
+    //block->getFunctions(std::back_inserter(funcs));
+   vector<ParseAPI::Block*> parseBs;
+   for (unsigned bidx=0; bidx < blocks.size(); bidx++) {
+      parseBs.push_back(blocks[bidx]->block());
+   }
+   bool success = ParseAPI::CFGModifier::remove(parseBs, force);
 
-    // DEBUG
-    if (success) {
-        for (unsigned int fidx = 0; fidx < funcs.size(); fidx++) {
-            assert(funcs[fidx]->consistency());
-        }
-    }
+    //// DEBUG  // this check came too early, we haven't updated other block points
+                // to match changes to the underlying bytes after an overwrite
+    //if (success) {
+    //    for (unsigned int fidx = 0; fidx < funcs.size(); fidx++) {
+    //        assert(funcs[fidx]->consistency());
+    //    }
+    //}
     return success;
 }
 
 bool PatchModifier::remove(PatchFunction *func)
 {
+    cerr << "Removing whole function at " << hex << func->addr() << dec << endl;
     PatchObject *obj = func->obj();
     bool success = ParseAPI::CFGModifier::remove(func->function());
 

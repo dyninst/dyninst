@@ -218,7 +218,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    bool usedTrap = false;
    generateBranch(r.from, r.destinations.begin()->second.second, gen);
 
-   if (dyn_debug_traps || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if ((dyn_debug_traps /*&& r.from < 0x401000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
@@ -424,7 +424,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
    assert(!req.fromRelocatedCode);
 
    // Just the requests for now.
-   //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
+   springboard_cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
@@ -433,8 +433,10 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
       Address addr = b_iter->second.second;
 
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
+      addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);
       for (std::list<Address>::const_reverse_iterator a_iter = relocAddrs.rbegin(); 
            a_iter != relocAddrs.rend(); ++a_iter) { 
+         springboard_cerr << "\t Mapped address " << hex << *a_iter << dec << endl;
          if (*a_iter == addr) continue;
          Priority newPriority;
          switch(req.priority) {

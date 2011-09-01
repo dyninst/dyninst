@@ -595,46 +595,6 @@ bool BPatch_module::remove(BPatch_function *bpfunc)
         return false;
     }
 
-#if 0
-    if (deepRemoval) {
-        std::map<func_instance*,block_instance*> newFuncEntries;
-
-        //remove instrumentation from dead function
-        bpfunc->removeInstrumentation(true);
-        bool dontcare=false;
-        addSpace->finalizeInsertionSet(false,&dontcare);
-
-        // delete completely dead functions
-        using namespace ParseAPI;
-        vector<pair<block_instance*,Edge*> > deadFuncCallers; // build up list of live callers
-        Address funcAddr = func->addr();
-        mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
-                   mod->fileName().c_str());
-
-        // nuke all call edges, assert that there's a sink edge, otherwise we'll 
-        // have to fill in the code for direct transfers, creating unresolved points
-        // at the source blocks
-        Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        //CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
-        bool foundSinkEdge = false;
-        for( ; eit != callEdges.end(); ++eit) {
-            if ( (*eit)->sinkEdge() ) {
-                foundSinkEdge = true;
-            }
-            else if (CALL == (*eit)->type()) {// includes tail calls
-                (*eit)->uninstall();
-                ParseAPI::Edge::destroy(*eit);
-            }
-        }
-        assert(foundSinkEdge);
- 
-        //remove dead function
-        func->removeFromAll();
-
-    } // end deepRemoval
-#endif
-
     func_map.erase(fmap_iter);
 
     return true;
