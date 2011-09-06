@@ -119,7 +119,8 @@ class emitElf64{
     bool BSSExpandFlag;
     bool movePHdrsFirst;
     bool createNewPhdr;
-    unsigned loadSecTotalSize;
+    bool replaceNOTE;
+    unsigned loadSecTotalSize; 
 
     bool isStripped;
     int library_adjust;
@@ -134,7 +135,8 @@ class emitElf64{
     void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
     bool createNonLoadableSections(Elf64_Shdr *& shdr);
-    bool createLoadableSections( Symtab * obj, Elf64_Shdr* &shdr, unsigned &extraAlignSize,
+    bool createLoadableSections( Symtab * obj,
+			 Elf64_Shdr* &shdr, unsigned &extraAlignSize,
                        dyn_hash_map<std::string, unsigned>& newIndexMapping, 
                        unsigned &sectionNumber);
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
@@ -154,7 +156,6 @@ class emitElf64{
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
     bool cannotRelocatePhdrs();
-
 };
 
 } // namespace SymtabAPI

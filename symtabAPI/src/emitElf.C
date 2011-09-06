@@ -557,9 +557,9 @@ bool emitElf::driver(Symtab *obj, string fName){
   /* flag the file for no auto-layout */
   elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);
     
-  Elf_Scn *scn = NULL, *newscn;
+  Elf_Scn *scn = NULL, *newscn = NULL;
   Elf_Data *newdata = NULL, *olddata = NULL;
-  Elf32_Shdr *newshdr, *shdr = NULL;
+  Elf32_Shdr *newshdr = NULL, *shdr = NULL;
   dyn_hash_map<unsigned, unsigned> secLinkMapping;
   dyn_hash_map<unsigned, unsigned> secInfoMapping;
   dyn_hash_map<unsigned, unsigned> changeMapping;
@@ -647,9 +647,9 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    NOBITSstartPoint = scncount;
 	  NOBITStotalsize += shdr->sh_size; 
 	}
-    }
-
-    vector <vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
+    }    
+      
+    std::vector <std::vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
 
     for (unsigned i = 0 ; i != moveSecAddrRange.size(); i++) {
       if ( (moveSecAddrRange[i][0] == shdr->sh_addr) ||
@@ -665,7 +665,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     if((obj->getObject()->getStrtabAddr() != 0 &&
        obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
-       !strcmp(name, STRTAB_NAME) )
+       !strcmp(name, STRTAB_NAME))
       {
 	symStrData = newdata;
 	updateSymbols(symTabData, symStrData, loadSecTotalSize);
@@ -868,7 +868,6 @@ bool emitElf::driver(Symtab *obj, string fName){
 	
   }
 
-
   newEhdr->e_shstrndx = (Elf32_Half) scncount;
 
   // Move the section header to the end
@@ -1019,8 +1018,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
             newPhdr++;
         }
     }
-   
-      if(insert_phdr) 
+
+      if(insert_phdr)
       {
          newSeg.p_type = PT_LOAD;
          newSeg.p_offset = firstNewLoadSec->sh_offset;
@@ -2126,6 +2125,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
                   lastRegionSize = (*newRegIter)->getRegionSize();
               }
           }
+
           if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
               return false;
           }
