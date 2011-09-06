@@ -66,8 +66,8 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 RTthread-powerpc-asm.o:
-	$(CC) -c $(CFLAGS) ../src/RTthread-powerpc-asm.S
+	$(CC) -m64 -c $(CFLAGS) ../src/RTthread-powerpc-asm.S
 
 RTspace.o:
-	$(CC) -c $(CFLAGS) ../src/RTspace.S
+	$(CC) -m64 -c $(CFLAGS) ../src/RTspace.S
 
