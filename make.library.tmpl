@@ -79,7 +79,7 @@ ifdef STATIC_TARGET
 
 %_nopic.o: ../src/%.S
 	@echo "Compiling $< (noPIC)"
-	$(HIDE_COMP)$(AS) -m64 $(ASFLAGS) -o $*_nopic.o ../src/$*.S
+	$(HIDE_COMP)$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
 
 %_nopic.o: ../src/%.s
 	@echo "Compiling $< (noPIC)"
