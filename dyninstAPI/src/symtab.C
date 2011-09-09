@@ -319,8 +319,8 @@ namespace {
         Slicer slc(*ait,b,f);
         Default_Predicates preds;
         Graph::Ptr slg = slc.backwardSlice(preds);
-        SymEval::Result_t sl_res;
-        SymEval::expand(slg,sl_res);
+        DataflowAPI::Result_t sl_res;
+        DataflowAPI::SymEval::expand(slg,sl_res);
         AST::Ptr calculation = sl_res[*ait];
         SimpleArithVisitor visit; 
         AST::Ptr simplified = calculation->accept(&visit);
