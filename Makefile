@@ -16,6 +16,7 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil patchAPI
 DynC_API = ready common dyninstAPI dynC_API  dynutil
+Dyner = ready common dyninstAPI dynC_API dynutil dyner
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
@@ -49,7 +50,10 @@ fullSystem += parseAPI
 fullSystem += dynC_API
 Build_list += dynC_API
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI
+fullSystem += dyner
+Build_list += dyner
+
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI dyner
 allSubdirs	= $(allCoreSubdirs) $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
@@ -151,7 +155,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI Dyner DynC_API DataflowAPI ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
