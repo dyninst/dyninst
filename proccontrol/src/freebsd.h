@@ -40,6 +40,7 @@
 #include "proccontrol/src/unix.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/mmapalloc.h"
 
 #include "common/h/dthread.h"
 
@@ -83,8 +84,9 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public sysv_process, public unix_process, public x86_process, public thread_db_process
+class freebsd_process : public sysv_process, public unix_process, public x86_process, public thread_db_process, public mmap_alloc_process, public hybrid_lwp_control_process
 {
+   friend class freebsd_thread;
 public:
     freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
             std::vector<std::string> envp, std::map<int, int> f);
@@ -95,7 +97,7 @@ public:
     virtual bool plat_attach(bool allStopped);
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach();
+    virtual bool plat_detach(result_response::ptr resp);
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
@@ -107,7 +109,6 @@ public:
     virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
     virtual Dyninst::Architecture getTargetArch();
     virtual bool plat_individualRegAccess();
-    virtual bool plat_contProcess();
     virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
     virtual OSType getOS() const;
 
@@ -128,10 +129,15 @@ public:
     virtual const char *getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(string libName);
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
-    
+
+    virtual bool plat_suspendThread(int_thread *thr);
+    virtual bool plat_resumeThread(int_thread *thr);
+    virtual bool plat_debuggerSuspended();
+    virtual void noteNewDequeuedEvent(Event::ptr ev);
 protected:
     string libThreadName;
     bool forking;
+    bool debugger_stopped;
     freebsd_process *parent;
 };
 
@@ -169,6 +175,7 @@ protected:
     bool pcBugCondition;
     bool pendingPCBugSignal;
     bool signalStopped;
+    bool is_pt_setstep;
 };
 
 class FreeBSDStopHandler : public Handler

@@ -974,10 +974,6 @@ bool linux_process::plat_supportLWPPostDestroy()
    return true;
 }
 
-int_process::ThreadControlMode linux_process::plat_getThreadControlMode() const {
-    return int_process::IndependentLWPControl;
-}
-
 bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);

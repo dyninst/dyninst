@@ -17,6 +17,7 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/freebsd.C \
        ../src/unix.C \
+		../src/notify_pipe.C \
        ../../common/src/dthread-unix.C \
        ../../common/src/Elf_X.C
 

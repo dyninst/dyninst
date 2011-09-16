@@ -86,7 +86,6 @@ public:
     async_ret_t initThreadDB();
 
     virtual void freeThreadDBAgent();
-    virtual bool getPostDestroyEvents(std::vector<Event::ptr> &events);
     virtual async_ret_t getEventForThread(set<Event::ptr> &new_ev_set);
     static void addThreadDBHandlers(HandlerPool *hpool);
 

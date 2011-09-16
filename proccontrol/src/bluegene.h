@@ -126,7 +126,6 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    virtual bool plat_supportDOTF();
    virtual OSType getOS() const;
 
-   int_process::ThreadControlMode plat_getThreadControlMode() const;
    virtual SymbolReaderFactory *plat_defaultSymReader();
    unsigned plat_getRecommendedReadSize();
 

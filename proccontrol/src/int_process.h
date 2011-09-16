@@ -179,7 +179,6 @@ class int_process
 
    void setContSignal(int sig);
    int getContSignal() const;
-   virtual bool plat_contProcess();
    virtual bool forked();
 
    virtual OSType getOS() const = 0;
@@ -203,7 +202,7 @@ class int_process
    int_thread *findStoppedThread();
 
   public:
-   virtual bool plat_processSyncContinues();
+   virtual bool plat_processGroupContinues();
 
    typedef enum {
       neonatal = 0,
@@ -298,13 +297,8 @@ class int_process
    memCache *getMemCache();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
-
-   typedef enum {
-       NoLWPControl = 0,
-       HybridLWPControl, // see below for a description of these modes
-       IndependentLWPControl
-   } ThreadControlMode;
-   virtual ThreadControlMode plat_getThreadControlMode() const = 0;
+   
+   virtual void noteNewDequeuedEvent(Event::ptr ev);
 
    static bool isInCB();
    static void setInCB(bool b);
@@ -398,11 +392,30 @@ class unified_lwp_control_process : virtual public int_process
    virtual bool plat_syncRunState();
   public:
    unified_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
-                             std::vector<std::string> envp, std::map<int,int> f);
+                               std::vector<std::string> envp, std::map<int,int> f);
    unified_lwp_control_process(Dyninst::PID pid_, int_process *p);
    virtual ~unified_lwp_control_process();
 
-   virtual bool plat_processSyncContinues();
+   virtual bool plat_processGroupContinues();
+};
+
+class hybrid_lwp_control_process : virtual public int_process
+{
+  protected:
+   virtual bool plat_syncRunState();
+   virtual bool plat_suspendThread(int_thread *thr) = 0;
+   virtual bool plat_resumeThread(int_thread *thr) = 0;
+   virtual bool plat_debuggerSuspended() = 0;
+  public:
+   hybrid_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                              std::vector<std::string> envp, std::map<int,int> f);
+   hybrid_lwp_control_process(Dyninst::PID pid_, int_process *p);
+   virtual ~hybrid_lwp_control_process();
+
+   virtual bool suspendThread(int_thread *thr);
+   virtual bool resumeThread(int_thread *thr);
+
+   virtual bool plat_processGroupContinues();
 };
 
 class int_registerPool
@@ -689,6 +702,9 @@ class int_thread
 
    State getTargetState() const;
    void setTargetState(State s);
+
+   void setSuspended(bool b);
+   bool isSuspended() const;
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -735,11 +751,12 @@ class int_thread
    bool single_step;
    bool handler_exiting_state;
    bool generator_exiting_state;
+   bool running_when_attached;
+   bool suspended;
 
    Address stopped_on_breakpoint_addr;
 
    installed_breakpoint *clearing_breakpoint;
-   bool running_when_attached;
    emulated_singlestep *em_singlestep;
 
    static std::set<continue_cb_t> continue_cbs;

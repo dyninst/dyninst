@@ -579,7 +579,7 @@ bool int_process::post_create()
    return initializeAddressSpace();
 }
 
-bool int_process::plat_processSyncContinues()
+bool int_process::plat_processGroupContinues()
 {
    return false;
 }
@@ -673,12 +673,6 @@ int_threadPool *int_process::threadPool() const
 Process::ptr int_process::proc() const
 {
    return up_proc;
-}
-
-// Used by HybridLWPControl
-bool int_process::plat_contProcess()
-{
-   return true;
 }
 
 bool int_process::syncRunState()
@@ -876,7 +870,7 @@ bool int_process::waitAndHandleEvents(bool block)
                    printCheck(hasAsyncPending),
                    printCheck(hasStartupTeardownProc));
 
-      //TODO: If/When we move to per-process locks, then we'll need a smarter block check
+      //TODO: If/When we move to per-process locks, then we'll need a smarter should_block check
       //      We don't want the should_block changing between the above measurement
       //      and the below dequeue.  Perhaps dequeue should alway poll, and the user thread loops
       //      over it while (should_block == true), with a condition variable signaling when the 
@@ -922,6 +916,7 @@ bool int_process::waitAndHandleEvents(bool block)
       
       if (!ev->handling_started) {
          llproc->updateSyncState(ev, false);
+         llproc->noteNewDequeuedEvent(ev);
          ev->handling_started = true;
       }
 
@@ -1647,6 +1642,10 @@ bool int_process::plat_supportDOTF()
    return true;
 }
 
+void int_process::noteNewDequeuedEvent(Event::ptr)
+{
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -1851,9 +1850,106 @@ bool unified_lwp_control_process::plat_syncRunState()
    return true;
 }
 
-bool unified_lwp_control_process::plat_processSyncContinues()
+bool unified_lwp_control_process::plat_processGroupContinues()
 {
    return true;
+}
+
+hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID p, std::string e, 
+                                                         std::vector<std::string> a, 
+                                                         std::vector<std::string> envp, 
+                                                         std::map<int,int> f) :
+   int_process(p, e, a, envp, f)
+{
+}
+
+hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p)
+{
+}
+
+hybrid_lwp_control_process::~hybrid_lwp_control_process()
+{
+}
+
+bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
+{
+   bool result = plat_suspendThread(thr);
+   if (!result) 
+      return false;
+   thr->setSuspended(true);
+   return true;
+}
+
+bool hybrid_lwp_control_process::resumeThread(int_thread *thr)
+{
+   bool result = plat_resumeThread(thr);
+   if (!result) 
+      return false;
+   thr->setSuspended(false);
+   return true;
+}
+
+bool hybrid_lwp_control_process::plat_processGroupContinues()
+{
+   return true;
+}
+
+bool hybrid_lwp_control_process::plat_syncRunState()
+{
+   bool any_target_stopped = false, any_target_running = false;
+   bool any_stopped = false, any_running = false;
+
+   int_threadPool *tp = threadPool();
+   int_threadPool::iterator i;
+   for (i = tp->begin(); i != tp->end(); i++) {
+      int_thread *thr = *i;
+      if (RUNNING_STATE(thr->getTargetState()))
+         any_target_running = true;
+      if (!RUNNING_STATE(thr->getTargetState()))
+         any_target_stopped = true;
+      if (RUNNING_STATE(thr->getHandlerState().getState()))
+         any_running = true;
+      if (!RUNNING_STATE(thr->getHandlerState().getState()))
+         any_stopped = true;
+   }
+
+   if (!any_target_running && !any_running) {
+      pthrd_printf("Target process state %d is stopped and process is stopped, leaving\n", getPid());
+      return true;
+   }
+   if (!any_target_stopped && !any_stopped) {
+      pthrd_printf("Target process state %d is running and process is running, leaving\n", getPid());
+      return true;
+   }
+   if (!plat_debuggerSuspended()) {
+      pthrd_printf("Process %d is not debugger suspended, but have changes.  Stopping process.\n", getPid());
+      return threadPool()->initialThread()->intStop();
+   }
+
+   //If we're here, we must be debuggerSuspended, and thus no threads are running (!any_running)
+   // since we didn't trigger the above if statement, we must have some thread we want to run
+   // (any_target_running)
+   assert(!any_running && any_target_running);
+   for (i = tp->begin(); i != tp->end(); i++) {
+      int_thread *thr = *i;
+      bool error = false;
+      if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
+         pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
+         error = resumeThread(thr);
+      }
+      else if (!thr->isSuspended() && !RUNNING_STATE(thr->getTargetState())) {
+         pthrd_printf("Suspending thread %d/%d\n", getPid(), thr->getLWP());
+         error = suspendThread(thr);
+      }
+      if (error) {
+         pthrd_printf("Error suspending/resuming threads\n");
+         return false;
+      }
+   }
+
+   pthrd_printf("Continuing process %d after suspend/resume of threads\n", getPid());
+   return threadPool()->initialThread()->intCont();
 }
 
 int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
@@ -1890,9 +1986,10 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    single_step(false),
    handler_exiting_state(false),
    generator_exiting_state(false),
+   running_when_attached(true),
+   suspended(false),
    stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
-   running_when_attached(true),
    em_singlestep(NULL)
 {
    Thread::ptr new_thr(new Thread());
@@ -1956,9 +2053,11 @@ bool int_thread::intCont()
    bool result = plat_cont();
 
    if (result) {
-      if (llproc()->plat_processSyncContinues()) {
+      if (llproc()->plat_processGroupContinues()) {
          int_threadPool *pool = llproc()->threadPool();
          for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+            if ((*i)->isSuspended())
+               continue;
             (*i)->getHandlerState().setState(int_thread::running);
             (*i)->getGeneratorState().setState(int_thread::running);
          }
@@ -1986,10 +2085,10 @@ async_ret_t int_thread::handleSingleStepContinue()
    async_ret_t ret;
    set<int_thread *> thrds;
 
-   if (llproc()->plat_processSyncContinues()) {
+   if (llproc()->plat_processGroupContinues()) {
       int_threadPool *pool = llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-         if ((*i)->singleStepUserMode()) {
+         if (!(*i)->isSuspended() && (*i)->singleStepUserMode()) {
             thrds.insert(*i);
          }
       }
@@ -2143,16 +2242,18 @@ void int_thread::addContinueCB(continue_cb_t cb)
 
 void int_thread::triggerContinueCBs()
 {
-   bool sync_conts = llproc()->plat_processSyncContinues();
+   bool sync_conts = llproc()->plat_processGroupContinues();
    for (set<continue_cb_t>::iterator i = continue_cbs.begin(); i != continue_cbs.end(); i++) {
       if (!sync_conts) {
          //Independent lwp control--only do this thread.
          (*i)(this);
       }
       else {
-         //All threads are continued at once--do every thread
+         //Threads are continued at once--do every thread
          int_threadPool *tp = llproc()->threadPool();
          for (int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
+            if ((*j)->isSuspended())
+               continue;
             (*i)(*j);
          }
       }
@@ -3114,6 +3215,17 @@ int int_thread::StateTracker::getID() const
 {
    return id;
 }
+
+void int_thread::setSuspended(bool b)
+{
+   suspended = b;
+}
+
+bool int_thread::isSuspended() const
+{
+   return suspended;
+}
+
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 {
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);

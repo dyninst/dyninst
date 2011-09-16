@@ -296,7 +296,7 @@ ps_err_e ps_get_thread_area(const struct ps_prochandle *phandle, lwpid_t lwp, in
    do { \
      p_ ## SYM = (SYM ## _t) dlsym(libhandle, #SYM); \
      if (!p_ ## SYM) { \
-       char *errmsg = dlerror(); \
+       const char *errmsg = dlerror();                                       \
        perr_printf("Error looking up %s in threaddb.so: %s\n", #SYM, errmsg); \
        return false; \
      } \
@@ -353,7 +353,7 @@ static void *dlopenThreadDB(char *path)
       libhandle = dlopen(alt_filename.c_str(), RTLD_LAZY);
    }
    if (!libhandle) {
-      char *errmsg = dlerror();
+      const char *errmsg = dlerror();
       perr_printf("Error loading libthread_db.so: %s\n", errmsg);
       return NULL;
    }
@@ -601,11 +601,6 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
 
 async_ret_t thread_db_process::handleThreadAttach(td_thrhandle_t *thr, Dyninst::LWP lwp)
 {
-#if defined(os_freebsd)
-   td_err_e errVal = p_td_thr_dbsuspend(handle);
-   if( TD_OK != errVal ) return aret_error;
-#endif
-
    return initThreadWithHandle(thr, NULL, lwp);
 }
 
@@ -680,8 +675,10 @@ async_ret_t thread_db_process::initThreadDB() {
          continue;
       }
       
-      if (!tdb_thread->threadHandle)
+      if (!tdb_thread->threadHandle) {
          tdb_thread->threadHandle = new td_thrhandle_t;
+         memset(tdb_thread->threadHandle, 0, sizeof(td_thrhandle_t));
+      }
       
       pthrd_printf("lwp2thr on %d/%d\n", getPid(), tdb_thread->getLWP());
       errVal = p_td_ta_map_lwp2thr(getThreadDBAgent(), tdb_thread->getLWP(), tdb_thread->threadHandle);
@@ -698,7 +695,7 @@ async_ret_t thread_db_process::initThreadDB() {
          tdb_thread->threadHandle = NULL;
          continue;
       }
-      pthrd_printf("Successful lwp2thr on %d/%d, th_unique = %p\n", getPid(), tdb_thread->getLWP(), tdb_thread->threadHandle->th_unique);
+      pthrd_printf("Successful lwp2thr on %d/%d\n", getPid(), tdb_thread->getLWP());
       tdb_thread->threadHandle_alloced = true;
       all_handles.insert(pair<td_thrhandle_t *, LWP>(tdb_thread->threadHandle, tdb_thread->getLWP()));
    }
@@ -724,6 +721,10 @@ async_ret_t thread_db_process::initThreadDB() {
    // Enable all events
    td_thr_events_t eventMask;
 #if defined(td_event_fillset)
+   //Macro on GNU libc
+   td_event_fillset(&eventMask);
+#elif defined(os_freebsd)
+   //Inline header file function on FreeBSD
    td_event_fillset(&eventMask);
 #else
 //Need to make td_event_fillset a function pointer if this hits
@@ -1054,26 +1055,6 @@ bool thread_db_process::post_attach(bool wasDetached) {
     }
 }
 #endif
-
-bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) { 
-   unsigned oldSize = events.size();
-
-    int_threadPool::iterator i;
-    for(i = threadPool()->begin(); i != threadPool()->end(); ++i) {
-        thread_db_thread *tmpThread = static_cast<thread_db_thread *>(*i);
-        if( tmpThread->isDestroyed() ) {
-            pthrd_printf("Generating post-ThreadDestroy for %d/%d\n",
-                         getPid(), tmpThread->getLWP());
-
-            Event::ptr destroyEvent = Event::ptr(new EventUserThreadDestroy(EventType::Post));
-            destroyEvent->setThread(tmpThread->thread());
-            destroyEvent->setProcess(proc());
-            events.push_back(destroyEvent);
-        }
-    }
-
-    return events.size() != oldSize;
-}
 
 bool thread_db_process::isSupportedThreadLib(string libName) {
    return (libName.find("libpthread") != string::npos);

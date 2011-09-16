@@ -1352,11 +1352,6 @@ bool bg_process::plat_supportDOTF()
    return false;
 }
 
-int_process::ThreadControlMode bg_process::plat_getThreadControlMode() const
-{
-   return int_process::NoLWPControl;
-}
-
 SymbolReaderFactory *getElfReader()
 {
   static SymbolReaderFactory *symreader_factory = NULL;

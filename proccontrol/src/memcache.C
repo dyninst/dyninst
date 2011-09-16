@@ -254,7 +254,7 @@ void memCache::condense()
 
 async_ret_t memCache::doOperation(memEntry *me, int_thread *op_thread)
 {
-   bool result;
+   bool result = false;
    response::ptr resp;
    unsigned size = me->getSize();
    char *buffer = (char *) malloc(size);
