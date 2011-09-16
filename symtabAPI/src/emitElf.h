@@ -101,7 +101,7 @@ class emitElf{
  
     //text & data segment ends
     Elf32_Off dataSegEnd, textSegEnd;
-    Elf32_Off dynSegOff, dynSegAddr;
+	 Elf32_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
     unsigned dynSegSize;
 
     //Section Names for all sections
