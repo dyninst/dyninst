@@ -1900,6 +1900,13 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    bool any_target_stopped = false, any_target_running = false;
    bool any_stopped = false, any_running = false;
 
+   int_thread *a_running_thread = NULL;
+
+   if (getState() == exited) {
+      pthrd_printf("Returning from plat_syncRunState for exited process %d\n", getPid());
+      return true;
+   }
+
    int_threadPool *tp = threadPool();
    int_threadPool::iterator i;
    for (i = tp->begin(); i != tp->end(); i++) {
@@ -1908,8 +1915,10 @@ bool hybrid_lwp_control_process::plat_syncRunState()
          any_target_running = true;
       if (!RUNNING_STATE(thr->getTargetState()))
          any_target_stopped = true;
-      if (RUNNING_STATE(thr->getHandlerState().getState()))
+      if (RUNNING_STATE(thr->getHandlerState().getState())) {
          any_running = true;
+         if (!a_running_thread) a_running_thread = thr;
+      }
       if (!RUNNING_STATE(thr->getHandlerState().getState()))
          any_stopped = true;
    }
@@ -1924,7 +1933,7 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    }
    if (!plat_debuggerSuspended()) {
       pthrd_printf("Process %d is not debugger suspended, but have changes.  Stopping process.\n", getPid());
-      return threadPool()->initialThread()->intStop();
+      return a_running_thread->intStop();
    }
 
    //If we're here, we must be debuggerSuspended, and thus no threads are running (!any_running)
@@ -1933,16 +1942,16 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    assert(!any_running && any_target_running);
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
-      bool error = false;
+      bool result = true;
       if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
          pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
-         error = resumeThread(thr);
+         result = resumeThread(thr);
       }
       else if (!thr->isSuspended() && !RUNNING_STATE(thr->getTargetState())) {
          pthrd_printf("Suspending thread %d/%d\n", getPid(), thr->getLWP());
-         error = suspendThread(thr);
+         result = suspendThread(thr);
       }
-      if (error) {
+      if (!result) {
          pthrd_printf("Error suspending/resuming threads\n");
          return false;
       }
@@ -2015,8 +2024,10 @@ int_thread::~int_thread()
 bool int_thread::intStop()
 {
    pthrd_printf("intStop on thread %d/%d\n", llproc()->getPid(), getLWP());
-   assert(!RUNNING_STATE(target_state));
-   assert(RUNNING_STATE(getHandlerState().getState()));
+   if (!llproc()->plat_processGroupContinues()) {
+      assert(!RUNNING_STATE(target_state));
+      assert(RUNNING_STATE(getHandlerState().getState()));
+   }
 
    setPendingStop(true);   
    bool result = plat_stop();
@@ -2033,8 +2044,10 @@ bool int_thread::intStop()
 bool int_thread::intCont()
 {
    pthrd_printf("intCont on thread %d/%d\n", llproc()->getPid(), getLWP());
-   assert(RUNNING_STATE(target_state));
-   assert(!RUNNING_STATE(getHandlerState().getState()));
+   if (!llproc()->plat_processGroupContinues()) {
+      assert(RUNNING_STATE(target_state));
+      assert(!RUNNING_STATE(getHandlerState().getState()));
+   }
 
    async_ret_t aret = handleSingleStepContinue();
    if (aret == aret_async) {
@@ -2559,17 +2572,25 @@ void int_thread::setExitingInGenerator(bool b)
     generator_exiting_state = b;
 }
 
-void int_thread::cleanFromHandler(int_thread *thrd)
+void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 {
    ProcPool()->condvar()->lock();
    
-   thrd->getHandlerState().setState(int_thread::exited);
-   thrd->getExitingState().setState(int_thread::exited);
+   thrd->getUserState().setState(int_thread::exited);
 
-   ProcPool()->rmThread(thrd);
-   thrd->llproc()->threadPool()->rmThread(thrd);
-   delete thrd;
-   
+   if (should_delete) {
+      thrd->getExitingState().setState(int_thread::exited);
+      ProcPool()->rmThread(thrd);
+      thrd->llproc()->threadPool()->rmThread(thrd);
+      delete thrd;
+   }
+   else {
+      //If we're not yet deleting this thread, then we're dealing with
+      // a pre-mature exit event.  The thread will be exiting soon, but
+      // isn't there yet.  We'll run the thread instead to make sure it
+      // reaches a proper exit.
+      thrd->getExitingState().setState(int_thread::running);
+   }
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 }

@@ -525,15 +525,15 @@ class int_thread
    static const int NumStateIDs = 14;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
-   static const int ExitingStateID          = 0;
-   static const int AsyncStateID            = 1;
-   static const int PendingStopStateID      = 2;
-   static const int IRPCStateID             = 3;
-   static const int IRPCSetupStateID        = 4;
-   static const int IRPCWaitStateID         = 5;
-   static const int BreakpointStateID       = 6;
-   static const int InternalStateID         = 7;
-   static const int BreakpointResumeStateID = 8;
+   static const int AsyncStateID            = 0;
+   static const int PendingStopStateID      = 1;
+   static const int IRPCStateID             = 2;
+   static const int IRPCSetupStateID        = 3;
+   static const int IRPCWaitStateID         = 4;
+   static const int BreakpointStateID       = 5;
+   static const int InternalStateID         = 6;
+   static const int BreakpointResumeStateID = 7;
+   static const int ExitingStateID          = 8;
    static const int DetachStateID           = 9;
    static const int CallbackStateID         = 10;
    static const int UserStateID             = 11;
@@ -676,7 +676,7 @@ class int_thread
    bool isExitingInGenerator() const;
    void setExitingInGenerator(bool b);
 
-   static void cleanFromHandler(int_thread *thr);
+   static void cleanFromHandler(int_thread *thr, bool should_delete);
 
    //Misc
    virtual bool attach() = 0;

@@ -182,6 +182,8 @@ using namespace ProcControlAPI;
  * the debuggee after attach to allow us to regain control of the debuggee.
  */
 
+#undef bug_freebsd_mt_suspend
+
 static GeneratorFreeBSD *gen = NULL;
 
 Generator *Generator::getDefaultGenerator() {
@@ -233,23 +235,6 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
         return newevent;
     }
 
-    if (dyninst_debug_proccontrol)
-    {
-        pthrd_printf("Waitpid return status %x for pid %d:\n", status, pid);
-        if (WIFEXITED(status))
-            pthrd_printf("Exited with %d\n", WEXITSTATUS(status));
-        else if (WIFSIGNALED(status))
-            pthrd_printf("Exited with signal %d\n", WTERMSIG(status));
-        else if (WIFSTOPPED(status))
-            pthrd_printf("Stopped with signal %d\n", WSTOPSIG(status));
-#if defined(WIFCONTINUED)
-        else if (WIFCONTINUED(status))
-            perr_printf("Continued with signal SIGCONT (Unexpected)\n");
-#endif
-        else
-            pthrd_printf("Unable to interpret waitpid return.\n");
-    }
-
     // On FreeBSD, we need to get information about the thread that caused the
     // stop via ptrace -- try for all cases; the ptrace call will fail for some
     struct ptrace_lwpinfo lwpInfo;
@@ -264,6 +249,23 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
             newevent = new ArchEventFreeBSD(errsv);
             return newevent;
         }
+    }
+
+    if (dyninst_debug_proccontrol)
+    {
+        pthrd_printf("Waitpid return status %x for pid %d/%d:\n", status, pid, lwp);
+        if (WIFEXITED(status))
+            pthrd_printf("Exited with %d\n", WEXITSTATUS(status));
+        else if (WIFSIGNALED(status))
+            pthrd_printf("Exited with signal %d\n", WTERMSIG(status));
+        else if (WIFSTOPPED(status))
+            pthrd_printf("Stopped with signal %d\n", WSTOPSIG(status));
+#if defined(WIFCONTINUED)
+        else if (WIFCONTINUED(status))
+            perr_printf("Continued with signal SIGCONT (Unexpected)\n");
+#endif
+        else
+            pthrd_printf("Unable to interpret waitpid return.\n");
     }
 
     newevent = new ArchEventFreeBSD(pid, lwp, status);
@@ -445,6 +447,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                         EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                         lib_event->setThread(thread->thread());
                         lib_event->setProcess(proc->proc());
+                        lib_event->setSyncType(Event::sync_process);
                         event->addSubservientEvent(lib_event);
                         break;
                     }
@@ -688,7 +691,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static bool initialized = false;
-    static FreeBSDStopHandler *lstop = NULL;
+    static FreeBSDPollLWPDeathHandler *lpolldeath = NULL;
     static FreeBSDPreForkHandler *luserfork = NULL;
 
 #if defined(bug_freebsd_mt_suspend)
@@ -701,7 +704,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 #endif
 
     if( !initialized ) {
-        lstop = new FreeBSDStopHandler();
+        lpolldeath = new FreeBSDPollLWPDeathHandler();
         luserfork = new FreeBSDPreForkHandler();
 
 #if defined(bug_freebsd_mt_suspend)
@@ -715,7 +718,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 
         initialized = true;
     }
-    hpool->addHandler(lstop);
+    hpool->addHandler(lpolldeath);
     hpool->addHandler(luserfork);
 
 #if defined(bug_freebsd_mt_suspend)
@@ -1142,45 +1145,68 @@ void freebsd_process::noteNewDequeuedEvent(Event::ptr ev)
    }
 }
 
-FreeBSDStopHandler::FreeBSDStopHandler() 
-    : Handler("FreeBSD Stop Handler")
+FreeBSDPollLWPDeathHandler::FreeBSDPollLWPDeathHandler() 
+    : Handler("FreeBSD Poll LWP Death")
 {}
 
-FreeBSDStopHandler::~FreeBSDStopHandler()
+FreeBSDPollLWPDeathHandler::~FreeBSDPollLWPDeathHandler()
 {}
 
-Handler::handler_ret_t FreeBSDStopHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t FreeBSDPollLWPDeathHandler::handleEvent(Event::ptr ev) {
     freebsd_process *lproc = dynamic_cast<freebsd_process *>(ev->getProcess()->llproc());
-    freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
 
-    // No extra handling is required for single-threaded debuggees
-    if( lproc->threadPool()->size() <= 1 ) return Handler::ret_success;
+    int_threadPool *tp = lproc->threadPool();
+    int_threadPool::iterator i;
 
-    if( lthread->hasPendingStop() || lthread->hasBootstrapStop() ) {
-        pthrd_printf("Pending stop on %d/%d\n",
-                lproc->getPid(), lthread->getLWP());
-        if( !lthread->plat_suspend() ) {
-            perr_printf("Failed to suspend thread %d/%d\n", 
-                    lproc->getPid(), lthread->getLWP());
-            return Handler::ret_error;
-        }
+    vector<Dyninst::LWP> lwps;
+    vector<Dyninst::LWP>::iterator j;
+    bool have_lwps = false;
 
-        // Since the default thread stop handler is being wrapped, set this flag
-        // here so the default handler doesn't have problems
-        if( lthread->hasBootstrapStop() ) {
-            lthread->setPendingStop(true);
-        }
+    std::set<int_thread *> to_clean;
+
+    for (i = tp->begin(); i != tp->end(); i++) {
+       int_thread *thr = *i;
+       if (thr->getUserState().getState() != int_thread::exited) {
+          continue;
+       }
+       if (!have_lwps) {
+          lproc->getThreadLWPs(lwps);
+          have_lwps = true;
+       }
+
+       pthrd_printf("%d/%d is marked dead.  Checking if really dead.\n", lproc->getPid(), thr->getLWP());
+       bool found_match = false;
+       for (j = lwps.begin(); j != lwps.end(); j++) {
+          if (*j == thr->getLWP()) {
+             found_match = true;
+             break;
+          }
+       }
+       if (found_match) {
+          pthrd_printf("%d/%d is actually still alive, leaving\n", lproc->getPid(), thr->getLWP());
+          continue;
+       }
+       pthrd_printf("%d/%d is finally dead.  Reaping.\n", lproc->getPid(), thr->getLWP());
+       to_clean.insert(thr);
+    }
+
+    for (set<int_thread *>::iterator k = to_clean.begin(); k != to_clean.end(); k++) {
+       int_thread::cleanFromHandler(*k, true);
     }
 
     return Handler::ret_success;
 }
 
-int FreeBSDStopHandler::getPriority() const {
+int FreeBSDPollLWPDeathHandler::getPriority() const {
     return PrePlatformPriority;
 }
 
-void FreeBSDStopHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+void FreeBSDPollLWPDeathHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Stop));
+    etypes.push_back(EventType(EventType::None, EventType::RPC));
+    etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
+    etypes.push_back(EventType(EventType::None, EventType::SingleStep));
+    etypes.push_back(EventType(EventType::None, EventType::Signal));
 }
 
 #if defined(bug_freebsd_mt_suspend)
@@ -1341,7 +1367,7 @@ bool freebsd_process::post_attach(bool wasDetached) {
         freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
         if( thrd->hasBootstrapStop() ) {
             pthrd_printf("attach workaround: resuming %d/%d\n",
-                    getPid(), thrd->getLWP());
+                         getPid(), thrd->getLWP());
             if( !thrd->intCont() ) {
                 return false;
             }
@@ -1423,10 +1449,10 @@ bool freebsd_thread::plat_resume() {
 
     pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to resume lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to resume lwp");
-        return false;
+       perr_printf("Failed to resume lwp %d: %s\n",
+                   lwp, strerror(errno));
+       setLastError(err_internal, "Failed to resume lwp");
+       return false;
     }
 
     return true;
@@ -1437,10 +1463,10 @@ bool freebsd_thread::plat_suspend() {
 
     pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to suspend lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to suspend lwp");
-        return false;
+       perr_printf("Failed to suspend lwp %d: %s\n",
+                   lwp, strerror(errno));
+       setLastError(err_internal, "Failed to suspend lwp");
+       return false;
     }
 
     return true;
@@ -1460,7 +1486,7 @@ bool freebsd_thread::plat_cont()
       if (thr->isSignalStopped()) {
          cont_thread = thr;
       }
-      if (!plat_setStep()) {
+      if (!thr->plat_setStep()) {
          return false;
       }
    }
@@ -1522,7 +1548,7 @@ bool freebsd_thread::attach() {
 
 bool freebsd_thread::plat_setStep() {
     int result = 0;
-    if (singleStep() && !is_pt_setstep) {
+    if (singleStep()) {
         pthrd_printf("Calling PT_SETSTEP on %d/%d\n", 
                 llproc()->getPid(), lwp);
         result = ptrace(PT_SETSTEP, lwp, (caddr_t)1, 0);

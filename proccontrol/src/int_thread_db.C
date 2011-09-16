@@ -448,14 +448,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
       case TD_CREATE:
       {
          pthrd_printf("Decoded to user thread create of %d/%d\n", getPid(), lwp);
-#if defined(os_freebsd)
-         td_err_e errVal;
-         if( TD_OK != (errVal = p_td_thr_dbsuspend((const td_thrhandle_t *)eventMsg->th_p)) ) {
-            perr_printf("Failed suspend new thread via thread_db: %s(%d)\n",
-                        tdErr2Str(errVal), errVal);
-            return Event::ptr();
-         }
-#endif
+
          EventNewUserThread::ptr new_ev = EventNewUserThread::ptr(new EventNewUserThread());
          new_ev->setProcess(proc());
          new_ev->setThread(thr ? thr->thread() : Thread::ptr());

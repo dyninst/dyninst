@@ -176,13 +176,14 @@ protected:
     bool pendingPCBugSignal;
     bool signalStopped;
     bool is_pt_setstep;
+    bool is_exited;
 };
 
-class FreeBSDStopHandler : public Handler
+class FreeBSDPollLWPDeathHandler : public Handler
 {
 public:
-    FreeBSDStopHandler();
-    virtual ~FreeBSDStopHandler();
+    FreeBSDPollLWPDeathHandler();
+    virtual ~FreeBSDPollLWPDeathHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);

@@ -915,11 +915,20 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
       pthrd_printf("Nothing to do in HandleThreadCleanup\n");
       return ret_success;
    }
-   
+   bool should_delete = true;
+   if ((ev->getEventType().code() == EventType::UserThreadDestroy && 
+        !proc->plat_supportLWPPreDestroy() && !proc->plat_supportLWPPostDestroy()))
+   {
+      //Have a user thread destroy, and platform doesn't support LWP destroys.  Will partially clean,
+      // but leave thread object thread throws any events before it deletes.
+      should_delete = false;
+   }
+
+
    int_thread *thrd = ev->getThread()->llthrd();
    pthrd_printf("Cleaning thread %d/%d from HandleThreadCleanup handler.\n", 
                 proc->getPid(), thrd->getLWP());
-   int_thread::cleanFromHandler(thrd);
+   int_thread::cleanFromHandler(thrd, should_delete);
    return ret_success;
 }
 
