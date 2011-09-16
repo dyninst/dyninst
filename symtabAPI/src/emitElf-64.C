@@ -60,7 +60,7 @@ extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 extern unsigned int elfHash(const char *name);
 
-unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC || SHF_WRITE;;
+unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
 bool isBlueGeneQ = false;
 
 // Error reporting
