@@ -868,7 +868,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                 if (pos_p !=string::npos) {
                         isBlueGeneP_ = true;
                         break;
-                } else if (pos_p !=string::npos) {
+                } else if (pos_q !=string::npos) {
 					         isBlueGeneQ_ = true;
 								break;
 					}
