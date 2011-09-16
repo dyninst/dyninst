@@ -590,7 +590,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }
   }
    
-  isBlueGene_ = false;
+  isBlueGeneP_ = false;
+  isBlueGeneQ_ = false;
+
   hasNoteSection_ = false;
  
   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
@@ -861,11 +863,15 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
         while (index < size)
         {
                 string comment = buf+index;
-                size_t pos = comment.find("BGP");
-                if (pos !=string::npos) {
-                        isBlueGene_ = true;
+                size_t pos_p = comment.find("BGP");
+                size_t pos_q = comment.find("BGQ");
+                if (pos_p !=string::npos) {
+                        isBlueGeneP_ = true;
                         break;
-                }
+                } else if (pos_p !=string::npos) {
+					         isBlueGeneQ_ = true;
+								break;
+					}
                 index += comment.size();
                 if (comment.size() == 0) { // Skip NULL characters in the comment section
                         index ++;

@@ -60,6 +60,9 @@ extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 extern unsigned int elfHash(const char *name);
 
+unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC || SHF_WRITE;;
+bool isBlueGeneQ = false;
+
 // Error reporting
 extern void setSymtabError(SymtabError new_err);
 extern void symtab_log_perror(const char *msg);
@@ -221,21 +224,6 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   // default
   createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
 
-
-  bool isBlueGene = obj_->isBlueGene();
-  bool hasNoteSection = obj_->hasNoteSection();
-
-  // for now, bluegene is the only system which uses the following mechanism for updating program header
-  if(isBlueGene){
-	createNewPhdr = false;
-        if(hasNoteSection) {
-                replaceNOTE = true;
-        } else {
-                BSSExpandFlag = true;
-        }
-  }
-
-
   //If we're dealing with a library that can be loaded anywhere,
   // then load the program headers into the later part of the binary,
   // this may trigger a kernel bug that was fixed in Summer 2007,
@@ -243,7 +231,13 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   //If we're dealing with a library/executable that loads at a specific
   // address we'll put the phdrs into the page before that address.  This
   // works and will avoid the kernel bug.
+
+  isBlueGeneQ = obj_->isBlueGeneQ();
+  if(isBlueGeneQ){
+  movePHdrsFirst = false;
+  } else {
   movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
+  }
 
   //If we want to try a mode where we add the program headers to a library
   // that can be loaded anywhere, and put the program headers in the first 
@@ -874,6 +868,7 @@ void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newName
    newshdr->sh_name = secNameIndex;
    secNameIndex += strlen(newname) + 1;
    newshdr->sh_flags = SHF_ALLOC;
+	if (isBlueGeneQ) newshdr->sh_flags = bgq_sh_flags;
    newshdr->sh_type = SHT_PROGBITS;
    newshdr->sh_offset = newEhdr->e_phoff;
    newshdr->sh_addr = endaddr + align;
@@ -882,6 +877,9 @@ void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newName
    newshdr->sh_info = 0;
    newshdr->sh_addralign = 4;
    newshdr->sh_entsize = newEhdr->e_phentsize;
+	phdrSegOff = newshdr->sh_offset;
+	phdrSegAddr = newshdr->sh_addr;
+	
 }
 
 void emitElf64::fixPhdrs(unsigned &extraAlignSize)
@@ -990,7 +988,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
      }
      else if(old->p_type == PT_PHDR){
 	if(createNewPhdr && !movePHdrsFirst)
-        	newPhdr->p_vaddr = phdr_offset;
+        	newPhdr->p_vaddr = phdrSegAddr;
      	else if (createNewPhdr && movePHdrsFirst)
 	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	else
@@ -1385,6 +1383,8 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
          newshdr->sh_flags = SHF_ALLOC ;
          updateDynamic(DT_VERDEF, newshdr->sh_addr);
       }
+
+	   if(isBlueGeneQ) newshdr->sh_flags = bgq_sh_flags;
 
      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
      if(!firstNewLoadSec)
@@ -2010,7 +2010,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          emitElfUtils::updateRelocation(obj, relocation_table[i], library_adjust);
      }
 
-      if (relocation_table[i].regionType() == Region::RT_REL) {
+      if ((object->getRelType()  == Region::RT_REL) && (relocation_table[i].regionType() == Region::RT_REL)) {
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
          if(relocation_table[i].name().length() &&
             dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
@@ -2019,7 +2019,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
             rels[j].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, relocation_table[i].getRelType());
          }
          j++;
-      } else {
+      } else if((object->getRelType()  == Region::RT_RELA) && (relocation_table[i].regionType() == Region::RT_RELA)){
          relas[k].r_offset = relocation_table[i].rel_addr() + library_adjust;
          relas[k].r_addend = relocation_table[i].addend();
          //if (relas[k].r_addend)
@@ -2035,7 +2035,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    }
    for(i=0;i<newRels.size();i++) 
    {
-      if (newRels[i].regionType() == Region::RT_REL) {
+      if ((object->getRelType()  == Region::RT_REL) && (newRels[i].regionType() == Region::RT_REL)) {
          rels[j].r_offset = newRels[i].rel_addr() + library_adjust;
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
@@ -2056,7 +2056,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          }
          j++;
 	 l++;
-      } else {
+      } else if ((object->getRelType()  == Region::RT_RELA) && (newRels[i].regionType() == Region::RT_RELA)) {
          relas[k].r_offset = newRels[i].rel_addr() + library_adjust;
          relas[k].r_addend = newRels[i].addend();
          //if( relas[k].r_addend ) relas[k].r_addend += library_adjust;

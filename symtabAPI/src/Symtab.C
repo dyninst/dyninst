@@ -2897,9 +2897,10 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return 0;
 	}
-	bool isBlueGene = obj->isBlueGene();
+	bool isBlueGeneQ = obj->isBlueGeneP();
+	bool isBlueGeneP = obj->isBlueGeneQ();
 	bool hasNoteSection = obj->hasNoteSection();
-	if (isBlueGene && hasNoteSection)
+	if (isBlueGeneQ || (isBlueGene && hasNoteSection))
 		pgSize = 0x100000; 
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));

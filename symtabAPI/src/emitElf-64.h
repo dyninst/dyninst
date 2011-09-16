@@ -101,7 +101,7 @@ class emitElf64{
  
     //text & data segment ends
     Elf64_Off dataSegEnd, textSegEnd;
-    Elf64_Off dynSegOff, dynSegAddr;
+	 Elf64_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
     unsigned dynSegSize;
 
     //Section Names for all sections

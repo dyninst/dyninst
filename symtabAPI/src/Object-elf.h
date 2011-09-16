@@ -419,7 +419,8 @@ class Object : public AObject {
     bool hasReladyn() const {return hasReladyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
-    bool isBlueGene() const {return isBlueGene_;}
+    bool isBlueGeneP() const {return isBlueGeneP_;}
+    bool isBlueGeneQ() const {return isBlueGeneQ_;}
     bool hasNoteSection() const {return hasNoteSection_;}
     Region::RegionType getRelType() const { return relType_; }
 
@@ -462,7 +463,8 @@ class Object : public AObject {
   bool hasRelaplt_;
   Region::RegionType relType_;
 
-  bool isBlueGene_;
+  bool isBlueGeneP_;
+  bool isBlueGeneQ_;
   bool hasNoteSection_;
 
   Offset   elf_hash_addr_; 	 //.hash section 

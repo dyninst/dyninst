@@ -245,11 +245,11 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // default
   createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
 
-  bool isBlueGene = obj_->isBlueGene();
+  bool isBlueGeneP = obj_->isBlueGeneP();
   bool hasNoteSection = obj_->hasNoteSection();
 
   // for now, bluegene is the only system which uses the following mechanism for updating program header
-  if(isBlueGene){
+  if(isBlueGeneP){
 	createNewPhdr = false;
         if(hasNoteSection) {
                 replaceNOTE = true;
@@ -944,6 +944,9 @@ void emitElf::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIn
    newshdr->sh_info = 0;
    newshdr->sh_addralign = 4;
    newshdr->sh_entsize = newEhdr->e_phentsize;
+	phdrSegOff = newshdr->sh_offset;
+	phdrSegAddr = newshdr->sh_addr;
+	
 }
 
 void emitElf::fixPhdrs(unsigned &extraAlignSize)
@@ -1047,7 +1050,9 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
-     	if (movePHdrsFirst)
+	if(createNewPhdr && !movePHdrsFirst)
+        	newPhdr->p_vaddr = phdrSegAddr;
+     	else if (createNewPhdr && movePHdrsFirst)
 	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	else
 	        newPhdr->p_vaddr = old->p_vaddr;

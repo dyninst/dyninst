@@ -278,7 +278,7 @@ std::string parse_func::calcParentFunc(const parse_func * imf,
      parallel region function.  We do this by chopping off the
      last @OL@number */
    const char * nameStart = imf->prettyName().c_str();
-   char * nameEnd = strrchr(nameStart, '@');
+   const char * nameEnd = strrchr(nameStart, '@');
    int strSize = nameEnd - nameStart - 3;
    
    /* Make sure that the shortened string is not of size 0,
