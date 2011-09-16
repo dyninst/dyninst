@@ -2900,7 +2900,7 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 	bool isBlueGeneQ = obj->isBlueGeneP();
 	bool isBlueGeneP = obj->isBlueGeneQ();
 	bool hasNoteSection = obj->hasNoteSection();
-	if (isBlueGeneQ || (isBlueGene && hasNoteSection))
+	if (isBlueGeneQ || (isBlueGeneP && hasNoteSection))
 		pgSize = 0x100000; 
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
