@@ -94,7 +94,7 @@ static void* openSO(const char *soname, bool local)
    ::free(fullSoPath);
    if (!handle) {
       fprintf(stderr, "Error opening lib: %s\n", soname);
-      char *errmsg = dlerror();
+      const char *errmsg = dlerror();
       fprintf(stderr, "%s\n", errmsg);
       if (debug_log) {
          fprintf(debug_log, "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");

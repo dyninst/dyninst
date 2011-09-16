@@ -37,6 +37,10 @@
 #include <cassert>
 #include <string>
 
+#if defined(os_freebsd_test)
+extern char **environ;
+#endif
+
 using namespace std;
 
 extern FILE *debug_log;
@@ -106,7 +110,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
             if (strcmp(value, "<NULL>") == 0)
                value = NULL;
             else if (strcmp(value, "<EMPTY>") == 0)
-               value = "";
+               value = const_cast<char *>("");
             params[key] = new ParamString(value);
             break;
          }
