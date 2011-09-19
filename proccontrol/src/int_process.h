@@ -272,7 +272,7 @@ class int_process
                                              void* &buffer, unsigned long &buffer_size, 
                                              unsigned long &start_offset) = 0;
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
-
+   virtual bool plat_threadOpsNeedProcStop();
    virtual SymbolReaderFactory *plat_defaultSymReader();
    Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    bool infFree(Dyninst::Address addr);
@@ -522,7 +522,7 @@ class int_thread
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 14;
+   static const int NumStateIDs = 15;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
    static const int AsyncStateID            = 0;
@@ -534,11 +534,12 @@ class int_thread
    static const int InternalStateID         = 6;
    static const int BreakpointResumeStateID = 7;
    static const int ExitingStateID          = 8;
-   static const int DetachStateID           = 9;
-   static const int CallbackStateID         = 10;
-   static const int UserStateID             = 11;
-   static const int HandlerStateID          = 12;
-   static const int GeneratorStateID        = 13;
+   static const int StartupStateID          = 9;
+   static const int DetachStateID           = 10;
+   static const int CallbackStateID         = 11;
+   static const int UserStateID             = 12;
+   static const int HandlerStateID          = 13;
+   static const int GeneratorStateID        = 14;
    static std::string stateIDToName(int id);
 
    class StateTracker {
@@ -566,6 +567,7 @@ class int_thread
 
    //State management, see above comment on states
    StateTracker &getExitingState();
+   StateTracker &getStartupState();
    StateTracker &getBreakpointState();
    StateTracker &getBreakpointResumeState();
    StateTracker &getCallbackState();
@@ -722,6 +724,7 @@ class int_thread
    Counter generator_nonexited_thrd_count;
 
    StateTracker exiting_state;
+   StateTracker startup_state;
    StateTracker pending_stop_state;
    StateTracker callback_state;
    StateTracker breakpoint_state;

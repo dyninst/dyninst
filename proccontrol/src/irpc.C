@@ -87,12 +87,13 @@ bool int_iRPC::isRPCPrepped()
    assert(state == Prepping);
    if (isProcStopRPC()) {
       int_threadPool *pool = thrd->llproc()->threadPool();
-      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) 
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
          if (!(*i)->isStopped(int_thread::IRPCSetupStateID) &&
              (*i)->getActiveState().getID() != int_thread::IRPCStateID)
          {
             return false;
          }
+      }
       return true;
    }
    else {
@@ -778,8 +779,11 @@ bool int_iRPC::runIRPC()
 
    if (isProcStopRPC()) {
       thrd->getIRPCWaitState().desyncStateProc(int_thread::stopped);
-      thrd->getIRPCSetupState().restoreStateProc();
       thrd->getIRPCState().desyncState(int_thread::running);
+      thrd->getIRPCSetupState().restoreStateProc();
+   }
+   else if (thrd->llproc()->plat_threadOpsNeedProcStop()) {
+      thrd->getIRPCSetupState().restoreStateProc();
    }
    else {
       thrd->getIRPCSetupState().restoreState();

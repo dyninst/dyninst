@@ -578,11 +578,13 @@ bool EventRPCLaunch::procStopper() const
 
    int_iRPC::ptr rpc = thrd->nextPostedIRPC();
    assert(rpc);
+   if (proc->plat_threadOpsNeedProcStop()) {
+      return !proc->getProcStopManager().processStoppedTo(int_thread::IRPCSetupStateID);
+   }
    if (rpc->isProcStopRPC()) {
       return !rpc->isRPCPrepped();
    }
    return !proc->getProcStopManager().threadStoppedTo(thrd, int_thread::IRPCSetupStateID);
-
 }
 
 EventRPCLaunch::EventRPCLaunch() :

@@ -434,6 +434,8 @@ class ThreadPool
    class iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
+      static const int uninitialized_val = -1;
+      static const int end_val = -2;
       int_threadPool *curp;
       Thread::ptr curh;
       int curi;
@@ -453,6 +455,8 @@ class ThreadPool
    class const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
+      static const int uninitialized_val = -1;
+      static const int end_val = -2;
       int_threadPool *curp;
       Thread::ptr curh;
       int curi;

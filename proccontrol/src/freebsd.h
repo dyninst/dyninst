@@ -117,6 +117,7 @@ public:
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();
+    virtual bool plat_threadOpsNeedProcStop();
 
     /* handling forks on FreeBSD */
     virtual bool forked();
@@ -190,11 +191,11 @@ public:
 };
 
 #if defined(bug_freebsd_mt_suspend)
-class FreeBSDPostStopHandler : public Handler
+class FreeBSDPreStopHandler : public Handler
 {
 public:
-    FreeBSDPostStopHandler();
-    virtual ~FreeBSDPostStopHandler();
+    FreeBSDPreStopHandler();
+    virtual ~FreeBSDPreStopHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);

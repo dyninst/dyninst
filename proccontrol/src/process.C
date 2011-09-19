@@ -735,7 +735,7 @@ bool int_process::syncRunState()
             state_code[i] = int_thread::stateLetter(thr->getStateByID(i).getState());
          }
          state_code[int_thread::NumStateIDs] = '\0';
-         pthrd_printf("%d/%d handler: %s, generator: %s, %s: %s, code: %s\n",
+         pthrd_printf("%d/%d hand: %s, gen: %s, %s: %s, code: %s\n",
                       getPid(), thr->getLWP(), 
                       int_thread::stateStr(thr->getHandlerState().getState()),
                       int_thread::stateStr(thr->getGeneratorState().getState()),
@@ -1423,6 +1423,10 @@ int_library *int_process::getLibraryByName(std::string s) const
    return NULL;
 }
 
+bool int_process::plat_threadOpsNeedProcStop() 
+{
+   return false;
+}
 size_t int_process::numLibs() const
 {
    return mem->libs.size();
@@ -1911,6 +1915,8 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    int_threadPool::iterator i;
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
+      if (thr->getDetachState().getState() == int_thread::detached)
+         continue;
       if (RUNNING_STATE(thr->getTargetState()))
          any_target_running = true;
       if (!RUNNING_STATE(thr->getTargetState()))
@@ -1943,6 +1949,8 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       bool result = true;
+      if (thr->getDetachState().getState() == int_thread::detached)
+         continue;
       if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
          pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
          result = resumeThread(thr);
@@ -1975,6 +1983,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    proc_stop_rpc_count(Counter::ProcStopRPCs),
    generator_nonexited_thrd_count(Counter::GeneratorNonExitedThreads),
    exiting_state(this, ExitingStateID, dontcare),
+   startup_state(this, StartupStateID, dontcare),
    pending_stop_state(this, PendingStopStateID, dontcare),
    callback_state(this, CallbackStateID, dontcare),
    breakpoint_state(this, BreakpointStateID, dontcare),
@@ -2027,6 +2036,20 @@ bool int_thread::intStop()
    if (!llproc()->plat_processGroupContinues()) {
       assert(!RUNNING_STATE(target_state));
       assert(RUNNING_STATE(getHandlerState().getState()));
+
+      if (hasPendingStop()) {
+         pthrd_printf("Not throwing a second stop while another is in flight\n");
+         return true;
+      }
+   }
+   else {
+      int_threadPool *tp = llproc()->threadPool();
+      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+         if ((*i)->hasPendingStop()) {
+            pthrd_printf("Not throwing a second stop while another is in flight\n");
+            return true;
+         }
+      }
    }
 
    setPendingStop(true);   
@@ -2333,6 +2356,11 @@ int_thread::StateTracker &int_thread::getExitingState()
    return exiting_state;
 }
 
+int_thread::StateTracker &int_thread::getStartupState()
+{
+   return startup_state;
+}
+
 int_thread::StateTracker &int_thread::getCallbackState()
 {
    return callback_state;
@@ -2367,6 +2395,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
 {
    switch (id) {
       case ExitingStateID: return exiting_state;
+      case StartupStateID: return startup_state;
       case AsyncStateID: return async_state;
       case CallbackStateID: return callback_state;
       case PendingStopStateID: return pending_stop_state;
@@ -2389,6 +2418,7 @@ std::string int_thread::stateIDToName(int id)
 {
    switch (id) {
       case ExitingStateID: return "exiting";      
+      case StartupStateID: return "startup";
       case AsyncStateID: return "async";
       case CallbackStateID: return "callback";
       case PendingStopStateID: return "pending stop";
@@ -2528,7 +2558,7 @@ void int_thread::throwEventsBeforeContinue()
    if (rpc && !runningRPC() && rpc->getState() == int_iRPC::Posted) {
       pthrd_printf("Found thread %d/%d ready to run IRPC, not continuing\n", llproc()->getPid(), getLWP());
 
-      if (rpc->isProcStopRPC()) {
+      if (rpc->isProcStopRPC() || llproc()->plat_threadOpsNeedProcStop()) {
          getIRPCSetupState().desyncStateProc(int_thread::stopped);
       }
       else {
@@ -2707,11 +2737,12 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
       int_registerPool pool;
       allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
       bool result = getAllRegisters(allreg_resp);
-      assert(allreg_resp->isReady());
+      bool is_ready = allreg_resp->isReady();
       if (!result || allreg_resp->hasError()) {
          pthrd_printf("Unable to access full register set\n");
          return false;
       }
+      assert(is_ready);
       response->setResponse(pool.regs[reg]);
       return true;
    }
@@ -5508,7 +5539,7 @@ bool Thread::continueThread()
    int_thread *thrd = llthrd();
    int_process *proc = thrd->llproc();
 
-   pthrd_printf("User continuing entire thread %d/%d\n", proc->getPid(), thrd->getLWP());
+   pthrd_printf("User continuing thread %d/%d\n", proc->getPid(), thrd->getLWP());
    bool result = thrd->getUserState().setState(int_thread::running);
    if (!result) {
       perr_printf("Thread %d/%d was not in a continuable state, error return from setState\n",
@@ -5880,7 +5911,7 @@ Thread::const_ptr ThreadPool::getInitialThread() const
 ThreadPool::iterator::iterator()
 {
    curp = NULL;
-   curi = -1;
+   curi = uninitialized_val;
    curh = Thread::ptr();
 }
 
@@ -5910,29 +5941,43 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
 {
    MTLock lock_this_func;
    ThreadPool::iterator orig = *this;
-   if (curp->hl_threads[curi] == curh)
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
       curi++;
-
-   if (curi < (signed int) curp->hl_threads.size())
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return orig;
+      }
       curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
-
-   return orig;
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+      return orig;
+   }
 }
 
 ThreadPool::iterator ThreadPool::iterator::operator++(int)
 {
    MTLock lock_this_func;
-   if (curp->hl_threads[curi] == curh)
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
       curi++;
-
-   if (curi < (signed int) curp->hl_threads.size())
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
       curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
-
-   return *this;
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+      return *this;
+   }
 }
 
 ThreadPool::iterator ThreadPool::begin()
@@ -5942,7 +5987,7 @@ ThreadPool::iterator ThreadPool::begin()
    i.curp = threadpool;
    i.curi = 0;
 
-   if (i.curi < (signed int) i.curp->hl_threads.size())
+   if (!threadpool->hl_threads.empty())
       i.curh = i.curp->hl_threads[i.curi];
    else
       i.curh = Thread::ptr();
@@ -5955,7 +6000,7 @@ ThreadPool::iterator ThreadPool::end()
    MTLock lock_this_func;
    ThreadPool::iterator i;
    i.curp = threadpool;
-   i.curi = threadpool->hl_threads.size();
+   i.curi = iterator::end_val;
    i.curh = Thread::ptr();
    return i;
 }
@@ -5977,7 +6022,7 @@ ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
 ThreadPool::const_iterator::const_iterator()
 {
    curp = NULL;
-   curi = -1;
+   curi = uninitialized_val;
    curh = Thread::ptr();
 }
 
@@ -6007,29 +6052,43 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
 {
    MTLock lock_this_func;
    ThreadPool::const_iterator orig = *this;
-   if (curp->hl_threads[curi] == curh)
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
       curi++;
-
-   if (curi < (signed int) curp->hl_threads.size())
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return orig;
+      }
       curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
-
-   return orig;
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+      return orig;
+   }
 }
 
 ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int)
 {
    MTLock lock_this_func;
-   if (curp->hl_threads[curi] == curh)
+
+   assert(curi >= 0); //If this fails, you incremented a bad iterator
+   for (;;) {
       curi++;
-
-   if (curi < (signed int) curp->hl_threads.size())
+      if (curi >= (signed int) curp->hl_threads.size()) {
+         curh = Thread::ptr();
+         curi = end_val;
+         return *this;
+      }
       curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
-
-   return *this;
+      if (!curh->llthrd())
+         continue;
+      if (curh->llthrd()->getUserState().getState() == int_thread::exited)
+         continue;
+      return *this;
+   }
 }
 
 ThreadPool::const_iterator ThreadPool::begin() const
@@ -6039,7 +6098,7 @@ ThreadPool::const_iterator ThreadPool::begin() const
    i.curp = threadpool;
    i.curi = 0;
 
-   if (i.curi < (signed int) i.curp->hl_threads.size())
+   if (!threadpool->hl_threads.empty())
       i.curh = i.curp->hl_threads[i.curi];
    else
       i.curh = Thread::ptr();
@@ -6052,7 +6111,7 @@ ThreadPool::const_iterator ThreadPool::end() const
    MTLock lock_this_func;
    ThreadPool::const_iterator i;
    i.curp = threadpool;
-   i.curi = (int) threadpool->hl_threads.size();
+   i.curi = const_iterator::end_val;
    i.curh = Thread::ptr();
    return i;
 }

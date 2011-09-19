@@ -1009,7 +1009,7 @@ bool thread_db_process::post_attach(bool wasDetached) {
     return result == aret_success ? true : false;
 }
 
-#warning TODO fix in post attach rewrite
+#warning TODO fix detach part in post attach rewrite
 #if 0
 bool thread_db_process::post_attach(bool wasDetached) {
     if( !int_process::post_attach(wasDetached) ) return false;
