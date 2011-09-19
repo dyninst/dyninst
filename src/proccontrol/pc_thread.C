@@ -393,6 +393,8 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
 #elif defined(os_freebsd_test)
    has_lwp = false;
    has_thr = true;
+   has_stack_info = false;
+   has_initial_func_info = false;
 #elif defined(os_bg_test)
    has_lwp = false;
    has_thr = true;
