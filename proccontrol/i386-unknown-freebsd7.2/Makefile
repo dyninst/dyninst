@@ -15,8 +15,9 @@ TARGET = libpcontrol.so
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS = ../src/unix.C \
-       ../src/freebsd.C \
+SRCS = ../src/freebsd.C \
+       ../src/unix.C \
+		 ../src/notify_pipe.C \
        ../../common/src/dthread-unix.C \
        ../../common/src/Elf_X.C
 
