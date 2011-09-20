@@ -62,8 +62,6 @@ static bool cb_error = false;
 
 Process::cb_ret_t on_thread_exit(Event::const_ptr ev)
 {
-   fprintf(stderr, "Got thread %d/%d\n", ev->getProcess()->getPid(), ev->getThread()->getLWP());
-
    if (ev->getEventType().code() == EventType::UserThreadDestroy && ev->getEventType().time() == EventType::Pre) {
       if (!have_pre_thread) {
          logerror("Got unexpected Pre/Thread CB\n");
@@ -251,7 +249,6 @@ test_results_t pc_thread_contMutator::executeTest()
              if (have_post_lwp)
                 expected_post_lwp_exits.insert(thrd);
              
-             fprintf(stderr, "Added thread %d/%d\n", proc->getPid(), thrd->getLWP());
              bool result = thrd->continueThread();
              if (!result) {
                 logerror("Failed to continue thread\n");
