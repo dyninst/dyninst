@@ -53,7 +53,7 @@ int wrap_fprintf(FILE *f, char *fmt, ...);
 
 class ArchEventBlueGene;
 
-class bg_process : public sysv_process, public thread_db_process, public ppc_process, public unified_lwp_control_process, public mmap_alloc_process
+class bgp_process : public sysv_process, public thread_db_process, public ppc_process, public unified_lwp_control_process, public mmap_alloc_process
 {
    friend class HandleBGAttached;
    friend class DecoderBlueGene;
@@ -91,11 +91,11 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    static int phys_procs;
    static int virt_procs;
 
-   bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+   bgp_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
               vector<string> envp, std::map<int, int> f);
-   bg_process(Dyninst::PID pid_, int_process *proc_);
+   bgp_process(Dyninst::PID pid_, int_process *proc_);
 
-   virtual ~bg_process();
+   virtual ~bgp_process();
 
    virtual bool plat_create();
    virtual bool plat_create_int();
@@ -138,11 +138,11 @@ class bg_process : public sysv_process, public thread_db_process, public ppc_pro
    static int numAttachedProcsAdd(int i);
 };
 
-class bg_thread : public thread_db_thread
+class bgp_thread : public thread_db_thread
 {
   public:
-   bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
-   virtual ~bg_thread();
+   bgp_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~bgp_thread();
 
    virtual bool plat_cont();
    virtual bool plat_stop();
@@ -278,7 +278,7 @@ class DecoderBlueGene : public Decoder
    DecoderBlueGene();
    virtual ~DecoderBlueGene();
 
-   virtual bool getProcAndThread(ArchEventBlueGene *archbg, bg_process* &p, bg_thread* &t);
+   virtual bool getProcAndThread(ArchEventBlueGene *archbg, bgp_process* &p, bgp_thread* &t);
    virtual unsigned getPriority() const;
    virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events);
    
