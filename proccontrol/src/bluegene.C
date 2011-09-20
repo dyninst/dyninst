@@ -158,10 +158,13 @@ GeneratorBlueGene::GeneratorBlueGene() :
    GeneratorMT(std::string("BlueGene Generator")),
    dpr(NULL)
 {
+#if 0
+   //Debugging code
    if (dyninst_debug_proccontrol) {
       pthrd_printf("Creating debug port reader\n");
       dpr = new DebugPortReader();
    }
+#endif
    int result = pipe(restart_fds);
    if (result == -1) {
       perr_printf("Error creating restart FDs\n");
@@ -2588,7 +2591,7 @@ void DebugPortReader::mainLoop()
       }
 
       struct stat buf;
-      int sresult = stat("/g/g0/legendre/pc_force_shutdown", &buf);
+      int sresult = stat("./pc_force_shutdown", &buf);
       if (sresult == 0) {
          pthrd_printf("Forcing shutdown\n");
          on_crash(0);
