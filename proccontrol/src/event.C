@@ -361,6 +361,9 @@ bool EventBreakpoint::procStopper() const
       num_proc_stoppers++;
    }
 
+   if (!handled_by.empty())
+      return false;
+
    if (!num_proc_stoppers) {
       //The breakpoint is not a proc stopper.
       return false;
@@ -576,8 +579,12 @@ bool EventRPCLaunch::procStopper() const
    int_process *proc = getProcess()->llproc();
    int_thread *thrd = getThread()->llthrd();
 
+   if (!handled_by.empty())
+      return false;
+
    int_iRPC::ptr rpc = thrd->nextPostedIRPC();
    assert(rpc);
+
    if (proc->plat_threadOpsNeedProcStop()) {
       return !proc->getProcStopManager().processStoppedTo(int_thread::IRPCSetupStateID);
    }
@@ -625,6 +632,9 @@ int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 
 bool EventBreakpointClear::procStopper() const
 {
+   if (!handled_by.empty())
+      return false;
+
    int_process *proc = getProcess()->llproc();
    return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
 }
@@ -730,6 +740,9 @@ int_eventDetach *EventDetach::getInternal() const
 
 bool EventDetach::procStopper() const
 {
+   if (!handled_by.empty())
+      return false;
+
    int_process *proc = getProcess()->llproc();
    return !proc->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
 }
