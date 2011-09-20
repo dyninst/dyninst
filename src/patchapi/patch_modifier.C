@@ -17,6 +17,7 @@
 #include "test_lib.h"
 #include "patchapi_comp.h"
 #include "PatchCFG.h"
+#include "CFG.h"
 #include "PatchModifier.h"
 
 using namespace Dyninst;
@@ -217,7 +218,11 @@ bool patchModifier_Mutator::insert() {
         iter != block->getTargets().end(); ++iter) {
       std::cerr << "Target edge: "
                 << ((*iter)->sinkEdge() ? "<sink>" : "")
-                << format((*iter)->type()) << std::endl;
+#if defined(_MSC_VER)
+				<< std::endl;
+#else
+				<< Dyninst::ParseAPI::format((*iter)->type()) << std::endl;
+#endif
    }
 
    return true;
