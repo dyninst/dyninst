@@ -68,6 +68,9 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 }
 }
 
+#if defined(_MSC_VER)
+#define patchapi_debug(...)
+#else
 #define patchapi_debug(...) do { \
   if (getenv("DYNINST_DEBUG_PATCHAPI")) {   \
   const char* nodir = basename(__FILE__);              \
@@ -78,6 +81,7 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
   } \
   else ; \
 } while(0)
+#endif
 
 using std::map;
 using std::list;

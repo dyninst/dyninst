@@ -7,6 +7,7 @@ using Dyninst::PatchAPI::Instrumenter;
 using Dyninst::PatchAPI::InstanceSet;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::AddrSpace;
 
 /* Default implementation of Instrumenter */
 

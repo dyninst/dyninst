@@ -13,6 +13,13 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "BPatch_memoryAccess_NP.h"
+
+#if defined(cap_mem_emulation)
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#endif
 
 using namespace Dyninst;
 using namespace Relocation;
