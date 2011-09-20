@@ -15,7 +15,7 @@ include ../../make.config
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS =  ../src/bluegene.C \
+SRCS =  ../src/bluegenep.C \
         ../src/notify_pipe.C \
         ../../common/src/dthread-unix.C
 

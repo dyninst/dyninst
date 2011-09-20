@@ -38,7 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
-#include "proccontrol/src/bluegene.h"
+#include "proccontrol/src/bluegenep.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
