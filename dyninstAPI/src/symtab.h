@@ -166,6 +166,11 @@ class fileDescriptor {
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
+     void setLoadAddr(Address a) { 
+        loadAddr_ = a;
+        code_ += a;
+        data_ += a;
+     }
      void setCode(Address c) { code_ = c; }
      void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }

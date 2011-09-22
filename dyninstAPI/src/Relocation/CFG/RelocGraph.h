@@ -58,7 +58,10 @@ class RelocGraph {
   public:
    typedef std::map<func_instance *, RelocBlock *> SubMap;
    typedef std::map<block_instance *, SubMap> InstanceMap;
-   typedef std::map<block_instance *, RelocBlock *> Map;
+
+   typedef std::map<std::pair<block_instance *, func_instance *>,
+      RelocBlock *> Map;
+
    typedef std::vector<RelocEdge *> Edges;
    
    RelocGraph() : head(0), tail(0), size(0) {};
@@ -92,8 +95,8 @@ class RelocGraph {
    InstanceMap reloc;
 
    RelocBlock *find(block_instance *, func_instance *) const;
-   bool setSpringboard(block_instance *from, RelocBlock *to);
-   RelocBlock *findSpringboard(block_instance *from) const;
+   bool setSpringboard(block_instance *from, func_instance *func, RelocBlock *to);
+   RelocBlock *findSpringboard(block_instance *from, func_instance *to) const;
 
   // Should this go here? Well, it's a transformation on RelocBlocks...
   void link(RelocBlock *s, RelocBlock *t);

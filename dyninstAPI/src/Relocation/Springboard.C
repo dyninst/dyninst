@@ -216,14 +216,15 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
 
    bool usedTrap = false;
-   generateBranch(r.from, r.destinations.begin()->second.second, gen);
+   // Arbitrarily select the first function containing this springboard, since only one can win. 
+   generateBranch(r.from, r.destinations.begin()->second, gen);
 
    if ((dyn_debug_traps /*&& r.from < 0x401000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      generateTrap(r.from, r.destinations.begin()->second.second, gen);
+      generateTrap(r.from, r.destinations.begin()->second, gen);
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
@@ -337,7 +338,7 @@ void SpringboardBuilder::registerBranch
             dit++)
        {
            relocTraps_.insert(start);
-           relocTraps_.insert(dit->second.second);// if we relocate again it will need a trap too
+           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
        }
    }
     
@@ -426,11 +427,11 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
    // Just the requests for now.
    springboard_cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
+   block_instance *bbl = req.block;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
-      block_instance *bbl = b_iter->first;
-      func_instance *func = b_iter->second.first;
-      Address addr = b_iter->second.second;
+      func_instance *func = b_iter->first;
+      Address addr = b_iter->second;
 
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);

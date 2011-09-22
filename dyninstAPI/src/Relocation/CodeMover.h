@@ -61,7 +61,7 @@ class CodeMover;
 class CodeTracker;
 class RelocGraph;
 
-typedef std::map<block_instance *, std::pair<Priority, func_instance *> > PriorityMap;
+typedef std::map<std::pair<block_instance *, func_instance *>, Priority> PriorityMap;
 
 class CodeMover {
  public:

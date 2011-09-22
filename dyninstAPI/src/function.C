@@ -128,7 +128,7 @@ func_instance::~func_instance() {
 // function, whichever non-dead block we can find that has no intraprocedural 
 // incoming edges.  If there's no obvious block to choose, we stick with the
 // default block
-block_instance * func_instance::setNewEntry(block_instance *default,
+block_instance * func_instance::setNewEntry(block_instance *def,
                                             std::set<block_instance*> &deadBlocks)
 {
     block_instance *newEntry = NULL;
@@ -164,11 +164,11 @@ block_instance * func_instance::setNewEntry(block_instance *default,
     }
     // if all blocks have incoming edges, choose the default block
     if( ! newEntry ) {
-        newEntry = default;
+        newEntry = def;
         mal_printf("Setting new entry block for func at 0x%lx to "
                 "actively executing block [%lx %lx), as none of the function "
                 "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
-                default->start(), default->end(), FILE__,__LINE__);
+                def->start(), def->end(), FILE__,__LINE__);
     }
 
     // set the new entry block
@@ -566,14 +566,17 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    set<block_instance*> objblks;
    obj()->findBlocksByAddr(addr, objblks);
    getAllBlocks(); // ensure that all_blocks_ is filled in 
+   std::vector<std::set<block_instance *>::iterator> to_erase; 
    for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end();) {
       // Make sure it's one of ours
       if (all_blocks_.find(*bit) == all_blocks_.end()) {
-         bit = objblks.erase(bit);
-      } else {
-         bit++;
+         to_erase.push_back(bit);
       }
    }
+   for (unsigned i = 0; i < to_erase.size(); ++i) {
+      objblks.erase(to_erase[i]);
+   }
+
    if (objblks.size() > 1) { 
       // only add blocks that have an instruction at "addr"
       for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {

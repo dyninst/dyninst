@@ -141,7 +141,7 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
 
    // Redirect the springboard to the replacement function
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    // Redirect all call in-edges to the replacement function
    Predicates::Interprocedural pred;
@@ -192,7 +192,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
    relocation_cerr << "Stub block is " << stub->format() << endl;
    
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    WrapperPredicate pred(trace->func());
    if (target) {

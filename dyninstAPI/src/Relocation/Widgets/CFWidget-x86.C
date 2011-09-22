@@ -16,7 +16,10 @@
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/inst-x86.h"
+
+#if defined(cap_mem_emulation)
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#endif
 
 using namespace Dyninst;
 using namespace Relocation;

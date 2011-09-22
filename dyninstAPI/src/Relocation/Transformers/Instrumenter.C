@@ -325,7 +325,7 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
                       new Target<RelocBlock *>(trace),
                       ParseAPI::FALLTHROUGH)) return false;
 
-   if (!cfg->setSpringboard(trace->block(), instRelocBlock)) return false;
+   if (!cfg->setSpringboard(trace->block(), trace->func(), instRelocBlock)) return false;
    Predicates::Interprocedural pred;
    if (!cfg->changeTargets(pred, trace->ins(), instRelocBlock)) return false;
 
