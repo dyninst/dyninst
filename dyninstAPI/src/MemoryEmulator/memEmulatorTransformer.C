@@ -75,6 +75,7 @@ bool MemEmulatorTransformer::process(RelocBlock *rblock, RelocGraph *rgraph)
     }
 
     if (!canRewriteMemInsn(reloc, func)) {
+       malware_cerr << "\tUnable to rewrite memory access at "<< hex << reloc->addr() <<": " << reloc->format() << dec << endl;
        continue;
     }
 
@@ -184,7 +185,7 @@ bool MemEmulatorTransformer::isSensitive(InsnWidget::Ptr reloc,
     const std::vector<AbsRegion> &ins = (*a_iter)->inputs();
     for (std::vector<AbsRegion>::const_iterator i = ins.begin();
 	 i != ins.end(); ++i) {
-      relocation_cerr << "\t\t Input: " << i->format() << endl;
+      //relocation_cerr << "\t\t Input: " << i->format() << endl;
       if (i->contains(Absloc::Heap)) {
 	    return true;
       }
@@ -193,7 +194,7 @@ bool MemEmulatorTransformer::isSensitive(InsnWidget::Ptr reloc,
       }
     }
     // Writes too
-    relocation_cerr << "\t\t Output: " << (*a_iter)->out().format() << endl;      
+    //relocation_cerr << "\t\t Output: " << (*a_iter)->out().format() << endl;      
     if ((*a_iter)->out().contains(Absloc::Heap)) {
 	  return true;
     }

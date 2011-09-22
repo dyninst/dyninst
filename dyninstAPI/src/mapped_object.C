@@ -703,7 +703,7 @@ bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance
            blocks.insert(block);
         }
     }
-    return true;
+    return !blocks.empty();
 }
 
 bool mapped_object::findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs)
@@ -1291,7 +1291,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
         // Determine if this stub already has been parsed
         // Which means looking up a block at the target address
         if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
-          continue; //KEVINTODO: don't we maybe want to add the edge anyway?
+           cerr << "VERIFY THAT I WORK: parsing edge for target that already exists" << endl;
+          //continue; //KEVINTODO: don't we maybe want to add the edge anyway?
         }
 
         // Otherwise we don't have a target block, so we need to make one.

@@ -437,7 +437,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);
       for (std::list<Address>::const_reverse_iterator a_iter = relocAddrs.rbegin(); 
            a_iter != relocAddrs.rend(); ++a_iter) { 
-         springboard_cerr << "\t Mapped address " << hex << *a_iter << dec << endl;
+         //springboard_cerr << "\t Mapped address " << hex << *a_iter << dec << endl;
          if (*a_iter == addr) continue;
          Priority newPriority;
          switch(req.priority) {

@@ -55,7 +55,7 @@ Modification::Modification(const CallModMap &callMod,
   funcWraps_(funcWraps) {};
 
 bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
-   relocation_cerr << "Modification transformer, processing block" << endl;
+  //relocation_cerr << "Modification transformer, processing block" << endl;
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element

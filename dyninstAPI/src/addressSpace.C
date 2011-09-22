@@ -1319,6 +1319,18 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::set<func_instance*> &funcs
    if (includeReloc) {
       RelocInfo ri;
       if (getRelocInfo(addr, ri)) {
+
+         if (proc() && BPatch_defensiveMode == proc()->getHybridMode()) {
+            // check that the block & function still exist
+            mapped_object *obj = findObject(ri.orig);
+            if (!obj) {
+               return false;
+            }
+            std::set<block_instance*> blocks;
+            if (!obj->findBlocksByAddr(ri.orig, blocks)) {
+               return false; // block no longer exists
+            }
+         }
          if (ri.func) {
             // We cloned for some reason. Nifty.
             funcs.insert(ri.func);
@@ -1841,8 +1853,8 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-     relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
-        if (!writeTextSpace((void *)iter->startAddr(),
+      //relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
+      if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
       {
@@ -1925,7 +1937,7 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
    return false;
 }
 
-
+// KEVINTODO: not clearing out entries when deleting code, and extremely slow in defensive mode, over 300 codetrackers for Yoda
 bool AddressSpace::getRelocInfo(Address relocAddr,
                                 RelocInfo &ri) {
   bool ret = false;
@@ -2055,6 +2067,8 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                        const std::list<func_instance*> &deadFuncs)
 {
     std::map<func_instance*,vector<edgeStub> > stubs;
+    std::set<ParseAPI::Edge*> stubEdges;
+    std::set<ParseAPI::Edge*> visited;
 
     for (list<block_instance*>::const_iterator bit = owBlocks.begin();
          bit != owBlocks.end(); 
@@ -2081,7 +2095,6 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         using namespace ParseAPI;
         bool foundStub = false;
         parse_block *curImgBlock = (*bit)->llb();
-        set<ParseAPI::Edge*> visited; // prevents multiple additions of edge to worklist
         Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
         Block::edgelist & sourceEdges = curImgBlock->sources();
 
@@ -2107,10 +2120,12 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                 block_instance *src = (*fit)->obj()->findBlockByEntry(base + isrc->start());
                 assert(src);
 
-                if (delBlocks.end() == delBlocks.find(src) ) {
-                   edgeStub st(src, curImgBlock->start() + base, (*eit)->type());
-                   stubs[*fit].push_back(st);
-                   foundStub = true;
+                if ( delBlocks.end() == delBlocks.find(src) ) {
+                   if (stubEdges.find(*eit) == stubEdges.end()) {
+                      edgeStub st(src, (*eit)->trg()->start() + base, (*eit)->type());
+                      stubs[*fit].push_back(st);
+                      foundStub = true;
+                   }
                 } 
                 else {
                    Block::edgelist &srcSrcs = isrc->sources();
@@ -2118,7 +2133,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                         sit != srcSrcs.end();
                         sit++)
                    {
-                      if (visited.find(*sit) != visited.end()) {
+                      if (visited.find(*sit) == visited.end()) {
                          srcList.push_back(*sit);
                          visited.insert(*sit);
                       }

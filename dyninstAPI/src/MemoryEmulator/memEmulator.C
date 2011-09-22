@@ -135,8 +135,8 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
-	cerr << "Removing region " << obj->fileName() << endl;
-	cerr << "\t Before: " << endl;
+	sensitivity_cerr << "Removing region " << obj->fileName() << endl;
+	sensitivity_cerr << "\t Before: " << endl;
 	debug();
 	// Remove each code region
 	std::vector<Region *> codeRegions;
@@ -147,7 +147,7 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 		removeRegion(reg, obj->codeBase());
 	}
-	cerr << "\t After: " << endl;
+	sensitivity_cerr << "\t After: " << endl;
 	debug();
 }
 
@@ -490,6 +490,9 @@ void MemoryEmulator::removeSpringboards(const block_instance *bbi)
 }
 
 void  MemoryEmulator::debug() const {
+   if (!dyn_debug_sensitivity) {
+      return;
+   }
 	std::vector<MemoryMapTree::Entry> elements;
 	memoryMap_.elements(elements);
 	cerr << "\t Forward map: " << endl;

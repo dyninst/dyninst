@@ -2047,6 +2047,17 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         // parse new edges in the function
+       if (!stubs[fit->first].empty()) {
+          fit->first->obj()->parseNewEdges(stubs[fit->first]);
+       } else {
+          // stubs may have been shared with another function and parsed in 
+          // the other function's context.  
+          mal_printf("WARNING: didn't have any stub edges for overwritten "
+                     "func %lx\n", fit->first->addr());
+          //KEVINTEST: we used to wind up here with deleted functions, hopefully we do not anymore
+       }
+#if 0
+        // parse new edges in the function
         if (newFuncEntries.end() == newFuncEntries.find(fit->first) &&
             stubs[fit->first].empty()) 
         {
@@ -2065,7 +2076,7 @@ void BPatch_process::overwriteAnalysisUpdate
             // parse from stubs
             fit->first->obj()->parseNewEdges(stubs[fit->first]);
         } 
-
+#endif
         // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
         BPatch_function *bpfunc = findOrCreateBPFunc(fit->first,NULL);
         bpfunc->removeCFG();

@@ -56,6 +56,7 @@ CodeMover::CodeMover(CodeTracker *t) :
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
+   relocation_cerr << "Created CodeMover with tracker " << hex << t << dec << endl;
 
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));

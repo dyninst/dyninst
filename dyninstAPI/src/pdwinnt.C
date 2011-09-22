@@ -1055,8 +1055,7 @@ int dyn_lwp::changeMemoryProtections
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-      mal_printf("setting rights to %lx for [%lx %lx)\n", 
-                 rights, idx , idx + pageSize);
+      //mal_printf("setting rights to %lx for [%lx %lx)\n", rights, idx , idx + pageSize);
 		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
@@ -1073,8 +1072,8 @@ int dyn_lwp::changeMemoryProtections
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
 			if (!valid) {
-				fprintf(stderr, "WARNING: set access rights on page %lx that has "
-					"no shadow %s[%d]\n",addr,FILE__,__LINE__);
+				//fprintf(stderr, "WARNING: set access rights on page %lx that has "
+				//	"no shadow %s[%d]\n",addr,FILE__,__LINE__);
 			}
 			else 
 			{
@@ -1087,8 +1086,8 @@ int dyn_lwp::changeMemoryProtections
 				}
 
 				if (shadowRights != oldRights) {
-					mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
-					           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
+					//mal_printf("WARNING: shadow page[%lx] rights %x did not match orig-page"
+					//           "[%lx] rights %x\n",shadowAddr,shadowRights, addr, oldRights);
 				}
 			}
 		}

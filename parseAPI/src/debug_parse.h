@@ -51,6 +51,7 @@ namespace ParseAPI {
 #else
 #define parsing_printf parsing_printf_int
 #define mal_printf malware_printf_int
+#define malware_cerr      if (dyn_debug_malware) cerr
 #endif
 }
 }

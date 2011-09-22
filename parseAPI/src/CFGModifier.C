@@ -160,7 +160,7 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 
 bool CFGModifier::remove(vector<Block*> &blks, bool force) { 
 
-   cerr << "removing "<< blks.size() << " ParseAPI blocks" << endl; 
+   malware_cerr << "removing "<< blks.size() << " ParseAPI blocks" << endl; 
    if (blks.empty()) return false;
 
    set<Function*> allFuncs;

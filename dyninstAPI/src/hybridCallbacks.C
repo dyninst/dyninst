@@ -442,8 +442,11 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     Address nextInsn =0;
     point->llpoint()->block()->setNotAbruptEnd();
     getCFTargets(point,*targets);
-    assert(!targets->empty());
-    nextInsn = (*targets)[0];
+    if (targets->empty()) {
+       nextInsn = point->llpoint()->block()->end();
+    } else {
+       nextInsn = (*targets)[0];
+    }
     delete(targets);
 
     proc()->beginInsertionSet();
@@ -629,7 +632,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
 
-    printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
+    mal_printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
         mal_printf( "ERROR, NO MODULE for target addr %lx %s[%d]\n", 

@@ -507,4 +507,5 @@ VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
     lpSystemTime->wSecond = 33;
     lpSystemTime->wMilliseconds = 855;
     fprintf(stOut,"called DYNINST_FakeGetSystemTime()\n");
+    fflush(stOut);
 }

@@ -157,8 +157,8 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
          if (!post->second->empty()) {
             // We can split an instruction into multiple widgets so skip over all of them...
             RelocBlock::WidgetList::iterator tmp = elem;
-            while (((*tmp)->addr() == postAddr) &&
-                   (tmp != trace->elements().end()) &&
+            while ((tmp != trace->elements().end()) &&
+                   ((*tmp)->addr() == postAddr) &&
                    ((*tmp)->insn())) ++tmp;
             Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) return false;

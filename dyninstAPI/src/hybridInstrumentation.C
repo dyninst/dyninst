@@ -321,7 +321,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         {
             if ((*iter)->type() != ParseAPI::CALL)
             {
-                cerr << "Setting instrumentation for function at " 
+                malware_cerr << "Setting instrumentation for function " 
                     << func->getName() << " to instrument returns, detected " 
                     << "odd incoming edge " << (*iter)->type() << endl;
                 instrumentReturns = true;
@@ -615,7 +615,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         if ((skipShadowFuncs_.find(func->getName()) == skipShadowFuncs_.end()) &&
             (instShadowFuncs_.find(func) == instShadowFuncs_.end()))
         {
-            cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
+            malware_cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
             std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
             if (entryPoints) {
                 pointCount++;
