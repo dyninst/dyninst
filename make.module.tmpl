@@ -107,6 +107,7 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     TestMutator.C \
                     TestOutputDriver.C \
                     StdOutputDriver.C \
+		    QuietOutputDriver.C \
                     ResumeLog.C \
                     test_info_new.C
 
@@ -362,6 +363,29 @@ components: $(LIBPROCCONTROLCOMP)
 testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI)
 endif
 endif
+
+check: check-dyninst-create check-dyninst-attach check-dyninst-rewriter check-symtab check-instruction check-proccontrol
+
+check-dyninst: check-dyninst-create check-dyninst-attach check-dyninst-rewriter
+
+check-dyninst-create: $(dyninst_MUTATORS_SO) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES)) runTests
+	       runTests -dyninst
+
+check-dyninst-attach: $(dyninst_MUTATORS_SO) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES)) runTests
+	       runTests -dyninst -attach
+
+check-dyninst-rewriter: $(dyninst_MUTATORS_SO) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES)) runTests
+	       runTests -dyninst -rewriter
+
+check-symtab: $(DYNINST_TESTLIBS_ABI) $(DYNINST_TESTLIBS) $(symtab_MUTATORS_SO) $(SYMTAB_TESTLIBS) $(SYMTAB_STATIC_TESTLIBS) $(SYMTAB_TESTLIBS_ABI) $(SYMTAB_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(symtab_SOLO_MUTATEES)) runTests
+	       runTests -symtab
+
+check-instruction: $(instruction_MUTATORS_SO) $(INSTRUCTION_TESTLIBS) $(INSTRUCTION_STATIC_TESTLIBS) $(INSTRUCTION_TESTLIBS_ABI) $(INSTRUCTION_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(instruction_SOLO_MUTATEES)) runTests
+	       runTests -instruction
+
+check-proccontrol: $(proccontrol_MUTATORS_SO) $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_STATIC_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(PROCCONTROL_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)) runTests
+	       runTests -proccontrol
+
 
 
 install: all
@@ -642,7 +666,7 @@ runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	@echo Compiling $<
 	$(HIDE_COMP)$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
-runTests: runTests.o runTests-utils.o test_driver_templates.o 
+runTests: runTests.o runTests-utils.o test_driver_templates.o test_driver
 	@echo Linking $@
 	$(HIDE_COMP)$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
