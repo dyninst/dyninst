@@ -66,6 +66,7 @@
 #include "ResumeLog.h"
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
+#include "QuietOutputDriver.h"
 #include "comptester.h"
 #include "help.h"
 
@@ -1180,11 +1181,17 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
 
-   setOutput(new StdOutputDriver(NULL));
-   
    int result = parseArgs(argc, argv);
    if (result)
       exit(result);
+   if(quietFormat)
+   {
+     setOutput(new QuietOutputDriver(NULL));
+   }
+   else
+   {
+     setOutput(new StdOutputDriver(NULL));
+   }
 
    if (unique_id) {
       char id_string[32];
@@ -1217,7 +1224,10 @@ int main(int argc, char *argv[]) {
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
+   setOutput(NULL);
    fflush(stdout);
+   
+   
 
    if (!testsRemain(tests) && !limitSkippedTests)
       return NOTESTS;
@@ -1273,7 +1283,7 @@ int parseArgs(int argc, char *argv[])
          debugPrint = 1;
       else if (strcmp(argv[i], "-q") == 0)
       {
-         getOutput()->log(STDERR, "[%s:%u] - Quiet format not yet enabled\n");
+	//getOutput()->log(STDERR, "[%s:%u] - Quiet format not yet enabled\n");
          quietFormat = true;
       }
       else if ( strcmp(argv[i], "-skipTo")==0)

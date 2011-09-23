@@ -31,13 +31,16 @@
 // StdOutputDriver.h
 // Implements the standard test_driver output system
 
+#if !defined(STD_OUTPUT_DRIVER_H)
+#define STD_OUTPUT_DRIVER_H
+
 #include "TestOutputDriver.h"
 
 #include <map>
 #include <string>
 
 class StdOutputDriver : public TestOutputDriver {
-private:
+protected:
   std::map<TestOutputStream, std::string> streams;
   std::map<std::string, std::string> *attributes;
   TestInfo *last_test;
@@ -56,3 +59,5 @@ public:
   virtual void vlog(TestOutputStream stream, const char *fmt, va_list args);
   virtual void finalizeOutput();
 };
+
+#endif // !defined(STD_OUTPUT_DRIVER_H)

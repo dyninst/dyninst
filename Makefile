@@ -25,7 +25,6 @@ ValueAdded = valueAdded/sharedMem
 #DataflowAPI = instructionAPI parseAPI dataflowAPI
 DataflowAPI = ParseAPI
 
-testsuites = dyninstAPI/tests 
 allSubdirs_noinstall =
 
 ifndef DONT_BUILD_DYNINST
@@ -50,10 +49,12 @@ fullSystem += parseAPI
 fullSystem += dynC_API
 Build_list += dynC_API
 
-fullSystem += dyner
-Build_list += dyner
+ifeq (-Dcap_have_tcl,$(findstring -Dcap_have_tcl,$(AC_DEF)))
+#fullSystem += dyner
+#Build_list += dyner
+endif
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI dyner
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI #dyner
 allSubdirs	= $(allCoreSubdirs) $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
@@ -159,6 +160,23 @@ DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites Instruction
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
+
+check: check-symtab check-instruction check-proccontrol check-dyninst
+
+check-all: world
+	cd testsuite/$(PLATFORM); ./runTests -q -j4 -all; cd ../..
+
+check-symtab: SymtabAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-symtab
+
+check-instruction: InstructionAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-instruction
+
+check-proccontrol: ProcControlAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-proccontrol
+
+check-dyninst: DyninstAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-dyninst
 
 # Low-level directory-targets  (used in the sets defined above)
 # Explicit specification of these rules permits better parallelization
