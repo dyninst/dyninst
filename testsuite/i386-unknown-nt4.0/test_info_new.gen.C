@@ -1510,8 +1510,8 @@ struct {
   for (int i = 0; i < 396; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;
@@ -1626,8 +1626,8 @@ struct {
   for (int i = 0; i < 8; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;
@@ -1684,8 +1684,8 @@ struct {
   for (int i = 0; i < 7; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;

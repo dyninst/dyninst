@@ -1184,8 +1184,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
   for (int i = 0; i < %d; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;
