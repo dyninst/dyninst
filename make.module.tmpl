@@ -364,7 +364,7 @@ testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI)
 endif
 endif
 
-check: check-dyninst-create check-dyninst-attach check-dyninst-rewriter check-symtab check-instruction check-proccontrol
+check: check-dyninst-create check-dyninst-attach check-dyninst-rewriter check-symtab check-instruction check-proccontrol check-patch
 
 check-dyninst: check-dyninst-create check-dyninst-attach check-dyninst-rewriter
 
@@ -385,6 +385,9 @@ check-instruction: $(instruction_MUTATORS_SO) $(INSTRUCTION_TESTLIBS) $(INSTRUCT
 
 check-proccontrol: $(proccontrol_MUTATORS_SO) $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_STATIC_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(PROCCONTROL_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)) runTests
 	       runTests -proccontrol
+
+check-patch: $(patchapi_MUTATORS_SO) $(PATCHAPI_TESTLIBS) $(PATCHAPI_STATIC_TESTLIBS) $(PATCHAPI_TESTLIBS_ABI) $(PATCHAPI_STATIC_TESTLIBS_ABI) $(filter-out $(BUILD_FILTER), $(patchapi_SOLO_MUTATEES)) runTests
+	       runTests -patchapi
 
 
 
