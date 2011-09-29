@@ -178,6 +178,8 @@ check-proccontrol: ProcControlAPI
 check-dyninst: DyninstAPI
 	$(MAKE) -C testsuite/$(PLATFORM) check-dyninst
 
+check-patch: patchAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-patch
 # Low-level directory-targets  (used in the sets defined above)
 # Explicit specification of these rules permits better parallelization
 # than building subsystems using a for loop
