@@ -71,8 +71,6 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   return retval;
 }
 
-extern FILE *debug_log;
-
 #include <link.h>
 
 static void* openSO(const char *soname, bool local)
@@ -83,8 +81,8 @@ static void* openSO(const char *soname, bool local)
 #else
    fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
-   if (debug_log) {
-      fprintf(debug_log, "openSO: search path is %s\n", fullSoPath ? fullSoPath : "NULL");
+   if (getDebugLog()) {
+      fprintf(getDebugLog(), "openSO: search path is %s\n", fullSoPath ? fullSoPath : "NULL");
    }
    
    if (!fullSoPath) {
@@ -96,8 +94,8 @@ static void* openSO(const char *soname, bool local)
       fprintf(stderr, "Error opening lib: %s\n", soname);
       const char *errmsg = dlerror();
       fprintf(stderr, "%s\n", errmsg);
-      if (debug_log) {
-         fprintf(debug_log, "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");
+      if (getDebugLog()) {
+         fprintf(getDebugLog(), "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");
       }
       return NULL; //Error
    }

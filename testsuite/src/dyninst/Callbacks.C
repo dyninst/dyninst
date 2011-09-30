@@ -31,7 +31,9 @@
 
 // $Id: Callbacks.C,v 1.1 2008/10/30 19:17:03 legendre Exp $
 
+#if !defined(COMPLIB_DLL_BUILD)
 #define COMPLIB_DLL_BUILD
+#endif
 
 #include "Callbacks.h"
 #include "dyninst_comp.h"

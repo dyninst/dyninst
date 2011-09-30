@@ -138,7 +138,7 @@ char **getCParams(std::string executable, const std::vector<std::string> &args)
    return argv;
 }
 
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 
 static int fds[2];
 static bool fds_set = false;
@@ -261,17 +261,80 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       return std::string(ret);
    }
 }
+#else
+static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, start_state_t gs)
+{
+}
+
+static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
+{
+   LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
+   HANDLE mutatee_signal_pipe = CreateNamedPipe(pipeName,
+      PIPE_ACCESS_INBOUND,
+      PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+      1, // num instances
+      1024, // read buffer
+      1024, // write buffer
+      5000, //timeout
+      NULL); // security descriptor
+   if(mutatee_signal_pipe == INVALID_HANDLE_VALUE) {
+      fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+      return std::string("");
+   }
+
+   const int max_args_size = 32 * 1024;
+   char *arg_str = (char *) malloc(max_args_size);
+   *arg_str = '\0';
+   for (vector<string>::const_iterator i = args.begin(); i != args.end(); i++) {
+      strncat(arg_str, i->c_str(), max_args_size);
+      strncat(arg_str, " ", max_args_size);
+   }
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+   BOOL result = CreateProcess(exec_name.c_str(), arg_str, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+   free(arg_str);
+   if (result == FALSE) 
+      return std::string("");
+
+   // Keep synchronization pattern the same as on Unix...
+   BOOL conn_ok = ConnectNamedPipe(mutatee_signal_pipe, NULL) ?
+      TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+   if(!conn_ok) {
+      CloseHandle(mutatee_signal_pipe);
+      return std::string("");
+   }
+   char mutatee_ready = 0x0;
+   DWORD bytes_read;
+   BOOL read_ok = ReadFile(mutatee_signal_pipe,
+      &mutatee_ready, // buffer
+      1, // size
+      &bytes_read,
+      NULL); // not overlapped I/O
+   if (!read_ok || (bytes_read != 1)) {
+      fprintf(stderr, "Couldn't read from mutatee pipe\n");
+      DisconnectNamedPipe(mutatee_signal_pipe);
+      CloseHandle(mutatee_signal_pipe);
+      return std::string("");
+   }
+   if(mutatee_ready != 'T')
+   {
+      fprintf(stderr, "Got unexpected message from mutatee, aborting\n");
+      DisconnectNamedPipe(mutatee_signal_pipe);
+      CloseHandle(mutatee_signal_pipe);
+      return std::string("");
+   }
+   DisconnectNamedPipe(mutatee_signal_pipe);
+   CloseHandle(mutatee_signal_pipe);
+
+   char ret[32];
+   snprintf(ret, 32, "%d", pi.dwProcessId);
+   return std::string(ret);
+}
 #endif
 
 bool shouldLaunch(RunGroup *group, ParameterDict &params)
 {
-   bool in_runtests = params["in_runtests"]->getInt();
-   if (!in_runtests)
-      return true;
-   create_mode_t cmode = (create_mode_t) params["createmode"]->getInt();
-#if defined(os_linux_test)
-   return (cmode == USEATTACH);
-#endif
+	return true;
 }
 
 std::string launchMutatee(std::string executable, std::vector<std::string> &args, RunGroup *group, ParameterDict &params)
@@ -372,7 +435,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
       args.push_back(std::string(s));
    }
 
-   for (int i = 0; i < group->tests.size(); i++) {
+   for (unsigned i = 0; i < group->tests.size(); i++) {
       if (!group->tests[i]->disabled) {
          args.push_back("-run");
          args.push_back(group->tests[i]->name);
@@ -394,7 +457,7 @@ void registerMutatee(std::string mutatee_string)
    spawned_mutatees.insert(pid);
 }
 
-int getMutateePid(RunGroup *)
+Dyninst::PID getMutateePid(RunGroup *)
 {
    std::set<int>::iterator i = spawned_mutatees.begin();
    assert(i != spawned_mutatees.end());
@@ -413,7 +476,7 @@ void registerMutatee(std::string mutatee_string)
       spawned_mutatees[group_id] = mutatee_string;
 }
 
-int getMutateePid(RunGroup *group)
+Dyninst::PID getMutateePid(RunGroup *group)
 {
    std::map<int, std::string>::iterator i = spawned_mutatees.find(group->index);
    if (i == spawned_mutatees.end()) {
@@ -434,5 +497,3 @@ int getMutateePid(RunGroup *group)
    return pid;
 }
 #endif
-
-   

@@ -119,7 +119,7 @@ namespace Dyninst
    typedef HANDLE LWP;
    typedef HANDLE THR_ID;
 
-#define NULL_PID     INVALID_HANDLE_VALUE
+#define NULL_PID     -1
 #define NULL_LWP     INVALID_HANDLE_VALUE
 #define NULL_THR_ID     INVALID_HANDLE_VALUE
 

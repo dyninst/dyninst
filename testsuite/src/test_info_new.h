@@ -109,7 +109,7 @@ public:
   TESTLIB_DLL_EXPORT void complete() {};
   TESTLIB_DLL_EXPORT bool has_data() const { return false; };
 
-  TESTLIB_DLL_EXPORT const timeval &cpuUsage() const { return timeval(); };
+  TESTLIB_DLL_EXPORT const timeval cpuUsage() const { return timeval(); };
   TESTLIB_DLL_EXPORT const unsigned long memUsage() const { return 0; };
 
   TESTLIB_DLL_EXPORT UsageMonitor &operator=(const UsageMonitor &) { return *this; };

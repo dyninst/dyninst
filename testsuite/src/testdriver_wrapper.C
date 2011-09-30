@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
    struct rlimit infin;
    int result;
 
-   debug_log = fopen("/g/g0/legendre/output_wrapper", "w+");
+// debug_log = fopen("./output_wrapper", "w+");
 // static volatile int loop = 0;
 // while (loop == 0);
 

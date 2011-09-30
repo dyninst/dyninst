@@ -29,17 +29,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <cassert>
 #include "ParameterDict.h"
 #include "test_info_new.h"
 #include "test_lib.h"
 
-static pid_t run_local(char **args)
+#if !defined(os_windows_test)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static Dyninst::PID run_local(char **args)
 {
    pid_t pid = fork();
+   if (pid == -1)
+	   return NULL_PID;
    if (pid != 0) {
       return pid;
    }
@@ -47,7 +51,12 @@ static pid_t run_local(char **args)
    execvp(args[0], args);
    exit(-1);
 }
-
+#else
+static Dyninst::PID run_local(char **args)
+{
+	return NULL_PID;
+}
+#endif
 #if defined(cap_launchmon)
 #include "lmon_api/lmon_fe.h"
 #include <signal.h>
@@ -82,7 +91,7 @@ void alarm_handler(int)
 }
 
 #define LAUNCHER_COLLECT_TIMEOUT 45
-bool collectInvocation(pid_t mpirun_pid, int session)
+bool collectInvocation(Dyninst::PID mpirun_pid, int session)
 {
    int result = LMON_fe_shutdownDaemons(session);
    if (result != LMON_OK) {
@@ -312,8 +321,8 @@ int LMONInvoke(RunGroup *group, ParameterDict params, char *test_args[], char *d
 {
    mpirun_pid = 0;
    if (attach) {
-      pid_t mutatee_pid = run_local(test_args);
-      if (mutatee_pid == -1) {
+      Dyninst::PID mutatee_pid = run_local(test_args);
+      if (mutatee_pid == NULL_PID) {
          return false;
       }
       
@@ -331,16 +340,16 @@ int LMONInvoke(RunGroup *group, ParameterDict params, char *test_args[], char *d
       new_daemon_args[i++] = newbuffer;
       new_daemon_args[i++] = NULL;
 
-      pid_t mutator_pid = run_local(new_daemon_args);
+      Dyninst::PID mutator_pid = run_local(new_daemon_args);
       return mutator_pid;
    }
    else {
-      pid_t mutator_pid = run_local(daemon_args);
+      Dyninst::PID mutator_pid = run_local(daemon_args);
       return mutator_pid;
    }
 }
 
-bool collectInvocation(pid_t /*mpirun_pid*/, int /*session*/)
+bool collectInvocation(Dyninst::PID /*mpirun_pid*/, int /*session*/)
 {
    return true;
 }
