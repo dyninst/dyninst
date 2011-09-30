@@ -33,6 +33,8 @@
 #include "test_info_new.h"
 #include "remotetest.h"
 
+#define COMPLIB_DLL_BUILD
+
 Module::Module(std::string name_, bool remote_)
 {
    name = name_;

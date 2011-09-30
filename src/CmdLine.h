@@ -35,7 +35,7 @@
 #include "ParameterDict.h"
 #include "test_info_new.h"
 
-int parseArgs(int argc, char *argv[], ParameterDict &params);
-void getGroupList(std::vector<RunGroup *> &group_list, ParameterDict &params);
+int TESTLIB_DLL_EXPORT parseArgs(int argc, char *argv[], ParameterDict &params);
+void TESTLIB_DLL_EXPORT getGroupList(std::vector<RunGroup *> &group_list, ParameterDict &params);
 
 #endif
