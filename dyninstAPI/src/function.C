@@ -567,7 +567,7 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    obj()->findBlocksByAddr(addr, objblks);
    getAllBlocks(); // ensure that all_blocks_ is filled in 
    std::vector<std::set<block_instance *>::iterator> to_erase; 
-   for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end();) {
+   for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
       // Make sure it's one of ours
       if (all_blocks_.find(*bit) == all_blocks_.end()) {
          to_erase.push_back(bit);
