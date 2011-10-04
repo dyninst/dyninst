@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdio.h>
+#include <string.h>
 
 void QuietOutputDriver::logResult(test_results_t result, int stage)
 {
