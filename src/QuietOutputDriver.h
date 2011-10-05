@@ -1,5 +1,8 @@
 #include "StdOutputDriver.h"
+#include <stdio.h>
 #include <string.h>
+#include <vector>
+#include <string>
 
 class QuietOutputDriver : public StdOutputDriver
 {
