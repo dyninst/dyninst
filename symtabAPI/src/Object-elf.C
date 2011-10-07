@@ -4715,14 +4715,16 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
 				Dyninst::Offset startAddrToUse = previousLineAddr;
 				Dyninst::Offset endAddrToUse = lineAddr;
 
-				//fprintf(stderr, "%s[%d]:  adding %s[%llu]: %lu to line info: %s\n", FILE__, __LINE__, canonicalLineSource, previousLineNo,  startAddrToUse, fix_addr_mismatch ? "fixed mismatch" : "no mismatch");
-
-				li[std::string(moduleName)].addLine(canonicalLineSource, 
-						(unsigned int) previousLineNo, 
-						(unsigned int) previousLineColumn, 
-						startAddrToUse, 
-						endAddrToUse );
-
+            if (startAddrToUse && endAddrToUse)
+            {
+               //fprintf(stderr, "%s[%d]:  adding %s[%llu]: 0x%lx -> 0x%lx to line info\n", FILE__, __LINE__, canonicalLineSource, previousLineNo,  startAddrToUse, endAddrToUse);
+               
+               li[std::string(moduleName)].addLine(canonicalLineSource, 
+                                                   (unsigned int) previousLineNo, 
+                                                   (unsigned int) previousLineColumn, 
+                                                   startAddrToUse, 
+                                                   endAddrToUse );
+            }
 				/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
 			} /* end if the previous* variables are valid */
 
