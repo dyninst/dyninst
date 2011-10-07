@@ -359,7 +359,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   // ".shstrtab" section: string table for section header names
   const char *shnames = pdelf_get_shnames(elfHdr);
   if (shnames == NULL) {
-    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
     log_elferror(err_func_, ".shstrtab section");
     //return false;
   }
@@ -439,7 +439,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
   const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrForDebugInfo);
   if (shnamesForDebugInfo == NULL) {
-    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
     log_elferror(err_func_, ".shstrtab section");
     //return false;
   }
@@ -5135,8 +5135,8 @@ MappedFile *Object::findMappedFileForDebugInfo() {
   // ".shstrtab" section: string table for section header names
   const char *shnames = pdelf_get_shnames(elfHdr);
   if (shnames == NULL) {
-    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
-            getFileName());
+     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
+     //getFileName());
     log_elferror(err_func_, ".shstrtab section");
     return mf;
   }
