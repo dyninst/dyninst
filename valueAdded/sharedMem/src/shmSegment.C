@@ -36,6 +36,7 @@
 #include "../h/SharedMem.h"
 #include "sharedMemInternal.h"
 #include "BPatch_process.h"
+#include "BPatch_image.h"
 
 const unsigned ShmSegment::cookie = 0xdeadbeef;
 
