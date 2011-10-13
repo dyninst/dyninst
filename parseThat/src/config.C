@@ -88,6 +88,7 @@ void configInit()
 
     config.dynlib = NULL;
 
+    config.write_crashes = false;
     config.hunt_crashes = false;
     config.hunt_crashed = false;
     config.hunt_low = -1;

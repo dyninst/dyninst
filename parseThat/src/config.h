@@ -135,6 +135,7 @@ struct Config {
     bool use_exe; // Use seperate execitable file instead of the rewritten
                   // library. Used for executing rewritten shared libraries
     bool use_process; // Standard in-core instrumentation or binary edit
+    bool write_crashes; // Rewrite with given limits
     bool hunt_crashes; // Keep running until crash is found
     bool hunt_crashed; // True if process crashed
     int hunt_low;
