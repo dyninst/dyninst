@@ -313,7 +313,31 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\windows.C"
+				RelativePath=".\src\windows_handler.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\windows_process.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\windows_thread.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -407,7 +431,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\windows.h"
+				RelativePath=".\src\windows_handler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\windows_process.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\windows_thread.h"
 				>
 			</File>
 			<File

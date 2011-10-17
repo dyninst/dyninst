@@ -89,16 +89,21 @@ int pc_library_mutatee()
    int result;
    void *handlea, *handleb;
    syncloc msg;
-
+	fprintf(stderr, "Entering pc_library_mutatee\n");
    result = initProcControlTest(threadFunc, NULL);
+	fprintf(stderr, "Done with init, pc_library_mutatee\n");
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
 
+   fprintf(stderr, "Opening libtestA pc_library_mutatee\n");
    handlea = openLib(LIBTESTA);
+   fprintf(stderr, "Opening libtestB pc_library_mutatee\n");
    handleb = openLib(LIBTESTB);
+   fprintf(stderr, "Closing libtestB\n");
    closeLib(LIBTESTB, handleb);
+   fprintf(stderr, "Closing libtestB\n");
    closeLib(LIBTESTA, handlea);
 
    msg.code = SYNCLOC_CODE;

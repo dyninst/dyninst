@@ -314,7 +314,7 @@ int main(int iargc, char *argv[])
    }
    /* see if we should wait for the attach */
    if (useAttach) {
-#ifndef i386_unknown_nt4_0_test
+#ifndef os_windows_test
       char ch = 'T';
       if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
          output->log(STDERR, "*ERROR*: Writing to pipe\n");

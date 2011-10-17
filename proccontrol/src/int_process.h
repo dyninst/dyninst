@@ -202,8 +202,9 @@ class int_process
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
 
    virtual SymbolReaderFactory *plat_defaultSymReader();
-   Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
-   bool infFree(Dyninst::Address addr);
+   // Windows lets us do this directly, so we'll just override these entirely on that platform.
+   virtual Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
+   virtual bool infFree(Dyninst::Address addr);
 
    bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);
    bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL);
@@ -256,6 +257,9 @@ class int_process
 
    static int_process *in_waitHandleProc;
    virtual bool hasPendingDetach() const { return false; }
+   bool wasCreatedViaAttach() const { return createdViaAttach; }
+   void wasCreatedViaAttach(bool val) { createdViaAttach = val; }
+
  protected:
    State state;
    Dyninst::PID pid;
@@ -280,6 +284,7 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
+   bool createdViaAttach;
 };
 
 /*
@@ -599,7 +604,7 @@ class int_threadPool {
    std::vector<Thread::ptr> hl_threads;
    std::map<Dyninst::LWP, int_thread *> thrds_by_lwp;
 
-   int_thread *initial_thread;
+   mutable int_thread *initial_thread; // may be updated by side effect on Windows
    int_process *proc_;
    ThreadPool *up_pool;
    bool had_multiple_threads;
@@ -618,6 +623,7 @@ class int_threadPool {
    typedef std::vector<int_thread *>::iterator iterator;
    iterator begin() { return threads.begin(); }
    iterator end() { return threads.end(); }
+   bool empty() { return threads.empty(); }
 
    unsigned size() const;
 
@@ -635,6 +641,9 @@ class int_threadPool {
  private:
    bool cont(bool user_cont);
    bool stop(bool user_stop, bool sync);
+
+
+
 };
 
 class int_library

@@ -23,7 +23,7 @@ class GeneratorWindows : public GeneratorMT
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
 
-   virtual void plat_continue(ArchEvent* evt);
+   virtual bool plat_continue(ArchEvent* evt);
    virtual void plat_start();
    enum start_mode {
 	   create,
@@ -62,6 +62,10 @@ class GeneratorWindows : public GeneratorMT
    std::map<int, int_process*> thread_to_proc;
    virtual bool hasLiveProc();
    void removeProcess(int_process* proc);
+
+   virtual ArchEvent* getCachedEvent();
+   virtual void setCachedEvent(ArchEvent* ae);
+   std::map<int, ArchEvent*> m_Events;
 };
 
 #endif // !defined(GENERATOR_WINDOWS_H)

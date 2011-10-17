@@ -673,6 +673,7 @@ struct syncRunStateRet_t {
    bool hasClearingBP;
    bool hasProcStopRPC;
    bool hasAsyncEvent;
+   bool hasForceGeneratorBlock;
    std::vector<int_process *> readyProcStoppers;
    syncRunStateRet_t() :
       hasRunningThread(false),
@@ -680,7 +681,8 @@ struct syncRunStateRet_t {
       hasStopPending(false),
       hasClearingBP(false),
       hasProcStopRPC(false),
-      hasAsyncEvent(false)
+      hasAsyncEvent(false),
+	  hasForceGeneratorBlock(false)
    {
    }
 };
@@ -704,7 +706,7 @@ bool int_process::continueProcess() {
         }
     }
 
-    if( foundResumedThread && !foundHandlerRunning ) { 
+    if( (foundResumedThread && !foundHandlerRunning) || threadPool()->empty() ) { 
         if( !plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
             return false;
@@ -723,12 +725,13 @@ bool syncRunState(int_process *p, void *r)
    syncRunStateRet_t *ret = (syncRunStateRet_t *) r;
    assert(ret);
    
-   if (p->hasQueuedProcStoppers() && p->threadPool()->allStopped()) {
+   if (p->hasQueuedProcStoppers() && tp->allStopped()) {
       ret->readyProcStoppers.push_back(p);
    }
    if (p->forceGeneratorBlock()) {
       pthrd_printf("Process %d is forcing blocking via generator block\n", p->getPid());
       ret->hasRunningThread = true;
+	  ret->hasForceGeneratorBlock = true;
    }
 
    if (p->handlerPool()->hasAsyncEvent()) {
@@ -745,6 +748,10 @@ bool syncRunState(int_process *p, void *r)
                       int_thread::stateStr(thr->getInternalState()),
                       int_thread::stateStr(thr->getUserState()));
       }
+	  if(tp->empty())
+	  {
+		  pthrd_printf("Threadpool for %d is empty\n", p->getPid());
+	  }
    }
 
    /**
@@ -844,8 +851,19 @@ bool syncRunState(int_process *p, void *r)
                       int_thread::stateStr(thr->getInternalState()),
                       int_thread::stateStr(thr->getUserState()));
       }
+	  if(tp->empty())
+	  {
+		  pthrd_printf("Threadpool for %d is empty\n", p->getPid());
+	  }
    }
-
+#if defined(os_windows)
+   if(tp->empty()) {
+	   // Again, this is *not* actually "hasRunningThread". This is "canGenerateCallbackEvents" more properly.
+	   // If we have a process with no threads on Windows, we are guaranteed to see a
+	   // process exit event of some type before we destroy the process.
+	   ret->hasRunningThread = true;
+   }
+#endif
    if( useHybridLWPControl() ) {
        return p->continueProcess();
    }
@@ -977,7 +995,8 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for new events
        **/
       bool should_block = ((block && !gotEvent) || ret.hasStopPending || 
-                           ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC || hasAsyncPending);
+		  ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC || hasAsyncPending ||
+		  ret.hasForceGeneratorBlock);
       pthrd_printf("%s for events (%d %d %d %d %d %d %d)\n", 
                    should_block ? "Blocking" : "Polling",
                    (int) block, (int) gotEvent, (int) ret.hasStopPending, 
@@ -1013,10 +1032,15 @@ bool int_process::waitAndHandleEvents(bool block)
          notify()->clearEvent();
       }
       gotEvent = true;
+	  int_process* llp = ev->getProcess()->llproc();
+	  if(!llp) {
+		  error = true;
+		  goto done;
+	  }
 
-      HandlerPool *hpool = ev->getProcess()->llproc()->handlerpool;
+      HandlerPool *hpool = llp->handlerpool;
       
-      ev->getProcess()->llproc()->updateSyncState(ev, false);
+      llp->updateSyncState(ev, false);
       if (ev->procStopper()) {
          /**
           * This event wants the process stopped before it gets handled.
@@ -1177,6 +1201,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    mem(NULL),
    continueSig(0)
 {
+	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
 }
 
@@ -1797,6 +1822,8 @@ int_process::~int_process()
       up_proc->exitstate_ = exitstate;
       up_proc->llproc_ = NULL;
    }
+   //ProcPool()->condvar()->lock();
+   //ProcPool()->condvar()->wait();
 
    if (threadpool) {
       delete threadpool;
@@ -1811,6 +1838,8 @@ int_process::~int_process()
       delete mem;
    }
    mem = NULL;
+   //ProcPool()->condvar()->signal();
+   //ProcPool()->condvar()->unlock();
 }
 
 static
@@ -1881,7 +1910,7 @@ bool int_threadPool::cont(bool user_cont)
 
    if( useHybridLWPControl(this) && user_cont && !allStopped() ) {
        // This thread control mode requires that all threads are stopped before
-       // continuing a single thread. To peform these stops while still 
+       // continuing a single thread. To perform these stops while still 
        // maintaining the internal state, each thread's internal state is
        // desync'd during the stop and restored after.
        pthrd_printf("Stopping all threads to perform continue\n");
@@ -1959,7 +1988,7 @@ bool int_threadPool::cont(bool user_cont)
 
    if (!cont_something) {
       perr_printf("Failed to continue exited process %d\n", pid);
-      setLastError(err_exited, "Continue attempted on exite/d process\n");
+      setLastError(err_exited, "Continue attempted on exited process\n");
       return false;
    }
 
@@ -2038,7 +2067,7 @@ bool int_thread::cont(bool user_cont)
        !llproc()->threadPool()->allStopped() )
    {
        // This thread control mode requires that all threads are stopped before
-       // continuing a single thread. To peform these stops while still 
+       // continuing a single thread. To perform these stops while still 
        // maintaining the internal state, each thread's internal state is
        // desync'd during the stop and restored after.
        pthrd_printf("Stopping all threads to perform continue\n");
@@ -2658,8 +2687,10 @@ void int_thread::restoreInternalState(bool sync)
 {
    pthrd_printf("Thread %d/%d is restoring int to user state, %d\n",
                 llproc()->getPid(), getLWP(), num_locked_stops-1);
-   assert(num_locked_stops > 0);
-   num_locked_stops--;
+   // FIXME: disabling this to see where it explodes later.
+   //assert(num_locked_stops > 0);
+   if(num_locked_stops > 0)
+	   num_locked_stops--;
    if (num_locked_stops > 0) 
       return;
    
@@ -3358,6 +3389,9 @@ int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 
 int_thread *int_threadPool::initialThread() const
 {
+	if(!initial_thread) {
+		initial_thread = *(threads.begin());
+	}
    return initial_thread;
 }
 
@@ -3453,7 +3487,8 @@ ThreadPool *int_threadPool::pool() const
 }
 
 int_threadPool::int_threadPool(int_process *p) :
-   proc_(p), had_multiple_threads(false)
+   proc_(p), had_multiple_threads(false),
+	   initial_thread(NULL)
 {
    up_pool = new ThreadPool();
    up_pool->threadpool = this;
@@ -5731,12 +5766,12 @@ ThreadPool::~ThreadPool()
 
 Thread::ptr ThreadPool::getInitialThread()
 {
-   return threadpool->initialThread()->thread();
+	return threadpool->initialThread()->thread();
 }
 
 Thread::const_ptr ThreadPool::getInitialThread() const
 {
-   return threadpool->initialThread()->thread();
+	return threadpool->initialThread()->thread();
 }
 
 ThreadPool::iterator::iterator()
@@ -6282,4 +6317,15 @@ bool emulated_singlestep::savedSingleStepMode() const {
 
 unsigned emulated_singlestep::breakpointCount() const {
     return bps.size();
+}
+
+void Dyninst::ProcControlAPI::LibraryPool::lock() const
+{
+	the_lock = new MTLock(MTLock::allow_generator);
+}
+
+void Dyninst::ProcControlAPI::LibraryPool::unlock() const
+{
+	delete the_lock;
+	the_lock = NULL;
 }

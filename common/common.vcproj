@@ -49,6 +49,7 @@
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="true"
+				PrecompiledHeaderThrough="headers.h"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4251;4503"

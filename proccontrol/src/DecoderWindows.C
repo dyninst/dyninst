@@ -1,8 +1,11 @@
 #include "DecoderWindows.h"
-#include "windows.h"
+#include "windows_process.h"
+#include "windows_handler.h"
+#include "windows_thread.h"
 #include "ProcPool.h"
 #include <iostream>
 #include "external/boost/scoped_ptr.hpp"
+#include "irpc.h"
 
 DecoderWindows::DecoderWindows()
 {
@@ -163,13 +166,18 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
 		addedLibs.insert(lib->getUpPtr());
-		proc->memory()->libs.insert(lib);		
+		// FIXME
+		//std::cerr << "Theoretically adding " << std::hex << lib->getUpPtr() << std::dec << std::endl;
+		//std::cerr << proc->memory()->libs.size() << " current libs" << std::endl; 
+		//proc->memory()->libs.insert(lib);		
+		//std::cerr << proc->memory()->libs.size() << " new libs" << std::endl; 
 		pthrd_printf("Load DLL event, loading %s (at 0x%lx)\n",
 			lib->getName().c_str(), lib->getAddr());
 
 	}
 	else if(details.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)
 	{
+		std::cerr << "Unload for " << std::hex << (details.u.UnloadDll.lpBaseOfDll) << std::dec << std::endl;
 		std::set<int_library*>::iterator foundLib;
 		for(foundLib = proc->memory()->libs.begin();
 			foundLib != proc->memory()->libs.end();
@@ -177,10 +185,11 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		{
 			if((*foundLib)->getAddr() == (Dyninst::Address)(details.u.UnloadDll.lpBaseOfDll))
 			{
+				std::cerr << "Unload DLL " << (*foundLib)->getName().c_str() << std::endl;
 				pthrd_printf("Unload DLL event, unloading %s (was at 0x%lx)\n",
 					(*foundLib)->getName().c_str(), (*foundLib)->getAddr());
 				removedLibs.insert((*foundLib)->getUpPtr());
-				proc->memory()->libs.erase(foundLib);
+				//proc->memory()->libs.erase(foundLib);
 				break;
 			}
 		}
@@ -194,7 +203,18 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* proc, int_thread* thread)
 {
 	Event::ptr evt;
+	// This handles user-level breakpoints; if we can't associate this with a thread we know about, it's not
+	// something the user installed (or we're in an inconsistent state). Forward to the mutatee.
+	if(!thread) return evt;
 	Dyninst::Address adjusted_addr = (Dyninst::Address)(e.u.Exception.ExceptionRecord.ExceptionAddress);
+
+	if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
+		pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
+			proc->getPid(), thread->getLWP(), adjusted_addr);
+		evt = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
+		return evt;
+	}
+
 	installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
 	installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
@@ -238,36 +258,59 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	assert(winEvt);
 	Event::ptr newEvt = Event::ptr();
 	int_thread *thread = ProcPool()->findThread((Dyninst::LWP)(winEvt->evt.dwThreadId));
-	int_process* proc = NULL;
-	if (thread) {
-      proc = thread->llproc();
-	  windows_process* windows_proc = dynamic_cast<windows_process*>(proc);
-	  windows_proc->clearPendingDebugBreak();
-    }
+	int_process* proc = ProcPool()->findProcByPid(winEvt->evt.dwProcessId);
+	if(!proc) { return false; }
+	windows_process* windows_proc = dynamic_cast<windows_process*>(proc);
+	if(!windows_proc)
+	{
+		perr_printf("DecoderWindows::decode() called on nonexistent/deleted process %d/%d\n", 
+			winEvt->evt.dwProcessId, winEvt->evt.dwThreadId);
+		return false;
+	}
+	windows_proc->clearPendingDebugBreak();
+
 	DEBUG_EVENT e = winEvt->evt;
+
 	switch(e.dwDebugEventCode)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
-		pthrd_printf("Decoded CreateProcess event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-		newEvt = EventPreBootstrap::ptr(new EventPreBootstrap());
-		newEvt->setSyncType(Event::sync_process);
-		break;
+		{
+			std::cerr << "Create process " << e.dwProcessId << std::endl;
+			pthrd_printf("Decoded CreateProcess event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
+			newEvt = EventPreBootstrap::ptr(new EventPreBootstrap());
+			newEvt->setSyncType(Event::sync_process);
+			windows_proc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
+			newEvt->setProcess(proc->proc());
+			events.push_back(newEvt);
+			if(windows_proc->wasCreatedViaAttach()) {
+				std::cerr << "Create state: " << (windows_proc->wasCreatedViaAttach() ? "attach" : "create") << std::endl;
+				Event::ptr threadEvent;
+				bool ok = decodeCreateThread(e, threadEvent, proc, events);
+				if(threadEvent)
+					newEvt->addSubservientEvent(threadEvent);
+				return ok;
+			}
+			else {
+				return true;
+			}
+		}
 	case CREATE_THREAD_DEBUG_EVENT:
 		{
+			std::cerr << "Create thread " << e.dwThreadId << std::endl;
 			return decodeCreateThread(e, newEvt, proc, events);
 		}
 	case EXCEPTION_DEBUG_EVENT:
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:
-			fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
+			//fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
 			newEvt = decodeBreakpointEvent(e, proc, thread);
 			if(newEvt)
 			{
 				pthrd_printf("Decoded Breakpoint event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
-				fprintf(stderr, "Decoded Breakpoint event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
+				//fprintf(stderr, "Decoded Breakpoint event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
 				break;
 			}
 			else
@@ -322,6 +365,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				{
 					// Case 4: breakpoint in ntdll.dll due to startup. This should be skipped and we should bootstrap.
 					pthrd_printf("Breakpoint due to startup, ignoring\n");
+					proc->setForceGeneratorBlock(false);
 					newEvt = Event::ptr(new EventBootstrap());
 				}
 			}
@@ -338,7 +382,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			{
 				pthrd_printf("segfault in mutatee\n");
 				unsigned problemArea = (unsigned int)(e.u.Exception.ExceptionRecord.ExceptionAddress);
-				DecoderWindows::dumpSurroundingMemory(problemArea, proc);
+				dumpSurroundingMemory(problemArea, proc);
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
@@ -372,7 +416,8 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			winGen->removeProcess(proc);
 			newEvt->setSyncType(Event::sync_process);
 			newEvt->setProcess(proc->proc());
-			newEvt->setThread(thread->thread());
+			if(thread)
+				newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
 			  int_threadPool::iterator i = proc->threadPool()->begin();
 			  for (; i != proc->threadPool()->end(); ++i) {
@@ -386,9 +431,15 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		break;
 	case EXIT_THREAD_DEBUG_EVENT:
 		pthrd_printf("Decoded ThreadExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-		thread->setGeneratorState(int_thread::exited);
-		thread->setExitingInGenerator(true);
-		newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+		if(thread) {
+			thread->setGeneratorState(int_thread::exited);
+			thread->setExitingInGenerator(true);
+			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+		} else {
+			// If the thread is NULL, we can't give the user an event with a valid thread object anymore.
+			// So fail the decode.
+			return false;
+		}
 		break;
 	case LOAD_DLL_DEBUG_EVENT:
 		pthrd_printf("Decoded LoadDLL event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
@@ -403,7 +454,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			TCHAR buf[1024];
 			unsigned long bytes_read = 0;
 			windows_process* winProc = dynamic_cast<windows_process*>(proc);
-			bool result = ::ReadProcessMemory(winProc->plat_getHandle(), e.u.DebugString.lpDebugStringData, buf, 
+			BOOL result = ::ReadProcessMemory(winProc->plat_getHandle(), e.u.DebugString.lpDebugStringData, buf, 
 				e.u.DebugString.nDebugStringLength, &bytes_read);
 			if(result) {
 				pthrd_printf("Decoded DebugString event, string: %s\n", buf);
@@ -424,11 +475,12 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	}
 	if(newEvt)
 	{
-		assert(thread);
+		//assert(thread || (e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT));
 		assert(proc);
 		if(newEvt->getSyncType() == Event::unset)
 			newEvt->setSyncType(Event::sync_process);
-		newEvt->setThread(thread->thread());
+		if(thread)
+			newEvt->setThread(thread->thread());
 		newEvt->setProcess(proc->proc());
 		events.push_back(newEvt);
 	}
@@ -456,9 +508,18 @@ bool DecoderWindows::checkForFullString( DEBUG_EVENT &details, int chunkSize, wc
 
 bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int_process* &proc, std::vector<Event::ptr> &events )
 {
+	std::cerr << "Decoded createThread " << e.dwThreadId << std::endl;
 	pthrd_printf("Decoded CreateThread event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-	newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
-		e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
+
+	if(e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT) {
+		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateProcessInfo.hThread,
+			e.u.CreateProcessInfo.lpStartAddress, e.u.CreateProcessInfo.lpThreadLocalBase));
+	} else {
+		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
+			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
+
+	}
+
 	ProcPool()->condvar()->lock();
 	proc = ProcPool()->findProcByPid(e.dwProcessId);
 	assert(proc);

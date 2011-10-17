@@ -39,7 +39,7 @@
 #include "proccontrol/src/int_event.h"
 #include "dynutil/h/dyn_regs.h"
 
-#include "windows.h"
+#include "GeneratorWindows.h"
 
 using namespace Dyninst;
 
@@ -444,12 +444,15 @@ void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
 {
 	int_process* p = ev->getProcess()->llproc();
-	p->threadPool()->intCont();
+	if(p->wasCreatedViaAttach()) {
+		p->setForceGeneratorBlock(true);
+	} else {
+		p->threadPool()->intCont();
+	}
 	GeneratorWindows* winGen = dynamic_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	if(winGen)
 	{
 		winGen->wake(p->getPid());
-		//winGen->wait(p->getPid());
 	}
 	return ret_success;
 }
@@ -538,12 +541,18 @@ void HandlePostExit::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
    assert(proc);
-   assert(thrd);
+   if(ev->getThread()) {
+	   int_thread *thrd = ev->getThread()->llthrd();
+	   assert(thrd);
+	   pthrd_printf("Handling post-exit for process %d on thread %d\n",
+		   proc->getPid(), thrd->getLWP());
+   } else {
+	   pthrd_printf("Handling post-exit for process %d, all threads gone\n",
+		   proc->getPid());
+   }
+
    EventExit *event = static_cast<EventExit *>(ev.get());
-   pthrd_printf("Handling post-exit for process %d on thread %d\n",
-                proc->getPid(), thrd->getLWP());
    proc->setExitCode(event->getExitCode());
    
    ProcPool()->condvar()->lock();
@@ -555,8 +564,8 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
-      //delete proc;
-	   pthrd_printf("Skipping delete because Matt's an idiot\n");
+      delete proc;
+	  // pthrd_printf("Skipping delete because Matt's an idiot\n");
    }
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -629,11 +638,15 @@ void HandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
 
 Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   Thread::const_ptr t = ev->getThread();
+   int_thread* thrd = NULL;
+   if(t) {
+	   int_thread *thrd = t->llthrd();
+   }
    assert(proc);
-   assert(thrd);
+   // assert(thrd);
    pthrd_printf("Handling force terminate for process %d on thread %d\n",
-                proc->getPid(), thrd->getLWP());
+	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1));
 
    ProcPool()->condvar()->lock();
 
@@ -735,15 +748,19 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
       }
    }
    ProcPool()->condvar()->lock();
-   if(!thrd)
-   {
-	   thrd = proc->threadPool()->initialThread();
-   }
 #if defined (os_windows)   
    int_thread *newthr = int_thread::createThread(proc, threadev->getLWP(), threadev->getLWP(), false);
    // On Windows, pending stops need to be inherited.
-   newthr->setPendingStop(thrd->hasPendingStop());
-   newthr->setPendingUserStop(thrd->hasPendingUserStop());
+   if(thrd)
+   {
+	   newthr->setPendingStop(thrd->hasPendingStop());
+	   newthr->setPendingUserStop(thrd->hasPendingUserStop());
+   }
+   else
+   {
+	   newthr->setPendingStop(false);
+	   newthr->setPendingUserStop(false);
+   }
 #else
    int_thread *newthr = int_thread::createThread(proc, NULL_THR_ID, threadev->getLWP(), false);
 #endif
@@ -768,9 +785,17 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    }else{
        //New threads start stopped, but inherit the user state of the creating
        // thread (which should be 'running').
-       newthr->setInternalState(thrd->getUserState());
+	   if(thrd) {
+	       newthr->setInternalState(thrd->getUserState());
+	   } else {
+		   newthr->setInternalState(int_thread::running);
+	   }
    }
-   newthr->setUserState(thrd->getUserState());
+   if(thrd) {
+	   newthr->setUserState(thrd->getUserState());
+   } else {
+	   newthr->setInternalState(int_thread::neonatal_intermediate);
+   }
    ev->setThread(newthr->thread());
    
    ProcPool()->condvar()->signal();
@@ -1504,11 +1529,27 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling library load/unload\n");
    EventLibrary *lev = static_cast<EventLibrary *>(ev.get());
-   if(!lev->libsAdded().empty() || !lev->libsRemoved().empty())
+   if(!lev->libsAdded().empty())
    {
 	   // this happens on Windows, where we already did the decode when we got the event
-	   return ret_success;
+	   for(std::set<Library::ptr>::const_iterator lib = lev->libsAdded().begin();
+		   lib != lev->libsAdded().end();
+		   ++lib)
+	   {
+		   ev->getProcess()->llproc()->memory()->libs.insert((*lib)->debug());
+	   }
    }
+   if(!lev->libsRemoved().empty())
+   {
+	   for(std::set<Library::ptr>::const_iterator lib = lev->libsRemoved().begin();
+		   lib != lev->libsRemoved().end();
+		   ++lib)
+	   {
+		   ev->getProcess()->llproc()->memory()->libs.erase((*lib)->debug());
+	   }
+   }
+   if(!lev->libsAdded().empty() || !lev->libsRemoved().empty())
+	   return ret_success;
 
    int_process *proc = ev->getProcess()->llproc();
    set<int_library *> ll_added, ll_rmd;
@@ -1757,7 +1798,7 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
    // But if this is a PostCrash or PostExit, the underlying process and
    // threads are already gone and thus no operations on them really make sense
    int_thread::State savedUserState;
-   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+   if( !ev->getProcess()->isTerminated() && ev->getThread() && ev->getThread()->llthrd() != NULL ) {
        savedUserState = ev->getThread()->llthrd()->getUserState();
        ev->getThread()->llthrd()->setUserState(int_thread::stopped);
    }
@@ -1793,7 +1834,7 @@ bool HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_
 
    // Now that the callback is over, return the state to what it was before the
    // callback so the return value from the callback can be used to update the state
-   if( !ev->getProcess()->isTerminated() && ev->getThread()->llthrd() != NULL ) {
+   if( !ev->getProcess()->isTerminated() && ev->getThread() && ev->getThread()->llthrd() != NULL ) {
       ev->getThread()->llthrd()->setUserState(savedUserState);
 
       //Given the callback return result, change the user state to the appropriate

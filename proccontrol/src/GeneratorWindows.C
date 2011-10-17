@@ -1,7 +1,8 @@
 #include "proccontrol/h/Generator.h"
 #include "GeneratorWindows.h"
 #include "DecoderWindows.h"
-#include "windows.h"
+#include "windows_process.h"
+#include "windows_handler.h"
 #include "procpool.h"
 
 #include <iostream>
@@ -59,12 +60,26 @@ void GeneratorWindows::plat_start()
 	thread_to_proc.insert(std::make_pair(::GetCurrentThreadId(), proc));
 }
 
+struct value_equal
+{
+	value_equal(int_process* v) : value(v) {}
+	bool operator()(std::pair<int, int_process*> element)
+	{
+		return element.second == value;
+	}
+	int_process* value;
+};
+
 void GeneratorWindows::removeProcess(int_process *proc)
 {
 	processes.erase(proc->getPid());
 	//if(thread_to_proc[::GetCurrentThreadId()] == proc)
 	//{
-		thread_to_proc.erase(::GetCurrentThreadId());
+	std::map<int, int_process*>::iterator found = std::find_if(thread_to_proc.begin(), thread_to_proc.end(),
+		value_equal(proc));
+	if(found != thread_to_proc.end()) {
+		found->second = NULL;
+	}
 	//}
 	//else
 	//{
@@ -75,43 +90,72 @@ void GeneratorWindows::removeProcess(int_process *proc)
 
 bool GeneratorWindows::hasLiveProc()
 {
+	pthrd_printf("begin hasLiveProc()\n");
+	ProcPool()->condvar()->lock();
 	int_process* p = thread_to_proc[::GetCurrentThreadId()];
 	if(!p) {
 		setState(exiting);
+		pthrd_printf("hasLiveProc() found NULL process, returning FALSE\n");
+		ProcPool()->condvar()->signal();
+		ProcPool()->condvar()->unlock();
 		return false;
 	}
-	return !allStopped(p, NULL);
+	bool all_stopped = allStopped(p, NULL);
+	bool ret = !all_stopped;
+	pthrd_printf("allStopped %s for %d, returning %s\n",
+		all_stopped ? "TRUE" : "FALSE",
+		p->getPid(),
+		ret ? "TRUE" : "FALSE");
+	ProcPool()->condvar()->signal();
+	ProcPool()->condvar()->unlock();
+	return ret;
 }
 
-void GeneratorWindows::plat_continue(ArchEvent* evt)
+ArchEvent* GeneratorWindows::getCachedEvent()
+{
+	return m_Events[DThread::self()];
+}
+void GeneratorWindows::setCachedEvent(ArchEvent* ae)
+{
+	m_Events[DThread::self()] = ae;
+}
+
+// Returns true if we should continue to WaitForDebugEvent, false otherwise
+bool GeneratorWindows::plat_continue(ArchEvent* evt)
 {
 	// evt is null the first time we call this; however, 
 	// the process also hasn't called WaitForDebugEvent the first time we call it.
 	// thus, do nothing if evt == NULL.
-	if(!evt) return;
+	if(!evt) return true;
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(evt);
+	int_process* process_for_cur_thread = thread_to_proc[DThread::self()];
+	if(!process_for_cur_thread || winEvt->evt.dwProcessId != process_for_cur_thread->getPid())
+	{
+		pthrd_printf("GeneratorWindows::plat_continue() bailing, called on thread for %d, got event on %d\n", 
+			process_for_cur_thread->getPid(),
+			winEvt->evt.dwProcessId);
+		return true;
+	}
 	pthrd_printf("GeneratorWindows::plat_continue() for %d waiting\n", winEvt->evt.dwProcessId);
 	//::ResetEvent(waiters[winEvt->evt.dwProcessId]->user_wait);
 	//::WaitForSingleObject(waiters[winEvt->evt.dwProcessId]->gen_wait, INFINITE);
 	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
 	if(!theWaiter) {
 		pthrd_printf("Wait object deleted. Process %d should be dead. Returning.\n", winEvt->evt.dwProcessId);
-		return;
+		setState(exiting);
+		return false;
 	}
 	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
-	/*int_thread* t = ProcPool()->findThread((Dyninst::LWP)(winEvt->evt.dwThreadId));
-	windows_thread* w = static_cast<windows_thread*>(t);
-	if(w) {
-		std::cerr << "ContinueDebugEvent on process " << winEvt->evt.dwProcessId << std::endl;
-		std::cerr << w->dumpThreadContext() << std::endl;
-	}*/
-	::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
-	//cerr << "Thread " << winEvt->evt.dwThreadId << " is " << w->getSuspendedStatus() << " at ContinueDebugEvent() call"
-	//	<< endl;
+
+	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
+	if (!retval) {
+		std::cerr << "ContinueDebugEvent failed, you're so screwed." << std::endl;
+	}
 	waiters[winEvt->evt.dwProcessId]->unhandled_exception = false;
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with ::ContinueDebugEvent()\n", winEvt->evt.dwProcessId);
 	::SetEvent(theWaiter->user_wait);
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with signal()\n", winEvt->evt.dwProcessId);
+	return true;
 }
 
 ArchEvent *GeneratorWindows::getEvent(bool block)

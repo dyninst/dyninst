@@ -56,6 +56,7 @@ class rpc_wrapper;
 class int_iRPC;
 class int_notify;
 class HandlerPool;
+class MTLock;
 
 #define pc_const_cast dyn_detail::boost::const_pointer_cast
 
@@ -111,10 +112,12 @@ class PC_EXPORT Library
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
    Dyninst::Address getDynamicAddress() const;
+   int_library *debug() const { return lib; }
    
    void *getData() const;
    void setData(void *p) const;
 };
+
 
 class PC_EXPORT LibraryPool
 {
@@ -163,8 +166,37 @@ class PC_EXPORT LibraryPool
   Library::ptr getLibraryByName(std::string s);
   Library::const_ptr getLibraryByName(std::string s) const;
 
+  template< typename F >
+  void for_each(F& func)
+  {
+	lock();
+	  for(LibraryPool::iterator i = begin();
+		i != end();
+		++i)
+	  {
+		  func(*i);
+	  }
+	  unlock();
+  }
+  template< typename F >
+  void for_each(F& func) const
+  {
+	lock();
+	  for(LibraryPool::const_iterator i = begin();
+		  i != end();
+		  ++i)
+	  {
+		  func(*i);
+	  }
+	  unlock();
+  }
+
   Library::ptr getExecutable();
   Library::const_ptr getExecutable() const;
+private:
+	void lock() const;
+	void unlock() const;
+	mutable MTLock* the_lock;
 };
 
 class PC_EXPORT IRPC

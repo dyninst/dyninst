@@ -1,0 +1,255 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#include <assert.h>
+#include <time.h>
+#include <numeric>
+
+
+#include "dynutil/h/dyn_regs.h"
+#include "dynutil/h/dyntypes.h"
+#include "symtabAPI/h/Symtab.h"
+#include "common/h/pathName.h"
+#include "proccontrol/h/PCErrors.h"
+#include "proccontrol/h/Generator.h"
+#include "proccontrol/h/Event.h"
+#include "proccontrol/h/Handler.h"
+#include "proccontrol/h/Mailbox.h"
+
+#include "proccontrol/src/procpool.h"
+#include "proccontrol/src/irpc.h"
+#include "proccontrol/src/windows_handler.h"
+#include "proccontrol/src/windows_thread.h"
+#include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/response.h"
+#include "proccontrol/src/int_event.h"
+
+#include "proccontrol/src/snippets.h"
+
+#include "common/h/parseauxv.h"
+
+#include <sstream>
+#include <iostream>
+
+
+
+
+
+
+WinHandleSingleStep::WinHandleSingleStep() :
+   Handler("Windows Single Step")
+{
+}
+
+WinHandleSingleStep::~WinHandleSingleStep()
+{
+}
+
+Handler::handler_ret_t WinHandleSingleStep::handleEvent(Event::ptr ev)
+{
+	int_thread* t = ev->getThread()->llthrd();
+	assert(t);
+	t->setSingleStepMode(false);
+	installed_breakpoint* bp = t->isClearingBreakpoint();
+	Dyninst::THR_ID tid;
+	t->getTID(tid);
+	if(bp) {
+		pthrd_printf("Clearing breakpoint at 0x%lx (%d/%d)\n", bp->getAddr(), ev->getProcess()->llproc()->getPid(), tid);
+		t->markClearingBreakpoint(NULL);
+	} else {
+		pthrd_printf("Single-step didn't clear breakpoint (%d/%d)\n", ev->getProcess()->llproc()->getPid(), tid);
+	}
+	return ret_success;
+}
+
+int WinHandleSingleStep::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+void WinHandleSingleStep::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::SingleStep));
+}
+
+ArchEventWindows::ArchEventWindows(DEBUG_EVENT e) :
+evt(e)
+{
+}
+      
+ArchEventWindows::~ArchEventWindows()
+{
+}
+
+std::vector<ArchEventWindows *> ArchEventWindows::pending_events;
+
+bool ArchEventWindows::findPairedEvent(ArchEventWindows* &parent, ArchEventWindows* &child)
+{
+	assert(!"Not implemented");
+	return false;
+}
+
+void ArchEventWindows::postponePairedEvent()
+{
+   pending_events.push_back(this);
+}
+
+WindowsHandleNewThr::WindowsHandleNewThr() :
+   Handler("Windows New Thread")
+{
+}
+
+WindowsHandleNewThr::~WindowsHandleNewThr()
+{
+}
+
+Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
+{
+	windows_thread *thr = NULL;
+	Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
+	ProcPool()->condvar()->lock();
+	int_thread* tmp = ProcPool()->findThread(lwp);
+	thr = static_cast<windows_thread*>(tmp);
+	ProcPool()->condvar()->unlock();
+	assert(thr);
+                                        
+   WinEventNewThread::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventNewThread>(ev);
+   if(we)
+   {
+	   thr->setHandle(we->getHandle());
+	   thr->setStartFuncAddress((Dyninst::Address)(we->getThreadStart()));
+	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
+   }
+   return ret_success;
+}
+
+int WindowsHandleNewThr::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+int WinHandleThreadStop::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+
+void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
+   etypes.push_back(EventType(EventType::None, EventType::LWPCreate));
+}
+
+WindowsHandleLWPDestroy::WindowsHandleLWPDestroy()
+    : Handler("Windows LWP Destroy")
+{
+}
+
+WindowsHandleLWPDestroy::~WindowsHandleLWPDestroy()
+{
+}
+
+Handler::handler_ret_t WindowsHandleLWPDestroy::handleEvent(Event::ptr ev) 
+{
+	assert(!"Not implemented");
+    return ret_success;
+}
+
+int WindowsHandleLWPDestroy::getPriority() const
+{
+    return PostPlatformPriority;
+}
+
+void WindowsHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+    etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
+}
+
+HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+{
+   static bool initialized = false;
+   static WindowsHandleNewThr *wnewthread = NULL;
+   static WindowsHandleLWPDestroy* wthreaddestroy = NULL;
+   static WinHandleThreadStop* winthreadstop = NULL;
+   static WinHandleSingleStep* wsinglestep = NULL;
+   static WinHandleBootstrap* wbootstrap = NULL;
+   if (!initialized) {
+      wnewthread = new WindowsHandleNewThr();
+      wthreaddestroy = new WindowsHandleLWPDestroy();
+	  winthreadstop = new WinHandleThreadStop();
+	  wsinglestep = new WinHandleSingleStep();
+	  wbootstrap = new WinHandleBootstrap();
+      initialized = true;
+   }
+   hpool->addHandler(wnewthread);
+   hpool->addHandler(wthreaddestroy);
+   //hpool->addHandler(winthreadstop);
+   hpool->addHandler(wsinglestep);
+   hpool->addHandler(wbootstrap);
+   return hpool;
+}
+
+bool ProcessPool::LWPIDsAreUnique()
+{
+	return true;
+}
+
+
+WinHandleBootstrap::WinHandleBootstrap()
+{
+
+}
+
+WinHandleBootstrap::~WinHandleBootstrap()
+{
+
+}
+
+Handler::handler_ret_t WinHandleBootstrap::handleEvent( Event::ptr ev )
+{
+	pthrd_printf("WinHandleBootstrap continuing process %d\n", ev->getProcess()->getPid());
+	
+	if(ev->getProcess()->llproc()->continueProcess()) {
+		return ret_success;
+	} else {
+		return ret_error;
+	}
+}
+
+int WinHandleBootstrap::getPriority() const
+{
+	return PostPlatformPriority;
+}
+
+void WinHandleBootstrap::getEventTypesHandled( std::vector<EventType> &etypes )
+{
+	etypes.push_back(EventType::Bootstrap);
+}

@@ -156,7 +156,7 @@ int handshakeWithServer()
    send_pid spid;
    handshake shake;
 
-  // fprintf(stderr, "starting handshakeWithServer\n");
+  fprintf(stderr, "starting handshakeWithServer\n");
 
    spid.code = SEND_PID_CODE;
 #if !defined(os_windows_test)
@@ -170,16 +170,19 @@ int handshakeWithServer()
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
+  fprintf(stderr, "sent PID OK\n");
 
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
+  fprintf(stderr, "got handshake message, checking\n");
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
    }
+  fprintf(stderr, "got handshake message OK\n");
 
    return 0;
 }
@@ -199,7 +202,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
    WORD wsVer = MAKEWORD(2,0);
    int result = 0;
    WSADATA ignored;
-   //fprintf(stderr, "starting initProcControlTest\n");
+   fprintf(stderr, "starting initProcControlTest\n");
    result = WSAStartup(wsVer, &ignored);
    if(result)
    {
@@ -214,18 +217,21 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Error initializing threads\n");
       return -1;
    }
+   fprintf(stderr, "initialized threads OK\n");
 
    result = initMutatorConnection();
    if (result != 0) {
       fprintf(stderr, "Error initializing connection to mutator\n");
       return -1;
    }
+   fprintf(stderr, "initialized mutator connection OK\n");
    
    result = handshakeWithServer();
    if (result != 0) {
       fprintf(stderr, "Could not handshake with server\n");
       return -1;
    }
+   fprintf(stderr, "mutatee did server handshake OK\n");
 
    result = releaseThreads();
    if (result != 0) {
@@ -240,6 +246,7 @@ int finiProcControlTest(int expected_ret_code)
 {
    int i, result;
    int has_error = 0;
+   //fprintf(stderr, "begin finiProcControlTest\n");
    if (num_threads == 0)
       return 0;
 
@@ -258,6 +265,7 @@ int finiProcControlTest(int expected_ret_code)
 #if defined(os_windows_test)
    WSACleanup();
 #endif
+   fprintf(stderr, "end finiProcControlTest\n");
    return has_error ? -1 : 0;
 }
 
@@ -319,7 +327,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
        result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
        if (result == -1 && errno != EINTR ) {
-          perror("Mutatee unable to recieve message");
+          perror("Mutatee unable to receive message");
           return -1;
        }
 
@@ -389,12 +397,13 @@ int initMutatorConnection()
 int send_message(unsigned char *msg, size_t msg_size)
 {
    int result;
-   fprintf(stderr, "sending %d bytes...\n", msg_size);
+   //fprintf(stderr, "Mutatee sending %d bytes...\n", msg_size);
    result = send(sockfd, (char*)msg, msg_size, 0);
    if (result == -1) {
 	   fprintf(stderr, "Mutatee unable to send message\n");
       return -1;
    }
+   //fprintf(stderr, "mutatee send_message() OK\n");
    return 0;
 }
 
@@ -403,7 +412,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
    int result = -1;
    int bytes_remaining = msg_size;
    while( (bytes_remaining > 0) && (result != 0) ) {
-	   fprintf(stderr, "mutatee waiting for %d bytes\n", bytes_remaining);
+	   //fprintf(stderr, "mutatee waiting for %d bytes\n", bytes_remaining);
        result = recv(sockfd, (char*)msg, bytes_remaining, 0);
 
        if (result == -1) {
@@ -413,6 +422,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
        }
 	   bytes_remaining -= result;
    }
+   //fprintf(stderr, "mutatee recv_message() OK\n");
    return 0;
 }
 

@@ -67,13 +67,16 @@ int pc_terminate_mutatee()
 
    test_passes(testname);
 
+   /* HACK: block here forever; mutator will time out if terminate() fails */
+   while(1) {}
+
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
       output->log(STDERR, "Failed to recieve sync message\n");
       return -1;
    }
 
-   //Should not reach this point, test needs to terminate
+   /* Should not reach this point, test needs to terminate */
    output->log(STDERR, "Test was not terminated\n");
    return -1;
 }

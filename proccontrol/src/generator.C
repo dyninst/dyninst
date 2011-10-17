@@ -106,10 +106,21 @@ void Generator::setState(Generator::state_t new_state)
    state = new_state;
 }
 
+ArchEvent* Generator::getCachedEvent() 
+{
+	return m_Event;
+}
+
+void Generator::setCachedEvent(ArchEvent* ae)
+{
+	m_Event = ae;
+}
+
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
-   static ArchEvent *arch_event = NULL;
+   //static ArchEvent *arch_event = NULL;
+   ArchEvent* arch_event = getCachedEvent();
    vector<Event::ptr> events;
 
    setState(process_blocked);
@@ -121,10 +132,15 @@ bool Generator::getAndQueueEventInt(bool block)
    }
    if (!result) {
 	   pthrd_printf("Generator exiting after processWait returned false\n");
+	   result = false;
       goto done;
    }
-   plat_continue(arch_event);
-   
+   result = plat_continue(arch_event);
+   if(!result) {
+	   pthrd_printf("Generator exiting after plat_continue returned false\n");
+	   result = false;
+	   goto done;
+   }
    setState(system_blocked);
    pthrd_printf("About to getEvent()\n");
    arch_event = getEvent(block);
@@ -167,6 +183,7 @@ bool Generator::getAndQueueEventInt(bool block)
    result = true;
  done:
    setState(none);
+   setCachedEvent(arch_event);
    return result;
 }
 
@@ -178,6 +195,10 @@ bool Generator::allStopped(int_process *proc, void *)
 	}
    bool all_exited = true;
    int_threadPool *tp = proc->threadPool();
+   if(!tp) {
+	   pthrd_printf("Process had no threadpool, treating as stopped\n");
+	   return true;
+   }
    assert(tp);
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
       if ((*i)->getGeneratorState() == int_thread::running ||
@@ -191,6 +212,13 @@ bool Generator::allStopped(int_process *proc, void *)
       if ((*i)->getGeneratorState() != int_thread::exited) {
          all_exited = false;
       }
+   }
+   // When we're attaching, the threadpool could be empty on Windows.
+   // Don't assume that an empty threadpool means everything is exited...
+   if(tp->empty()) {
+	   pthrd_printf("empty threadpool for %d, treating as running\n",
+		   proc->getPid());
+		return false;
    }
    if (all_exited) {
       pthrd_printf("All threads are exited for %d, treating as stopped\n",
@@ -207,8 +235,13 @@ bool Generator::allStopped(int_process *proc, void *)
 
 bool Generator::hasLiveProc()
 {
+	pthrd_printf("begin hasLiveProc()\n");
    ProcessPool *procpool = ProcPool();
-   return !procpool->for_each(Generator::allStopped, NULL);
+   bool result = !procpool->for_each(Generator::allStopped, NULL);
+   pthrd_printf("end hasLiveProc(), return %s, procpool %s\n",
+	   result ? "TRUE" : "FALSE",
+	   procpool->numProcs() == 0 ? "EMPTY" : "NON-EMPTY");
+   return result;
 }
 
 struct GeneratorMTInternals
@@ -295,6 +328,9 @@ void GeneratorMT::start()
 
    if (result)
       main();
+   // Let the process pool know that we're not going to mess with processes anymore on this thread,
+   // so any pending deletes (e.g. on Windows) can happen
+   ProcPool()->condvar()->signal();
    pthrd_printf("Generator thread exiting\n");
 }
 
@@ -317,10 +353,13 @@ bool GeneratorMT::processWait(bool block)
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
+		 pp->condvar()->signal();
+		 pp->condvar()->unlock();
          return false;
       }
       pp->condvar()->wait();
    }
+   pp->condvar()->signal();
    pp->condvar()->unlock();
    pthrd_printf("processWait returning true\n");
    return true;

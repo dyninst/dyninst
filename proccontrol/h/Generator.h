@@ -87,6 +87,10 @@ class PC_EXPORT Generator
    typedef std::set<Decoder *, decoder_cmp> decoder_set_t;
    decoder_set_t decoders;
 
+   ArchEvent* m_Event;
+   virtual ArchEvent* getCachedEvent();
+   virtual void setCachedEvent(ArchEvent* ae);
+
    //Misc
    virtual bool hasLiveProc();
    std::string name;
@@ -104,7 +108,7 @@ class PC_EXPORT Generator
    virtual ArchEvent *getEvent(bool block) = 0;
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
-   virtual void plat_continue(ArchEvent* evt) {}
+   virtual bool plat_continue(ArchEvent* evt) { return true; }
 };
 
 class PC_EXPORT GeneratorMT : public Generator
@@ -120,7 +124,7 @@ protected:
    void launch(); //Launch thread
    void start(); //Startup function for new thread
    virtual void plat_start() {}
-   virtual void plat_continue(ArchEvent* evt) {}
+   virtual bool plat_continue(ArchEvent* evt) { return true;}
    GeneratorMT(std::string name_);
    virtual ~GeneratorMT();
    virtual bool processWait(bool block);
