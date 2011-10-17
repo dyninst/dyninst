@@ -5270,6 +5270,17 @@ void Object::insertPrereqLibrary(std::string libname)
    prereq_libs.insert(libname);
 }
 
+bool Object::removePrereqLibrary(std::string libname)
+{
+   rmd_deps.push_back(libname);
+   return true;
+}
+
+std::vector<std::string> &Object::libsRMd()
+{
+   return rmd_deps;
+}
+
 void Object::insertDynamicEntry(long name, long value)
 {
    new_dynamic_entries.push_back(std::pair<long, long>(name, value));

@@ -1834,7 +1834,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
-     DT_NEEDEDEntries.push_back(*i);
+     addDTNeeded(*i);
   }
   new_dynamic_entries = obj->getObject()->new_dynamic_entries;
   Object *object = obj->getObject();
@@ -2329,8 +2329,7 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
       versionNames[name] = dynSymbolNamesLength;
       dynStrs.push_back(name);
       dynSymbolNamesLength+= (name).size()+1;
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
-	DT_NEEDEDEntries.push_back(name);
+      addDTNeeded(name);
     }
   }
   for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
@@ -2342,8 +2341,7 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
     versionNames[it->first] = dynSymbolNamesLength;
     dynStrs.push_back(it->first);
     dynSymbolNamesLength+= it->first.size()+1;
-    if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
-      DT_NEEDEDEntries.push_back(it->first);
+    addDTNeeded(it->first);
     verneed->vn_aux = sizeof(Elf32_Verneed);
     verneed->vn_next = sizeof(Elf32_Verneed) + it->second.size()*sizeof(Elf32_Vernaux);
     if(curpos + verneed->vn_next == verneedSecSize)
@@ -2485,6 +2483,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   dynamicSecData.clear();
   Elf32_Dyn *dyns = (Elf32_Dyn *)dynData;
   unsigned count = size/sizeof(Elf32_Dyn);
+  vector<string> &libs_rmd = object->libsRMd();
   dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf32_Dyn *)malloc(dynsecSize*sizeof(Elf32_Dyn));
   unsigned curpos = 0;
@@ -2534,8 +2533,11 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
       break;
     case DT_NEEDED:
       rpathstr = &olddynStrData[dyns[i].d_un.d_val];
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end())
-	break;
+      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end()) {
+         break;
+      }
+      if (find(libs_rmd.begin(), libs_rmd.end(), rpathstr) != libs_rmd.end())
+         break;
       dynsecData[curpos].d_tag = dyns[i].d_tag;
       dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
       dynStrs.push_back(rpathstr);
@@ -2587,4 +2589,14 @@ void emitElf::log_elferror(void (*err_func)(const char *), const char* msg) {
   err = err ? err: "(bad elf error)";
   string str = string(err)+string(msg);
   err_func(str.c_str());
+}
+
+void emitElf::addDTNeeded(string s)
+{
+   if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
+      return;
+   vector<string> &libs_rmd = object->libsRMd();
+   if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
+      return;
+   DT_NEEDEDEntries.push_back(s);
 }

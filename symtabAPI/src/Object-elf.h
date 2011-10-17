@@ -333,6 +333,7 @@ class Object : public AObject {
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
   bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const;
   void getDependencies(std::vector<std::string> &deps);
+  std::vector<std::string> &libsRMd();
 
   bool addRelocationEntry(relocationEntry &re);
 
@@ -345,6 +346,7 @@ class Object : public AObject {
   static bool truncateLineFilenames;
 
   void insertPrereqLibrary(std::string libname);
+  bool removePrereqLibrary(std::string libname);
   void insertDynamicEntry(long name, long value);
  
   virtual char *mem_image() const 
@@ -536,6 +538,7 @@ class Object : public AObject {
   dyn_hash_map<unsigned, std::string> versionFileNameMapping;
 
   std::vector<std::string> deps_;
+  std::vector<std::string> rmd_deps;
 
   bool loaded_elf( Offset &, Offset &,
   		    Elf_X_Shdr* &,

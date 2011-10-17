@@ -3611,6 +3611,20 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 #endif
 }
 
+SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
+{
+#if defined(os_aix) || defined(os_windows)
+   return false;
+#else
+   Object *obj = getObject();
+	if (!obj) {
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+   return obj->removePrereqLibrary(lib);
+#endif
+}
+   
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
 #if defined(os_aix)
