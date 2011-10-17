@@ -43,6 +43,7 @@ static int myerror = 0;
 
 int func1(int counter) {
    int i;
+   fprintf(stderr, "mutatee entered func1: %d\n", counter);
    for (i = 0; i < global; i++) {
       counter += i;
    }
@@ -51,6 +52,7 @@ int func1(int counter) {
 
 int func2(int counter) {
    int i;
+   fprintf(stderr, "mutatee entered func2: %d\n", counter);
    for (i = 3; i < global+3; i++) {
       counter += i;
    }
@@ -59,6 +61,7 @@ int func2(int counter) {
 
 int func3(int counter) {
    int i;
+   fprintf(stderr, "mutatee entered func3: %d\n", counter);
    for (i = 6; i < global+6; i++) {
       counter += i;
    }
@@ -67,6 +70,7 @@ int func3(int counter) {
 
 int func4(int counter) {
    int i;
+   fprintf(stderr, "mutatee entered func4: %d\n", counter);
    for (i = 9; i < global+9; i++) {
       counter += i;
    }
@@ -75,6 +79,7 @@ int func4(int counter) {
 
 int func5(int counter) {
    int i;
+   fprintf(stderr, "mutatee entered func5: %d\n", counter);
    for (i = 12; i < global+12; i++) {
       counter += i;
    }
@@ -84,6 +89,7 @@ int func5(int counter) {
 void run_all_funcs()
 {
    int result = 0;
+   fprintf(stderr, "mutatee entered run_all_funcs\n");
    result = func1(result);
    result = func2(result);
    result = func3(result);
@@ -92,6 +98,8 @@ void run_all_funcs()
    if (result != 105) { 
       output->log(STDERR, "Computation failed\n");
       myerror = 1;
+   } else {
+	   fprintf(stderr, "run_all_funcs OK\n");
    }
 }
 
@@ -119,6 +127,7 @@ int pc_singlestep_mutatee()
    myerror = 0;
    initLock(&init_lock);
    testLock(&init_lock);
+	fprintf(stderr, "pc_singlestep_mutatee acquired init_lock\n");
 
    result = initProcControlTest(threadFunc, NULL);
    if (result != 0) {
@@ -126,7 +135,7 @@ int pc_singlestep_mutatee()
       testUnlock(&init_lock);
       return -1;
    }
-
+	fprintf(stderr, "mutatee sending func addrs\n");
    funcs[0] = func1;
    funcs[1] = func2;
    funcs[2] = func3;
@@ -139,9 +148,11 @@ int pc_singlestep_mutatee()
       result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
       if (result == -1) {
          output->log(STDERR, "Failed to send addr message\n");
+		 testUnlock(&init_lock);
          return -1;
       }
    }
+   fprintf(stderr, "mutatee waiting for sync message\n");
 
    result = recv_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
@@ -150,14 +161,17 @@ int pc_singlestep_mutatee()
       return -1;
    }
    if (msg.code != SYNCLOC_CODE) {
-      output->log(STDERR, "Recieved unexpected sync message\n");
+      output->log(STDERR, "Received unexpected sync message\n");
       testUnlock(&init_lock);
       return -1;
    }
+   fprintf(stderr, "mutatee unlocking init lock\n");
 
 
    testUnlock(&init_lock);
+   fprintf(stderr, "about to run_all_funcs()\n");
    run_all_funcs();
+   fprintf(stderr, "run_all_funcs() done\n");
 
    result = finiProcControlTest(0);
    if (result != 0) {
@@ -166,11 +180,13 @@ int pc_singlestep_mutatee()
    }
 
    msg.code = SYNCLOC_CODE;
+   fprintf(stderr, "mutatee sending sync message\n");
    result = send_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
       output->log(STDERR, "Failed to send sync message\n");
       return -1;
    }
+   fprintf(stderr, "mutatee sent sync message OK\n");
 
    if (myerror == 0) {
       test_passes(testname);

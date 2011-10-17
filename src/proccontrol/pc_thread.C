@@ -84,6 +84,9 @@ void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
 
 static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
 {
+	if(!thr) {
+		return Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
+	}
    user_cb_count++;
 
    if (!thr->haveUserThreadInfo()) {
