@@ -159,6 +159,11 @@ class AddressSpace : public InstructionSource {
                                 u_int amount,
                                 const void *inSelf) = 0;
 
+    // this is only used on aix so far - naim
+    // And should really be defined in a arch-dependent place, not process.h - bernat
+    Address getTOCoffsetInfo(Address);
+    Address getTOCoffsetInfo(func_instance *);
+
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
     // that you ask for an allocation "near" a point, where "near" has an

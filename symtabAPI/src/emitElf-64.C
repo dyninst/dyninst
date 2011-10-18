@@ -1102,25 +1102,17 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
-  if(dynamicSecData.find(tag) == dynamicSecData.end()) {
-        rewrite_printf(" updateDynamic - entry not found %d val %d \n", tag, val);
-	// Add the entry to the dynamic section 
-	if (tag == DT_REL || tag == DT_RELA || tag == DT_RELASZ ||  tag == DT_RELSZ) 
-	{
 
-        Elf64_Dyn *dynsecData= (Elf64_Dyn *)malloc(sizeof(Elf64_Dyn));
-	dynsecData->d_tag = tag;
-        dynsecData->d_un.d_val = val;
-	dynamicSecData[tag].push_back(dynsecData);
-
-	}
-    return;
-  }
-   
+  // This is for REL/RELA if it doesnt already exist in the original binary; 
+  dynamicSecData[tag][0]->d_tag = tag;
   switch(dynamicSecData[tag][0]->d_tag){
   case DT_STRSZ:
   case DT_RELSZ:
   case DT_RELASZ:
+  case DT_PLTRELSZ:
+  case DT_RELACOUNT:
+  case DT_RELENT:
+  case DT_RELAENT:
     dynamicSecData[tag][0]->d_un.d_val = val;
     break;
   case DT_HASH:
@@ -2111,6 +2103,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       rtype = Region::RT_RELA;
       dsize_type = DT_RELASZ;
       buffer = relas;
+      updateDynamic(DT_RELAENT, sizeof(Elf64_Rela)); 
    }
    if (   !isDynRelocs 
        && object->getRelType() == Region::RT_REL ) 
@@ -2416,11 +2409,50 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
       break;
     }
   }
+        // Need to ensure that DT_REL and related fields added to .dynamic
+        // The values of these fields will be set
+
+        if( !object->hasReldyn() && !object->hasReladyn() ) {
+            if( object->getRelType() == Region::RT_REL ) {
+                new_dynamic_entries.push_back(make_pair(DT_REL,0));
+                new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
+
+  dynamicSecData[DT_REL].push_back(dynsecData+curpos);
   dynsecData[curpos].d_tag = DT_NULL;
   dynsecData[curpos].d_un.d_val = 0;
   curpos++;
+  dynamicSecData[DT_RELSZ].push_back(dynsecData+curpos);
+  dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
+  dynamicSecData[DT_RELENT].push_back(dynsecData+curpos);
+  dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
+
+            }else if( object->getRelType() == Region::RT_RELA ) {
+
+  dynamicSecData[DT_RELA].push_back(dynsecData+curpos);
+  dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
+  dynamicSecData[DT_RELASZ].push_back(dynsecData+curpos);
+  dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
+  dynamicSecData[DT_RELAENT].push_back(dynsecData+curpos);
+  dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
+
+            }
+        } 
+
+
+    dynsecData[curpos].d_tag = DT_NULL;
+  dynsecData[curpos].d_un.d_val = 0;
+  curpos++;
   dynsecSize = curpos+1;                            //assign size to the correct number of entries
-  dynsecSize += 2; //In case, we add REL/RELSZ or RELA/RELASZ entry from the instrumentation library
 }
 
 
