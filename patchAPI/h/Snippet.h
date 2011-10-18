@@ -9,6 +9,7 @@ namespace Dyninst {
 namespace PatchAPI {
 
 /* Interface for snippet representation. */
+/*
 template <class T>
 class Snippet {
   public:
@@ -25,6 +26,22 @@ class Snippet {
   protected:
     T rep_;
 };
+*/
+
+/*
+  To extend Snippet:
+
+    - Prepare a constructor and pass in whatever structures that are needed to
+      generate code, e.g., codeGen in dyninst.
+    - Implement generateCode().
+ */
+class Snippet {
+  public:
+    typedef dyn_detail::boost::shared_ptr<Snippet> Ptr;
+
+    virtual bool generateCode();
+};
+
 
 }
 }
