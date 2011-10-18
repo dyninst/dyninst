@@ -1998,7 +1998,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
    j=0; k=0; l=0; m=0;
    //reconstruct .rel
-   for(i=0;i<relocation_table.size();i++) 
+   for(i=0; i<relocation_table.size(); i++) 
    {
 
      if( library_adjust ) {
@@ -2012,9 +2012,21 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 
       if ((object->getRelType()  == Region::RT_REL) && (relocation_table[i].regionType() == Region::RT_REL)) {
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
-         if(relocation_table[i].name().length() &&
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+            if (j != dynSymNameMapping.end())
+               sym_offset = j->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym)
+                  sym_offset = sym->getIndex();
+            }
+         }
+
+         if (sym_offset) {
+            rels[j].r_info = ELF64_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             rels[j].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, relocation_table[i].getRelType());
          }
@@ -2024,9 +2036,23 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          relas[k].r_addend = relocation_table[i].addend();
          //if (relas[k].r_addend)
          //   relas[k].r_addend += library_adjust;
-         if(relocation_table[i].name().length() && 
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+            if (j != dynSymNameMapping.end())
+               sym_offset = j->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym) {
+                  j = dynSymNameMapping.find(sym->getMangledName());
+                  if (j != dynSymNameMapping.end())
+                     sym_offset = j->second;
+               }
+            }
+         }
+         if (sym_offset) {
+            relas[k].r_info = ELF64_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             relas[k].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, relocation_table[i].getRelType());
          }

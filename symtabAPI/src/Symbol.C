@@ -377,6 +377,13 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
+SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
+{
+   mangledName_ = name;
+   setStrIndex(-1);
+   return true;
+}
+
 Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
