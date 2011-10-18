@@ -2053,17 +2053,18 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);
 
-         symbols_[sname].push_back(newsym);
-         symsByOffset_[newsym->getOffset()].push_back(newsym);
-         symsToModules_[newsym] = smodule; 
-
          if (sec && sec->getRegionName() == OPD_NAME) {
             newsym = handle_opd_symbol(sec, newsym);
 
             symbols_[sname].push_back(newsym);
             symsByOffset_[newsym->getOffset()].push_back(newsym);
             symsToModules_[newsym] = smodule; 
-         }
+         } else {
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule; 
+	}
+
       }
    } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -2227,9 +2228,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 	 }
       }
       // register symbol in dictionary
-      symbols_[sname].push_back(newsym);
-      symsByOffset_[newsym->getOffset()].push_back(newsym);
-      symsToModules_[newsym] = smodule; 
 
       if (sec && sec->getRegionName() == OPD_NAME) {
         newsym = handle_opd_symbol(sec, newsym);
@@ -2237,7 +2235,11 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
         symbols_[sname].push_back(newsym);
         symsByOffset_[newsym->getOffset()].push_back(newsym);
         symsToModules_[newsym] = smodule;
-      }
+      } else {
+      symbols_[sname].push_back(newsym);
+      symsByOffset_[newsym->getOffset()].push_back(newsym);
+      symsToModules_[newsym] = smodule; 
+	}
     }
   }
   

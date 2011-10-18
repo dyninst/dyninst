@@ -1428,16 +1428,14 @@ Register EmitterPOWER::emitCall(opCode ocode,
     // AIX, 32/64, static/dynamic, inst/replacement;
     // Linux, 64, static/dynamic, inst/repl
     // DYN
-    process *proc = gen.addrSpace()->proc();
-    if (proc) {
-	toc_anchor = proc->getTOCoffsetInfo(callee);
+	toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
 	
 	// Instead of saving the TOC (if we can't), just reset it afterwards.
 	if (gen.func()) {
-	   caller_toc = proc->getTOCoffsetInfo(gen.func());
+	   caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
 	}
 	else if (gen.point()) {
-	   caller_toc = proc->getTOCoffsetInfo(gen.point()->func());
+	   caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
 	}
 	else {
 	   // Don't need it, and this might be an iRPC
@@ -1445,7 +1443,6 @@ Register EmitterPOWER::emitCall(opCode ocode,
 
     	inst_printf("Caller TOC 0x%lx; callee 0x%lx\n",
                     caller_toc, toc_anchor);
-    }
     // ALL
     bool needToSaveLR = false;
     registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
@@ -3079,20 +3076,51 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
     const unsigned wordsize = gen.addrSpace()->getAddressWidth();
     assert(wordsize == 8);
     Address dest = getInterModuleFuncAddr(callee, gen);
+    Address caller_toc;
+    Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    if (gen.func()) {
+           caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+    }
+        else if (gen.point()) {
+           caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+        }
+        else {
+           // Don't need it, and this might be an iRPC
+        }
 
-    Offset destOff = dest - gen.currAddr();
-    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
+    //Offset destOff = dest - gen.currAddr();
+    Offset destOff = dest - caller_toc;
+printf(" emitPLTCommon callee %s  dest 0x%lx  cur 0x%lx toc_anchor 0x%lx caller_toc 0x%lx destOff 0x%lx %d  \n",  callee->symTabName().c_str(), dest,  gen.currAddr(), toc_anchor, caller_toc, destOff, destOff);
+//    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
+   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   int stackSize = 0;
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+   	assert (stackSize == 1);
+   	scratchReg = freeReg[0];
+   }
+
     insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                     TOCreg, TOCreg, (int16_t)LOW(destOff));
-    insnCodeGen::generateMoveToLR(gen, TOCreg);
+                                     scratchReg, TOCreg, (int16_t)LOW(destOff));
+
+    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                     TOCreg, scratchReg, 8);
+    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                     scratchReg, scratchReg, 0);
+    insnCodeGen::generateMoveToLR(gen, scratchReg);
+
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
 
     destOff += wordsize;
-    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                     TOCreg, TOCreg, (int16_t)LOW(destOff));
+//    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
 
     instruction branch_insn(call ? BRLraw : BRraw);
     insnCodeGen::generate(gen, branch_insn);
+
 
     return true;
 }
