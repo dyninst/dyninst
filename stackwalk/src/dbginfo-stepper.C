@@ -37,13 +37,12 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/libstate.h"
 #include "dynutil/h/dyntypes.h"
 
 
 using namespace Dyninst;
 using namespace Stackwalker;
-
-static std::map<std::string, DwarfSW *> dwarf_info;
 
 typedef enum {
    storageAddr,
@@ -75,15 +74,8 @@ public:
 #include "common/h/dwarfSW.h"
 #include "common/h/Elf_X.h"
 
-DwarfSW *getDwarfInfo(std::string s)
+static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
 {
-   static std::map<std::string, DwarfSW *> dwarf_info;
-   std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
-   if (i != dwarf_info.end())
-      return i->second;
-
-   DwarfSW *ret = NULL;
-   Elf_X *elfx = getElfHandle(s);
    Elf *elf = elfx->e_elfp();
    Dwarf_Debug dbg;
    Dwarf_Error err;
@@ -92,14 +84,67 @@ DwarfSW *getDwarfInfo(std::string s)
       sw_printf("Error opening dwarf information %u (0x%x): %s\n",
                 (unsigned) dwarf_errno(err), (unsigned) dwarf_errno(err),
                 dwarf_errmsg(err));
-      goto done;
+      return NULL;
    }
-   ret = new DwarfSW(dbg, elfx->wordSize());
-
-  done:
-   dwarf_info[s] = ret;
-   return ret;
+   return new DwarfSW(dbg, elfx->wordSize());
 }
+
+static DwarfSW *getDwarfInfo(std::string s)
+{
+   static std::map<std::string, DwarfSW *> dwarf_info;
+
+   std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
+   if (i != dwarf_info.end())
+      return i->second;
+
+   Elf_X *elfx = getElfHandle(s);
+   DwarfSW *result = ll_getDwarfInfo(elfx);
+   dwarf_info[s] = result;
+   return result;
+}
+
+static DwarfSW *getAuxDwarfInfo(std::string s)
+{
+   static std::map<std::string, DwarfSW *> dwarf_aux_info;
+
+   std::map<std::string, DwarfSW *>::iterator i = dwarf_aux_info.find(s);
+   if (i != dwarf_aux_info.end())
+      return i->second;
+
+   Elf_X *orig_elf = getElfHandle(s);
+   if (!orig_elf) {
+      sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
+                __FILE__, __LINE__, s.c_str());
+      dwarf_aux_info[s] = NULL;
+      return NULL;
+   }
+
+   string dbg_name;
+   char *dbg_buffer;
+   unsigned long dbg_buffer_size;
+   bool result = orig_elf->findDebugFile(s, dbg_name, dbg_buffer, dbg_buffer_size);
+   if (!result) {
+      sw_printf("[%s:%u] - No separate debug file associated with %s\n",
+                __FILE__, __LINE__, s.c_str());
+      dwarf_aux_info[s] = NULL;
+      return NULL;
+   }
+   
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
+   if (!reader) {
+      sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
+                __FILE__, __LINE__, dbg_name.c_str());
+      dwarf_aux_info[s] = NULL;
+      return NULL;
+   }
+
+   Elf_X *elfx = reader->getElfHandle();
+   DwarfSW *dresult = ll_getDwarfInfo(elfx);
+   dwarf_aux_info[s] = dresult;
+   return dresult;
+}
+
 
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
@@ -144,7 +189,31 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
                 __FILE__, __LINE__, in.getRA());
       return gcf_stackbottom;
    }
+
+   Address pc = in.getRA() - lib.second;
+
+   /**
+    * Some system libraries on some systems have their debug info split
+    * into separate files, usually in /usr/lib/debug/.  Check these 
+    * for DWARF debug info
+    **/
+   DwarfSW *dauxinfo = getAuxDwarfInfo(lib.first);
+   if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
+      sw_printf("[%s:%u] - Using separate DWARF debug file for %s", 
+                __FILE__, __LINE__, lib.first.c_str());
+      cur_frame = &in;
+      gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo);
+      cur_frame = NULL;
+      if (gcresult == gcf_success) {
+         sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
+                   __FILE__, __LINE__);
+         return gcf_success;
+      }
+   }
    
+   /**
+    * Check the actual file for DWARF stackwalking data
+    **/
    DwarfSW *dinfo = getDwarfInfo(lib.first);
    if (!dinfo) {
       sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
@@ -158,11 +227,10 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
                  __FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
    }   
-   Address pc = in.getRA() - lib.second;
-
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo);
    cur_frame = NULL;
+
    return gcresult;
 }
 
@@ -209,8 +277,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                 __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
-
- 
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
