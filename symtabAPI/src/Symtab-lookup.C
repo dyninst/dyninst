@@ -411,13 +411,11 @@ bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 
    if (!getAnnotation(retp, UserRegionsAnno))
    {
-      fprintf(stderr, "%s[%d]:  failed to get annotations here\n", FILE__, __LINE__);
       return false;
    }
 
    if (!retp)
    {
-      fprintf(stderr, "%s[%d]:  failed to get annotations here\n", FILE__, __LINE__);
       return false;
    }
 

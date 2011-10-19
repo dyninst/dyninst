@@ -1086,8 +1086,13 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
 	re.setAddend(addend);
 	re.setRegionType(rtype);
 	if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
-	  vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
-	  re.addDynSym(syms[0]);
+	  vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+     for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
+        if (!(*i)->isInDynSymtab())
+           continue;
+        re.addDynSym(*i);
+        break;
+     }
 	}
 
 	relocation_table_.push_back(re);
@@ -1441,9 +1446,16 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
           std::string targ_name = &strs[ sym.st_name(index) ];
           vector<Symbol *> dynsym_list;
-          if (symbols_.find(targ_name) != symbols_.end()) {
-            dynsym_list = symbols_[ targ_name ];
-          } else {
+          if (symbols_.find(targ_name) != symbols_.end()) 
+          {
+             vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+             for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {             
+                if (!(*i)->isInDynSymtab())
+                   continue;
+                dynsym_list.push_back(*i);
+             }
+          } 
+          else {
             dynsym_list.clear();
           }
 
@@ -5279,6 +5291,17 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
 void Object::insertPrereqLibrary(std::string libname)
 {
    prereq_libs.insert(libname);
+}
+
+bool Object::removePrereqLibrary(std::string libname)
+{
+   rmd_deps.push_back(libname);
+   return true;
+}
+
+std::vector<std::string> &Object::libsRMd()
+{
+   return rmd_deps;
 }
 
 void Object::insertDynamicEntry(long name, long value)
