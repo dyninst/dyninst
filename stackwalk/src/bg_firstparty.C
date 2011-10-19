@@ -102,7 +102,9 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
    static SymElfFactory symelffact;
-   return &symelffact;
+   if (!Walker::symrfact)
+      Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+   return Walker::symrfact;
 }
 
 bool TrackLibState::updateLibsArch() {

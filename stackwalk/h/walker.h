@@ -42,6 +42,9 @@
 #define SW_BETA  0
 
 namespace Dyninst {
+
+class SymbolReaderFactory;
+
 namespace Stackwalker {
 
 class ProcessState;
@@ -52,6 +55,7 @@ class FrameStepper;
 class StepperGroup;
 
 class Walker {
+   friend SymbolReaderFactory *getDefaultSymbolReader();
  private:
    //Object creation functions
    Walker(ProcessState *p,
@@ -132,6 +136,9 @@ class Walker {
    //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
 
+   //Manage SymbolReader
+   static SymbolReaderFactory* getSymbolReader();
+   static void setSymbolReader(SymbolReaderFactory*);
 
    virtual ~Walker();
  private:
@@ -140,6 +147,7 @@ class Walker {
    bool creation_error;
    StepperGroup *group;
    unsigned call_count;
+   static SymbolReaderFactory *symrfact;
 };
 
 }
