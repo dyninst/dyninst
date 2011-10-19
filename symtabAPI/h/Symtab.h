@@ -334,6 +334,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT unsigned getNumberofSymbols() const;
 
    SYMTAB_EXPORT std::vector<std::string> &getDependencies();
+   SYMTAB_EXPORT bool removeLibraryDependency(std::string lib);
 
    SYMTAB_EXPORT Archive *getParentArchive() const;
 
