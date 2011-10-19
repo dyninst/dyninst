@@ -343,6 +343,8 @@ bool HandlerPool::handleEvent(Event::ptr ev)
                          ev->name().c_str(), hnd->getName().c_str());
             continue;
          }
+		 pthrd_printf("Event %s added to handle list with handler %s\n",
+			 ev->name().c_str(), hnd->getName().c_str());
          events_and_handlers.insert(pair<Event::ptr, Handler*>(ev, hnd));
       }
    }
@@ -444,11 +446,8 @@ void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
 {
 	int_process* p = ev->getProcess()->llproc();
-	if(p->wasCreatedViaAttach()) {
-		p->setForceGeneratorBlock(true);
-	} else {
-		p->threadPool()->intCont();
-	}
+	p->setForceGeneratorBlock(true);
+
 	GeneratorWindows* winGen = dynamic_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	if(winGen)
 	{

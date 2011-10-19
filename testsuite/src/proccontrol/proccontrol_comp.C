@@ -785,7 +785,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
          int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
          if (newsock == -1) {
             char error_str[1024];
-            snprintf(error_str, 1024, "Unable to accept socket: %s\n", strerror(errno));
+            snprintf(error_str, 1024, "Unable to accept socket (2): %s\n", strerror(errno));
             logerror(error_str);
             return false;
          }
@@ -868,9 +868,12 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 		  socket_types::sockaddr_t addr;
          socket_types::socklen_t addr_size = sizeof(socket_types::sockaddr_t);
          int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
-         if (newsock == -1) {
+		 if (newsock == -1) {
+			 if (::WSAGetLastError() == WSAEWOULDBLOCK) {
+				 continue;
+			 }
             char error_str[1024];
-            snprintf(error_str, 1024, "Unable to accept socket: %s\n", strerror(errno));
+            snprintf(error_str, 1024, "Unable to accept socket: %d/%d, %s, %d\n", errno, WSAGetLastError(), strerror(errno), sockfd);
             logerror(error_str);
             return false;
          }

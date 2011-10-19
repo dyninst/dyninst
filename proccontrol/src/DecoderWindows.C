@@ -177,7 +177,6 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 	}
 	else if(details.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)
 	{
-		std::cerr << "Unload for " << std::hex << (details.u.UnloadDll.lpBaseOfDll) << std::dec << std::endl;
 		std::set<int_library*>::iterator foundLib;
 		for(foundLib = proc->memory()->libs.begin();
 			foundLib != proc->memory()->libs.end();
@@ -185,7 +184,6 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		{
 			if((*foundLib)->getAddr() == (Dyninst::Address)(details.u.UnloadDll.lpBaseOfDll))
 			{
-				std::cerr << "Unload DLL " << (*foundLib)->getName().c_str() << std::endl;
 				pthrd_printf("Unload DLL event, unloading %s (was at 0x%lx)\n",
 					(*foundLib)->getName().c_str(), (*foundLib)->getAddr());
 				removedLibs.insert((*foundLib)->getUpPtr());
@@ -275,28 +273,20 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
 		{
-			std::cerr << "Create process " << e.dwProcessId << std::endl;
 			pthrd_printf("Decoded CreateProcess event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 			newEvt = EventPreBootstrap::ptr(new EventPreBootstrap());
 			newEvt->setSyncType(Event::sync_process);
 			windows_proc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
 			newEvt->setProcess(proc->proc());
 			events.push_back(newEvt);
-			if(windows_proc->wasCreatedViaAttach()) {
-				std::cerr << "Create state: " << (windows_proc->wasCreatedViaAttach() ? "attach" : "create") << std::endl;
-				Event::ptr threadEvent;
-				bool ok = decodeCreateThread(e, threadEvent, proc, events);
-				if(threadEvent)
-					newEvt->addSubservientEvent(threadEvent);
-				return ok;
-			}
-			else {
-				return true;
-			}
+			Event::ptr threadEvent;
+			bool ok = decodeCreateThread(e, threadEvent, proc, events);
+			if(threadEvent)
+				newEvt->addSubservientEvent(threadEvent);
+			return ok;
 		}
 	case CREATE_THREAD_DEBUG_EVENT:
 		{
-			std::cerr << "Create thread " << e.dwThreadId << std::endl;
 			return decodeCreateThread(e, newEvt, proc, events);
 		}
 	case EXCEPTION_DEBUG_EVENT:
@@ -508,7 +498,6 @@ bool DecoderWindows::checkForFullString( DEBUG_EVENT &details, int chunkSize, wc
 
 bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int_process* &proc, std::vector<Event::ptr> &events )
 {
-	std::cerr << "Decoded createThread " << e.dwThreadId << std::endl;
 	pthrd_printf("Decoded CreateThread event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 
 	if(e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT) {

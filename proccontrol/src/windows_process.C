@@ -130,7 +130,7 @@ bool windows_process::plat_create_int()
 	PROCESS_INFORMATION procInfo;
 	memset(&startupInfo, 0, sizeof(STARTUPINFO));
 	startupInfo.cb = sizeof(STARTUPINFO);
-	bool result = ::CreateProcess(executable.c_str(), const_cast<char*>(args.c_str()), NULL, NULL, TRUE, 
+	BOOL result = ::CreateProcess(executable.c_str(), const_cast<char*>(args.c_str()), NULL, NULL, TRUE, 
 		DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS,
 		mutator_env, 
 		directory,
@@ -140,12 +140,16 @@ bool windows_process::plat_create_int()
 	{
 		pid = procInfo.dwProcessId;
 		hproc = procInfo.hProcess;
+	}
+#if 0 // We believe this is unnecessary and will happen in the CreateProcess event handler
+	{
 		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
 			(Dyninst::LWP)procInfo.dwThreadId, false);
 		threadPool()->setInitialThread(initialThread);
 		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
 		wThread->setHandle(procInfo.hThread);
 	}
+#endif
 	return result;
 }
 bool windows_process::plat_attach(bool)
@@ -160,7 +164,7 @@ bool windows_process::plat_attach(bool)
 bool windows_process::plat_attach_int()
 {
 	setForceGeneratorBlock(true);
-	return ::DebugActiveProcess(pid);
+	return (bool) ::DebugActiveProcess(pid);
 }
 
 // For each LWP/TID, is it running at attach time?
@@ -225,7 +229,7 @@ bool windows_process::plat_writeMem(int_thread *thr, const void *local,
 {
 	int lasterr = 0;
 	//fprintf(stderr, "writing %d bytes to %p, first byte %x\n", size, remote, *((unsigned char*)local));
-	bool ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
+	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
 	if(ok)
 	{
 		if(FlushInstructionCache(hproc, NULL, 0))
@@ -304,13 +308,13 @@ bool windows_process::plat_detach()
 		return true;
 	}
 	setPendingDebugBreak();
-	int result = ::DebugBreakProcess(hproc);
+	BOOL result = ::DebugBreakProcess(hproc);
 	if(!result)
 	{
 		int error = ::GetLastError();
 		pthrd_printf("Error in plat_detach: %d\n", error);
 	}
-	return result;
+	return (bool)result;
 }
 
 bool windows_process::plat_individualRegAccess()
@@ -388,7 +392,7 @@ bool windows_process::infFree(Dyninst::Address addr)
 		return false;
 	}
 
-	bool result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_FREE);
+	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_FREE);
 	mem->inf_malloced_memory.erase(i);
 	return result;
 }

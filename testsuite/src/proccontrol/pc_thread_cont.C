@@ -212,7 +212,11 @@ test_results_t pc_thread_contMutator::executeTest()
        }
    }else{
        for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {
-           if( !(*i)->threads().getInitialThread()->continueThread() ) {
+           if( !(*i)->continueProc() ) {
+		// FIXME: Windows initial thread identification can be erroneous on attach; this
+		// seems to be a limitation of the OS. Instead of continuing the initial thread
+		// we're continuing the process. 
+	    //           if( !(*i)->threads().getInitialThread()->continueThread() ) {
                logerror("Error continuing initial thread\n");
                error = true;
            }

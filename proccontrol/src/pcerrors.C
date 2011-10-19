@@ -111,8 +111,11 @@ class init_debug_channel
 public:
    init_debug_channel() 
    {
+	   fprintf(stderr, "Checking DYNINST_DEBUG_PROCCONTROL\n");
       pctrl_err_out = stderr;
-      if (strcmp(getenv("DYNINST_DEBUG_PROCCONTROL"), "1") == 0) {
+	  char *debug = getenv("DYNINST_DEBUG_PROCCONTROL");
+	  fprintf(stderr, "debug is %s\n", debug ? debug : "<NULL>");
+	  if (debug && (strcmp(debug, "1") == 0)) {
          setDebug(true);
       }
    }

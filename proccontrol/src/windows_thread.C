@@ -159,17 +159,44 @@ bool windows_thread::plat_stop()
 bool windows_thread::plat_suspend()
 {
 	int result = ::SuspendThread(hthread);
-	pthrd_printf("Suspending %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
-	printf("Suspending %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
+	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
+		// FIXME
+		// This happens if the thread is in a system call and thus cannot be modified. 
+		// However, handling such an event is a royal pain in the ass, and so we're ignoring
+		// it for now and not failing. 
+		return true;
+	}
+
+	pthrd_printf("Suspending %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
+	if (result > 0) {
+		fprintf(stderr, "Hi!\n");
+	}
+	if (result == -1) {
+		fprintf(stderr, "Hi!\n");
+	}
+
 	return result != -1;
 }
 
 bool windows_thread::plat_resume()
 {
 	int result = ::ResumeThread(hthread);
-	pthrd_printf("Resuming %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
-	printf("Resuming %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
 
+	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
+		// FIXME
+		// This happens if the thread is in a system call and thus cannot be modified. 
+		// However, handling such an event is a royal pain in the ass, and so we're ignoring
+		// it for now and not failing. 
+		return true;
+	}
+
+	pthrd_printf("Resuming %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
+	if (result > 1) {
+		fprintf(stderr, "Hi!\n");
+	}
+	if (result == -1) {
+		fprintf(stderr, "Hi!\n");
+	}
 	return result != -1;
 }
 
@@ -205,6 +232,7 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		regpool.regs[x86::eip] = c.Eip;
 		ret = true;
 	}
+	plat_resume();
 	//fprintf(stderr, "Got regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	return ret;
 }
@@ -242,14 +270,14 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	c.SegGs = regpool.regs[x86::gs];
 	c.SegSs = regpool.regs[x86::ss];
 	c.Eip = regpool.regs[x86::eip];
-	bool ok = ::SetThreadContext(hthread, &c);
+	BOOL ok = ::SetThreadContext(hthread, &c);
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
 	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	CONTEXT verification;
 	::GetThreadContext(hthread, &verification);
 	//assert(verification.Eip == c.Eip);
 	plat_resume();
-	return ok;
+	return (bool) ok;
 }
 
 bool windows_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)

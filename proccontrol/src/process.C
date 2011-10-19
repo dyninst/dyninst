@@ -927,7 +927,7 @@ bool int_process::waitAndHandleEvents(bool block)
       pthrd_printf("Updating state of each process\n");
       syncRunStateRet_t ret;
       ProcPool()->for_each(syncRunState, &ret);
-
+	  pthrd_printf("\t Done with update\n");
       if (!ret.readyProcStoppers.empty()) {
          int_process *proc = ret.readyProcStoppers[0];
          Event::ptr ev = proc->getProcStopper();
@@ -947,7 +947,7 @@ bool int_process::waitAndHandleEvents(bool block)
          proc->handlerpool->handleEvent(ev);
          continue;
       }
-
+	  pthrd_printf("Done with readyProcStoppers\n");
       /**
        * Check for possible error combinations from syncRunState
        **/
@@ -969,7 +969,7 @@ bool int_process::waitAndHandleEvents(bool block)
          error = true;
          goto done;
       }
-
+	pthrd_printf("Done with hasAsyncPending\n");
       /**
        * The handler thread doesn't want to pick up anything that
        * requires a callback, leaving that for the user.  Peek ahead
@@ -991,6 +991,7 @@ bool int_process::waitAndHandleEvents(bool block)
             goto done;
          }
       }
+	  pthrd_printf("Done with isHandlerThread\n");
       /**
        * Check for new events
        **/
