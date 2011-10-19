@@ -34,6 +34,7 @@
 
 #include <elf.h>
 #include <libelf.h>
+#include <string>
 #include "common/h/headers.h"
 
 // Forward declarations
@@ -111,6 +112,8 @@ class Elf_X {
     int wordSize() const;
     Elf_X_Phdr get_phdr(unsigned int i = 0) const;
     Elf_X_Shdr get_shdr(unsigned int i) const;
+
+    bool findDebugFile(std::string origfilename, std::string &output_name, char* &output_buffer, unsigned long &output_buffer_size);
 
   protected:
     Elf *elf;

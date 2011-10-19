@@ -124,7 +124,9 @@ static bool t_kill(int pid, int sig)
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
    static SymElfFactory symelffact;
-   return &symelffact;
+   if (!Walker::symrfact)
+      Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+   return Walker::symrfact;
 }
 
 class Elf_X;
@@ -132,10 +134,9 @@ Elf_X *getElfHandle(std::string s)
 {
    SymbolReaderFactory *fact = getDefaultSymbolReader();
    SymReader *reader = fact->openSymbolReader(s);
-   SymElf *symelf = dynamic_cast<SymElf *>(reader);
-   if (symelf)
-      return symelf->getElfHandle();
-   return NULL;
+   if (!reader)
+      return NULL;
+   return reader->getElfHandle();
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);
