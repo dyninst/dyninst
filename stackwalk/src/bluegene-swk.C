@@ -993,7 +993,9 @@ namespace Dyninst {
      SymbolReaderFactory *getDefaultSymbolReader()
      {
         static SymElfFactory symelffact;
-        return &symelffact;
+        if (!Walker::symrfact)
+           Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+        return Walker::symrfact;
      }
   } // namespace Stackwalker
 } // namespace Dyninst
