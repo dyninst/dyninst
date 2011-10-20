@@ -72,7 +72,9 @@ public:
 #define dwarf_printf sw_printf
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
-#include "common/h/Elf_X.h"
+
+#define INLINE_ELF_X 
+#include "common/src/Elf_X.C"
 
 static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
 {
