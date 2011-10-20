@@ -251,7 +251,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       }
       
       bool locset = false;
-      long int end_result;
+      long int end_result = 0;
       bool bresult = decodeDwarfExpression(llbuf, NULL, NULL, locset, reader, 
                                            arch, end_result);
       dwarf_dealloc(dbg, llbuf->ld_s, DW_DLA_LOC_BLOCK);
@@ -302,7 +302,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
    return true;
 }
 
-void DwarfSW::setupFdeData()
+inline void DwarfSW::setupFdeData()
 {
    Dwarf_Error err;
    

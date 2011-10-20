@@ -17,7 +17,6 @@ TARGET = libstackwalk.so
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = 	../src/linux-swk.C \
-	../../common/src/Elf_X.C \
 	../src/linux-ppc-swk.C \
 	../src/ppc-swk.C \
 	../src/symtab-swk.C
