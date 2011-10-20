@@ -1941,7 +1941,7 @@ static Type *getType(HANDLE p, Offset base, int typeIndex, Module *mod)
    if (mod)
        collection = typeCollection::getModTypeCollection(mod);
    else
-	   collection = Symtab::stdTypes;
+	   collection = (typeCollection*)Symtab::stdTypes;
    assert(collection);
 
 

@@ -39,7 +39,7 @@
 #include <map>
 #include <string>
 
-class StdOutputDriver : public TestOutputDriver {
+class TESTLIB_DLL_EXPORT StdOutputDriver : public TestOutputDriver {
 protected:
   std::map<TestOutputStream, std::string> streams;
   std::map<std::string, std::string> *attributes;
@@ -47,7 +47,7 @@ protected:
   RunGroup *last_group;
 
 public:
-  TESTLIB_DLL_EXPORT StdOutputDriver(void * data);
+  StdOutputDriver(void * data);
   ~StdOutputDriver();
 
   virtual void startNewTest(std::map<std::string, std::string> &attributes, TestInfo *test, RunGroup *group);
