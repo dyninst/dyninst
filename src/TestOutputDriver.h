@@ -51,9 +51,9 @@ typedef enum {
   HUMAN
 } TestOutputStream;
 
-class TestOutputDriver {
+class TESTLIB_DLL_EXPORT TestOutputDriver {
 public:
-   TESTLIB_DLL_EXPORT static bool getAttributesMap(TestInfo *test, 
+   static bool getAttributesMap(TestInfo *test, 
                         RunGroup *group, std::map<std::string, std::string> &attrs);
 
   // Informs the output driver that any log messages or results should be
@@ -81,7 +81,7 @@ public:
 
   // Returns arguments to pass to the mutatee driver that cause it to invoke
   // its support for this output driver
-  TESTLIB_DLL_EXPORT virtual void getMutateeArgs(std::vector<std::string> &args);
+  virtual void getMutateeArgs(std::vector<std::string> &args);
 };
 
 #endif // TEST_OUTPUT_DRIVER_H
