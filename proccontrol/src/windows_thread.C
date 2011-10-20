@@ -56,7 +56,8 @@ hthread(INVALID_HANDLE_VALUE),
 m_StartAddr(0),
 m_TLSAddr(0),
 stackBase(0),
-threadInfoBlockAddr_(0)
+threadInfoBlockAddr_(0),
+isUser_(true)
 {
 }
 

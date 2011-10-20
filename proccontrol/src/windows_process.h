@@ -33,6 +33,7 @@
 #define WINDOWS_PROCESS_H
 
 #include "arch_process.h"
+#include "common/h/IntervalTree.h"
 
 class windows_process : public arch_process
 {
@@ -90,10 +91,15 @@ public:
 	virtual Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
 	virtual bool infFree(Dyninst::Address addr);
 
+	// Is this in ntdll or another lib we consider a system lib?
+	virtual bool addrInSystemLib(Address addr);
 private:
 	HANDLE hproc;
 	bool pendingDetach;
 	bool pendingDebugBreak_;
+
+	IntervalTree<Address, bool> systemLibIntervals_;
+	void findSystemLibs();
 };
 
 #endif //!defined(WINDOWS_PROCESS_H)

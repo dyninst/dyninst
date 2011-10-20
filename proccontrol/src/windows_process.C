@@ -35,6 +35,7 @@
 #include "windows_thread.h"
 #include "procpool.h"
 #include "irpc.h"
+#include <iostream>
 
 using namespace std;
 
@@ -458,4 +459,43 @@ bool iRPCMgr::createThreadForRPC(int_process* proc, int_iRPC::ptr rpc)
 	Dyninst::THR_ID tid;
 	HANDLE hthrd = ::CreateRemoteThread(winProc->plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)rpc->addr(), NULL, 0, (LPDWORD)&tid);
 	return hthrd != INVALID_HANDLE_VALUE;
+}
+
+bool windows_process::addrInSystemLib(Address addr) {
+	if (systemLibIntervals_.empty()) {
+		findSystemLibs();
+	}
+
+	bool found;
+	if (systemLibIntervals_.find(addr, found)) {
+		return true;
+	}
+	return false;
+}
+
+void windows_process::findSystemLibs() {	
+	// Let's try to find ntdll...
+	int_library *ntdll = getLibraryByName("ntdll.dll");
+	if (!ntdll) return;
+
+	// We have a base addr, but no idea what the memory range is. Whee!
+	Address objEnd = 0;
+	Address probeAddr = ntdll->getAddr();
+	Address base = 0;
+
+    MEMORY_BASIC_INFORMATION probe;
+    memset(&probe, 0, sizeof(MEMORY_BASIC_INFORMATION));
+    do {
+       objEnd = probeAddr;
+       SIZE_T size2 = VirtualQueryEx(hproc,
+                                     (LPCVOID) ((Address)probeAddr),
+                                     &probe,
+                                     sizeof(MEMORY_BASIC_INFORMATION));
+	   if ((Address) base == 0) base = (Address) probe.AllocationBase;
+
+	   probeAddr = (Address) probe.BaseAddress + (Address) probe.RegionSize;
+    } while (((Address) probe.AllocationBase == base) && // we're in the same allocation unit...
+ 			 (objEnd != probeAddr)); // we're making forward progress
+	bool insert = true;
+	systemLibIntervals_.insert(base, objEnd, insert);
 }

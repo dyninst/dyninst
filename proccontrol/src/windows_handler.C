@@ -148,6 +148,16 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	   thr->setStartFuncAddress((Dyninst::Address)(we->getThreadStart()));
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
    }
+
+   // Check to see if our start address (if we have one...) is in a system library (if we know
+   // where it is...). If it is, set this as a system thread.
+   Address start_addr = 0;
+   if (thr->getStartFuncAddress(start_addr)) {
+	   if (thr->llproc()->addrInSystemLib(start_addr)) {
+		   thr->setUser(false);
+	   }
+   }
+
    return ret_success;
 }
 

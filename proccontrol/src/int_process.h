@@ -260,6 +260,10 @@ class int_process
    bool wasCreatedViaAttach() const { return createdViaAttach; }
    void wasCreatedViaAttach(bool val) { createdViaAttach = val; }
 
+   // Platform-specific; is this address in what we consider a system lib.
+   virtual bool addrInSystemLib(Address addr) { return false; }
+
+
  protected:
    State state;
    Dyninst::PID pid;
