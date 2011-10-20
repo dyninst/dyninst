@@ -418,26 +418,52 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Create the IRPC objects.
     **/
+   logerror("Creating IRPC objects\n");
    bool async = (rpc_sync == rpc_use_async);
    for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
         i != comp->procs.end(); i++) 
    {
-      Process::ptr proc = *i;
+
+		logerror("Checking particular process\n");	   
+	   Process::ptr proc = *i;
       proc_info_t &p = pinfo[proc];
       p.clear();
       unsigned long start_offset;
       createBuffer(proc, buffer, buffer_size, start_offset);
-      
+
+#if defined(os_windows_test)
+	Library::const_ptr ntdll = proc->libraries().getLibraryByName("ntdll.dll");
+	unsigned long ntdll_base = 0;
+	if(ntdll) {
+		ntdll_base = ntdll->getLoadAddress();
+	}
+#endif
+
+
       for (ThreadPool::iterator j = proc->threads().begin();
            j != proc->threads().end(); j++)
       {
          Thread::ptr thr = *j;
          thread_info_t &t = tinfo[thr];
+		 logerror("Checking a thread...\n");
+		 Dyninst::Address startAddr = thr->getStartFunction();
+		// This is the base/size for NTDLL.DLL. We want to skip these threads on Windows, because they're system threads.
+#if defined(os_windows_test)
+		 if((startAddr >= ntdll_base) && (startAddr <= (ntdll_base + 0xb2000))) {
+			fprintf(stderr, "Skipping thread /w/ startAddr 0x%lx\n", startAddr);
+			 continue;
+		 }
+		 else {
+			 fprintf(stderr, "Not skipping thread /w/ startAddr 0x%lx\n", startAddr);
+		 }
+#endif
+
          for (unsigned k = 0; k < NUM_IRPCS; k++)
          {
             IRPC::ptr irpc;
             rpc_data_t *rpc_data = new rpc_data_t();
             if (allocation_mode == manual_allocate) {
+				logerror("Manually allocating memory\n");
                Dyninst::Address addr = proc->mallocMemory(buffer_size+1);
                assert(addr);
                irpc = IRPC::createIRPC((void *) buffer, buffer_size, addr, async);
@@ -445,13 +471,15 @@ void pc_irpcMutator::runIRPCs() {
                rpc_data->malloced_addr = addr;
             }
             else if (allocation_mode == auto_allocate) {
-               irpc = IRPC::createIRPC((void *) buffer, buffer_size, async);
+				logerror("Automatically allocating memory\n");
+				irpc = IRPC::createIRPC((void *) buffer, buffer_size, async);
                irpc->setStartOffset(start_offset);
             }
             rpc_data->rpc = irpc;
             p.rpcs.push_back(rpc_data);
             rpc_to_data[irpc] = rpc_data;
-         }
+			logerror("Created an iRPC\n");
+		 }
       }
       free(buffer);
    }
@@ -459,6 +487,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Post IRPCs
     **/
+   logerror("Posting iRPCs\n");
    for (std::map<Thread::const_ptr, thread_info_t>::iterator i = tinfo.begin(); 
         i != tinfo.end(); i++)
    {
@@ -476,6 +505,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Wait for completion
     **/
+   logerror("Waiting for completion\n");
    bool done = false;
    while (!myerror) {
       while (has_pending_irpcs()) {
@@ -551,6 +581,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Free memory
     **/
+   logerror("Freeing memory\n");
    if (allocation_mode == manual_allocate) {
       for (std::map<Process::ptr, proc_info_t>::iterator i = pinfo.begin(); 
            i != pinfo.end(); i++) {
@@ -571,6 +602,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Check results from target process
     **/
+   logerror("Checking results\n");
    for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
         i != comp->procs.end(); i++) 
    {
@@ -581,6 +613,7 @@ void pc_irpcMutator::runIRPCs() {
        **/
       proc->stopProc();
       uint32_t val;
+	  logerror("Reading 4 bytes from 0x%lx\n", p.val);
       bool result = proc->readMemory(&val, p.val, sizeof(uint32_t));
       if (!result) {
          logerror("Failure reading from process memory\n");
@@ -593,16 +626,20 @@ void pc_irpcMutator::runIRPCs() {
       }
       
       val = 0;
-      result = proc->writeMemory(p.val, &val, sizeof(uint32_t));
+	  logerror("Zeroing 0x%lx\n", p.val);
+	  result = proc->writeMemory(p.val, &val, sizeof(uint32_t));
       if (!result) {
          logerror("Failure writing to process memory\n");
          myerror = true;
       }
-      
+	  if (!myerror) {
+		  logerror("Results good\n");
+	  }
       /**
        * Continue process
        **/
-      result = proc->continueProc();
+	  logerror("Continuing process\n");
+	  result = proc->continueProc();
       if (!result) {
          logerror("Failure continuing process\n");
          myerror = true;
