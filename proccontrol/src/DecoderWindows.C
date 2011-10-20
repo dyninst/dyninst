@@ -7,6 +7,8 @@
 #include "external/boost/scoped_ptr.hpp"
 #include "irpc.h"
 
+using namespace std;
+
 DecoderWindows::DecoderWindows()
 {
 }
@@ -54,114 +56,20 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 	
 	if(details.dwDebugEventCode == LOAD_DLL_DEBUG_EVENT)
 	{
-		char* asciiLibName = new char[(MAX_PATH+1)*sizeof(wchar_t)];
-		wchar_t* libName = (wchar_t*)(asciiLibName);
 		void* libnameaddr;
 		std::string result = "";
+		bool read = false;
+		if (details.u.LoadDll.lpImageName) {
+			read = p->plat_readMem(NULL, &libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4);
+		}
+		cerr << "imageName @ " << hex << details.u.LoadDll.lpImageName << " and read " << read << dec << endl;
 		if(details.u.LoadDll.lpImageName && // NULL lpImageName = done
-			p->plat_readMem(NULL, &libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4) && 
+			read && 
 			libnameaddr) // NULL libnameaddr = done
 		{
-			int lowReadSize = 1;
-			int highReadSize = 128;
-			bool doneReading = false;
-			bool gotString = false;
-			int chunkSize = highReadSize;
-			int changeSize = highReadSize / 2;
-
-			while(!doneReading)
-			{
-				pthrd_printf("Trying read for libname at 0x%lx, size %d\n", libnameaddr, chunkSize);
-				// try to read with the current byte count
-				if(p->plat_readMem(NULL, libName, (Dyninst::Address)libnameaddr, chunkSize))
-				{
-					// the read succeeded -
-					// did we get the full string?
-					gotString = checkForFullString(details, chunkSize, libName, gotString, asciiLibName);
-					if(gotString)
-					{
-						doneReading = true;
-					}
-					else
-					{
-						// we didn't get the full string,
-						// need to try a larger read
-						if(chunkSize == highReadSize)
-						{
-							// we were are the high end of the current range -
-							// move to the next range
-							lowReadSize = highReadSize + 1;
-							highReadSize = highReadSize + 128;
-							changeSize = 128; // we will half this before we read again
-							if(lowReadSize > (MAX_PATH * sizeof(wchar_t)))
-							{
-								// we've tried every range but still failed
-								doneReading = true;
-							}
-							else
-							{
-								chunkSize = highReadSize;
-							}
-						}
-						else
-						{
-							// we were within the current range -
-							// try something higher but still within the range
-							chunkSize = chunkSize + changeSize;
-						}
-					}
-				}
-				else
-				{
-					// the read failed -
-					// we need to try a smaller read
-					if(chunkSize > lowReadSize)
-					{
-						unsigned int nextReadSize = chunkSize - changeSize;
-						if(nextReadSize == chunkSize)
-						{
-							// we can't subdivide any further
-							doneReading = true;
-						}
-						else
-						{
-							chunkSize = nextReadSize;
-						}
-					}
-					else
-					{
-						// there are no smaller reads to try in this range,
-						// and by induction, in any range
-						doneReading = true;
-					}
-				}
-				// update the amount that we use to change the read request
-				changeSize /= 2;
-
-			}
-			if(details.u.LoadDll.fUnicode)
-			{
-				pthrd_printf("Converting unicode into single-byte characters\n");
-				// the DLL path is a Unicode string
-				// we have to convert it to single-byte characters
-				char* tmp = new char[MAX_PATH];
-				::WideCharToMultiByte(CP_ACP, 0, libName, -1, tmp, MAX_PATH, NULL, NULL);
-				// swap buffers so that asciiLibName points to the single-byte string
-				// when we're out of this code block
-				delete[] asciiLibName;
-				asciiLibName = tmp;
-			}
-			else
-			{
-				// the DLL path can be cast correctly
-				asciiLibName = (char*)libName;
-			}
-			result = asciiLibName;
-
+			result = readLibNameFromProc((Address) libnameaddr, details, p);
 		}
-		delete[] asciiLibName;
-
-		
+		cerr << "\t ... " << result << endl;
 		int_library* lib = new int_library(result,
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
@@ -477,7 +385,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	return true;
 }
 
-bool DecoderWindows::checkForFullString( DEBUG_EVENT &details, int chunkSize, wchar_t* libName, bool gotString, char* & asciiLibName )
+bool DecoderWindows::checkForFullString( DEBUG_EVENT &details, int chunkSize, wchar_t* libName, bool gotString, char* asciiLibName )
 {
 	if(details.u.LoadDll.fUnicode)
 	{
@@ -516,4 +424,103 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 	newEvt->setSyncType(Event::sync_process);
 	events.push_back(newEvt);
 	return true;
+}
+
+
+std::string DecoderWindows::readLibNameFromProc(Address libnameaddr, DEBUG_EVENT details, int_process *p) {
+	char asciiLibName[(MAX_PATH+1)*sizeof(wchar_t)];
+	wchar_t* libName = (wchar_t*)(asciiLibName);	
+	int lowReadSize = 1;
+	int highReadSize = 128;
+	bool doneReading = false;
+	bool gotString = false;
+	int chunkSize = highReadSize;
+	int changeSize = highReadSize / 2;
+
+	while(!doneReading)
+	{
+		pthrd_printf("Trying read for libname at 0x%lx, size %d\n", libnameaddr, chunkSize);
+		// try to read with the current byte count
+		if(p->plat_readMem(NULL, libName, (Dyninst::Address)libnameaddr, chunkSize))
+		{
+			// the read succeeded -
+			// did we get the full string?
+			gotString = checkForFullString(details, chunkSize, libName, gotString, asciiLibName);
+			if(gotString)
+			{
+				doneReading = true;
+			}
+			else
+			{
+				// we didn't get the full string,
+				// need to try a larger read
+				if(chunkSize == highReadSize)
+				{
+					// we were are the high end of the current range -
+					// move to the next range
+					lowReadSize = highReadSize + 1;
+					highReadSize = highReadSize + 128;
+					changeSize = 128; // we will half this before we read again
+					if(lowReadSize > (MAX_PATH * sizeof(wchar_t)))
+					{
+						// we've tried every range but still failed
+						doneReading = true;
+					}
+					else
+					{
+						chunkSize = highReadSize;
+					}
+				}
+				else
+				{
+					// we were within the current range -
+					// try something higher but still within the range
+					chunkSize = chunkSize + changeSize;
+				}
+			}
+		}
+		else
+		{
+			// the read failed -
+			// we need to try a smaller read
+			if(chunkSize > lowReadSize)
+			{
+				unsigned int nextReadSize = chunkSize - changeSize;
+				if(nextReadSize == chunkSize)
+				{
+					// we can't subdivide any further
+					doneReading = true;
+				}
+				else
+				{
+					chunkSize = nextReadSize;
+				}
+			}
+			else
+			{
+				// there are no smaller reads to try in this range,
+				// and by induction, in any range
+				doneReading = true;
+			}
+		}
+		// update the amount that we use to change the read request
+		changeSize /= 2;
+
+	}
+	if(details.u.LoadDll.fUnicode)
+	{
+		pthrd_printf("Converting unicode into single-byte characters\n");
+		// the DLL path is a Unicode string
+		// we have to convert it to single-byte characters
+		char* tmp = new char[MAX_PATH];
+		::WideCharToMultiByte(CP_ACP, 0, libName, -1, tmp, MAX_PATH, NULL, NULL);
+		// swap buffers so that asciiLibName points to the single-byte string
+		// when we're out of this code block
+		return std::string(tmp);
+	}
+	else
+	{
+		// the DLL path can be cast correctly
+		return std::string(asciiLibName);
+	}
 }
