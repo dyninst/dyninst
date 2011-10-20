@@ -173,19 +173,13 @@ bool windows_thread::plat_suspend()
 	}
 
 	pthrd_printf("Suspending %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
-	if (result > 0) {
-		fprintf(stderr, "Hi!\n");
-	}
-	if (result == -1) {
-		fprintf(stderr, "Hi!\n");
-	}
-
 	return result != -1;
 }
 
 bool windows_thread::plat_resume()
 {
 	int result = ::ResumeThread(hthread);
+	pthrd_printf("Resuming %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
 
 	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
 		// FIXME
