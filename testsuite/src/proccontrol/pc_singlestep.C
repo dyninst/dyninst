@@ -209,7 +209,7 @@ test_results_t pc_singlestepMutator::executeTest()
 	  Library::const_ptr ntdll = proc->libraries().getLibraryByName("ntdll.dll");
 	  unsigned long ntdll_base = 0;
 	  if(ntdll) {
-		  unsigned long ntdll_base = ntdll->getLoadAddress();
+		  ntdll_base = ntdll->getLoadAddress();
 	  }
 #endif
 	  for (j = proc->threads().begin(); j != proc->threads().end(); j++)

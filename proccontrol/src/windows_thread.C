@@ -33,6 +33,9 @@
 #include "GeneratorWindows.h"
 #include "windows_process.h"
 #include <sstream>
+#include <iostream>
+
+using namespace std;
 
 int_thread *int_thread::createThreadPlat(int_process *proc, 
 										 Dyninst::THR_ID thr_id, 
@@ -164,6 +167,7 @@ bool windows_thread::plat_suspend()
 		// This happens if the thread is in a system call and thus cannot be modified. 
 		// However, handling such an event is a royal pain in the ass, and so we're ignoring
 		// it for now and not failing. 
+		pthrd_printf("Thread %d faking suspend, was in a system call\n", tid);
 		return true;
 	}
 
@@ -233,7 +237,7 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		ret = true;
 	}
 	plat_resume();
-	//fprintf(stderr, "Got regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	fprintf(stderr, "Got regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	return ret;
 }
 
@@ -246,6 +250,9 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
 	plat_suspend();
+
+	std::cerr << "plat_setAllRegisters, EIP = " << std::hex << regpool.regs[x86::eip] << std::dec << std::endl;
+
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
 	c.Eax = regpool.regs[x86::eax];
@@ -272,12 +279,13 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	c.Eip = regpool.regs[x86::eip];
 	BOOL ok = ::SetThreadContext(hthread, &c);
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
-	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	CONTEXT verification;
+	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(hthread, &verification);
-	//assert(verification.Eip == c.Eip);
+	assert(verification.Eip == c.Eip);
 	plat_resume();
-	return (bool) ok;
+	return ok ? true : false;
 }
 
 bool windows_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
@@ -403,4 +411,28 @@ bool windows_thread::getTLSPtr(Dyninst::Address& tls_ptr)
 void windows_thread::setTLSAddress( Dyninst::Address addr )
 {
 	m_TLSAddr = addr;
+}
+
+bool windows_thread::needsSyscallTrapForRPC()
+{
+	int_registerPool regs;
+	plat_getAllRegisters(regs);
+	Address prevInsnIfSysenter = regs.regs[x86::eip] - 2;
+	char prevInsn[2];
+	proc_->plat_readMem(this, prevInsn, prevInsnIfSysenter, 2);
+	if((prevInsn[0] == 0x0F) && (prevInsn[1] == 0x34)) // sysenter
+	{
+		pthrd_printf("Found sysenter at 0x%lx, need trap for RPC here\n", prevInsnIfSysenter);
+		return true;
+	}
+	pthrd_printf("Thread at 0x%lx does not need trap for RPC\n", regs.regs[x86::eip]);
+	return false;
+}
+
+void windows_thread::setUser(bool u) {
+	isUser_ = u;
+}
+
+bool windows_thread::isUser() const {
+	return isUser_;
 }

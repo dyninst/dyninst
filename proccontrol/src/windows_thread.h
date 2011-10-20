@@ -78,12 +78,18 @@ public:
 	void setStartFuncAddress(Dyninst::Address addr);
 	void setTLSAddress(Dyninst::Address addr);
 	Address getThreadInfoBlockAddr();
+	virtual bool needsSyscallTrapForRPC();
+
+	bool isUser() const;
+	void setUser(bool);
+
 private:
 	HANDLE hthread;
 	Dyninst::Address m_StartAddr;
 	Dyninst::Address m_TLSAddr;
 	Dyninst::Address stackBase;
 	Address threadInfoBlockAddr_;
+	bool isUser_;
 };
 
 #endif //!defined(WINDOWS_THREAD_H)

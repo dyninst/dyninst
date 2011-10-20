@@ -397,6 +397,11 @@ class PC_EXPORT Thread
    bool isDetached() const;
    bool isInitialThread() const;
 
+   // Added for Windows. Windows creates internal threads which are bound to 
+   // the process but are used for OS-level work. We hide these from the user,
+   // but need to represent them in ProcControlAPI. 
+   bool isUser() const; 
+
    bool stopThread();
    bool continueThread();
 

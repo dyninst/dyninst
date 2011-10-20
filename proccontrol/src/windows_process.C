@@ -34,6 +34,7 @@
 #include <numeric>
 #include "windows_thread.h"
 #include "procpool.h"
+#include "irpc.h"
 
 using namespace std;
 
@@ -150,7 +151,7 @@ bool windows_process::plat_create_int()
 		wThread->setHandle(procInfo.hThread);
 	}
 #endif
-	return result;
+	return result ? true : false;
 }
 bool windows_process::plat_attach(bool)
 {
@@ -164,7 +165,7 @@ bool windows_process::plat_attach(bool)
 bool windows_process::plat_attach_int()
 {
 	setForceGeneratorBlock(true);
-	return (bool) ::DebugActiveProcess(pid);
+	return (::DebugActiveProcess(pid)) ? true : false;
 }
 
 // For each LWP/TID, is it running at attach time?
@@ -266,6 +267,7 @@ bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 
 bool windows_process::plat_contProcess()
 {
+	pthrd_printf("plat_contProcess...\n");
 	ProcPool()->condvar()->lock();
 	for(int_threadPool::iterator i = threadPool()->begin();
 		i != threadPool()->end(); ++i)
@@ -285,12 +287,27 @@ bool windows_process::plat_contProcess()
 				return false;
 			}
 		}
+
+		// DEBUGGING
+		int_registerPool regs;
+		(*i)->plat_getAllRegisters(regs);
+		Dyninst::THR_ID tid;
+		(*i)->getTID(tid);
+		Address a;
+		(*i)->getStartFuncAddress(a);
+		pthrd_printf("Thread %d at EIP 0x%lx, thread start func is 0x%lx\n", tid, regs.regs[x86::eip], a);
+
+		//
+
+
 	}
 	ProcPool()->condvar()->signal();
 	ProcPool()->condvar()->unlock();
 	// This implementation presumes that all threads are in correct suspended/resumed state.
 	// With HybridLWPControl, this should be correct.
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+
+
 	wGen->wake(pid);
 	return true;
 }
@@ -314,7 +331,7 @@ bool windows_process::plat_detach()
 		int error = ::GetLastError();
 		pthrd_printf("Error in plat_detach: %d\n", error);
 	}
-	return (bool)result;
+	return result ? true : false;
 }
 
 bool windows_process::plat_individualRegAccess()
@@ -392,9 +409,12 @@ bool windows_process::infFree(Dyninst::Address addr)
 		return false;
 	}
 
-	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_FREE);
+	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_RELEASE);
+	if (!result) {
+		fprintf(stderr, "VirtualFreeEx failed at 0x%lx, retval %d", addr, ::GetLastError());
+	}
 	mem->inf_malloced_memory.erase(i);
-	return result;
+	return result ? true : false;
 }
 
 
@@ -428,4 +448,14 @@ bool windows_process::plat_isStaticBinary()
 {
 	assert(!"not implemented");
 	return false;
+}
+
+bool iRPCMgr::createThreadForRPC(int_process* proc, int_iRPC::ptr rpc)
+{
+	// This assumes we've already allocated and copied...
+	windows_process* winProc = dynamic_cast<windows_process*>(proc);
+	assert(winProc);
+	Dyninst::THR_ID tid;
+	HANDLE hthrd = ::CreateRemoteThread(winProc->plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)rpc->addr(), NULL, 0, (LPDWORD)&tid);
+	return hthrd != INVALID_HANDLE_VALUE;
 }

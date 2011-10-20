@@ -320,6 +320,11 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       // Don't post RPCs to threads that are in the middle of exiting
       if(thr->isExiting()) continue;
 
+	  if(thr->needsSyscallTrapForRPC()) {
+		  pthrd_printf("Skipping thread currently in a syscall");
+		  continue;
+	  }
+
       int rpc_count = numActiveRPCs(thr);
       if (!findAllocationForRPC(thr, rpc)) {
          //We'll need to run an allocation and deallocation on this thread.
@@ -331,6 +336,17 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
          selected_thread = thr;
          min_rpc_count = rpc_count;
       }
+   }
+   if(!selected_thread)
+   {
+	   // This should only happen on Windows, because that is currently the only platform where we
+	   // need to trap at syscall exit in order to catch a thread currently in a syscall on the way out
+	   // and run an RPC there. On other OSes, we'll just interrupt the syscall and the OS will (normally)
+	   // restart it.
+	   // This means we'll be spawning a new thread specifically to run this RPC.
+	   // We create a thread with its threadproc at the RPC buffer, we replace the trap with a return, and life should
+	   // be good.
+	   return createThreadForRPC(proc, rpc);
    }
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
@@ -878,6 +894,11 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
    if (isStopped) {
       pthrd_printf("Already stopped, marked rpc prepped\n");
       rpc->setState(int_iRPC::Prepped);
+	  if(thr->needsSyscallTrapForRPC())
+	  {
+		  pthrd_printf("Thread in syscall, need trap mechanism, not prepping here\n");
+		  return false;
+	  }
       return true;
    }
 
@@ -907,6 +928,11 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
       pthrd_printf("Failed to stop process/thread for iRPC\n");
       user_error = true;
       return false;
+   }
+   if(thr->needsSyscallTrapForRPC())
+   {
+ 	  pthrd_printf("Thread in syscall, need trap mechanism, not prepping here\n");
+ 	  return false;
    }
 
    if (sync_prep && rpc->getState() == int_iRPC::Prepping) {
@@ -1291,3 +1317,11 @@ unsigned long IRPC::getStartOffset() const
    return wrapper->rpc->startOffset();
 }
 
+
+#if !defined(os_windows)
+bool iRPCMgr::createThreadForRPC(int_process* proc, int_iRPC::ptr rpc)
+{
+	assert(0);
+	return false;
+}
+#endif

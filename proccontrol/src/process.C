@@ -3587,7 +3587,7 @@ bool installed_breakpoint::isInstalled() const
 bool installed_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response)
 {
    assert(buffer_size != 0);
-   char bp_insn[BP_BUFFER_SIZE];
+   unsigned char bp_insn[BP_BUFFER_SIZE];
    proc->plat_breakpointBytes(bp_insn);
    return proc->writeMem(bp_insn, addr, buffer_size, write_response);
 }
@@ -5545,11 +5545,22 @@ bool Thread::isInitialThread() const
 {
    MTLock lock_this_func;
    if (!llthread_) {
-      perr_printf("isInitialThrad called on exited thread\n");
+      perr_printf("isInitialThread called on exited thread\n");
       setLastError(err_exited, "Thread is exited\n");
       return false;
    }
    return llthread_->llproc()->threadPool()->initialThread() == llthread_;
+}
+
+bool Thread::isUser() const 
+{
+	MTLock lock_this_func;
+	if (!llthread_) {
+		perr_printf("isUser called on exited thread\n");
+		setLastError(err_exited, "Thread is exited\n");
+		return false;
+	}
+	return llthread_->isUser();
 }
 
 void Thread::setSingleStepMode(bool s) const

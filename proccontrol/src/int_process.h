@@ -192,7 +192,7 @@ class int_process
    installed_breakpoint *getBreakpoint(Dyninst::Address addr);
 
    virtual unsigned plat_breakpointSize() = 0;
-   virtual void plat_breakpointBytes(char *buffer) = 0;
+   virtual void plat_breakpointBytes(unsigned char *buffer) = 0;
 
    virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer, 
                                                unsigned long &buffer_size, unsigned long &start_offset) = 0;
@@ -486,6 +486,9 @@ class int_thread
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
    int_iRPC_ptr hasRunningProcStopperRPC() const;
+   virtual bool needsSyscallTrapForRPC() {
+		return false;
+   }
 
    typedef enum {
       hnp_post_async,
@@ -547,6 +550,9 @@ class int_thread
    virtual bool getStackSize(unsigned long &size) = 0;
    virtual bool getTLSPtr(Dyninst::Address &addr) = 0;
       
+   // Windows-only; default implementation is "yes, we're a user thread"
+   virtual bool isUser() { return true; }
+
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
  protected:

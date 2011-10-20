@@ -54,7 +54,7 @@ unsigned arch_process::plat_breakpointSize()
   return 1;
 }
 
-void arch_process::plat_breakpointBytes(char *buffer)
+void arch_process::plat_breakpointBytes(unsigned char *buffer)
 {
   assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
   buffer[0] = 0xcc;
