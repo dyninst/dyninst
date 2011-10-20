@@ -6,6 +6,7 @@
 #include <iostream>
 #include "external/boost/scoped_ptr.hpp"
 #include "irpc.h"
+#include <psapi.h>
 
 using namespace std;
 
@@ -64,10 +65,13 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		}
 		cerr << "imageName @ " << hex << details.u.LoadDll.lpImageName << " and read " << read << dec << endl;
 		if(details.u.LoadDll.lpImageName && // NULL lpImageName = done
-			read && 
+			read &&
 			libnameaddr) // NULL libnameaddr = done
 		{
 			result = readLibNameFromProc((Address) libnameaddr, details, p);
+		}
+		else {
+			result = HACKreadFromFile(details, p);
 		}
 		cerr << "\t ... " << result << endl;
 		int_library* lib = new int_library(result,
@@ -523,4 +527,33 @@ std::string DecoderWindows::readLibNameFromProc(Address libnameaddr, DEBUG_EVENT
 		// the DLL path can be cast correctly
 		return std::string(asciiLibName);
 	}
+} 
+
+
+std::string DecoderWindows::HACKreadFromFile(DEBUG_EVENT details, int_process *p) {
+	std::string ret;
+	// Copied from Dyninst, 20OCT11 - Bernat 
+	// And comment preserved for posterity. Hello, posterity!
+
+	//I'm embarassed to be writing this.  We didn't get a name for the image, 
+    // but we did get a file handle.  According to MSDN, the best way to turn
+    // a file handle into a file name is to map the file into the address space
+    // (using the handle), then ask the OS what file we have mapped at that location.
+    // I'm sad now.
+    
+    void *pmap = NULL;
+    HANDLE fmap = CreateFileMapping(details.u.LoadDll.hFile, NULL, 
+                                    PAGE_READONLY, 0, 1, NULL);
+    if (fmap) {
+        pmap = MapViewOfFile(fmap, FILE_MAP_READ, 0, 0, 1);
+        if (pmap) {   
+            char filename[MAX_PATH+1];
+			BOOL result = ::GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
+            if (result)
+                ret = std::string(filename);
+            UnmapViewOfFile(pmap);
+        }
+        CloseHandle(fmap);
+    }
+	return ret;
 }

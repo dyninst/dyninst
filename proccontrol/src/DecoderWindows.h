@@ -26,7 +26,7 @@ private:
    bool decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int_process* &proc, std::vector<Event::ptr> &events );
 
    std::string readLibNameFromProc(Address libnameaddr, DEBUG_EVENT details, int_process *p);
-
+   std::string HACKreadFromFile(DEBUG_EVENT details, int_process *p);
 };
 
 
