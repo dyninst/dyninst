@@ -588,7 +588,10 @@ void Parser::ProcessCFInsn(
     if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
         link(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
-    }
+    } else if (has_unres){
+        link(cur, _sink, INDIRECT, true);
+        ProcessUnresBranchEdge(frame, cur, ah, -1);
+	 }
 
     if(ah.isDelaySlot())
         ah.advance();
