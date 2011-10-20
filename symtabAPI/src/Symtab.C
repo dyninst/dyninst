@@ -2036,9 +2036,11 @@ bool Symtab::closeSymtab(Symtab *st)
 	{
 		if (*iter == st)
 		{
-            if(0 == st->_ref_cnt)
+            found = true;
+			if(0 == st->_ref_cnt) {
 			    allSymtabs.erase(iter.base() -1);
-			found = true;
+				break;
+			}
 		}
 	}
     if(0 == st->_ref_cnt)
