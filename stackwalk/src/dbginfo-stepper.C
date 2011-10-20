@@ -149,13 +149,52 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
    parent_stepper(parent),
-   cur_frame(NULL)
+   cur_frame(NULL),
+   last_addr_read(0),
+   last_val_read(0)
 {
 }
 
 bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 {
-   return getProcessState()->readMem(buffer, addr, size);
+   bool result = getProcessState()->readMem(buffer, addr, size);
+
+   last_addr_read = 0;
+   if (!result)
+      return false;
+   if (size != addr_width)
+      return true;
+   
+   last_addr_read = addr;
+   if (addr_width == 4) {
+      uint32_t v = *((uint32_t *) buffer);
+      last_val_read = v;
+   }
+   else if (addr_width == 8) {
+      uint64_t v = *((uint64_t *) buffer);
+      last_val_read = v;
+   }
+   else {
+      assert(0); //Unknown size
+   }
+
+   return true;
+}
+
+location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
+{
+   location_t loc;
+   if (last_addr_read && last_val_read == value) {
+      loc.val.addr = last_addr_read;
+      loc.location = loc_address;
+   }
+   else {
+      loc.val.addr = 0;
+      loc.location = loc_unknown;
+   }
+   last_addr_read = 0;
+   last_val_read = 0;
+   return loc;
 }
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
@@ -264,7 +303,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    bool result;
 
    Dyninst::Architecture arch;
-   unsigned addr_width = getProcessState()->getAddressWidth();
+   addr_width = getProcessState()->getAddressWidth();
    if (addr_width == 4)
       arch = Dyninst::Arch_x86;
    else
@@ -277,6 +316,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                 __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
+   location_t ra_loc = getLastComputedLocation(ret_value);
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
@@ -291,6 +331,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
+   location_t fp_loc = getLastComputedLocation(frame_value);
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, arch, this);
@@ -299,10 +340,14 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
+   location_t sp_loc = getLastComputedLocation(stack_value);
 
    out.setRA(ret_value);
    out.setFP(frame_value);
    out.setSP(stack_value);
+   out.setRALocation(ra_loc);
+   out.setFPLocation(fp_loc);
+   out.setSPLocation(sp_loc);
 
    return gcf_success;
 }
