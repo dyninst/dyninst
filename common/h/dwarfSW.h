@@ -241,7 +241,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       reg_result = register_val;
       return true;
    } 
-   else if (value_type == DW_EXPR_EXPRESSION || value_type == DW_EXPR_EXPRESSION)
+   else if (value_type == DW_EXPR_VAL_EXPRESSION || value_type == DW_EXPR_EXPRESSION)
    {
       Dwarf_Locdesc *llbuf = NULL;
       Dwarf_Signed listlen = 0;
@@ -256,7 +256,24 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
                                            arch, end_result);
       dwarf_dealloc(dbg, llbuf->ld_s, DW_DLA_LOC_BLOCK);
       dwarf_dealloc(dbg, llbuf, DW_DLA_LOCDESC);
-      reg_result = end_result;
+      if (bresult && value_type == DW_EXPR_EXPRESSION) {
+         if (word_size == 4) {
+            uint32_t r;
+            bresult = reader->ReadMem((Dyninst::Address) end_result, &r, 4);
+            reg_result = r;
+         }
+         else if (word_size == 8) {
+            uint64_t r;
+            bresult = reader->ReadMem((Dyninst::Address) end_result, &r, 8);
+            reg_result = r;
+         }
+         else {
+            assert(0); //Unknown word size
+         }
+      }
+      else if (bresult && value_type == DW_EXPR_VAL_EXPRESSION) {
+         reg_result = end_result;
+      }
       return bresult;
    }
    else

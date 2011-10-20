@@ -199,7 +199,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     **/
    DwarfSW *dauxinfo = getAuxDwarfInfo(lib.first);
    if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
-      sw_printf("[%s:%u] - Using separate DWARF debug file for %s", 
+      sw_printf("[%s:%u] - Using separate DWARF debug file for %s\n", 
                 __FILE__, __LINE__, lib.first.c_str());
       cur_frame = &in;
       gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo);
@@ -307,6 +307,3 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    return gcf_success;
 }
 #endif
-
-
-
