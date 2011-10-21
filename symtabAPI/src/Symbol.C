@@ -377,6 +377,13 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
+SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
+{
+   mangledName_ = name;
+   setStrIndex(-1);
+   return true;
+}
+
 Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
@@ -638,18 +645,6 @@ Symbol::~Symbol ()
 		}
 		delete (sfa_p);
 	}
-
-	std::vector<std::string> *vn_p = NULL;
-	if (getAnnotation(vn_p, SymbolVersionNamesAnno))
-	{
-		if (!removeAnnotation(SymbolVersionNamesAnno))
-		{
-			fprintf(stderr, "%s[%d]:  failed to remove version names anno\n", 
-					FILE__, __LINE__);
-		}
-		delete (vn_p);
-	}
-
 }
 
 void Symbol::setReferringSymbol(Symbol* referringSymbol) 

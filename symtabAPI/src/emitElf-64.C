@@ -1665,7 +1665,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
-     DT_NEEDEDEntries.push_back(*i);
+     addDTNeeded(*i);
   }
   new_dynamic_entries = obj->getObject()->new_dynamic_entries;
   Object *object = obj->getObject();
@@ -1990,7 +1990,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
    j=0; k=0; l=0; m=0;
    //reconstruct .rel
-   for(i=0;i<relocation_table.size();i++) 
+   for(i=0; i<relocation_table.size(); i++) 
    {
 
      if( library_adjust ) {
@@ -2004,9 +2004,21 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 
       if ((object->getRelType()  == Region::RT_REL) && (relocation_table[i].regionType() == Region::RT_REL)) {
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
-         if(relocation_table[i].name().length() &&
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+            if (j != dynSymNameMapping.end())
+               sym_offset = j->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym)
+                  sym_offset = sym->getIndex();
+            }
+         }
+
+         if (sym_offset) {
+            rels[j].r_info = ELF64_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             rels[j].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, relocation_table[i].getRelType());
          }
@@ -2016,9 +2028,23 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          relas[k].r_addend = relocation_table[i].addend();
          //if (relas[k].r_addend)
          //   relas[k].r_addend += library_adjust;
-         if(relocation_table[i].name().length() && 
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned long>::iterator j = dynSymNameMapping.find(sym_name);
+            if (j != dynSymNameMapping.end())
+               sym_offset = j->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym) {
+                  j = dynSymNameMapping.find(sym->getMangledName());
+                  if (j != dynSymNameMapping.end())
+                     sym_offset = j->second;
+               }
+            }
+         }
+         if (sym_offset) {
+            relas[k].r_info = ELF64_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             relas[k].r_info = ELF64_R_INFO((unsigned long)STN_UNDEF, relocation_table[i].getRelType());
          }
@@ -2172,8 +2198,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
          versionNames[name] = dynSymbolNamesLength;
          dynStrs.push_back(name);
          dynSymbolNamesLength+= (name).size()+1;
-         if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
-            DT_NEEDEDEntries.push_back(name);
+         addDTNeeded(name);
       }
    }
    for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
@@ -2184,8 +2209,7 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
       versionNames[it->first] = dynSymbolNamesLength;
       dynStrs.push_back(it->first);
       dynSymbolNamesLength+= it->first.size()+1;
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
-         DT_NEEDEDEntries.push_back(it->first);
+      addDTNeeded(it->first);
       verneed->vn_aux = sizeof(Elf64_Verneed);
       verneed->vn_next = sizeof(Elf64_Verneed) + it->second.size()*sizeof(Elf64_Vernaux);
       if(curpos + verneed->vn_next == verneedSecSize)
@@ -2319,6 +2343,7 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
   dynamicSecData.clear();
   Elf64_Dyn *dyns = (Elf64_Dyn *)dynData;
   unsigned count = size/sizeof(Elf64_Dyn);
+  vector<string> &libs_rmd = object->libsRMd();
   dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf64_Dyn *)malloc(dynsecSize*sizeof(Elf64_Dyn));
   unsigned curpos = 0;
@@ -2367,8 +2392,11 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
       break;
     case DT_NEEDED:
       rpathstr = &olddynStrData[dyns[i].d_un.d_val];
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end())
-	break;
+      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end()) {
+         break;
+      }
+      if (find(libs_rmd.begin(), libs_rmd.end(), rpathstr) != libs_rmd.end())
+         break;
       dynsecData[curpos].d_tag = dyns[i].d_tag;
       dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
       dynStrs.push_back(rpathstr);
@@ -2461,4 +2489,14 @@ void emitElf64::log_elferror(void (*err_func)(const char *), const char* msg) {
   err = err ? err: "(bad elf error)";
   string str = string(err)+string(msg);
   err_func(str.c_str());
+}
+
+void emitElf64::addDTNeeded(string s)
+{
+   if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
+      return;
+   vector<string> &libs_rmd = object->libsRMd();
+   if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
+      return;
+   DT_NEEDEDEntries.push_back(s);
 }

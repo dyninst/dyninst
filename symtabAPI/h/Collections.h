@@ -83,7 +83,6 @@ class typeCollection : public Serializable//, public AnnotatableSparse
     dyn_hash_map<std::string, Type *> globalVarsByName;
     dyn_hash_map<int, Type *> typesByID;
 
-    SYMTAB_EXPORT ~typeCollection();
 
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
@@ -98,6 +97,7 @@ class typeCollection : public Serializable//, public AnnotatableSparse
 	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
 	public:
     SYMTAB_EXPORT typeCollection();
+    SYMTAB_EXPORT ~typeCollection();
 public:
 	static void addDeferredLookup(int, dataClass, Type **);
 

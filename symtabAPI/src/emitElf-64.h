@@ -153,6 +153,8 @@ class emitElf64{
     void createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
 
+    void addDTNeeded(std::string s);
+
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
     bool cannotRelocatePhdrs();

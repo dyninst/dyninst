@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-class QuietOutputDriver : public StdOutputDriver
+class TESTLIB_DLL_EXPORT QuietOutputDriver : public StdOutputDriver
 {
  public:
  QuietOutputDriver(void* data) : StdOutputDriver(data), successCount(0),

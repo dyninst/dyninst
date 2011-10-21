@@ -1180,18 +1180,11 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
-
+   setOutput(new StdOutputDriver(NULL));
+ 
    int result = parseArgs(argc, argv);
    if (result)
       exit(result);
-   if(quietFormat)
-   {
-     setOutput(new QuietOutputDriver(NULL));
-   }
-   else
-   {
-     setOutput(new StdOutputDriver(NULL));
-   }
 
    if (unique_id) {
       char id_string[32];
@@ -1284,7 +1277,8 @@ int parseArgs(int argc, char *argv[])
       else if (strcmp(argv[i], "-q") == 0)
       {
 	//getOutput()->log(STDERR, "[%s:%u] - Quiet format not yet enabled\n");
-         quietFormat = true;
+	setOutput(new QuietOutputDriver(NULL));
+	quietFormat = true;
       }
       else if ( strcmp(argv[i], "-skipTo")==0)
       {
@@ -1648,7 +1642,7 @@ int parseArgs(int argc, char *argv[])
             sprintf(failedOutputFile, "sql_dblog-%4d-%02d-%02d",
                     timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday);
 
-            getOutput()->log(STDERR, "No 'SQL log file' found, using default %s\n", failedOutputFile);
+            fprintf(stderr, "No 'SQL log file' found, using default %s\n", failedOutputFile);
          }
 
          std::string s_failedOutputFile (failedOutputFile);
@@ -1657,7 +1651,12 @@ int parseArgs(int argc, char *argv[])
          //make sure it loaded correctly before replacing default output
          if (newoutput != NULL) {
             setOutput(newoutput);
-         }
+         } else 
+	 {
+	   fprintf(stderr, "Failed to load DatabaseOutputDriver\n");
+	 }
+	 
+	 
       }
       else if (strcmp(argv[i], "-allcompilers") == 0)
       {
