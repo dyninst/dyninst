@@ -91,7 +91,7 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   }
 
   sw_printf("[%s:%u] - Returning value %lx for reg %s\n", 
-            __FILE__, __LINE__, val, reg.name());
+            __FILE__, __LINE__, val, reg.name().c_str());
   return true;
 }
 
