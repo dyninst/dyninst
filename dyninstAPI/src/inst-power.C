@@ -3102,9 +3102,8 @@ printf(" emitPLTCommon callee %s  dest 0x%lx  cur 0x%lx toc_anchor 0x%lx caller_
    	assert (stackSize == 1);
    	scratchReg = freeReg[0];
    }
-
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                     scratchReg, TOCreg, (int16_t)LOW(destOff));
+   insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
+   insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
 
     insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
                                      TOCreg, scratchReg, 8);
@@ -3115,8 +3114,6 @@ printf(" emitPLTCommon callee %s  dest 0x%lx  cur 0x%lx toc_anchor 0x%lx caller_
    if (stackSize > 0)
    	insnCodeGen::removeStackFrame(gen);
 
-    destOff += wordsize;
-//    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
 
     instruction branch_insn(call ? BRLraw : BRraw);
     insnCodeGen::generate(gen, branch_insn);

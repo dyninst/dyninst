@@ -43,6 +43,8 @@
 
 #include "ProcReader.h"
 
+#include "dyn_detail/boost/shared_ptr.hpp"
+
 class MappedFile;
 
 #define SYM_MAJOR 6
@@ -244,6 +246,9 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addType(Type *typ);
 
+   static dyn_detail::boost::shared_ptr<builtInTypeCollection> builtInTypes();
+   static dyn_detail::boost::shared_ptr<typeCollection> stdTypes();
+
    SYMTAB_EXPORT static std::vector<Type *> *getAllstdTypes();
    SYMTAB_EXPORT static std::vector<Type *> *getAllbuiltInTypes();
 
@@ -329,6 +334,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT unsigned getNumberofSymbols() const;
 
    SYMTAB_EXPORT std::vector<std::string> &getDependencies();
+   SYMTAB_EXPORT bool removeLibraryDependency(std::string lib);
 
    SYMTAB_EXPORT Archive *getParentArchive() const;
 
@@ -341,9 +347,6 @@ class Symtab : public LookupInterface,
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
-   static builtInTypeCollection *builtInTypes;
-   static typeCollection *stdTypes;
-
    Symbol *getSymbolByIndex(unsigned);
    protected:
    Symtab(std::string filename, std::string member_name, Offset offset, bool &err, void *base = NULL);
@@ -351,6 +354,7 @@ class Symtab : public LookupInterface,
 
    /***** Private Member Functions *****/
    private:
+
    SYMTAB_EXPORT Symtab(std::string filename, bool defensive_bin, bool &err);
 
    SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
@@ -372,9 +376,6 @@ class Symtab : public LookupInterface,
 
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-
-   void setupTypes();
-   static void setupStdTypes();
 
    bool buildDemangledName( const std::string &mangled, 
          std::string &pretty,
@@ -424,6 +425,11 @@ class Symtab : public LookupInterface,
 
    /***** Private Data Members *****/
    private:
+
+   static dyn_detail::boost::shared_ptr<typeCollection> setupStdTypes();
+   static dyn_detail::boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
+
+
    std::string member_name_;
    Offset member_offset_;
    Archive * parentArchive_;
@@ -593,8 +599,8 @@ class Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   static Type *type_Error;
-   static Type *type_Untyped;
+   static dyn_detail::boost::shared_ptr<Type> type_Error();
+   static dyn_detail::boost::shared_ptr<Type> type_Untyped();
 
  private:
     unsigned _ref_cnt;

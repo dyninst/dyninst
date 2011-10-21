@@ -473,8 +473,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   size_t dynamic_section_size = 0;
   for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if (! scnp->isValid())  // section is malformed
+    if (! scnp->isValid()) {  // section is malformed
+      delete scnp;
       continue; 
+    }
     if ((dynamic_offset_ !=0) && (scnp->sh_offset() == dynamic_offset_)) {
       if (!foundDynamicSection) {
 	dynamic_section_index = i;
@@ -496,6 +498,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
       } 
     }	
+    delete scnp;
   }
 
   if (dynamic_section_index != -1) {
@@ -584,6 +587,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
       it++;
     }
+    delete scnp;
   }
    
   isBlueGeneP_ = false;
@@ -597,7 +601,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     if(i < elfHdr.e_shnum()) {
       scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
       if (! scnp->isValid()) { // section is malformed
-	continue; 
+        delete scnp;
+	    continue; 
       } 
       name = &shnames[scnp->sh_name()];
       sectionsInOriginalBinary.insert(string(name));
@@ -615,7 +620,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	break;
       scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
       if(! scnp->isValid()) {
-	continue;
+        delete scnp;
+        continue;
       }
       name = &shnamesForDebugInfo[scnp->sh_name()];
 
@@ -1076,8 +1082,13 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
 	re.setAddend(addend);
 	re.setRegionType(rtype);
 	if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
-	  vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
-	  re.addDynSym(syms[0]);
+	  vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+     for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {
+        if (!(*i)->isInDynSymtab())
+           continue;
+        re.addDynSym(*i);
+        break;
+     }
 	}
 
 	relocation_table_.push_back(re);
@@ -1431,9 +1442,16 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
           std::string targ_name = &strs[ sym.st_name(index) ];
           vector<Symbol *> dynsym_list;
-          if (symbols_.find(targ_name) != symbols_.end()) {
-            dynsym_list = symbols_[ targ_name ];
-          } else {
+          if (symbols_.find(targ_name) != symbols_.end()) 
+          {
+             vector<Symbol *> &syms = symbols_[&strs[ sym.st_name(index)]];
+             for (vector<Symbol *>::iterator i = syms.begin(); i != syms.end(); i++) {             
+                if (!(*i)->isInDynSymtab())
+                   continue;
+                dynsym_list.push_back(*i);
+             }
+          } 
+          else {
             dynsym_list.clear();
           }
 
@@ -3266,6 +3284,7 @@ Object::~Object()
 
   // This is necessary to free resources held internally by libelf
   elfHdr.end();
+  elfHdrForDebugInfo.end();
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
@@ -5180,6 +5199,17 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
 void Object::insertPrereqLibrary(std::string libname)
 {
    prereq_libs.insert(libname);
+}
+
+bool Object::removePrereqLibrary(std::string libname)
+{
+   rmd_deps.push_back(libname);
+   return true;
+}
+
+std::vector<std::string> &Object::libsRMd()
+{
+   return rmd_deps;
 }
 
 void Object::insertDynamicEntry(long name, long value)

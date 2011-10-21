@@ -72,7 +72,15 @@ class ParseFrame {
        > worklist_t;
 
     vector<ParseWorkBundle*> work_bundles; 
-
+   
+    /* convenience generator for work elements. If a NULL bundle is
+       supplied, one will be provided. */
+    ParseWorkElem * mkWork(
+        ParseWorkBundle * b,
+        Edge * e,
+        Address target,
+        bool resolvable,
+        bool tailcall);
     void pushWork(ParseWorkElem * elem) {
         worklist.push(elem);
     }
