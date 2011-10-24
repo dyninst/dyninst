@@ -118,7 +118,7 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
    for (i = evlib->libsAdded().begin(); i != evlib->libsAdded().end(); i++) {
       Library::ptr lib = *i;
 	// FIXME
-	  cerr << hex << "Callback library " << lib << dec << endl;
+	  //cerr << hex << "Callback library " << lib << dec << endl;
 	  if (lib->getName().find("libtestA") != string::npos) {
          pi.loaded_libtesta = pi.order++;
       }
@@ -168,7 +168,7 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
 
 test_results_t pc_libraryMutator::executeTest()
 {
-	std::cerr << "ExecuteTest" << std::endl;
+	//std::cerr << "ExecuteTest" << std::endl;
    proclibs.clear();
    got_breakpoint = false;
    myerror = false;

@@ -1530,6 +1530,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    EventLibrary *lev = static_cast<EventLibrary *>(ev.get());
    if(!lev->libsAdded().empty())
    {
+	   MTLock lock_this_block;
 	   // this happens on Windows, where we already did the decode when we got the event
 	   for(std::set<Library::ptr>::const_iterator lib = lev->libsAdded().begin();
 		   lib != lev->libsAdded().end();
@@ -1540,6 +1541,7 @@ Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
    }
    if(!lev->libsRemoved().empty())
    {
+	   MTLock lock_this_block;
 	   for(std::set<Library::ptr>::const_iterator lib = lev->libsRemoved().begin();
 		   lib != lev->libsRemoved().end();
 		   ++lib)
