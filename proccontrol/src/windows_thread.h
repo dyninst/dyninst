@@ -82,6 +82,12 @@ public:
 
 	bool isUser() const;
 	void setUser(bool);
+	bool isDummyRPC() const;
+	void setDummyRPC(bool);	
+	void setDummyRPCStart(Address);
+	Address getDummyRPCStart() const;
+
+	void updateThreadHandle(Dyninst::THR_ID, Dyninst::LWP);
 
 private:
 	HANDLE hthread;
@@ -90,6 +96,9 @@ private:
 	Dyninst::Address stackBase;
 	Address threadInfoBlockAddr_;
 	bool isUser_;
+
+	bool isRPCDummy_;
+	Address dummyRpcPC_;
 };
 
 #endif //!defined(WINDOWS_THREAD_H)

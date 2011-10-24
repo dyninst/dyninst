@@ -41,6 +41,7 @@
 
 #include <cstring>
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 unsigned long int_iRPC::next_id;
@@ -316,12 +317,16 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       if (thr->getInternalState() != int_thread::running && thr->getInternalState() != int_thread::stopped) {
          continue;
       }
+	  if (!thr->isUser()) {
+		  pthrd_printf("Skipping thread that is marked as system\n");
+		  continue;
+	  }
 
       // Don't post RPCs to threads that are in the middle of exiting
       if(thr->isExiting()) continue;
 
 	  if(thr->needsSyscallTrapForRPC()) {
-		  pthrd_printf("Skipping thread currently in a syscall");
+		  pthrd_printf("Skipping thread currently in a syscall\n");
 		  continue;
 	  }
 
@@ -339,6 +344,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    }
    if(!selected_thread)
    {
+	   cerr << "Trying to create a thread to run this RPC since we don't have a free thread..." << endl;
 	   // This should only happen on Windows, because that is currently the only platform where we
 	   // need to trap at syscall exit in order to catch a thread currently in a syscall on the way out
 	   // and run an RPC there. On other OSes, we'll just interrupt the syscall and the OS will (normally)
@@ -346,7 +352,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 	   // This means we'll be spawning a new thread specifically to run this RPC.
 	   // We create a thread with its threadproc at the RPC buffer, we replace the trap with a return, and life should
 	   // be good.
-	   return createThreadForRPC(proc, rpc);
+	   selected_thread = createThreadForRPC(proc);
    }
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
@@ -748,7 +754,7 @@ bool int_iRPC::writeToProc()
 
       Dyninst::Address newpc_addr = addr() + startOffset();
       Dyninst::MachRegister pc = Dyninst::MachRegister::getPC(thr->llproc()->getTargetArch());
-      pthrd_printf("Setting %d/%d PC to %lx\n", thr->llproc()->getPid(),
+	  pthrd_printf("IRPC: Setting %d/%d PC to %lx\n", thr->llproc()->getPid(),
                    thr->getLWP(), newpc_addr);
       bool result = thr->setRegister(pc, newpc_addr, pcset_result);
       if (!result) { 

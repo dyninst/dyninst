@@ -455,10 +455,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
    registerEventCounter(thread_create);
 
    num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
-#if defined(os_windows_test)
-	// There's an extra thread on Windows. Ignore it; it's the runtime playing games with us.
-   //++num_threads;
-#endif
+
    if (group->useAttach == CREATE)
    {
       int num_procs = 0;

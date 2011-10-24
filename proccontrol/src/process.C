@@ -44,6 +44,7 @@
 #include <cassert>
 #include <map>
 #include <sstream>
+#include <iostream>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -2787,7 +2788,11 @@ int_thread *int_thread::createThread(int_process *proc,
                                      Dyninst::LWP lwp_id,
                                      bool initial_thrd)
 {
-   int_thread *newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
+   // See if we already created a skeleton/dummy thread for this thread ID.
+   int_thread *newthr = proc->threadPool()->findThreadByLWP(lwp_id);
+   if (newthr) return newthr;
+
+   newthr = createThreadPlat(proc, thr_id, lwp_id, initial_thrd);
    if(!newthr)
    {
 	   pthrd_printf("createThreadPlat failed, returning NULL\n");
@@ -4650,6 +4655,8 @@ bool Process::continueProc()
       return false;
    }
 
+   llproc_->handleRPCviaNewThread(true);
+
    return llproc_->threadPool()->userCont();
 }
 
@@ -4995,6 +5002,7 @@ bool Process::allThreadsRunningWhenAttached() const
 
 Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
 {
+
    MTLock lock_this_func;
    if (!llproc_) {
       perr_printf("postIRPC on deleted process\n");
@@ -5021,6 +5029,7 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
       return rpc->thread()->thread();
    }
    int_thread *thr = rpc->thread();
+	assert(thr);
    if (thr->getInternalState() == int_thread::running) {
       //The thread is running, let's go ahead and start the RPC going.
       bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
@@ -5819,13 +5828,24 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
 {
    MTLock lock_this_func;
    ThreadPool::iterator orig = *this;
-   if (curp->hl_threads[curi] == curh)
-      curi++;
 
-   if (curi < (signed int) curp->hl_threads.size())
-      curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
+	// Modified to skip system threads; needs a while loop. Still doesn't handle
+   // problems with threads being deleted. 
+   do {
+     if (curp->hl_threads[curi] == curh) 
+        curi++;
+
+     if (curi < (signed int) curp->hl_threads.size())
+        curh = curp->hl_threads[curi];
+     else
+        curh = Thread::ptr();
+	  if (curh && curh->isUser()) {
+		  cerr << "Found thread, returning" << endl;
+	  }
+	  else {
+		  cerr << "Skipping system thread, iterating" << endl;
+	  }
+   } while (curh && (!curh->isUser()));
 
    return orig;
 }
@@ -5833,13 +5853,22 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
 ThreadPool::iterator ThreadPool::iterator::operator++(int)
 {
    MTLock lock_this_func;
-   if (curp->hl_threads[curi] == curh)
-      curi++;
 
-   if (curi < (signed int) curp->hl_threads.size())
-      curh = curp->hl_threads[curi];
-   else
-      curh = Thread::ptr();
+   do {
+      if (curp->hl_threads[curi] == curh)
+         curi++;
+
+      if (curi < (signed int) curp->hl_threads.size())
+         curh = curp->hl_threads[curi];
+      else
+         curh = Thread::ptr();
+	  if (curh && curh->isUser()) {
+		  cerr << "Found thread, returning" << endl;
+	  }
+	  else {
+		  cerr << "Skipping system thread, iterating" << endl;
+	  }
+   } while (curh && (!curh->isUser()));
 
    return *this;
 }

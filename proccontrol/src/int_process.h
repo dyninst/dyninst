@@ -263,6 +263,7 @@ class int_process
    // Platform-specific; is this address in what we consider a system lib.
    virtual bool addrInSystemLib(Address addr) { return false; }
 
+   virtual void handleRPCviaNewThread(bool) { return; }
 
  protected:
    State state;
@@ -396,11 +397,13 @@ class int_thread
                                        Dyninst::THR_ID thr_id, 
                                        Dyninst::LWP lwp_id,
                                        bool initial_thrd);
- public:
+
+public:
    static int_thread *createThread(int_process *proc, 
                                    Dyninst::THR_ID thr_id, 
                                    Dyninst::LWP lwp_id,
-                                   bool initial_thrd);
+   								   bool initial_thrd);
+   static int_thread *createDummyRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
 

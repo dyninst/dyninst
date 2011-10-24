@@ -431,32 +431,11 @@ void pc_irpcMutator::runIRPCs() {
       unsigned long start_offset;
       createBuffer(proc, buffer, buffer_size, start_offset);
 
-#if defined(os_windows_test)
-	Library::const_ptr ntdll = proc->libraries().getLibraryByName("ntdll.dll");
-	unsigned long ntdll_base = 0;
-	if(ntdll) {
-		ntdll_base = ntdll->getLoadAddress();
-	}
-#endif
-
-
       for (ThreadPool::iterator j = proc->threads().begin();
            j != proc->threads().end(); j++)
       {
          Thread::ptr thr = *j;
          thread_info_t &t = tinfo[thr];
-		 logerror("Checking a thread...\n");
-		 Dyninst::Address startAddr = thr->getStartFunction();
-		// This is the base/size for NTDLL.DLL. We want to skip these threads on Windows, because they're system threads.
-#if defined(os_windows_test)
-		 if((startAddr >= ntdll_base) && (startAddr <= (ntdll_base + 0xb2000))) {
-			fprintf(stderr, "Skipping thread /w/ startAddr 0x%lx\n", startAddr);
-			 continue;
-		 }
-		 else {
-			 fprintf(stderr, "Not skipping thread /w/ startAddr 0x%lx\n", startAddr);
-		 }
-#endif
 
          for (unsigned k = 0; k < NUM_IRPCS; k++)
          {
@@ -522,6 +501,11 @@ void pc_irpcMutator::runIRPCs() {
                     i != comp->procs.end(); i++) 
                {
                   Process::ptr proc = *i;
+				  if (!proc->allThreadsRunning()) {
+					  continued_something = true;
+				  }
+				  proc->continueProc();
+#if 0
                   for (ThreadPool::iterator j = proc->threads().begin();
                        j != proc->threads().end(); j++)
                   {
@@ -536,7 +520,8 @@ void pc_irpcMutator::runIRPCs() {
                      }
                      continued_something = true;
                   }
-               }
+#endif
+			   }
             }
          }
          if (all_irpcs_completed() || !has_pending_irpcs()) {

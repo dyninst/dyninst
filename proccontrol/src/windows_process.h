@@ -35,6 +35,8 @@
 #include "arch_process.h"
 #include "common/h/IntervalTree.h"
 
+class windows_thread;
+
 class windows_process : public arch_process
 {
 public:
@@ -93,6 +95,12 @@ public:
 
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);
+
+	// Hacky system thread RPC idea
+   virtual int_thread *getDummyRPCThread();
+
+   virtual void handleRPCviaNewThread(bool);
+
 private:
 	HANDLE hproc;
 	bool pendingDetach;
@@ -100,6 +108,9 @@ private:
 
 	IntervalTree<Address, bool> systemLibIntervals_;
 	void findSystemLibs();
+
+	windows_thread *dummyRPCThread_;
+	void promoteDummyRPCThread();
 };
 
 #endif //!defined(WINDOWS_PROCESS_H)

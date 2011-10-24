@@ -154,8 +154,12 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
    Address start_addr = 0;
    if (thr->getStartFuncAddress(start_addr)) {
 	   if (thr->llproc()->addrInSystemLib(start_addr)) {
+			cerr << "It's a system thread!" << endl;
 		   thr->setUser(false);
 	   }
+   }
+   if (!thr->isUser()) {
+	   ev->setSuppressCB(true);
    }
 
    return ret_success;
@@ -181,6 +185,7 @@ void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 WindowsHandleLWPDestroy::WindowsHandleLWPDestroy()
     : Handler("Windows LWP Destroy")
 {
+
 }
 
 WindowsHandleLWPDestroy::~WindowsHandleLWPDestroy()
@@ -189,8 +194,17 @@ WindowsHandleLWPDestroy::~WindowsHandleLWPDestroy()
 
 Handler::handler_ret_t WindowsHandleLWPDestroy::handleEvent(Event::ptr ev) 
 {
-	assert(!"Not implemented");
-    return ret_success;
+	pthrd_printf("Windows LWP Destroy handler entered\n");
+	windows_thread *thr = NULL;
+	Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
+	ProcPool()->condvar()->lock();
+	int_thread* tmp = ProcPool()->findThread(lwp);
+	thr = static_cast<windows_thread*>(tmp);
+	
+	if (!thr->isUser()) {
+	   ev->setSuppressCB(true);
+    }
+	return ret_success;
 }
 
 int WindowsHandleLWPDestroy::getPriority() const

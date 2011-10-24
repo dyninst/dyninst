@@ -781,6 +781,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\IntervalTree.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\language.h"
 				>
 			</File>

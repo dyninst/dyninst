@@ -82,7 +82,8 @@ windows_process::windows_process(Dyninst::PID p, std::string e, std::vector<std:
 int_process(p, e, a, envp, f),
 arch_process(p, e, a, envp, f),
 pendingDetach(false),
-pendingDebugBreak_(false)
+pendingDebugBreak_(false),
+dummyRPCThread_(NULL)
 {
 }
 
@@ -90,7 +91,8 @@ windows_process::windows_process(Dyninst::PID pid_, int_process *p) :
 int_process(pid_, p),
 arch_process(pid_, p),
 pendingDetach(false),
-pendingDebugBreak_(false)
+pendingDebugBreak_(false),
+dummyRPCThread_(NULL)
 {
 }
 
@@ -270,6 +272,13 @@ bool windows_process::plat_contProcess()
 {
 	pthrd_printf("plat_contProcess...\n");
 	ProcPool()->condvar()->lock();
+
+	if (dummyRPCThread_ && dummyRPCThread_->getDummyRPCStart()) {
+		// Promote it to real thread-ness!
+		promoteDummyRPCThread();
+		dummyRPCThread_ = NULL;
+	}
+
 	for(int_threadPool::iterator i = threadPool()->begin();
 		i != threadPool()->end(); ++i)
 	{
@@ -451,14 +460,12 @@ bool windows_process::plat_isStaticBinary()
 	return false;
 }
 
-bool iRPCMgr::createThreadForRPC(int_process* proc, int_iRPC::ptr rpc)
+int_thread *iRPCMgr::createThreadForRPC(int_process* proc)
 {
-	// This assumes we've already allocated and copied...
 	windows_process* winProc = dynamic_cast<windows_process*>(proc);
 	assert(winProc);
-	Dyninst::THR_ID tid;
-	HANDLE hthrd = ::CreateRemoteThread(winProc->plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)rpc->addr(), NULL, 0, (LPDWORD)&tid);
-	return hthrd != INVALID_HANDLE_VALUE;
+
+	return winProc->getDummyRPCThread();
 }
 
 bool windows_process::addrInSystemLib(Address addr) {
@@ -498,4 +505,57 @@ void windows_process::findSystemLibs() {
  			 (objEnd != probeAddr)); // we're making forward progress
 	bool insert = true;
 	systemLibIntervals_.insert(base, objEnd, insert);
+}
+
+int_thread *windows_process::getDummyRPCThread() {
+	if (!dummyRPCThread_) {
+		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createDummyRPCThread(this));
+
+
+	}
+	return dummyRPCThread_;
+}
+
+void windows_process::promoteDummyRPCThread() {
+	assert(dummyRPCThread_);
+
+	pthrd_printf("Promoting dummy RPC thread to a real thread\n");
+
+	// We want to:
+	// 1) Take the dummy thread
+	// 2) Create a real thread in the mutatee
+	// 3) Fill in the dummy thread's values
+	// 4) Set it as a system thread
+	// 5) Promote it to the threadpool
+
+	// 1)
+	Address dummyStart = dummyRPCThread_->getDummyRPCStart();
+
+	// 2)
+	Dyninst::LWP lwp;
+	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, 0, (LPDWORD)&lwp);
+	pthrd_printf("*********************** Created actual thread with lwp %d for dummy RPC thread, start at 0x%lx\n",
+		(int) lwp, dummyStart);
+
+	// 3)
+	dummyRPCThread_->updateThreadHandle((Dyninst::THR_ID) lwp, lwp);
+	dummyRPCThread_->setHandle(hthrd);
+
+	// 4) 
+	dummyRPCThread_->setUser(false);
+	dummyRPCThread_->setDummyRPC(false);
+
+	// 5) 
+	threadPool()->addThread(dummyRPCThread_);
+	ProcPool()->addThread(this, dummyRPCThread_);
+
+	dummyRPCThread_ = NULL;
+}
+
+void windows_process::handleRPCviaNewThread(bool user_cont) {
+	if (!dummyRPCThread_) return;
+
+	// Tell the iRPC manager to try and prep RPCs on this hacked up mess of a thing. 
+	bool completed = false;
+	rpcMgr()->handleThreadContinue(dummyRPCThread_, user_cont, completed);
 }

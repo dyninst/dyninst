@@ -50,6 +50,28 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 	return static_cast<int_thread *>(wthrd);
 }
 
+int_thread *int_thread::createDummyRPCThread(int_process *proc) 
+{
+	pthrd_printf("Creating dummy thread for RPC: initial tid -1, lwp -1\n");
+	// We're creating a placeholder thread that will get actual information
+	// filled in later. Thus we don't actually have an lwp_id or thr_id...
+	// oops? Set to appropriately casted -1 and hope we don't use that info
+	// before we actually need it...
+	windows_thread *wthrd = new windows_thread(proc, (Dyninst::THR_ID) -1, (Dyninst::LWP) -1);
+	assert(wthrd);
+	wthrd->setDummyRPC(true);
+
+	// Fake it into a state that will make the iRPC code happy.
+	// Update this if postRPCToThread changes
+	wthrd->handler_state = int_thread::stopped;
+	wthrd->user_state = int_thread::stopped;
+	wthrd->generator_state = int_thread::stopped;
+	wthrd->internal_state = int_thread::stopped;
+	wthrd->handler_exiting_state = false;
+
+	return static_cast<int_thread *>(wthrd);
+}
+
 windows_thread::windows_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
 int_thread(p, t, l),
 hthread(INVALID_HANDLE_VALUE),
@@ -57,7 +79,9 @@ m_StartAddr(0),
 m_TLSAddr(0),
 stackBase(0),
 threadInfoBlockAddr_(0),
-isUser_(true)
+isUser_(true),
+isRPCDummy_(false),
+dummyRpcPC_(0)
 {
 }
 
@@ -77,6 +101,8 @@ void windows_thread::setStartFuncAddress(Dyninst::Address addr)
 
 std::string windows_thread::dumpThreadContext()
 {
+	if (isDummyRPC()) return "<DUMMY RPC THREAD>";
+
 	plat_suspend();
 	std::stringstream s;
 	CONTEXT context;
@@ -104,6 +130,8 @@ bool windows_thread::attach()
 
 bool windows_thread::plat_cont()
 {
+	if (isDummyRPC()) return true;
+
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	bool ok = true;
 	if(singleStep())
@@ -133,6 +161,12 @@ bool windows_thread::plat_cont()
 done:
 		plat_resume();
 	}
+
+	// Bill thinks this is a good idea to clear out pending stops that aren't
+	// being cleared in platform generic code.
+	//this->setPendingStop(false);
+	//this->setPendingUserStop(false);
+
 	plat_resume();
 	wGen->wake(llproc()->getPid());
 	return ok;
@@ -140,6 +174,8 @@ done:
 
 bool windows_thread::plat_stop()
 {
+	if (isDummyRPC()) return true;
+
 	pthrd_printf("Stopping thread %d (0x%lx)\n", getLWP(),
 		hthread);
 	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
@@ -162,6 +198,8 @@ bool windows_thread::plat_stop()
 
 bool windows_thread::plat_suspend()
 {
+	if (isDummyRPC()) return true;
+
 	int result = ::SuspendThread(hthread);
 	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
 		// FIXME
@@ -185,6 +223,8 @@ bool windows_thread::plat_suspend()
 
 bool windows_thread::plat_resume()
 {
+	if (isDummyRPC()) return true;
+
 	int result = ::ResumeThread(hthread);
 
 	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
@@ -207,6 +247,8 @@ bool windows_thread::plat_resume()
 
 bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+	if (isDummyRPC()) return true;
+
 	bool ret = false;
 	plat_suspend();
 	CONTEXT c;
@@ -250,6 +292,15 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
+	if (isDummyRPC()) {
+		pthrd_printf("setAllRegisters called on dummy RPC thread, grabbing PC for future use: 0x%lx\n",
+			regpool.regs[x86::eip]);
+		// Snarf the PC, ignore everything else
+		dummyRpcPC_ = regpool.regs[x86::eip];
+		return true;
+	}
+
+
 	plat_suspend();
 
 	std::cerr << "plat_setAllRegisters, EIP = " << std::hex << regpool.regs[x86::eip] << std::dec << std::endl;
@@ -331,6 +382,8 @@ bool windows_thread::getTID(Dyninst::THR_ID& tid)
 
 Address windows_thread::getThreadInfoBlockAddr()
 {
+	if (isDummyRPC()) return false;
+
 	if (threadInfoBlockAddr_) {
 		return threadInfoBlockAddr_;
 	}
@@ -359,6 +412,8 @@ Address windows_thread::getThreadInfoBlockAddr()
 
 bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 {
+	if (isDummyRPC()) return false;
+
 	if(m_StartAddr) {
 		start_addr = m_StartAddr;
 		return true;
@@ -368,6 +423,8 @@ bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 
 bool windows_thread::getStackBase(Dyninst::Address& stack_base)
 {
+	if (isDummyRPC()) return false;
+
 	if(stackBase) {
 		stack_base = stackBase;
 		return true;
@@ -385,6 +442,8 @@ bool windows_thread::getStackBase(Dyninst::Address& stack_base)
 
 bool windows_thread::getStackSize(unsigned long& stack_size)
 {
+	if (isDummyRPC()) return false;
+
 	Address tib_addr = getThreadInfoBlockAddr();
 	if(!tib_addr) {
 		stack_size = 0;
@@ -416,6 +475,8 @@ void windows_thread::setTLSAddress( Dyninst::Address addr )
 
 bool windows_thread::needsSyscallTrapForRPC()
 {
+	if (isDummyRPC()) return false;
+
 	int_registerPool regs;
 	plat_getAllRegisters(regs);
 	Address prevInsnIfSysenter = regs.regs[x86::eip] - 2;
@@ -436,4 +497,26 @@ void windows_thread::setUser(bool u) {
 
 bool windows_thread::isUser() const {
 	return isUser_;
+}
+
+void windows_thread::setDummyRPC(bool u) {
+	isRPCDummy_ = u;
+}
+
+bool windows_thread::isDummyRPC() const {
+	return isRPCDummy_;
+}
+
+void windows_thread::setDummyRPCStart(Address a) {
+	pthrd_printf("Setting dummy PC to 0x%lx\n", a);
+	dummyRpcPC_ = a;
+}
+
+Address windows_thread::getDummyRPCStart() const {
+	return dummyRpcPC_;
+}
+
+void windows_thread::updateThreadHandle(Dyninst::THR_ID t, Dyninst::LWP l) {
+	tid = t;
+	lwp = l;
 }

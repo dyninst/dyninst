@@ -163,6 +163,8 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 
 bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 {
+	static Address ntdll_ignore_breakpoint_address = 0;
+
 	assert(ae);
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(ae);
 	assert(winEvt);
@@ -208,6 +210,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			//fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
+			pthrd_printf("Caught breakpoint for pid %d, tid %d, PC 0x%lx\n", e.dwProcessId, e.dwThreadId, e.u.Exception.ExceptionRecord.ExceptionAddress);
 			newEvt = decodeBreakpointEvent(e, proc, thread);
 			if(newEvt)
 			{
@@ -269,6 +272,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					pthrd_printf("Breakpoint due to startup, ignoring\n");
 					proc->setForceGeneratorBlock(false);
 					newEvt = Event::ptr(new EventBootstrap());
+					ntdll_ignore_breakpoint_address = (Address) e.u.Exception.ExceptionRecord.ExceptionAddress;
 				}
 			}
 			break;
@@ -282,12 +286,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			break;
 		case EXCEPTION_ACCESS_VIOLATION:
 			{
-				pthrd_printf("segfault in mutatee\n");
+				pthrd_printf("segfault in mutatee, thread %d/%d\n", e.dwProcessId, e.dwThreadId);
 				unsigned problemArea = (unsigned int)(e.u.Exception.ExceptionRecord.ExceptionAddress);
 				dumpSurroundingMemory(problemArea, proc);
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+				assert(0);
 			}
 			break;
 			// Thread naming exception. Ignore.
