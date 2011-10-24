@@ -558,7 +558,7 @@ public:
    virtual bool getTLSPtr(Dyninst::Address &addr) = 0;
       
    // Windows-only; default implementation is "yes, we're a user thread"
-   virtual bool isUser() { return true; }
+   virtual bool isUser() const { return true; }
 
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);

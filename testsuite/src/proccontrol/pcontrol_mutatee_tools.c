@@ -156,7 +156,7 @@ int handshakeWithServer()
    send_pid spid;
    handshake shake;
 
-  fprintf(stderr, "starting handshakeWithServer\n");
+  //fprintf(stderr, "starting handshakeWithServer\n");
 
    spid.code = SEND_PID_CODE;
 #if !defined(os_windows_test)
@@ -170,19 +170,19 @@ int handshakeWithServer()
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
-  fprintf(stderr, "sent PID OK\n");
+  //fprintf(stderr, "sent PID OK\n");
 
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
-  fprintf(stderr, "got handshake message, checking\n");
+  //fprintf(stderr, "got handshake message, checking\n");
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
    }
-  fprintf(stderr, "got handshake message OK\n");
+  //fprintf(stderr, "got handshake message OK\n");
 
    return 0;
 }
@@ -202,7 +202,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
    WORD wsVer = MAKEWORD(2,0);
    int result = 0;
    WSADATA ignored;
-   fprintf(stderr, "starting initProcControlTest\n");
+   //fprintf(stderr, "starting initProcControlTest\n");
    result = WSAStartup(wsVer, &ignored);
    if(result)
    {
@@ -217,21 +217,21 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Error initializing threads\n");
       return -1;
    }
-   fprintf(stderr, "initialized threads OK\n");
+   //fprintf(stderr, "initialized threads OK\n");
 
    result = initMutatorConnection();
    if (result != 0) {
       fprintf(stderr, "Error initializing connection to mutator\n");
       return -1;
    }
-   fprintf(stderr, "initialized mutator connection OK\n");
+   //fprintf(stderr, "initialized mutator connection OK\n");
    
    result = handshakeWithServer();
    if (result != 0) {
       fprintf(stderr, "Could not handshake with server\n");
       return -1;
    }
-   fprintf(stderr, "mutatee did server handshake OK\n");
+   //fprintf(stderr, "mutatee did server handshake OK\n");
 
    result = releaseThreads();
    if (result != 0) {
@@ -265,7 +265,7 @@ int finiProcControlTest(int expected_ret_code)
 #if defined(os_windows_test)
    WSACleanup();
 #endif
-   fprintf(stderr, "end finiProcControlTest\n");
+   //fprintf(stderr, "end finiProcControlTest\n");
    return has_error ? -1 : 0;
 }
 

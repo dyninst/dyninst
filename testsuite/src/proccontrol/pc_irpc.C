@@ -605,7 +605,7 @@ void pc_irpcMutator::runIRPCs() {
          myerror = true;
       }
       if (val != (comp->num_threads+1) * NUM_IRPCS) {
-         fprintf(stderr, "val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
+         //fprintf(stderr, "val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
          logerror("IRPCS did not update val\n");
          myerror = true;
       }

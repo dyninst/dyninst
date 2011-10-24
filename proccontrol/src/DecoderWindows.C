@@ -63,7 +63,7 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		if (details.u.LoadDll.lpImageName) {
 			read = p->plat_readMem(NULL, &libnameaddr, (Dyninst::Address)(details.u.LoadDll.lpImageName), 4);
 		}
-		cerr << "imageName @ " << hex << details.u.LoadDll.lpImageName << " and read " << read << dec << endl;
+		//cerr << "imageName @ " << hex << details.u.LoadDll.lpImageName << " and read " << read << dec << endl;
 		if(details.u.LoadDll.lpImageName && // NULL lpImageName = done
 			read &&
 			libnameaddr) // NULL libnameaddr = done
@@ -73,18 +73,16 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		else {
 			result = HACKreadFromFile(details, p);
 		}
-		cerr << "\t ... " << result << endl;
+		//cerr << "\t ... " << result << endl;
 		int_library* lib = new int_library(result,
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
 			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
 		addedLibs.insert(lib->getUpPtr());
-		// FIXME
-		//std::cerr << "Theoretically adding " << std::hex << lib->getUpPtr() << std::dec << std::endl;
-		//std::cerr << proc->memory()->libs.size() << " current libs" << std::endl; 
-		//proc->memory()->libs.insert(lib);		
-		//std::cerr << proc->memory()->libs.size() << " new libs" << std::endl; 
+
 		pthrd_printf("Load DLL event, loading %s (at 0x%lx)\n",
 			lib->getName().c_str(), lib->getAddr());
+		//fprintf(stderr, "Load DLL event, loading %s (at 0x%lx)\n",
+		//	lib->getName().c_str(), lib->getAddr());
 
 	}
 	else if(details.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)

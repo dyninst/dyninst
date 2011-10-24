@@ -1611,12 +1611,29 @@ installed_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
 
 int_library *int_process::getLibraryByName(std::string s) const
 {
+	// Exact matches first, but find substring matches and return if unique.
+	// TODO: is this the behavior we actually want?
+	bool substring_unique = true;
+	std::set<int_library*>::iterator substring_match = mem->libs.end();
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); ++i) 
    {
-      if (s == (*i)->getName())
+	   std::string n = (*i)->getName();
+      if (s == n)
          return *i;
+	  if((n.find(s) != std::string::npos)) {
+		  if(substring_match == mem->libs.end()) {
+			substring_match = i;
+		  }
+		  else {
+			substring_unique = false;
+		  }
+	  }
    }
+	if(substring_match != mem->libs.end() && substring_unique)
+	{
+		return *substring_match;
+	}
    return NULL;
 }
 
@@ -5029,7 +5046,10 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
       return rpc->thread()->thread();
    }
    int_thread *thr = rpc->thread();
-	assert(thr);
+   if(!thr) {
+		pthrd_printf("handleNextPostedIRPC failed\n");
+	   return Thread::ptr();
+   }
    if (thr->getInternalState() == int_thread::running) {
       //The thread is running, let's go ahead and start the RPC going.
       bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);

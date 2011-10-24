@@ -528,7 +528,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
          if (proc->threads().size() != num_threads+1) {
-			 std::cerr << "Proc " << proc->getPid() << " has " << proc->threads().size() << " threads, expected " << num_threads+1 << std::endl;
+			 //std::cerr << "Proc " << proc->getPid() << " has " << proc->threads().size() << " threads, expected " << num_threads+1 << std::endl;
             logerror("Process has incorrect number of threads");
 //            error = true;
          }
@@ -1052,7 +1052,7 @@ bool ProcControlComponent::poll_for_events()
 }
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
-    RegisterPool regs;
+/*    RegisterPool regs;
     if( !ev->getThread()->getAllRegisters(regs) ) {
         fprintf(stderr, "Failed to get registers on breakpoint\n");
     }else{
@@ -1061,7 +1061,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
             fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
         }
     }
-
+*/
     return Process::cbThreadContinue;
 }
 
@@ -1075,7 +1075,7 @@ void insertBreakpoint(Process::ptr proc, Address addr) {
         fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
                 proc->getPid(), addr);
     }else{
-        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
+        //fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
+        //        proc->getPid(), addr);
     }
 }

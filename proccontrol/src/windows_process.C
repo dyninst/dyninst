@@ -466,6 +466,15 @@ int_thread *iRPCMgr::createThreadForRPC(int_process* proc)
 	assert(winProc);
 
 	return winProc->getDummyRPCThread();
+	fprintf(stderr, "Got asked to create thread for IRPC\n");
+	rpc->setAllocation(proc->mallocExecMemory(rpc->allocSize));
+	return false;
+	// This assumes we've already allocated and copied...
+/*	windows_process* winProc = dynamic_cast<windows_process*>(proc);
+	assert(winProc);
+	Dyninst::THR_ID tid;
+	HANDLE hthrd = ::CreateRemoteThread(winProc->plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)rpc->addr(), NULL, 0, (LPDWORD)&tid);
+	return hthrd != INVALID_HANDLE_VALUE;*/
 }
 
 bool windows_process::addrInSystemLib(Address addr) {

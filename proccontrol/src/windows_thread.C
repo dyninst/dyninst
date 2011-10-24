@@ -211,13 +211,6 @@ bool windows_thread::plat_suspend()
 	}
 
 	pthrd_printf("Suspending %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
-	if (result > 0) {
-		fprintf(stderr, "Hi!\n");
-	}
-	if (result == -1) {
-		fprintf(stderr, "Hi!\n");
-	}
-
 	return result != -1;
 }
 
@@ -226,6 +219,7 @@ bool windows_thread::plat_resume()
 	if (isDummyRPC()) return true;
 
 	int result = ::ResumeThread(hthread);
+	pthrd_printf("Resuming %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
 
 	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
 		// FIXME
@@ -280,7 +274,7 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		ret = true;
 	}
 	plat_resume();
-	fprintf(stderr, "Got regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	//fprintf(stderr, "Got regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	return ret;
 }
 
@@ -303,7 +297,7 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 
 	plat_suspend();
 
-	std::cerr << "plat_setAllRegisters, EIP = " << std::hex << regpool.regs[x86::eip] << std::dec << std::endl;
+	//std::cerr << "plat_setAllRegisters, EIP = " << std::hex << regpool.regs[x86::eip] << std::dec << std::endl;
 
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
@@ -331,7 +325,7 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 	c.Eip = regpool.regs[x86::eip];
 	BOOL ok = ::SetThreadContext(hthread, &c);
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
-	fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(hthread, &verification);
@@ -396,8 +390,8 @@ Address windows_thread::getThreadInfoBlockAddr()
 	// use the FS segment selector to look up the segment descriptor in the local descriptor table
 	LDT_ENTRY segDesc;
 	if (!GetThreadSelectorEntry(hthread, fs, &segDesc)) {
-		fprintf(stderr, "%s[%d] Failed to read segment register FS for thread 0x%x with FS index of 0x%x\n", 
-			FILE__,__LINE__,hthread, fs);
+		//fprintf(stderr, "%s[%d] Failed to read segment register FS for thread 0x%x with FS index of 0x%x\n", 
+		//	FILE__,__LINE__,hthread, fs);
 		return 0;
 	}
 	// calculate the address of the TIB
@@ -414,6 +408,15 @@ bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 {
 	if (isDummyRPC()) return false;
 
+	// If we don't have the member set, look on the stack.
+	if(!m_StartAddr) {
+		Dyninst::Address stackbase;
+		if(getStackBase(stackbase)) {
+			windows_process* wp = dynamic_cast<windows_process*>(proc()->llproc());
+			wp->plat_readMem(this, &m_StartAddr, stackbase - 8, 4);
+		}
+	}
+	// If the stack query failed, we'll re-query every time. Which is sub-optimal, but should work at least.
 	if(m_StartAddr) {
 		start_addr = m_StartAddr;
 		return true;
