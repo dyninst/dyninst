@@ -205,13 +205,7 @@ test_results_t pc_singlestepMutator::executeTest()
       
       ThreadPool::iterator j;
       int count = 0;
-#if defined(os_windows_test)
-	  Library::const_ptr ntdll = proc->libraries().getLibraryByName("ntdll.dll");
-	  unsigned long ntdll_base = 0;
-	  if(ntdll) {
-		  ntdll_base = ntdll->getLoadAddress();
-	  }
-#endif
+
 	  for (j = proc->threads().begin(); j != proc->threads().end(); j++)
       {
          //Singlestep half of the threads.
@@ -219,13 +213,6 @@ test_results_t pc_singlestepMutator::executeTest()
 		 Dyninst::Address startAddr = thrd->getStartFunction();
 		 Dyninst::THR_ID tid = thrd->getTID();
 		 logerror("Thread %d has initial function at %p\n", tid, startAddr);
-		// This is the base/size for NTDLL.DLL. We want to skip these threads on Windows, because they're system threads.
-#if defined(os_windows_test)
-		 if((startAddr >= ntdll_base) && (startAddr <= (ntdll_base + 0xb2000))) {
-			 logerror("Skipping thread %d starting at %p in NTDLL.DLL\n", tid, startAddr);
-			 continue;
-		 }
-#endif
 		 if ((count++ % 2 == 0) || (thrd->isInitialThread())) {
             singlestep_threads.insert(thrd);
 			logerror("Thread %d (start %p) single-stepping\n", tid, startAddr);
@@ -322,14 +309,6 @@ test_results_t pc_singlestepMutator::executeTest()
          logerror("Regular thread had single steps.\n");
          myerror = true;
       }
-#if !defined(os_windows_test)
-	  // The Windows MT runtime has the unfortunate property of spawning helper threads that are not under our control.
-	  // Therefore, we cannot be certain that any given helper thread actually hit this breakpoint.
-	  if (ti.breakpoint != 0) {
-         logerror("Regular thread did not execute breakpoint\n");
-         myerror = true;
-      }
-#endif
 	  for (unsigned j = 0; j < NUM_FUNCS; j++) {
          if (ti.hit_funcs[j] != -1) {
             logerror("Thread singlestepped over function\n");
