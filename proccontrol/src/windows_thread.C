@@ -353,6 +353,15 @@ Address windows_thread::getThreadInfoBlockAddr()
 
 bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 {
+	// If we don't have the member set, look on the stack.
+	if(!m_StartAddr) {
+		Dyninst::Address stackbase;
+		if(getStackBase(stackbase)) {
+			windows_process* wp = dynamic_cast<windows_process*>(proc()->llproc());
+			wp->plat_readMem(this, &m_StartAddr, stackbase - 8, 4);
+		}
+	}
+	// If the stack query failed, we'll re-query every time. Which is sub-optimal, but should work at least.
 	if(m_StartAddr) {
 		start_addr = m_StartAddr;
 		return true;
