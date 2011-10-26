@@ -1489,6 +1489,8 @@ static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned lo
    int result = stat(name.c_str(), &fileStat);
    if (result == -1)
       return false;
+   if (S_ISDIR(fileStat.st_mode))
+      return false;
    int fd = open(name.c_str(), O_RDONLY);
    if (fd == -1)
       return false;
