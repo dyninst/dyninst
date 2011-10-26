@@ -25,6 +25,8 @@ class DynInstrumenter : public Dyninst::PatchAPI::Instrumenter {
     virtual ~DynInstrumenter() {}
     virtual bool run();
     virtual bool undo();
+    virtual bool isInstrumentable(PatchFunction*);
+
 };
 
 /* Dyninst-specific Insert Snippet Command  */
