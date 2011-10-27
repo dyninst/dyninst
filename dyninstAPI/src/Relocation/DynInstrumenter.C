@@ -1,8 +1,8 @@
 #include "DynInstrumenter.h"
 #include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
-#include "function.h"
-#include "parse-cfg.h"
+#include "../function.h"
+#include "../parse-cfg.h"
 
 using Dyninst::PatchAPI::DynInstrumenter;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
