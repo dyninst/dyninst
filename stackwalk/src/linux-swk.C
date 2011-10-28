@@ -1360,7 +1360,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libc->getSymbolOffset(libc_restore);
+            Dyninst::Address start = libc->getSymbolOffset(libc_restore) + libc_addr.second;
             Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
@@ -1398,7 +1398,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore);
+            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore) + libpthread_addr.second;
             Dyninst::Address end = libpthread->getSymbolSize(libpthread_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
