@@ -47,6 +47,7 @@ namespace Stackwalker {
   const err_t err_nosymbol       = 0x10004;
   const err_t err_internal       = 0x10005;
   const err_t err_prem           = 0x10006;
+  const err_t err_perm           = 0x10006; 
   const err_t err_noproc         = 0x10007;
   const err_t err_interrupt      = 0x10008;
   const err_t err_procexit       = 0x10009;

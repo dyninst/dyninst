@@ -546,7 +546,7 @@ bool ProcDebugLinux::debug_attach(ThreadState *ts)
       sw_printf("[%s:%u] - Unable to attach to process %d: %s\n",
                 __FILE__, __LINE__, tid, strerror(errnum));
       if (errnum == EPERM)
-         setLastError(err_prem, "Do not have correct permissions to attach " \
+         setLastError(err_perm, "Do not have correct permissions to attach " \
                       "to pid");
       else if (errnum == ESRCH)
          setLastError(err_noproc, "The specified process was not found");
@@ -962,7 +962,7 @@ bool ProcDebugLinux::debug_create(std::string executable,
       if (errnum == ENOENT)
          setLastError(err_nofile, "No such file");
       if (errnum == EPERM || errnum == EACCES)
-         setLastError(err_prem, "Permission denied");
+         setLastError(err_perm, "Permission denied");
       else
          setLastError(err_internal, "Unable to exec process");
       exit(-1);
@@ -1360,7 +1360,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libc->getSymbolOffset(libc_restore);
+            Dyninst::Address start = libc->getSymbolOffset(libc_restore) + libc_addr.second;
             Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
@@ -1398,7 +1398,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore);
+            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore) + libpthread_addr.second;
             Dyninst::Address end = libpthread->getSymbolSize(libpthread_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
