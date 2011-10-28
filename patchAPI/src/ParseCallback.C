@@ -77,10 +77,12 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    if (type == source) pb->removeSourceEdge(pe);
    else { 
       pb->removeTargetEdge(pe);
-      // remove call edges
-      if (pb->containsCall()) {
+      // remove block from callBlocks, if this is the block's one only call edge
+      int numCalls = pb->numCallEdges();
+      if (numCalls == 1) {
          pb->getFunctions(std::back_inserter(funcs));
          for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
+            PatchFunction *func = *fit;
             (*fit)->call_blocks_.erase(pb);
          }
       }

@@ -223,6 +223,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
     void getCallerBlocks(OutputIterator result);
   template <class OutputIterator>
     void getCallerFuncs(OutputIterator result);
+  bool getLiveCallerBlocks(const std::set<block_instance*> &deadBlocks,
+                           const std::list<func_instance*> &deadFuncs,
+                           std::map<Address,vector<block_instance*> > & output_stubs);
+
+
 
 #if defined(arch_power)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }

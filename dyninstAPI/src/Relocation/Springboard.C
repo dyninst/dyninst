@@ -40,7 +40,7 @@
 using namespace Dyninst;
 using namespace Relocation;
 
-extern int dyn_debug_traps;
+extern int dyn_debug_trap;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
@@ -145,6 +145,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
     Address lastRangeStart = bbl->start();
+
     for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
     {/* there may be more than one range that overlaps with bbl, 
       * so we update lookup and lastRangeStart to after each conflict
@@ -193,17 +194,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
        }
     }
     if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-       if (lastRangeStart == bbl->start() &&
-           (bbl->end() - bbl->start()) < 5 &&
-           f &&
-           *begin == f->entryBlock() &&
-           f->getAllBlocks().size() == 1) {
-          //cerr << "Overriding small function of size " << bbl->end() - bbl->start() << " to 5 bytes" << endl;
-          validRanges_.insert(bbl->start(), bbl->start() + 5, funcID);
-       }
-       else {
-          validRanges_.insert(lastRangeStart, bbl->end(), funcID);
-       }
+        validRanges_.insert(lastRangeStart, bbl->end(), funcID);
     }
   }
   return true;
@@ -219,7 +210,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
-   if ((dyn_debug_traps /*&& r.from < 0x401000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if ((dyn_debug_trap && r.from > 0xac0000 && r.from < 0xad0000) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 

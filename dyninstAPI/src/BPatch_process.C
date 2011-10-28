@@ -1822,9 +1822,9 @@ static bool hasWeirdEntryBytes(func_instance *func)
     }
     unsigned short ebytes;
     memcpy(&ebytes,func->obj()->getPtrToInstruction(func->addr()),2);
-    //proc()->readDataSpace((void*)func->addr(), sizeof(short), &ebytes, false);
 
     if (0 == ebytes) {
+        mal_printf("funct at %lx hasWeirdEntryBytes, 0x0000\n", func->addr());
         return true;
     }
     return false;
@@ -1839,8 +1839,6 @@ void BPatch_process::overwriteAnalysisUpdate
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
-    //KEVINTEST: step through this rewritten overwrite update function
-
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
     std::list<block_instance *> owBBIs;
@@ -1848,13 +1846,13 @@ void BPatch_process::overwriteAnalysisUpdate
     changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
 
-    /*2. remove dead code from the analysis */
-
     if ( !changedCode ) {
         // update the mapped data for the overwritten ranges
         llproc->updateCodeBytes(owRegions);
         return;
     }
+
+    /*2. remove dead code from the analysis */
 
     // identify the dead code (see getDeadCode for its parameter definitions)
     std::set<block_instance*> delBlocks; 
@@ -1880,6 +1878,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         // remove instrumentation
+        func_instance *func = *fit;
         findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
     }
 
@@ -1894,6 +1893,32 @@ void BPatch_process::overwriteAnalysisUpdate
     std::map<func_instance*,vector<edgeStub> > stubs =
        llproc->getStubs(owBBIs,delBlocks,deadFuncs);
 
+    // get stubs for dead funcs
+    map<Address,vector<block_instance*> > deadFuncCallers;
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
+    {
+       if ((*fit)->getLiveCallerBlocks(delBlocks, deadFuncs, deadFuncCallers) &&
+           ((*fit)->ifunc()->hasWeirdInsns() || hasWeirdEntryBytes(*fit))) 
+       {
+          // don't reparse the function if it's likely a garbage function, 
+          // but mark the caller point as unresolved so we'll re-parse
+          // if we actually call into the garbage func
+          Address funcAddr = (*fit)->addr();
+          vector<block_instance*>::iterator sit = deadFuncCallers[funcAddr].begin();
+          for ( ; sit != deadFuncCallers[funcAddr].end(); sit++) {
+             (*sit)->llb()->setUnresolvedCF(true);
+             vector<func_instance*> cfuncs;
+             (*sit)->getFuncs(std::back_inserter(cfuncs));
+             for (unsigned i=0; i < cfuncs.size(); i++) {
+                cfuncs[i]->preCallPoint(*sit, true); // create point
+                monitorFuncs.insert(findOrCreateBPFunc(cfuncs[i], NULL));
+             }
+          }
+          deadFuncCallers.erase(deadFuncCallers.find(funcAddr));
+       }
+    }
 
     // set new entry points for functions with NewF blocks, the active blocks
     // in newFuncEntries serve as suggested entry points, but will not be 
@@ -1923,67 +1948,11 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // delete completely dead functions // 
 
-    // first, build up a list of stubs and save block addresses
-    map<block_instance*,Address> deadFuncCallers; // stubs
+    // save deadFunc block addresses in deadBlocks
     for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
         fit++)
     {
-        using namespace ParseAPI;
-        Address funcAddr = (*fit)->addr();
-
-        // get callers blocks as stubs for re-parsing the function if the 
-        // callers aren't also dead
-        Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {// includes tail calls
-                parse_block *cBlk = (parse_block*)((*eit)->src());
-                vector<ParseAPI::Function*> cFuncs;
-                cBlk->getFuncs(cFuncs);
-                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-
-                    // don't use stub if the block is dead
-                    func_instance *cfunc = llproc->findFunction(
-                        (parse_func*)(cFuncs[fix]));
-                    block_instance *cbbi = cfunc->obj()->findBlock(cBlk);
-                    if (delBlocks.end() != delBlocks.find(cbbi)) { //KEVINTODO: can't do this, delBlocks is full of dead pointers, should we put this ahead of deleting the blocks?
-                        continue; 
-                    }
-
-                    // don't use stub if the source func is dead
-                    bool isSrcFuncDead = false;
-                    for (std::list<func_instance*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end();
-                         dfit++)
-                    {
-                        if (cfunc == *dfit) {
-                            isSrcFuncDead = true;
-                            break;
-                        }
-                    }
-                    if (isSrcFuncDead) {
-                        continue; 
-                    }
-
-                    // don't reparse the function if it's likely a garbage function, 
-                    // but mark the caller point as unresolved so we'll re-parse
-                    // if we actually call into the garbage func
-                    if ( (*fit)->ifunc()->hasWeirdInsns() ||
-                         hasWeirdEntryBytes(*fit) )
-                    {  
-                       cfunc->preCallPoint(cbbi, true); // create point
-                       cbbi->llb()->setUnresolvedCF(true);
-                       monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
-                    }
-                    else { // found a stub!
-                        deadFuncCallers[cbbi] = funcAddr;
-                    }
-                }
-            }
-        }
- 
-        // add blocks to deadBlockAddrs 
         const PatchFunction::Blockset& deadBs = (*fit)->getAllBlocks();
         PatchFunction::Blockset::const_iterator bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
@@ -1991,12 +1960,26 @@ void BPatch_process::overwriteAnalysisUpdate
                                                    (*bIter)->size()));
         }
     }
-    // now actually delete the dead functions
+
+    // now actually delete the dead functions and redirect call edges to sink 
+    // block (if there already is an edge to the sink block, redirect 
+    // doesn't duplicate the edge)
     for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
         fit++)
     {
-        BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
+        const PatchBlock::edgelist & srcs = (*fit)->entry()->getSources();
+        vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
+        std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
+        for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
+             sit != srcVec.end();
+             sit++)
+        {
+           if ((*sit)->type() == ParseAPI::CALL) {
+              PatchAPI::PatchModifier::redirect(*sit, NULL);
+           }
+        }
+
         if (false == PatchAPI::PatchModifier::remove(*fit)) {
             assert(0);
         }
@@ -2006,14 +1989,19 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // set up data structures for re-parsing dead functions from stubs
     map<mapped_object*,vector<edgeStub> > dfstubs;
-    for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
-         bit != deadFuncCallers.end();
-         bit++)
+    for (map<Address, vector<block_instance*> >::iterator sit = deadFuncCallers.begin();
+         sit != deadFuncCallers.end();
+         sit++)
     {
-        // re-instate call edges to the function
-        dfstubs[bit->first->obj()].push_back(edgeStub(bit->first,
-                                                      bit->second,
-                                                      ParseAPI::CALL));
+       for (vector<block_instance*>::iterator bit = sit->second.begin();
+            bit != sit->second.end();
+            bit++) 
+       {
+          // re-instate call edges to the function
+          dfstubs[(*bit)->obj()].push_back(edgeStub(*bit,
+                                                    sit->first,
+                                                    ParseAPI::CALL));
+       }
     }
 
     // re-parse the functions
@@ -2278,7 +2266,7 @@ void BPatch_process::printDefensiveStatsInt()
                     }
                     using namespace ParseAPI;
                     int callTrgCount = 0;
-                    Block::edgelist &edges = block->llb()->targets();
+                    const Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
                          eit != edges.end();
                          eit++)
@@ -2300,7 +2288,7 @@ void BPatch_process::printDefensiveStatsInt()
                 else if (block->isFuncExit()) {
                     using namespace ParseAPI;
                     // check for return edges that show call-stack tampering
-                    Block::edgelist &edges = block->llb()->targets();
+                    const Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
                          eit != edges.end();
                          eit++)

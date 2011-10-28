@@ -548,7 +548,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
       // or that it tail-calls to the function containing the ret, 
       // or that the return insn is in a replacement for the called 
       // or tail-called func
-      Block::edgelist & trgs = (*bit)->targets();
+      const Block::edgelist & trgs = (*bit)->targets();
       for (Block::edgelist::iterator eit = trgs.begin();
            eit != trgs.end(); 
            eit++)

@@ -2096,7 +2096,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         bool foundStub = false;
         parse_block *curImgBlock = (*bit)->llb();
         Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
-        Block::edgelist & sourceEdges = curImgBlock->sources();
+        const Block::edgelist & sourceEdges = curImgBlock->sources();
 
         // search for stubs in all functions containing the overwritten block
         for (set<func_instance*>::iterator fit = bFuncs.begin();
@@ -2128,7 +2128,7 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                    }
                 } 
                 else {
-                   Block::edgelist &srcSrcs = isrc->sources();
+                   const Block::edgelist &srcSrcs = isrc->sources();
                    for (Block::edgelist::iterator sit = srcSrcs.begin(&epred);
                         sit != srcSrcs.end();
                         sit++)

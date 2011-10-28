@@ -255,7 +255,7 @@ void parse_block::debugPrint() {
                    end());
 
     parsing_printf("  Sources:\n");
-    Block::edgelist & srcs = sources();
+    const Block::edgelist & srcs = sources();
     Block::edgelist::iterator sit = srcs.begin();
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
@@ -266,7 +266,7 @@ void parse_block::debugPrint() {
         ++s;
     }
     parsing_printf("  Targets:\n");
-    Block::edgelist & trgs = sources();
+    const Block::edgelist & trgs = sources();
     Block::edgelist::iterator tit = trgs.begin();
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
@@ -325,7 +325,7 @@ bool parse_block::isEntryBlock(parse_func * f) const
  */
 bool parse_block::isExitBlock()
 {
-    Block::edgelist & trgs = targets();
+    const Block::edgelist & trgs = targets();
     if(trgs.empty()) {
         return false;
     }
@@ -356,7 +356,7 @@ bool parse_block::isExitBlock()
 
 bool parse_block::isCallBlock()
 {
-    Block::edgelist & trgs = targets();
+    const Block::edgelist & trgs = targets();
     if(!trgs.empty())
     {
         for (Block::edgelist::iterator eit = trgs.begin();
@@ -466,7 +466,7 @@ void parse_func::getReachableBlocks
     // reachBlocks set
     while(worklist.size()) {
         parse_block *curBlock = worklist.front();
-        Block::edgelist & outEdges = curBlock->targets();
+        const Block::edgelist & outEdges = curBlock->targets();
         Block::edgelist::iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
             parse_block *targB = (parse_block*) (*tIter)->trg();

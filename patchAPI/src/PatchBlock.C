@@ -183,21 +183,38 @@ PatchBlock::containingFuncs() const {
   return block_->containingFuncs();
 }
 
-bool
-PatchBlock::containsCall() {
-  ParseAPI::Block::edgelist & out_edges = block_->targets();
+int 
+PatchBlock::numRetEdges() const {
+  int numRets = 0;
+  const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
   for( ; eit != out_edges.end(); ++eit) {
-    if ( ParseAPI::CALL == (*eit)->type() ) {
-      return true;
+    if ( ParseAPI::RET == (*eit)->type() ) {
+      numRets++;
     }
   }
-  return false;
+  return numRets;
+}
+
+int PatchBlock::numCallEdges() const
+{
+   using namespace ParseAPI;
+   int numCalls = 0;
+   const Block::edgelist & trgs = block()->targets();
+   for (Block::edgelist::iterator titer = trgs.begin();
+        titer != trgs.end();
+        titer++)
+   {
+      if ((*titer)->type() == CALL) {
+         numCalls++;
+      }
+   }
+   return numCalls;
 }
 
 bool
 PatchBlock::containsDynamicCall() {
-  ParseAPI::Block::edgelist & out_edges = block_->targets();
+  const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
      if ( ParseAPI::CALL == (*eit)->type() ) { 
@@ -442,25 +459,26 @@ void PatchBlock::splitBlock(PatchBlock *succ)
    // 4) We fix up Points on the block, entry and during points stay here
 
    // 2)
-   bool hasFTEdge = false;
-   unsigned tidx= 0; 
-   while (tidx < trglist_.size()) {
-      PatchEdge *cur = trglist_[tidx];
-      if (cur->target() == succ) {
-          hasFTEdge = true;
-          tidx++;
-      } else {
-          cur->src_ = succ;
-          succ->trglist_.push_back(cur);
-          int last = trglist_.size()-1;
-          trglist_[tidx] = trglist_[last];
-          trglist_.pop_back();
+   const ParseAPI::Block::edgelist & trgs = succ->block()->targets();
+   ParseAPI::Block::edgelist::iterator titer = trgs.begin();
+   for (; titer != trgs.end(); titer++) {
+      PatchEdge *cur = obj()->getEdge(*titer, this, NULL, false);
+      if (cur != NULL) {
+         cur->src_ = succ;
       }
    }
+   trglist_.clear();
+   // list will be built up lazily when needed, hopefully after parsing is done
+   succ->trglist_.clear(); 
 
    // 3)
-   if (!hasFTEdge) { // may have been created by ParseAPI callbacks
-       ParseAPI::Block::edgelist &tmp = this->block()->targets();
+   assert(1 == block_->targets().size());
+   PatchEdge *patch_ft = obj()->getEdge(*block_->targets().begin(), this, succ, false);
+   if (patch_ft) {// patch_ft may have been created by another callback
+      trglist_.push_back(patch_ft);
+   }
+   else {
+       const ParseAPI::Block::edgelist &tmp = this->block()->targets();
        if (tmp.size() != 1) {
           cerr << "ERROR: split block has " << tmp.size() 
               << " edges, not 1 as expected!" << endl;
@@ -596,4 +614,4 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
    }
    return true;
 }
-   
+

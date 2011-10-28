@@ -219,7 +219,7 @@ void StackAnalysis::fixpoint() {
     
     // Step 4: push all children on the worklist.
     
-    Block::edgelist & outEdges = block->targets();
+    const Block::edgelist & outEdges = block->targets();
     Block::edgelist::iterator eit = outEdges.begin(&epred2);
     for( ; eit != outEdges.end(); ++eit) {
        if ((*eit)->type() == CALL) continue;
@@ -694,7 +694,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
    
-   Block::edgelist & outs = block->targets();  
+   const Block::edgelist & outs = block->targets();  
    Block::edgelist::iterator eit = outs.begin();
    for( ; eit != outs.end(); ++eit) {
       Edge *cur_edge = (Edge*)*eit;
@@ -775,7 +775,7 @@ void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
    Intraproc epred; // ignore calls, returns in edge iteration
    NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
    
-   Block::edgelist & inEdges = block->sources();
+   const Block::edgelist & inEdges = block->sources();
    Block::edgelist::iterator eit = inEdges.begin(&epred2);
    for( ; eit != inEdges.end(); ++eit) {
       Edge *edge = (Edge*)*eit;

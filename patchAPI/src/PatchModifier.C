@@ -37,10 +37,11 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
+/* If target is NULL, user is requesting a redirect to the sink block */
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Do we want edges to be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)
-   if (edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
+   if (target && edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
 
    // Current limitation: cannot retarget indirect edges (well, we can,
    // but don't expect it to work)
@@ -50,11 +51,19 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
        edge->type() == ParseAPI::RET) return false;
    
    // I think this is all we do...
-   if (!ParseAPI::CFGModifier::redirect(edge->edge(), target->block())) return false;
+   PatchBlock *src = edge->source();
+   PatchBlock *oldTrg = edge->target();
+   ParseAPI::Block *llTrg = (target == NULL) ? NULL : target->block();
+   if (!ParseAPI::CFGModifier::redirect(edge->edge(), llTrg)) return false;
    
-   assert(edge->source()->consistency());
-   assert(edge->consistency());
-   assert(target->consistency());
+   assert(src->consistency());
+   assert(oldTrg->start() == numeric_limits<Address>::max() || // don't check sink block's consistency
+          oldTrg->consistency());
+   if (target) { // otherwise we're redirecting to a sink edge and deleted
+                 // the edge if there already was another one of the same type
+      assert(edge->consistency());
+      assert(target->consistency());
+   }
 
    return true;
 }

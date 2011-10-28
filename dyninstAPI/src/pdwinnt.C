@@ -541,7 +541,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      Frame activeFrame = ev.lwp->getActiveFrame();
-     if (dyn_debug_traps) {
+     if (dyn_debug_trap) {
+        Address stackTOPVAL =0;
+        ev.proc->readDataSpace((void *) (activeFrame.esp), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 	     cerr << "SPRINGBOARD FRAME: " << hex << activeFrame.getPC() << " / " <<activeFrame.getSP() 
                      << " (DEBUG:" 
                      << "EAX: " << activeFrame.eax
@@ -552,12 +554,15 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
                      << ", EBP: " << activeFrame.ebp
                      << ", ESI: " << activeFrame.esi 
                      << ", EDI " << activeFrame.edi
-				     << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
+                     << ", EFLAGS: " << activeFrame.eflags 
+                     << ", *ESP: " << stackTOPVAL 
+                     << ")" << dec << endl;
+#if 0
 	     for (unsigned i = 0; i < 10; ++i) {
-			    Address stackTOPVAL =0;
              ev.proc->readDataSpace((void *) (activeFrame.esp + 4*i), sizeof(ev.proc->getAddressWidth()), &stackTOPVAL, false);
 			    cerr << "\tSTACK TOP VALUE=" << hex << stackTOPVAL << dec << endl;
 	     }
+#endif
      }
 	 ret = true;
   }
@@ -578,8 +583,11 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
         {
             ev.type = evtIgnore;
         }
-        if (dyn_debug_traps) {
-            cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
+        if (dyn_debug_trap) {
+            Address stackTop = 0;
+            ev.proc->readDataSpace((void *) activeFrame.esp, sizeof(Address), &stackTop, false);
+            cerr << "BREAKPOINT FRAME: " << hex <<  activeFrame.getUninstAddr() 
+                << " / " << activeFrame.getPC() << " / " <<activeFrame.getSP() 
 				    << " (DEBUG:" 
 				    << "EAX: " << activeFrame.eax
 				    << ", ECX: " << activeFrame.ecx
@@ -589,8 +597,11 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				    << ", EBP: " << activeFrame.ebp
 				    << ", ESI: " << activeFrame.esi 
 				    << ", EDI: " << activeFrame.edi
-				    << ", EFLAGS: " << activeFrame.eflags << ")" << dec << endl;
-            if (activeFrame.getUninstAddr() >= 0x406392 && activeFrame.getUninstAddr() <= 0x406398 ) {
+				    << ", EFLAGS: " << activeFrame.eflags 
+                << ", *ESP: " << stackTop
+                << ")" << dec << endl;
+#if 0
+            if (activeFrame.getUninstAddr() >= 0xac5800 && activeFrame.getUninstAddr() <= 0xac5a00 ) {
                 const int SDEPTH = 20;
 			    Address stackTOPVAL[SDEPTH];
                 ev.proc->readDataSpace((void *) activeFrame.esp, 
@@ -606,8 +617,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 				    cerr  << hex << activeFrame.esp + 4*i << ": "  << stackTOPVAL[i] 
                           << ", orig @ " << remapped << " in " << funcs.size() 
                           << "functions" << dec << endl;
-			    }
-		    }
+                }
+            }
+#endif
         }
 	 }
      else { // return exception to mutatee
@@ -647,6 +659,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
             //ev.proc->detachProcess(true);
+            //assert(0 && "bad read exception"); // for debugging only
             pdvector<pdvector<Frame> >  stacks;
             if (!ev.proc->walkStacks(stacks)) {
                 mal_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);

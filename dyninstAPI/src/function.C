@@ -143,7 +143,7 @@ block_instance * func_instance::setNewEntry(block_instance *def,
         block_instance *block = static_cast<block_instance*>(*bIter);
         if (deadBlocks.find(block) == deadBlocks.end()) {
             ParseAPI::Intraproc epred;
-            Block::edgelist & ib_ins = block->llb()->sources();
+            const Block::edgelist & ib_ins = block->llb()->sources();
             Block::edgelist::iterator eit = ib_ins.begin(&epred);
             if (eit == ib_ins.end()) 
             {
@@ -830,3 +830,53 @@ void func_instance::add_block_cb(block_instance *block)
     }
 }
 
+
+// get caller blocks that aren't in deadBlocks
+bool func_instance::getLiveCallerBlocks
+(const std::set<block_instance*> &deadBlocks, 
+ const std::list<func_instance*> &deadFuncs, 
+ std::map<Address,vector<block_instance*> > & stubs)  // output: block + target addr
+{
+   using namespace ParseAPI;
+
+   const PatchBlock::edgelist &callEdges = entryBlock()->getSources();
+   PatchBlock::edgelist::const_iterator eit = callEdges.begin();
+   for( ; eit != callEdges.end(); ++eit) {
+      if (CALL == (*eit)->type()) {// includes tail calls
+          block_instance *cbbi = static_cast<block_instance*>((*eit)->source());
+          if (deadBlocks.end() != deadBlocks.find(cbbi)) {
+             continue; 
+          }
+
+          // don't use stub if it only appears in dead functions 
+          std::set<func_instance*> bfuncs;
+          cbbi->getFuncs(std::inserter(bfuncs,bfuncs.end()));
+          bool allSrcFuncsDead = true;
+          for (std::set<func_instance*>::iterator bfit = bfuncs.begin();
+               bfit != bfuncs.end(); 
+               bfit++) 
+          {
+             bool isSrcFuncDead = false;
+             for (std::list<func_instance*>::const_iterator dfit = deadFuncs.begin();
+                  dfit != deadFuncs.end();
+                  dfit++)
+             {
+                if (*bfit == *dfit) {
+                   isSrcFuncDead = true;
+                   break;
+                }
+             }
+             if (!isSrcFuncDead) {
+                allSrcFuncsDead = false;
+                break;
+             }
+          }
+          if (allSrcFuncsDead) {
+             continue; 
+          }
+          // add stub
+          stubs[addr()].push_back(cbbi);
+      }
+   }
+   return stubs.end() != stubs.find(addr()) && !stubs[addr()].empty();
+}

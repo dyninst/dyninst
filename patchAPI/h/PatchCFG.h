@@ -85,7 +85,7 @@ class PatchBlock {
     PATCHAPI_EXPORT void getInsns(Insns &insns) const;
     PATCHAPI_EXPORT InstructionAPI::Instruction::Ptr getInsn(Address a) const;
     PATCHAPI_EXPORT std::string disassemble() const;
-    PATCHAPI_EXPORT bool containsCall();
+    PATCHAPI_EXPORT bool containsCall() const { return 0 < numCallEdges(); };
     PATCHAPI_EXPORT bool containsDynamicCall();
     PATCHAPI_EXPORT std::string format() const;
     PATCHAPI_EXPORT std::string long_format() const;
@@ -123,6 +123,8 @@ class PatchBlock {
     void addTargetEdge(PatchEdge *e, bool addIfEmpty = true);
 
     void splitBlock(PatchBlock *succ);
+    int numRetEdges() const;
+    int numCallEdges() const;
 
     ParseAPI::Block *block_;
     edgelist srclist_;

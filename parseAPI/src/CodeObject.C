@@ -213,7 +213,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // don't add edges that already exist 
             // (this could happen because of shared code)
             bool edgeExists = false;
-            Block::edgelist & existingTs = worklist[idx].source->targets();
+            const Block::edgelist & existingTs = worklist[idx].source->targets();
             for (Block::edgelist::iterator tit = existingTs.begin();
                  tit != existingTs.end();
                  tit++)
@@ -235,7 +235,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit != funcs.end();
                         fit++) 
                     {
-                        Block::edgelist & tedges = worklist[idx].source->targets();
+                        const Block::edgelist & tedges = worklist[idx].source->targets();
                         for(Block::edgelist::iterator eit = tedges.begin();
                             eit != tedges.end();
                             eit++)

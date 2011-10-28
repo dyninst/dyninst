@@ -3857,6 +3857,20 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            // into memory regions that are allocated at runtime
         mapped_object *obj = findObject(target);
         if (!obj) {
+
+#if 0           
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           for (unsigned i = 0; i < 0x100; ++i) {
+		          Address stackTOP = activeFrame.esp;
+		          Address stackTOPVAL =0;
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
+
             obj = createObjectNoFile(target);
             if (!obj) {
                 fprintf(stderr,"ERROR, point %lx has target %lx that responds "
@@ -3867,6 +3881,22 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
             }
         }
     }
+
+#if 0
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           Address stackTOP = activeFrame.esp;
+           Address stackTOPVAL =0;
+           for (unsigned i = 0; 
+                i < 0x100 && 0 != ((stackTOP + 4*i) % memoryPageSize_); 
+                ++i) 
+           {
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
 
     return unrelocTarget;
 } 
@@ -3915,7 +3945,7 @@ bool process::handleStopThread(EventRecord &ev)
        of the stopThread snippet */
     pdvector<int_variable *> vars;
     // get runtime library arg2 address from runtime lib
-    if (sh->sync_event_arg2_addr == 0) {
+    if (sh->sync_event_arg2_addr == 0) { //KEVINTODO: choose a new threadsafe mechanism
         std::string arg_str ("DYNINST_synch_event_arg2");
         if (!findVarsByAll(arg_str, vars)) {
             fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
@@ -3936,9 +3966,7 @@ bool process::handleStopThread(EventRecord &ev)
         return false;
     }
 
-/* 1c. The result of the snippet calculation that was given by the user, 
-       if the point is a return instruction, read the return address */
-    // get runtime library arg3 address from runtime lib
+/* 1c. The result of the snippet calculation that was given by the user */
     if (sh->sync_event_arg3_addr == 0) {
         std::string arg_str ("DYNINST_synch_event_arg3");
         vars.clear();
@@ -3954,7 +3982,6 @@ bool process::handleStopThread(EventRecord &ev)
         }
         sh->sync_event_arg3_addr = vars[0]->getAddress();
     }
-    //read arg3 (calculation)
     if (!readDataSpace((void *)sh->sync_event_arg3_addr, 
                        getAddressWidth(), &calculation, true)) 
     {

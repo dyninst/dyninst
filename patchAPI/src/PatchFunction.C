@@ -68,7 +68,7 @@ const PatchFunction::Blockset&
 PatchFunction::getCallBlocks() {
   // Compute the list if it's empty or if the list of function blocks
   // has grown
-  if (call_blocks_.size() != func_->callEdges().size())
+  if (call_blocks_.empty() && !func_->callEdges().empty())
   {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
@@ -102,6 +102,14 @@ void PatchFunction::addBlock(PatchBlock *b) {
    if (all_blocks_.empty() && exit_blocks_.empty() && call_blocks_.empty()) return;
 
    all_blocks_.insert(b);
+
+   if (b->containsCall() && !call_blocks_.empty()) {
+      call_blocks_.insert(b);
+   }
+
+   if (0 < b->numRetEdges() && !exit_blocks_.empty()) {
+      exit_blocks_.insert(b);
+   }
 
    cb()->add_block(this, b);
 }
@@ -578,7 +586,7 @@ bool PatchFunction::consistency() const {
    }
 
    if (!call_blocks_.empty()) {
-      // Comparing edges to blocks; may not be safe. 
+      // build up set of parseAPI-level call blocks
       set<ParseAPI::Block*> llcbs;
       for (ParseAPI::Function::edgelist::iterator llit = func_->callEdges().begin();
            llit != func_->callEdges().end(); ++llit) 
@@ -586,6 +594,7 @@ bool PatchFunction::consistency() const {
           llcbs.insert((*llit)->src());
       }
       if (call_blocks_.size() != llcbs.size()) CONSIST_FAIL;
+      // verify that call_blocks_ are in llcbs
       for (Blockset::const_iterator cit = call_blocks_.begin(); 
            cit != call_blocks_.end(); ++cit) 
       {

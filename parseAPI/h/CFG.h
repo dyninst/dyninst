@@ -299,8 +299,8 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT CodeRegion * region() const { return _region; }
 
     /* Edge access */
-    PARSER_EXPORT edgelist & sources() { return _srclist; }
-    PARSER_EXPORT edgelist & targets() { return _trglist; }
+    PARSER_EXPORT const edgelist & sources() const { return _srclist; }
+    PARSER_EXPORT const edgelist & targets() const { return _trglist; }
 
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn);
 
