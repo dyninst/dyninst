@@ -78,8 +78,8 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
 
    if (hasSink) {
       Block *src = edge->src();
-      CodeObject *obj = edge->src()->obj();
-      obj->_pcb->removeEdge(edge->src(), edge, ParseCallback::target);
+      CodeObject *obj = src->obj();
+      obj->_pcb->removeEdge(src, edge, ParseCallback::target);
       obj->_pcb->removeEdge(edge->trg(), edge, ParseCallback::source);
       edge->uninstall();
       Edge::destroy(edge,obj);

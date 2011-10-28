@@ -44,6 +44,7 @@ namespace ParseAPI {
     extern int dyn_debug_initialized;
 
 #define parsing_cerr if (dyn_debug_parsing) cerr
+#define malware_cerr if (dyn_debug_malware) cerr
 
 #if defined(__GNUC__)
 #define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
@@ -51,7 +52,6 @@ namespace ParseAPI {
 #else
 #define parsing_printf parsing_printf_int
 #define mal_printf malware_printf_int
-#define malware_cerr      if (dyn_debug_malware) cerr
 #endif
 }
 }
