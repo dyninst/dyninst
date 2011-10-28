@@ -262,7 +262,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   virtual void beginInsertionSet() = 0;
 
-  virtual bool finalizeInsertionSet(bool atomic, bool *modified) = 0;
+  virtual bool finalizeInsertionSet(bool atomic, bool *modified = NULL) = 0;
  
 
   //  BPatch_addressSpace::deleteSnippet
