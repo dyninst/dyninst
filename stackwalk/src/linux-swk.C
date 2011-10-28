@@ -546,7 +546,7 @@ bool ProcDebugLinux::debug_attach(ThreadState *ts)
       sw_printf("[%s:%u] - Unable to attach to process %d: %s\n",
                 __FILE__, __LINE__, tid, strerror(errnum));
       if (errnum == EPERM)
-         setLastError(err_prem, "Do not have correct premissions to attach " \
+         setLastError(err_perm, "Do not have correct permissions to attach " \
                       "to pid");
       else if (errnum == ESRCH)
          setLastError(err_noproc, "The specified process was not found");
@@ -962,7 +962,7 @@ bool ProcDebugLinux::debug_create(std::string executable,
       if (errnum == ENOENT)
          setLastError(err_nofile, "No such file");
       if (errnum == EPERM || errnum == EACCES)
-         setLastError(err_prem, "Premission denied");
+         setLastError(err_perm, "Permission denied");
       else
          setLastError(err_internal, "Unable to exec process");
       exit(-1);
@@ -1255,7 +1255,7 @@ static void registerLibSpotterSelf(ProcSelf *pself)
                                PROT_READ|PROT_WRITE|PROT_EXEC);
          if (result == -1) {
             int errnum = errno;
-            sw_printf("[%s:%u] - Error setting premissions for page containing %lx. "
+            sw_printf("[%s:%u] - Error setting permissions for page containing %lx. "
                       "Can't install lib tracker: %s\n", __FILE__, __LINE__, 
                       lib_trap_addr_self, strerror(errnum));
             free(maps);
