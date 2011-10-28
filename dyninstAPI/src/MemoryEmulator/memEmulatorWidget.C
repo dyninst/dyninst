@@ -291,7 +291,7 @@ bool MemEmulator::generateViaModRM(CodeBuffer &buffer) {
 }
 
 void MemEmulator::insertDebugMarker() {
-	if (debug || dyn_debug_traps) 
+	if (debug || dyn_debug_trap) 
 		scratch.fill(1, codeGen::cgTrap);
 }
 
