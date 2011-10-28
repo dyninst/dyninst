@@ -546,7 +546,7 @@ bool ProcDebugLinux::debug_attach(ThreadState *ts)
       sw_printf("[%s:%u] - Unable to attach to process %d: %s\n",
                 __FILE__, __LINE__, tid, strerror(errnum));
       if (errnum == EPERM)
-         setLastError(err_prem, "Do not have correct permissions to attach " \
+         setLastError(err_perm, "Do not have correct permissions to attach " \
                       "to pid");
       else if (errnum == ESRCH)
          setLastError(err_noproc, "The specified process was not found");
@@ -962,7 +962,11 @@ bool ProcDebugLinux::debug_create(std::string executable,
       if (errnum == ENOENT)
          setLastError(err_nofile, "No such file");
       if (errnum == EPERM || errnum == EACCES)
+<<<<<<< HEAD:stackwalk/src/linux-swk.C
          setLastError(err_prem, "Permission denied");
+=======
+         setLastError(err_perm, "Permission denied");
+>>>>>>> Fix spelling mistake in error printfs:stackwalk/src/linux-swk.C
       else
          setLastError(err_internal, "Unable to exec process");
       exit(-1);
