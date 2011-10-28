@@ -2185,18 +2185,18 @@ void BPatch_process::printDefensiveStatsInt()
             << hex << funcTablePos << dec << endl;
     }
 
-    int calls = 0; //done
-    int dynCalls = 0; //done
-    int multiTargetCalls = 0; //done
-    int dynJumps = 0; //done
-    int nonRetRets = 0; // debug
+    int calls = 0; 
+    int dynCalls = 0; 
+    int multiTargetCalls = 0; 
+    int dynJumps = 0; 
+    int nonRetRets = 0; 
     int nonCallCalls = 0; // debug // calls with known targets, that don't return
-    int sharedBlocks = 0; // done
-    int sharedFuncs = 0; // done
-    int overlapBlocks = 0; // done
-    int overlapFuncs = 0; // debug
-    int vAllocObjs = 0; // done
-    int dereferences = 0; // done
+    int sharedBlocks = 0; 
+    int sharedFuncs = 0; 
+    int overlapBlocks = 0; 
+    int overlapFuncs = 0; 
+    int vAllocObjs = 0; 
+    int dereferences = 0; 
     int peHeaderCode = 0;
 
     // foreach defensive object
@@ -2219,7 +2219,7 @@ void BPatch_process::printDefensiveStatsInt()
         using namespace PatchAPI;
         mapped_object *obj = *oit;
         vector<func_instance*> funcs;
-		obj->getAllFunctions(funcs);
+        obj->getAllFunctions(funcs);
         for (vector<func_instance*>::iterator fit = funcs.begin(); 
              fit != funcs.end(); 
              fit++) 
@@ -2393,5 +2393,21 @@ void BPatch_process::printDefensiveStatsInt()
     }
 
     const HybridAnalysis::AnalysisStats stats = hybridAnalysis_->getStats();
-    //KEVINTODO: print out overwrite stats
+
+   //TODO: add bootstrap code size, add number of functions, number of blocks, number of rets
+
+    printf("STATISTICS:\n");
+    printf("calls, dynCalls, multiTargetCalls, nonCallCalls, dynJumps, "
+           "nonRetRets, sharedBlocks, sharedFuncs, overlapBlocks, "
+           "overlapFuncs, vAllocObjs, dereferences, peHeaderCode, "
+           "stats.exceptions, stats.owBytes, stats.owCount, "
+           "stats.owExecFunc, stats.owFalseAlarm, "
+           "stats.unpackCount, stats.winApiCallbacks\n");
+    printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+           calls, dynCalls, multiTargetCalls, nonCallCalls, dynJumps,
+           nonRetRets, sharedBlocks, sharedFuncs, overlapBlocks,
+           overlapFuncs, vAllocObjs, dereferences, peHeaderCode,
+           stats.exceptions, stats.owBytes, stats.owCount, 
+           stats.owExecFunc, stats.owFalseAlarm, 
+           stats.unpackCount, stats.winApiCallbacks);
 }
