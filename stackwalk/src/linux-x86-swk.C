@@ -371,55 +371,106 @@ static const int fp_offset_64 = 120;
 static const int pc_offset_64 = 168;
 static const int frame_size_64 = 1096;
 
-gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
-{
+struct sigframe_offsets {
    int fp_offset;
    int pc_offset;
+   int sp_offset;
    int frame_size;
+};
+
+int frames_32_size = 1;
+sigframe_offsets frames_32[] = { {28, 60, 32, 728} };
+
+int frames_64_size = 4;
+sigframe_offsets frames_64[] = { {120, 168, 160, 568}, {120, 168, 160, 1096}, 
+                                 {120, 168, 160, 1080}, {120, 168, 160, 1120},
+                                 {120, 168, 160, 0} };
+
+
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
    bool result;
    int addr_size = getProcessState()->getAddressWidth();
+
+   unsigned frames_size;
+   sigframe_offsets *frames;
    if (addr_size == 4) {
-      fp_offset = fp_offset_32;
-      pc_offset = pc_offset_32;
-      frame_size = frame_size_32;
+      frames_size = frames_32_size;
+      frames = frames_32;
    }
    else {
-      fp_offset = fp_offset_64;
-      pc_offset = pc_offset_64;
-      frame_size = frame_size_64;
-  }
-
-   location_t fp_loc;
-   Address fp = 0x0;
-   fp_loc.location = loc_address;
-   fp_loc.val.addr = in.getSP() + fp_offset;
-   sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
-             __FILE__, __LINE__, fp_loc.val.addr);
-   result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
-   if (!result) {
-      return gcf_error;
+      frames_size = frames_64_size;
+      frames = frames_64;
    }
 
-   location_t pc_loc;
-   Address pc = 0x0;
-   pc_loc.location = loc_address;
-   pc_loc.val.addr = in.getSP() + pc_offset;
-   sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
-             __FILE__, __LINE__, pc_loc.val.addr);
-   result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
-   if (!result) {
-      return gcf_error;
+   Address last_read_sp_addr = 0;
+   Address last_read_sp_val = 0;
+
+   for (unsigned i = 0; i < frames_size; i++) {
+      location_t sp_loc;
+      sp_loc.location = loc_address;
+      sp_loc.val.addr = in.getSP() + frames[i].sp_offset;
+      Address sp = 0;
+      if (last_read_sp_addr != sp_loc.val.addr)
+      {
+         result = getProcessState()->readMem(&sp, sp_loc.val.addr, addr_size);
+         if (!result) {
+            sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+                      __FILE__, __LINE__);
+            return gcf_error;
+         }
+         last_read_sp_addr = sp_loc.val.addr;
+         last_read_sp_val = sp;
+      }
+      else {
+         sp = last_read_sp_val;
+      }
+
+      if (frames[i].frame_size && (sp != in.getSP() + frames[i].frame_size)) {
+         sw_printf("[%s:%u] - Signal frame candidate %d does not fit (%lx != %lx). Trying another.\n",
+                   __FILE__, __LINE__, i, sp, in.getSP() + frames[i].frame_size);
+         continue;
+      }
+      sw_printf("[%s:%u] - Using signal frame candidate %d\n", __FILE__, __LINE__, i);
+
+      location_t fp_loc;
+      Address fp = 0x0;
+      fp_loc.location = loc_address;
+      fp_loc.val.addr = in.getSP() + frames[i].fp_offset;
+      sw_printf("[%s:%u] - SigHandler Reading FP from %lx\n",
+                __FILE__, __LINE__, fp_loc.val.addr);
+      result = getProcessState()->readMem(&fp, fp_loc.val.addr, addr_size);
+      if (!result) {
+         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+                   __FILE__, __LINE__);
+         return gcf_error;
+      }
+
+      location_t pc_loc;
+      Address pc = 0x0;
+      pc_loc.location = loc_address;
+      pc_loc.val.addr = in.getSP() + frames[i].pc_offset;
+      sw_printf("[%s:%u] - SigHandler Reading PC from %lx\n",
+                __FILE__, __LINE__, pc_loc.val.addr);
+      result = getProcessState()->readMem(&pc, pc_loc.val.addr, addr_size);
+      if (!result) {
+         sw_printf("[%s:%u] Unexpected error reading from stack memory 0x%lx for signal frame\n",
+                   __FILE__, __LINE__);
+         return gcf_error;
+      }
+
+      out.setRA((Dyninst::MachRegisterVal) pc);
+      out.setFP((Dyninst::MachRegisterVal) fp);
+      out.setSP((Dyninst::MachRegisterVal) sp);
+      out.setRALocation(pc_loc);
+      out.setFPLocation(fp_loc);
+      out.setSPLocation(sp_loc);
+
+      return gcf_success;
    }
-
-   Address sp = in.getSP() + frame_size;
-
-   out.setRA((Dyninst::MachRegisterVal) pc);
-   out.setFP((Dyninst::MachRegisterVal) fp);
-   out.setSP((Dyninst::MachRegisterVal) sp);
-   out.setRALocation(pc_loc);
-   out.setFPLocation(fp_loc);
-
-   return gcf_success;
+   
+   sw_printf("[%s:%u] - Could not find matching candidate for signal frame\n", __FILE__, __LINE__);
+   return gcf_not_me;
 }
 
 bool DebugStepperImpl::isFrameRegister(MachRegister reg)
