@@ -36,7 +36,6 @@
 #if !defined(INT_HANDLER_H_)
 #define INT_HANDLER_H_
 
-using namespace std;
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -51,8 +50,8 @@ struct handler_cmp
 class HandlerPool
 {
  public:
-   typedef set<Handler *, handler_cmp> HandlerSet_t;
-   typedef map<EventType, HandlerSet_t*, eventtype_cmp> HandlerMap_t;
+   typedef std::set<Handler *, handler_cmp> HandlerSet_t;
+   typedef std::map<EventType, HandlerSet_t*, eventtype_cmp> HandlerMap_t;
 
    HandlerPool(int_process *owner_proc);
    ~HandlerPool();
@@ -79,7 +78,7 @@ class HandlerPool
    HandlerMap_t handlers;
    void addHandlerInt(EventType etype, Handler *handler);
    void clearEventAsync(Event::ptr ev);
-   void addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const;
+   void addEventToSet(Event::ptr ev, std::set<Event::ptr> &ev_set) const;
    void collectLateEvents(Event::ptr parent_ev);
    bool hasLateEvents() const;
 
@@ -350,9 +349,9 @@ class HandleCallbacks : public Handler
 {
   friend class HandlerPool;
  private:
-  typedef std::map<EventType, set<Process::cb_func_t>, eventtype_cmp> cbfuncs_t;
+  typedef std::map<EventType, std::set<Process::cb_func_t>, eventtype_cmp> cbfuncs_t;
   cbfuncs_t cbfuncs;
-  set<EventType, eventtype_cmp> alleventtypes;
+  std::set<EventType, eventtype_cmp> alleventtypes;
   bool registerCallback_int(EventType ev, Process::cb_func_t func);
   bool removeCallback_int(EventType et);
   bool removeCallback_int(EventType et, Process::cb_func_t func);
@@ -374,7 +373,7 @@ class HandleCallbacks : public Handler
   bool removeCallback(EventType et);
   bool removeCallback(Process::cb_func_t func);
 
-  Handler::handler_ret_t deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset);
+  Handler::handler_ret_t deliverCallback(Event::ptr ev, const std::set<Process::cb_func_t> &cbset);
   
   bool requiresCB(Event::const_ptr ev);
 

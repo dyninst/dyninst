@@ -159,7 +159,7 @@ class int_process
 
    bool attach();
    bool reattach();
-   virtual bool plat_attach(bool allStopped) = 0;
+   virtual bool plat_attach(bool allStopped, bool &should_sync) = 0;
    bool attachThreads();
    virtual bool post_attach(bool wasDetached);
 
@@ -254,6 +254,8 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
+   virtual bool plat_individualRegRead();
+   virtual bool plat_individualRegSet();
 
    int getAddressWidth();
    HandlerPool *handlerPool() const;
@@ -286,7 +288,7 @@ class int_process
                               Dyninst::Address remote, size_t size) = 0;
 
    //For a platform, if plat_needsAsyncIO returns true then the async
-   // set of functions need to be implemented.  Currently needsAsyncIO_plat 
+   // set of functions need to be implemented.  Currently plat_needsAsyncIO
    // only returns true for bluegene family.  By default these are otherwise
    // unimplemented.
    virtual bool plat_needsAsyncIO() const;
@@ -314,6 +316,9 @@ class int_process
    virtual bool plat_supportLWPCreate();
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
+
+   virtual bool plat_preHandleEvent();
+   virtual bool plat_postHandleEvent();
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);

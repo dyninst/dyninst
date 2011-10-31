@@ -46,13 +46,14 @@ class mem_response;
 class result_response;
 class reg_response;
 class allreg_response;
+class set_response;
 class HandlerPool;
 
 class response : public dyn_detail::boost::enable_shared_from_this<response> {
    friend void dyn_detail::boost::checked_delete<response>(response *);
    friend void dyn_detail::boost::checked_delete<const response>(const response *);
    friend class responses_pending;
-  private:
+  protected:
    Dyninst::ProcControlAPI::Event::ptr event;
 
    typedef enum {
@@ -76,7 +77,8 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
       rt_result,
       rt_reg,
       rt_allreg,
-      rt_mem
+      rt_mem,
+      rt_set
    } resp_type_t;
    resp_type_t resp_type;
 
@@ -97,6 +99,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    dyn_detail::boost::shared_ptr<mem_response> getMemResponse();
    dyn_detail::boost::shared_ptr<reg_response> getRegResponse();
    dyn_detail::boost::shared_ptr<allreg_response> getAllRegResponse();
+   dyn_detail::boost::shared_ptr<set_response> getSetResponse();
    
    bool isReady() const;
    bool isPosted() const;
@@ -120,6 +123,8 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    ArchEvent *getDecoderEvent();
 
    std::string name() const;
+
+   static bool set_ids_only;
 };
 
 class responses_pending {
@@ -135,6 +140,7 @@ class responses_pending {
    void noteResponse();
    bool hasAsyncPending(bool ev_only = true);
 
+   CondVar &condvar();
    void lock();
    void unlock();
    void signal();
@@ -249,5 +255,28 @@ class mem_response : public response
    void setLastBase(Address a);
 };
 
+class set_response : public response
+{
+  private:
+   vector<response::ptr> resps;
+   set_response();
+   int sub_resps;
+  public:
+   typedef dyn_detail::boost::shared_ptr<set_response> ptr;
+   typedef dyn_detail::boost::shared_ptr<const set_response> const_ptr;
+
+   static set_response::ptr createSetResponse();
+
+   virtual ~set_response();
+
+   void setResponse();
+   void postResponse();
+
+   vector<response::ptr> &getResps();
+   void addResp(response::ptr r);
+
+   int numSubResps();
+   void subResps(int update);
+};
 
 #endif

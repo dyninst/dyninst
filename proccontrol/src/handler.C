@@ -42,6 +42,7 @@
 #include "dynutil/h/dyn_regs.h"
 
 using namespace Dyninst;
+using namespace std;
 
 #include <assert.h>
 
@@ -1646,14 +1647,20 @@ HandleAsync::~HandleAsync()
 Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
 {
    EventAsync::ptr eAsync = ev->getEventAsync();
-   response::ptr resp = eAsync->getInternal()->getResponse();
-   pthrd_printf("Handling Async event for %s on %d/%d\n", resp->name().c_str(),
+   set<response::ptr> &resps = eAsync->getInternal()->getResponses();
+
+   pthrd_printf("Handling %lu async event(s) on %d/%d\n", 
+                (unsigned long) resps.size(),
                 eAsync->getProcess()->llproc()->getPid(),
                 eAsync->getThread()->llthrd()->getLWP());
 
    assert(eAsync->getProcess()->llproc()->plat_needsAsyncIO());
-   resp->markReady();
-   resp->setEvent(Event::ptr());
+   for (set<response::ptr>::iterator i = resps.begin(); i != resps.end(); i++) {
+      response::ptr resp = *i;
+      resp->markReady();
+      resp->setEvent(Event::ptr());
+   }
+
    return ret_success;
 }
 

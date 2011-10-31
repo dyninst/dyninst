@@ -54,12 +54,8 @@ ProcessReader *AddressTranslateSysV::createDefaultDebugger(int) {
 
 bool AddressTranslateSysV::setAddressSize() 
 {
-#if defined(os_bg_ion) && defined(os_bgp)
-  address_size = sizeof(uint32_t);
-  translate_printf("[%s:%u] - Set address size to %z.\n", __FILE__, __LINE__, address_size);
-#else
   address_size = sizeof(void *);
-#endif
+  translate_printf("[%s:%u] - Set address size to %z.\n", __FILE__, __LINE__, address_size);
   return true;
 }
 
@@ -108,7 +104,7 @@ bool AddressTranslateSysV::setInterpreter()
   if (interp_name == std::string("")) {
      return false;
   }
- interpreter = files.getNode(interp_name, symfactory);
+  interpreter = files.getNode(interp_name, symfactory);
   if (interpreter)
      interpreter->markInterpreter();
   translate_printf("[%s:%u] - Set interpreter name: '%s'\n", __FILE__, __LINE__, interp_name.c_str());

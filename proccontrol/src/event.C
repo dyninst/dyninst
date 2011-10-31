@@ -42,6 +42,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+using namespace std;
+
 ArchEvent::ArchEvent(std::string name_) :
    name(name_)
 {
@@ -864,18 +866,23 @@ void int_eventRPC::getPendingAsyncs(std::set<response::ptr> &pending)
    }
 }
 
-int_eventAsync::int_eventAsync(response::ptr r) :
-   resp(r)
+int_eventAsync::int_eventAsync(response::ptr r)
 {
+   resp.insert(r);
 }
 
 int_eventAsync::~int_eventAsync()
 {
 }
 
-response::ptr int_eventAsync::getResponse() const
+set<response::ptr> &int_eventAsync::getResponses()
 {
    return resp;
+}
+
+void int_eventAsync::addResp(response::ptr r)
+{
+   resp.insert(r);
 }
 
 int_eventNewUserThread::int_eventNewUserThread() :

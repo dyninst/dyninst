@@ -181,7 +181,7 @@ bool int_process::attach()
 
    bool allStopped = true;
    for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
-           i != runningStates.end(); ++i)
+       i != runningStates.end(); ++i)
    {
        if( i->second ) {
            allStopped = false;
@@ -189,8 +189,10 @@ bool int_process::attach()
        }
    }
 
+
+   bool should_sync = false;
    pthrd_printf("Attaching to process %d\n", pid);
-   bool result = plat_attach(allStopped);
+   bool result = plat_attach(allStopped, should_sync);
    if (!result) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
@@ -198,12 +200,28 @@ bool int_process::attach()
       return false;
    }
 
+   ProcPool()->addProcess(this);
+
    int_thread *initial_thread;
    initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
 
-   ProcPool()->addProcess(this);
-
-   setState(neonatal_intermediate);
+   if (should_sync) {
+      pthrd_printf("Handling events after attach to %d\n", getPid());
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+      while (getState() == neonatal) {
+         bool result = waitAndHandleEvents(true);
+         if (!result) {
+            pthrd_printf("Error during waitAndHandleEvents during %d attach\n", getPid());
+            return false;
+         }
+      }
+      ProcPool()->condvar()->lock();
+   }
+   else {
+      pthrd_printf("Attach to %d done, moving process to neonatal_intermediate\n", getPid());
+      setState(neonatal_intermediate);
+   }
 
    result = attachThreads();
    if (!result) {
@@ -290,12 +308,32 @@ bool int_process::reattach()
    }
 
    pthrd_printf("Re-attaching to process %d\n", pid);
-   bool result = plat_attach(allStopped);
+   bool should_sync = false;
+   bool result = plat_attach(allStopped, should_sync);
    if (!result) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
       pthrd_printf("Could not attach to debuggee, %d\n", pid);
       return false;
+   }
+
+   // To reuse existing bootstrap code this needs to be set
+   if (should_sync) {
+      pthrd_printf("Handling events after attach to %d\n", getPid());
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+      while (getState() == neonatal) {
+         bool result = waitAndHandleEvents(true);
+         if (!result) {
+            pthrd_printf("Error during waitAndHandleEvents during %d attach\n", getPid());
+            return false;
+         }
+      }
+      ProcPool()->condvar()->lock();
+   }
+   else {
+      pthrd_printf("Attach to %d done, moving process to neonatal_intermediate\n", getPid());
+      setState(neonatal_intermediate);
    }
 
    result = attachThreads();
@@ -304,9 +342,6 @@ bool int_process::reattach()
       setLastError(err_internal, "Could not re-attach to process' threads");
       goto error;
    }
-
-   // To reuse existing bootstrap code this needs to be set
-   setState(neonatal_intermediate);
 
    // Now, go back and set non-existing threads to detached to exclude them
    // from the bootstrap handling, creating thread destruction events for
@@ -763,7 +798,7 @@ bool int_process::waitForAsyncEvent(std::set<response::ptr> resp)
 {
    bool has_error = false;
    for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); i++) {
-      bool result = waitForAsyncEvent(*i);
+      bool result = getResponses().waitFor(*i);
       if (!result)
          has_error = true;
    }
@@ -920,6 +955,8 @@ bool int_process::waitAndHandleEvents(bool block)
          ev->handling_started = true;
       }
 
+      llproc->plat_preHandleEvent();
+
       bool should_handle_ev = llproc->getProcStopManager().prepEvent(ev);
       if (should_handle_ev) {
          hpool->handleEvent(ev);
@@ -928,6 +965,7 @@ bool int_process::waitAndHandleEvents(bool block)
       llproc = proc->llproc();
       if (llproc) {
          bool result = llproc->syncRunState();
+         llproc->plat_postHandleEvent();
          if (!result) {
             pthrd_printf("syncRunState failed.  Returning error from waitAndHandleEvents\n");
             error = true;
@@ -1478,6 +1516,16 @@ bool int_process::wasForcedTerminated() const
    return forcedTermination;
 }
 
+bool int_process::plat_individualRegRead()
+{
+   return plat_individualRegAccess();
+}
+
+bool int_process::plat_individualRegSet()
+{
+   return plat_individualRegAccess();   
+}
+
 bool int_process::isInCB()
 {
    return in_callback;
@@ -1648,6 +1696,16 @@ bool int_process::plat_supportDOTF()
 
 void int_process::noteNewDequeuedEvent(Event::ptr)
 {
+}
+
+bool int_process::plat_preHandleEvent()
+{
+   return true;
+}
+
+bool int_process::plat_postHandleEvent()
+{
+   return true;
 }
 
 int_process::~int_process()
@@ -2728,7 +2786,7 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
    pthrd_printf("Get register value for thread %d, register %s\n", lwp, reg.name().c_str());
    response->setRegThread(reg, this);
 
-   if (!llproc()->plat_individualRegAccess())
+   if (!llproc()->plat_individualRegRead())
    {
       pthrd_printf("Platform does not support individual register access, " 
                    "getting everything\n");
@@ -2797,7 +2855,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
    assert(getGeneratorState().getState() == int_thread::stopped);
    bool ret_result = false;
    
-   if (!llproc()->plat_individualRegAccess())
+   if (!llproc()->plat_individualRegSet())
    {
       pthrd_printf("Platform does not support individual register access, " 
                    "setting everything\n");

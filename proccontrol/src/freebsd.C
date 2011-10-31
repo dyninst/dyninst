@@ -876,7 +876,7 @@ OSType freebsd_process::getOS() const
    return Dyninst::FreeBSD;
 }
 
-bool freebsd_process::plat_attach(bool allStopped) {
+bool freebsd_process::plat_attach(bool allStopped, bool &) {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;

@@ -31,7 +31,7 @@ SRCS = ../../common/src/timing-linux.C \
        ../../common/src/bluegeneKludges.C \
 		 ../../common/src/addrtranslate-sysv.C \
 		 ../../common/src/addrtranslate-auxv.C \
-		 ../../common/src/addrtranslate-bluegenep.C \
+		 ../../common/src/addrtranslate-bluegene.C \
        ../../common/src/auxvtypes.C \
 		 ../../common/src/Elf_X.C
 

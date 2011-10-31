@@ -57,15 +57,15 @@ namespace Dyninst
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
-	  typedef std::map<signed int, std::string> NameMap;
+      typedef std::map<signed int, std::string> NameMap;
       static NameMap *names;
-	  void init_names();
+      void init_names();
    public:
 
 	  MachRegister();
-      explicit MachRegister(signed int r);
-      explicit MachRegister(signed int r, const char *n);
-	  explicit MachRegister(signed int r, std::string n);
+     explicit MachRegister(signed int r);
+     explicit MachRegister(signed int r, const char *n);
+     explicit MachRegister(signed int r, std::string n);
 
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;

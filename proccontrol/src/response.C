@@ -43,6 +43,7 @@ using namespace ProcControlAPI;
 using namespace std;
 
 unsigned int response::next_id = 1;
+bool response::set_ids_only = false;
 
 static Mutex id_lock;
 
@@ -57,9 +58,13 @@ response::response() :
    multi_resp_size(0),
    multi_resp_recvd(0)
 {
-   id_lock.lock();
-   id = next_id++;
-   id_lock.unlock();
+   if (!set_ids_only) {
+      id_lock.lock();
+      id = next_id++;
+      id_lock.unlock();
+   }
+   else 
+      id = 0;
 }
 
 response::~response()
@@ -143,6 +148,8 @@ string response::name() const
          return "AllReg Response";
       case rt_mem:
          return "Mem Response";
+      case rt_set:
+         return "Set Response";
    }
    assert(0);
    return "";
@@ -214,6 +221,13 @@ allreg_response::ptr response::getAllRegResponse()
    return resp_type == rt_allreg ? 
       dyn_detail::boost::static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
+}
+
+set_response::ptr response::getSetResponse()
+{
+   return resp_type == rt_set ? 
+      dyn_detail::boost::static_pointer_cast<set_response>(shared_from_this()) :
+      set_response::ptr();
 }
 
 response::ptr responses_pending::rmResponse(unsigned int id)
@@ -302,6 +316,11 @@ void responses_pending::signal()
    cvar.broadcast();
 }
 
+CondVar &responses_pending::condvar()
+{
+   return cvar;
+}
+
 void responses_pending::addResponse(response::ptr r, int_process *proc)
 {
    pthrd_printf("Adding response %d of type %s to list of pending responses\n", r->getID(), r->name().c_str());
@@ -311,6 +330,9 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
 
    r->setEvent(ev);
    r->markPosted();
+
+   if (response::set_ids_only && r->resp_type != response::rt_set)
+      return;
 
    if (!r->isMultiResponse()) {
       pending[r->getID()] = r;
@@ -469,7 +491,12 @@ void allreg_response::setResponse()
 void allreg_response::postResponse()
 {
    assert(thr);
-   thr->updateRegCache(*regpool);
+   if (isMultiResponse()) {
+      multi_resp_recvd++;
+   }
+   if (isMultiResponseComplete()) {
+      thr->updateRegCache(*regpool);
+   }
 }
 
 int_registerPool *allreg_response::getRegPool() const
@@ -561,4 +588,55 @@ char *mem_response::getBuffer() const
 unsigned mem_response::getSize() const
 {
    return size;
+}
+
+set_response::set_response() :
+   sub_resps(0)
+{
+   resp_type = rt_set;
+
+   assert(set_ids_only);
+   id_lock.lock();
+   id = next_id++;
+   id_lock.unlock();
+}
+
+set_response::~set_response()
+{
+}
+
+set_response::ptr set_response::createSetResponse()
+{
+   return set_response::ptr(new set_response());
+}
+
+void set_response::setResponse()
+{
+   markReady();
+}
+
+void set_response::postResponse()
+{
+}
+
+vector<response::ptr> &set_response::getResps()
+{
+   return resps;
+}
+
+void set_response::addResp(response::ptr r)
+{
+   if (r)
+      sub_resps++;
+   resps.push_back(r);
+}
+
+int set_response::numSubResps()
+{
+   return sub_resps;
+}
+
+void set_response::subResps(int update)
+{
+   sub_resps += update;
 }

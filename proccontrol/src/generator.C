@@ -110,11 +110,24 @@ void Generator::setState(Generator::state_t new_state)
    state = new_state;
 }
 
+bool Generator::getEvent(bool block, vector<ArchEvent *> &events)
+{
+   //This function can be optionally overloaded by a platform
+   // that may return multiple events.  Otherwise, it just 
+   // uses the single-event interface and always returns a 
+   // set of size 1 or 0.
+   ArchEvent *ev = getEvent(block);
+   if (!ev)
+      return false;
+   events.push_back(ev);
+   return true;
+}
+
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
-   ArchEvent *arch_event = NULL;
    vector<Event::ptr> events;
+   vector<ArchEvent *> archEvents;
 
    setState(process_blocked);
    result = processWait(block);
@@ -129,13 +142,13 @@ bool Generator::getAndQueueEventInt(bool block)
    }
 
    setState(system_blocked);
-   arch_event = getEvent(block);
+   result = getEvent(block, archEvents);
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;
       goto done;
    }
-   if (!arch_event) {
+   if (!result) {
       pthrd_printf("Error. Unable to recieve event\n");
       result = false;
       goto done;
@@ -143,16 +156,23 @@ bool Generator::getAndQueueEventInt(bool block)
 
    setState(decoding);
    ProcPool()->condvar()->lock();
-   for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); i++) {
-      Decoder *decoder = *i;
-      bool result = decoder->decode(arch_event, events);
-      if (!result)
-         break;
+
+   for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
+      ArchEvent *arch_event = *i;
+      for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
+         Decoder *decoder = *j;
+         bool result = decoder->decode(arch_event, events);
+         if (result)
+            break;
+      }
    }
+
+   setState(statesync);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
       event->getProcess()->llproc()->updateSyncState(event, true);
    }
+
    ProcPool()->condvar()->unlock();
 
    setState(queueing);

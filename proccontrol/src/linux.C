@@ -687,7 +687,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     return true;
 }
 
-bool linux_process::plat_attach(bool)
+bool linux_process::plat_attach(bool, bool &)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
 
