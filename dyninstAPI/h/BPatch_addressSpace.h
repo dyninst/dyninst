@@ -49,6 +49,7 @@
 //#include "Command.h"
 
 class BPatch_addressSpace;
+class instPoint;
 
 namespace Dyninst {
 namespace PatchAPI { 
