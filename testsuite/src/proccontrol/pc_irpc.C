@@ -767,11 +767,11 @@ test_results_t pc_irpcMutator::executeTest()
    unsigned rpc_sync_start = 0;
    unsigned thread_start_start = 0;
 
-   unsigned allocation_mode_end = 1;
-   unsigned post_time_end = 2;
-   unsigned post_to_end = 1;
-   unsigned rpc_sync_end = 1;
-   unsigned thread_start_end = 1;
+   unsigned allocation_mode_end = 0; //1
+   unsigned post_time_end = 0; //2
+   unsigned post_to_end = 0; //1
+   unsigned rpc_sync_end = 0; //1
+   unsigned thread_start_end = 0; //1
 
    for (unsigned a = allocation_mode_start; a <= allocation_mode_end; a++)
       for (unsigned b = post_time_start; b <= post_time_end; b++)

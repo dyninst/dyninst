@@ -63,6 +63,7 @@ int pc_irpc_mutatee()
    int result;
    send_addr addr_msg;
    syncloc msg;
+   int i;
    myerror = 0;
    initLock(&init_lock);
    testLock(&init_lock);
@@ -99,6 +100,16 @@ int pc_irpc_mutatee()
       return -1;
    }
 
+   // Windows won't let us boot threads out of system calls.
+   // Rather than test whether we can work around this, we'll instead fake it
+   // by having this thread cycle in and out of Sleep() for a bit so that it can
+   // actually run RPCs.
+#if defined(os_windows_test)
+   for(i = 0; i < 1000; i++)
+   {
+	   Sleep(1);
+   }
+#endif
    result = recv_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
       output->log(STDERR, "Failed to recv sync message\n");

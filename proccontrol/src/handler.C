@@ -1148,6 +1148,11 @@ Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
 
        thrd->setInternalState(int_thread::stopped);
        proc->threadPool()->restoreInternalState(false);
+	   int_iRPC::ptr rpc = rpcMgr()->getRPCForTransferBreakpoint(ctrlTransferBrkpt->getToAddress());
+	   if(rpc)
+	   {
+		   rpcMgr()->postRPCToThread(thrd, rpc);
+	   }
 
        return ret_success;
    }
