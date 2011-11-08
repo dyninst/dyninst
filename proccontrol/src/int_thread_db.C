@@ -1616,27 +1616,18 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr)
    return false;
 }
 
+bool thread_db_process::decodeThreadBP(EventBreakpoint::ptr)
+{
+   return false;
+}
+
 async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr)
 {
    return aret_error;
 }
 
-bool thread_db_process::decodeTdbLibLoad(EventLibrary::ptr)
-{
-   return false;
-}
-
 void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
-}
-
-bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-    return true;
-}
-
-bool thread_db_process::plat_supportThreadEvents()
-{
-   return false;
 }
 
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 
