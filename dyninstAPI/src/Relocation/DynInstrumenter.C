@@ -1,6 +1,8 @@
 #include "DynInstrumenter.h"
 #include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
+#include "../function.h"
+#include "../parse-cfg.h"
 
 using Dyninst::PatchAPI::DynInstrumenter;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
@@ -139,4 +141,12 @@ bool DynRemoveCallCommand::run() {
 bool DynRemoveCallCommand::undo() {
   as_->revertCall(block_, context_);
   return true;
+}
+
+bool DynInstrumenter::isInstrumentable(PatchFunction* f) {
+  func_instance* func = static_cast<func_instance*>(f);
+  if (func) {
+    return func->ifunc()->isInstrumentable();
+  }
+  return false;
 }

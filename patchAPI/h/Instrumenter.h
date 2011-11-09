@@ -44,7 +44,7 @@ class Instrumenter : public BatchCommand {
     // Getters and setters
     AddrSpace* as() const { return as_; }
     void setAs(AddrSpace* as) { as_ = as; }
-
+    virtual bool isInstrumentable(PatchFunction* ) { return true; }
   protected:
     AddrSpace* as_;
     CommandList user_commands_;

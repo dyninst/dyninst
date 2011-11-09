@@ -506,6 +506,11 @@ unsigned func_instance::get_size() const { assert(0); return 0; }
 
 
 bool func_instance::isInstrumentable() {
+  Dyninst::PatchAPI::Instrumenter* inst = proc()->mgr()->instrumenter();
+  if (inst) return inst->isInstrumentable(this);
+  return false;
+
+  
    return ifunc()->isInstrumentable();
 
    if (!ifunc()->isInstrumentable()) return false;
