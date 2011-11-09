@@ -56,6 +56,8 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 
+#include "RegisterConversion.h"
+
 #include "symtabAPI/h/Type.h"
 #include "symtabAPI/h/Variable.h"
 
@@ -927,6 +929,19 @@ void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
     ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
                                                       (void *)(long)reg.number_));
 
+    assert(BPatch::bpatch != NULL);
+
+    // Registers can hold a lot of different types...
+    ast_wrapper->setTypeChecking(false);
+    //ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+void BPatch_registerExpr::BPatch_registerExprInt(Dyninst::MachRegister mach) {
+   bool whocares;
+   Register reg = convertRegID(mach, whocares);
+   cerr << "Post conversion, using register " << reg << endl;
+   ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
+                                                 (void *)reg));
     assert(BPatch::bpatch != NULL);
 
     // Registers can hold a lot of different types...

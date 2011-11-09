@@ -84,7 +84,6 @@ PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
         iter != trglist_.end(); ++iter) {
       assert(*iter);
       assert((*iter)->edge());
-      cerr << "Looking for " << ParseAPI::format(type) << ", found edge with " << ParseAPI::format((*iter)->type()) << endl;
       if ((*iter)->type() == type) return *iter;
    }
    return NULL;
