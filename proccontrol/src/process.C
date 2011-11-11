@@ -39,6 +39,11 @@
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
+#include "proccontrol/src/GeneratorWindows.h"
+
+#if defined(os_windows)
+#include "proccontrol/src/windows_process.h"
+#endif
 
 #include <cstring>
 #include <cassert>
@@ -402,7 +407,7 @@ bool int_process::reattach()
        thrd->setInternalState(int_thread::detached);
        thrd->setUserState(int_thread::detached);
 
-       mbox()->enqueue(*i, true);
+	   mbox()->enqueue(*i, Mailbox::high);
    }
 
    if( !observedEvents.empty() ) {
@@ -701,13 +706,15 @@ bool int_process::continueProcess() {
             foundResumedThread = true;
         }
 
-        if( (*i)->getHandlerState() == int_thread::running ) {
+        if( (*i)->getHandlerState() == int_thread::running ||
+			(*i)->getHandlerState() == int_thread::neonatal_intermediate) {
             foundHandlerRunning = true;
             break;
         }
     }
-
-    if( (foundResumedThread && !foundHandlerRunning) || threadPool()->empty() ) { 
+	// 9NOV11 - changed Windows to run if there was a handler-state run (or neonatal_intermediate)
+	// Also, the windows generator keeps running on an empty threadpool so removing it from here. 
+	if( foundResumedThread && foundHandlerRunning ) { 
         if( !plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
             return false;
@@ -722,6 +729,8 @@ bool int_process::continueProcess() {
 
 bool syncRunState(int_process *p, void *r)
 {
+	pthrd_printf("+++++++++++++++++++++++++= entry to SyncRunState\n");
+	p->lockSyncRunState();
    int_threadPool *tp = p->threadPool();
    syncRunStateRet_t *ret = (syncRunStateRet_t *) r;
    assert(ret);
@@ -778,6 +787,7 @@ bool syncRunState(int_process *p, void *r)
       }
    }
 
+
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i)
    {
       int_thread *thr = *i;
@@ -827,6 +837,14 @@ bool syncRunState(int_process *p, void *r)
                       p->getPid(), thr->getLWP());
          thr->intCont();
       }
+	  else if (thr->getInternalState() == int_thread::neonatal_intermediate)
+	  {
+		  thr->setHandlerState(thr->getInternalState());
+	  }
+	  else {
+		  pthrd_printf("Leaving thread %d/%d untouched\n",
+			  p->getPid(), thr->getLWP());
+	  }
 
       if (thr->getInternalState() == int_thread::running || 
           thr->getInternalState() == int_thread::neonatal_intermediate ||
@@ -865,11 +883,14 @@ bool syncRunState(int_process *p, void *r)
 	   ret->hasRunningThread = true;
    }
 #endif
+   bool result = true;
    if( useHybridLWPControl() ) {
-       return p->continueProcess();
+       result = p->continueProcess();
    }
+	p->unlockSyncRunState();
+	pthrd_printf("--------------------- exit of SyncRunState\n");
 
-   return true;
+	return result;
 }
 
 bool int_process::waitForAsyncEvent(response::ptr resp)
@@ -996,7 +1017,7 @@ bool int_process::waitAndHandleEvents(bool block)
       /**
        * Check for new events
        **/
-      bool should_block = ((block && !gotEvent) || ret.hasStopPending || 
+	  bool should_block = ((block && !gotEvent) || ret.hasStopPending || 
 		  ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC || hasAsyncPending ||
 		  ret.hasForceGeneratorBlock);
       pthrd_printf("%s for events (%d %d %d %d %d %d %d)\n", 
@@ -1075,6 +1096,15 @@ bool int_process::waitAndHandleEvents(bool block)
       }
    }
   done:
+   pthrd_printf("Leaving WaitAndHandleEvents 'cause we're done\n");
+#if 0
+   if (!error) {
+		  pthrd_printf("Waking generator from process %d\n", ev->getProcess()->llproc()->getPid());
+		  // 10NOV11 - Adding wake-up to end of the handler loop.
+		GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+		wGen->wake(ev->getProcess()->llproc()->getPid());
+   }
+#endif
    recurse = false;
    return !error;
 }
@@ -1242,6 +1272,7 @@ void int_process::initializeProcess(Process::ptr p)
 
 int_thread *int_process::findStoppedThread()
 {
+
    int_thread *result = NULL;
    for (int_threadPool::iterator i = threadpool->begin(); i != threadpool->end(); ++i)
    {
@@ -1770,15 +1801,17 @@ bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Addres
 
 void int_process::updateSyncState(Event::ptr ev, bool gen)
 {
+	lockSyncRunState();
    EventType etype = ev->getEventType();
    switch (ev->getSyncType()) {
-      case Event::async:
-         pthrd_printf("Event %s is asynchronous\n", etype.name().c_str());
+	  case Event::async: {
          break;
+	 }
       case Event::sync_thread: {
          int_thread *thrd = ev->getThread()->llthrd();
          if (!thrd) {
             pthrd_printf("No thread for sync thread event, assuming thread exited\n");
+			unlockSyncRunState();
             return;
          }
          int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
@@ -1824,6 +1857,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          assert(0);
       }
    }
+	unlockSyncRunState();
 }
 
 int_process::~int_process()
@@ -1864,7 +1898,7 @@ int_process::~int_process()
 static
 bool stopAllThenContinue(int_threadPool *tp) {
     tp->desyncInternalState();
-
+	pthrd_printf("STOP ALL THEN CONTINUE\n");
     // XXX
     // This loop is necessary because there exists a case where the following
     // intStop will leave some threads running due to a proc stop RPC being
@@ -1893,7 +1927,8 @@ bool stopAllThenContinue(int_threadPool *tp) {
     bool anyThreadResumed = false;
     for(int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
         if( (*i)->isResumed() ) {
-            anyThreadResumed = true;
+			pthrd_printf("Thread %d isResumed, marking anyThreadResumed\n", (*i)->getLWP());
+			anyThreadResumed = true;
             break;
         }
     }
@@ -1926,8 +1961,11 @@ bool int_threadPool::cont(bool user_cont)
    Dyninst::PID pid = proc()->getPid();
    bool had_error = false;
    bool cont_something = false;
+   bool skipped_something = false;
 
-   if( useHybridLWPControl(this) && user_cont && !allStopped() ) {
+#if 0
+   // 9NOV11 - commenting out because we want to work without it. 
+   if(useHybridLWPControl(this) && user_cont && !allStopped() ) {
        // This thread control mode requires that all threads are stopped before
        // continuing a single thread. To perform these stops while still 
        // maintaining the internal state, each thread's internal state is
@@ -1943,6 +1981,7 @@ bool int_threadPool::cont(bool user_cont)
 
        return stopAllThenContinue(this);
    }
+#endif
 
    ProcPool()->condvar()->lock();
 
@@ -1991,12 +2030,16 @@ bool int_threadPool::cont(bool user_cont)
       int_thread::stopcont_ret_t ret = thr->cont(user_cont, true);
       switch (ret) {
          case int_thread::sc_skip:
-            break;
+			 pthrd_printf("\t Response is skip\n");
+			 skipped_something = true;
+			 break;
          case int_thread::sc_error:
+			 pthrd_printf("\t Response is error\n");
             had_error = true;
             break;
          case int_thread::sc_success:
          case int_thread::sc_success_pending:
+			 pthrd_printf("\t Response is success\n");
             cont_something = true;
             break;
       }
@@ -2005,6 +2048,18 @@ bool int_threadPool::cont(bool user_cont)
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
+#if 0
+   if (skipped_something && useHybridLWPControl()) {
+	// We can do continues on running processes.
+	   // 10NOV11
+	   // Don't continue the whole process since one thread is already
+	   // running
+	   pthrd_printf("We believe process is already running, resuming individual threads manually\n");
+		// HACKY fixme
+	   plat_contProcess(true);
+	   return !had_error;
+   }
+#endif
    if (!cont_something) {
       perr_printf("Failed to continue exited process %d\n", pid);
       setLastError(err_exited, "Continue attempted on exited process\n");
@@ -2082,6 +2137,8 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
+   // 10NOV11 - Commenting out BSDisms in Windows
+#if 0
    if( useHybridLWPControl(llproc()) && user_cont && 
        !llproc()->threadPool()->allStopped() )
    {
@@ -2107,6 +2164,7 @@ bool int_thread::cont(bool user_cont)
 
        return stopAllThenContinue(llproc()->threadPool());
    }
+#endif
 
    stopcont_ret_t ret = cont(user_cont, false);
 
@@ -2138,6 +2196,8 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
+#if 0
+   // 10NOV11 - Commenting out a lot of per-thread-ness
    if( useHybridLWPControl() ) {
         if( user_cont && ret != sc_error ) {
             if( !llproc()->plat_contProcess() ) {
@@ -2147,6 +2207,7 @@ bool int_thread::cont(bool user_cont)
             }
         }
    }
+#endif
 
    return true;
 }
@@ -2155,8 +2216,8 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
 {
    Dyninst::PID pid = proc()->getPid();
 
-   pthrd_printf("Top level %s continue for %d/%d\n",
-                user_cont ? "user" : "int", pid, lwp);
+   pthrd_printf("Top level %s continue for %d/%d, handler state is currently %s\n",
+                user_cont ? "user" : "int", pid, lwp, stateStr(getHandlerState()));
 
    if (getHandlerState() == errorstate) {
       pthrd_printf("thread %d on process %d in error state\n", getLWP(), pid);
@@ -2176,9 +2237,14 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
    }
 
    if (getHandlerState() != stopped) {
-      perr_printf("Error. continue attempted on running thread %d/%d\n", pid, lwp);
+		// 10NOV11
+	   // You tried to continue a running thread, return skipped. 
+	   if (getInternalState() != stopped) {
+		   return sc_success;
+	   }
+	   perr_printf("Error. continue attempted on running thread %d/%d\n", pid, lwp);
       setLastError(err_notstopped, "Continue attempted on running thread\n");
-      return sc_error;
+	  return sc_error;
    }
 
    if( singleStep() && !isExiting()) {
@@ -2247,7 +2313,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
                    ssEv->setProcess(llproc()->proc());
                    ssEv->setThread(thread());
                    ssEv->setSyncType(Event::async);
-                   mbox()->enqueue(ssEv, true);
+				   mbox()->enqueue(ssEv, Mailbox::high);
 
                    return sc_success;
                }
@@ -2282,6 +2348,11 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
           setHandlerState(running);
           setGeneratorState(running);
       }else{
+		// 9NOV11 - Set internal and handler state to running
+		  // in addition to marking thread as resumed. Otherwise
+		  // we don't actually do a continue.
+		  setInternalState(running);
+          setHandlerState(running);
           setResumed(true);
       }
    }
@@ -2434,7 +2505,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
        return sc_success_pending;
    }
 
-   if (getHandlerState() != running)
+   if ((getHandlerState() != running))
    {
       perr_printf("Attempt to stop thread %d/%d in bad state %d\n", 
                   pid, lwp, getHandlerState());
@@ -2551,6 +2622,7 @@ bool int_thread::hasPendingStop() const
 
 void int_thread::setResumed(bool b)
 {
+	pthrd_printf("setResume for %d/%d to %s\n", llproc()->getPid(), tid, (b ? "RESUME" : "STOP"));
     resumed = b;
 }
 
@@ -2612,7 +2684,7 @@ const char *int_thread::stateStr(int_thread::State s)
       case exited: return "exited";
       case detached: return "detached";
       case errorstate: return "errorstate";
-   }
+   } 
    assert(0);
    return NULL;
 }
@@ -2667,7 +2739,7 @@ bool int_thread::setAnyState(int_thread::State *from, int_thread::State to)
    pthrd_printf("Internal = %s\n", stateStr(internal_state));
    *from = to;
 
-   if (internal_state == stopped)  assert(handler_state == stopped || handler_state == exited || handler_state == detached );
+   if (internal_state == stopped)  assert(handler_state == stopped || handler_state == exited || handler_state == detached);
    if (handler_state == stopped)   assert(generator_state == stopped || generator_state == exited || generator_state == detached );
    if (generator_state == running) assert(handler_state == running);
    if (handler_state == running)   assert(internal_state == running);
@@ -2697,22 +2769,24 @@ bool int_thread::setInternalState(int_thread::State s)
 
 void int_thread::desyncInternalState()
 {
-   pthrd_printf("Thread %d/%d is desyncing int from user state %d\n",
+   pthrd_printf("GREP Thread %d/%d is desyncing int from user state %d\n",
                 llproc()->getPid(), getLWP(), num_locked_stops+1);
    num_locked_stops++;
 }
 
 void int_thread::restoreInternalState(bool sync)
 {
-   pthrd_printf("Thread %d/%d is restoring int to user state, %d\n",
+   pthrd_printf("GREP Thread %d/%d is restoring int to user state, %d\n",
                 llproc()->getPid(), getLWP(), num_locked_stops-1);
-   // FIXME: disabling this to see where it explodes later.
-   //assert(num_locked_stops > 0);
-   if(num_locked_stops > 0)
+	// Windows: we can detect new threads after desyncing the rest of the process. By 
+   // definition these folks are okay. 
+	if (num_locked_stops == 0) return;
+
+   if(num_locked_stops > 0) {
 	   num_locked_stops--;
-   if (num_locked_stops > 0) 
-      return;
-   
+	   if (num_locked_stops > 0) 
+		  return;
+   }
    pthrd_printf("Changing internal state, %s, to user state, %s.\n",
                 int_thread::stateStr(internal_state), int_thread::stateStr(user_state));
 
@@ -2828,11 +2902,12 @@ int_thread *int_thread::createThread(int_process *proc,
       pthrd_printf("Failed to attach to new thread %d/%d\n", proc->getPid(), lwp_id);
       return NULL;
    }
-   newthr->setUserState(neonatal_intermediate);
-   newthr->setInternalState(neonatal_intermediate);
-   newthr->setHandlerState(neonatal_intermediate);
-   newthr->setGeneratorState(neonatal_intermediate);
-
+   if (newthr->isUser()) {
+		newthr->setUserState(neonatal_intermediate);
+		newthr->setInternalState(neonatal_intermediate);
+		newthr->setHandlerState(neonatal_intermediate);
+		newthr->setGeneratorState(neonatal_intermediate);
+   }
    return newthr;
 }
 
@@ -3232,10 +3307,12 @@ int_iRPC::ptr int_thread::nextPostedIRPC() const
 
 bool int_thread::handleNextPostedIRPC(hnp_stop_t allow_stop, bool is_sync)
 {
+	pthrd_printf("%d/%d: handleNextPostedIRPC\n", llproc()->getPid(), getLWP());
    int_iRPC::ptr posted_rpc = nextPostedIRPC();
-   if (!posted_rpc || runningRPC() )
+   if (!posted_rpc || runningRPC() ) {
+	   pthrd_printf("%d/%d: posted RPC %s, running RPC %s, ret true with no work done\n", llproc()->getPid(), getLWP(), (posted_rpc ? "exists" : "none"), (runningRPC() ? "running" : "not running"));
       return true;
-
+   }
    if (!is_sync) {
       llproc()->setAllowInternalRPCEvents(this);
    }
@@ -4959,7 +5036,10 @@ bool Process::hasRunningThread() const
 
    int_threadPool::iterator i;
    for (i = llproc_->threadPool()->begin(); i != llproc_->threadPool()->end(); ++i) {
-      if ((*i)->getUserState() == int_thread::running)
+		// Skip truly not-us-system-threads
+	   if (!(*i)->isUser() && !(*i)->isRPCEphemeral()) continue;
+
+	   if ((*i)->getUserState() == int_thread::running)
          return true;
    }
    return false;
@@ -5050,9 +5130,11 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
 		pthrd_printf("handleNextPostedIRPC failed\n");
 	   return Thread::ptr();
    }
-   if (thr->getInternalState() == int_thread::running) {
+   pthrd_printf("Process::postIRPC; rpc posted on thread %d/%d\n", thr->llproc()->getPid(), thr->getLWP());
+   if (thr->isRPCEphemeral() || thr->getInternalState() == int_thread::running) {
       //The thread is running, let's go ahead and start the RPC going.
-      bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
+	   pthrd_printf("\t on ephemeral thread (or int state running), handling next posted iRPC\n");
+	   bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
       if (!result) {
          pthrd_printf("handleNextPostedIRPC failed\n");
          return Thread::ptr();
@@ -5626,6 +5708,8 @@ Dyninst::LWP Thread::getLWP() const
 
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
+	// FIXME
+	assert(0);
    MTLock lock_this_func;
    if (!llthread_) {
       perr_printf("postIRPC on deleted thread\n");
@@ -5859,12 +5943,6 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
         curh = curp->hl_threads[curi];
      else
         curh = Thread::ptr();
-	  if (curh && curh->isUser()) {
-		  cerr << "Found thread, returning" << endl;
-	  }
-	  else {
-		  cerr << "Skipping system thread, iterating" << endl;
-	  }
    } while (curh && (!curh->isUser()));
 
    return orig;
@@ -5882,12 +5960,6 @@ ThreadPool::iterator ThreadPool::iterator::operator++(int)
          curh = curp->hl_threads[curi];
       else
          curh = Thread::ptr();
-	  if (curh && curh->isUser()) {
-		  cerr << "Found thread, returning" << endl;
-	  }
-	  else {
-		  cerr << "Skipping system thread, iterating" << endl;
-	  }
    } while (curh && (!curh->isUser()));
 
    return *this;
@@ -6302,6 +6374,9 @@ bool useHybridLWPControl(int_process *p) {
 }
 
 bool useHybridLWPControl(int_thread *thrd) {
+	pthrd_printf("\t Checking hybrid: %d = %d, size %d\n",
+		int_process::getThreadControlMode(), int_process::HybridLWPControl, thrd->llproc()->threadPool()->size());
+
     return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
             && thrd->llproc()->threadPool()->size() > 1 );
 }
@@ -6389,4 +6464,13 @@ void Dyninst::ProcControlAPI::LibraryPool::unlock() const
 {
 	delete the_lock;
 	the_lock = NULL;
+}
+
+
+void int_thread::terminate() {
+	plat_terminate();
+}
+
+void int_thread::plat_terminate() {
+	assert(0 && "Unimplemented!");
 }

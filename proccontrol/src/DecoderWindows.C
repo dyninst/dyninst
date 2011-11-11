@@ -7,6 +7,7 @@
 #include "external/boost/scoped_ptr.hpp"
 #include "irpc.h"
 #include <psapi.h>
+#include "procControl/h/Mailbox.h"
 
 using namespace std;
 
@@ -185,6 +186,9 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
 		{
+			return decodeCreateThread(e, newEvt, proc, events);
+
+#if 0
 			pthrd_printf("Decoded CreateProcess event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 			newEvt = EventPreBootstrap::ptr(new EventPreBootstrap());
 			newEvt->setSyncType(Event::sync_process);
@@ -192,10 +196,10 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			newEvt->setProcess(proc->proc());
 			events.push_back(newEvt);
 			Event::ptr threadEvent;
-			bool ok = decodeCreateThread(e, threadEvent, proc, events);
 			if(threadEvent)
 				newEvt->addSubservientEvent(threadEvent);
 			return ok;
+#endif
 		}
 	case CREATE_THREAD_DEBUG_EVENT:
 		{
@@ -294,9 +298,17 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			}
 			break;
 			// Thread naming exception. Ignore.
-		case EXCEPTION_DEBUGGER_IO:
+		case EXCEPTION_DEBUGGER_IO: {
 			pthrd_printf("Debugger I/O exception: %lx\n", e.u.Exception.ExceptionRecord.ExceptionInformation[0]);
-			break;
+			// 9NOV11 - wake up the generator because we're not creating an event for this.
+			GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+			newEvt = EventContinue::ptr(new EventContinue());
+			newEvt->setSyncType(Event::async);
+			newEvt->setProcess(proc->proc());
+
+		    mbox()->enqueue(newEvt, Mailbox::low);
+			return true;
+		}
 		default:
 			{
 				pthrd_printf("Decoded unhandled exception event, PID: %d, TID: %d, Exception code = 0x%lx, Exception addr = 0x%lx\n", e.dwProcessId, e.dwThreadId,
@@ -384,8 +396,12 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		assert(proc);
 		if(newEvt->getSyncType() == Event::unset)
 			newEvt->setSyncType(Event::sync_process);
-		if(thread)
+		if(thread) {
 			newEvt->setThread(thread->thread());
+			if (!thread->isUser()) {
+				newEvt->setSuppressCB(true);
+			}
+		}
 		newEvt->setProcess(proc->proc());
 		events.push_back(newEvt);
 	}
@@ -422,10 +438,25 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
 	}
-
 	ProcPool()->condvar()->lock();
 	proc = ProcPool()->findProcByPid(e.dwProcessId);
 	assert(proc);
+
+	// FIXME once things actually work
+	windows_process* wproc = dynamic_cast<windows_process*>(proc);
+	assert(wproc);
+	int_thread* dummy = wproc->RPCThread();
+	if(dummy)
+	{
+		THR_ID thr_id = (THR_ID) e.dwThreadId;
+		THR_ID dummytid;
+		dummy->getTID(dummytid);
+		if(thr_id == dummytid)
+		{
+			proc->setForceGeneratorBlock(false);
+		}
+	}
+
 	ProcPool()->condvar()->unlock();
 	newEvt->setProcess(proc->proc());
 	newEvt->setSyncType(Event::sync_process);

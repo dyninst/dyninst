@@ -35,6 +35,7 @@
 
 #include "common/h/dthread.h"
 
+#include <iostream>
 #include <queue>
 
 using namespace std;
@@ -43,16 +44,27 @@ using namespace ProcControlAPI;
 
 class MailboxMT : public Mailbox
 {
+public:
+
 private:
-   queue<Event::ptr> message_queue;
-   queue<Event::ptr> priority_message_queue; //Mostly used for async responses
+	std::map<priority_t, queue<Event::ptr> > queues;
+	Event::ptr peek_int();
+	Event::ptr pop_int();
+	bool empty_int();
+	unsigned int size_int();
+
    CondVar message_cond;
    unsigned numUserEvents;
+   bool valid(priority_t p) {
+	   return (p == low || p == med || p == high);
+   }
 public:
+
+
    MailboxMT();
    ~MailboxMT();
 
-   virtual void enqueue(Event::ptr ev, bool priority = false);
+   virtual void enqueue(Event::ptr ev, priority_t priority = med);
    virtual Event::ptr dequeue(bool block);
    virtual Event::ptr peek();
    virtual unsigned int size();
@@ -77,21 +89,20 @@ MailboxMT::~MailboxMT()
 {
 }
 
-void MailboxMT::enqueue(Event::ptr ev, bool priority)
+void MailboxMT::enqueue(Event::ptr ev, priority_t priority)
 {
-   message_cond.lock();
+	message_cond.lock();
 
-   if (priority)
-      priority_message_queue.push(ev);
-   else
-      message_queue.push(ev);
+	assert(valid(priority));
+	queues[priority].push(ev);
 
    message_cond.broadcast();
-   pthrd_printf("Added event %s to mailbox, size = %lu + %lu = %lu\n", 
+   pthrd_printf("Added event %s to mailbox, size = %lu + %lu + %lu\n", 
 	   ev ? ev->name().c_str() : "(NULL)", 
-                (unsigned long) message_queue.size(),
-                (unsigned long) priority_message_queue.size(),
-                (unsigned long) (message_queue.size() + priority_message_queue.size()));
+                (unsigned long) queues[low].size(),
+                (unsigned long) queues[med].size(),
+				(unsigned long) queues[high].size());
+	//cerr << "Added event " << *ev << " to mailbox\n";
 
    if( ev && ev->userEvent() ) {
       numUserEvents++;
@@ -104,52 +115,89 @@ void MailboxMT::enqueue(Event::ptr ev, bool priority)
    }
 }
 
+Event::ptr MailboxMT::peek_int()
+{
+   for (std::map<priority_t, queue<Event::ptr> >::reverse_iterator iter = queues.rbegin(); 
+	   iter != queues.rend(); ++iter) { 
+		   if (!iter->second.empty()) {
+				return iter->second.front();
+		   }
+   }
+   return Event::ptr();
+}
+
+Event::ptr MailboxMT::pop_int()
+{
+   for (std::map<priority_t, queue<Event::ptr> >::reverse_iterator iter = queues.rbegin(); 
+	   iter != queues.rend(); ++iter) { 
+		   if (!iter->second.empty()) {
+			   Event::ptr ret = iter->second.front();
+			   iter->second.pop();
+			   return ret;
+		   }
+   }
+   return Event::ptr();
+}
+
+bool MailboxMT::empty_int()
+{
+   for (std::map<priority_t, queue<Event::ptr> >::reverse_iterator iter = queues.rbegin(); 
+	   iter != queues.rend(); ++iter) { 
+		   if (!iter->second.empty()) {
+			   return false;
+		   }
+   }
+	return true;
+}
+
+unsigned int MailboxMT::size_int()
+{
+	unsigned int size = 0;
+   for (std::map<priority_t, queue<Event::ptr> >::reverse_iterator iter = queues.rbegin(); 
+	   iter != queues.rend(); ++iter) { 
+		   size += iter->second.size();
+   }
+	return size;
+}
+
+
 Event::ptr MailboxMT::peek()
 {
    message_cond.lock();
-   queue<Event::ptr> &q = !priority_message_queue.empty() ? priority_message_queue : message_queue;
-   if (q.empty())
-   {
-      message_cond.unlock();
-      return Event::ptr();
-   }
-   Event::ptr ret = q.front();
+   Event::ptr ev = peek_int();
+
    message_cond.unlock();
-   return ret;
+   return ev;
 }
 
 Event::ptr MailboxMT::dequeue(bool block)
 {
    message_cond.lock();
-   queue<Event::ptr> &q = !priority_message_queue.empty() ? priority_message_queue : message_queue;
 
-   if (q.empty() && !block) {
-      message_cond.unlock();
-      return Event::ptr();
+   while (empty_int()) {
+	   if (!block) {
+		   message_cond.unlock();
+		   return Event::ptr();
+	   }
+	   pthrd_printf("Blocking for events from mailbox\n");
+       message_cond.wait();
    }
-   while (priority_message_queue.empty() && message_queue.empty()) {
-      pthrd_printf("Blocking for events from mailbox, queue size = %lu\n", 
-                   (unsigned long) message_queue.size());
-      message_cond.wait();
-   }
-
-   queue<Event::ptr> &r = !priority_message_queue.empty() ? priority_message_queue : message_queue;
-   Event::ptr ret = r.front();
-   r.pop();
+   Event::ptr ret = pop_int();
 
    if( ret && ret->userEvent() ) {
        numUserEvents--;
    }
+   pthrd_printf("Returning event %s from mailbox\n", ret ? ret->name().c_str() : "(NULL)");
+	//cerr << "Removing event " << *ret << " from mailbox\n";
 
    message_cond.unlock();
-   pthrd_printf("Returning event %s from mailbox\n", ret ? ret->name().c_str() : "(NULL)");
    return ret;
 }
 
 unsigned int MailboxMT::size()
 {
    message_cond.lock();
-   unsigned int result = (unsigned int) (message_queue.size() + priority_message_queue.size());
+	unsigned int result = size_int();
    message_cond.unlock();
    return result;
 }
@@ -157,7 +205,7 @@ unsigned int MailboxMT::size()
 bool MailboxMT::hasPriorityEvent()
 {
    message_cond.lock();
-   bool result = !priority_message_queue.empty();
+   bool result = !queues[high].empty();
    message_cond.unlock();
    return result;
 }

@@ -60,6 +60,7 @@ class PC_EXPORT EventType
    static const int Library             = 17;
    static const int ForceTerminate      = 18;
    static const int PreBootstrap		= 19;
+   static const int Continue		    = 20;
 
    //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
    // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 

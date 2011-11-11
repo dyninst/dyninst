@@ -95,4 +95,14 @@ public:
 	void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class WinHandleContinue : public Handler
+{
+public:
+	WinHandleContinue();
+	virtual ~WinHandleContinue();
+	virtual handler_ret_t handleEvent(Event::ptr ev);
+	virtual int getPriority() const;
+	void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 #endif // !defined WINDOWS_H_

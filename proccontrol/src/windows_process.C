@@ -35,6 +35,7 @@
 #include "windows_thread.h"
 #include "procpool.h"
 #include "irpc.h"
+#include "proccontrol/h/Mailbox.h"
 #include <iostream>
 
 using namespace std;
@@ -83,7 +84,8 @@ int_process(p, e, a, envp, f),
 arch_process(p, e, a, envp, f),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL)
+dummyRPCThread_(NULL),
+lowlevel_isRunning_(false)
 {
 }
 
@@ -92,7 +94,8 @@ int_process(pid_, p),
 arch_process(pid_, p),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL)
+dummyRPCThread_(NULL),
+lowlevel_isRunning_(false)
 {
 }
 
@@ -268,16 +271,45 @@ bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 	return true;
 }
 
-bool windows_process::plat_contProcess()
+bool windows_process::plat_contProcess(bool isRunning)
 {
-	pthrd_printf("plat_contProcess...\n");
+	pthrd_printf("plat_contProcess : cur state %s...\n", isRunning ? "<running>" : "<paused>");
 	ProcPool()->condvar()->lock();
-
+#if 0
 	if (dummyRPCThread_ && dummyRPCThread_->getDummyRPCStart()) {
 		// Promote it to real thread-ness!
-		promoteDummyRPCThread();
-		dummyRPCThread_ = NULL;
+		instantiateRPCThread();
+		//dummyRPCThread_ = NULL;
 	}
+#endif
+
+	if (lowlevel_isRunning_) {
+		// We think the process is running, so set the Windows suspend level of any handler-running
+		// thread to 0 and update its generator state.
+		for(int_threadPool::iterator i = threadPool()->begin();
+			i != threadPool()->end(); ++i)
+		{
+			if (((*i)->getHandlerState() == int_thread::running) &&
+				((*i)->getGeneratorState() == int_thread::stopped)) {
+				pthrd_printf("Thread %d/%d: handler state running, setting suspend level to 0\n",
+							(*i)->getLWP(), pid);
+				windows_thread *winthr = dynamic_cast<windows_thread *>(*i);
+				winthr->plat_setSuspendCount(0);
+				winthr->setGeneratorState(int_thread::running);
+			}
+			else {
+				pthrd_printf("Thread %d/%d: skipping, handler %s, generator %s, internal %s, user %s\n",
+					(*i)->getLWP(), pid, 
+					int_thread::stateStr((*i)->getHandlerState()),
+					int_thread::stateStr((*i)->getGeneratorState()),
+					int_thread::stateStr((*i)->getInternalState()),
+					int_thread::stateStr((*i)->getUserState()));
+			}
+		}
+		ProcPool()->condvar()->unlock();
+		return true;
+	}
+
 
 	for(int_threadPool::iterator i = threadPool()->begin();
 		i != threadPool()->end(); ++i)
@@ -285,40 +317,39 @@ bool windows_process::plat_contProcess()
 		if( (*i)->isResumed() ) {
 			(*i)->setInternalState(int_thread::running);
 			(*i)->setHandlerState(int_thread::running);
-			(*i)->setGeneratorState(int_thread::running);
+			// 9NOV11 - set generator state in the generator rather than here. 
+//			(*i)->setGeneratorState(int_thread::running);
 			(*i)->setResumed(false);
 		}else if( (*i)->getInternalState() == int_thread::stopped ) {
-			pthrd_printf("Suspending before continue %d/%d\n",
+			pthrd_printf("REMOVED Suspending before continue %d/%d\n",
 				getPid(), (*i)->getLWP());
+			// 9NOV11
+			//windows_thread *winthr = static_cast<windows_thread *>(*i);
+			//winthr->plat_setSuspendCount(1);
+#if 0
 			if( !(*i)->plat_suspend() ) {
 				perr_printf("Failed to suspend thread %d/%d\n",
 					getPid(), (*i)->getLWP());
 				setLastError(err_internal, "low-level continue failed");
 				return false;
 			}
+#endif
 		}
 
-		// DEBUGGING
-		int_registerPool regs;
-		(*i)->plat_getAllRegisters(regs);
-		Dyninst::THR_ID tid;
-		(*i)->getTID(tid);
-		Address a;
-		(*i)->getStartFuncAddress(a);
-		pthrd_printf("Thread %d at EIP 0x%lx, thread start func is 0x%lx\n", tid, regs.regs[x86::eip], a);
-
-		//
-
-
 	}
+
+	Event::ptr contEvt(new EventContinue());
+	contEvt->setProcess(proc());
+	contEvt->setSyncType(Event::async);
+	mbox()->enqueue(contEvt, Mailbox::low);
 	ProcPool()->condvar()->signal();
 	ProcPool()->condvar()->unlock();
 	// This implementation presumes that all threads are in correct suspended/resumed state.
 	// With HybridLWPControl, this should be correct.
-	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	// 10NOV11 - Commenting out and moving to end of handler loop
+	//GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	//wGen->wake(pid);
 
-
-	wGen->wake(pid);
 	return true;
 }
 SymbolReaderFactory *windows_process::plat_defaultSymReader()
@@ -335,6 +366,7 @@ bool windows_process::plat_detach()
 		return true;
 	}
 	setPendingDebugBreak();
+	pthrd_printf(".... detaching, calling DebugBreakProcess\n");
 	BOOL result = ::DebugBreakProcess(hproc);
 	if(!result)
 	{
@@ -460,21 +492,12 @@ bool windows_process::plat_isStaticBinary()
 	return false;
 }
 
-int_thread *iRPCMgr::createThreadForRPC(int_process* proc)
+int_thread *iRPCMgr::createThreadForRPC(int_process* proc, bool create_running)
 {
 	windows_process* winProc = dynamic_cast<windows_process*>(proc);
 	assert(winProc);
 
-	return winProc->getDummyRPCThread();
-	fprintf(stderr, "Got asked to create thread for IRPC\n");
-	rpc->setAllocation(proc->mallocExecMemory(rpc->allocSize));
-	return false;
-	// This assumes we've already allocated and copied...
-/*	windows_process* winProc = dynamic_cast<windows_process*>(proc);
-	assert(winProc);
-	Dyninst::THR_ID tid;
-	HANDLE hthrd = ::CreateRemoteThread(winProc->plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)rpc->addr(), NULL, 0, (LPDWORD)&tid);
-	return hthrd != INVALID_HANDLE_VALUE;*/
+	return winProc->createRPCThread(create_running);
 }
 
 bool windows_process::addrInSystemLib(Address addr) {
@@ -516,26 +539,38 @@ void windows_process::findSystemLibs() {
 	systemLibIntervals_.insert(base, objEnd, insert);
 }
 
-int_thread *windows_process::getDummyRPCThread() {
+int_thread *windows_process::RPCThread() {
+	pthrd_printf("Query for RPC thread: ret 0x%lx\n", 
+		dummyRPCThread_);
+	return dummyRPCThread_;
+}
+
+int_thread *windows_process::createRPCThread(bool) {
 	if (!dummyRPCThread_) {
-		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createDummyRPCThread(this));
-
-
+		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createRPCThread(this));
+		pthrd_printf("Creating RPC thread: 0x%lx\n", dummyRPCThread_);
+	}
+	else {
+		pthrd_printf("Create RPC thread returning previous copy\n");
 	}
 	return dummyRPCThread_;
 }
 
-void windows_process::promoteDummyRPCThread() {
+
+void windows_process::instantiateRPCThread() {
 	assert(dummyRPCThread_);
 
-	pthrd_printf("Promoting dummy RPC thread to a real thread\n");
+	if (!dummyRPCThread_->isRPCpreCreate())
+		return;
+
+	pthrd_printf("Promoting dummy RPC thread 0x%lx to a real thread\n", dummyRPCThread_);
 
 	// We want to:
 	// 1) Take the dummy thread
 	// 2) Create a real thread in the mutatee
 	// 3) Fill in the dummy thread's values
 	// 4) Set it as a system thread
-	// 5) Promote it to the threadpool
+	// 5) Force the generator to consume events 
 
 	// 1)
 	Address dummyStart = dummyRPCThread_->getDummyRPCStart();
@@ -543,8 +578,8 @@ void windows_process::promoteDummyRPCThread() {
 	// 2)
 	Dyninst::LWP lwp;
 	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, 0, (LPDWORD)&lwp);
-	pthrd_printf("*********************** Created actual thread with lwp %d for dummy RPC thread, start at 0x%lx\n",
-		(int) lwp, dummyStart);
+	pthrd_printf("*********************** Created actual thread with lwp %d, hthrd %x for dummy RPC thread, start at 0x%lx\n",
+		(int) lwp, hthrd, dummyStart);
 
 	// 3)
 	dummyRPCThread_->updateThreadHandle((Dyninst::THR_ID) lwp, lwp);
@@ -552,12 +587,20 @@ void windows_process::promoteDummyRPCThread() {
 
 	// 4) 
 	dummyRPCThread_->setUser(false);
-	dummyRPCThread_->setDummyRPC(false);
+	dummyRPCThread_->markRPCRunning();
 
-	// 5) 
-	threadPool()->addThread(dummyRPCThread_);
-	ProcPool()->addThread(this, dummyRPCThread_);
+	// 5) Set the generator to consume events so that
+	// we can be sure we create this as a real thread.
+	// NOTE: only do this if the process is stopped; if it's
+	// running then leave the generator where it is. 
+	if (0 && threadPool()->allStopped()) {
+		pthrd_printf("XXXXXXXXXXXXXXXXX Thread pool is entirely stopped; setting forced generator block to ensure we find RPC thread\n");
+		setForceGeneratorBlock(true);
+	}
+}
 
+void windows_process::destroyRPCThread() {
+	if (!dummyRPCThread_) return;
 	dummyRPCThread_ = NULL;
 }
 
@@ -567,4 +610,10 @@ void windows_process::handleRPCviaNewThread(bool user_cont) {
 	// Tell the iRPC manager to try and prep RPCs on this hacked up mess of a thing. 
 	bool completed = false;
 	rpcMgr()->handleThreadContinue(dummyRPCThread_, user_cont, completed);
+}
+
+void* windows_process::plat_getDummyThreadHandle() const
+{
+	if(!dummyRPCThread_) return NULL;
+	return dummyRPCThread_->plat_getHandle();
 }

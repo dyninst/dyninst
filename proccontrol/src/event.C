@@ -38,6 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/PCErrors.h"
+#include "proccontrol/h/generator.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +66,14 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    suppress_cb(false),
    user_event(false)
 {
+	if(proc) {
+		pthrd_printf("Creating an event for pid %d, sequence num %lld\n",
+			proc->getPid(), Generator::getDefaultGenerator()->getSequenceNum(proc->getPid()));
+		sequenceNum = Generator::getDefaultGenerator()->getSequenceNum(proc->getPid());
+	}
+	else {
+		sequenceNum = -2;
+	}
 }
 
 EventType Event::getEventType() const {
@@ -84,7 +93,12 @@ void Event::setThread(Thread::const_ptr t) {
 }
 
 void Event::setProcess(Process::const_ptr p) {
-   proc = p;
+	proc = p;
+	if (proc) {
+		pthrd_printf("Setting process on event for pid %d, sequence num %lld\n",
+			proc->getPid(), Generator::getDefaultGenerator()->getSequenceNum(proc->getPid()));
+		sequenceNum = Generator::getDefaultGenerator()->getSequenceNum(proc->getPid());
+	}
 }
 
 void Event::setUserEvent(bool b) {
@@ -187,6 +201,7 @@ std::string EventType::name() const
       STR_CASE(ForceTerminate);
       STR_CASE(PrepSingleStep);
 	  STR_CASE(PreBootstrap);
+	  STR_CASE(Continue);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -197,6 +212,15 @@ bool Event::procStopper() const
 }
 
 Event::~Event()
+{
+}
+
+EventContinue::EventContinue() :
+Event(EventType(EventType::None,EventType::Continue))
+{
+}
+
+EventContinue::~EventContinue()
 {
 }
 
@@ -789,4 +813,5 @@ DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventPrepSingleStep, PrepSingleStep)
 DEFN_EVENT_CAST(EventPreBootstrap, PreBootstrap)
+DEFN_EVENT_CAST(EventContinue, Continue)
 

@@ -38,6 +38,10 @@
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/h/Mailbox.h"
+// CLEANUP
+#if defined(os_windows)
+#include "proccontrol/src/windows_process.h"
+#endif
 
 #include <cstring>
 #include <cassert>
@@ -61,7 +65,8 @@ int_iRPC::int_iRPC(void *binary_blob_,
    freeBinaryBlob(false),
    needsDesync(false),
    lock_live(0),
-   needs_clean(false)
+   needs_clean(false),
+   directFree_(false)
 {
    my_id = next_id++;
    if (alreadyAllocated) {
@@ -311,6 +316,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    int_threadPool *tp = proc->threadPool();
    int min_rpc_count = -1;
    int_thread *selected_thread = NULL;
+   bool found_user_running_thread = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       assert(thr);
@@ -320,6 +326,9 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 	  if (!thr->isUser()) {
 		  pthrd_printf("Skipping thread that is marked as system\n");
 		  continue;
+	  }
+	  if (thr->getUserState() == int_thread::running) {
+		  found_user_running_thread = true;
 	  }
 
       // Don't post RPCs to threads that are in the middle of exiting
@@ -331,7 +340,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 	  }
 
       int rpc_count = numActiveRPCs(thr);
-      if (!findAllocationForRPC(thr, rpc)) {
+	  if (!proc->plat_supportDirectAllocation() && !findAllocationForRPC(thr, rpc)) {
          //We'll need to run an allocation and deallocation on this thread.
          // two more iRPCs.
          rpc_count += 2;
@@ -344,7 +353,6 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    }
    if(!selected_thread)
    {
-	   cerr << "Trying to create a thread to run this RPC since we don't have a free thread..." << endl;
 	   // This should only happen on Windows, because that is currently the only platform where we
 	   // need to trap at syscall exit in order to catch a thread currently in a syscall on the way out
 	   // and run an RPC there. On other OSes, we'll just interrupt the syscall and the OS will (normally)
@@ -352,8 +360,9 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 	   // This means we'll be spawning a new thread specifically to run this RPC.
 	   // We create a thread with its threadproc at the RPC buffer, we replace the trap with a return, and life should
 	   // be good.
-	   selected_thread = createThreadForRPC(proc);
+	   selected_thread = createThreadForRPC(proc, found_user_running_thread);
    }
+   pthrd_printf("Selected thread %d for iRPC %d\n", selected_thread->getLWP(), rpc->id());
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
 }
@@ -364,13 +373,15 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
    if (thread->getInternalState() != int_thread::running && 
        thread->getInternalState() != int_thread::stopped) 
    {
-      perr_printf("Attempt to post iRPC %lu to non-running thread %d\n", 
+		pthrd_printf("Internal state unhappy, ret false\n");
+	   perr_printf("Attempt to post iRPC %lu to non-running thread %d\n", 
                   rpc->id(), thread->getLWP());
       setLastError(err_exited, "Attempt to post iRPC to exited thread");
       return false;
    }
 
    if( thread->isExiting() ) {
+		pthrd_printf("Thread exiting, ret false\n");
        perr_printf("Attempt to post IRPC %lu to exiting thread %d\n",
                rpc->id(), thread->getLWP());
        setLastError(err_exited, "Attempt to post iRPC to exiting thread");
@@ -408,13 +419,24 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
       pthrd_printf("RPC %lu already has allocated memory, added to end\n", rpc->id());
       goto done;
    }
+   if(thread->llproc()->plat_supportDirectAllocation())
+   {
+	   rpc->setDirectFree(true);
+	   Address buffer = thread->llproc()->infMalloc(rpc->binarySize());
+		// FIXME: fail to post rather than asserting
+	   assert(buffer);
+	   rpc->setAllocation(iRPCAllocation::ptr(new iRPCAllocation()));
+		rpc->allocation()->addr = buffer;
+	   rpc->setAllocSize(rpc->binarySize());
+	   cur_list->push_back(rpc);
+		goto done;
+   }
 
    if (rpc->isInternalRPC()) {
      cur_list->push_front(rpc);
      pthrd_printf("RPC %lu is internal and cuts in line\n", rpc->id());
      goto done;
    }
-
    allocation = findAllocationForRPC(thread, rpc);
    if (allocation) {
       rpc->setAllocation(allocation);
@@ -709,7 +731,7 @@ bool int_iRPC::saveRPCState()
                    thrd->llproc()->getPid(), thrd->getLWP());
       allocation()->orig_data = (char *) malloc(allocSize());
       memsave_result = mem_response::createMemResponse((char *) allocation()->orig_data, allocSize());
-      bool result = thrd->llproc()->readMem(addr(), memsave_result);
+	  bool result = thrd->llproc()->readMem(addr(), memsave_result, (thrd->isRPCEphemeral() ? thrd : NULL));
       assert(result);
    }
 
@@ -742,7 +764,7 @@ bool int_iRPC::writeToProc()
    
    if (!rpcwrite_result) {
       rpcwrite_result = result_response::createResultResponse();
-      bool result = thr->llproc()->writeMem(binaryBlob(), addr(), binarySize(), rpcwrite_result);
+	  bool result = thr->llproc()->writeMem(binaryBlob(), addr(), binarySize(), rpcwrite_result, (thr->isRPCEphemeral() ? thr : NULL));
       if (!result) {
          pthrd_printf("Failed to write IRPC\n");
          return false;
@@ -801,18 +823,30 @@ bool int_iRPC::runIRPC(bool block)
    assert(!allocSize() || (binarySize() <= allocSize()));
    assert(binaryBlob());
 
+   if (thrd->isRPCEphemeral()) {
+	   // Create it if necessary
+	   thrd->llproc()->instantiateRPCThread();
+	   pthrd_printf("\tInstantiated iRPC thread\n");
+   }
+
    if (thrd->hasPostponedContinue()) {
       thrd->restoreInternalState(block);
       thrd->setPostponedContinue(false);
    }
 
+   pthrd_printf("\t needsToDesync(): %s and isProcStopRPC: %s\n",
+	   needsToDesync() ? "true" : "false", 
+	   isProcStopRPC() ? "true" : "false");
    if (needsToDesync() && !isProcStopRPC()) {
       setNeedsDesync(false);
-      if (useHybridLWPControl(thrd)) {
+	  // Ephemeral threads aren't in the threadPool yet, and so useHybrid can false negative. 
+      if (useHybridLWPControl(thrd) || thrd->isRPCEphemeral()) {
+		  pthrd_printf("\t Using hybrid model, resyncing all threads\n");
          thrd->llproc()->threadPool()->restoreInternalState(block);
       }
       else {
-         thrd->restoreInternalState(block);
+		pthrd_printf("\t Not using hybrid model, resyncing single thread\n");
+		  thrd->restoreInternalState(block);
       }
    }
 
@@ -1149,6 +1183,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    assert(rpc);
    assert(mgr);
    assert(rpc->getState() == int_iRPC::Cleaning);
+   // Is this a temporary thread created just for this RPC? 
+   bool ephemeral = thr->isRPCEphemeral();
 
    pthrd_printf("Handling RPC %lu completion on %d/%d\n", rpc->id(), 
                 thr->llproc()->getPid(), thr->getLWP());
@@ -1176,8 +1212,28 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
                                             ievent->memrestore_response);
       assert(result);
    }
-
-   if (!ievent->regrestore_response && 
+   if (rpc->directFree()) {
+	   assert(rpc->addr());
+	   thr->llproc()->infFree(rpc->addr());
+   }
+   if (ephemeral) {
+	   // Don't restore registers; instead, kill the thread if there
+	   // aren't any other pending iRPCs for it. 
+		// We count as an active iRPC...
+	   assert(mgr->numActiveRPCs(thr) > 0);
+	   if (mgr->numActiveRPCs(thr) == 1) {
+			thr->terminate();
+			// CLEANUP on aisle 1
+#if defined(os_windows)
+			windows_process *winproc = dynamic_cast<windows_process *>(thr->llproc());
+			if (winproc) {
+				winproc->destroyRPCThread();
+			}
+#endif
+	   }
+	   // Otherwise I hope this will get picked up for the next iRPC...
+   }
+   else if (!ievent->regrestore_response && 
        (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))
    {
       //Restore the registers--need to wait for above getreg first
@@ -1219,6 +1275,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       pthrd_printf("Freeing exec memory at %lx\n", rpc->addr());
       thr->llproc()->freeExecMemory(rpc->addr());
    }
+
 
    pthrd_printf("RPC %lu is moving to state finished\n", rpc->id());
    thr->clearRunningRPC();

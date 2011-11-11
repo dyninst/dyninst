@@ -144,9 +144,15 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
    WinEventNewThread::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventNewThread>(ev);
    if(we)
    {
+		pthrd_printf("WinHandleCreateThread handling thread creation for thread %d, handle %x\n",
+			lwp, we->getHandle());
 	   thr->setHandle(we->getHandle());
 	   thr->setStartFuncAddress((Dyninst::Address)(we->getThreadStart()));
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
+	   if(we->getHandle() == thr->llproc()->plat_getDummyThreadHandle())
+	   {
+		   thr->llproc()->setForceGeneratorBlock(false);
+	   }
    }
 
    // Check to see if our start address (if we have one...) is in a system library (if we know
@@ -154,13 +160,19 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
    Address start_addr = 0;
    if (thr->getStartFuncAddress(start_addr)) {
 	   if (thr->llproc()->addrInSystemLib(start_addr)) {
-			cerr << "It's a system thread!" << endl;
 		   thr->setUser(false);
+		   thr->setUserState(int_thread::running);
+		   thr->setInternalState(int_thread::running);
+		   thr->setGeneratorState(int_thread::stopped);
+		   thr->setHandlerState(int_thread::stopped);
 	   }
    }
    if (!thr->isUser()) {
 	   ev->setSuppressCB(true);
    }
+
+	pthrd_printf("WinHandleCreateThread continuing the process...\n");
+	thr->intCont();
 
    return ret_success;
 }
@@ -225,12 +237,14 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    static WinHandleThreadStop* winthreadstop = NULL;
    static WinHandleSingleStep* wsinglestep = NULL;
    static WinHandleBootstrap* wbootstrap = NULL;
+   static WinHandleContinue* wcont = NULL;
    if (!initialized) {
       wnewthread = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
 	  winthreadstop = new WinHandleThreadStop();
 	  wsinglestep = new WinHandleSingleStep();
 	  wbootstrap = new WinHandleBootstrap();
+	  wcont = new WinHandleContinue();
       initialized = true;
    }
    hpool->addHandler(wnewthread);
@@ -238,6 +252,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    //hpool->addHandler(winthreadstop);
    hpool->addHandler(wsinglestep);
    hpool->addHandler(wbootstrap);
+   hpool->addHandler(wcont);
    return hpool;
 }
 
@@ -276,4 +291,34 @@ int WinHandleBootstrap::getPriority() const
 void WinHandleBootstrap::getEventTypesHandled( std::vector<EventType> &etypes )
 {
 	etypes.push_back(EventType::Bootstrap);
+}
+
+
+WinHandleContinue::WinHandleContinue()
+{
+
+}
+
+WinHandleContinue::~WinHandleContinue()
+{
+
+}
+
+Handler::handler_ret_t WinHandleContinue::handleEvent( Event::ptr ev )
+{
+	pthrd_printf("WinHandleContinue continuing process %d\n", ev->getProcess()->getPid());
+	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
+	assert(winGen);
+	winGen->wake(ev->getProcess()->llproc()->getPid(), ev->getSequenceNum());
+	return ret_success;
+}
+
+int WinHandleContinue::getPriority() const
+{
+	return PostPlatformPriority;
+}
+
+void WinHandleContinue::getEventTypesHandled( std::vector<EventType> &etypes )
+{
+	etypes.push_back(EventType::Continue);
 }

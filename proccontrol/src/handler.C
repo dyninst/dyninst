@@ -446,13 +446,7 @@ void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
 {
 	int_process* p = ev->getProcess()->llproc();
-	p->setForceGeneratorBlock(true);
-
-	GeneratorWindows* winGen = dynamic_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
-	if(winGen)
-	{
-		winGen->wake(p->getPid());
-	}
+	//p->setForceGeneratorBlock(true);
 	return ret_success;
 }
 
@@ -823,6 +817,7 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
+
    if (ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
       return ret_success;
@@ -1718,7 +1713,8 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
 {
    switch (ret) {
       case Process::cbThreadContinue:
-         if (thrd == Thread::const_ptr()) {
+		  if (!thrd->llthrd()->isUser()) break;
+		  if (thrd == Thread::const_ptr()) {
             perr_printf("User returned invalid action %s for event\n", 
                         action_str(ret));
             return false;
@@ -1728,6 +1724,7 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
          thrd->llthrd()->setInternalState(int_thread::running);
          break;
       case Process::cbThreadStop:
+		  if (!thrd->llthrd()->isUser()) break;
          if (thrd == Thread::const_ptr()) {
             perr_printf("User returned invalid action %s for event\n", 
                         action_str(ret));

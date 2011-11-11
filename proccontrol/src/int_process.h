@@ -113,7 +113,7 @@ class int_process
    void setContSignal(int sig);
    int getContSignal() const;
    bool continueProcess();
-   virtual bool plat_contProcess() = 0;
+   virtual bool plat_contProcess(bool isRunning = false) = 0;
 
    virtual bool forked();
   protected:
@@ -171,6 +171,8 @@ class int_process
    static const char *stateName(State s);
    void initializeProcess(Process::ptr p);
 
+   virtual void instantiateRPCThread() {};
+
    void setExitCode(int c);
    void setCrashSignal(int s);
    bool getExitCode(int &c);
@@ -225,7 +227,8 @@ class int_process
                                    size_t size, result_response::ptr result);
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
-
+	// Windows-only technically
+   virtual void* plat_getDummyThreadHandle() const { return NULL; }
    typedef enum {
        NoLWPControl = 0,
        HybridLWPControl, // see below for a description of these modes
@@ -245,6 +248,7 @@ class int_process
    virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
 
+   virtual bool plat_supportDirectAllocation() const { return false; }
    virtual bool plat_supportLWPEvents() const;
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
@@ -264,7 +268,12 @@ class int_process
    virtual bool addrInSystemLib(Address addr) { return false; }
 
    virtual void handleRPCviaNewThread(bool) { return; }
-
+   void lockSyncRunState() {
+	   srs_lock.lock();
+   }
+   void unlockSyncRunState() {
+		srs_lock.unlock();
+   }
  protected:
    State state;
    Dyninst::PID pid;
@@ -290,6 +299,7 @@ class int_process
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
    bool createdViaAttach;
+   Mutex srs_lock;
 };
 
 /*
@@ -403,7 +413,7 @@ public:
                                    Dyninst::THR_ID thr_id, 
                                    Dyninst::LWP lwp_id,
    								   bool initial_thrd);
-   static int_thread *createDummyRPCThread(int_process *p);
+   static int_thread *createRPCThread(int_process *p);
    Process::ptr proc() const;
    int_process *llproc() const;
 
@@ -437,6 +447,8 @@ public:
    bool intStop(bool sync = true);
    bool intCont();
 
+   void terminate();
+
    void setContSignal(int sig);
    int getContSignal();
    bool contWithSignal(int sigOverride = -1);
@@ -455,6 +467,10 @@ public:
    // These can be no-ops for other modes
    virtual bool plat_suspend() = 0;
    virtual bool plat_resume() = 0;
+
+   // Is this thread's lifetime only an IRPC and it gets
+   // discarded afterwards?
+   virtual bool isRPCEphemeral() const { return false; }
 
    //Single-step
    bool singleStepMode() const;
@@ -529,6 +545,7 @@ public:
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
+   virtual void plat_terminate();
 
    void updateRegCache(int_registerPool &pool);
    void updateRegCache(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);

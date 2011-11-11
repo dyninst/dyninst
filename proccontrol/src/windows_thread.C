@@ -45,12 +45,34 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 	if (initial_thrd) {
 		return NULL;
 	}
+	windows_process* wproc = dynamic_cast<windows_process*>(proc);
+	assert(wproc);
+	int_thread* dummy = wproc->RPCThread();
+	if(dummy)
+	{
+		THR_ID dummytid;
+		dummy->getTID(dummytid);
+		if(thr_id == dummytid)
+		{
+			// These are artificial reversions that break all our rules,
+			// because we're reusing a thread data structure that has had
+			// various stuff done to it before a corresponding OS thread existed.
+			// Just set things properly and move on.
+			dummy->generator_state = neonatal;
+			dummy->handler_state = neonatal;
+			dummy->internal_state = neonatal;
+			dummy->user_state = running;
+			pthrd_printf("OOOOOOOOOOOOOOOOO Turning force generator block off; found new RPC thread\n");
+			proc->setForceGeneratorBlock(false);
+			return dummy;
+		}
+	}
 	windows_thread *wthrd = new windows_thread(proc, thr_id, lwp_id);
 	assert(wthrd);
 	return static_cast<int_thread *>(wthrd);
 }
 
-int_thread *int_thread::createDummyRPCThread(int_process *proc) 
+int_thread *int_thread::createRPCThread(int_process *proc) 
 {
 	pthrd_printf("Creating dummy thread for RPC: initial tid -1, lwp -1\n");
 	// We're creating a placeholder thread that will get actual information
@@ -59,13 +81,14 @@ int_thread *int_thread::createDummyRPCThread(int_process *proc)
 	// before we actually need it...
 	windows_thread *wthrd = new windows_thread(proc, (Dyninst::THR_ID) -1, (Dyninst::LWP) -1);
 	assert(wthrd);
-	wthrd->setDummyRPC(true);
+	wthrd->markRPCThread();
 
 	// Fake it into a state that will make the iRPC code happy.
 	// Update this if postRPCToThread changes
+	// We're creating suspended, so we can write to it...
 	wthrd->handler_state = int_thread::stopped;
-	wthrd->user_state = int_thread::stopped;
 	wthrd->generator_state = int_thread::stopped;
+	wthrd->user_state = int_thread::stopped;
 	wthrd->internal_state = int_thread::stopped;
 	wthrd->handler_exiting_state = false;
 
@@ -80,7 +103,7 @@ m_TLSAddr(0),
 stackBase(0),
 threadInfoBlockAddr_(0),
 isUser_(true),
-isRPCDummy_(false),
+dummyRPC_(notRPCThread),
 dummyRpcPC_(0)
 {
 }
@@ -101,7 +124,7 @@ void windows_thread::setStartFuncAddress(Dyninst::Address addr)
 
 std::string windows_thread::dumpThreadContext()
 {
-	if (isDummyRPC()) return "<DUMMY RPC THREAD>";
+	if (isRPCpreCreate()) return "<DUMMY RPC THREAD>";
 
 	plat_suspend();
 	std::stringstream s;
@@ -130,7 +153,7 @@ bool windows_thread::attach()
 
 bool windows_thread::plat_cont()
 {
-	if (isDummyRPC()) return true;
+	if (isRPCpreCreate()) return true;
 
 	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	bool ok = true;
@@ -168,13 +191,14 @@ done:
 	//this->setPendingUserStop(false);
 
 	plat_resume();
-	wGen->wake(llproc()->getPid());
+	// 9NOV11 - removed because we don't want the generator to race with handlers. 
+	//wGen->wake(llproc()->getPid());
 	return ok;
 }
 
 bool windows_thread::plat_stop()
 {
-	if (isDummyRPC()) return true;
+	if (isRPCpreCreate()) return true;
 
 	pthrd_printf("Stopping thread %d (0x%lx)\n", getLWP(),
 		hthread);
@@ -186,6 +210,7 @@ bool windows_thread::plat_stop()
 	}
 	else
 	{
+		pthrd_printf("... DebugBreak called\n");
 		result = ::DebugBreakProcess(wproc->plat_getHandle());
 		if(result == -1) {
 			int err = ::GetLastError();
@@ -198,7 +223,8 @@ bool windows_thread::plat_stop()
 
 bool windows_thread::plat_suspend()
 {
-	if (isDummyRPC()) return true;
+	return true;
+	if (isRPCpreCreate()) return true;
 
 	int result = ::SuspendThread(hthread);
 	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
@@ -216,7 +242,8 @@ bool windows_thread::plat_suspend()
 
 bool windows_thread::plat_resume()
 {
-	if (isDummyRPC()) return true;
+	return true;
+	if (isRPCpreCreate()) return true;
 
 	int result = ::ResumeThread(hthread);
 	pthrd_printf("Resuming %d/%d, suspend count is %d\n", llproc()->getPid(), tid, result);
@@ -241,7 +268,7 @@ bool windows_thread::plat_resume()
 
 bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
-	if (isDummyRPC()) return true;
+	if (isRPCpreCreate()) return true;
 
 	bool ret = false;
 	plat_suspend();
@@ -286,7 +313,7 @@ bool windows_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 
 bool windows_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
-	if (isDummyRPC()) {
+	if (isRPCpreCreate()) {
 		pthrd_printf("setAllRegisters called on dummy RPC thread, grabbing PC for future use: 0x%lx\n",
 			regpool.regs[x86::eip]);
 		// Snarf the PC, ignore everything else
@@ -294,35 +321,41 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 		return true;
 	}
 
-
 	plat_suspend();
 
 	//std::cerr << "plat_setAllRegisters, EIP = " << std::hex << regpool.regs[x86::eip] << std::dec << std::endl;
 
 	CONTEXT c;
 	c.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
-	c.Eax = regpool.regs[x86::eax];
-	c.Ebx = regpool.regs[x86::ebx];
-	c.Ecx = regpool.regs[x86::ecx];
-	c.Edx = regpool.regs[x86::edx];
-	c.Esp = regpool.regs[x86::esp];
-	c.Ebp = regpool.regs[x86::ebp];
-	c.Esi = regpool.regs[x86::esi];
-	c.Edi = regpool.regs[x86::edi];
-	c.ContextFlags = regpool.regs[x86::flags];
-	c.Dr0 = regpool.regs[x86::dr0];
-	c.Dr1 = regpool.regs[x86::dr1];
-	c.Dr2 = regpool.regs[x86::dr2];
-	c.Dr3 = regpool.regs[x86::dr3];
-	c.Dr6 = regpool.regs[x86::dr6];
-	c.Dr7 = regpool.regs[x86::dr7];
-	c.SegCs = regpool.regs[x86::cs];
-	c.SegDs = regpool.regs[x86::ds];
-	c.SegEs = regpool.regs[x86::es];
-	c.SegFs = regpool.regs[x86::fs];
-	c.SegGs = regpool.regs[x86::gs];
-	c.SegSs = regpool.regs[x86::ss];
-	c.Eip = regpool.regs[x86::eip];
+	if (isRPCThread()) {
+		// The context we're given is _wrong_, but we only care about EIP. I hope.
+		::GetThreadContext(hthread, &c);
+		c.Eip = regpool.regs[x86::eip];
+	}
+	else {
+		c.Eax = regpool.regs[x86::eax];
+		c.Ebx = regpool.regs[x86::ebx];
+		c.Ecx = regpool.regs[x86::ecx];
+		c.Edx = regpool.regs[x86::edx];
+		c.Esp = regpool.regs[x86::esp];
+		c.Ebp = regpool.regs[x86::ebp];
+		c.Esi = regpool.regs[x86::esi];
+		c.Edi = regpool.regs[x86::edi];
+		c.ContextFlags = regpool.regs[x86::flags];
+		c.Dr0 = regpool.regs[x86::dr0];
+		c.Dr1 = regpool.regs[x86::dr1];
+		c.Dr2 = regpool.regs[x86::dr2];
+		c.Dr3 = regpool.regs[x86::dr3];
+		c.Dr6 = regpool.regs[x86::dr6];
+		c.Dr7 = regpool.regs[x86::dr7];
+		c.SegCs = regpool.regs[x86::cs];
+		c.SegDs = regpool.regs[x86::ds];
+		c.SegEs = regpool.regs[x86::es];
+		c.SegFs = regpool.regs[x86::fs];
+		c.SegGs = regpool.regs[x86::gs];
+		c.SegSs = regpool.regs[x86::ss];
+		c.Eip = regpool.regs[x86::eip];
+	}
 	BOOL ok = ::SetThreadContext(hthread, &c);
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
 	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
@@ -376,7 +409,7 @@ bool windows_thread::getTID(Dyninst::THR_ID& tid)
 
 Address windows_thread::getThreadInfoBlockAddr()
 {
-	if (isDummyRPC()) return false;
+	if (isRPCpreCreate()) return false;
 
 	if (threadInfoBlockAddr_) {
 		return threadInfoBlockAddr_;
@@ -406,7 +439,7 @@ Address windows_thread::getThreadInfoBlockAddr()
 
 bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 {
-	if (isDummyRPC()) return false;
+	if (isRPCpreCreate()) return false;
 
 	// If we don't have the member set, look on the stack.
 	if(!m_StartAddr) {
@@ -426,7 +459,7 @@ bool windows_thread::getStartFuncAddress(Dyninst::Address& start_addr)
 
 bool windows_thread::getStackBase(Dyninst::Address& stack_base)
 {
-	if (isDummyRPC()) return false;
+	if (isRPCpreCreate()) return false;
 
 	if(stackBase) {
 		stack_base = stackBase;
@@ -445,7 +478,7 @@ bool windows_thread::getStackBase(Dyninst::Address& stack_base)
 
 bool windows_thread::getStackSize(unsigned long& stack_size)
 {
-	if (isDummyRPC()) return false;
+	if (isRPCpreCreate()) return false;
 
 	Address tib_addr = getThreadInfoBlockAddr();
 	if(!tib_addr) {
@@ -478,7 +511,7 @@ void windows_thread::setTLSAddress( Dyninst::Address addr )
 
 bool windows_thread::needsSyscallTrapForRPC()
 {
-	if (isDummyRPC()) return false;
+	if (isRPCpreCreate()) return false;
 
 	int_registerPool regs;
 	plat_getAllRegisters(regs);
@@ -487,7 +520,7 @@ bool windows_thread::needsSyscallTrapForRPC()
 	proc_->plat_readMem(this, prevInsn, prevInsnIfSysenter, 2);
 	if((prevInsn[0] == 0x0F) && (prevInsn[1] == 0x34)) // sysenter
 	{
-		pthrd_printf("Found sysenter at 0x%lx, need trap for RPC here\n", prevInsnIfSysenter);
+		pthrd_printf("%d/%d: Found sysenter at 0x%lx, need trap for RPC here\n", llproc()->getPid(), tid, prevInsnIfSysenter);
 		return true;
 	}
 	pthrd_printf("Thread at 0x%lx does not need trap for RPC\n", regs.regs[x86::eip]);
@@ -495,19 +528,13 @@ bool windows_thread::needsSyscallTrapForRPC()
 }
 
 void windows_thread::setUser(bool u) {
+	pthrd_printf("Setting userness of thread %d/%d to: %s\n",
+		llproc()->getPid(), tid, (u ? "USER" : "SYSTEM"));
 	isUser_ = u;
 }
 
 bool windows_thread::isUser() const {
 	return isUser_;
-}
-
-void windows_thread::setDummyRPC(bool u) {
-	isRPCDummy_ = u;
-}
-
-bool windows_thread::isDummyRPC() const {
-	return isRPCDummy_;
 }
 
 void windows_thread::setDummyRPCStart(Address a) {
@@ -522,4 +549,69 @@ Address windows_thread::getDummyRPCStart() const {
 void windows_thread::updateThreadHandle(Dyninst::THR_ID t, Dyninst::LWP l) {
 	tid = t;
 	lwp = l;
+}
+
+void windows_thread::plat_terminate() {
+	::TerminateThread(hthread, 0);
+}
+
+bool windows_thread::isRPCEphemeral() const {
+//	return (dummyRPC_ == RPCrunning);
+	return isRPCThread();
+}
+
+bool windows_thread::isRPCThread() const { 
+	return (dummyRPC_ != notRPCThread);
+}
+
+void windows_thread::markRPCThread() {
+	assert(dummyRPC_ == notRPCThread);
+	dummyRPC_ = RPCpreCreate;
+}
+
+bool windows_thread::isRPCpreCreate() const {
+	return (dummyRPC_ == RPCpreCreate);
+}
+
+void windows_thread::markRPCRunning() {
+	assert(dummyRPC_ == RPCpreCreate);
+	dummyRPC_ = RPCrunning;
+}
+
+void windows_thread::plat_setSuspendCount(int count) {
+	pthrd_printf("%d/%d: setting suspend count to %d\n",
+				llproc()->getPid(), tid, count);
+	if (isRPCpreCreate()) {
+		pthrd_printf("\t pre-created RPC thread, ret with no changed\n");
+		return;
+	}
+
+	int result = ::SuspendThread(hthread);
+	pthrd_printf("\t having suspended once, result is %d\n", result);
+	if (result == -1 && (::GetLastError() == ERROR_ACCESS_DENIED)) {
+		::ResumeThread(hthread);
+		// FIXME
+		// This happens if the thread is in a system call and thus cannot be modified. 
+		// However, handling such an event is a royal pain in the ass, and so we're ignoring
+		// it for now and not failing. 
+		pthrd_printf("Thread %d faking suspend, was in a system call\n", tid);
+		return;
+	}	
+	
+	int current = result + 1;
+	// result is what we _had_, not what we have now.
+
+	while (current != count) {
+		if (current < count) {
+			pthrd_printf("\t current %d, count %d, suspending\n", current, count);
+			::SuspendThread(hthread);
+			current++;
+		}
+		else {
+			pthrd_printf("\t current %d, count %d, resuming\n", current, count);
+			::ResumeThread(hthread);
+			current--;
+		}
+	}
+	pthrd_printf("Setting suspend count of %d/%d to %d, error code %d, last reported value %d\n", llproc()->getPid(), tid, count, ((result == -1) ? ::GetLastError() : 0), current);
 }

@@ -34,6 +34,9 @@
 #include "proccontrol/h/Process.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
+#include "proccontrol/src/windows_thread.h"
+#include "proccontrol/src/windows_process.h"
+#include "proccontrol/src/GeneratorWindows.h"
 
 #include "common/h/dthread.h"
 
@@ -165,10 +168,27 @@ bool Generator::getAndQueueEventInt(bool block)
    }
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
       Event::ptr event = *i;
-	  if(event)
+	  if(event) {
 	      event->getProcess()->llproc()->updateSyncState(event, true);
+			// Added 9NOV11 - Bernat
+		    pthrd_printf("Process %d: setting thread suspend/resume and generator states after decode\n", event->getProcess()->llproc()->getPid());
+			int_threadPool *tp = event->getProcess()->llproc()->threadPool(); assert(tp);
+			for (int_threadPool::iterator iter = tp->begin(); iter != tp->end(); ++iter) {
+				windows_thread *winthr = dynamic_cast<windows_thread *>(*iter); assert(winthr);
+				assert(winthr->getGeneratorState() != int_thread::running);
+				winthr->plat_setSuspendCount(1);
+			}
+			windows_process *winproc = dynamic_cast<windows_process *>(event->getProcess()->llproc());
+			winproc->lowlevel_processSuspended();
+
+		   GeneratorWindows *genwin = dynamic_cast<GeneratorWindows *>(this);
+		   if (genwin->waiters[winproc->getPid()]) {
+			   ::ResetEvent(genwin->waiters[winproc->getPid()]->gen_wait);
+		   }
+			// End added 9NOV11
+	  }
    }
-   ProcPool()->condvar()->unlock();
+
 
    setState(queueing);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
@@ -179,6 +199,8 @@ bool Generator::getAndQueueEventInt(bool block)
       }
       Generator::cb_lock->unlock(); 
    }
+
+   ProcPool()->condvar()->unlock();
 
    result = true;
  done:
@@ -201,15 +223,18 @@ bool Generator::allStopped(int_process *proc, void *)
    }
    assert(tp);
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
-      if ((*i)->getGeneratorState() == int_thread::running ||
-          (*i)->getGeneratorState() == int_thread::neonatal_intermediate) 
+	   // 9NOV11 - Bernat
+	   // With our changes to the generatorState, this needs to check
+	   // handlerState instead. 
+      if ((*i)->getHandlerState() == int_thread::running ||
+          (*i)->getHandlerState() == int_thread::neonatal_intermediate) 
       {
          pthrd_printf("Found running thread: %d/%d is %s\n", 
                       proc->getPid(), (*i)->getLWP(), 
                       int_thread::stateStr((*i)->getGeneratorState()));
          return false;
       }
-      if ((*i)->getGeneratorState() != int_thread::exited) {
+      if ((*i)->getHandlerState() != int_thread::exited) {
          all_exited = false;
       }
    }

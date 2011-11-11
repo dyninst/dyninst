@@ -4,6 +4,7 @@
 #include "windows_process.h"
 #include "windows_handler.h"
 #include "procpool.h"
+#include "windows_thread.h"
 
 #include <iostream>
 
@@ -88,6 +89,11 @@ void GeneratorWindows::removeProcess(int_process *proc)
 	waiters.erase(proc->getPid());
 }
 
+long long GeneratorWindows::getSequenceNum(Dyninst::PID p)
+{
+	return alreadyHandled[p];
+}
+
 bool GeneratorWindows::hasLiveProc()
 {
 	pthrd_printf("begin hasLiveProc()\n");
@@ -106,6 +112,8 @@ bool GeneratorWindows::hasLiveProc()
 		all_stopped ? "TRUE" : "FALSE",
 		p->getPid(),
 		ret ? "TRUE" : "FALSE");
+
+
 	ProcPool()->condvar()->signal();
 	ProcPool()->condvar()->unlock();
 	return ret;
@@ -136,17 +144,59 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 			winEvt->evt.dwProcessId);
 		return true;
 	}
+
 	pthrd_printf("GeneratorWindows::plat_continue() for %d waiting\n", winEvt->evt.dwProcessId);
-	//::ResetEvent(waiters[winEvt->evt.dwProcessId]->user_wait);
-	//::WaitForSingleObject(waiters[winEvt->evt.dwProcessId]->gen_wait, INFINITE);
+	::WaitForSingleObject(waiters[winEvt->evt.dwProcessId]->gen_wait, INFINITE);
 	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
 	if(!theWaiter) {
 		pthrd_printf("Wait object deleted. Process %d should be dead. Returning.\n", winEvt->evt.dwProcessId);
 		setState(exiting);
 		return false;
 	}
-	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
 
+	ProcPool()->condvar()->lock();
+	// ADDED 9NOV11 - Bernat
+	// Move suspend/resume thread behavior to the Generator thread. 
+	pthrd_printf("Process %d: setting thread suspend/resume and generator states before ContinueDebugEvent\n", winEvt->evt.dwProcessId);
+	int_threadPool *tp = process_for_cur_thread->threadPool(); assert(tp);
+	for (int_threadPool::iterator iter = tp->begin(); iter != tp->end(); ++iter) {
+		windows_thread *winthr = dynamic_cast<windows_thread *>(*iter); assert(winthr);
+		winthr->setGeneratorState(winthr->getHandlerState());
+		switch(winthr->getGeneratorState()) {
+			case int_thread::neonatal:
+			case int_thread::neonatal_intermediate:
+			case int_thread::running:
+				pthrd_printf("%d/%d: state is %s, setting suspend count to 0\n",
+					winthr->llproc()->getPid(), winthr->getLWP(), int_thread::stateStr(winthr->getGeneratorState()));
+				winthr->plat_setSuspendCount(0);
+				break;
+			case int_thread::stopped:
+				pthrd_printf("%d/%d: state is %s, setting suspend count to 1\n",
+					winthr->llproc()->getPid(), winthr->getLWP(), int_thread::stateStr(winthr->getGeneratorState()));
+				winthr->plat_setSuspendCount(1);
+				break;
+			case int_thread::detached:
+			case int_thread::errorstate:
+			case int_thread::exited:
+				pthrd_printf("%d/%d: state is %s, not setting suspend count\n",
+					winthr->llproc()->getPid(), winthr->getLWP(), int_thread::stateStr(winthr->getGeneratorState()));
+				break;
+			default:
+				assert(0);
+				break;
+		}
+	}
+	alreadyHandled[process_for_cur_thread->getPid()]++;
+	pthrd_printf("%d: incrementing sequence num, now %lld\n", 
+		process_for_cur_thread->getPid(), alreadyHandled[process_for_cur_thread->getPid()]);
+	windows_process *winproc = dynamic_cast<windows_process *>(process_for_cur_thread);
+	winproc->lowlevel_processResumed();
+	// End added 9NOV11
+	ProcPool()->condvar()->unlock();
+
+	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
+	pthrd_printf("::ContinueDebugEvent for %d/%d getting called\n", winEvt->evt.dwProcessId, winEvt->evt.dwThreadId);
+	//cerr << "continueDebugEvent" << endl;
 	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
 	if (!retval) {
 		std::cerr << "ContinueDebugEvent failed, you're so screwed." << std::endl;
@@ -165,6 +215,7 @@ ArchEvent *GeneratorWindows::getEvent(bool block)
 	if(::WaitForDebugEvent(&evt, INFINITE))
 	{
 		ArchEventWindows* new_evt = new ArchEventWindows(evt);
+
 		return new_evt;
 	}
 	else
@@ -188,11 +239,17 @@ void GeneratorWindows::wait(Dyninst::PID p)
 	pthrd_printf("GeneratorWindows::wait() done for %d\n", p);
 }
 
-void GeneratorWindows::wake(Dyninst::PID p)
+void GeneratorWindows::wake(Dyninst::PID p, long long sequence)
 {
 	pthrd_printf("GeneratorWindows::wake() for %d\n", p);
+	if(sequence < alreadyHandled[p]) {
+		pthrd_printf("GeneratorWindows::wake() rejecting sequence %lld for %d (threshold %lld)\n", sequence,
+			p, alreadyHandled[p]);
+		return;
+	}
 	Waiters::ptr w = waiters[p];
 	if(w) {
+		//cerr << "Sending wake event" << endl;
 		::SetEvent(w->gen_wait);
 	}
 }

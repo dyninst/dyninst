@@ -84,6 +84,7 @@ class EventAsync;
 class EventChangePCStop;
 class EventPrepSingleStep;
 class EventPreBootstrap;
+class EventContinue;
 
 class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -125,6 +126,9 @@ class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
    virtual void setUserEvent(bool b);
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
+   long long getSequenceNum() const {
+		return sequenceNum;
+   }
 
    dyn_detail::boost::shared_ptr<EventTerminate> getEventTerminate();
    dyn_detail::boost::shared_ptr<const EventTerminate> getEventTerminate() const;
@@ -201,6 +205,9 @@ class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventPrepSingleStep> getEventPrepSingleStep();
    dyn_detail::boost::shared_ptr<const EventPrepSingleStep> getEventPrepSingleStep() const;
 
+   dyn_detail::boost::shared_ptr<EventContinue> getEventContinue();
+   dyn_detail::boost::shared_ptr<const EventContinue> getEventContinue() const;
+
  protected:
    EventType etype;
    Thread::const_ptr thread;
@@ -211,7 +218,33 @@ class PC_EXPORT Event : public dyn_detail::boost::enable_shared_from_this<Event>
    std::set<Handler *> handled_by;
    bool suppress_cb;
    bool user_event;
+   long long sequenceNum;
 };
+
+template<typename OS>
+OS& operator<<(OS& str, Event& e)
+{
+	str << e.getEventType().name() << " event is ";
+	switch(e.getSyncType())
+	{
+	case Event::async:
+		str << "asynchronous ";
+		break;
+	case Event::sync_thread:
+		str << "thread synchronous ";
+		break;
+	case Event::sync_process:
+		str << "process synchronous ";
+		break;
+	default:
+		str << "<UNKNOWN SYNC TYPE> ";
+		break;
+	}
+	str << "on " << (e.getProcess() && e.getProcess()->llproc() ? e.getProcess()->llproc()->getPid() : -1);
+	str << "/" << ((e.getThread() && e.getThread()->llthrd()) ?  e.getThread()->llthrd()->getLWP() : (Dyninst::LWP) -1);
+	str << "\n";
+	return str;
+}
 
 class PC_EXPORT EventTerminate : public Event
 {
@@ -580,6 +613,19 @@ class PC_EXPORT EventPrepSingleStep : public Event
 
    virtual bool procStopper() const;
    emulated_singlestep *getEmulatedSingleStep() const;
+};
+
+class PC_EXPORT EventContinue : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventContinue>(EventContinue *);
+   friend void dyn_detail::boost::checked_delete<const EventContinue>(const EventContinue *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventContinue> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventContinue> const_ptr;
+   EventContinue();
+   ~EventContinue();
+   virtual bool userEvent() const { return true; };
+
 };
 
 }

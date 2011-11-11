@@ -40,7 +40,7 @@ class GeneratorWindows : public GeneratorMT
 	   HANDLE gen_wait, user_wait;
 	   bool unhandled_exception;
 	   Waiters() {
-		   gen_wait = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+		   gen_wait = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 		   user_wait = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 		   unhandled_exception = false;
 	   }
@@ -50,8 +50,10 @@ class GeneratorWindows : public GeneratorMT
 	   }
    };
 
+   virtual long long getSequenceNum(Dyninst::PID proc);
+
 	// Wake the generator thread to do a ContinueDebugEvent
-   void wake(Dyninst::PID);
+   virtual void wake(Dyninst::PID proc, long long sequence);
    // Wait for the ContinueDebugEvent to go through
    void wait(Dyninst::PID);
    void markUnhandledException(Dyninst::PID p);
@@ -66,6 +68,7 @@ class GeneratorWindows : public GeneratorMT
    virtual ArchEvent* getCachedEvent();
    virtual void setCachedEvent(ArchEvent* ae);
    std::map<int, ArchEvent*> m_Events;
+   std::map<Dyninst::PID, long long> alreadyHandled;
 };
 
 #endif // !defined(GENERATOR_WINDOWS_H)

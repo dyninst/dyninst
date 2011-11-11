@@ -178,6 +178,9 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    void setShouldSaveData(bool b);
    bool fillInAllocation();
 
+   void setDirectFree(bool s) { directFree_ = s; }
+   bool directFree() const { return directFree_; }
+
    void getPendingResponses(std::set<response::ptr> &resps);
    void syncAsyncResponses(bool is_sync);
 
@@ -210,6 +213,8 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    allreg_response::ptr regsave_result;
    result_response::ptr rpcwrite_result;
    result_response::ptr pcset_result;
+
+   bool directFree_;
 };
 
 //Singleton class, only one of these across all processes.
@@ -227,7 +232,7 @@ class iRPCMgr
    bool postRPCToProc(int_process *proc, int_iRPC::ptr rpc);
    bool postRPCToThread(int_thread *thread, int_iRPC::ptr rpc);
    bool prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error);
-   int_thread *createThreadForRPC(int_process* proc);
+   int_thread *createThreadForRPC(int_process* proc, bool create_running);
 
    int_iRPC::ptr createInfMallocRPC(int_process *proc, unsigned long size, bool use_addr, Dyninst::Address addr);
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);

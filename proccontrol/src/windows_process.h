@@ -64,7 +64,7 @@ public:
 	virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 	virtual Dyninst::Architecture getTargetArch();
 	virtual bool plat_individualRegAccess();
-	virtual bool plat_contProcess();
+	virtual bool plat_contProcess(bool isRunning = false);
 	virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
 	virtual bool plat_supportLWPEvents() const;
 	virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
@@ -97,10 +97,18 @@ public:
 	virtual bool addrInSystemLib(Address addr);
 
 	// Hacky system thread RPC idea
-   virtual int_thread *getDummyRPCThread();
+   virtual int_thread *RPCThread();
+   virtual int_thread *createRPCThread(bool create_running);
+   void destroyRPCThread();
 
    virtual void handleRPCviaNewThread(bool);
+   virtual void* plat_getDummyThreadHandle() const;
 
+   void lowlevel_processSuspended() { lowlevel_isRunning_ = false; }
+   void lowlevel_processResumed() { lowlevel_isRunning_ = true; }
+
+   virtual void instantiateRPCThread();
+   virtual bool plat_supportDirectAllocation() const { return true; }
 private:
 	HANDLE hproc;
 	bool pendingDetach;
@@ -110,7 +118,8 @@ private:
 	void findSystemLibs();
 
 	windows_thread *dummyRPCThread_;
-	void promoteDummyRPCThread();
+
+	bool lowlevel_isRunning_;
 };
 
 #endif //!defined(WINDOWS_PROCESS_H)

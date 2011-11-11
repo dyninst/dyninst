@@ -60,10 +60,15 @@ public:
 	virtual bool plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result);
 	virtual bool plat_needsPCSaveBeforeSingleStep();
 
+    virtual void plat_terminate();
+
+    virtual bool isRPCEphemeral() const;
+
 	void setOptions();
 	bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
 	bool plat_suspend();
 	bool plat_resume();
+	void plat_setSuspendCount(int count);
 	bool haveUserThreadInfo();
 	bool getTID(Dyninst::THR_ID& tid);
 	bool getStartFuncAddress(Dyninst::Address& start_addr);
@@ -82,12 +87,19 @@ public:
 
 	bool isUser() const;
 	void setUser(bool);
-	bool isDummyRPC() const;
-	void setDummyRPC(bool);	
+
+	bool isRPCThread() const;
+	void markRPCThread();
+	bool isRPCpreCreate() const;
+	void markRPCRunning();
+
 	void setDummyRPCStart(Address);
 	Address getDummyRPCStart() const;
 
 	void updateThreadHandle(Dyninst::THR_ID, Dyninst::LWP);
+	void* plat_getHandle() const {
+		return hthread;
+	}
 
 private:
 	HANDLE hthread;
@@ -97,7 +109,12 @@ private:
 	Address threadInfoBlockAddr_;
 	bool isUser_;
 
-	bool isRPCDummy_;
+	typedef enum {
+		notRPCThread,
+		RPCpreCreate,
+		RPCrunning } dummyRPC_t;
+
+	dummyRPC_t dummyRPC_;
 	Address dummyRpcPC_;
 };
 

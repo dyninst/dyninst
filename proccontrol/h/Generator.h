@@ -64,6 +64,9 @@ class PC_EXPORT Generator
    typedef void (*gen_cb_func_t)();
    static void registerNewEventCB(gen_cb_func_t func);
    static void removeNewEventCB(gen_cb_func_t);
+   
+   virtual long long getSequenceNum(Dyninst::PID /* proc */) { return -1; }
+
  protected:
 
    //State tracking
@@ -109,6 +112,7 @@ class PC_EXPORT Generator
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
    virtual bool plat_continue(ArchEvent* evt) { return true; }
+   virtual void wake(Dyninst::PID/* proc */, long long /* sequence */) {}
 };
 
 class PC_EXPORT GeneratorMT : public Generator
