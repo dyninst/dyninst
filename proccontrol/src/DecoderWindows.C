@@ -398,9 +398,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			newEvt->setSyncType(Event::sync_process);
 		if(thread) {
 			newEvt->setThread(thread->thread());
-			if (!thread->isUser()) {
-				newEvt->setSuppressCB(true);
-			}
 		}
 		newEvt->setProcess(proc->proc());
 		events.push_back(newEvt);

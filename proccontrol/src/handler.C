@@ -818,6 +818,10 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
 
+	if (!thrd->isUser()) {
+		ev->setSuppressCB(true);
+	}
+
    if (ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
       return ret_success;
