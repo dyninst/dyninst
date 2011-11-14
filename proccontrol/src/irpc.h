@@ -67,7 +67,8 @@ class iRPCAllocation
       size(0),
       start_offset(0),
       orig_data(NULL),
-      needs_datasave(true),
+	  // HACK: affirmatively set that we do need a data save. If we've just allocated space, why save the data?
+      needs_datasave(false),
       have_saved_regs(false),
       ref_count(0)
       {
@@ -242,6 +243,9 @@ class iRPCMgr
 
    bool handleThreadContinue(int_thread *thr, bool user_cont, bool &completed);
    bool isRPCTrap(int_thread *thr, Dyninst::Address addr);
+   int_iRPC::ptr getRPCForTransferBreakpoint(Dyninst::Address addr);
+private:
+	std::map<Dyninst::Address, int_iRPC::ptr> transfer_breakpoints;
 };
 
 iRPCMgr *rpcMgr();

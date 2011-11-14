@@ -222,10 +222,12 @@ bool windows_process::plat_forked()
 bool windows_process::plat_readMem(int_thread *thr, void *local, 
 								   Dyninst::Address remote, size_t size)
 {
-	//fprintf(stderr, "reading %d bytes from %p\n", size, remote);
-	int errcode = ::ReadProcessMemory(hproc, (unsigned char*)remote, (unsigned char*)local, size, NULL);
-	if(!errcode) {
+	int errcode = 0;
+	if(!::ReadProcessMemory(hproc, (unsigned char*)remote, (unsigned char*)local, size, NULL)) 
+	{
 		errcode = ::GetLastError();
+		pthrd_printf("ReadProcessMemory() failed to get %d bytes from 0x%x, error %d\n",
+			size, remote, errcode);
 		return false;
 	}
 	return true;
@@ -403,7 +405,11 @@ bool windows_process::plat_terminate(bool &needs_sync)
 
 Dyninst::Address windows_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) 
 {
-	return (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)min, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+	Dyninst::Address alloc_result = (Dyninst::Address)::VirtualAllocEx(hproc, (LPVOID)min, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	if(alloc_result == 0) {
+		pthrd_printf("mallocExecMemory failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+	}
+	return alloc_result;
 }
 
 bool windows_process::plat_convertToBreakpointAddress(Dyninst::psaddr_t& addr)
@@ -438,8 +444,12 @@ bool windows_process::plat_createDeallocationSnippet(Dyninst::Address addr, unsi
 Dyninst::Address windows_process::infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
 {
 	if(!use_addr) addr = 0;
-	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_COMMIT, PAGE_READWRITE));
-	mem->inf_malloced_memory[result] = size;
+	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+	if(result == 0) {
+		pthrd_printf("infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+	} else {
+		mem->inf_malloced_memory[result] = size;
+	}
 	return result;
 }
 bool windows_process::infFree(Dyninst::Address addr)
@@ -450,6 +460,8 @@ bool windows_process::infFree(Dyninst::Address addr)
 		perr_printf("Passed bad address, %lx, to infFree\n", addr);
 		return false;
 	}
+	// HACK: short-circuit and don't deallocate.
+	return true;
 
 	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_RELEASE);
 	if (!result) {
