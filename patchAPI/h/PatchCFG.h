@@ -98,7 +98,7 @@ class PatchBlock {
     template <class OutputIterator> 
     void getFunctions(OutputIterator result);
 
-    PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+    PATCHAPI_EXPORT Point *findPoint(PatchLocation loc, Point::Type type, bool create = true);
 
    PATCHAPI_EXPORT void destroy(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
@@ -167,7 +167,7 @@ class PatchFunction {
      PATCHAPI_EXPORT const blockset &exits() { return getExitBlocks(); }
      PATCHAPI_EXPORT const blockset &calls() { return getCallBlocks(); }
 
-     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
+     PATCHAPI_EXPORT Point *findPoint(PatchLocation loc, Point::Type type, bool create = true);
 
      bool verifyExit(PatchBlock *block) { return exits().find(block) != exits().end(); }
      bool verifyCall(PatchBlock *block) { return calls().find(block) != calls().end(); }

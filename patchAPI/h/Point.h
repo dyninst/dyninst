@@ -11,56 +11,56 @@ namespace PatchAPI {
 
    class PatchCallback;
 
-struct EntrySite {
+struct PatchEntrySite {
    PatchFunction *func;
    PatchBlock *block;
-EntrySite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+PatchEntrySite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
-struct CallSite {
+struct PatchCallSite {
    PatchFunction *func;
    PatchBlock *block;
-CallSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+PatchCallSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
-struct ExitSite {
+struct PatchExitSite {
    PatchFunction *func;
    PatchBlock *block;
-ExitSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+PatchExitSite(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
 };
 
-struct InsnLoc {
+struct PatchInsnLoc {
    PatchBlock *block;
    Address addr;
    InstructionAPI::Instruction::Ptr insn;
-InsnLoc(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
+PatchInsnLoc(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
    block(b), addr(a), insn(i) {};
 };
       
      
-// Uniquely identify the location of a point; this + a type
+// Uniquely identify the PatchLocation of a point; this + a type
 // uniquely identifies a point.
-struct Location {
-Location() : func(NULL), block(NULL), addr(0), edge(NULL), untrusted(false), type(Illegal) {};
+struct PatchLocation {
+PatchLocation() : func(NULL), block(NULL), addr(0), edge(NULL), untrusted(false), type(Illegal) {};
    // Function
-Location(PatchFunction *f) : func(f), block(NULL), addr(0), edge(NULL), untrusted(false), type(Function) {};
-Location(EntrySite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Entry) {};
-Location(CallSite c) : func(c.func), block(c.block), addr(0), edge(NULL), untrusted(false), type(Call) {};
-Location(ExitSite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Exit) {};
+PatchLocation(PatchFunction *f) : func(f), block(NULL), addr(0), edge(NULL), untrusted(false), type(Function) {};
+PatchLocation(PatchEntrySite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Entry) {};
+PatchLocation(PatchCallSite c) : func(c.func), block(c.block), addr(0), edge(NULL), untrusted(false), type(Call) {};
+PatchLocation(PatchExitSite e) : func(e.func), block(e.block), addr(0), edge(NULL), untrusted(false), type(Exit) {};
    // A block in a particular function
-Location(PatchFunction *f, PatchBlock *b) : func(f), block(b), addr(0), edge(NULL), untrusted(true), type(BlockInstance) {};
+PatchLocation(PatchFunction *f, PatchBlock *b) : func(f), block(b), addr(0), edge(NULL), untrusted(true), type(BlockInstance) {};
    // A trusted instruction (in a particular function)
-Location(PatchFunction *f, InsnLoc l) : func(f), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(InstructionInstance) {};
+PatchLocation(PatchFunction *f, PatchInsnLoc l) : func(f), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(InstructionInstance) {};
    // An untrusted (raw) instruction (in a particular function)
-Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : func(f), block(b), addr(a), insn(i), edge(NULL), untrusted(true), type(InstructionInstance) {};
+PatchLocation(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : func(f), block(b), addr(a), insn(i), edge(NULL), untrusted(true), type(InstructionInstance) {};
    // An edge (in a particular function)
-Location(PatchFunction *f, PatchEdge *e) : func(f), block(NULL), addr(0), edge(e), untrusted(true), type(Edge) {};
+PatchLocation(PatchFunction *f, PatchEdge *e) : func(f), block(NULL), addr(0), edge(e), untrusted(true), type(Edge) {};
    // A block in general
-Location(PatchBlock *b) : func(NULL), block(b), addr(0), edge(NULL), untrusted(false), type(Block) {};
+PatchLocation(PatchBlock *b) : func(NULL), block(b), addr(0), edge(NULL), untrusted(false), type(Block) {};
    // A trusted instruction in general
-Location(InsnLoc l) : func(NULL), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(Instruction) {};
+PatchLocation(PatchInsnLoc l) : func(NULL), block(l.block), addr(l.addr), insn(l.insn), edge(NULL), untrusted(false), type(Instruction) {};
    // An untrusted (raw) instruction
-Location(PatchBlock *b, Address a) : func(NULL), block(b), addr(a), edge(NULL), untrusted(true), type(Instruction) {};
+PatchLocation(PatchBlock *b, Address a) : func(NULL), block(b), addr(a), edge(NULL), untrusted(true), type(Instruction) {};
    // An edge
-Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(false), type(Edge) {};
+PatchLocation(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(false), type(Edge) {};
 
    typedef enum {
       Function,
@@ -76,7 +76,7 @@ Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(fa
 
    bool legal(type_t t) { return t == type; }
 
-   InsnLoc insnLoc() { return InsnLoc(block, addr, insn); }
+   PatchInsnLoc insnLoc() { return PatchInsnLoc(block, addr, insn); }
    
    PatchFunction *func;
    PatchBlock *block;
@@ -91,8 +91,8 @@ Location(PatchEdge *e) : func(NULL), block(NULL), addr(0), edge(e), untrusted(fa
 #define type_val(seq) (0x00000001 << seq)
 
 
-/* A location on the CFG that acts as a container of inserted instances.  Points
-   of different types are distinct even the underlying code relocation and
+/* A PatchLocation on the CFG that acts as a container of inserted instances.  Points
+   of different types are distinct even the underlying code rePatchLocation and
    generation engine happens to put instrumentation from them at the same
    place */
 
@@ -293,8 +293,8 @@ class PointMaker {
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    // Location bundles what we need to know. 
-    PATCHAPI_EXPORT Point *createPoint(Location loc, Point::Type type);
+    // PatchLocation bundles what we need to know. 
+    PATCHAPI_EXPORT Point *createPoint(PatchLocation loc, Point::Type type);
 
     void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }
   protected:

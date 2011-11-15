@@ -114,6 +114,8 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/debug.C \
                 ../src/ast.C \
                 ../src/registerSpace.C \
+		../src/RegisterConversion-x86.C \
+		../src/RegisterConversion-ppc.C \
                 ../src/codegen.C \
                 ../src/inst.C \
                 ../src/instPoint.C \
@@ -150,8 +152,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/BPatch_asyncEventHandler.C \
                 ../src/BPatch_eventLock.C \
                 ../src/parRegion.C \
-                ../src/liveness.C \
-		../src/InstructionCache.C \
                 ../src/Parsing.C \
                 ../src/Parsing-arch.C \
                 ../src/hybridInstrumentation.C \

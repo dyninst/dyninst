@@ -52,6 +52,7 @@
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dataflowAPI/h/ABI.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -1657,7 +1658,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    // the call. 
    pdvector<pair<unsigned,int> > savedRegsToRestore;
    if (inInstrumentation) {
-      bitArray regsClobberedByCall = registerSpace::getRegisterSpace(8)->getCallWrittenRegisters();
+      bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
          registerSlot *reg = gen.rs()->GPRs()[i];
          regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
@@ -1824,8 +1825,12 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
          return true;
       }
    }
-       
-   Register ptr = gen.rs()->allocateRegister(gen, false);
+
+   
+   pdvector<Register> exclude;
+   exclude.push_back(REGNUM_RAX);
+
+   Register ptr = gen.rs()->getScratchRegister(gen, exclude);
    gen.markRegDefined(ptr);
    Register effective = ptr;
    emitMovImmToReg64(ptr, callee->addr(), true, gen);
@@ -1836,7 +1841,6 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
    *insn++ = 0xFF;
    *insn++ = static_cast<unsigned char>(0xD0 | effective);
    SET_PTR(insn, gen);
-   gen.rs()->freeRegister(ptr);
 
    return true;
 }

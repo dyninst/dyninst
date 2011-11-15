@@ -46,6 +46,8 @@ int df_debug_slicing= 0;
 int df_debug_stackanalysis = 0;
 int df_debug_convert = 0;
 int df_debug_expand = 0;
+int df_debug_liveness = 0;
+
 
 bool df_init_debug() {
 
@@ -74,6 +76,11 @@ bool df_init_debug() {
     fprintf(stderr, "Enabling DataflowAPI symbolic expansion debugging\n");
     df_debug_expand = 1;
   }
+  if ( (p=getenv("DATAFLOW_DEBUG_LIVENESS"))) {
+    fprintf(stderr, "Enabling DataflowAPI liveness debugging\n");
+    df_debug_liveness = 1;
+  }
+ 
   return true;
 }
 
@@ -124,6 +131,20 @@ int expand_printf_int(const char *format, ...)
 {
   if (!df_debug_expand) return 0;
   if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int liveness_printf_int(const char *format, ...)
+{
+  if (!df_debug_liveness) return 0;
+  if (NULL == format) return -1;
+
 
   va_list va;
   va_start(va, format);

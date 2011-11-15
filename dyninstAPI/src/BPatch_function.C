@@ -977,7 +977,7 @@ const char *BPatch_function::addNameInt(const char *name,
                             isPrimary);
     }
     else {
-        func->addPrettyName(std::string(name),
+    	func->addPrettyName(std::string(name),
                               isPrimary);
     }
     return name;

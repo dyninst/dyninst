@@ -662,12 +662,12 @@ void func_instance::createWrapperSymbol(Address entry, std::string name) {
 
 instPoint *func_instance::funcEntryPoint(bool create) {
    // Lookup the cached points
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this), Point::FuncEntry, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this), Point::FuncEntry, create));
    return p;
 }
 
 instPoint *func_instance::funcExitPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::FuncExit, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, b), Point::FuncExit, create));
    return p;
 }
 
@@ -682,12 +682,12 @@ void func_instance::funcExitPoints(Points* pts) {
 }
 
 instPoint *func_instance::preCallPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PreCall, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, b), Point::PreCall, create));
   return p;
 }
 
 instPoint *func_instance::postCallPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::PostCall, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, b), Point::PostCall, create));
    return p;
 }
 
@@ -701,24 +701,24 @@ void func_instance::callPoints(Points* pts) {
 }
 
 instPoint *func_instance::blockEntryPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockEntry, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, b), Point::BlockEntry, create));
    return p;
 }
 
 instPoint *func_instance::blockExitPoint(block_instance* b, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, b), Point::BlockExit, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, b), Point::BlockExit, create));
    return p;
 }
 
 instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
                                        InstructionAPI::Instruction::Ptr ptr,
                                        bool trusted, bool create) {
-   Location loc;
+   PatchLocation loc;
    if (trusted) {
-      loc = Location(this, InsnLoc(b, a, ptr));
+      loc = PatchLocation(this, PatchInsnLoc(b, a, ptr));
    }
    else {
-      loc = Location(this, b, a, ptr);
+      loc = PatchLocation(this, b, a, ptr);
    }
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PreInsn, create));
    return p;
@@ -727,12 +727,12 @@ instPoint *func_instance::preInsnPoint(block_instance* b, Address a,
 instPoint *func_instance::postInsnPoint(block_instance* b, Address a,
                                         InstructionAPI::Instruction::Ptr ptr,
                                         bool trusted, bool create) {
-   Location loc;
+   PatchLocation loc;
    if (trusted) {
-      loc = Location(this, InsnLoc(b, a, ptr));
+      loc = PatchLocation(this, PatchInsnLoc(b, a, ptr));
    }
    else {
-      loc = Location(this, b, a, ptr);
+      loc = PatchLocation(this, b, a, ptr);
    }
    instPoint *p = IPCONV(proc()->mgr()->findPoint(loc, Point::PostInsn, create));
    return p;
@@ -749,7 +749,7 @@ void func_instance::blockInsnPoints(block_instance* b, Points* pts) {
 }
 
 instPoint* func_instance::edgePoint(edge_instance* e, bool create) {
-   instPoint *p = IPCONV(proc()->mgr()->findPoint(Location(this, e), Point::EdgeDuring, create));
+   instPoint *p = IPCONV(proc()->mgr()->findPoint(PatchLocation(this, e), Point::EdgeDuring, create));
    return p;
 }
 

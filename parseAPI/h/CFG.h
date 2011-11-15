@@ -42,8 +42,11 @@
 #include "InstructionSource.h"
 #include "ParseContainers.h"
 
+#include "instructionAPI/h/Instruction.h"
+
 #include "Annotatable.h"
 #include <iostream>
+
 namespace Dyninst {
 namespace ParseAPI {
 
@@ -563,7 +566,6 @@ class FuncExtent : public Dyninst::interval<Address> {
     PARSER_EXPORT Address low() const { return _start; }
     PARSER_EXPORT Address high() const { return _end; } 
 };
-
 
 } //namespace ParseAPI
 } //namespace Dyninst
