@@ -43,7 +43,7 @@
 #include "util.h"
 #include "parse-cfg.h"
 
-#include "bitArray.h"
+#include "dataflowAPI/h/bitArray.h"
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 

@@ -29,16 +29,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: bitArray.h,v 1.2 2007/12/04 21:47:15 bernat Exp $
+#if !defined(INSTRUCTION_CACHE_H)
+#define INSTRUCTION_CACHE_H
 
-#ifndef _BITARRAY_
-#define _BITARRAY_
-#include "boost/dynamic_bitset.hpp"
-typedef boost::dynamic_bitset<> bitArray;
+#include "dyntypes.h"
+#include "bitArray.h"
+#include <map>
+#include "parseAPI/h/CFG.h"
 
-// Bitarrays for register liveness. This could move to registerSpace...
-#define SPEC_GPR_BIT(x) (x.size() - 3)
-#define SPEC_FPR_BIT(x) (x.size() - 2)
-#define SPEC_SPR_BIT(x) (x.size() - 1)
-#define SPEC_BIT_COUNT 3
-#endif
+using namespace Dyninst;
+
+
+struct ReadWriteInfo
+{
+  bitArray read;
+  bitArray written;
+  int insnSize;
+};
+
+
+class InstructionCache
+{
+  std::map<Address, ReadWriteInfo> cache;
+  ParseAPI::Function* currentFunction;
+
+  public:
+  bool getLivenessInfo(Address addr, ParseAPI::Function* func, ReadWriteInfo& rw);
+  void insertInstructionInfo(Address addr, ReadWriteInfo rw, ParseAPI::Function* func);
+  void clean() {cache.clear();}
+  ParseAPI::Function* getCurFunc() {return currentFunction;}
+};
+
+#endif //!defined(INSTRUCTION_CACHE_H)

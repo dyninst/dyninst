@@ -58,7 +58,7 @@ PatchMgr::removeSnippet(InstancePtr instance) {
   return instance->destroy();
 }
 
-Point *PatchMgr::findPoint(Location loc,
+Point *PatchMgr::findPoint(PatchLocation loc,
                            Point::Type type,
                            bool create) {
    // Verify an untrusted Location
@@ -67,7 +67,7 @@ Point *PatchMgr::findPoint(Location loc,
    }
 
    // Not sure if it's better to go by type
-   // or location first, so we're running
+   // or PatchLocation first, so we're running
    // with type...
    switch (type) {
       case Point::PreInsn:
@@ -184,8 +184,8 @@ void PatchMgr::getFuncCandidates(Scope &scope, Point::Type types, Candidates &re
    getFuncs(scope, funcs);
 
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-      if (types & Point::FuncDuring) ret.push_back(Candidate(Location::Function(*iter), Point::FuncDuring));
-      if (types & Point::FuncEntry) ret.push_back(Candidate(Location::EntrySite(*iter, (*iter)->entry(), true), Point::FuncEntry));
+      if (types & Point::FuncDuring) ret.push_back(Candidate(PatchLocation::Function(*iter), Point::FuncDuring));
+      if (types & Point::FuncEntry) ret.push_back(Candidate(PatchLocation::EntrySite(*iter, (*iter)->entry(), true), Point::FuncEntry));
    }
 }
 
@@ -194,8 +194,8 @@ void PatchMgr::getCallSiteCandidates(Scope &scope, Point::Type types, Candidates
    CallSites sites;
    getCallSites(scope, sites);
    for (CallSites::iterator iter = sites.begin(); iter != sites.end(); ++iter) {
-      if (types & Point::PreCall) ret.push_back(Candidate(Location::CallSite(*iter), Point::PreCall));
-      if (types & Point::PostCall) ret.push_back(Candidate(Location::CallSite(*iter), Point::PostCall));
+      if (types & Point::PreCall) ret.push_back(Candidate(PatchLocation::CallSite(*iter), Point::PreCall));
+      if (types & Point::PostCall) ret.push_back(Candidate(PatchLocation::CallSite(*iter), Point::PostCall));
    }
 }
 
@@ -203,7 +203,7 @@ void PatchMgr::getExitSiteCandidates(Scope &scope, Point::Type, Candidates &ret)
    ExitSites sites;
    getExitSites(scope, sites);
    for (ExitSites::iterator iter = sites.begin(); iter != sites.end(); ++iter) {
-      ret.push_back(Candidate(Location::ExitSite(*iter), Point::FuncExit));
+      ret.push_back(Candidate(PatchLocation::ExitSite(*iter), Point::FuncExit));
    }
 }
 
@@ -211,9 +211,9 @@ void PatchMgr::getBlockCandidates(Scope &scope, Point::Type types, Candidates &r
    Blocks blocks;
    getBlocks(scope, blocks);
    for (Blocks::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      if (types & Point::BlockEntry) ret.push_back(Candidate(Location::Block(*iter), Point::BlockEntry));
-      if (types & Point::BlockDuring) ret.push_back(Candidate(Location::Block(*iter), Point::BlockDuring));
-      if (types & Point::BlockExit) ret.push_back(Candidate(Location::Block(*iter), Point::BlockExit));
+      if (types & Point::BlockEntry) ret.push_back(Candidate(PatchLocation::Block(*iter), Point::BlockEntry));
+      if (types & Point::BlockDuring) ret.push_back(Candidate(PatchLocation::Block(*iter), Point::BlockDuring));
+      if (types & Point::BlockExit) ret.push_back(Candidate(PatchLocation::Block(*iter), Point::BlockExit));
    }
 }
 
@@ -221,7 +221,7 @@ void PatchMgr::getEdgeCandidates(Scope &scope, Point::Type, Candidates &ret) {
    Edges edges;
    getEdges(scope, edges);
    for (Edges::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      ret.push_back(Candidate(Location::Edge(*iter), Point::EdgeDuring));
+      ret.push_back(Candidate(PatchLocation::Edge(*iter), Point::EdgeDuring));
    }
 }
 
@@ -229,8 +229,8 @@ void PatchMgr::getInsnCandidates(Scope &scope, Point::Type types, Candidates &re
    Insns insns;
    getInsns(scope, insns);
    for (Insns::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
-      if (types & Point::PreInsn) ret.push_back(Candidate(Location::Instruction(*iter), Point::PreInsn));
-      if (types & Point::PostInsn) ret.push_back(Candidate(Location::Instruction(*iter), Point::PostInsn));
+      if (types & Point::PreInsn) ret.push_back(Candidate(PatchLocation::Instruction(*iter), Point::PreInsn));
+      if (types & Point::PostInsn) ret.push_back(Candidate(PatchLocation::Instruction(*iter), Point::PostInsn));
    }
 }
 
@@ -238,9 +238,9 @@ void PatchMgr::getBlockInstanceCandidates(Scope &scope, Point::Type types, Candi
    BlockInstances blocks;
    getBlockInstances(scope, blocks);
    for (BlockInstances::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-      if (types & Point::BlockEntry) ret.push_back(Candidate(Location::BlockInstance(iter->first, iter->second, true), Point::BlockEntry));
-      if (types & Point::BlockDuring) ret.push_back(Candidate(Location::BlockInstance(iter->first, iter->second, true), Point::BlockDuring));
-      if (types & Point::BlockExit) ret.push_back(Candidate(Location::BlockInstance(iter->first, iter->second, true), Point::BlockExit));
+      if (types & Point::BlockEntry) ret.push_back(Candidate(PatchLocation::BlockInstance(iter->first, iter->second, true), Point::BlockEntry));
+      if (types & Point::BlockDuring) ret.push_back(Candidate(PatchLocation::BlockInstance(iter->first, iter->second, true), Point::BlockDuring));
+      if (types & Point::BlockExit) ret.push_back(Candidate(PatchLocation::BlockInstance(iter->first, iter->second, true), Point::BlockExit));
    }
 }
 
@@ -248,8 +248,8 @@ void PatchMgr::getInsnInstanceCandidates(Scope &scope, Point::Type types, Candid
    InsnInstances insns;
    getInsnInstances(scope, insns);
    for (InsnInstances::iterator iter = insns.begin(); iter != insns.end(); ++iter) {
-      if (types & Point::PreInsn) ret.push_back(Candidate(Location::InstructionInstance(iter->first, iter->second, true), Point::PreInsn));
-      if (types & Point::PostInsn) ret.push_back(Candidate(Location::InstructionInstance(iter->first, iter->second, true), Point::PostInsn));
+      if (types & Point::PreInsn) ret.push_back(Candidate(PatchLocation::InstructionInstance(iter->first, iter->second, true), Point::PreInsn));
+      if (types & Point::PostInsn) ret.push_back(Candidate(PatchLocation::InstructionInstance(iter->first, iter->second, true), Point::PostInsn));
    }
 }
 
@@ -276,7 +276,7 @@ void PatchMgr::getCallSites(Scope &scope, CallSites &sites) {
       const PatchFunction::Blockset &c = (*iter)->calls();
       for (PatchFunction::Blockset::const_iterator iter2 = c.begin(); iter2 != c.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
-            sites.push_back(CallSite_t(*iter, *iter2));
+            sites.push_back(PatchCallSite_t(*iter, *iter2));
       }
    }
 }
@@ -289,7 +289,7 @@ void PatchMgr::getExitSites(Scope &scope, ExitSites &sites) {
       const PatchFunction::Blockset &e = (*iter)->exits();
       for (PatchFunction::Blockset::const_iterator iter2 = e.begin(); iter2 != e.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
-            sites.push_back(ExitSite_t(*iter, *iter2));
+            sites.push_back(PatchExitSite_t(*iter, *iter2));
       }
    }
 }
@@ -329,7 +329,7 @@ void PatchMgr::getInsns(Scope &scope, Insns &insns) {
       PatchBlock::Insns tmp;
       (*iter)->getInsns(tmp);
       for (PatchBlock::Insns::iterator t = tmp.begin(); t != tmp.end(); ++t) {
-         insns.push_back(InsnLoc_t(*iter, t->first, t->second));
+         insns.push_back(PatchInsnLoc_t(*iter, t->first, t->second));
       }
    }
 }
@@ -356,7 +356,7 @@ void PatchMgr::getInsnInstances(Scope &scope, InsnInstances &insns) {
          PatchBlock::Insns i;
          (*iter2)->getInsns(i);
          for (PatchBlock::Insns::iterator iter3 = i.begin(); iter3 != i.end(); ++iter3) {
-            insns.push_back(InsnInstance(*iter, InsnLoc_t(*iter2, iter3->first, iter3->second)));
+            insns.push_back(InsnInstance(*iter, PatchInsnLoc_t(*iter2, iter3->first, iter3->second)));
          }
       }
    }
@@ -375,40 +375,40 @@ void PatchMgr::destroy(Point *p) {
    p->obj()->cb()->destroy(p);
 }
 
-bool PatchMgr::verify(Location &loc) {
+bool PatchMgr::verify(PatchLocation &loc) {
    if (loc.trusted) return true;
 
    switch (loc.type) {
-      case Location::Function_:
+      case PatchLocation::Function_:
          break;
-      case Location::Block_:
+      case PatchLocation::Block_:
          break;
-      case Location::BlockInstance_:
+      case PatchLocation::BlockInstance_:
          if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
          break;
-      case Location::InstructionInstance_:
+      case PatchLocation::InstructionInstance_:
          if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
          // Fall through to Instruction_ case for detailed checking.
-      case Location::Instruction_:
+      case PatchLocation::Instruction_:
          if (loc.addr < loc.block->start()) return false;
          if (loc.addr > loc.block->last()) return false;
          loc.insn = loc.block->getInsn(loc.addr);
          if (!loc.insn) return false;
          break;
-      case Location::Edge_:
+      case PatchLocation::Edge_:
          break;
-      case Location::EdgeInstance_:
+      case PatchLocation::EdgeInstance_:
          if (loc.func->blocks().find(loc.edge->source()) == loc.func->blocks().end()) return false;
          if (loc.func->blocks().find(loc.edge->target()) == loc.func->blocks().end()) return false;
          break;
-      case Location::Entry_:
+      case PatchLocation::Entry_:
          if (loc.func->entry() != loc.block) return false;
          break;
-      case Location::Call_:
+      case PatchLocation::Call_:
          // Check to see if the block is in the call blocks
          if (loc.func->calls().find(loc.block) == loc.func->calls().end()) return false;
          break;
-      case Location::Exit_:
+      case PatchLocation::Exit_:
          if (loc.func->exits().find(loc.block) == loc.func->exits().end()) return false;
          break;
       default:

@@ -43,9 +43,6 @@
 #include "common/h/Types.h"
 #include "inst.h" // callWhen...
 
-#if defined(cap_liveness)
-#include "bitArray.h"
-#endif
 
 class codeGen;
 class instPoint;
@@ -343,7 +340,7 @@ class registerSpace {
     bool anyLiveSPRsAtEntry() const;
 
     // And for the bitarrays we use to track these
-    static bitArray getBitArray();
+
 
     /**
      * The following set of 'public' and 'private' methods and data deal with
@@ -464,7 +461,8 @@ class registerSpace {
     void specializeSpace(rs_location_t state);
 
 #if defined(cap_liveness)
-    void specializeSpace(const bitArray &);
+	void specializeSpace(const bitArray&);
+	bool checkLive(Register reg, const bitArray&);
 #endif
 
     unsigned addr_width;
@@ -501,39 +499,6 @@ class registerSpace {
 
     // Bit vectors that represent the ABI behavior at call points
     // and exits. 
-
-#if defined(cap_liveness)
-
-    const bitArray &getCallReadRegisters() const;
-    const bitArray &getCallWrittenRegisters() const;
-    const bitArray &getReturnReadRegisters() const;
-    // No such thing as return written...
-
-    // Syscall!
-    const bitArray &getSyscallReadRegisters() const;
-    const bitArray &getSyscallWrittenRegisters() const;
-
-    const bitArray &getAllRegs() const;
- private:
-    static bitArray callRead_;
-    static bitArray callRead64_;
-
-    static bitArray callWritten_;
-    static bitArray callWritten64_;
-
-    static bitArray returnRead_;
-    static bitArray returnRead64_;
-
-    static bitArray syscallRead_;
-    static bitArray syscallRead64_;
-
-    static bitArray syscallWritten_;
-    static bitArray syscallWritten64_;
-
-    static bitArray allRegs_;
-    static bitArray allRegs64_;
-
-#endif
 
 
 };

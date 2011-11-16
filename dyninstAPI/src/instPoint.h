@@ -42,7 +42,6 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "common/h/stats.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/bitArray.h"
 
 #include "dyninstAPI/src/baseTramp.h" // iterator
 
@@ -52,6 +51,10 @@
 #include "Snippet.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynCommon.h"
+
+#include "dataflowAPI/h/liveness.h"
+#include "dataflowAPI/h/bitArray.h"
+#include "debug.h"
 
 class block_instance;
 class func_instance;

@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+#ifndef PATCHAPI_DEBUG_H
+#define PATCHAPI_DEBUG_H
 
 #include <string>
 extern int dyn_debug_crash;

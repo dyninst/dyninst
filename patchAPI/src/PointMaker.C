@@ -5,17 +5,16 @@
 #include "PatchCFG.h"
 
 using namespace Dyninst::PatchAPI;
-using Dyninst::PatchAPI::Location;
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PointMaker;
 using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::PatchEdge;
-using Dyninst::PatchAPI::Location;
+using Dyninst::PatchAPI::PatchLocation;
 using Dyninst::PatchAPI::PatchMgrPtr;
 
 Point *
-PointMaker::createPoint(Location loc, Point::Type t) {
+PointMaker::createPoint(PatchLocation loc, Point::Type t) {
    switch(t) {
       case Point::PreInsn:
       case Point::PostInsn:

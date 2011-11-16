@@ -34,19 +34,19 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
-  typedef std::pair<PatchFunction *, InsnLoc_t> InsnInstance;
+  typedef std::pair<PatchFunction *, PatchInsnLoc_t> InsnInstance;
   typedef std::vector<PatchFunction *> Functions;
   typedef std::vector<PatchBlock *> Blocks;
   typedef std::vector<PatchEdge *> Edges;
   typedef std::vector<BlockInstance> BlockInstances;
   typedef std::vector<InsnInstance> InsnInstances;
-  typedef std::vector<CallSite_t> CallSites;
-  typedef std::vector<ExitSite_t> ExitSites;
-  typedef std::vector<InsnLoc_t> Insns;
+  typedef std::vector<PatchCallSite_t> CallSites;
+  typedef std::vector<PatchExitSite_t> ExitSites;
+  typedef std::vector<PatchInsnLoc_t> Insns;
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
-    typedef std::pair<Location, Point::Type> Candidate;
+    typedef std::pair<PatchLocation, Point::Type> Candidate;
     typedef std::vector<Candidate> Candidates;
 
     PatchMgr(AddrSpace* as,  Instrumenter* inst, PointMaker* pf);
@@ -60,25 +60,25 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     template <class T>
     class IdentityFilterFunc {
       public:
-       bool operator()(Point::Type, Location, T) { return true;}
+       bool operator()(Point::Type, PatchLocation, T) { return true;}
     };
 
     // Query Points:
 
-    // Direct interface; specify a Location and a unique Type, receive a Point.
-    PATCHAPI_EXPORT Point *findPoint(Location loc,
+    // Direct interface; specify a PatchLocation and a unique Type, receive a Point.
+    PATCHAPI_EXPORT Point *findPoint(PatchLocation loc,
                                      Point::Type type,
                                      bool create = true);
     // And accumulation version
     template <class OutputIterator> 
-    bool findPoint(Location loc,
+    bool findPoint(PatchLocation loc,
                    Point::Type type,
                    OutputIterator outputIter,
                    bool create = true);
 
     // Group interface with one degree of freedom: the Type can be a composition.
     template <class FilterFunc, class FilterArgument, class OutputIterator>
-    bool findPoints(Location loc,
+    bool findPoints(PatchLocation loc,
                     Point::Type types,
                     FilterFunc filter_func,
                     FilterArgument filter_arg,
@@ -86,14 +86,14 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
                     bool create = true);
 
     template <class OutputIterator>
-    bool findPoints(Location loc,
+    bool findPoints(PatchLocation loc,
                     Point::Type types,
                     OutputIterator outputIter,
                     bool create = true);
 
-    // Group interface with two degrees of freedom: Locations are wildcarded
+    // Group interface with two degrees of freedom: PatchLocations are wildcarded
     // and Type can be a composition. Instead, users provide a Scope and a
-    // FilterFunc that guide which Locations will be considered.
+    // FilterFunc that guide which PatchLocations will be considered.
     template <class FilterFunc, class FilterArgument, class OutputIterator>
     bool findPoints(Scope scope,
                     Point::Type types,
@@ -146,8 +146,8 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
     PATCHAPI_EXPORT Instrumenter* instrumenter() const { return instor_; }
     //----------------------------------------------------
     // Mapping order: Scope -> Type -> Point Set
-    //   The Scope x Type provides us a list of matching locations;
-    //   we then filter those locations. Points are stored in
+    //   The Scope x Type provides us a list of matching PatchLocations;
+    //   we then filter those PatchLocations. Points are stored in
     //   their contexts (e.g., Functions or Blocks). 
     //----------------------------------------------------
     PATCHAPI_EXPORT bool getCandidates(Scope &, Point::Type types, Candidates &ret);
@@ -156,11 +156,11 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
   private:
 
-    bool findInsnPointsByType(Location *, Point::Type, PointSet&, bool create = true);
-    bool findBlockPointsByType(Location *, Point::Type, PointSet&, bool create = true);
-    bool findEdgePointsByType(Location *, Point::Type, PointSet&, bool create = true);
-    bool findFuncPointsByType(Location *, Point::Type, PointSet&, bool create = true);
-    bool findFuncSitePointsByType(Location *, Point::Type, PointSet&, bool create = true);
+    bool findInsnPointsByType(PatchLocation *, Point::Type, PointSet&, bool create = true);
+    bool findBlockPointsByType(PatchLocation *, Point::Type, PointSet&, bool create = true);
+    bool findEdgePointsByType(PatchLocation *, Point::Type, PointSet&, bool create = true);
+    bool findFuncPointsByType(PatchLocation *, Point::Type, PointSet&, bool create = true);
+    bool findFuncSitePointsByType(PatchLocation *, Point::Type, PointSet&, bool create = true);
 
     bool wantFuncs(Scope &scope, Point::Type types);
     bool wantCallSites(Scope &scope, Point::Type types);
@@ -194,8 +194,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
 
     PATCHAPI_EXPORT void enumerateTypes(Point::Type types, EnumeratedTypes &out);
 
-    bool match(Point *, Location *);
-    bool verify(Location &loc);
+
+    bool match(Point *, PatchLocation *);
+    bool verify(PatchLocation &loc);
     PointMaker* point_maker_;
     Instrumenter* instor_;
     AddrSpace* as_;
@@ -224,7 +225,7 @@ bool PatchMgr::findPoints(Scope scope,
 };
 
 template <class FilterFunc, class FilterArgument, class OutputIterator>
-bool PatchMgr::findPoints(Location loc, Point::Type types,
+bool PatchMgr::findPoints(PatchLocation loc, Point::Type types,
                 FilterFunc filter_func, FilterArgument filter_arg,
                 OutputIterator outputIter, bool create) {
    EnumeratedTypes tmp;
@@ -239,7 +240,7 @@ bool PatchMgr::findPoints(Location loc, Point::Type types,
 }
 
 template <class OutputIterator>
-bool PatchMgr::findPoints(Location loc, Point::Type types,
+bool PatchMgr::findPoints(PatchLocation loc, Point::Type types,
                           OutputIterator outputIter, bool create) {
    IdentityFilterFunc<char *> filter_func;
    char *dummy = NULL;
@@ -259,7 +260,7 @@ bool PatchMgr::findPoints(Scope scope,
 };
 
 template <class OutputIterator>
-bool PatchMgr::findPoint(Location loc, Point::Type type,
+bool PatchMgr::findPoint(PatchLocation loc, Point::Type type,
                OutputIterator outputIter,
                bool create) {
    Point *p = findPoint(loc, type, create);

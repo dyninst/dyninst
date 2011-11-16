@@ -249,39 +249,6 @@ void registerSpace::initialize32() {
 
     // TODO: Linux/PPC needs these set as well.
     
-#if defined(cap_liveness)
-    returnRead_ = getBitArray();
-    // Return reads r3, r4, fpr1, fpr2
-    returnRead_[r3] = true;
-    returnRead_[r4] = true;
-    returnRead_[fpr1] = true;
-    returnRead_[fpr2] = true;
-
-    // Calls
-    callRead_ = getBitArray();
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-    for (unsigned i = r3; i <= r10; i++) 
-        callRead_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++) 
-        callRead_[i] = true;
-    callWritten_ = getBitArray();
-    // Calls write to pretty much every register we use for code generation
-    callWritten_[r0] = true;
-    for (unsigned i = r3; i <= r12; i++)
-        callWritten_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten_[i] = true;
-
-    // Syscall - assume the same as call
-    //syscallRead_ = getBitArray().set();
-    //syscallWritten_ = getBitArray().set();
-    syscallRead_ = callRead_;
-    syscallRead_[r0] = true;
-    syscallWritten_ = callWritten_;
-
-    allRegs_ = getBitArray().set();
-#endif
 }
 
 void registerSpace::initialize64() {
@@ -406,36 +373,6 @@ void registerSpace::initialize64() {
 
     // TODO: Linux/PPC needs these set as well.
     
-#if defined(cap_liveness)
-    returnRead64_ = getBitArray();
-    // Return reads r3, r4, fpr1, fpr2
-    returnRead64_[r3] = true;
-    returnRead64_[r4] = true;
-    returnRead64_[fpr1] = true;
-    returnRead64_[fpr2] = true;
-
-    // Calls
-    callRead64_ = getBitArray();
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-    for (unsigned i = r3; i <= r10; i++) 
-        callRead64_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++) 
-        callRead64_[i] = true;
-    callWritten64_ = getBitArray();
-    // Calls write to pretty much every register we use for code generation
-    callWritten64_[r0] = true;
-    for (unsigned i = r3; i <= r12; i++)
-        callWritten64_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten64_[i] = true;
-
-    // Syscall - assume the same as call
-    syscallRead64_ = getBitArray().set();
-    syscallWritten64_ = getBitArray().set();
-
-    allRegs64_ = getBitArray().set();
-#endif
 }
 
 void registerSpace::initialize() {

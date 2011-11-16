@@ -297,6 +297,10 @@ public:
     void destroy(ParseAPI::Block *b);
     void destroy(ParseAPI::Edge *e);
 
+
+    void setCallee(const block_instance *, func_instance *);
+    func_instance *getCallee(const block_instance *) const;
+
   private:
     //
     //     PRIVATE DATA MEMBERS
@@ -373,6 +377,7 @@ public:
     bool memoryImg_;
 
     std::map<block_instance *, std::string> calleeNames_;
+    std::map<const block_instance *, func_instance *> callees_;
 
 };
 

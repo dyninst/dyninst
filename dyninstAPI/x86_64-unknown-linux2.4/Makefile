@@ -37,7 +37,6 @@ SRCS =          ../src/linux.C \
 		../src/parse-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
-		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IAPI_to_AST.C \
 		../src/Relocation/Widgets/CFWidget-x86.C

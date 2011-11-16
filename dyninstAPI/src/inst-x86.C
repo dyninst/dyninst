@@ -209,60 +209,8 @@ void registerSpace::initialize32() {
 
     // Can't use numRegisters here because we're depending
     // on the REGNUM_FOO numbering
-#if defined(cap_liveness)
-    returnRead_ = getBitArray();
-    // Callee-save registers...
-    returnRead_[REGNUM_EBX] = true;
-    returnRead_[REGNUM_ESI] = true;
-    returnRead_[REGNUM_EDI] = true;
-    // And return value
-    returnRead_[REGNUM_EAX] = true;
-    // Return reads no registers
 
-    callRead_ = getBitArray();
-    // CallRead reads no registers
-    // We wish...
-    callRead_[REGNUM_ECX] = true;
-    callRead_[REGNUM_EDX] = true;
-
-    // PLT entries use ebx
-    callRead_[REGNUM_EBX] = true;
-    
-    // TODO: Fix this for platform-specific calling conventions
-
-    // Assume calls write flags
-    callWritten_ = callRead_;
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-        callWritten_[i] = true;
-    // And eax...
-    callWritten_[REGNUM_EAX] = true;
-
-
-    // And assume a syscall reads or writes _everything_
-    syscallRead_ = getBitArray().set();
-    syscallWritten_ = syscallRead_;
-
-#if defined(os_windows)
-    // VERY conservative, but it's safe wrt the ABI.
-    // Let's set everything and unset flags
-    callRead_ = syscallRead_;
-    // We have to assume that flags are live across calls because 
-    // Windows PE binaries built in debug mode call _RT_CheckEsp at 
-    // function exits to ensure that the call-stack was cleared.
-    // The problem is that this function call violates the ABI, 
-    // it compares esp to ebp just before calling in and conditions
-    // the check on the zero flag.
-    // Thus, we have to assume that the REGNUM_EFLAGS are live
-    //for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
-    //   callRead_[i] = false;
-    //}
-    callWritten_ = syscallWritten_;
-#endif
-
-    allRegs_ = getBitArray().set();
-#endif
 }
-
 #if defined(cap_32_64)
 void registerSpace::initialize64() {
     static bool done = false;
@@ -581,59 +529,6 @@ void registerSpace::initialize64() {
     // callRead - argument registers
     // callWritten - RAX
 
-#if defined(cap_liveness)
-    returnRead64_ = getBitArray();
-    returnRead64_[REGNUM_RAX] = true;
-    returnRead64_[REGNUM_RCX] = true; //Not correct, temporary
-    // Returns also "read" any callee-saved registers
-    returnRead64_[REGNUM_RBX] = true;
-    returnRead64_[REGNUM_RDX] = true;
-    returnRead64_[REGNUM_R12] = true;
-    returnRead64_[REGNUM_R13] = true;
-    returnRead64_[REGNUM_R14] = true;
-    returnRead64_[REGNUM_R15] = true;
-    returnRead64_[REGNUM_XMM0] = true;
-    returnRead64_[REGNUM_XMM1] = true;
-
-    //returnRead64_[REGNUM_R10] = true;
-    
-
-    callRead64_ = getBitArray();
-    callRead64_[REGNUM_RCX] = true;
-    callRead64_[REGNUM_RDX] = true;
-    callRead64_[REGNUM_R8] = true;
-    callRead64_[REGNUM_R9] = true;
-    callRead64_[REGNUM_RDI] = true;
-    callRead64_[REGNUM_RSI] = true;
-    
-    callRead64_[REGNUM_XMM0] = true;
-    callRead64_[REGNUM_XMM1] = true;
-    callRead64_[REGNUM_XMM2] = true;
-    callRead64_[REGNUM_XMM3] = true;
-    callRead64_[REGNUM_XMM4] = true;
-    callRead64_[REGNUM_XMM5] = true;
-    callRead64_[REGNUM_XMM6] = true;
-    callRead64_[REGNUM_XMM7] = true;
-
-    // Anything in those four is not preserved across a call...
-    // So we copy this as a shorthand then augment it
-    callWritten64_ = callRead64_;
-
-    // As well as RAX, R10, R11
-    callWritten64_[REGNUM_RAX] = true;
-    callWritten64_[REGNUM_R10] = true;
-    callWritten64_[REGNUM_R11] = true;
-    // And flags
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-        callWritten64_[i] = true;
-
-
-    // And assume a syscall reads or writes _everything_
-    syscallRead64_ = getBitArray().set();
-    syscallWritten64_ = syscallRead_;
-
-    allRegs64_ = getBitArray().set();
-#endif
 
 }
 #endif

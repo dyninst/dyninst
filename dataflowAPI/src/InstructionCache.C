@@ -31,8 +31,8 @@
 
 #include "InstructionCache.h"
 using namespace Dyninst;
-
-bool InstructionCache::getLivenessInfo(Address addr, parse_func* func, ReadWriteInfo& rw)
+using namespace Dyninst::ParseAPI;
+bool InstructionCache::getLivenessInfo(Address addr, Function* func, ReadWriteInfo& rw)
 {
   if(func == currentFunction && cache.find(addr) != cache.end())
   {
@@ -42,7 +42,7 @@ bool InstructionCache::getLivenessInfo(Address addr, parse_func* func, ReadWrite
   return false;
 }
 
-void InstructionCache::insertInstructionInfo(Address addr, ReadWriteInfo rw, parse_func* func)
+void InstructionCache::insertInstructionInfo(Address addr, ReadWriteInfo rw, Function* func)
 {
   if(func != currentFunction)
   {
