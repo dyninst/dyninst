@@ -61,7 +61,7 @@ test_results_t patch1_2_Mutator::executeTest() {
   /* Step 1: find Points */
   vector<Point*> pts;
   Point::Type type = Point::FuncEntry;
-  mgr_->findPoints(PatchAPI::PatchLocation::Function(func), type, back_inserter(pts));
+  mgr_->findPoints(PatchAPI::Location::Function(func), type, back_inserter(pts));
   if (1 != pts.size()) {
     logerror("**Failed patch1_2 (snippet insertion order)\n");
     logerror("  cannot find correct point at function entry\n");
