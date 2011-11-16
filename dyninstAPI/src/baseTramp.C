@@ -32,7 +32,6 @@
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
@@ -45,6 +44,10 @@
 #include "process.h"
 #include "mapped_object.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "Point.h"
+
+using namespace Dyninst;
+using namespace PatchAPI;
 
 #if defined(os_aix)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
@@ -298,16 +301,10 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    pdvector<AstNodePtr> miniTramps;
 
    if (point_) {
-     /*
-      for (instPoint::iterator iter = point_->begin(); 
-           iter != point_->end(); ++iter) {
-         miniTramps.push_back((*iter)->ast());
-      }
-     */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-        miniTramp* mini = GET_MINI(*iter);
-        miniTramps.push_back(mini->ast());
+         AstNodePtr ast = SCAST_AST((*iter)->snippet());
+         miniTramps.push_back(ast);
       }
    }
    else {
@@ -455,8 +452,8 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-	miniTramp* mini = GET_MINI(*iter);
-        if (mini->ast()->containsFuncCall()) return true;
+         AstNodePtr ast = SCAST_AST((*iter)->snippet());
+         if (ast->containsFuncCall()) return true;
       }
    }
    return false;
@@ -485,8 +482,8 @@ bool baseTramp::hasFuncJump()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-      cfjRet_t tmp = mini->ast()->containsFuncJump();
+      AstNodePtr ast = SCAST_AST((*iter)->snippet());
+      cfjRet_t tmp = ast->containsFuncJump();
       if ((int) tmp > (int) funcJumpState_)
          funcJumpState_ = tmp;
    }
@@ -515,8 +512,8 @@ bool baseTramp::doOptimizations()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-      if (mini->ast()->containsFuncCall()) {
+      AstNodePtr ast = SCAST_AST((*iter)->snippet());
+      if (ast->containsFuncCall()) {
          hasFuncCall = true;
          break;
       }
@@ -606,11 +603,12 @@ bool baseTramp::guarded() const {
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-     if (mini->recursive())
-         recursive = true;
-      else
+      if ((*iter)->recursiveGuardEnabled()) {
          guarded = true;
+      }
+      else {
+         recursive = true;
+      }
    }
 
    if (recursive && guarded) {

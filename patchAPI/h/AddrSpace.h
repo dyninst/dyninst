@@ -4,7 +4,7 @@
 #ifndef PATCHAPI_H_ADDRSPACE_H_
 #define PATCHAPI_H_ADDRSPACE_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 
 namespace Dyninst {
 namespace PatchAPI {

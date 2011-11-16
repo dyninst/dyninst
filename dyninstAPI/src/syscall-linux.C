@@ -41,6 +41,10 @@
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/ast.h"
+#include "Point.h"
+
+using namespace Dyninst;
+using namespace PatchAPI;
 
 extern bool getInheritedMiniTramp(const miniTramp *parentMT,
                                   miniTramp *&childMT,
@@ -54,7 +58,7 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
                                                            preExitInst(NULL),
                                                            preLwpExitInst(NULL),
                                                            proc(child) {
-    // We need to copy over the instMappings and get the new miniTramps from
+    // We need to copy over the instMappings and get the new instances from
     // the parent process
     // We don't copy the instMappings, but make new copies.
     if (parentSN->preForkInst) {
@@ -173,15 +177,15 @@ bool syscallNotification::removePreFork() {
     
     if (!preForkInst) return false;
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < preForkInst->miniTramps.size(); i++) {
-        handle = preForkInst->miniTramps[i];
+    InstancePtr handle;
+    for (unsigned i = 0; i < preForkInst->instances.size(); i++) {
+        handle = preForkInst->instances[i];
         
-        bool removed = handle->uninstrument();
+        bool removed = uninstrument(handle);
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
+        // The instance is deleted when the instance is freed, so
         // we don't have to.
     }
     //proc->relocate();
@@ -208,15 +212,15 @@ bool syscallNotification::removePostFork() {
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
-        handle = postForkInst->miniTramps[i];
+    InstancePtr handle;
+    for (unsigned i = 0; i < postForkInst->instances.size(); i++) {
+        handle = postForkInst->instances[i];
         
-        bool removed = handle->uninstrument();
+        bool removed = uninstrument(handle);
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
+        // The instance is deleted when the instance is freed, so
         // we don't have to.
     }
     //proc->relocate();
@@ -242,15 +246,15 @@ bool syscallNotification::removePreExec() {
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < preExecInst->miniTramps.size(); i++) {
-        handle = preExecInst->miniTramps[i];
+    InstancePtr handle;
+    for (unsigned i = 0; i < preExecInst->instances.size(); i++) {
+        handle = preExecInst->instances[i];
         
-        bool removed = handle->uninstrument();
+        bool removed = uninstrument(handle);
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
+        // The instance is deleted when the instance is freed, so
         // we don't have to.
     }
     //proc->relocate();
@@ -279,15 +283,15 @@ bool syscallNotification::removePreExit() {
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < preExitInst->miniTramps.size(); i++) {
-        handle = preExitInst->miniTramps[i];
+    InstancePtr handle;
+    for (unsigned i = 0; i < preExitInst->instances.size(); i++) {
+        handle = preExitInst->instances[i];
         
-        bool removed = handle->uninstrument();
+        bool removed = uninstrument(handle);
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
+        // The instance is deleted when the instance is freed, so
         // we don't have to.
     }
     //proc->relocate();

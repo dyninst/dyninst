@@ -95,15 +95,15 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #include "PatchMgr.h"
+#include "Point.h"
+
 #include "Relocation/DynAddrSpace.h"
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"
 
+
 using namespace Dyninst;
-using PatchAPI::DynObject;
-using PatchAPI::DynAddrSpace;
-using PatchAPI::DynAddrSpacePtr;
-using PatchAPI::PatchMgr;
+using namespace PatchAPI;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -4605,7 +4605,6 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
         instMapping *req = requests[lcv];
-        pdvector<miniTramp *> minis;
         
         if(!multithread_capable() && req->is_MTonly())
             continue;
@@ -4644,53 +4643,41 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                                             def_args);
             }
             // We mask to strip off the FUNC_ARG bit...
+            std::vector<Point *> points;
             switch ( ( req->where & 0x7) ) {
             case FUNC_EXIT:
-                {
-		  /*                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
-				       iter != func->exitBlocks().end(); ++iter) {*/
-                   for (PatchFunction::Blockset::const_iterator iter = func->getExitBlocks().begin();
-                        iter != func->getExitBlocks().end(); ++iter) {
-		     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
-                      if (mt) 
-                         minis.push_back(mt);
-                      else {
-                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                      }
-                   }
-                }
+                   mgr()->findPoints(Scope(func),
+                                     Point::FuncExit,
+                                     std::back_inserter(points));
                 break;
                case FUNC_ENTRY:
-               {
-                  miniTramp *mt = instPoint::funcEntry(func)->insert(req->order, ast, req->useTrampGuard);
-                  if (mt) 
-                     minis.push_back(mt);
-                  else {
-                     fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                  }
-                }
-                break;
+                  mgr()->findPoints(Scope(func),
+                                    Point::FuncEntry,
+                                    std::back_inserter(points));
+               break;
             case FUNC_CALL:
-                {
-		  /*                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
-                        iter != func->callBlocks().end(); ++iter) {*/
-                   for (PatchFunction::Blockset::const_iterator iter = func->getCallBlocks().begin();
-                        iter != func->getCallBlocks().end(); ++iter) {
-		     block_instance* iblk = SCAST_BI(*iter);
-                      miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);
-                      if (mt) 
-                         minis.push_back(mt);
-                      else {
-                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                      }
-                   }
-                }
+                   mgr()->findPoints(Scope(func),
+                                     Point::PreCall,
+                                     std::back_inserter(points));
                 break;
             default:
-                fprintf(stderr, "Unknown where: %d\n",
-                        req->where);
+               fprintf(stderr, "Unknown where: %d\n",
+                       req->where);
+               break;
             } // switch
-	    minis.clear();
+            for (std::vector<Point *>::iterator iter = points.begin();
+                 iter != points.end(); ++iter) {
+               Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
+                  (*iter)->pushFront(ast) :
+                  (*iter)->pushBack(ast);
+               if (inst) {
+                  if (!req->useTrampGuard) inst->disableRecursiveGuard();
+                  req->instances.push_back(inst);
+               }
+               else {
+                  fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+               }
+            }
         } // matchingFuncs        
         
     } // requests

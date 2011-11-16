@@ -1,6 +1,6 @@
 /* Public Interface */
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"
 #include "PatchObject.h"

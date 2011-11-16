@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_DYNINST_OBJECT_H_
 #define PATCHAPI_H_DYNINST_OBJECT_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "CFGMaker.h"
 
 namespace Dyninst {

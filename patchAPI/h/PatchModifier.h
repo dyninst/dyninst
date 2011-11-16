@@ -39,7 +39,7 @@
 // capabilities such as splitting blocks or redirecting edges. 
 
 #include "PatchMgr.h"
-#include "common.h"
+#include "PatchCommon.h"
 
 
 namespace Dyninst {

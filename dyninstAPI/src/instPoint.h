@@ -138,11 +138,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
     block_instance *block_compat() const;
     Address addr_compat() const;
 
-    miniTramp *push_front(AstNodePtr ast, bool recursive);
-    miniTramp *push_back(AstNodePtr ast, bool recursive);
-    miniTramp *insert(callOrder order, AstNodePtr, bool recursive);
-    void erase(miniTramp *);
-
     bitArray liveRegisters();
 
     std::string format() const;
@@ -159,7 +154,6 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     baseTramp *baseTramp_;
 };
-#define GET_MINI(i) (Dyninst::PatchAPI::Snippet<miniTramp*>::get((i)->snippet())->rep())
 
 #define IPCONV(p) (static_cast<instPoint *>(p))
 

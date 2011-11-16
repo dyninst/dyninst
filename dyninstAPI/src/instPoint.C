@@ -59,8 +59,8 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
-using Dyninst::PatchAPI::Snippet;
-using Dyninst::PatchAPI::SnippetPtr;
+using namespace Dyninst;
+using namespace PatchAPI;
 
 instPoint *instPoint::funcEntry(func_instance *f) {
   return f->funcEntryPoint(true);
@@ -246,8 +246,10 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
           point->size() == parent->size());
    if (point->empty()) {
       for (instance_iter iter = parent->begin(); iter != parent->end(); ++iter) {
-        miniTramp* mini = GET_MINI(*iter);
-        point->push_back(mini->ast(), mini->recursive());
+         InstancePtr inst = point->pushBack((*iter)->snippet());
+         if (!(*iter)->recursiveGuardEnabled()) {
+            inst->disableRecursiveGuard();
+         }
       }
    }
 
@@ -281,39 +283,6 @@ block_instance *instPoint::block() const {
 
 edge_instance *instPoint::edge() const {
   return SCAST_EI(the_edge_);
-}
-
-miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
-   miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
-   pushFront(snip);
-   markModified();
-   return newTramp;
-}
-
-miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
-   miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
-   pushBack(snip);
-   markModified();
-   return newTramp;
-}
-
-miniTramp *instPoint::insert(callOrder order, AstNodePtr ast, bool recursive) {
-   if (order == orderFirstAtPoint) return push_front(ast, recursive);
-   else return push_back(ast, recursive);
-}
-
-void instPoint::erase(miniTramp *m) {
-   for (instance_iter iter = begin(); iter != end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-     if (mini == m) {
-         markModified();
-         delete m;
-         remove(*iter);
-         return;
-     }
-   }
 }
 
 bool instPoint::checkInsn(block_instance *b,

@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_PATCHMGR_H_
 #define PATCHAPI_H_PATCHMGR_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "Point.h"
 #include "Instrumenter.h"
 #include "PatchCFG.h"

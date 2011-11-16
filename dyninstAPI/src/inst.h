@@ -42,12 +42,18 @@
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
 
+namespace Dyninst {
+   namespace PatchAPI {
+      class Instance;
+      typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+   }
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
 
 class instPoint;
-class miniTramp;
 class baseTramp;
 class process;
 class func_instance;
@@ -138,7 +144,7 @@ public:
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
-  pdvector<miniTramp *> miniTramps;
+  pdvector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
 

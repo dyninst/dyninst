@@ -41,6 +41,8 @@
 #include "rpcMgr.h"
 #include <stdio.h>
 
+#include "function.h"
+
 #if defined (os_windows)
 #include <process.h>
 #else

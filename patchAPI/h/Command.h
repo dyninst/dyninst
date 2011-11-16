@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_COMMAND_H_
 #define PATCHAPI_COMMAND_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -52,7 +52,7 @@ class BatchCommand : public Command {
 
 class Patcher : public BatchCommand {
   public:
-    PATCHAPI_EXPORT static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
+   PATCHAPI_EXPORT static Patcher* create(Dyninst::PatchAPI::PatchMgrPtr mgr) {
       return new Patcher(mgr);
     }
     Patcher(Dyninst::PatchAPI::PatchMgrPtr mgr) : mgr_(mgr) {}

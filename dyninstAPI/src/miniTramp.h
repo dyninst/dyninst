@@ -38,49 +38,13 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/inst.h" // callOrder and callWhen
 #include "dyninstAPI/src/ast.h"
+#include "Point.h"
 
-// This is a serious problem: our code generation has no way to check
-// the size of the buffer it's emitting to.
-// 1 megabyte buffer
-#define MAX_MINITRAMP_SIZE (0x100000)
 
-// Callback func for deletion of a minitramp
-class miniTramp;
-class AstNode;
-class AstMiniTrampNode;
-class AddressSpace;
-
-//typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
-
-class miniTramp {
-  friend class instPoint;
-    // Global numbering of minitramps
-  static int _id;
-
-  miniTramp() {};
-
-  public:
-
-  miniTramp(AstNodePtr ast, instPoint *point, bool recursive);
-  
-  ~miniTramp() {};
-
-  bool uninstrument();
-
-  // Given a child address space, get the corresponding miniTramp to us.
-  miniTramp *getInheritedMiniTramp(process *child);
-
-  instPoint *instP() const { return point_; }
-
-  AstNodePtr ast() const { return ast_; }
-  bool recursive() const { return recursive_; }
-
-  private:
-  AstNodePtr ast_;
-  instPoint *point_;
-  bool recursive_;
-
-};
+// A miniTramp used to be our Snippet/Point Instance
+// class. That's been moved to PatchAPI, so now it's
+// a collection of useful static functions that haven't
+// gone elsewhere. 
 
 
 #endif

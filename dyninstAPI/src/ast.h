@@ -45,6 +45,7 @@
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 
+#include "Point.h"
 
 #include "BPatch_snippet.h"
 
@@ -142,7 +143,7 @@ public:
 };
 
 class dataReqNode;
-class AstNode {
+class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
    enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t};
    enum operandType { Constant, 
@@ -398,6 +399,10 @@ class AstNode {
 	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	virtual BPatch_type	  *checkType();
+
+        // PatchAPI compatibility
+        virtual bool generate(Dyninst::PatchAPI::Point *, 
+                              Dyninst::PatchAPI::Buffer &);
 
  private:
    static AstNodePtr originalAddrNode_;
@@ -879,6 +884,9 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          codeGen &gen,
                                          int size,
                                          bool noCost);
+
+#define SCAST_AST(ast) dyn_detail::boost::static_pointer_cast<AstNode>(ast)
+#define DCAST_AST(ast) dyn_detail::boost::dynamic_pointer_cast<AstNode>(ast)
 
 
 #endif /* AST_HDR */

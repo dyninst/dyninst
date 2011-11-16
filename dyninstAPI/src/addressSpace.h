@@ -362,22 +362,25 @@ class AddressSpace : public InstructionSource {
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
  private:
-    BPatch_function *(*new_func_cb)(AddressSpace *a, func_instance *f);
-    BPatch_point *(*new_instp_cb)(AddressSpace *a, func_instance *f, instPoint *ip, 
+    BPatch_function *(*new_func_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f);
+    BPatch_point *(*new_instp_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f, 
+                                  Dyninst::PatchAPI::Point *ip, 
                                   int type);
  public:
     //Trigger the callbacks from a lower level
-    BPatch_function *newFunctionCB(func_instance *f) 
+    BPatch_function *newFunctionCB(Dyninst::PatchAPI::PatchFunction *f) 
         { assert(new_func_cb); return new_func_cb(this, f); }
-    BPatch_point *newInstPointCB(func_instance *f, instPoint *pt, int type)
+    BPatch_point *newInstPointCB(Dyninst::PatchAPI::PatchFunction *f, 
+                                 Dyninst::PatchAPI::Point *pt, int type)
         { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
     
     //Register callbacks from the higher level
     void registerFunctionCallback(BPatch_function *(*f)(AddressSpace *p, 
-                                                        func_instance *f))
+                                                        Dyninst::PatchAPI::PatchFunction *f))
         { new_func_cb = f; };
-    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, func_instance *f,
-                                                      instPoint *ip, int type))
+    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, 
+                                                      Dyninst::PatchAPI::PatchFunction *f,
+                                                      Dyninst::PatchAPI::Point *ip, int type))
         { new_instp_cb = f; }
     
     
@@ -554,6 +557,7 @@ class AddressSpace : public InstructionSource {
 };
 
 
+bool uninstrument(Dyninst::PatchAPI::Instance::Ptr);
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 
 #endif // ADDRESS_SPACE_H

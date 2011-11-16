@@ -29,6 +29,7 @@ using Dyninst::PatchAPI::Snippet;
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::PushBackCommand;
 using Dyninst::PatchAPI::InstancePtr;
+using Dyninst::PatchAPI::Buffer;
 
 class patch1_1_Mutator : public PatchApiMutator {
   virtual test_results_t executeTest();
@@ -39,14 +40,18 @@ extern "C" DLLEXPORT TestMutator* patch1_1_factory() {
 }
 
 /* Dummy Snippets */
-struct DummySnippet {
+class DummySnippet : public Dyninst::PatchAPI::Snippet {
+public:
   DummySnippet(int n) : name(n) {}
   int name;
+
+   virtual bool generate(Point *, Buffer &) { return false; }
+   virtual ~DummySnippet() {};
+
 };
 
 #define SnippetDef(NAME)  \
-  DummySnippet s ## NAME ( NAME );  \
-  Snippet<DummySnippet*>::Ptr snip ## NAME = Snippet<DummySnippet*>::create(&s ## NAME); \
+  Snippet::Ptr snip ## NAME = Snippet::create(new DummySnippet(NAME)); \
   patcher.add(PushBackCommand::create(p, snip ## NAME));
 
 
@@ -59,7 +64,7 @@ bool checkSnippet(Point* pt, int expected_snip_num, int vals[]) {
 
   int counter = 0;
   for (Point::instance_iter iter = pt->begin(); iter != pt->end(); iter++) {
-    DummySnippet* s = Snippet<DummySnippet*>::get((*iter)->snippet())->rep();
+     DummySnippet *s = static_cast<DummySnippet *>((*iter)->snippet().get());
     if (s->name != vals[counter]) {
       logerror(" Wrong snippet value! Should be %d, but in fact %d\n", vals[counter], s->name);
       return false;

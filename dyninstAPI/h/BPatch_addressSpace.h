@@ -37,7 +37,6 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type
-
 #include "BPatch_callbacks.h"
 
 #include <vector>
@@ -49,15 +48,17 @@
 //#include "Command.h"
 
 class BPatch_addressSpace;
-class instPoint;
+class Dyninst::PatchAPI::Point;
 
 namespace Dyninst {
 namespace PatchAPI { 
    class PatchMgr;
    class DynAddrSpace;
    class Patcher;
+   class Instance;
    typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
    typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+   typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
    PatchMgrPtr convert(const BPatch_addressSpace *);
 };
 namespace SymtabAPI {
@@ -76,7 +77,7 @@ class miniTramp;
 class BPatch;
 class BPatch_image;
 
-class func_instance;
+class Dyninst::PatchAPI::PatchFunction;
 struct batchInsertionRecord;
 
 typedef enum{
@@ -100,15 +101,8 @@ private:
     // Address Space snippet belogns to
     BPatch_addressSpace *addSpace_;
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4251) 
-#endif
     // low-level mappings for removal
-    BPatch_Vector<miniTramp *> mtHandles_;
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif
+    std::vector<Dyninst::PatchAPI::InstancePtr> instances_;
 
     //  a flag for catchup
     bool catchupNeeded;
@@ -117,7 +111,7 @@ private:
     
     BPatchSnippetHandle(BPatch_addressSpace * addSpace);
 
-    void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
+    void addInstance(Dyninst::PatchAPI::InstancePtr p) { instances_.push_back(p); }
     
 public:
  
@@ -168,11 +162,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
  public:
     
-  BPatch_function *findOrCreateBPFunc(func_instance *ifunc, 
+  BPatch_function *findOrCreateBPFunc(Dyninst::PatchAPI::PatchFunction *ifunc, 
                                       BPatch_module *bpmod);
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
-                                    instPoint *ip,
+                                    Dyninst::PatchAPI::Point *ip,
                                     BPatch_procedureLocation pointType);
 
   BPatch_variableExpr *findOrCreateVariable(int_variable *v,
@@ -183,9 +177,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   // These callbacks are triggered by lower-level code and forward
   // calls up to the findOrCreate functions.
-  static BPatch_function *createBPFuncCB(AddressSpace *p, func_instance *f);
-  static BPatch_point *createBPPointCB(AddressSpace *p, func_instance *f,
-				       instPoint *ip, int type);
+  static BPatch_function *createBPFuncCB(AddressSpace *p,
+                                         Dyninst::PatchAPI::PatchFunction *f);
+  static BPatch_point *createBPPointCB(AddressSpace *p,
+                                       Dyninst::PatchAPI::PatchFunction *f,
+				       Dyninst::PatchAPI::Point *ip, 
+                                       int type);
 
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
 

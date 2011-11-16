@@ -44,14 +44,11 @@
 
 #include <list>
 
-class miniTramp;
 class baseTramp;
 class rpcMgr;
 
 class generatedCodeObject;
 
-// Encapsulates the code generation techniques for a series
-// of minitramps. 
 
 class baseTramp { 
     baseTramp();

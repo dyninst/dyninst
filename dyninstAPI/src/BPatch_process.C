@@ -72,6 +72,8 @@
 #include "Relocation/DynPointMaker.h"
 #include "Relocation/DynObject.h"
 
+#include "Point.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using PatchAPI::DynObject;
@@ -857,19 +859,14 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
 {
     // a BPatchSnippetHandle has an miniTramp for each point that
     // the instrumentation is inserted at
-    const BPatch_Vector<miniTramp *> &parent_mtHandles = parentSnippet.mtHandles_;
+   const BPatch_Vector<Dyninst::PatchAPI::Instance::Ptr> &instances = parentSnippet.instances_;
 
-    BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
-    for(unsigned i=0; i<parent_mtHandles.size(); i++) {
-        miniTramp *childMT = NULL;
-        childMT = parent_mtHandles[i]->getInheritedMiniTramp(llproc);
-        if (!childMT) {
-            fprintf(stderr, "Failed to get inherited mini tramp\n");
-            return NULL;
-        }
-        childSnippet->addMiniTramp(childMT);
-    }
-    return childSnippet;
+   BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
+   for(unsigned i=0; i<instances.size(); i++) {
+      Dyninst::PatchAPI::Instance::Ptr child = Dyninst::PatchAPI::getChildInstance(instances[0], llproc->mgr());
+      if (child) childSnippet->addInstance(child);
+   }
+   return childSnippet;
 }
 
 /*
@@ -1990,10 +1987,10 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != deadFuncs.end();
         fit++)
     {
-        BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        if (false == PatchAPI::PatchModifier::remove(*fit)) {
-            assert(0);
-        }
+       BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
+       if (false == PatchAPI::PatchModifier::remove(*fit)) {
+          assert(0);
+       }
     }
     mal_printf("Done deleting functions\n");
 

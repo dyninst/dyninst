@@ -38,11 +38,9 @@
 #include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
-#include "instPoint.h"
-#include "function.h" // func_instance
+#include "function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
 #include "dyn_thread.h"
-#include "miniTramp.h"
 #include "addressSpace.h"
 
 #include "mapped_module.h"
@@ -88,11 +86,12 @@ BPatch_addressSpace::~BPatch_addressSpace()
 {}
 
 
-BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
+BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(Dyninst::PatchAPI::PatchFunction* ifunc,
                                                          BPatch_module *bpmod)
 {
+   func_instance *fi = static_cast<func_instance *>(ifunc);
    if (!bpmod)
-      bpmod = image->findOrCreateModule(ifunc->mod());
+      bpmod = image->findOrCreateModule(fi->mod());
    assert(bpmod);
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
@@ -102,8 +101,8 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
    }
 
    // Find the module that contains the function
-   if (bpmod == NULL && ifunc->mod() != NULL) {
-      bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
+   if (bpmod == NULL && fi->mod() != NULL) {
+      bpmod = getImage()->findModule(fi->mod()->fileName().c_str());
    }
 
    // findModule has a tendency to make new function objects... so
@@ -115,7 +114,7 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
       return bpf;
    }
 
-   BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
+   BPatch_function *ret = new BPatch_function(this, fi, bpmod);
    assert( ret != NULL );
    assert(ret->func == ifunc);
    return ret;
@@ -125,12 +124,15 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
 
 
 BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
-                                                       instPoint *ip,
+                                                       Dyninst::PatchAPI::Point *p,
                                                        BPatch_procedureLocation pointType)
 {
+   instPoint *ip = static_cast<instPoint *>(p);
    assert(ip);
+   func_instance *fi = static_cast<func_instance *>(ip->func());
+   if (!fi) return NULL; // PatchAPI can create function-less points, but we can't represent them as BPatch_points
 
-   BPatch_module *mod = image->findOrCreateModule(ip->func()->mod());
+   BPatch_module *mod = image->findOrCreateModule(fi->mod());
    assert(mod);
 
    if (mod->instp_map.count(ip))
@@ -142,9 +144,9 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
       return NULL;
    }
 
-   AddressSpace *lladdrSpace = ip->func()->proc();
+   AddressSpace *lladdrSpace = fi->proc();
    if (!bpfunc)
-      bpfunc = findOrCreateBPFunc(ip->func(), mod);
+      bpfunc = findOrCreateBPFunc(fi, mod);
 
    assert(bpfunc->func == ip->func());
    std::pair<instPoint *, instPoint *> pointsToUse = instPoint::getInstpointPair(ip);
@@ -182,7 +184,7 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
 
 
 
-BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_instance *f)
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
@@ -190,16 +192,18 @@ BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_insta
 }
 
 BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a,
-                                                   func_instance *f,
-                                                   instPoint *ip, int type)
+                                                   Dyninst::PatchAPI::PatchFunction *pf,
+                                                   Dyninst::PatchAPI::Point *p, int type)
 {
+   func_instance *fi = static_cast<func_instance *>(pf);
+   instPoint *ip  = static_cast<instPoint *>(p);
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
 
-   BPatch_module *bpmod = aS->getImageInt()->findOrCreateModule(f->mod());
+   BPatch_module *bpmod = aS->getImageInt()->findOrCreateModule(fi->mod());
    assert(bpmod);
 
-   BPatch_function *func = aS->findOrCreateBPFunc(f, bpmod);
+   BPatch_function *func = aS->findOrCreateBPFunc(fi, bpmod);
    assert(func);
 
    return aS->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
@@ -250,10 +254,10 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 
 BPatch_function * BPatchSnippetHandle::getFuncInt()
 {
-    if (!mtHandles_.empty()) {
-        func_instance *func = mtHandles_.back()->instP()->func();
-        BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
-        return bpfunc;
+    if (!instances_.empty()) {
+       Dyninst::PatchAPI::PatchFunction *func = instances_.back()->point()->func();
+       BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
+       return bpfunc;
     }
     return NULL;
 }
@@ -290,33 +294,35 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 
    mal_printf("deleting snippet handle %p from func at %lx, point at %lx of type %d\n",
               (Address)handle->getFunc()->getBaseAddr(), 
-              handle->mtHandles_.empty() ? 0 : handle->mtHandles_[0]->instP()->addr(),
-              handle->mtHandles_.empty() ? -1 : handle->mtHandles_[0]->instP()->type());
+              handle->instances_.empty() ? 0 : handle->instances_[0]->point()->addr(),
+              handle->instances_.empty() ? -1 : handle->instances_[0]->point()->type());
 
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
-   if ( handle->getProcess() && handle->mtHandles_.size() > 0 &&
+   instPoint *ip = static_cast<instPoint *>(handle->instances_[0]->point());
+
+   if ( handle->getProcess() && handle->instances_.size() > 0 &&
        BPatch_normalMode !=
-        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+        ip->func()->obj()->hybridMode())
    {
-       if (handle->mtHandles_.size() > 1) {
+       if (handle->instances_.size() > 1) {
            mal_printf("ERROR: Removing snippet that is installed in "
                           "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
      }
    }
 
    // uninstrument and remove snippet handle from point datastructures
-   for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+   for (unsigned int i=0; i < handle->instances_.size(); i++)
      {
-       instPoint *iPoint = handle->mtHandles_[i]->instP();
-       handle->mtHandles_[i]->uninstrument();
-       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint,
-                                                  BPatch_point::convertInstPointType_t(iPoint->type()));
-       assert(bPoint);
-       bPoint->removeSnippet(handle);
+        uninstrument(handle->instances_[i]);
+        Dyninst::PatchAPI::Point *iPoint = handle->instances_[i]->point();
+        BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint,
+                                                   BPatch_point::convertInstPointType_t(iPoint->type()));
+        assert(bPoint);
+        bPoint->removeSnippet(handle);
      }
 
-   handle->mtHandles_.clear();
+   handle->instances_.clear();
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -727,7 +733,7 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
         return false;
     }
     // convert to BPatch_functions
-    for (std::set<func_instance*>::iterator fiter=intfuncs.begin();
+    for (std::set<func_instance *>::iterator fiter=intfuncs.begin();
          fiter != intfuncs.end(); fiter++)
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));
@@ -889,18 +895,20 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       }
 
       /* PatchAPI stuffs */
-      instPoint* ipoint = bppoint->getPoint(when);
+      instPoint *ipoint = static_cast<instPoint *>(bppoint->getPoint(when));
       AddressSpace* ias = ipoint->proc();
       Patcher* patcher = ias->patcher();
-      DynInsertSnipCommand* ins_snip = DynInsertSnipCommand::create(ipoint,
-              ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
-      miniTramp* mini = ins_snip->mini();
-      patcher->add(ins_snip);
+      Dyninst::PatchAPI::InstancePtr instance = (ipOrder == orderFirstAtPoint) ?
+         ipoint->pushFront(expr.ast_wrapper) :
+         ipoint->pushBack(expr.ast_wrapper);
       /* End of PatchAPI stuffs */
 
-      if (mini) {
-        retHandle->mtHandles_.push_back(mini);
-        bppoint->recordSnippet(when, order, retHandle);
+      if (instance) {
+         if (BPatch::bpatch->isTrampRecursive()) {
+            instance->disableRecursiveGuard();
+         }
+         retHandle->addInstance(instance);
+         bppoint->recordSnippet(when, order, retHandle);
       }
    }
    if (pendingInsertions == NULL) {

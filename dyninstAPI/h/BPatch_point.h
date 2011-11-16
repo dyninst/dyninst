@@ -59,6 +59,13 @@ class BPatch_register;
 
 #include "Instruction.h"
 
+namespace Dyninst {
+   namespace PatchAPI {
+      class Instance;
+      typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+   }
+}
+
 /*
  * Provide these definitions for backwards compatability.
  *
@@ -136,7 +143,7 @@ private:
 
     //  a snippet used in monitoring of dynamic calls
     //  maybe we want BPatchSnippetHandle here
-    miniTramp *dynamic_point_monitor_func;
+    Dyninst::PatchAPI::InstancePtr dynamic_point_monitor_func;
 
     instPoint *getPoint() {return point;}
     instPoint *getPoint(BPatch_callWhen when);
