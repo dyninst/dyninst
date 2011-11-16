@@ -8,6 +8,7 @@
 #include "Command.h"
 #include "PatchMgr.h"
 #include "PatchObject.h"
+#include "Buffer.h"
 
 #define test_cerr std::cerr
 
