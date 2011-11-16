@@ -374,10 +374,6 @@ Address instPoint::addr_compat() const {
    }
 }
 
-void instPoint::markModified() {
-   proc()->addModifiedFunction(func());
-}
-
 std::string instPoint::format() const {
    stringstream ret;
    ret << "iP(";
@@ -431,3 +427,51 @@ std::string instPoint::format() const {
    ret << ")";
    return ret.str();
 }
+
+Dyninst::PatchAPI::InstancePtr getChildInstance(Dyninst::PatchAPI::InstancePtr parentInstance,
+                                                AddressSpace *childProc) {
+   instPoint *pPoint = IPCONV(parentInstance->point());
+   instPoint *cPoint = instPoint::fork(pPoint, childProc);
+   // Find the equivalent miniTramp...
+   assert(pPoint->size() == cPoint->size());
+   instPoint::instance_iter c_iter = cPoint->begin();
+   for (instPoint::instance_iter iter = pPoint->begin();
+        iter != pPoint->end();
+        ++iter) {
+      if (*iter == parentInstance) return *c_iter;
+      ++c_iter;
+   }
+
+   assert(0);
+   return Dyninst::PatchAPI::InstancePtr();
+}
+
+InstancePtr instPoint::pushFront(SnippetPtr snip) {
+   InstancePtr ret = Point::pushFront(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
+InstancePtr instPoint::pushBack(SnippetPtr snip) {
+   InstancePtr ret = Point::pushBack(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
+void instPoint::markModified() {
+   if (func()) {
+      proc()->addModifiedFunction(func());
+   }
+   else if (block()) {
+      proc()->addModifiedBlock(block());
+   }
+   else if (edge()) {
+      proc()->addModifiedBlock(edge()->src());
+   }
+   else {
+      assert(0);
+   }
+}
+         

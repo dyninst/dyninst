@@ -77,6 +77,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
   friend class edge_instance;
   friend class DynPointMaker;
   public:
+
     // The compleat list of instPoint creation methods
     static instPoint *funcEntry(func_instance *);
     static instPoint *funcExit(func_instance *, block_instance *exitPoint);
@@ -142,8 +143,12 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     std::string format() const;
 
- private:
+    virtual Dyninst::PatchAPI::InstancePtr pushBack(Dyninst::PatchAPI::SnippetPtr);
+    virtual Dyninst::PatchAPI::InstancePtr pushFront(Dyninst::PatchAPI::SnippetPtr);
+
     void markModified();
+
+ private:
 
     bitArray liveRegs_;
     void calcLiveness();
@@ -156,5 +161,10 @@ class instPoint : public Dyninst::PatchAPI::Point {
 };
 
 #define IPCONV(p) (static_cast<instPoint *>(p))
+
+
+Dyninst::PatchAPI::InstancePtr getChildInstance(Dyninst::PatchAPI::InstancePtr parentInstance,
+                                                AddressSpace *childProc);
+
 
 #endif /* _INST_POINT_H_ */

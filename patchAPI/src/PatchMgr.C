@@ -426,3 +426,4 @@ bool PatchMgr::consistency() const {
    if (!as_) return false;
    return (as_->consistency(this));
 }
+

@@ -117,7 +117,6 @@ class baseTramp {
     bool skippedRedZone;
     
     bool validOptimizationInfo() { return optimizationInfo_; }
-    bool hasFuncJump();
 
  public:
     // Code generation methods

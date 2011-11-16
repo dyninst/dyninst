@@ -23,8 +23,8 @@ namespace PatchAPI {
 class Snippet {
   public:
     typedef dyn_detail::boost::shared_ptr<Snippet> Ptr;
-    Snippet();
-    virtual ~Snippet();
+    Snippet() {};
+    virtual ~Snippet() {};
     static Snippet::Ptr create(Snippet *a) { return Ptr(a); }
 
     // Returns false if code generation failed catastrophically

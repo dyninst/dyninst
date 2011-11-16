@@ -79,6 +79,8 @@ extern int tramp_pre_frame_size_64;
 #include "mapped_object.h"
 
 using namespace Dyninst;
+using PatchAPI::Point;
+using PatchAPI::Buffer;
 
 extern bool doNotOverflow(int value);
 
@@ -263,6 +265,9 @@ AstNodePtr AstNode::dynamicTargetNode() {
     return dynamicTargetNode_;
 }
 
+AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
+   return AstNodePtr(new AstSnippetNode(snip));
+}
 
 bool isPowerOf2(int value, int &result)
 {
@@ -2988,85 +2993,6 @@ static void setCFJRet(cfjRet_t &a, cfjRet_t b) {
       a = b;
 }
 
-cfjRet_t AstCallNode::containsFuncJump() const {
-   return cfj_none;
-}
-
-cfjRet_t AstOperatorNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	if (loperand) setCFJRet(ret, loperand->containsFuncJump());
-	if (roperand) setCFJRet(ret, roperand->containsFuncJump());
-	if (eoperand) setCFJRet(ret, eoperand->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstOperandNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	if (operand_) setCFJRet(ret, operand_->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstMiniTrampNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-   if (ast_) setCFJRet(ret, ast_->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstSequenceNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		setCFJRet(ret, sequence_[i]->containsFuncJump());
-	}
-	return ret;
-}
-
-cfjRet_t AstVariableNode::containsFuncJump() const 
-{
-    return ast_wrappers_[index]->containsFuncJump();
-}
-
-cfjRet_t AstInsnMemoryNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-   if (load_) setCFJRet(ret, load_->containsFuncJump());
-   if (store_) setCFJRet(ret, store_->containsFuncJump());
-   return ret;
-}
-
-cfjRet_t AstNullNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstLabelNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstMemoryNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstInsnNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstOriginalAddrNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstActualAddrNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstDynamicTargetNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
 bool AstCallNode::usesAppRegister() const {
    for (unsigned i=0; i<args_.size(); i++) {
       if (args_[i] && args_[i]->usesAppRegister()) return true;
@@ -3337,3 +3263,32 @@ bool AstNode::decRefCount()
    //return referenceCount <= 0;
    return true;
 }
+
+
+bool AstNode::generate(Point *point, Buffer &buffer) {
+   // For now, be really inefficient. Yay!
+   codeGen gen(1024);
+   instPoint *ip = IPCONV(point);
+
+   gen.setPoint(ip);
+   gen.setRegisterSpace(registerSpace::actualRegSpace(ip));
+   
+   if (!generateCode(gen, false)) return false;
+
+   unsigned char *start_ptr = (unsigned char *)gen.start_ptr();
+   unsigned char *cur_ptr = (unsigned char *)gen.cur_ptr();
+   buffer.copy(start_ptr, cur_ptr);
+
+   return true;
+}
+
+bool AstSnippetNode::generateCode_phase2(codeGen &gen,
+                                         bool,
+                                         Address &,
+                                         Register &) {
+   Buffer buf;
+   if (!snip_->generate(gen.point(), buf)) return false;
+   gen.copy(buf.start_ptr(), buf.size());
+   return true;
+}
+   

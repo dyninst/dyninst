@@ -113,7 +113,7 @@ instMapping::instMapping(const instMapping *parIM,
         args.push_back(parIM->args[i]);
     }
     for (unsigned j = 0; j < parIM->instances.size(); j++) {
-       InstancePtr cMT = getChildInstance(parIM->instances[j], child->mgr());
+       InstancePtr cMT = getChildInstance(parIM->instances[j], child);
        assert(cMT);
        instances.push_back(cMT);
     }

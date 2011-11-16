@@ -303,8 +303,11 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    if (point_) {
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = SCAST_AST((*iter)->snippet());
-         miniTramps.push_back(ast);
+         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         if (ast) 
+            miniTramps.push_back(ast);
+         else
+            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
       }
    }
    else {
@@ -452,43 +455,12 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-         AstNodePtr ast = SCAST_AST((*iter)->snippet());
+         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         if (!ast) continue;
          if (ast->containsFuncCall()) return true;
       }
    }
    return false;
-}
-
-bool baseTramp::hasFuncJump()
-{
-   if (funcJumpState_ != cfj_unset)
-      return (funcJumpState_ >= cfj_jump); 
-
-   funcJumpState_ = cfj_none;
-   if (ast_) {
-      cfjRet_t tmp = ast_->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_) {
-         funcJumpState_ = tmp;
-      }
-      return (funcJumpState_ >= cfj_jump);
-   }
-   /*   
-	for (instPoint::iterator iter = point_->begin(); 
-        iter != point_->end(); ++iter) {
-      cfjRet_t tmp = (*iter)->ast()->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_)
-         funcJumpState_ = tmp;
-   }
-   */
-   for (instPoint::instance_iter iter = point_->begin(); 
-        iter != point_->end(); ++iter) {
-      AstNodePtr ast = SCAST_AST((*iter)->snippet());
-      cfjRet_t tmp = ast->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_)
-         funcJumpState_ = tmp;
-   }
-
-   return (funcJumpState_ >= cfj_jump);
 }
 
 bool baseTramp::doOptimizations() 
@@ -512,7 +484,8 @@ bool baseTramp::doOptimizations()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-      AstNodePtr ast = SCAST_AST((*iter)->snippet());
+      AstNodePtr ast = DCAST_AST((*iter)->snippet());
+      if (!ast) continue;
       if (ast->containsFuncCall()) {
          hasFuncCall = true;
          break;

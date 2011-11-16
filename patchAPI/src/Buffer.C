@@ -28,8 +28,11 @@ bool Buffer::empty() const {
    return (size_ > 0);
 };
 
-void Buffer::increase_allocation() {
-   max_ += ALLOCATION_UNIT;
+void Buffer::increase_allocation(int size) {
+   if (size <= 0) return;
+   // Round size up to the next allocation unit
+   size = ((size / ALLOCATION_UNIT) + 1) * ALLOCATION_UNIT;
+   max_ += size;
    buffer_ = (unsigned char *)::realloc(buffer_, max_);
    assert(buffer_);
 }
@@ -46,4 +49,15 @@ Buffer::byte_iterator Buffer::end() const {
    return byte_iterator(cur_ptr());
 }
 
-
+namespace Dyninst {
+   namespace PatchAPI {
+      
+      template<>
+      void Buffer::copy(unsigned char *begin, unsigned char *end) {
+         unsigned added_size = (long)end - (long)begin;
+         if ((size_ + added_size) > max_) 
+            increase_allocation(added_size);
+         memcpy(cur_ptr(), begin, added_size);
+      }
+   }
+}   

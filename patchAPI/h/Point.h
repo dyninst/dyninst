@@ -189,8 +189,8 @@ class Point {
     typedef std::list<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    PATCHAPI_EXPORT InstancePtr pushBack(SnippetPtr);
-    PATCHAPI_EXPORT InstancePtr pushFront(SnippetPtr);
+    PATCHAPI_EXPORT virtual InstancePtr pushBack(SnippetPtr);
+    PATCHAPI_EXPORT virtual InstancePtr pushFront(SnippetPtr);
     PATCHAPI_EXPORT bool remove(InstancePtr);
 
     // Remove all snippets in this point
@@ -292,7 +292,7 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
    typedef dyn_detail::boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
-              : point_(point), snippet_(snippet) { }
+     : point_(point), snippet_(snippet), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
                         SnippetType type = SYSTEM, SnippetState state = PENDING);
@@ -304,7 +304,7 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
     SnippetPtr snippet() const {return snippet_;}
     void set_state(SnippetState state) { state_ = state; }
 
-    void disableRecursiveGuard();
+    void disableRecursiveGuard() { guarded_ = false; }
     bool recursiveGuardEnabled() const { return guarded_; }
 
     // Destroy itself
@@ -318,10 +318,6 @@ class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
     SnippetType type_;
     bool guarded_;
 };
-
-// Free function for tracking down a cloned Instance in a forked
-// process.
-InstancePtr getChildInstance(InstancePtr parent, PatchMgrPtr childMgr);
 
 /* Factory class for creating a point that could be either PatchAPI::Point or
    the subclass of PatchAPI::Point.   */

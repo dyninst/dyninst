@@ -863,7 +863,7 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
 
    BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
    for(unsigned i=0; i<instances.size(); i++) {
-      Dyninst::PatchAPI::Instance::Ptr child = Dyninst::PatchAPI::getChildInstance(instances[0], llproc->mgr());
+      Dyninst::PatchAPI::Instance::Ptr child = getChildInstance(instances[0], llproc);
       if (child) childSnippet->addInstance(child);
    }
    return childSnippet;

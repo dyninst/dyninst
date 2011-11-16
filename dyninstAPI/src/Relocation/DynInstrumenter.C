@@ -65,7 +65,7 @@ DynRemoveSnipCommand* DynRemoveSnipCommand::create(Instance::Ptr inst) {
 
 bool DynRemoveSnipCommand::run() {
    uninstrument(inst_);
-  return true;
+   return true;
 }
 
 bool DynRemoveSnipCommand::undo() {

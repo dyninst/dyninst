@@ -211,7 +211,7 @@ PatchObject::copyCFG(PatchObject* parObj) {
 }
 
 
-bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
+bool PatchObject::splitBlock(PatchBlock *, ParseAPI::Block *second) {
    PatchBlock *p2 = getBlock(second, false);
    if (p2) return true;
    p2 = getBlock(second);

@@ -46,6 +46,7 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
+  typedef dyn_detail::boost::shared_ptr<PatchMgr> Ptr;
     typedef std::pair<Location, Point::Type> Candidate;
     typedef std::vector<Candidate> Candidates;
 

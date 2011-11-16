@@ -902,7 +902,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
          ipoint->pushFront(expr.ast_wrapper) :
          ipoint->pushBack(expr.ast_wrapper);
       /* End of PatchAPI stuffs */
-
       if (instance) {
          if (BPatch::bpatch->isTrampRecursive()) {
             instance->disableRecursiveGuard();

@@ -2,6 +2,7 @@
 #define PATCHAPI_H_BUFFER_H_
 
 #include <assert.h>
+#include <string.h>
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -85,9 +86,11 @@ class Buffer {
    long_iterator l_begin() const;
    long_iterator l_end() const;
 
+   unsigned char *start_ptr() const { return buffer_; }
+
   private:
    // May call realloc();
-   void increase_allocation();
+   void increase_allocation(int added);
    unsigned char * cur_ptr() const;
 
    unsigned char * buffer_;
@@ -96,17 +99,19 @@ class Buffer {
 };
 
 template <class InputIterator> 
-   void copy(InputIterator begin, InputIterator end) {
+   void Buffer::copy(InputIterator begin, InputIterator end) {
    while (begin != end) {
       push_back(*begin);
       ++begin;
    }
 };
 
+
+
 template <class Input> 
    void Buffer::push_back(const Input &i) {
-   while (size_ + sizeof(i) >= max_) {
-      increase_allocation();
+   if (size_ + sizeof(i) >= max_) {
+      increase_allocation(sizeof(i));
    }
    Input *ptr = (Input *)cur_ptr();
    *ptr = i;

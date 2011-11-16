@@ -66,11 +66,13 @@
 // class.
 
 using namespace Dyninst;
+
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::PatchMgr;
 using PatchAPI::Patcher;
 using PatchAPI::DynInstrumenter;
+using PatchAPI::DynRemoveSnipCommand;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
@@ -1626,7 +1628,8 @@ bool AddressSpace::relocate() {
    if (delayRelocation()) return true;
 
 
-  relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
+  relocation_cerr << "ADDRSPACE::Relocate called; modified functions reports "
+                  << modifiedFunctions_.size() << " objects to relocate." << endl;
   if (!mapped_objects.size()) {
     relocation_cerr << "WARNING: No mapped_object in this addressSpace!\n";
     return false;
@@ -2227,4 +2230,14 @@ bool AddressSpace::patch(AddressSpace* as) {
 void AddressSpace::addMappedObject(mapped_object* obj) {
   mapped_objects.push_back(obj);
   dynamic_cast<DynAddrSpace*>(mgr_->as())->loadLibrary(obj);
+}
+
+
+bool uninstrument(Dyninst::PatchAPI::Instance::Ptr inst) {
+   instPoint *point = IPCONV(inst->point());
+   bool ret = point->remove(inst);
+   if (!ret) return false;
+   point->markModified();
+   return true;
+
 }
