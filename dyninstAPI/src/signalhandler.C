@@ -315,7 +315,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
              ev.proc->startDebugger();
           }
        }
-       while (0 && dyn_debug_signal && (sleep_counter > 0)) {
+       while (dyn_debug_signal && (sleep_counter > 0)) {
            signal_printf("Critical signal received, spinning to allow debugger to attach\n");
            sleep(10);
            sleep_counter -= 10;

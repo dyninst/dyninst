@@ -1775,9 +1775,6 @@ bool process::hideDebugger()
 // FURTHER HACK: made a block_instance method so we can share blocks
 
 func_instance *block_instance::callee() {
-   // Check 1: pre-computed callee via PLT
-   func_instance *ret = obj()->getCallee(this);
-   if (ret) return ret;
 
    // See if we've already done this
    edge_instance *tEdge = getTarget();
@@ -1786,14 +1783,12 @@ func_instance *block_instance::callee() {
    }
 
    if (!tEdge->sinkEdge()) {
-      func_instance *tmp = obj()->findFuncByEntry(tEdge->trg());
-      if (tmp && !(tmp->ifunc()->isPLTFunction())) return tmp;
+      return obj()->findFuncByEntry(tEdge->trg());
    }
 
    // Do this the hard way - an inter-module jump
    // get the target address of this function
-   Address target_addr = 0; 
-   bool success = false;
+   Address target_addr; bool success;
    boost::tie(success, target_addr) = llb()->callTarget();
    if(!success) {
       // this is either not a call instruction or an indirect call instr
@@ -1801,6 +1796,7 @@ func_instance *block_instance::callee() {
       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
+   
    // get the relocation information for this image
    Symtab *sym = obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
@@ -1810,6 +1806,7 @@ func_instance *block_instance::callee() {
       cerr << "Failed to get func binding table" << endl;
       return NULL;
    }
+
    /**
     * Object files and static binaries will not have a function binding table
     * because the function binding table holds relocations used by the dynamic
@@ -1825,11 +1822,10 @@ func_instance *block_instance::callee() {
       fbt.push_back(fbtvector[index]);
    
    Address base_addr = obj()->codeBase();
-   std::map<Address, std::string> pltFuncs;
-   obj()->parse_img()->getPltFuncs(pltFuncs);
+   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
-   if (pltFuncs.find(target_addr) != pltFuncs.end()) {
+   if (pltFuncs->defines(target_addr)) {
       for (u_int i=0; i < fbt.size(); i++) {
          if (fbt[i].target_addr() == target_addr) 
          {
@@ -1839,14 +1835,13 @@ func_instance *block_instance::callee() {
             func_instance *target_pdf = 0;
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
                updateCallTarget(target_pdf);
-               obj()->setCallee(this, target_pdf);
                obj()->setCalleeName(this, target_pdf->symTabName());
                return target_pdf;
             }
          }
       }
 
-      const char *target_name = pltFuncs[target_addr].c_str();
+      const char *target_name = (*pltFuncs)[target_addr].c_str();
       process *dproc = dynamic_cast<process *>(proc());
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
       obj()->setCalleeName(this, std::string(target_name));
@@ -1855,7 +1850,6 @@ func_instance *block_instance::callee() {
       // See if we can name lookup
       if (dproc) {
          if (proc()->findFuncsByMangled(target_name, pdfv)) {
-            obj()->setCallee(this, pdfv[0]);
             updateCallTarget(pdfv[0]);
             return pdfv[0];
          }
@@ -1865,7 +1859,6 @@ func_instance *block_instance::callee() {
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
             if ((*i)->findFuncsByMangled(target_name, pdfv)) {
-               obj()->setCallee(this, pdfv[0]);
                updateCallTarget(pdfv[0]);
                return pdfv[0];
             }
@@ -1874,6 +1867,7 @@ func_instance *block_instance::callee() {
       else 
          assert(0);
    }
+   
    //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }

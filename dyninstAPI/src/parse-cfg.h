@@ -43,7 +43,8 @@
 #include "parRegion.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
-#include "dataflowAPI/h/bitArray.h"
+#include "dyninstAPI/src/bitArray.h"
+#include "InstructionCache.h"
 #include <set>
 
 #include "Parsing.h"
@@ -141,7 +142,13 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     };
     typedef std::set<parse_block *, parse_block::compare> blockSet;
 
-   typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
+#if defined(cap_liveness)
+    const bitArray &getLivenessIn(parse_func * context);
+    // This is copied from the union of all successor blocks
+    const bitArray getLivenessOut(parse_func * context);
+#endif
+
+    typedef std::map<Offset, InstructionAPI::Instruction::Ptr> Insns;
     // The provided parameter is a magic offset to add to each instruction's
     // address; we do this to avoid a copy when getting Insns from block_instances
     void getInsns(Insns &instances, Address offset = 0);
@@ -153,6 +160,22 @@ class parse_block : public codeRange, public ParseAPI::Block  {
 
     bool unresolvedCF_;
     bool abruptEnd_;
+
+#if defined(cap_liveness)
+    /* Liveness analysis variables */
+    /** gen registers */
+    
+    bitArray use; // Registers used by instructions within the block
+    bitArray def; // Registers defined by instructions within the block
+    bitArray in;  // Summarized input liveness; we calculate output on the fly
+ public:
+    static InstructionCache cachedLivenessInfo;
+    
+ private:
+    void summarizeBlockLivenessInfo(parse_func * context);
+    // Returns true if any information changed; false otherwise
+    bool updateBlockLivenessInfo(parse_func * context);
+#endif
 
 
 };
@@ -352,6 +375,11 @@ class parse_func : public ParseAPI::Function
    bool writesSPRs(unsigned level = 0);
 
 
+#if defined(cap_liveness)
+   void invalidateLiveness() { livenessCalculated_ = false; }
+   void calcBlockLevelLiveness();
+#endif
+
    const SymtabAPI::Function *func() const { return func_; }
 
  private:
@@ -399,7 +427,10 @@ class parse_func : public ParseAPI::Function
    bool o7_live;
    bool ppc_saves_return_addr_;
 
-  bool isPLTFunction_;
+#if defined(cap_liveness)
+   bool livenessCalculated_;
+#endif
+   bool isPLTFunction_;
 };
 
 typedef parse_func *ifuncPtr;

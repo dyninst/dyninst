@@ -106,7 +106,7 @@ void PatchFunction::addBlock(PatchBlock *b) {
    cb()->add_block(this, b);
 }
    
-Point *PatchFunction::findPoint(PatchLocation loc, Point::Type type, bool create) {
+Point *PatchFunction::findPoint(Location loc, Point::Type type, bool create) {
    PointMaker* maker = obj_->addrSpace()->mgr()->pointMaker();
    PatchMgrPtr mgr = obj_->addrSpace()->mgr();
 

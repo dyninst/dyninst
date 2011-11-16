@@ -98,7 +98,7 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _tamper_addr(0)
 {
     if (obj->defensiveMode()) {
-          mal_printf("new funct at %lx\n",addr);
+        mal_printf("new funct at %lx\n",addr);
     }
 }
 
@@ -297,7 +297,7 @@ Function::add_block(Block *b)
 const string &
 Function::name() 
 {
-	return _name;
+    return _name;
 }
 
 bool

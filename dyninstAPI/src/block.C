@@ -128,11 +128,11 @@ std::string block_instance::calleeName() {
 }
 
 void block_instance::updateCallTarget(func_instance *func) {
-
-   edge_instance *e = getTarget();
-   if (e && e->sinkEdge()) {
-      e->trg_ = func->entry();
-   }
+  // Update a sink-typed call edge to
+  // have an inter-module target
+  edge_instance *e = getTarget();
+  assert(e->sinkEdge());
+  e->trg_ = func->entryBlock();
 }
 
 func_instance *block_instance::entryOfFunc() const {

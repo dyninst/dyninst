@@ -408,7 +408,6 @@ class image : public codeRange {
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
    dictionary_hash<Address, std::string> *getPltFuncs();
-   void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(arch_power)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif

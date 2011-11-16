@@ -49,7 +49,6 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "pcrel.h"
-#include "dataflowAPI/h/bitArray.h"
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
@@ -692,14 +691,7 @@ generatedCodeObject *codeGen::obj() const {
 void codeGen::beginTrackRegDefs()
 {
    trackRegDefs_ = true;
-#if defined(arch_x86) || defined(arch_x86_64)
-    regsDefined_ = bitArray(REGNUM_IGNORED+1);
-#elif defined(arch_power)
-    regsDefined_ = bitArray(registerSpace::lastReg);
-#else
-    regsDefined_ = bitArray();
-#endif
-
+   regsDefined_ = registerSpace::getBitArray();
 }
 
 void codeGen::endTrackRegDefs()

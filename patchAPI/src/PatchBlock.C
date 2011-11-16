@@ -285,10 +285,8 @@ PatchBlock::getCallee() {
   return NULL;
 }
 
-
-Point *PatchBlock::findPoint(PatchLocation loc, Point::Type type, bool create) {
+Point *PatchBlock::findPoint(Location loc, Point::Type type, bool create) {
    PointMaker* maker = obj_->addrSpace()->mgr()->pointMaker();
-
    PatchMgrPtr mgr = obj_->addrSpace()->mgr();
    Point *ret = NULL;
 

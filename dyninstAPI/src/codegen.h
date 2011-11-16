@@ -49,7 +49,7 @@ using namespace NS_x86;
 
 #endif
 
-#include "dataflowAPI/h/bitArray.h"
+#include "dyninstAPI/src/bitArray.h"
 #include "pcrel.h"
 
 #include "arch-forward-decl.h" // instruction

@@ -11,82 +11,81 @@ namespace PatchAPI {
 
    class PatchCallback;
 
+struct EntrySite_t {
+   PatchFunction *func;
+   PatchBlock *block;
+EntrySite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+};
+struct CallSite_t {
+   PatchFunction *func;
+   PatchBlock *block;
+CallSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+};
+struct ExitSite_t {
+   PatchFunction *func;
+   PatchBlock *block;
+ExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
+};
 
-struct PatchEntrySite_t {
-   PatchFunction *func;
-   PatchBlock *block;
-PatchEntrySite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
-};
-struct PatchCallSite_t {
-   PatchFunction *func;
-   PatchBlock *block;
-PatchCallSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
-};
-struct PatchExitSite_t {
-   PatchFunction *func;
-   PatchBlock *block;
-PatchExitSite_t(PatchFunction *f, PatchBlock *b) : func(f), block(b) {};
-};
-
-struct PatchInsnLoc_t {
+struct InsnLoc_t {
    PatchBlock *block;
    Address addr;
    InstructionAPI::Instruction::Ptr insn;
-PatchInsnLoc_t(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
+InsnLoc_t(PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i) : 
    block(b), addr(a), insn(i) {};
 };
       
      
-// Uniquely identify the PatchLocation of a point; this + a type
+// Uniquely identify the location of a point; this + a type
 // uniquely identifies a point.
-struct PatchLocation {
-   static PatchLocation Function(PatchFunction *f) { 
-      return PatchLocation(f, NULL, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Function_); 
+struct Location {
+   static Location Function(PatchFunction *f) { 
+      return Location(f, NULL, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Function_); 
    }
-   static PatchLocation Block(PatchBlock *b) { 
-      return PatchLocation(NULL, b, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Block_);
+   static Location Block(PatchBlock *b) { 
+      return Location(NULL, b, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Block_);
    }
-   static PatchLocation BlockInstance(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
-      return PatchLocation(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, BlockInstance_); 
+   static Location BlockInstance(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, BlockInstance_); 
    }
-   static PatchLocation Instruction(PatchInsnLoc_t l) { 
-      return PatchLocation(NULL, l.block, l.addr, l.insn, NULL, true, Instruction_); 
+   static Location Instruction(InsnLoc_t l) { 
+      return Location(NULL, l.block, l.addr, l.insn, NULL, true, Instruction_); 
    }
-   static PatchLocation Instruction(PatchBlock *b, Address a) { 
-      return PatchLocation(NULL, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, Instruction_); 
+   static Location Instruction(PatchBlock *b, Address a) { 
+      return Location(NULL, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, Instruction_); 
    }
-   static PatchLocation InstructionInstance(PatchFunction *f, PatchInsnLoc_t l, bool trusted = false) { 
-      return PatchLocation(f, l.block, l.addr, l.insn, NULL, trusted, InstructionInstance_); 
+   static Location InstructionInstance(PatchFunction *f, InsnLoc_t l, bool trusted = false) { 
+      return Location(f, l.block, l.addr, l.insn, NULL, trusted, InstructionInstance_); 
    }
-   static PatchLocation InstructionInstance(PatchFunction *f, PatchBlock *b, Address a) { 
-      return PatchLocation(f, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, InstructionInstance_); 
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a) { 
+      return Location(f, b, a, InstructionAPI::Instruction::Ptr(), NULL, false, InstructionInstance_); 
    }
-   static PatchLocation InstructionInstance(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, bool trusted = false) { 
-      return PatchLocation(f, b, a, i, NULL, trusted, InstructionInstance_); 
+   static Location InstructionInstance(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, bool trusted = false) { 
+      return Location(f, b, a, i, NULL, trusted, InstructionInstance_); 
    }
-   static PatchLocation Edge(PatchEdge *e) {
-      return PatchLocation(NULL, NULL, 0, InstructionAPI::Instruction::Ptr(), e, true, Edge_); 
+   static Location Edge(PatchEdge *e) {
+      return Location(NULL, NULL, 0, InstructionAPI::Instruction::Ptr(), e, true, Edge_); 
    }
-   static PatchLocation EdgeInstance(PatchFunction *f, PatchEdge *e) { 
-      return PatchLocation(f, NULL, 0, InstructionAPI::Instruction::Ptr(), e, false, EdgeInstance_);
+   static Location EdgeInstance(PatchFunction *f, PatchEdge *e) { 
+      return Location(f, NULL, 0, InstructionAPI::Instruction::Ptr(), e, false, EdgeInstance_);
    }
-   static PatchLocation EntrySite(PatchEntrySite_t e) { 
-      return PatchLocation(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Entry_); 
+   static Location EntrySite(EntrySite_t e) { 
+      return Location(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Entry_); 
    }
-   static PatchLocation EntrySite(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
-      return PatchLocation(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, Entry_); 
+   static Location EntrySite(PatchFunction *f, PatchBlock *b, bool trusted = false) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, trusted, Entry_); 
    }
-   static PatchLocation CallSite(PatchCallSite_t c) {
-      return PatchLocation(c.func, c.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Call_); 
+   static Location CallSite(CallSite_t c) {
+      return Location(c.func, c.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Call_); 
    }
-   static PatchLocation CallSite(PatchFunction *f, PatchBlock *b) { 
-      return PatchLocation(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Call_);
+   static Location CallSite(PatchFunction *f, PatchBlock *b) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Call_);
    }
-   static PatchLocation ExitSite(PatchExitSite_t e) { 
-      return PatchLocation(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Exit_);
+   static Location ExitSite(ExitSite_t e) { 
+      return Location(e.func, e.block, 0, InstructionAPI::Instruction::Ptr(), NULL, true, Exit_);
    }
-   static PatchLocation ExitSite(PatchFunction *f, PatchBlock *b) { 
-      return PatchLocation(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Exit_); }
+   static Location ExitSite(PatchFunction *f, PatchBlock *b) { 
+      return Location(f, b, 0, InstructionAPI::Instruction::Ptr(), NULL, false, Exit_); }
 
    typedef enum {
       Function_,
@@ -103,7 +102,7 @@ struct PatchLocation {
 
    bool legal(type_t t) { return t == type; }
 
-   PatchInsnLoc_t insnLoc() { return PatchInsnLoc_t(block, addr, insn); }
+   InsnLoc_t insnLoc() { return InsnLoc_t(block, addr, insn); }
    
    PatchFunction *func;
    PatchBlock *block;
@@ -114,7 +113,7 @@ struct PatchLocation {
    type_t type;
 
 private:
-PatchLocation(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, PatchEdge *e, bool u, type_t t) :
+Location(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instruction::Ptr i, PatchEdge *e, bool u, type_t t) :
    func(f), block(b), addr(a), insn(i), edge(e), trusted(u), type(t) {};
 
 };
@@ -123,8 +122,8 @@ PatchLocation(PatchFunction *f, PatchBlock *b, Address a, InstructionAPI::Instru
 #define type_val(seq) (0x00000001 << seq)
 
 
-/* A PatchLocation on the CFG that acts as a container of inserted instances.  Points
-   of different types are distinct even the underlying code rePatchLocation and
+/* A location on the CFG that acts as a container of inserted instances.  Points
+   of different types are distinct even the underlying code relocation and
    generation engine happens to put instrumentation from them at the same
    place */
 
@@ -322,8 +321,8 @@ class PointMaker {
     PointMaker() {}
     virtual ~PointMaker() {}
 
-    // PatchLocation bundles what we need to know. 
-    PATCHAPI_EXPORT Point *createPoint(PatchLocation loc, Point::Type type);
+    // Location bundles what we need to know. 
+    PATCHAPI_EXPORT Point *createPoint(Location loc, Point::Type type);
 
     void setMgr(PatchMgrPtr mgr) { mgr_ = mgr; }
   protected:

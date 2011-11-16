@@ -30,23 +30,14 @@
  */
 
 
-#ifndef REGISTER_CONVERSION_H
+#if !defined(REGISTER_CONVERSION_H)
 #define REGISTER_CONVERSION_H
 
 #include "Register.h"
 #include "common/h/Types.h"
-#include "dynutil/h/dyn_regs.h"
-#include <map>
-
-using namespace Dyninst;
-
-extern std::multimap<Register, MachRegister> regToMachReg32;
-extern std::multimap<Register, MachRegister> regToMachReg64;
 
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::MachRegister reg, bool &wasUpcast);
-
-
 
 #endif //!defined(REGISTER_CONVERSION_H)

@@ -2075,19 +2075,6 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    return pltFuncs;
 }
 
-void image::getPltFuncs(std::map<Address, std::string> &out)
-{
-   out.clear();
-   vector<SymtabAPI::relocationEntry> fbt;
-   bool result = getObject()->getFuncBindingTable(fbt);
-   if (!result)
-      return;
-
-   for(unsigned k = 0; k < fbt.size(); k++) {
-      out[fbt[k].target_addr()] = fbt[k].name();
-   }
-}
-
 image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
     // What to do here?

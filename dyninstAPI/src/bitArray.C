@@ -28,23 +28,26 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "dataflowAPI/h/bitArray.h"
+#include "dyninstAPI/src/inst.h"
 
 
+#ifndef BITARRAY_HDR
+#define BITARRAY_HDR
 
-template void bitArray::dispose()
+
+void bitArray::dispose()
 {
   free(data);
   data = NULL;
 }
 
-template bitArray::bitArray()
+bitArray::bitArray()
 {
   data = NULL;
 }
 
 
-template void bitArray::bitarray_init(int size,bitArray* bitarray)
+void bitArray::bitarray_init(int size,bitArray* bitarray)
 {
 	int bytesize;
 
@@ -58,7 +61,7 @@ template void bitArray::bitarray_init(int size,bitArray* bitarray)
 
 	memset(bitarray->data,'\0',bytesize);
 }
-template void bitArray::bitarray_set(int location,bitArray* bitarray)
+void bitArray::bitarray_set(int location,bitArray* bitarray)
 {
   int pass,pos;
   char* ptr;
@@ -218,3 +221,4 @@ void bitArray::bitarray_diff(bitArray* s1,bitArray* s2,bitArray* r)
 }
 
 
+#endif
