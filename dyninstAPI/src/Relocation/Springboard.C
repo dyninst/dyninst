@@ -210,7 +210,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
-   if ((dyn_debug_trap && r.from > 0xac0000 && r.from < 0xad0000) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if ((dyn_debug_trap /*&& r.from > 0xab0000 && r.from < 0xad0000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
@@ -219,6 +219,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
+   	   cerr << hex << "Omitting springboard trap due to conflict: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
          return Failed;
       }
    }

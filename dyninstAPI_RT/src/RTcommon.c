@@ -464,6 +464,8 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
+    fprintf(stOut,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
+                   (long)pointAddr, (long)flags, (long)calculation);
 
 #if 0 && defined STACKDUMP
     //if (0 && ((unsigned long)calculation == 0x9746a3 || 

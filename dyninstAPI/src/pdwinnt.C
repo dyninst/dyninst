@@ -3134,6 +3134,8 @@ mapped_object *process::createObjectNoFile(Address addr)
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;
+        } else {
+           fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", objStart);
         }
     }
     return NULL;

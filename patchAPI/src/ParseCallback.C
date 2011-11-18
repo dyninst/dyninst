@@ -76,9 +76,6 @@ void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
 void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
    // We get this callback before the edge is deleted; we need to tell the block that we 
    // nuked an edge.
-   if (block->end() == 0x1d518) {
-      printf("removing edge for block 1d518\n"); //KEVINTODO: remove this
-   }
    PatchObject *pbObj = _obj->addrSpace()->findObject(block->obj());
    PatchEdge *pe = pbObj->getEdge(edge, NULL, NULL, false);
    if (!pe) return;
