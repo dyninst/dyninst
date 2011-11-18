@@ -42,6 +42,8 @@
 
 #include "mapped_object.h"
 
+extern pdvector<image*> allImages;
+
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)
 {
@@ -336,9 +338,19 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		virtualFreeAddr_ = obj->codeBase();
 		virtualFreeSize_ = obj->imageSize();
 		// DEBUG!
-		cerr << "Removing shared object " << obj->fileName() << endl;
+		cerr << "Removing VirtualAlloc'ed shared object " << obj->fileName() << endl;
+      image *img = obj->parse_img();
 		proc()->lowlevel_process()->removeASharedObject(obj);
 		virtualFreeAddr_ = 0;
+      // Since removeASharedObject doesn't actually delete the object, 
+      // or its image (even if its refCount==0), make sure the image
+      // goes away from global datastructure allImages
+      for (unsigned int i=0; i < allImages.size(); i++) {
+         if (img == allImages[i]) {
+            allImages[i] = allImages.back();
+            allImages.pop_back();
+         }
+      }
 		return;
 	}
 

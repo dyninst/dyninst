@@ -48,10 +48,19 @@ void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
-   PatchEdge *pe = _obj->getEdge(edge,NULL,NULL,false);
-   _obj->removeEdge(edge);
+   bool inSrc = true;
+   PatchObject *srcObj = _obj->addrSpace()->findObject(edge->src()->obj());
+   PatchObject *dstObj = _obj->addrSpace()->findObject(edge->trg()->obj());
+   PatchEdge *pe = srcObj->getEdge(edge,NULL,NULL,false);
+   if (!pe) {
+      pe = dstObj->getEdge(edge,NULL,NULL,false);
+      inSrc = false;
+   }
+   if (inSrc) srcObj->removeEdge(edge);
+   else       dstObj->removeEdge(edge);
    if (pe) {
-       _obj->cb()->destroy(pe, _obj);
+      if (inSrc) srcObj->cb()->destroy(pe, srcObj);
+      else       dstObj->cb()->destroy(pe, dstObj);
    }
 }
 
@@ -66,8 +75,12 @@ void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
 
 void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
    // We get this callback before the edge is deleted; we need to tell the block that we 
-   // nuked an edge. 
-   PatchEdge *pe = _obj->getEdge(edge, NULL, NULL, false);
+   // nuked an edge.
+   if (block->end() == 0x1d518) {
+      printf("removing edge for block 1d518\n"); //KEVINTODO: remove this
+   }
+   PatchObject *pbObj = _obj->addrSpace()->findObject(block->obj());
+   PatchEdge *pe = pbObj->getEdge(edge, NULL, NULL, false);
    if (!pe) return;
 
    PatchBlock *pb = _obj->addrSpace()->findObject(block->obj())->getBlock(block, false);

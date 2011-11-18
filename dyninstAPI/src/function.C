@@ -61,7 +61,6 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
-  prevBlocksUnresolvedCF_(0),
   prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
@@ -97,7 +96,6 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
-  prevBlocksUnresolvedCF_(0),
   prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
@@ -269,10 +267,11 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (prevBlocksUnresolvedCF_ < ifunc()->blocks().size()) {
-       prevBlocksUnresolvedCF_ = getAllBlocks().size();
+   if (ifunc()->getPrevBlocksUnresolvedCF() < (int)ifunc()->blocks().size()) {
+       ifunc()->setPrevBlocksUnresolvedCF(ifunc()->blocks().size());
        // A block has unresolved control flow if it has an indirect
        // out-edge.
+       blocks(); // force initialization of all_blocks_
        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
             iter != all_blocks_.end(); ++iter) 
        {
@@ -287,7 +286,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
     if (prevBlocksAbruptEnds_ < ifunc()->blocks().size()) {
-        prevBlocksUnresolvedCF_ = getAllBlocks().size();
+        prevBlocksAbruptEnds_ = getAllBlocks().size();
         for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
              iter != all_blocks_.end(); ++iter) 
         {
@@ -332,6 +331,8 @@ unsigned func_instance::getNumDynamicCalls()
 }
 
 
+// warning: doesn't (and can't) force initialization of lazily-built 
+// data structures because this function is declared to be constant
 void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", this);
     fprintf(stderr, "  Symbol table names:\n");
@@ -553,8 +554,11 @@ bool func_instance::isInstrumentable() {
 
 block_instance *func_instance::getBlockByEntry(const Address addr) {
    block_instance *block = obj()->findBlockByEntry(addr);
-   if (block && all_blocks_.find(block) != all_blocks_.end()) {
-      return block;
+   if (block) {
+      blocks(); // force initialization of all_blocks_
+      if (all_blocks_.find(block) != all_blocks_.end()) {
+         return block;
+      }
    }
    return NULL;
 }
@@ -787,7 +791,7 @@ void func_instance::removeBlock(block_instance *block) {
     BlockSet::iterator bit = unresolvedCF_.find(block);
     if (bit != unresolvedCF_.end()) {
         unresolvedCF_.erase(bit);
-        prevBlocksUnresolvedCF_ --;
+        ifunc()->setPrevBlocksUnresolvedCF(ifunc()->getPrevBlocksUnresolvedCF() - 1);
     }
     bit = abruptEnds_.find(block);
     if (bit != abruptEnds_.end()) {
@@ -819,7 +823,7 @@ void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
 void func_instance::add_block_cb(block_instance *block)
 {
     if (block->llb()->unresolvedCF() && 
-        prevBlocksUnresolvedCF_ == ifunc()->blocks().size()) 
+        ifunc()->getPrevBlocksUnresolvedCF() == ifunc()->blocks().size()) 
     {
         unresolvedCF_.insert(block);
     }

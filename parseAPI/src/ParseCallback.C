@@ -271,6 +271,10 @@ void ParseCallbackManager::add_block_cb(Function *f, Block *b) {
       (*iter)->add_block_cb(f, b);
 };
 
+void ParseCallbackManager::registerCallback(ParseCallback *cb) {
+   cbs_.push_back(cb);
+}
+
 void ParseCallbackManager::unregisterCallback(ParseCallback *cb) {
    for (iterator iter = cbs_.begin(); iter != cbs_.end(); ++iter) {
       if (*iter == cb) {

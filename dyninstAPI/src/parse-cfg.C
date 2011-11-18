@@ -101,6 +101,7 @@ parse_func::parse_func(
   canBeRelocated_(true),
   hasWeirdInsns_(false),
   init_retstatus_(UNSET),
+  prevBlocksUnresolvedCF_(0),
   o7_live(false),
   ppc_saves_return_addr_(false)
 #if defined(cap_liveness)
@@ -510,6 +511,11 @@ ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 void parse_func::setHasWeirdInsns(bool wi)
 {
    hasWeirdInsns_ = wi;
+}
+
+void parse_block::setUnresolvedCF(bool newVal) 
+{ 
+   unresolvedCF_ = newVal;
 }
 
 parse_func *parse_block::getCallee() {

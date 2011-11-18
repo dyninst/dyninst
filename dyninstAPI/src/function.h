@@ -301,7 +301,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
-  unsigned int prevBlocksUnresolvedCF_; // num func blocks when calculated
   unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
 
 

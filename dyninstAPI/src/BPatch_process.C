@@ -1912,6 +1912,7 @@ void BPatch_process::overwriteAnalysisUpdate
              vector<func_instance*> cfuncs;
              (*sit)->getFuncs(std::back_inserter(cfuncs));
              for (unsigned i=0; i < cfuncs.size(); i++) {
+                cfuncs[i]->ifunc()->setPrevBlocksUnresolvedCF(0); // force rebuild of unresolved list
                 cfuncs[i]->preCallPoint(*sit, true); // create point
                 monitorFuncs.insert(findOrCreateBPFunc(cfuncs[i], NULL));
              }

@@ -171,7 +171,7 @@ class ParseCallbackManager {
   typedef Callbacks::iterator iterator;
   typedef Callbacks::const_iterator const_iterator;
 
-  void registerCallback(ParseCallback *a) { cbs_.push_back(a); }
+  void registerCallback(ParseCallback *a);
   void unregisterCallback(ParseCallback *a);
   const_iterator begin() const { return cbs_.begin(); }
   const_iterator end() const { return cbs_.end(); }

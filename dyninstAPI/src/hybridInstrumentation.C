@@ -505,24 +505,24 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     BPatch_retAddrExpr retAddrSnippet;
 
     if (retPoints != NULL) {
-		for (unsigned int j=0; j < retPoints->size(); j++) {
+      for (unsigned int j=0; j < retPoints->size(); j++) {
 			BPatch_point *curPoint = (*retPoints)[j];
 			BPatchSnippetHandle *handle;
 
 			// Workaround for a parsing inconsistency - instrument this with a snippet
 			// if _any_ of the functions that contain a retblock have unknown return status...
 			bool instrument = false;
-            if (BPatch_normalMode != SCAST_MO(curPoint->llpoint()->obj())->hybridMode()) {
-                std::vector<ParseAPI::Function *> funcs;
-                curPoint->llpoint()->block()->llb()->getFuncs(funcs);
-                for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
-                    if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
-                        funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
-                    {
-                        instrument = true;
-                    }
-                }
-            }
+         if (BPatch_normalMode != SCAST_MO(curPoint->llpoint()->obj())->hybridMode()) {
+             std::vector<ParseAPI::Function *> funcs;
+             curPoint->llpoint()->block()->llb()->getFuncs(funcs);
+             for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
+                 if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+                     funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
+                 {
+                     instrument = true;
+                 }
+             }
+         }
 			if (instrument || 
                 instrumentReturns || 
                 (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) 

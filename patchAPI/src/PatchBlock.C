@@ -542,7 +542,7 @@ bool PatchBlock::consistency() const {
    }
    if (!trglist_.empty()) {
       if (trglist_.size() != block_->targets().size()) {
-         cerr << "Error: block has inconsistent targets size; ParseAPI "
+         cerr << "Error: block at "<<hex<< block_->start()<< dec<<" has inconsistent targets size; ParseAPI "
               << block_->targets().size() << " and PatchAPI " 
               << trglist_.size() << endl;
          CONSIST_FAIL;
