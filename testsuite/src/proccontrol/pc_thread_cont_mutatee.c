@@ -59,6 +59,8 @@ void freeLocalData(struct local_data *ld) {
     free(ld);
 }
 
+extern int num_threads;
+
 //Basic test for create/attach and exit.
 int pc_thread_cont_mutatee()
 {
@@ -69,6 +71,7 @@ int pc_thread_cont_mutatee()
    handshake can_stop;
    allow_exit can_exit;
 
+   num_threads = 0;
    for (i = 0; i < gargc; i++) {
       if (strcmp(gargv[i], "-mt") == 0) {
          num_threads = atoi(gargv[i+1]);
@@ -86,23 +89,19 @@ int pc_thread_cont_mutatee()
            testLock(&localData->myLocks[i]);
        }
    }
-
    result = initProcControlTest(threadFunc, (void *)localData);
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
       if( num_threads > 0 ) freeLocalData(localData);
       return -1;
    }
-
    if( num_threads > 0 ) {
        logstatus("initial thread: waiting on barrier\n");
        waitTestBarrier(&localData->barrier);
-
        // Alert the mutator that all the threads have gotten through the lock
        // and can safely be stopped now
        can_stop.code = HANDSHAKE_CODE;
        send_message((unsigned char *)&can_stop, sizeof(handshake));
-
        // Wait for mutator to indicate that the stop finished
        memset(&can_stop, 0, sizeof(handshake));
        recv_message((unsigned char *)&can_stop, sizeof(handshake));
@@ -110,40 +109,33 @@ int pc_thread_cont_mutatee()
            output->log(STDERR, "Received event that wasn't handshake\n");
            error = 1;
        }
-
        logstatus("initial thread: received stop handshake, releasing threads\n");
-
        // Release all the locks
        for(i = 0; i < num_threads; ++i) {
            testUnlock(&localData->myLocks[i]);
        }
-
        // Alert mutator that all threads can be continued when ready
        memset(&can_stop, 0, sizeof(handshake));
        can_stop.code = HANDSHAKE_CODE;
        send_message((unsigned char *)&can_stop, sizeof(handshake));
-
        logstatus("initial thread: all threads can be continued\n");
    }
-
+   allow_exit can_exit;
    recv_message((unsigned char *) &can_exit, sizeof(allow_exit));
    if (can_exit.code != ALLOWEXIT_CODE) {
       output->log(STDERR, "Recieved event that wasn't allow_exit\n");
       error = 1;
    }
-
    result = finiProcControlTest(0);
    if (result != 0) {
       output->log(STDERR, "Finalization failed\n");
       if( num_threads > 0 ) freeLocalData(localData);
       return -1;
    }
-
    if (error) {
       if( num_threads > 0 ) freeLocalData(localData);
       return -1;
    }
-
    if( num_threads > 0 ) freeLocalData(localData);
    test_passes(testname);
    return 0;

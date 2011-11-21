@@ -161,10 +161,9 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
    if (thr->getStartFuncAddress(start_addr)) {
 	   if (thr->llproc()->addrInSystemLib(start_addr)) {
 		   thr->setUser(false);
-		   thr->setUserState(int_thread::running);
-		   thr->setInternalState(int_thread::running);
-		   thr->setGeneratorState(int_thread::stopped);
-		   thr->setHandlerState(int_thread::stopped);
+		   thr->getUserState().setState(int_thread::running);
+		   thr->getGeneratorState().setState(int_thread::stopped);
+		   thr->getHandlerState().setState(int_thread::stopped);
 	   }
    }
    if (!thr->isUser()) {
@@ -181,12 +180,6 @@ int WindowsHandleNewThr::getPriority() const
 {
    return PostPlatformPriority;
 }
-
-int WinHandleThreadStop::getPriority() const
-{
-   return PostPlatformPriority;
-}
-
 
 void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 {
@@ -234,25 +227,19 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    static bool initialized = false;
    static WindowsHandleNewThr *wnewthread = NULL;
    static WindowsHandleLWPDestroy* wthreaddestroy = NULL;
-   static WinHandleThreadStop* winthreadstop = NULL;
-   static WinHandleSingleStep* wsinglestep = NULL;
+  static WinHandleSingleStep* wsinglestep = NULL;
    static WinHandleBootstrap* wbootstrap = NULL;
-   static WinHandleContinue* wcont = NULL;
    if (!initialized) {
       wnewthread = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
-	  winthreadstop = new WinHandleThreadStop();
 	  wsinglestep = new WinHandleSingleStep();
 	  wbootstrap = new WinHandleBootstrap();
-	  wcont = new WinHandleContinue();
       initialized = true;
    }
    hpool->addHandler(wnewthread);
    hpool->addHandler(wthreaddestroy);
-   //hpool->addHandler(winthreadstop);
    hpool->addHandler(wsinglestep);
    hpool->addHandler(wbootstrap);
-   hpool->addHandler(wcont);
    return hpool;
 }
 
@@ -275,12 +262,8 @@ WinHandleBootstrap::~WinHandleBootstrap()
 Handler::handler_ret_t WinHandleBootstrap::handleEvent( Event::ptr ev )
 {
 	pthrd_printf("WinHandleBootstrap continuing process %d\n", ev->getProcess()->getPid());
-	
-	if(ev->getProcess()->llproc()->continueProcess()) {
-		return ret_success;
-	} else {
-		return ret_error;
-	}
+	ev->getProcess()->llproc()->setState(int_process::running);	
+	return ret_success;
 }
 
 int WinHandleBootstrap::getPriority() const
@@ -294,31 +277,3 @@ void WinHandleBootstrap::getEventTypesHandled( std::vector<EventType> &etypes )
 }
 
 
-WinHandleContinue::WinHandleContinue()
-{
-
-}
-
-WinHandleContinue::~WinHandleContinue()
-{
-
-}
-
-Handler::handler_ret_t WinHandleContinue::handleEvent( Event::ptr ev )
-{
-	pthrd_printf("WinHandleContinue continuing process %d\n", ev->getProcess()->getPid());
-	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
-	assert(winGen);
-	winGen->wake(ev->getProcess()->llproc()->getPid(), ev->getSequenceNum());
-	return ret_success;
-}
-
-int WinHandleContinue::getPriority() const
-{
-	return PostPlatformPriority;
-}
-
-void WinHandleContinue::getEventTypesHandled( std::vector<EventType> &etypes )
-{
-	etypes.push_back(EventType::Continue);
-}

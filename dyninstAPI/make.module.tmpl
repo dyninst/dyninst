@@ -49,6 +49,7 @@ LDFLAGS     += -L../../common/$(PLATFORM)
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
 LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
 LDFLAGS     += -L../../parseAPI/$(PLATFORM)
+LDFLAGS     += -L../../stackwalk/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)

@@ -233,8 +233,9 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
    if (0 == size) {
       return true;
    }
-   
-   if ((cnt = ((Address)ap) % len)) {
+
+   cnt = inTraced % len;
+   if (cnt) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
       
@@ -492,7 +493,7 @@ bool AuxvParser::readAuxvInfo()
      guessed_addrs.push_back( dso_start );
     
   /**
-   * We'll make several educated attempts at guessing an address
+   * We'll make several educatbed attempts at guessing an address
    * for the vsyscall page.  After deciding on a guess, we'll try to
    * verify that using /proc/pid/maps.
    **/

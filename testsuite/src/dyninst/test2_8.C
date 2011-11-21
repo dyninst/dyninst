@@ -153,8 +153,8 @@ test_results_t test2_8_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_8_mutatorMAIN(ParameterDict &param)
 test_results_t test2_8_Mutator::setup(ParameterDict &param) {
-    bool useAttach = param["useAttach"]->getInt();
-    bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   bool useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
+   bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     appProc = appThread->getProcess();

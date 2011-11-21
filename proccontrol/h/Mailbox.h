@@ -48,12 +48,12 @@ public:
 	Mailbox();
    virtual ~Mailbox();
 
-   virtual void enqueue(Event::ptr ev, priority_t priority = med) = 0;
+   virtual void enqueue(Event::ptr ev, bool priority = false) = 0;
+   virtual void enqueue_user(Event::ptr ev) = 0;
    virtual bool hasPriorityEvent() = 0;
    virtual Event::ptr dequeue(bool block) = 0;
    virtual Event::ptr peek() = 0;
    virtual unsigned int size() = 0;
-   virtual bool hasUserEvent() = 0;
 };
 
 extern PC_EXPORT Mailbox* mbox();

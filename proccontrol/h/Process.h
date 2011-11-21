@@ -61,6 +61,9 @@ class MTLock;
 #define pc_const_cast dyn_detail::boost::const_pointer_cast
 
 namespace Dyninst {
+
+class SymbolReaderFactory;
+
 namespace ProcControlAPI {
 
 class Process;
@@ -85,7 +88,7 @@ class PC_EXPORT Breakpoint
  public:
    int_breakpoint *llbp() const;
    typedef dyn_detail::boost::shared_ptr<Breakpoint> ptr;
-   typedef dyn_detail::boost::shared_ptr<Breakpoint> const_ptr;
+   typedef dyn_detail::boost::shared_ptr<const Breakpoint> const_ptr;
    typedef dyn_detail::boost::weak_ptr<Breakpoint> weak_ptr;
 
    static Breakpoint::ptr newBreakpoint();
@@ -101,13 +104,16 @@ class PC_EXPORT Breakpoint
 class PC_EXPORT Library
 {
    friend class ::int_library;
+   friend void dyn_detail::boost::checked_delete<Library>(Library *);
+   friend void dyn_detail::boost::checked_delete<const Library>(const Library *);
  private:
    int_library *lib;
    Library();
    ~Library();
  public:
-   typedef Library* ptr;
-   typedef const Library* const_ptr;
+   typedef dyn_detail::boost::shared_ptr<Library> ptr;
+   typedef dyn_detail::boost::shared_ptr<const Library> const_ptr;
+
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
@@ -163,40 +169,11 @@ class PC_EXPORT LibraryPool
 
   size_t size() const;
 
-  Library::ptr getLibraryByName(std::string s);
-  Library::const_ptr getLibraryByName(std::string s) const;
-
-  template< typename F >
-  void for_each(F& func)
-  {
-	lock();
-	  for(LibraryPool::iterator i = begin();
-		i != end();
-		++i)
-	  {
-		  func(*i);
-	  }
-	  unlock();
-  }
-  template< typename F >
-  void for_each(F& func) const
-  {
-	lock();
-	  for(LibraryPool::const_iterator i = begin();
-		  i != end();
-		  ++i)
-	  {
-		  func(*i);
-	  }
-	  unlock();
-  }
-
   Library::ptr getExecutable();
   Library::const_ptr getExecutable() const;
-private:
-	void lock() const;
-	void unlock() const;
-	mutable MTLock* the_lock;
+
+  Library::ptr getLibraryByName(std::string s);
+  Library::const_ptr getLibraryByName(std::string s) const;
 };
 
 class PC_EXPORT IRPC
@@ -330,7 +307,19 @@ class PC_EXPORT Process
    bool allThreadsRunning() const;
    bool allThreadsRunningWhenAttached() const;
 
+   /**
+    * Queries for machine info
+    **/
    Dyninst::Architecture getArchitecture() const;
+   Dyninst::OSType getOS() const;
+
+   /**
+    * Query what kind of events this process supports
+    **/
+   bool supportsLWPEvents() const;
+   bool supportsUserThreadEvents() const;
+   bool supportsFork() const;
+   bool supportsExec() const;
 
    /**
     * Control process
@@ -368,6 +357,11 @@ class PC_EXPORT Process
     **/
    dyn_detail::boost::shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+
+   /**
+    * Symbol access
+    **/
+   SymbolReaderFactory *getDefaultSymbolReader();
 };
 
 class PC_EXPORT Thread
@@ -449,6 +443,8 @@ class PC_EXPORT ThreadPool
    class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
+      static const int uninitialized_val = -1;
+      static const int end_val = -2;
       int_threadPool *curp;
       Thread::ptr curh;
       int curi;
@@ -468,6 +464,8 @@ class PC_EXPORT ThreadPool
    class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
+      static const int uninitialized_val = -1;
+      static const int end_val = -2;
       int_threadPool *curp;
       Thread::ptr curh;
       int curi;

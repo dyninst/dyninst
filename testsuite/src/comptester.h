@@ -44,8 +44,8 @@ class ComponentTester {
    virtual test_results_t program_teardown(ParameterDict &params) = 0;
    virtual test_results_t group_setup(RunGroup *group, ParameterDict &params) = 0;
    virtual test_results_t group_teardown(RunGroup *group, ParameterDict &params) = 0;
-   virtual test_results_t test_setup(TestInfo *test, ParameterDict &parms) = 0;
-   virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms) = 0;
+   virtual test_results_t test_setup(TestInfo *test, ParameterDict &params) = 0;
+   virtual test_results_t test_teardown(TestInfo *test, ParameterDict &params) = 0;
    virtual std::string getLastErrorMsg() = 0;
    virtual ~ComponentTester() { };
 

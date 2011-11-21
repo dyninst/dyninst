@@ -199,7 +199,8 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_,
                                                             ProcessReader *,
                                                             SymbolReaderFactory *fact,
                                                             PROC_HANDLE, 
-							    std::string)
+                                                            std::string,
+                                                            Address)
 {
    AddressTranslate *at = new AddressTranslateAIX(pid_, fact);
    
@@ -213,7 +214,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_,
    return at;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *fact, std::string exename)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *fact, std::string exename, Address)
 {
    return createAddressTranslator(getpid(), NULL, fact);
 }

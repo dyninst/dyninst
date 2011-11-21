@@ -43,17 +43,21 @@
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-#define NUM_PARALLEL_PROCS 8
+class commInfo;
+
+#define RECV_TIMEOUT 30
+
+//NUM_PARALLEL_PROCS is actually a maximum number across all platforms
+#define NUM_PARALLEL_PROCS 256
 
 class COMPLIB_DLL_EXPORT ProcControlComponent : public ComponentTester
 {
 private:
-   bool setupServerSocket();
+   bool setupServerSocket(ParameterDict &param);
    bool acceptConnections(int num, int *attach_sock);
    bool cleanSocket();
-   Process::ptr launchMutatee(RunGroup *group, ParameterDict &param);
-   bool launchMutatees(RunGroup *group, ParameterDict &param);
-
+   Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
+   bool startMutatees(RunGroup *group, ParameterDict &param);
 public:
    int sockfd;
    char *sockname;
@@ -99,6 +103,10 @@ public:
    virtual test_results_t test_setup(TestInfo *test, ParameterDict &parms);
    virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms);
    virtual std::string getLastErrorMsg();
+
+   bool waitForSignalFD(int signal_fd);
+
+   static bool initializeConnectionInfo(Process::const_ptr proc);
 };
 
 // Base class for the mutator part of a test

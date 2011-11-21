@@ -67,6 +67,7 @@ int_cleanup::~int_cleanup() {
 }
 
 Generator::Generator(std::string name_) :
+   state(none),
    name(name_)
 {
    if (!cb_lock) cb_lock = new Mutex();
@@ -75,6 +76,11 @@ Generator::Generator(std::string name_) :
 Generator::~Generator()
 {
    setState(exiting);
+}
+
+void Generator::stopDefaultGenerator() {
+   Generator *gen = Generator::getDefaultGenerator();
+   if (gen) delete gen;
 }
 
 void Generator::registerNewEventCB(void (*func)())
@@ -170,22 +176,9 @@ bool Generator::getAndQueueEventInt(bool block)
       Event::ptr event = *i;
 	  if(event) {
 	      event->getProcess()->llproc()->updateSyncState(event, true);
-			// Added 9NOV11 - Bernat
-		    pthrd_printf("Process %d: setting thread suspend/resume and generator states after decode\n", event->getProcess()->llproc()->getPid());
-			int_threadPool *tp = event->getProcess()->llproc()->threadPool(); assert(tp);
-			for (int_threadPool::iterator iter = tp->begin(); iter != tp->end(); ++iter) {
-				windows_thread *winthr = dynamic_cast<windows_thread *>(*iter); assert(winthr);
-				assert(winthr->getGeneratorState() != int_thread::running);
-				winthr->plat_setSuspendCount(1);
-			}
-			windows_process *winproc = dynamic_cast<windows_process *>(event->getProcess()->llproc());
+#pragma warning("Move to decoder")
+		  windows_process *winproc = dynamic_cast<windows_process *>(event->getProcess()->llproc());
 			winproc->lowlevel_processSuspended();
-
-		   GeneratorWindows *genwin = dynamic_cast<GeneratorWindows *>(this);
-		   if (genwin->waiters[winproc->getPid()]) {
-			   ::ResetEvent(genwin->waiters[winproc->getPid()]->gen_wait);
-		   }
-			// End added 9NOV11
 	  }
    }
 
@@ -209,65 +202,34 @@ bool Generator::getAndQueueEventInt(bool block)
    return result;
 }
 
-bool Generator::allStopped(int_process *proc, void *)
+bool Generator::plat_skipGeneratorBlock()
 {
-	if(proc == NULL) {
-		pthrd_printf("Process was NULL, treating as stopped\n");
-		return true;
-	}
-   bool all_exited = true;
-   int_threadPool *tp = proc->threadPool();
-   if(!tp) {
-	   pthrd_printf("Process had no threadpool, treating as stopped\n");
-	   return true;
-   }
-   assert(tp);
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
-	   // 9NOV11 - Bernat
-	   // With our changes to the generatorState, this needs to check
-	   // handlerState instead. 
-      if ((*i)->getHandlerState() == int_thread::running ||
-          (*i)->getHandlerState() == int_thread::neonatal_intermediate) 
-      {
-         pthrd_printf("Found running thread: %d/%d is %s\n", 
-                      proc->getPid(), (*i)->getLWP(), 
-                      int_thread::stateStr((*i)->getGeneratorState()));
-         return false;
-      }
-      if ((*i)->getHandlerState() != int_thread::exited) {
-         all_exited = false;
-      }
-   }
-   // When we're attaching, the threadpool could be empty on Windows.
-   // Don't assume that an empty threadpool means everything is exited...
-   if(tp->empty()) {
-	   pthrd_printf("empty threadpool for %d, treating as running\n",
-		   proc->getPid());
-		return false;
-   }
-   if (all_exited) {
-      pthrd_printf("All threads are exited for %d, treating as stopped\n",
-                   proc->getPid());
+   //Default, do nothing.  May be over-written
+   return false;
+}
+
+// TODO: override this in Windows generator so that we use local counters
+bool Generator::hasLiveProc()
+{
+   if (plat_skipGeneratorBlock()) {
       return true;
    }
-   if (proc->forceGeneratorBlock()) {
-      pthrd_printf("Process %d is forcing generator input\n", proc->getPid());
+
+   int num_running_threads = Counter::globalCount(Counter::GeneratorRunningThreads);
+   int num_non_exited_threads = Counter::globalCount(Counter::GeneratorNonExitedThreads);
+   int num_force_generator_blocking = Counter::globalCount(Counter::ForceGeneratorBlock);
+
+   if (num_running_threads) {
+      pthrd_printf("Generator has running threads, returning true from hasLiveProc\n");
+      return true;
+   }
+   if (!num_non_exited_threads) {
+      pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
       return false;
    }
-   pthrd_printf("Checking for running process: %d is stopped\n", proc->getPid());
    return true;
 }
 
-bool Generator::hasLiveProc()
-{
-	pthrd_printf("begin hasLiveProc()\n");
-   ProcessPool *procpool = ProcPool();
-   bool result = !procpool->for_each(Generator::allStopped, NULL);
-   pthrd_printf("end hasLiveProc(), return %s, procpool %s\n",
-	   result ? "TRUE" : "FALSE",
-	   procpool->numProcs() == 0 ? "EMPTY" : "NON-EMPTY");
-   return result;
-}
 
 struct GeneratorMTInternals
 {
@@ -351,11 +313,10 @@ void GeneratorMT::start()
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
-   if (result)
+   if (result) {
+      pthrd_printf("Starting main loop of generator thread\n");
       main();
-   // Let the process pool know that we're not going to mess with processes anymore on this thread,
-   // so any pending deletes (e.g. on Windows) can happen
-   ProcPool()->condvar()->signal();
+   }
    pthrd_printf("Generator thread exiting\n");
 }
 
@@ -363,7 +324,7 @@ void GeneratorMT::main()
 {
    while (!isExitingState()) {
       bool result = getAndQueueEventInt(true);
-      if (!result) {
+      if (!result && !isExitingState()) {
          pthrd_printf("Error return in getAndQueueEventInt\n");
       }
    }

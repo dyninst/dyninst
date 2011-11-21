@@ -58,10 +58,9 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 			// because we're reusing a thread data structure that has had
 			// various stuff done to it before a corresponding OS thread existed.
 			// Just set things properly and move on.
-			dummy->generator_state = neonatal;
-			dummy->handler_state = neonatal;
-			dummy->internal_state = neonatal;
-			dummy->user_state = running;
+			dummy->getGeneratorState().setState(neonatal);
+			dummy->getHandlerState().setState(neonatal);
+			dummy->getUserState().setState(running);
 			pthrd_printf("OOOOOOOOOOOOOOOOO Turning force generator block off; found new RPC thread\n");
 			proc->setForceGeneratorBlock(false);
 			return dummy;
@@ -86,10 +85,9 @@ int_thread *int_thread::createRPCThread(int_process *proc)
 	// Fake it into a state that will make the iRPC code happy.
 	// Update this if postRPCToThread changes
 	// We're creating suspended, so we can write to it...
-	wthrd->handler_state = int_thread::stopped;
-	wthrd->generator_state = int_thread::stopped;
-	wthrd->user_state = int_thread::stopped;
-	wthrd->internal_state = int_thread::stopped;
+	wthrd->getHandlerState().setState(int_thread::stopped);
+	wthrd->getGeneratorState().setState(int_thread::stopped);
+	wthrd->getUserState().setState(int_thread::stopped);
 	wthrd->handler_exiting_state = false;
 
 	return static_cast<int_thread *>(wthrd);
@@ -147,7 +145,7 @@ void windows_thread::setOptions()
 bool windows_thread::attach()
 {
 	// All threads on windows are attached automatically.
-	assert(getInternalState() == neonatal);
+	assert(getUserState().getState() == neonatal);
 	return true;
 }
 

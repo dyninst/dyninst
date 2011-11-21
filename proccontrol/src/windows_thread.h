@@ -77,9 +77,6 @@ public:
 	bool getTLSPtr(Dyninst::Address& tls_ptr);
 	void setHandle(HANDLE h);
 	std::string dumpThreadContext();
-	std::string getSuspendedStatus() const {
-		return isResumed() ? "resumed" : "suspended";
-	}
 	void setStartFuncAddress(Dyninst::Address addr);
 	void setTLSAddress(Dyninst::Address addr);
 	Address getThreadInfoBlockAddr();

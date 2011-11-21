@@ -35,7 +35,6 @@
  * #Desc: Tests whether we lose line information running a mutatee twice
  * #Dep: 
  * #Arch:
- * #Notes:useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -93,7 +92,6 @@ test_results_t test1_41_Mutator::executeTest() {
          return FAILED;
       }
       dprintf("Mutatee started, pid=%d\n", n, proc->getPid());
-      registerPID(proc->getPid()); // register for cleanup
 
       BPatch_image *image = proc->getImage();
       if (!image) {

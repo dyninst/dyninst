@@ -79,7 +79,7 @@ public:
 DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)
 {
    Dwarf_Debug dbg;
-   DwarfSW *ret;
+   DwarfSW *ret = NULL;
    static std::map<std::string, DwarfSW *> dwarf_info;
    std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())

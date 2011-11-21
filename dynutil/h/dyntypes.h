@@ -121,7 +121,7 @@ namespace Dyninst
    typedef HANDLE THR_ID;
    typedef DWORD psaddr_t; // for breakpoints; match the debug struct
 
-#define NULL_PID     INVALID_HANDLE_VALUE
+#define NULL_PID     -1
 #define NULL_LWP     INVALID_HANDLE_VALUE
 #define NULL_THR_ID     INVALID_HANDLE_VALUE
 #define DYNINST_SINGLETHREADED INVALID_HANDLE_VALUE
@@ -140,6 +140,19 @@ namespace Dyninst
 #endif
 
    int ThrIDToTid(Dyninst::THR_ID id);
+}
+
+namespace Dyninst
+{
+   typedef enum {
+      OSNone,
+      Linux,
+      FreeBSD,
+      Windows,
+      VxWorks,
+      BlueGeneL,
+      BlueGeneP
+   } OSType;
 }
 
 #include "dyn_regs.h"

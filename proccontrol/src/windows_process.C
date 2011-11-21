@@ -67,11 +67,6 @@ int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 	return NULL;
 }
 
-int_process::ThreadControlMode int_process::getThreadControlMode() 
-{
-	return int_process::HybridLWPControl;
-}
-
 Dyninst::Architecture windows_process::getTargetArch()
 {
 	// Fix this when we add 64-bit windows support...
@@ -81,7 +76,8 @@ Dyninst::Architecture windows_process::getTargetArch()
 windows_process::windows_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
 								 std::vector<std::string> envp,  std::map<int,int> f) :
 int_process(p, e, a, envp, f),
-arch_process(p, e, a, envp, f),
+hybrid_lwp_control_process(p, e, a, envp, f),
+x86_process(p, e, a, envp, f),
 pendingDetach(false),
 pendingDebugBreak_(false),
 dummyRPCThread_(NULL),
@@ -91,7 +87,8 @@ lowlevel_isRunning_(false)
 
 windows_process::windows_process(Dyninst::PID pid_, int_process *p) :
 int_process(pid_, p),
-arch_process(pid_, p),
+hybrid_lwp_control_process(pid_, p),
+x86_process(pid_, p),
 pendingDetach(false),
 pendingDebugBreak_(false),
 dummyRPCThread_(NULL),
@@ -255,7 +252,17 @@ bool windows_process::needIndividualThreadAttach()
 	return false;
 }
 
-bool windows_process::plat_supportLWPEvents() const
+bool windows_process::plat_supportLWPCreate() const
+{
+	return true;
+}
+
+bool windows_process::plat_supportLWPPreDestroy() const
+{
+	return false;
+}
+
+bool windows_process::plat_supportLWPPostDestroy() const
 {
 	return true;
 }
@@ -271,87 +278,6 @@ bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 	return true;
 }
 
-bool windows_process::plat_contProcess(bool isRunning)
-{
-	pthrd_printf("plat_contProcess : cur state %s...\n", isRunning ? "<running>" : "<paused>");
-	ProcPool()->condvar()->lock();
-#if 0
-	if (dummyRPCThread_ && dummyRPCThread_->getDummyRPCStart()) {
-		// Promote it to real thread-ness!
-		instantiateRPCThread();
-		//dummyRPCThread_ = NULL;
-	}
-#endif
-
-	if (lowlevel_isRunning_) {
-		// We think the process is running, so set the Windows suspend level of any handler-running
-		// thread to 0 and update its generator state.
-		for(int_threadPool::iterator i = threadPool()->begin();
-			i != threadPool()->end(); ++i)
-		{
-			if (((*i)->getHandlerState() == int_thread::running) &&
-				((*i)->getGeneratorState() == int_thread::stopped)) {
-				pthrd_printf("Thread %d/%d: handler state running, setting suspend level to 0\n",
-							(*i)->getLWP(), pid);
-				windows_thread *winthr = dynamic_cast<windows_thread *>(*i);
-				winthr->plat_setSuspendCount(0);
-				winthr->setGeneratorState(int_thread::running);
-			}
-			else {
-				pthrd_printf("Thread %d/%d: skipping, handler %s, generator %s, internal %s, user %s\n",
-					(*i)->getLWP(), pid, 
-					int_thread::stateStr((*i)->getHandlerState()),
-					int_thread::stateStr((*i)->getGeneratorState()),
-					int_thread::stateStr((*i)->getInternalState()),
-					int_thread::stateStr((*i)->getUserState()));
-			}
-		}
-		ProcPool()->condvar()->unlock();
-		return true;
-	}
-
-
-	for(int_threadPool::iterator i = threadPool()->begin();
-		i != threadPool()->end(); ++i)
-	{
-		if( (*i)->isResumed() ) {
-			(*i)->setInternalState(int_thread::running);
-			(*i)->setHandlerState(int_thread::running);
-			// 9NOV11 - set generator state in the generator rather than here. 
-//			(*i)->setGeneratorState(int_thread::running);
-			(*i)->setResumed(false);
-		}else if( (*i)->getInternalState() == int_thread::stopped ) {
-			pthrd_printf("REMOVED Suspending before continue %d/%d\n",
-				getPid(), (*i)->getLWP());
-			// 9NOV11
-			//windows_thread *winthr = static_cast<windows_thread *>(*i);
-			//winthr->plat_setSuspendCount(1);
-#if 0
-			if( !(*i)->plat_suspend() ) {
-				perr_printf("Failed to suspend thread %d/%d\n",
-					getPid(), (*i)->getLWP());
-				setLastError(err_internal, "low-level continue failed");
-				return false;
-			}
-#endif
-		}
-
-	}
-
-	Event::ptr contEvt(new EventContinue());
-	contEvt->setProcess(proc());
-	contEvt->setSyncType(Event::async);
-	mbox()->enqueue(contEvt, Mailbox::low);
-	ProcPool()->condvar()->signal();
-	ProcPool()->condvar()->unlock();
-	// This implementation presumes that all threads are in correct suspended/resumed state.
-	// With HybridLWPControl, this should be correct.
-	// 10NOV11 - Commenting out and moving to end of handler loop
-	//GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
-	//wGen->wake(pid);
-
-	return true;
-}
 SymbolReaderFactory *windows_process::plat_defaultSymReader()
 {
 	// Singleton this jive
@@ -359,7 +285,7 @@ SymbolReaderFactory *windows_process::plat_defaultSymReader()
 	return NULL;
 }
 
-bool windows_process::plat_detach()
+bool windows_process::plat_detach(result_response::ptr /* dummy */)
 {
 	pendingDetach = true;
 	if(pendingDebugBreak()) {
@@ -468,13 +394,14 @@ bool windows_process::plat_collectAllocationResult(int_thread* thr, reg_response
 
 bool windows_process::refresh_libraries(std::set<int_library *> &added_libs,
 										std::set<int_library *> &rmd_libs,
+										bool& /* ignored */,
 										std::set<response::ptr> &async_responses)
 {
 	// no-op on Windows; this is handled at event time
 	return true;
 }
 
-int_library* windows_process::getExecutableLib()
+int_library* windows_process::plat_getExecutable()
 {
 	assert(!"not implemented");
 	return NULL;
@@ -589,14 +516,6 @@ void windows_process::instantiateRPCThread() {
 	dummyRPCThread_->setUser(false);
 	dummyRPCThread_->markRPCRunning();
 
-	// 5) Set the generator to consume events so that
-	// we can be sure we create this as a real thread.
-	// NOTE: only do this if the process is stopped; if it's
-	// running then leave the generator where it is. 
-	if (0 && threadPool()->allStopped()) {
-		pthrd_printf("XXXXXXXXXXXXXXXXX Thread pool is entirely stopped; setting forced generator block to ensure we find RPC thread\n");
-		setForceGeneratorBlock(true);
-	}
 }
 
 void windows_process::destroyRPCThread() {
@@ -609,11 +528,31 @@ void windows_process::handleRPCviaNewThread(bool user_cont) {
 
 	// Tell the iRPC manager to try and prep RPCs on this hacked up mess of a thing. 
 	bool completed = false;
-	rpcMgr()->handleThreadContinue(dummyRPCThread_, user_cont, completed);
+	assert(!"Figure this mess out");
+	//rpcMgr()->handleThreadContinue(dummyRPCThread_, user_cont, completed);
 }
 
 void* windows_process::plat_getDummyThreadHandle() const
 {
 	if(!dummyRPCThread_) return NULL;
 	return dummyRPCThread_->plat_getHandle();
+}
+
+bool windows_process::plat_suspendThread(int_thread *thr)
+{
+	windows_thread* wthr = static_cast<windows_thread*>(thr);
+	assert(wthr);
+	return wthr->plat_suspend();
+}
+
+bool windows_process::plat_resumeThread(int_thread *thr)
+{
+	windows_thread* wthr = static_cast<windows_thread*>(thr);
+	assert(wthr);
+	return wthr->plat_resume();
+}
+
+bool windows_process::plat_debuggerSuspended()
+{
+	return lowlevel_isRunning_;
 }

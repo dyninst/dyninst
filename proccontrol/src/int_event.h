@@ -30,9 +30,26 @@
  */
 
 #include "response.h"
+#include <set>
 
 namespace Dyninst {
 namespace ProcControlAPI {
+
+class int_eventBreakpoint
+{
+  public:
+   int_eventBreakpoint(Address a, installed_breakpoint *i, int_thread *thr);
+   ~int_eventBreakpoint();
+   installed_breakpoint *lookupInstalledBreakpoint();
+   
+   //installed_breakpoint *ibp;
+   Dyninst::Address addr;
+   result_response::ptr pc_regset;
+   int_thread *thrd;
+   bool stopped_proc;
+
+   std::set<Breakpoint::ptr> cb_bps;
+};
 
 class int_eventBreakpointClear
 {
@@ -40,19 +57,24 @@ class int_eventBreakpointClear
    int_eventBreakpointClear();
    ~int_eventBreakpointClear();
 
-   result_response::ptr memwrite_bp_resume;
-   result_response::ptr memwrite_bp_remove;
-};
+   result_response::ptr memwrite_bp_suspend;
+   bool started_bp_suspends;
+   bool cached_bp_sets;
+   bool set_singlestep;
 
-class int_eventBreakpoint
+   std::set<Thread::ptr> clearing_threads;
+};
+ 
+class int_eventBreakpointRestore
 {
   public:
-   int_eventBreakpoint();
-   ~int_eventBreakpoint();
+   int_eventBreakpointRestore(installed_breakpoint *breakpoint_);
+   ~int_eventBreakpointRestore();
 
-   result_response::ptr memwrite_bp_suspend;
-   result_response::ptr pc_regset;
-   bool set_singlestep;
+   bool set_states;
+   result_response::ptr memwrite_bp_resume;
+   result_response::ptr memwrite_bp_remove;
+   installed_breakpoint *bp;
 };
 
 class int_eventRPC {
@@ -85,6 +107,27 @@ class int_eventNewUserThread {
    Dyninst::LWP lwp;
    void *raw_data;
    bool needs_update;
+};
+
+class int_eventThreadDB {
+  public:
+   int_eventThreadDB();
+   ~int_eventThreadDB();
+   
+   std::set<Event::ptr> new_evs;
+   bool completed_new_evs;
+};
+
+class int_eventDetach {
+  public:
+   int_eventDetach();
+   ~int_eventDetach();
+
+   std::set<response::ptr> async_responses;
+   result_response::ptr detach_response;
+   bool temporary_detach;
+   bool removed_bps;
+   bool done;
 };
 
 }

@@ -40,12 +40,16 @@ SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/TestOutputDriver.C \
                     ../src/StdOutputDriver.C \
                     ../src/ResumeLog.C \
-                    ../src/test_info_new.C
+                    ../src/test_info_new.C \
+					../src/module.C \
+					../src/connection.C
 
 SRCS_DYNINSTCOMP = ../src/dyninst/dyninst_comp.C \
                    ../src/dyninst/test_lib_mutateeStart.C \
                    ../src/dyninst/Callbacks.C \
                    ../src/dyninst/Process_data.C
+
+
 SRCS_DYNINSTTESTLIB = ../src/dyninst/libtestA.c \
                       ../src/dyninst/libtestB.c \
                       ../src/dyninst/libInstMe.c \

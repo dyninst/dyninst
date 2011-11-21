@@ -32,6 +32,9 @@
 #if !defined(PCERRORS_H_)
 #define PCERRORS_H_
 
+// Only works on posix-compliant systems. IE not windows.
+//#define PROCCTRL_PRINT_TIMINGS 1
+
 #include <stdio.h>
 #include "util.h"
 
@@ -41,21 +44,43 @@
       fprintf(pctrl_err_out, format, ## __VA_ARGS__); \
   } while (0)
 
+#if defined(PROCCTRL_PRINT_TIMINGS)
+
 #define pthrd_printf(format, ...) \
   do { \
-    if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, "[%s:%u-%s (%d)] - " format, __FILE__, __LINE__, thrdName(), DThread::self(), ## __VA_ARGS__); \
+    if (dyninst_debug_proccontrol) { \
+       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
+    } \
   } while (0)
 
 #define perr_printf(format, ...) \
   do { \
     if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
   } while (0)
+
+#else
+
+#define pthrd_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) { \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+    } \
+  } while (0)
+
+#define perr_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+  } while (0)
+
+#endif
 
 extern bool dyninst_debug_proccontrol;
 extern const char *thrdName();
 extern FILE* pctrl_err_out;
+
+extern unsigned long gettod();
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -79,7 +104,7 @@ const err_t err_noevents       = 0x10013;
 const err_t err_incallback     = 0x10014;
 const err_t err_nouserthrd     = 0x10015;
 const err_t err_detached       = 0x10016;
-const err_t err_pendingirpcs    = 0x10017;
+const err_t err_pendingirpcs   = 0x10017;
 
 err_t getLastError();
 void clearLastError();

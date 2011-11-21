@@ -228,10 +228,6 @@ test_results_t test4_2_Mutator::mutatorTest() {
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_2");
     /* TODO I'd like to automate this part, or wrap it somehow.. */
-    if (getPIDFilename() != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = getPIDFilename();
-    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -243,9 +239,6 @@ test_results_t test4_2_Mutator::mutatorTest() {
        logerror("Unable to run test program.\n");
         return FAILED;
     }
-    // Register for cleanup
-    registerPID(appProc->getPid());
-
     contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 
     if ( !passedTest )

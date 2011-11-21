@@ -32,12 +32,13 @@
 #if !defined(WINDOWS_PROCESS_H)
 #define WINDOWS_PROCESS_H
 
-#include "arch_process.h"
+#include "x86_process.h"
 #include "common/h/IntervalTree.h"
 
 class windows_thread;
 
-class windows_process : public arch_process
+#pragma warning (disable: 4250)
+class windows_process : virtual public x86_process, virtual public hybrid_lwp_control_process
 {
 public:
 	windows_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -52,7 +53,7 @@ public:
 	virtual bool plat_attachWillTriggerStop();
 	virtual bool plat_forked();
 	virtual bool plat_execed();
-	virtual bool plat_detach();
+	virtual bool plat_detach(result_response::ptr resp);
 	virtual bool plat_terminate(bool &needs_sync);
 
 	virtual bool plat_readMem(int_thread *thr, void *local, 
@@ -64,9 +65,10 @@ public:
 	virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 	virtual Dyninst::Architecture getTargetArch();
 	virtual bool plat_individualRegAccess();
-	virtual bool plat_contProcess(bool isRunning = false);
+   virtual bool plat_supportLWPCreate() const;
+   virtual bool plat_supportLWPPreDestroy() const;
+   virtual bool plat_supportLWPPostDestroy() const;
 	virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
-	virtual bool plat_supportLWPEvents() const;
 	virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 	virtual bool plat_convertToBreakpointAddress(psaddr_t &);
 	virtual unsigned int getTargetPageSize();
@@ -79,8 +81,9 @@ public:
 	virtual bool plat_collectAllocationResult(int_thread* thr, reg_response::ptr resp);
 	virtual bool refresh_libraries(std::set<int_library *> &added_libs,
 		std::set<int_library *> &rmd_libs,
+		bool &waiting_forasync,	
 		std::set<response::ptr> &async_responses);
-	virtual int_library *getExecutableLib();
+	virtual int_library *plat_getExecutable();
 	virtual bool initLibraryMechanism();
 	virtual bool plat_isStaticBinary();
 	HANDLE plat_getHandle();
@@ -92,6 +95,10 @@ public:
 	// Windows lets us do this directly.
 	virtual Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
 	virtual bool infFree(Dyninst::Address addr);
+
+	virtual bool plat_suspendThread(int_thread *thr);
+	virtual bool plat_resumeThread(int_thread *thr);
+	virtual bool plat_debuggerSuspended();
 
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);
@@ -109,6 +116,7 @@ public:
 
    virtual void instantiateRPCThread();
    virtual bool plat_supportDirectAllocation() const { return true; }
+   virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
 private:
 	HANDLE hproc;
 	bool pendingDetach;

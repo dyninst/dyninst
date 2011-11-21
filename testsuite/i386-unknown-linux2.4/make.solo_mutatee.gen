@@ -1,9 +1,8 @@
 # Define variables for our compilers, if they aren't already defined
-M_gnu_cc ?= gcc
 ifdef ICC
 M_intel_CC ?= icpc
 endif
-M_gnu_fc ?= gfortran
+M_gnu_cc ?= gcc
 ifdef ICC
 M_intel_cc ?= icc
 endif
@@ -14,6 +13,7 @@ endif
 ifdef PGI
 M_pg_cxx ?= pgCC
 endif
+M_gnu_fc ?= gfortran
 M_nasm ?= nasm
 
 ######################################################################

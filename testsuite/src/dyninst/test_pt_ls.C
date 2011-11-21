@@ -55,7 +55,7 @@ class test_pt_ls_Mutator : public DyninstMutator
 
   virtual test_results_t setup(ParameterDict &param)
   {
-	  runmode = (create_mode_t) param["useAttach"]->getInt();
+	  runmode = (create_mode_t) param["createmode"]->getInt();
 	  return PASSED;
   }
 

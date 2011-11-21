@@ -8,6 +8,7 @@
 #include "irpc.h"
 #include <psapi.h>
 #include "procControl/h/Mailbox.h"
+#include "int_event.h"
 
 using namespace std;
 
@@ -108,6 +109,23 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 	return newEvt;
 }
 
+Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* proc, int_thread* thread)
+{
+	Event::ptr evt;
+	// This handles user-level breakpoints; if we can't associate this with a thread we know about, it's not
+	// something the user installed (or we're in an inconsistent state). Forward to the mutatee.
+	if(!thread) return evt;
+
+	assert(thread->singleStep());
+	installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+	if(clearingbp) {
+		pthrd_printf("Decoded event to breakpoint cleanup\n");
+		evt = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
+	} else {
+		evt = Event::ptr(new EventSingleStep());
+	}
+	return evt;
+}
 
 Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* proc, int_thread* thread)
 {
@@ -126,33 +144,12 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 
 	installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
-	installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
-	if(thread->singleStep() && clearingbp) {
-		pthrd_printf("Decoded event to breakpoint cleanup\n");
-		evt = Event::ptr(new EventBreakpointClear(clearingbp));
-		return evt;
-	}
-
-	// Need to distinguish case where the thread is single-stepped to a
-	// breakpoint and when a single step hits a breakpoint.
-	//
-	// If no forward progress was made due to a single step, then a
-	// breakpoint was hit
-	Dyninst::MachRegisterVal pre_ss_pc = thread->getPreSingleStepPC();
-	if (thread->singleStep() && ( (pre_ss_pc != 0 && pre_ss_pc != adjusted_addr) || !ibp)) {
-	   pthrd_printf("Decoded event to single step on %d/%d\n",
-			   proc->getPid(), thread->getLWP());
-	   evt = Event::ptr(new EventSingleStep());
-	   return evt;
-	}
-
-	if (ibp && ibp != clearingbp) {
+	if (ibp) {
 	   pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
 					thread->getLWP(), adjusted_addr);
-	   EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(adjusted_addr, ibp));
+       EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
 	   evt = event_bp;
 	   evt->setThread(thread->thread());
-	   ibp->addClearingThread(thread);
 	}
 	return evt;
 
@@ -209,6 +206,8 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:
+			newEvt = decodeSingleStepEvent(e, proc, thread);
+			break;
 			//fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);
 		case EXCEPTION_BREAKPOINT:
 			// Case 1: breakpoint is real breakpoint
@@ -234,30 +233,14 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				   {
 					  int_thread *thr = *i;
 					  if (thr->hasPendingStop()) {
-						  pthrd_printf("Suspended %d/%d\n", proc->getPid(), thr->getLWP());
-						   thr->plat_suspend();
+						  didSomething = true;
 					  }
-					  didSomething = true;
 				   }   
 
 					if(didSomething)
 					{
 						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						newEvt = Event::ptr(new EventStop());
-					}
-					else if(proc->hasPendingDetach())
-					{
-						pthrd_printf("Decoded Detach event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-						ProcPool()->condvar()->lock();
-						proc->setState(int_process::exited);
-						ProcPool()->rmProcess(proc);
-						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
-						winGen->removeProcess(proc);
-						delete proc;
-						ProcPool()->condvar()->signal();
-						ProcPool()->condvar()->unlock();
-						events.push_back(newEvt);
-						return true;
 					}
 					else
 					{
@@ -336,12 +319,12 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			if(thread)
 				newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
-			  int_threadPool::iterator i = proc->threadPool()->begin();
-			  for (; i != proc->threadPool()->end(); ++i) {
-				(*i)->setGeneratorState(int_thread::exited);
-				(*i)->setExitingInGenerator(true);
-			  }
-			  events.push_back(newEvt);
+			int_threadPool::iterator i = proc->threadPool()->begin();
+			for (; i != proc->threadPool()->end(); i++) {
+				(*i)->getGeneratorState().setState(int_thread::exited);
+		 		(*i)->setExitingInGenerator(true);
+			}
+			events.push_back(newEvt);
 
 			return true;
 		}
@@ -349,7 +332,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	case EXIT_THREAD_DEBUG_EVENT:
 		pthrd_printf("Decoded ThreadExit event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 		if(thread) {
-			thread->setGeneratorState(int_thread::exited);
+			thread->getGeneratorState().setState(int_thread::exited);
 			thread->setExitingInGenerator(true);
 			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
 		} else {
