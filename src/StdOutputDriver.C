@@ -52,6 +52,7 @@ StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
   streams[HUMAN] = std::string("-");
   last_test = NULL;
   last_group = NULL;
+  printed_header = false;
 }
 
 StdOutputDriver::~StdOutputDriver() {
@@ -79,12 +80,48 @@ void StdOutputDriver::redirectStream(TestOutputStream stream, const char *filena
   }
 }
 
+void StdOutputDriver::printHeader(FILE *out) {
+   if (printed_header)
+      return;
+   printed_header = true;
+#if defined (os_bg_test)
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+           name_len, "TEST", 
+           compiler_len, "COMP", 
+           opt_len, "OPT", 
+           mode_len, "MODE", 
+           thread_len, "THREAD", 
+           link_len, "LINK", 
+           pic_len, "PIC",
+           pmode_len, "PMODE",
+           "RESULT");
+#elif defined(cap_32_64_test)
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+           name_len, "TEST", 
+           compiler_len, "COMP", 
+           opt_len, "OPT", 
+           abi_len, "ABI", 
+           mode_len, "MODE", 
+           thread_len, "THREAD", 
+           link_len, "LINK", 
+           pic_len, "PIC",
+           "RESULT");
+#else
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+           name_len, "TEST", 
+           compiler_len, "COMP", 
+           opt_len, "OPT", 
+           mode_len, "MODE", 
+           thread_len, "THREAD", 
+           link_len, "LINK", 
+           pic_len, "PIC",
+           "RESULT");
+#endif
+}
+
 #define MAX_PRINTED_TESTNAME_LEN 18
 void StdOutputDriver::logResult(test_results_t result, int stage) {
-   // TODO Finish me.  I can probably copy the final output stuff from
-   // test_driver.C into here.
-   
-   // I think this just has to print out the human log results
+   // This just has to print out the human log results
    bool print_stage = false;
    const char *outfn = streams[HUMAN].c_str();
    FILE *out;
@@ -117,7 +154,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
 
    char thread_str[5];
    if (last_group->threadmode == TNone && last_group->procmode == PNone) {
-      strncpy(thread_str, "none", 5);
+      strncpy(thread_str, "NA", 5);
    }
    else {
       if (last_group->procmode == SingleProcess)
@@ -147,38 +184,44 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    
    assert(last_test && last_group);
 
-   int max_name_len = TestInfo::getMaxTestNameLength();
-   if (!max_name_len)
-	   max_name_len = strlen(last_test->name);
-   char *name_align_buffer = (char *) malloc(max_name_len+2);
-   memset(name_align_buffer, 0, max_name_len+2);
-   //  fill name_align_buffer with max_length - test_name->length() spaces.
-   unsigned int i = 0;
-   for (; i < (max_name_len - strlen(last_test->name)); ++i)
-   {
-	   name_align_buffer[i] = ' ';
-   }
-   strcpy(name_align_buffer, last_test->name);
-   name_align_buffer[strlen(last_test->name)] = ':';
-   name_align_buffer[max_name_len+1] = '\0';
+   char name_align_buffer[name_len+1];
+   name_align_buffer[name_len] = '\0';
+   strncpy(name_align_buffer, last_test->name, name_len);
 
-#if defined(MAX_PRINTED_TESTNAME_LEN)
-   if (name_align_buffer[MAX_PRINTED_TESTNAME_LEN] != '\0')
-   {
-      name_align_buffer[MAX_PRINTED_TESTNAME_LEN] = ':';
-      name_align_buffer[MAX_PRINTED_TESTNAME_LEN] = '\0';      
-   }
-#endif
-#if defined(cap_32_64_test)
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s link: %-7s pic: %-6s result: ",
-           name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, 
-           run_mode_str, thread_str, linkage_str, picStr);
+   if (needs_header)
+      printHeader(out);
+#if defined(os_bg_test)
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s ",
+           name_len, name_align_buffer, 
+           compiler_len, last_group->compiler,
+           opt_len, last_group->optlevel, 
+           mode_len, run_mode_str, 
+           thread_len, thread_str, 
+           link_len, linkage_str, 
+           pic_len, picStr,
+           pmode_len, last_group->platmode);
+#elif defined(cap_32_64_test)
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s ", 
+           name_len, name_align_buffer, 
+           compiler_len, last_group->compiler,
+           opt_len, last_group->optlevel, 
+           abi_len, last_group->abi, 
+           mode_len, run_mode_str, 
+           thread_len, thread_str, 
+           link_len, linkage_str, 
+           pic_len, picStr);
 #else
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread: %4s link: %-7s pic: %-6s result: ",
-           name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str, thread_str,
-           linkage_str, picStr);
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s ", 
+           name_len, name_align_buffer, 
+           compiler_len, last_group->compiler,
+           opt_len, last_group->optlevel, 
+           mode_len, run_mode_str, 
+           thread_len, thread_str, 
+           link_len, linkage_str, 
+           pic_len, picStr);
 #endif
-   free(name_align_buffer);
+
+
    switch(result) {
       case PASSED:
          fprintf(out, "PASSED");
@@ -186,7 +229,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
          
       case FAILED:
          fprintf(out, "FAILED");
-	 print_stage = true;
+         print_stage = true;
          break;
          
       case SKIPPED:
@@ -195,7 +238,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
          
       case CRASHED:
          fprintf(out, "CRASHED");
-	 print_stage = true;
+         print_stage = true;
          break;
 
       default:

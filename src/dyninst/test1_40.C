@@ -189,7 +189,7 @@ test_results_t test1_40_Mutator::executeTest()
 
 test_results_t test1_40_Mutator::setup(ParameterDict &param) 
 {
-	bool useAttach = param["useAttach"]->getInt() == USEATTACH;
+	bool createmode = param["createmode"]->getInt() == USEATTACH;
 	appThread = (BPatch_thread *)(param["appThread"]->getPtr());
         appProc = appThread->getProcess();
 	int mutateeXLC = param["mutateeXLC"]->getInt();
@@ -208,7 +208,7 @@ test_results_t test1_40_Mutator::setup(ParameterDict &param)
 		return SKIPPED;
 	}
 
-	if ( useAttach )
+	if ( createmode == USEATTACH )
 	{
 		if ( ! signalAttached(appImage) )
 			return FAILED;

@@ -43,7 +43,20 @@ private:
   TestInfo *last_test;
   RunGroup *last_group;
 
-public:
+  //Column widths
+  static const int name_len = 26;
+  static const int compiler_len = 6;
+  static const int opt_len = 4;
+  static const int abi_len = 3;
+  static const int mode_len = 7;
+  static const int thread_len = 7;
+  static const int link_len = 7;
+  static const int pic_len = 7;
+  static const int pmode_len = 5;
+
+  bool printed_header;
+  void printHeader(FILE *out);
+  public:
   TESTLIB_DLL_EXPORT StdOutputDriver(void * data);
   ~StdOutputDriver();
 

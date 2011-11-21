@@ -203,7 +203,6 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
-    //parentThread->getProcess()->terminateExecution();
 
     // At this point if childThread == NULL the postfork handler failed
     // to run.  Fail gracefully instead of segfaulting on 
@@ -218,7 +217,6 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
-    //childThread->getProcess()->terminateExecution();
 
     if (passedTest) {
       return PASSED;

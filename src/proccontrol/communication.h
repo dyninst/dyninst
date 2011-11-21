@@ -32,8 +32,12 @@
 #define COMMUNICATION_H_
 
 #define MAX_POSSIBLE_THREADS 512
+
+#if defined(os_bg_test)
+#define DEFAULT_NUM_THREADS 3
+#else
 #define DEFAULT_NUM_THREADS 8
-#define DEFAULT_NUM_PROCS 8
+#endif
 
 #if defined(os_windows_test)
 #include <winsock2.h>
@@ -48,7 +52,7 @@ typedef int pid_t;
 extern "C" {
 #endif
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_bg)
 #include <stdint.h>
 #endif
 

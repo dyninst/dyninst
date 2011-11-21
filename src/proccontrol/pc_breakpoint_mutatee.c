@@ -97,6 +97,7 @@ int pc_breakpoint_mutatee()
    testLock(&init_lock);
 
    result = initProcControlTest(threadFunc, NULL);
+
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
       return -1;
