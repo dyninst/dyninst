@@ -57,6 +57,7 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/src/int_thread_db.h"
 
 #include "proccontrol/src/snippets.h"
 

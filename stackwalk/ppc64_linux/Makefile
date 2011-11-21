@@ -26,10 +26,17 @@ SRCS = 	../src/linux-swk.C \
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
 endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
 
 ifdef LIBELF_LIB
-MYFLAGS += -L$(LIBELF_LIB) -lelf
+LDFLAGS += -L$(LIBELF_LIB) -lelf
 endif
+ifdef LIBDWARF_LIB
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+endif
+
 
 LIBS	+=
 CFLAGS  += -m64 $(MYFLAGS)
