@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "dyntypes.h"
 
 namespace Dyninst {
 namespace PatchAPI {
@@ -20,8 +21,7 @@ namespace PatchAPI {
 
 class Buffer {
   public:
-   Buffer();
-   Buffer(unsigned initial_size);
+   Buffer(Address addr, unsigned initial_size);
    ~Buffer();
 
    static const int ALLOCATION_UNIT;
@@ -88,6 +88,8 @@ class Buffer {
 
    unsigned char *start_ptr() const { return buffer_; }
 
+   Address curAddr() const { return start_ + size_; }
+
   private:
    // May call realloc();
    void increase_allocation(int added);
@@ -96,6 +98,8 @@ class Buffer {
    unsigned char * buffer_;
    unsigned size_;
    unsigned max_;
+
+   Address start_;
 };
 
 template <class InputIterator> 

@@ -3286,7 +3286,7 @@ bool AstSnippetNode::generateCode_phase2(codeGen &gen,
                                          bool,
                                          Address &,
                                          Register &) {
-   Buffer buf;
+   Buffer buf(gen.currAddr(), 1024);
    if (!snip_->generate(gen.point(), buf)) return false;
    gen.copy(buf.start_ptr(), buf.size());
    return true;
