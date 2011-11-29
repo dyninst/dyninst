@@ -1,8 +1,7 @@
 #ifndef ABI_H
 #define ABI_H
 
-#include "common/h/Types.h"
-#include "dynutil/h/dyn_regs.h"
+#include "dyn_regs.h"
 #include "bitArray.h"
 #include <map>
 

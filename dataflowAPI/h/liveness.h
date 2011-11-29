@@ -2,17 +2,16 @@
 #ifndef LIVENESS_H
 #define LIVENESS_H
 
-#include "parseAPI/h/CFG.h"
-#include "parseAPI/h/CodeObject.h"
-#include "parseAPI/h/CodeSource.h"
-#include "parseAPI/h/Location.h"
-#include "instructionAPI/h/Instruction.h"
-#include "instructionAPI/h/Register.h"
-#include "instructionAPI/h/InstructionDecoder.h"
-#include "dataflowAPI/src/InstructionCache.h"
-#include "dataflowAPI/h/bitArray.h"
-#include "dataflowAPI/src/RegisterMap.h"
-#include "dataflowAPI/h/ABI.h"
+#include "CFG.h"
+#include "CodeObject.h"
+#include "CodeSource.h"
+#include "Location.h"
+#include "Instruction.h"
+#include "Register.h"
+#include "InstructionDecoder.h"
+#include "InstructionCache.h"
+#include "bitArray.h"
+#include "ABI.h"
 #include <map>
 #include <set>
 

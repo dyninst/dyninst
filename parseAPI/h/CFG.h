@@ -42,7 +42,7 @@
 #include "InstructionSource.h"
 #include "ParseContainers.h"
 
-#include "instructionAPI/h/Instruction.h"
+#include "Instruction.h"
 
 #include "Annotatable.h"
 #include <iostream>

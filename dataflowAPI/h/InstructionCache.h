@@ -35,7 +35,7 @@
 #include "dyntypes.h"
 #include "bitArray.h"
 #include <map>
-#include "parseAPI/h/CFG.h"
+#include "CFG.h"
 
 using namespace Dyninst;
 

@@ -1487,7 +1487,7 @@ bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
 		range = regToMachReg64.equal_range(reg);
 		live = &live2;
 	}
-	if (range.first == range.second) return true;
+	if (range.first == range.second) assert(0);
 	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
 		if (liveRegs[live->getIndex(iter->second)]) return true;
 	

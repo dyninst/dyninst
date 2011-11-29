@@ -61,9 +61,7 @@ int LivenessAnalyzer::getIndex(MachRegister machReg){
 const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     // Calculate if it hasn't been done already
     Address lowAddr = block->start();
-    if (blockLiveInfo.find(lowAddr) == blockLiveInfo.end()){
-    	assert(0);
-    }
+    assert(blockLiveInfo.find(lowAddr) != blockLiveInfo.end());
     livenessData& data = blockLiveInfo[lowAddr];
     assert(data.in.size());
     return data.in;
@@ -236,7 +234,7 @@ void LivenessAnalyzer::analyze(Function *func) {
 // also be instrumenting. 
 bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 
-
+   df_init_debug();
 //TODO: consider the trustness of the location 
 
    if (!loc.isValid()){
@@ -262,16 +260,15 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 		return true;
 	 }
 	 assert(0);
-
       case Location::block_:
 
       case Location::blockInstance_:
          
 	 if (type == Before) {
-	 	bitarray =  getLivenessIn(loc.block);
+	 	bitarray = getLivenessIn(loc.block);
 		return true;
-	}
-	 if (type == After) addr = loc.block->lastInsnAddr()-1;
+	 }
+	 addr = loc.block->lastInsnAddr()-1;
 	 break;
 
       case Location::instruction_:
@@ -447,10 +444,8 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       }
     }
     else{
-//      fprintf(stderr, "%s %s %s %d\n", cur.name().c_str(), base.name().c_str(), changeIfMMX(base).name().c_str(), isMMX(base));
       base = changeIfMMX(base);
       ret.read[getIndex(base)] = true;
-
     }
   }
       
@@ -606,6 +601,7 @@ void LivenessAnalyzer::clean(Function *func){
 
 bool LivenessAnalyzer::isMMX(MachRegister machReg){
 	if ((machReg.val() & Arch_x86) == Arch_x86 || (machReg.val() & Arch_x86_64) == Arch_x86_64){
+		assert( ((machReg.val() & x86::MMX) == x86::MMX) == ((machReg.val() & x86_64::MMX) == x86_64::MMX) );
 		return (machReg.val() & x86::MMX) == x86::MMX;
 	}
 	return false;

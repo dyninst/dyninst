@@ -6,8 +6,8 @@
 #include "CodeObject.h"
 
 
-#include "instructionAPI/h/InstructionDecoder.h"
-#include "instructionAPI/h/Instruction.h"
+#include "InstructionDecoder.h"
+#include "Instruction.h"
 
 #include <string>
 using namespace std;
@@ -35,6 +35,12 @@ struct EdgeLoc{
    Function *func;
    Edge *edge;
    EdgeLoc(Function *f, Edge *e): func(f), edge(e) {};
+};
+
+struct BlockSite{
+   Function *func;
+   Block *block;
+   BlockSite(Function *f, Block *b): func(f), block(b) {};
 };
 
 typedef std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > InsnVec;
@@ -72,6 +78,8 @@ Location(CallSite c) : func(c.func), block(c.block), offset(0), edge(NULL), untr
 Location(ExitSite e) : func(e.func), block(e.block), offset(0), edge(NULL), untrusted(false), type(exit_) {};
    // A block in a particular function
 Location(Function *f, Block *b) : func(f), block(b), offset(0), edge(NULL), untrusted(true), type(blockInstance_) {};
+   // A block of a function
+Location(BlockSite b): func(b.func), block(b.block), offset(0), edge(NULL), untrusted(false), type(blockInstance_) {};
    // A trusted instruction (in a particular function)
 Location(Function *f, InsnLoc l) : func(f), block(l.block), offset(l.offset), insn(l.insn), edge(NULL), untrusted(false), type(instructionInstance_) {};
    // An untrusted (raw) instruction (in a particular function)

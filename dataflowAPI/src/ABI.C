@@ -273,17 +273,17 @@ void ABI::initialize64(){
 /*    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten64_[i] = true;*/
 
-    callWritten64_[machRegIndex_x86[x86::of]] = true;
-    callWritten64_[machRegIndex_x86[x86::sf]] = true;
-    callWritten64_[machRegIndex_x86[x86::zf]] = true;
-    callWritten64_[machRegIndex_x86[x86::af]] = true;
-    callWritten64_[machRegIndex_x86[x86::pf]] = true;
-    callWritten64_[machRegIndex_x86[x86::cf]] = true;
-    callWritten64_[machRegIndex_x86[x86::tf]] = true;
-    callWritten64_[machRegIndex_x86[x86::if_]] = true;
-    callWritten64_[machRegIndex_x86[x86::df]] = true;
-    callWritten64_[machRegIndex_x86[x86::nt_]] = true;
-    callWritten64_[machRegIndex_x86[x86::rf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::of]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::sf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::zf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::af]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::pf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::cf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::tf]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::if_]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::df]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::nt_]] = true;
+    callWritten64_[machRegIndex_x86_64[x86_64::rf]] = true;
 
 
     // And assume a syscall reads or writes _everything_
