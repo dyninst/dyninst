@@ -21,7 +21,7 @@ unsigned Buffer::max_size() const {
    return max_;
 };
 bool Buffer::empty() const {
-   return (size_ > 0);
+   return (size_ == 0);
 };
 
 void Buffer::increase_allocation(int size) {
