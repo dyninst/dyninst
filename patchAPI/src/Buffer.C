@@ -7,7 +7,7 @@ using namespace PatchAPI;
 const int Buffer::ALLOCATION_UNIT = 256;
 
 
-Buffer::Buffer(Address addr, unsigned initial_size) : size_(initial_size), max_(initial_size + ALLOCATION_UNIT), start_(addr) {
+Buffer::Buffer(Address addr, unsigned initial_size) : size_(0), max_(initial_size + ALLOCATION_UNIT), start_(addr) {
    buffer_ = (unsigned char *)::malloc(max_);
 };
 Buffer::~Buffer() {
