@@ -60,6 +60,8 @@
 #include <strings.h>
 #endif
 
+#define COMPLIB_DLL_BUILD
+
 #include "ParameterDict.h"
 #include "test_lib.h"
 #include "error.h"
@@ -79,7 +81,6 @@ int testsRun = 0;
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *logfilename;
-FILE *debug_log;
 
 int gargc;
 char **gargv;
@@ -89,7 +90,7 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
 int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach, int &l_pid);
 void waitForLaunchMONStartup();
 
-bool collectInvocation(pid_t mpirun_pid, int session);
+bool collectInvocation(Dyninst::PID mpirun_pid, int session);
 
 int setupLogs(ParameterDict &params);
 
@@ -325,6 +326,7 @@ static void clearConnection()
    launcher_pid = -1;
 }
 
+#if !defined(os_windows_test)
 bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
 {
    clearConnection();
@@ -378,10 +380,10 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    char **c_driver_args = getCParams(driver_exec, driver_args);
    bool attach_mode = (group->createmode == USEATTACH);
 
-   fprintf(debug_log, "[%s:%u] - Calling LMONInvoke\n", __FILE__, __LINE__);
+   fprintf(getDebugLog(), "[%s:%u] - Calling LMONInvoke\n", __FILE__, __LINE__);
    lmon_session = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode, launcher_pid);
 
-   fprintf(debug_log, "[%s:%u] - Calling server accept\n", __FILE__, __LINE__);
+   fprintf(getDebugLog(), "[%s:%u] - Calling server accept\n", __FILE__, __LINE__);
    result = con->server_accept();
    if (!result) {
       fprintf(stderr, "Failed to accept connection from client\n");
@@ -432,6 +434,13 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
 
    return true;
 }
+#else
+bool setupConnectionToRemote(RunGroup *, ParameterDict &)
+{
+	assert(0);
+	return false;
+}
+#endif
 
 void executeGroup(RunGroup *group,
                   vector<RunGroup *> &groups,
@@ -533,7 +542,7 @@ void executeGroup(RunGroup *group,
       }
    }
 
-   for (int i = 0; i < group->tests.size(); i++) {
+   for (unsigned i = 0; i < group->tests.size(); i++) {
       reportTestResult(group, group->tests[i]);
    }
 
@@ -813,7 +822,7 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 }
 
 bool isRemoteDriver(int argc, char *argv[]) {
-   for (unsigned i=0; i<argc; i++) {
+   for (int i=0; i<argc; i++) {
       if (strcmp(argv[i], "-remote") == 0) {
          return true;
       }
@@ -824,16 +833,16 @@ bool isRemoteDriver(int argc, char *argv[]) {
 extern int be_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
-   if (isRemoteDriver(argc, argv)) {
-      debug_log = fopen("/g/g0/legendre/output_be", "w+");
+#if !defined(os_windows_test)
+	if (isRemoteDriver(argc, argv)) {
       return be_main(argc, argv);
    }
-   debug_log = fopen("/g/g0/legendre/output_driver", "w+");
+
    struct rlimit infin;
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
    setrlimit(RLIMIT_CORE, &infin);
-
+#endif
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));

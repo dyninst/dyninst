@@ -32,7 +32,9 @@
 // $Id: test_lib_mutateeStart.C,v 1.1 2008/10/30 19:21:46 legendre Exp $
 // Functions Dealing with mutatee Startup
 
+#if !defined(COMLIB_DLL_BUILD)
 #define COMPLIB_DLL_BUILD
+#endif
 
 #include "dyninst_comp.h"
 #include "test_lib.h"
@@ -197,7 +199,8 @@ bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_
    bool file_running = false;
    bool error = true;
    bool result;
-   int app_return, pid;
+   int app_return;
+   Dyninst::PID pid;
    bool app_crash;
    const char **child_argv = NULL;
    std::string outfile, mutatee_string;

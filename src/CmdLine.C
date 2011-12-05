@@ -37,6 +37,10 @@
 #include <cstdlib>
 #include <algorithm>
 
+#if defined(os_windows_test)
+#include <time.h>
+#endif
+
 #include "help.h"
 #include "CmdLine.h"
 #include "ResumeLog.h"
@@ -139,8 +143,8 @@ ModeGroup mode_args[] = {
    { "mp",          PROCMODE,  defaultOff },
    { "dynamiclink", LINKMODE,  defaultOn  },
    { "staticlink",  LINKMODE,  defaultOff },
-   { "pic",         PICMODE,   defaultOn  },
-   { "nonpic",      PICMODE,   defaultOff },
+   { "pic",         PICMODE,   defaultOff },
+   { "nonpic",      PICMODE,   defaultOn  },
    { "smp",         PLATMODE,  defaultOn  },
    { "dual",        PLATMODE,  defaultOff },
    { "vn",          PLATMODE,  defaultOff },
@@ -262,7 +266,7 @@ static int handleArgs(int argc, char *argv[])
    }
 
 
-   for (unsigned i=1; i < argc; i++ )
+   for (int i=1; i < argc; i++ )
    {
       if ( strcmp(argv[i], "-test") == 0)
       {
@@ -290,7 +294,7 @@ static int handleArgs(int argc, char *argv[])
       }
       else if ( strcmp(argv[i], "-run") == 0)
       {
-         unsigned int j;
+         int j;
          for ( j = i+1; j < argc; j++ )
          {
             if ( argv[j][0] == '-' )
@@ -615,6 +619,7 @@ static bool paramOn(const char *param)
       }
    }
    assert(0);
+   return false;
 }
 
 struct groupcmp 
@@ -971,9 +976,10 @@ static bool testListContains(TestInfo * test, std::vector<char *> &testsn) {
  
 #if !defined(os_windows_test)
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
 
+#include <sys/stat.h>
 static bool fileExists(std::string f)
 {
    struct stat data;
@@ -981,9 +987,4 @@ static bool fileExists(std::string f)
 
    return (result == 0);
 }
-#else
-static bool fileExists(std::string f)
-{
-#error IMPLEMENT
-}
-#endif
+

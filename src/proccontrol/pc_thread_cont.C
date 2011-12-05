@@ -154,6 +154,11 @@ test_results_t pc_thread_contMutator::executeTest()
    have_pre_lwp = true;
    have_post_thread = false;
    have_post_lwp = true;
+#elif defined(os_windows_test)
+   have_pre_thread = false;
+   have_pre_lwp = false;
+   have_post_thread = false;
+   have_post_lwp = true;
 #else
 #error Unkown platform in pc_thread test
 #endif

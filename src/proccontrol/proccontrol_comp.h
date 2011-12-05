@@ -79,6 +79,9 @@ public:
    HANDLE winsock_event;
 //#endif
 
+   // FIXME: this doesn't live here anymore
+	Process::ptr launchMutatee(RunGroup *group, ParameterDict &params);
+	bool launchMutatees(RunGroup *group, ParameterDict &param);
 
    ProcControlComponent();
    virtual ~ProcControlComponent();

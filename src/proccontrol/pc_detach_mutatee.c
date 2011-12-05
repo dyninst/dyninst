@@ -125,6 +125,7 @@ int pc_detach_mutatee()
 {
    syncloc syncloc_msg;
    int result;
+   int total_num_signals;
    num_signals = 0;
 
    initLock(&init_lock);
@@ -160,7 +161,6 @@ int pc_detach_mutatee()
       return -1;
    }
 
-   int total_num_signals;
 #if defined(os_bg_test)
    total_num_signals = 1;
 #else
