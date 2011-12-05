@@ -1623,6 +1623,11 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
                continue;
             st.setState(int_thread::stopped);
          }
+		 windows_process* w = dynamic_cast<windows_process*>(this);
+		 if(gen && w)
+		 {
+			 w->lowlevel_processSuspended();
+		 }
          break;
       }
       case Event::unset: {
@@ -1980,6 +1985,10 @@ bool hybrid_lwp_control_process::plat_syncRunState()
       }
       if (!RUNNING_STATE(thr->getHandlerState().getState()))
          any_stopped = true;
+   }
+   if(!a_running_thread) {
+	   pthrd_printf("WARNING: did not find a running thread, using initial thread\n");
+	   a_running_thread = tp->initialThread();
    }
 
    if (!any_target_running && !any_running) {
@@ -3368,7 +3377,7 @@ bool int_threadPool::allHandlerStopped()
 
 bool int_threadPool::allStopped(int state_id)
 {
-   for (iterator i = begin(); i != end(); i++) {
+	for (iterator i = begin(); i != end(); i++) {
       if (!(*i)->isStopped(state_id))
          return false;
    }
@@ -6360,6 +6369,64 @@ bool Counter::global(CounterType ct)
 {
    return globalCount(ct) != 0;
 }
+
+int Counter::processCount(CounterType ct, int_process* p)
+{
+	int sum = 0;
+	switch(ct)
+	{
+		case AsyncEvents:
+			sum += p->asyncEventCount().localCount();
+			return sum;
+			break;
+		case ForceGeneratorBlock:
+			sum += p->getForceGeneratorBlockCount().localCount();			
+			return sum;
+			break;
+		case StartupTeardownProcesses:
+			sum += p->getStartupTeardownProcs().localCount();
+			return sum;
+			break;
+		default:
+			break;
+	}
+	for(int_threadPool::iterator i = p->threadPool()->begin();
+		i != p->threadPool()->end();
+		++i)
+	{
+		switch(ct)
+		{
+		case HandlerRunningThreads:
+			sum += (*i)->handlerRunningThreadsCount().localCount();
+			break;
+		case GeneratorRunningThreads:
+			sum += (*i)->generatorRunningThreadsCount().localCount();
+			break;
+		case SyncRPCs:
+			sum += (*i)->syncRPCCount().localCount();
+			break;
+		case SyncRPCRunningThreads:
+			sum += (*i)->runningSyncRPCThreadCount().localCount();
+			break;
+		case PendingStops:
+			sum += (*i)->pendingStopsCount().localCount();
+			break;
+		case ClearingBPs:
+			sum += (*i)->clearingBPCount().localCount();
+			break;
+		case ProcStopRPCs:
+			sum += (*i)->procStopRPCCount().localCount();
+			break;
+		case GeneratorNonExitedThreads:
+			sum += (*i)->getGeneratorNonExitedThreadCount().localCount();
+			break;
+		default:
+			break;
+		}
+	}
+	return sum;
+}
+
 
 int Counter::globalCount(CounterType ct)
 {

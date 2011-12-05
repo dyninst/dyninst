@@ -182,26 +182,8 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	switch(e.dwDebugEventCode)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
-		{
-			return decodeCreateThread(e, newEvt, proc, events);
-
-#if 0
-			pthrd_printf("Decoded CreateProcess event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-			newEvt = EventPreBootstrap::ptr(new EventPreBootstrap());
-			newEvt->setSyncType(Event::sync_process);
-			windows_proc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
-			newEvt->setProcess(proc->proc());
-			events.push_back(newEvt);
-			Event::ptr threadEvent;
-			if(threadEvent)
-				newEvt->addSubservientEvent(threadEvent);
-			return ok;
-#endif
-		}
 	case CREATE_THREAD_DEBUG_EVENT:
-		{
-			return decodeCreateThread(e, newEvt, proc, events);
-		}
+		return decodeCreateThread(e, newEvt, proc, events);
 	case EXCEPTION_DEBUG_EVENT:
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
@@ -255,7 +237,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				{
 					// Case 4: breakpoint in ntdll.dll due to startup. This should be skipped and we should bootstrap.
 					pthrd_printf("Breakpoint due to startup, ignoring\n");
-					proc->setForceGeneratorBlock(false);
 					newEvt = Event::ptr(new EventBootstrap());
 					ntdll_ignore_breakpoint_address = (Address) e.u.Exception.ExceptionRecord.ExceptionAddress;
 				}
@@ -285,12 +266,9 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			pthrd_printf("Debugger I/O exception: %lx\n", e.u.Exception.ExceptionRecord.ExceptionInformation[0]);
 			// 9NOV11 - wake up the generator because we're not creating an event for this.
 			GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
-			newEvt = EventContinue::ptr(new EventContinue());
+			newEvt = EventNop::ptr(new EventNop());
 			newEvt->setSyncType(Event::async);
-			newEvt->setProcess(proc->proc());
-
-		    mbox()->enqueue(newEvt, Mailbox::low);
-			return true;
+			break;
 		}
 		default:
 			{
@@ -375,7 +353,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	}
 	if(newEvt)
 	{
-		//assert(thread || (e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT));
 		assert(proc);
 		if(newEvt->getSyncType() == Event::unset)
 			newEvt->setSyncType(Event::sync_process);
@@ -418,7 +395,6 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
 	}
-	ProcPool()->condvar()->lock();
 	proc = ProcPool()->findProcByPid(e.dwProcessId);
 	assert(proc);
 
@@ -437,7 +413,6 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		}
 	}
 
-	ProcPool()->condvar()->unlock();
 	newEvt->setProcess(proc->proc());
 	newEvt->setSyncType(Event::sync_process);
 	events.push_back(newEvt);

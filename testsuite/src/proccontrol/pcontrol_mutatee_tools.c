@@ -44,12 +44,13 @@
 #if !defined(MSG_WAITALL)
 #define MSG_WAITALL 8
 #endif
-#endif
 
+#else
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
@@ -185,7 +186,6 @@ int handshakeWithServer()
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
-   handshake shake;
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
@@ -203,11 +203,16 @@ int handshakeWithServer()
 
 void pingSignalFD(int sfd)
 {
-   char c = 'X';
+#if !defined(os_windows_test)
+	char c = 'X';
    if (sfd == 0 || sfd == -1) {
       return;
    }
    write(sfd, &c, sizeof(char));
+#else
+//	assert(!"really, matt?");
+	return;
+#endif
 }
 
 int releaseThreads()
@@ -222,7 +227,8 @@ int releaseThreads()
 
 int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 {
-   WORD wsVer = MAKEWORD(2,0);
+#if defined(os_windows_test)
+	WORD wsVer = MAKEWORD(2,0);
    int result = 0;
    WSADATA ignored;
    //fprintf(stderr, "starting initProcControlTest\n");
@@ -232,6 +238,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 	   fprintf(stderr, "error in WSAStartup: %d\n", result);
 	   return -1;
    }
+#endif
 
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
@@ -241,7 +248,9 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       return -1;
    }
    pingSignalFD(signal_fd);
+#if !defined(os_windows_test)
    getSocketInfo();
+#endif
    result = initMutatorConnection();
    if (result != 0) {
       fprintf(stderr, "Error initializing connection to mutator\n");
@@ -316,6 +325,7 @@ void getSocketInfo()
    socket_name = space+1;
    *space = '\0';
 }
+
 
 void sigalarm_handler(int sig)
 {

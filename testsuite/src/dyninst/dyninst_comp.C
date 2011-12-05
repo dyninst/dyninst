@@ -200,7 +200,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       }
       case USEATTACH:
       {
-         int pid = getMutateePid(group);
+         Dyninst::PID pid = getMutateePid(group);
          if (pid == NULL_PID) {
             std::string mutateeString = launchMutatee(group, params);
             if (mutateeString == string("")) {

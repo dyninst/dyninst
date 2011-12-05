@@ -42,9 +42,6 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 										 Dyninst::LWP lwp_id,
 										 bool initial_thrd)
 {
-	if (initial_thrd) {
-		return NULL;
-	}
 	windows_process* wproc = dynamic_cast<windows_process*>(proc);
 	assert(wproc);
 	int_thread* dummy = wproc->RPCThread();

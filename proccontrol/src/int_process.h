@@ -113,6 +113,7 @@ class Counter {
    int localCount() const;
    static bool global(CounterType ct);
    static int globalCount(CounterType ct);
+   static int processCount(CounterType ct, int_process* p);
 
   private:
    int local_count;

@@ -58,7 +58,8 @@ int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
 										std::map<int,int> f)
 {
-	return new windows_process(0, e, a, envp, f);
+	int_process* ret = new windows_process(0, e, a, envp, f);
+	return ret;
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
@@ -554,5 +555,5 @@ bool windows_process::plat_resumeThread(int_thread *thr)
 
 bool windows_process::plat_debuggerSuspended()
 {
-	return lowlevel_isRunning_;
+	return !lowlevel_isRunning_;
 }

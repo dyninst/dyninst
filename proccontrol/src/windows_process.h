@@ -111,9 +111,14 @@ public:
    virtual void handleRPCviaNewThread(bool);
    virtual void* plat_getDummyThreadHandle() const;
 
-   void lowlevel_processSuspended() { lowlevel_isRunning_ = false; }
-   void lowlevel_processResumed() { lowlevel_isRunning_ = true; }
-
+   void lowlevel_processSuspended() {
+	   pthrd_printf("Marking %d debugger suspended\n", getPid());
+	   lowlevel_isRunning_ = false; 
+   }
+   void lowlevel_processResumed() { 
+	   	   pthrd_printf("Marking %d debugger resumed\n", getPid());
+		   lowlevel_isRunning_ = true; 
+   }
    virtual void instantiateRPCThread();
    virtual bool plat_supportDirectAllocation() const { return true; }
    virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }

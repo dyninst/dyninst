@@ -207,15 +207,6 @@ Event::~Event()
 {
 }
 
-EventContinue::EventContinue() :
-Event(EventType(EventType::None,EventType::Continue))
-{
-}
-
-EventContinue::~EventContinue()
-{
-}
-
 EventTerminate::EventTerminate(EventType type_) :
    Event(type_)
 {

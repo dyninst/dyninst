@@ -119,6 +119,6 @@ void TestOutputDriver::setNeedsHeader(bool h)
    needs_header = h;
 }
 
-TestOutputDriver::~TestOutputDriver()
+TESTLIB_DLL_EXPORT TestOutputDriver::~TestOutputDriver()
 {
 }

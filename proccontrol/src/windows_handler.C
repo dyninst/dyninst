@@ -170,9 +170,6 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	   ev->setSuppressCB(true);
    }
 
-	pthrd_printf("WinHandleCreateThread continuing the process...\n");
-	thr->intCont();
-
    return ret_success;
 }
 

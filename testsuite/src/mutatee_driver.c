@@ -257,6 +257,7 @@ int main(int iargc, char *argv[])
    unsigned int label_count = 0;
    int print_labels = FALSE;
    int has_pidfile = 0;
+   FILE* f;
 
    gargc = argc;
    gargv = argv;
@@ -358,7 +359,7 @@ int main(int iargc, char *argv[])
          unique_id = atoi(argv[i]);
       } else if (!strcmp(argv[i], "-signal_file")) {
          i += 1;
-         FILE *f = fopen(argv[i], "w");
+         f = fopen(argv[i], "w");
          fclose(f);
       } else if (!strcmp(argv[i], "-signal_fd")) {
          signal_fd = atoi(argv[++i]);

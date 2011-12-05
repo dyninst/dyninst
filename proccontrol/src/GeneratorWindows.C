@@ -100,14 +100,24 @@ bool GeneratorWindows::hasLiveProc()
 		pthrd_printf("hasLiveProc() found NULL process, returning FALSE\n");
 		return false;
 	}
-	bool all_stopped = p->threadPool()->allStopped(int_thread::GeneratorStateID);
-	bool ret = !all_stopped;
-	pthrd_printf("allStopped %s for %d, returning %s\n",
-		all_stopped ? "TRUE" : "FALSE",
-		p->getPid(),
-		ret ? "TRUE" : "FALSE");
 
-	return ret;
+   int num_running_threads = Counter::processCount(Counter::GeneratorRunningThreads, p);
+   int num_non_exited_threads = Counter::processCount(Counter::GeneratorNonExitedThreads, p);
+   int num_force_generator_blocking = Counter::processCount(Counter::ForceGeneratorBlock, p);
+
+   if (num_running_threads) {
+      pthrd_printf("Generator has running threads, returning true from hasLiveProc\n");
+      return true;
+   }
+   if (!num_non_exited_threads) {
+      pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
+      return false;
+   }
+   if(num_force_generator_blocking) {
+      pthrd_printf("Generator forcing blocking, returning true from hasLiveProc\n");
+      return true;
+   }
+	return false;
 }
 
 ArchEvent* GeneratorWindows::getCachedEvent()

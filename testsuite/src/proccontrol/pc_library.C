@@ -129,7 +129,12 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
 
       bool found_lib = false;
 	  find_by_pointer F = find_by_pointer(lib);
-	  libpool.for_each(F);
+	  for(LibraryPool::const_iterator i = libpool.begin();
+		  i != libpool.end();
+		  ++i)
+	  {
+		  F(*i);
+	  }
 	  found_lib = F.found_it;
 	  if (!found_lib) {
          logerror("New library was not in library list\n");
@@ -147,7 +152,12 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
          pi.unloaded_libtestb = pi.order++;
       }
 	  find_by_pointer f(lib);
-	  libpool.for_each(f);
+	  for(LibraryPool::const_iterator i = libpool.begin();
+		  i != libpool.end();
+		  ++i)
+	  {
+		  f(*i);
+	  }
 	  if(f.found_it) {
 		  logerror("Removed library was still in library list\n");
 		  myerror = true;

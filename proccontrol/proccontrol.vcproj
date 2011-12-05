@@ -266,6 +266,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\memcache.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\pcerrors.C"
 				>
 				<FileConfiguration

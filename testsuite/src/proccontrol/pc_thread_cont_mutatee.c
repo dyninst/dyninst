@@ -120,7 +120,6 @@ int pc_thread_cont_mutatee()
        send_message((unsigned char *)&can_stop, sizeof(handshake));
        logstatus("initial thread: all threads can be continued\n");
    }
-   allow_exit can_exit;
    recv_message((unsigned char *) &can_exit, sizeof(allow_exit));
    if (can_exit.code != ALLOWEXIT_CODE) {
       output->log(STDERR, "Recieved event that wasn't allow_exit\n");

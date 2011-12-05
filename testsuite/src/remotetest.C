@@ -43,8 +43,7 @@ extern char **environ;
 
 using namespace std;
 
-extern FILE *debug_log;
-#define debug_printf(str, ...) do { if (debug_log) { fprintf(debug_log, str, ## __VA_ARGS__); fflush(debug_log); } } while (0)
+#define debug_printf(str, ...) do { if (getDebugLog()) { fprintf(getDebugLog(), str, ## __VA_ARGS__); fflush(getDebugLog()); } } while (0)
 
 static void encodeParams(ParameterDict &params, MessageBuffer &buf)
 {

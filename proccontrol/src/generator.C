@@ -176,12 +176,9 @@ bool Generator::getAndQueueEventInt(bool block)
       Event::ptr event = *i;
 	  if(event) {
 	      event->getProcess()->llproc()->updateSyncState(event, true);
-#pragma warning("Move to decoder")
-		  windows_process *winproc = dynamic_cast<windows_process *>(event->getProcess()->llproc());
-			winproc->lowlevel_processSuspended();
 	  }
    }
-
+   ProcPool()->condvar()->unlock();
 
    setState(queueing);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
@@ -193,7 +190,6 @@ bool Generator::getAndQueueEventInt(bool block)
       Generator::cb_lock->unlock(); 
    }
 
-   ProcPool()->condvar()->unlock();
 
    result = true;
  done:
@@ -227,6 +223,7 @@ bool Generator::hasLiveProc()
       pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
       return false;
    }
+#pragma warning("fix force generator block")
    return true;
 }
 

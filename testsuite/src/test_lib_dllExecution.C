@@ -35,7 +35,6 @@
 #include "TestOutputDriver.h"
 #include "comptester.h"
 #include "module.h"
-#include <winsock2.h>
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>

@@ -685,19 +685,6 @@ class PC_EXPORT EventThreadDB : public Event
    virtual bool triggersCB() const;
 };
 
-class PC_EXPORT EventContinue : public Event
-{
-   friend void dyn_detail::boost::checked_delete<EventContinue>(EventContinue *);
-   friend void dyn_detail::boost::checked_delete<const EventContinue>(const EventContinue *);
- public:
-   typedef dyn_detail::boost::shared_ptr<EventContinue> ptr;
-   typedef dyn_detail::boost::shared_ptr<const EventContinue> const_ptr;
-   EventContinue();
-   ~EventContinue();
-   virtual bool userEvent() const { return true; };
-
-};
-
 }
 }
 #endif

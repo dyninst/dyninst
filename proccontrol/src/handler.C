@@ -631,7 +631,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
-
+   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
@@ -660,11 +660,11 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
 
+   ProcPool()->condvar()->lock();
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
       delete proc;
-	  // pthrd_printf("Skipping delete because Matt's an idiot\n");
    }
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -1811,7 +1811,8 @@ bool HandleCallbacks::requiresCB(Event::const_ptr ev)
 
 Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 {
-   int_thread *thr = ev->getThread()->llthrd();
+   int_thread *thr = NULL;
+   if(ev->getThread()) thr = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    
    if (ev->noted_event) {
