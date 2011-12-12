@@ -263,6 +263,9 @@ AstNodePtr AstNode::dynamicTargetNode() {
     return dynamicTargetNode_;
 }
 
+AstNodePtr AstNode::scrambleRegistersNode(){
+    return AstNodePtr(new AstScrambleRegistersNode());
+}
 
 bool isPowerOf2(int value, int &result)
 {
@@ -2002,6 +2005,18 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
    }
 }
 
+bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen, 
+ 						  bool , 
+						  Address&, 
+						  Register& )
+{
+   for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+      registerSlot *reg = gen.rs()->GPRs()[i];
+      if (reg->encoding() != REGNUM_RBP && reg->encoding() != REGNUM_RSP)
+          gen.codeEmitter()->emitLoadConst(reg->encoding() , -1, gen);
+   }
+   return true;
+}
 
 #if defined(AST_PRINT)
 std::string getOpString(opCode op)
@@ -2979,6 +2994,10 @@ bool AstDynamicTargetNode::containsFuncCall() const
 {
    return false;
 }
+bool AstScrambleRegistersNode::containsFuncCall() const
+{
+   return false;
+}
 
 static void setCFJRet(cfjRet_t &a, cfjRet_t b) {
    //cfj_call takes priority over cfj_jump
@@ -3063,6 +3082,10 @@ cfjRet_t AstActualAddrNode::containsFuncJump() const
 }
 
 cfjRet_t AstDynamicTargetNode::containsFuncJump() const
+{
+   return cfj_none;
+}
+cfjRet_t AstScrambleRegistersNode::containsFuncJump() const
 {
    return cfj_none;
 }
@@ -3151,6 +3174,10 @@ bool AstMemoryNode::usesAppRegister() const
 }
 
 bool AstInsnNode::usesAppRegister() const
+{
+   return true;
+}
+bool AstScrambleRegistersNode::usesAppRegister() const
 {
    return true;
 }

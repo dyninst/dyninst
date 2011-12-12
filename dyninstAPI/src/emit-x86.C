@@ -2348,10 +2348,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (!shouldSaveReg(reg, bt, saveFlags))
-         continue;
+           continue; 
       if (createFrame && reg->encoding() == REGNUM_RBP)
-         continue;
-
+           continue;
       emitPushReg64(reg->encoding(),gen);
       // We move the FP down to just under here, so we're actually
       // measuring _up_ from the FP. 

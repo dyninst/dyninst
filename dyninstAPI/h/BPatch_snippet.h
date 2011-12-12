@@ -815,6 +815,22 @@ class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
   BPatch_dynamicTargetExpr, ());
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_scrambleRegistersExpr
+
+
+class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
+{
+
+  // BPatch_scrambleRegistersExpr
+  // Set all GPR to flag value.
+
+  API_EXPORT_CTOR(Int, (),
+  BPatch_scrambleRegistersExpr, ());
+};
+
 #endif /* _BPatch_snippet_h_ */
 
 

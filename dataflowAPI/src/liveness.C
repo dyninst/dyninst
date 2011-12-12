@@ -389,7 +389,6 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 }
 
 bool LivenessAnalyzer::query(Location loc, Type type, const MachRegister& machReg, bool &live){
-
 	bitArray liveRegs;
 	if (query(loc, type, liveRegs)){
 		live = liveRegs[getIndex(machReg)];
@@ -412,7 +411,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
   curInsn->getReadSet(cur_read);
   curInsn->getWriteSet(cur_written);
     liveness_printf("Read registers: \n");
-      
+  
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
        i != cur_read.end(); i++) 
   {
@@ -448,7 +447,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       ret.read[getIndex(base)] = true;
     }
   }
-      
+ 
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {  
     MachRegister cur = (*i)->getID();
@@ -479,8 +478,8 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
     }
     else{
       base = changeIfMMX(base);
-      ret.written[getIndex(base)];
-      if (cur != base || isMMX(base)) ret.read[getIndex(base)] = true;
+      ret.written[getIndex(base)] = true;
+      if ((cur != base && cur.size() < 4) || isMMX(base)) ret.read[getIndex(base)] = true;
     }
   }
   InsnCategory category = curInsn->getCategory();
