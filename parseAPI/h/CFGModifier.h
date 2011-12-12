@@ -68,9 +68,9 @@ class CFGModifier {
    // The void * becomes "owned" by the CodeObject, as it's used
    // as a backing store; it cannot be ephemeral.
    // Returns the new entry block. 
-   PARSER_EXPORT static Block *insert(CodeObject *obj, 
-                                    Address base, void *data, 
-                                    unsigned size);
+   PARSER_EXPORT static InsertedRegion *insert(CodeObject *obj, 
+                                               Address base, void *data, 
+                                               unsigned size);
 
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.

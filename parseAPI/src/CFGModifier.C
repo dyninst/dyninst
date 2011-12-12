@@ -279,7 +279,7 @@ bool CFGModifier::remove(Function *f) {
    return true;
 }
 
-Block *CFGModifier::insert(CodeObject *obj, 
+InsertedRegion *CFGModifier::insert(CodeObject *obj, 
                          Address base, void *data, 
                          unsigned size) {
    cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
@@ -293,7 +293,7 @@ Block *CFGModifier::insert(CodeObject *obj,
    obj->cs()->addRegion(newRegion);
    obj->parse(newRegion, base, true);
 
-   return obj->findBlockByEntry(newRegion, base);
+   return newRegion;
 }
 
 InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch) : 

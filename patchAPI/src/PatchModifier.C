@@ -34,6 +34,10 @@
 #include "PatchMgr.h"
 #include "CFGModifier.h"
 
+#include <queue>
+#include <set>
+#include <vector>
+
 using namespace Dyninst;
 using namespace PatchAPI;
 
@@ -94,15 +98,73 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
    return split;
 }
 
-PatchBlock *PatchModifier::insert(PatchObject *obj, void *start, unsigned size) {
+
+
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size, Address base) {
+   ParseAPI::CodeObject *co = obj->co();
+   
+   ParseAPI::InsertedRegion *newRegion = ParseAPI::CFGModifier::insert(co, base, start, size);
+
+   if (!newRegion) return InsertedCode::Ptr();
+
+   ParseAPI::Block *_e = co->findBlockByEntry(newRegion, base);
+   if (!_e) return InsertedCode::Ptr();
+
+   // Let's get handles to the various bits'n'pieces
+   PatchBlock *entry = obj->getBlock(_e);
+   if (!entry) return InsertedCode::Ptr();
+
+   InsertedCode::Ptr ret = InsertedCode::Ptr(new InsertedCode());
+   ret->entry_ = entry;
+
+   std::queue<PatchBlock *> worklist; worklist.push(entry);
+   while (!worklist.empty()) {
+      PatchBlock *cur = worklist.front(); worklist.pop();
+      assert(cur);
+
+      if (ret->blocks_.find(cur) != ret->blocks_.end()) continue;
+      ret->blocks_.insert(cur);
+
+      for (PatchBlock::edgelist::const_iterator iter = cur->getSources().begin();
+           iter != cur->getSources().end(); ++iter) {
+         PatchEdge *e = (*iter);
+         if (e->sinkEdge()) {
+            ret->exits_.push_back(e);
+            continue;
+         }
+         ParseAPI::Block *t_ = e->edge()->trg(); assert(t_);
+         if (t_->region() != newRegion) {
+            ret->exits_.push_back(e);
+            continue;
+         }
+         PatchBlock *t = obj->getBlock(t_);
+         worklist.push(t);
+      }
+   }
+
+   return ret;
+}
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size) {
    ParseAPI::CodeObject *co = obj->co();
    Address base = co->getFreeAddr();
-   
-   ParseAPI::Block *newBlock = ParseAPI::CFGModifier::insert(co, base, start, size);
-   if (!newBlock) return NULL;
-
-   return obj->getBlock(newBlock);
+   return insert(obj, start, size, base);
 }
+
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, SnippetPtr snip, Point *p) {
+   if (!snip) return InsertedCode::Ptr();
+
+   ParseAPI::CodeObject *co = obj->co();
+   Address base = co->getFreeAddr();
+
+   Buffer buf(base, 1024);
+   if (!snip->generate(p, buf)) return InsertedCode::Ptr();
+
+   return insert(obj, buf.start_ptr(), buf.size(), base);
+}
+
 
 bool PatchModifier::remove(PatchBlock *block, bool force)
 {
