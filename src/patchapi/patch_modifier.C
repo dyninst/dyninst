@@ -200,7 +200,7 @@ bool patchModifier_Mutator::insert() {
       return false;
    }
 
-   PatchBlock *block = PatchModifier::insert(func->obj(), insert_buffer, buf_size);
+   PatchBlock *block = PatchModifier::insert(func->obj(), insert_buffer, buf_size)->entry();
    if (!block) {
       logerror("** Failed patch_modifier: insertion failed\n");
       return false;
