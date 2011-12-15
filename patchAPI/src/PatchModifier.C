@@ -126,8 +126,8 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned 
       if (ret->blocks_.find(cur) != ret->blocks_.end()) continue;
       ret->blocks_.insert(cur);
 
-      for (PatchBlock::edgelist::const_iterator iter = cur->getSources().begin();
-           iter != cur->getSources().end(); ++iter) {
+      for (PatchBlock::edgelist::const_iterator iter = cur->getTargets().begin();
+           iter != cur->getTargets().end(); ++iter) {
          PatchEdge *e = (*iter);
          if (e->sinkEdge()) {
             ret->exits_.push_back(e);
