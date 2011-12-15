@@ -897,7 +897,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       /* PatchAPI stuffs */
       instPoint *ipoint = static_cast<instPoint *>(bppoint->getPoint(when));
       AddressSpace* ias = ipoint->proc();
-      Patcher* patcher = ias->patcher();
+      //Patcher* patcher = ias->patcher();
       Dyninst::PatchAPI::InstancePtr instance = (ipOrder == orderFirstAtPoint) ?
          ipoint->pushFront(expr.ast_wrapper) :
          ipoint->pushBack(expr.ast_wrapper);

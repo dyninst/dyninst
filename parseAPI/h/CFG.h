@@ -306,6 +306,8 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT int  containingFuncs() const;
     PARSER_EXPORT void getFuncs(std::vector<Function *> & funcs);
 
+    PARSER_EXPORT bool wasUserAdded() const;
+
     /* interval implementation */
     Address low() const { return start(); }
     Address high() const { return end(); }

@@ -1275,7 +1275,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
     using namespace SymtabAPI;
     using namespace ParseAPI;
 
-    bool unparsedTargets = false;
     vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */

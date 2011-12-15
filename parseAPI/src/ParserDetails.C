@@ -338,7 +338,7 @@ void Parser::ProcessUnresBranchEdge(
     det.ibuf = (unsigned char*)
        frame.func->isrc()->getPtrToInstruction(ah.getAddr());
     det.isize = ah.getSize();
-    if (-1 == target) {
+    if ((Address) -1 == target) {
         det.data.unres.target = 0;
     } else {
         det.data.unres.target = target;

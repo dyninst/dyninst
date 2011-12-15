@@ -1973,6 +1973,8 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
       emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, dest, true, gen);
 }
 
+#if 0
+// Commented out until we need it to avoid warnings
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
@@ -1989,7 +1991,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 
    SET_PTR(insn, gen);
 }
-
+#endif
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {

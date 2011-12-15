@@ -215,3 +215,7 @@ std::string format(EdgeTypeEnum e) {
 		default: return "<unknown>";
 	}
 }
+
+bool ParseAPI::Block::wasUserAdded() const {
+   return region()->wasUserAdded(); 
+}

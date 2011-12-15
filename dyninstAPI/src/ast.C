@@ -2985,14 +2985,6 @@ bool AstDynamicTargetNode::containsFuncCall() const
    return false;
 }
 
-static void setCFJRet(cfjRet_t &a, cfjRet_t b) {
-   //cfj_call takes priority over cfj_jump
-   int a_i = (int) a;
-   int b_i = (int) b;
-   if (b_i > a_i)
-      a = b;
-}
-
 bool AstCallNode::usesAppRegister() const {
    for (unsigned i=0; i<args_.size(); i++) {
       if (args_[i] && args_[i]->usesAppRegister()) return true;

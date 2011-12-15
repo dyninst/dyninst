@@ -105,9 +105,11 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
    if (!block)
       return false;
    cfg_->addRelocBlock(block);
+   
+   if (!bbl->wasUserAdded()) {
+      priorityMap_[bbl] = std::make_pair(Suggested,f);
+   }
 
-   priorityMap_[bbl] = std::make_pair(Suggested,f);
-      
    return true;
 }
 
@@ -267,7 +269,7 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
    }
 }
 
-void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
+void CodeMover::createInstrumentationSpringboards(AddressSpace *) {
    return;
 #if 0
   for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();

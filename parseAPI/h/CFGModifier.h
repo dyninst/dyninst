@@ -115,6 +115,8 @@ class InsertedRegion : public CodeRegion {
    };
    PARSER_EXPORT Architecture getArch() const { return arch_; };
 
+   PARSER_EXPORT bool wasUserAdded() const { return true; }
+
   private:
     Address base_;
     void *buf_;

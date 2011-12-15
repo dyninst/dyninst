@@ -1897,7 +1897,7 @@ void BPatch_process::overwriteAnalysisUpdate
     {
         nit->first->setNewEntryPoint(nit->second);
     }
-
+    
     // delete delBlocks and set new function entry points, if necessary
     for(set<block_instance*>::reverse_iterator bit = delBlocks.rbegin(); 
         bit != delBlocks.rend();
@@ -1987,7 +1987,8 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != deadFuncs.end();
         fit++)
     {
-       BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
+       // Ensure creation
+       findOrCreateBPFunc(*fit,NULL);
        if (false == PatchAPI::PatchModifier::remove(*fit)) {
           assert(0);
        }

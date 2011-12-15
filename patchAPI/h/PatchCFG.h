@@ -110,6 +110,8 @@ class PatchBlock {
 
    PATCHAPI_EXPORT bool consistency() const;
 
+   PATCHAPI_EXPORT bool wasUserAdded() const;
+
   protected:
     typedef enum {
       backwards,

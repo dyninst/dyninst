@@ -565,4 +565,7 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
    }
    return true;
 }
-   
+
+bool PatchBlock::wasUserAdded() const {
+   return block_->wasUserAdded();
+}

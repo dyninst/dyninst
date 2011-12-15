@@ -297,5 +297,9 @@ InsertedRegion *CFGModifier::insert(CodeObject *obj,
 }
 
 InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch) : 
-   base_(b), buf_(d), size_(s), arch_(arch) {};
+   base_(b), buf_(NULL), size_(s), arch_(arch) {
+   buf_ = malloc(s);
+   assert(buf_);
+   memcpy(buf_, d, s);
+};
 

@@ -41,7 +41,7 @@ bool DynAddrSpace::write(PatchObject* obj, Address to, Address from, size_t size
                                      reinterpret_cast<void*>(from));
 }
 
-Address DynAddrSpace::malloc(PatchObject* obj, size_t size, Address near) {
+Address DynAddrSpace::malloc(PatchObject* obj, size_t size, Address) {
   DynObject* dobj = dynamic_cast<DynObject*>(obj);
   return dobj->as()->inferiorMalloc(size);
 }

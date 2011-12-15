@@ -101,10 +101,10 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
-                                  Instruction::Ptr insn,
-                                  const RelocBlock *trace,
-				  Address origAddr) 
+                                    Register reg,
+                                    Instruction::Ptr insn,
+                                    const RelocBlock *trace,
+                                    Address /*origAddr*/)
 {
    // I'm pretty sure that anything that can get translated will be
    // turned into a push/jump combo already. 
@@ -264,16 +264,22 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
-
-bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
-                                       const codeGen &templ,
-                                       Register &reg,
-                                       const RelocBlock *trace) 
-{
 #if !defined(cap_mem_emulation)
+bool CFWidget::generateAddressTranslator(CodeBuffer &,
+                                         const codeGen &,
+                                         Register &,
+                                         const RelocBlock *) 
+{
    return true;
-#else
+}
 
+
+#else
+bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
+                                         const codeGen &templ,
+                                         Register &reg,
+                                         const RelocBlock *trace) 
+{
    if (!templ.addrSpace()->isMemoryEmulated() ||
        BPatch_defensiveMode != trace->block()->obj()->hybridMode())
       return true;
@@ -371,5 +377,6 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker(trace));
    reg = REGNUM_ESP;
    return true;
-#endif
 }
+#endif
+
