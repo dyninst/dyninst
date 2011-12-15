@@ -446,7 +446,8 @@ Function::tampersStack(bool recalculate)
                     in_iter != (*ait)->inputs().end(); ++in_iter) {
                     if (in_iter->type() != Absloc::Unknown) {
                         _tamper = TAMPER_NONZERO;
-                        _tamper_addr = 0; 
+                        _tamper_addr = 0;
+                        _rs = NORETURN;
                         mal_printf("Stack tamper analysis for ret block at "
                                "%lx found unresolved stack slot or heap "
                                "addr, marking as TAMPER_NONZERO\n", retnAddr);
@@ -466,7 +467,7 @@ Function::tampersStack(bool recalculate)
                 DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];
                 if (dyn_debug_malware && sliceAtRet != NULL) {
-                    cout << "assignment " << (*ait)->format() << " is "
+                    cerr << "assignment " << (*ait)->format() << " is "
                          << sliceAtRet->format() << "\n";
                 }
                 break;

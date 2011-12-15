@@ -4350,8 +4350,8 @@ bool process::getDeadCode
 
 
 // will flush addresses of all addresses in the specified range, if the
-// range is null, flush all addresses from the cache.  Also flush 
-// rt-lib heap addrs that correspond to the range
+// range is null, flushes all runtime-library-heap addresses from the cache
+// Does this flush both ways out of the cache?
 void process::flushAddressCache_RT(Address start, unsigned size)
 {
     // if rtlib not loaded yet, nothing to flush
@@ -4386,9 +4386,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // Clear all cache entries that match the runtime library
     // Read in the contents of the cache
-    Address* cacheCopy = (Address*)malloc(TARGET_CACHE_WIDTH*sizeof(Address));
-    if ( ! readDataSpace( (void*)RT_address_cache_addr, 
-                          sizeof(Address)*TARGET_CACHE_WIDTH,(void*)cacheCopy,
+    Address cacheCopy[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+    if ( ! readDataSpace( (void*)RT_address_cache_addr,
+                          sizeof(Address)*TARGET_CACHE_WIDTH*TARGET_CACHE_WAYS,(void*)cacheCopy,
                           false ) ) 
     {
         assert(0);
@@ -4397,8 +4397,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
     assert(dyninstRT_heaps.size());
     bool flushedHeaps = false;
 
-    while ( true ) // iterate twice, once to flush the heaps, 
-    {              // and once to flush the flush range
+    // iterate twice, once to flush the cache of RT-lib heap addrs, 
+    // and once to flush the flush range
+    for (unsigned i=0; i<2; i++) {
         Address flushStart=0;
         Address flushEnd=0;
         if (!flushedHeaps) {
@@ -4421,14 +4422,18 @@ void process::flushAddressCache_RT(Address start, unsigned size)
             flushEnd = start + size;
         }
         //zero out entries that lie in the runtime heaps
-        for(int idx=0; idx < TARGET_CACHE_WIDTH; idx++) {
-            //printf("cacheCopy[%d]=%lx\n",idx,cacheCopy[idx]);
-            if (flushStart <= cacheCopy[idx] &&
-                flushEnd   >  cacheCopy[idx]) {
-                cacheCopy[idx] = 0;
-            }
+        for(int xidx=0; xidx < TARGET_CACHE_WIDTH; xidx++) {
+           for(int yidx=0; yidx < TARGET_CACHE_WAYS; yidx++) {
+              if (!flushedHeaps && cacheCopy[xidx][yidx] != 0) {
+                 mal_printf("cacheCopy[%d][%d]=%8lx\n",xidx,yidx,cacheCopy[xidx][yidx]);
+              }
+              if (flushStart <= cacheCopy[xidx][yidx] &&
+                 flushEnd   >  cacheCopy[xidx][yidx]) {
+                 cacheCopy[xidx][yidx] = 0;
+              }
+           }
         }
-        if ( flushedHeaps || (start == 0) ) {
+        if ( flushedHeaps ) {
             break;
         }
         flushedHeaps = true;
@@ -4436,11 +4441,10 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // write the modified cache back into the RT_library
     if ( ! writeDataSpace( (void*)RT_address_cache_addr,
-                           sizeof(Address)*TARGET_CACHE_WIDTH,
+                           sizeof(Address)*TARGET_CACHE_WIDTH*TARGET_CACHE_WAYS,
                            (void*)cacheCopy ) ) {
         assert(0);
     }
-    free(cacheCopy);
 }
 
 /* Given an address that's on the call stack, find the function that's 

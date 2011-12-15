@@ -192,7 +192,7 @@ func_instance *block_instance::callee()
 		if (thunkILT(tEdge, proc(), ret)) {
 			return ret;
 		}
-		return obj()->findFuncByEntry(tEdge->trg());
+		return tEdge->trg()->obj()->findFuncByEntry(tEdge->trg());
     }
 
 	  // An call that uses an indirect call instruction could be one

@@ -98,13 +98,38 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    cb()->remove_block(this, b);
 }
 
+static bool hasSingleIndirectSinkEdge(PatchBlock *b)
+{
+   fprintf(stderr,"hasSingleIndirectSinkEdge(%lx)=",b->start());
+   const ParseAPI::Block::edgelist & trgs = b->block()->targets();
+   if (trgs.size() == 1) {
+      ParseAPI::Edge *edge = * trgs.begin();
+      if (edge->sinkEdge() && edge->type() == ParseAPI::INDIRECT) {
+         fprintf(stderr,"true\n");
+         return true;
+      }
+   }
+   fprintf(stderr,"false\n");
+   return false;
+}
+
 void PatchFunction::addBlock(PatchBlock *b) {
    if (all_blocks_.empty() && exit_blocks_.empty() && call_blocks_.empty()) return;
+   if (b->start() == 0xab5910) {
+      DebugBreak();
+   }
 
    all_blocks_.insert(b);
 
-   if (b->containsCall() && !call_blocks_.empty()) {
-      call_blocks_.insert(b);
+   if (!call_blocks_.empty()) {
+      if (b->containsCall()) {
+         call_blocks_.insert(b);
+      } 
+      else if (hasSingleIndirectSinkEdge(b)) {
+         // don't know what the edge will resolve to, until then the 
+         // call_blocks_ vector shouldn't be considered complete
+         call_blocks_.clear(); 
+      }
    }
 
    if (0 < b->numRetEdges() && !exit_blocks_.empty()) {
@@ -592,8 +617,13 @@ bool PatchFunction::consistency() const {
            llit != func_->callEdges().end(); ++llit) 
       {
           llcbs.insert((*llit)->src());
+          assert((*llit)->type() == ParseAPI::CALL);
       }
-      if (call_blocks_.size() != llcbs.size()) CONSIST_FAIL;
+      if (call_blocks_.size() != llcbs.size()) {
+         cerr << "PatchAPI call_blocks_ not same size ("<<call_blocks_.size()
+            <<") as ParseAPI call blocks list ("<<llcbs.size()<<")"<<endl; 
+         //CONSIST_FAIL;
+      }
       // verify that call_blocks_ are in llcbs
       for (Blockset::const_iterator cit = call_blocks_.begin(); 
            cit != call_blocks_.end(); ++cit) 

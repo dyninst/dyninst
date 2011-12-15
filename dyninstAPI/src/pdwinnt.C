@@ -677,7 +677,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             }
             dyn_saved_regs regs;
             ev.lwp->getRegisters(&regs,false);
-            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+            fprintf(stderr,"REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
                    "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
                    regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
                    regs.cont.Esi, regs.cont.Edi);
@@ -713,7 +713,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             }
             dyn_saved_regs regs;
             ev.lwp->getRegisters(&regs,false);
-            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+            fprintf(stderr,"REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
                    "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
                    regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
                    regs.cont.Esi, regs.cont.Edi);
@@ -982,9 +982,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
-    if ((Address)inTraced <= 0xc30000 && ((Address)inTraced + amount) >= 0xc30000) {
-        cerr << "readDataSpace [" << hex << (Address) inTraced << "," << (Address) inTraced + amount << "]" << dec << endl;
-    }
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
     bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
@@ -2675,6 +2672,27 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
     mal_printf("Handling exception, excCode=0x%X raised by %lx %s[%d]\n",
             ev.what, ev.address, FILE__, __LINE__);
+
+    // print out the bytes of the instruction that caused the failure
+    const int TMPLEN = 0x20;
+    unsigned char tmp[TMPLEN];
+    if (proc->readDataSpace((void*)ev.address,TMPLEN*sizeof(unsigned char),
+                             (void*)tmp,false)) {
+       mal_printf("bytes at fail addr %lx:", ev.address);
+       for (int i=0; i < TMPLEN; i++) {
+          mal_printf("%2x ", tmp[i]);
+       }
+       mal_printf("\n");
+    }
+    DebugBreak();//KEVINTODO: remove this
+    if (proc->readDataSpace((void*)(ev.address-TMPLEN),TMPLEN*sizeof(unsigned char),
+                             (void*)tmp,false)) {
+       mal_printf("the previous %d bytes were as follows %lx:", TMPLEN, ev.address-TMPLEN);
+       for (int i=0; i < TMPLEN; i++) {
+          mal_printf("%2x ", tmp[i]);
+       }
+       mal_printf("\n");
+    }
 
     Address origAddr = ev.address;
     vector<func_instance*> faultFuncs;

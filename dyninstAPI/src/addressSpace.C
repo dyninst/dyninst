@@ -1889,10 +1889,10 @@ void AddressSpace::getRelocAddrs(Address orig,
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
-    springboard_cerr << "\t Checking CodeTracker " << hex << *iter << dec << endl;
+    //springboard_cerr << "\t Checking CodeTracker " << hex << *iter << dec << endl;
     if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
-       springboard_cerr << "\t\t ... match" << endl;
+       //springboard_cerr << "\t\t ... match" << endl;
        if (!reloc.instrumentation.empty() && getInstrumentationAddrs) {
           for (std::map<instPoint *, Address>::iterator iter2 = reloc.instrumentation.begin();
                iter2 != reloc.instrumentation.end(); ++iter2) {
@@ -2035,28 +2035,6 @@ void AddressSpace::updateMemEmulator() {
 MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
-
-void AddressSpace::invalidateMemory(Address addr, Address size) {
-	// To do list:
-	// Remove this section from the memory shadow
-	// Flush the RT cache of indirect transfers
-	// Ensure that we will catch if we transfer into this code again.
-	// Add an override to the mapped_object so that we don't try to
-	// set permissions on the deallocated range. 
-	return;
-
-	if (memEmulator_) memEmulator_->removeRegion(addr, size);
-
-	proc()->flushAddressCache_RT(addr, size);
-
-	std::set<func_instance *> funcsToDelete;
-	for (Address i = addr; i < (addr + size); ++i)
-	{
-		findFuncsByAddr(i, funcsToDelete);
-	}
-
-}
-
 
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBlocks and e->src() not in delBlocks, 
