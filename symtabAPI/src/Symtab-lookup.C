@@ -64,10 +64,6 @@ extern SymtabError serr;
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
 bool pattern_match( const char *p, const char *s, bool checkCase );
 
-static bool sort_by_sym_ptr(const Symbol *a, const Symbol *b) {
-    return a < b;
-}
-
 std::vector<Symbol *> *Symtab::findSymbolByOffset(Offset o)
 {
 	//Symbol *s = NULL;

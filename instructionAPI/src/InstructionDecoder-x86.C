@@ -971,7 +971,7 @@ namespace Dyninst
                         if(locs->rex_b && insn_to_complete->m_Operands.empty())
                         {
                             // FP stack registers are not affected by the rex_b bit in AM_REG.
-                            if(r.regClass() != x86::MMX)
+                           if(r.regClass() != (unsigned) x86::MMX)
                             {
                                 r = MachRegister((r.val()) | x86_64::r8.val());
                             }

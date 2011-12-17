@@ -270,7 +270,10 @@ instPoint::~instPoint() {
 
 
 AddressSpace *instPoint::proc() const {
-   return func()->proc();
+   if (func()) return func()->proc();
+   else if (block()) return block()->proc();
+   else if (edge()) return (edge()->proc());
+   assert(0); return NULL;
 }
 
 func_instance *instPoint::func() const {

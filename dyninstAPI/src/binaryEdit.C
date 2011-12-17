@@ -507,8 +507,10 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->getAllRegions(oldSegs);
 
       //Write any traps to the mutatee
-      trapMapping.shouldBlockFlushes(false);
-      trapMapping.flush();
+      if (canUseTraps()) {
+         trapMapping.shouldBlockFlushes(false);
+         trapMapping.flush();
+      }
 
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
