@@ -2624,6 +2624,7 @@ platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power64', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power32', 'linux', 'linux2.6', 'ppc32_linux').
 platform('power32', 'bluegene', 'bluegenep', 'ppc32_bgp').
+platform('power64', 'bluegene', 'bluegeneq', 'ppc64_bgq').
 platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
 platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
 
@@ -2680,11 +2681,13 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
     \+ member(Platform, ['amd64-unknown-freebsd7.2',
+	 							 'ppc64_bgq',
                          'ppc64_linux']).
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
+platform_abi('ppc64_bgq', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
 platform_abi('amd64-unknown-freebsd7.2', 64).
 
@@ -2764,6 +2767,8 @@ compiler_platform('iCC', Plat) :-
 % Bluegene compilers	 
 compiler_platform('bgxlc', 'ppc32_bgp').
 compiler_platform('bgxlc++', 'ppc32_bgp').
+compiler_platform('bgxlc', 'ppc64_bgq').
+compiler_platform('bgxlc++', 'ppc64_bgq').
 
 % linker/2
 % linker(?Platform, ?Linker)
@@ -3316,6 +3321,8 @@ runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power32', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power32', 'bluegene', _,P).
+runmode_platform(P, 'binary') :- platform('power64', 'linux', _,P).
+runmode_platform(P, 'binary') :- platform('power64', 'bluegene', _,P).
 runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).

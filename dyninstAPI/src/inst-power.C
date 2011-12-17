@@ -3091,7 +3091,7 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
 
     //Offset destOff = dest - gen.currAddr();
     Offset destOff = dest - caller_toc;
-printf(" emitPLTCommon callee %s  dest 0x%lx  cur 0x%lx toc_anchor 0x%lx caller_toc 0x%lx destOff 0x%lx %d  \n",  callee->symTabName().c_str(), dest,  gen.currAddr(), toc_anchor, caller_toc, destOff, destOff);
+
 //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    int stackSize = 0;

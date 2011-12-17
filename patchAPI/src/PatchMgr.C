@@ -173,7 +173,7 @@ bool PatchMgr::wantInsns(Scope &scope, Point::Type types) {
 }
 
 bool PatchMgr::wantInsnInstances(Scope &scope, Point::Type types) {
-  return (scope.func == NULL && Point::TestType(types, Point::InsnTypes));
+  return (scope.func != NULL && Point::TestType(types, Point::InsnTypes));
 }
 
 void PatchMgr::getFuncCandidates(Scope &scope, Point::Type types, Candidates &ret) {

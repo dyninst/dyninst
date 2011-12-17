@@ -50,6 +50,7 @@
 class BPatch_addressSpace;
 class Dyninst::PatchAPI::Point;
 
+
 namespace Dyninst {
 namespace PatchAPI { 
    class PatchMgr;

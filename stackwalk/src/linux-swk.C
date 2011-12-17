@@ -962,11 +962,7 @@ bool ProcDebugLinux::debug_create(std::string executable,
       if (errnum == ENOENT)
          setLastError(err_nofile, "No such file");
       if (errnum == EPERM || errnum == EACCES)
-<<<<<<< HEAD:stackwalk/src/linux-swk.C
          setLastError(err_prem, "Permission denied");
-=======
-         setLastError(err_perm, "Permission denied");
->>>>>>> Fix spelling mistake in error printfs:stackwalk/src/linux-swk.C
       else
          setLastError(err_internal, "Unable to exec process");
       exit(-1);

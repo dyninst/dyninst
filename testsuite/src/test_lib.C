@@ -651,6 +651,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       vector<string> attach_argv;
       char *platform = getenv("PLATFORM");
       bool bgp_test = strcmp(platform ? platform : "", "ppc32_bgp") == 0;
+      bool bgq_test = strcmp(platform ? platform : "", "ppc64_bgq") == 0;
       if (bgp_test) {
          //attach_argv.push_back("mpirun");
          char *partition = getenv("DYNINST_BGP_PARTITION");
@@ -695,8 +696,20 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
          }
          args += "\"";
          attach_argv.push_back(args);
-      }
-      else {
+      } else if(bgq_test) {
+         
+         char *cwd_cstr = (char *) malloc(PATH_MAX);
+         getcwd(cwd_cstr, PATH_MAX);
+         string cwd = cwd_cstr;
+         free(cwd_cstr);
+         
+         attach_argv.push_back("-exe");
+         attach_argv.push_back(cwd + "/" + BINEDIT_DIRNAME + pathname);
+ 
+         for (unsigned int i=0; argv[i] != NULL; i++) {
+            attach_argv.push_back(argv[i]);
+         }
+      }else {
          for (unsigned int i=0; argv[i] != NULL; i++) {
             attach_argv.push_back(argv[i]);
          }
@@ -721,7 +734,18 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
          execvp("mpirun", (char * const *)attach_argv_cstr);
          logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
          exit(-1);
-      }else{
+      } else if (bgq_test) {
+   
+         dprintf("running srun:");
+         for (int i = 0 ; i < attach_argv.size(); i++)
+            dprintf(" %s", attach_argv_cstr[i]);
+         dprintf("\n");
+         
+         execvp("srun", (char * const *)attach_argv_cstr);
+         logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+         exit(-1);
+
+		}else{
          execvp(pathname, (char * const *)attach_argv_cstr);
          char *newname = (char *) malloc(strlen(pathname) + 3);
          strcpy(newname, "./");
