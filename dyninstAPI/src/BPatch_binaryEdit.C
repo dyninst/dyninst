@@ -332,6 +332,7 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
       if( !lib.second->getAllDependencies(llBinEdits) ) return false;
 
   }
+  origBinEdit->addLibraryPrereq(libname);
 
   return true;
 }
