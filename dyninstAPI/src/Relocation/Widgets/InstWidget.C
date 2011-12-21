@@ -32,7 +32,7 @@
 #include "InstWidget.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "CFG.h"
 
 #include "../CodeTracker.h"

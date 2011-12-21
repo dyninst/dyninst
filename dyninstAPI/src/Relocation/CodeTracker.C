@@ -30,7 +30,7 @@
  */
 
 #include "CodeTracker.h"
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/block.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -192,8 +192,6 @@ void CodeTracker::createIndices() {
          origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
       }
    }
-   
-   if (patch_debug_relocation) debug();
 }
 
 void CodeTracker::debug() {
