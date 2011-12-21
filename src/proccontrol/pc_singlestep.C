@@ -204,13 +204,13 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
       
-      ThreadPool::iterator j;
+      ThreadPool::iterator k;
       int count = 0;
 
-	  for (j = proc->threads().begin(); j != proc->threads().end(); j++)
+	  for (k = proc->threads().begin(); k != proc->threads().end(); k++)
       {
          //Singlestep half of the threads.
-         Thread::ptr thrd = *j;
+         Thread::ptr thrd = *k;
 		 Dyninst::Address startAddr = thrd->getStartFunction();
 		 Dyninst::THR_ID tid = thrd->getTID();
 		 logerror("Thread %d has initial function at %p\n", tid, startAddr);

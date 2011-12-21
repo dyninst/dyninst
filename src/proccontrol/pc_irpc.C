@@ -217,10 +217,11 @@ static bool has_pending_irpcs()
         i != pinfo.end(); i++) 
    {
       proc_info_t &p = i->second;
-      for (vector<rpc_data_t *>::iterator j = p.rpcs.begin(); j != p.rpcs.end(); j++)
+      for (int j = 0; j < p.rpcs.size(); j++)
       {
-         rpc_data_t *rpcdata = *j;
+         rpc_data_t *rpcdata = p.rpcs[j];
          if (rpcdata->posted && !rpcdata->completed) {
+			 logerror("Process %d has RPC %d pending\n", i->first->getPid(), j);
             return true;
          }
       }
@@ -397,6 +398,7 @@ void pc_irpcMutator::runIRPCs() {
    unsigned buffer_size;
    tinfo.clear();
    rpc_to_data.clear();
+   static int total_posted = 0, total_prepped = 0;
 
    /**
     * Stop processes
@@ -457,7 +459,7 @@ void pc_irpcMutator::runIRPCs() {
             rpc_data->rpc = irpc;
             p.rpcs.push_back(rpc_data);
             rpc_to_data[irpc] = rpc_data;
-			logerror("Created an iRPC\n");
+			logerror("Created iRPC %d\n", total_prepped++);
 		 }
       }
       free(buffer);
@@ -477,10 +479,13 @@ void pc_irpcMutator::runIRPCs() {
       int num_to_post_now = (post_time == post_all_once) ? NUM_IRPCS : 1;
       for (unsigned j=0; j<num_to_post_now; j++)
       {
+	     logerror("\t...posting iRPC %d, thread %d is %s\n", total_posted++, thr->getLWP(), 
+			 thr->isUser() ? "user" : "system");
          post_irpc(thr);
       }
    }
 
+   //assert(total_prepped == total_posted);
    /**
     * Wait for completion
     **/
@@ -501,6 +506,12 @@ void pc_irpcMutator::runIRPCs() {
                     i != comp->procs.end(); i++) 
                {
                   Process::ptr proc = *i;
+				  if(proc->isTerminated())
+				  {
+					  logerror("Process terminated prematurely\n");
+					  myerror = true;
+					  break;
+				  }
 				  if (!proc->allThreadsRunning()) {
 					  continued_something = true;
 				  }
@@ -596,6 +607,7 @@ void pc_irpcMutator::runIRPCs() {
       /**
        * Stop process
        **/
+	  logerror("Stopping process %d\n", proc->getPid());
       proc->stopProc();
       uint32_t val;
 	  logerror("Reading 4 bytes from 0x%lx\n", p.val);
@@ -605,7 +617,7 @@ void pc_irpcMutator::runIRPCs() {
          myerror = true;
       }
       if (val != (comp->num_threads+1) * NUM_IRPCS) {
-         //fprintf(stderr, "val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
+         logerror("val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
          logerror("IRPCS did not update val\n");
          myerror = true;
       }
@@ -762,7 +774,7 @@ test_results_t pc_irpcMutator::executeTest()
 
    //Change these values for debugging
    unsigned allocation_mode_start = 0;
-   unsigned post_time_start = 0;
+   unsigned post_time_start = 0; // was 0
    unsigned post_to_start = 0;
    unsigned rpc_sync_start = 0;
    unsigned thread_start_start = 0;
