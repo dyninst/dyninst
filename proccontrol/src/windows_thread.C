@@ -82,8 +82,8 @@ int_thread *int_thread::createRPCThread(int_process *proc)
 	// Fake it into a state that will make the iRPC code happy.
 	// Update this if postRPCToThread changes
 	// We're creating suspended, so we can write to it...
-	wthrd->getHandlerState().setState(int_thread::stopped);
 	wthrd->getGeneratorState().setState(int_thread::stopped);
+	wthrd->getHandlerState().setState(int_thread::stopped);
 	wthrd->getUserState().setState(int_thread::stopped);
 	wthrd->handler_exiting_state = false;
 
@@ -120,8 +120,8 @@ void windows_thread::setStartFuncAddress(Dyninst::Address addr)
 std::string windows_thread::dumpThreadContext()
 {
 	if (isRPCpreCreate()) return "<DUMMY RPC THREAD>";
+	if(!isSuspended()) return "<RUNNING THREAD>";
 
-	plat_suspend();
 	std::stringstream s;
 	CONTEXT context;
 	context.ContextFlags = CONTEXT_FULL;
@@ -150,7 +150,6 @@ bool windows_thread::plat_cont()
 {
 	if (isRPCpreCreate()) return true;
 
-	GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	bool ok = true;
 	if(singleStep())
 	{
@@ -160,7 +159,7 @@ bool windows_thread::plat_cont()
 		context.ContextFlags = CONTEXT_FULL;
 		result = GetThreadContext(hthread, &context);
 		if(!result) {
-			pthrd_printf("Couldn't get thread context\n");
+			pthrd_printf("Couldn't get thread context: %d\n", ::GetLastError());
 			ok = false;
 			goto done;
 		} else {
@@ -180,14 +179,8 @@ done:
 		plat_resume();
 	}
 
-	// Bill thinks this is a good idea to clear out pending stops that aren't
-	// being cleared in platform generic code.
-	//this->setPendingStop(false);
-	//this->setPendingUserStop(false);
-
 	plat_resume();
-	// 9NOV11 - removed because we don't want the generator to race with handlers. 
-	//wGen->wake(llproc()->getPid());
+
 	return ok;
 }
 
@@ -199,8 +192,11 @@ bool windows_thread::plat_stop()
 		hthread);
 	windows_process* wproc = dynamic_cast<windows_process*>(llproc());
 	int result = -1;
-	if(wproc->pendingDebugBreak())
+	if(wproc->pendingDebugBreak() || (getGeneratorState().getState() == int_thread::stopped))
 	{
+		// If there's a debug break pending or we're generator stopped, then all we need to do is set state.
+		// Only make the debug break call if we don't know that we're going to become stopped at some future point.
+		setPendingStop(false);
 		return true;
 	}
 	else
@@ -218,7 +214,6 @@ bool windows_thread::plat_stop()
 
 bool windows_thread::plat_suspend()
 {
-	return true;
 	if (isRPCpreCreate()) return true;
 
 	int result = ::SuspendThread(hthread);
@@ -232,12 +227,12 @@ bool windows_thread::plat_suspend()
 	}
 
 	pthrd_printf("Suspending %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
+	//cerr << "Context at suspend: " << dumpThreadContext() << endl;
 	return result != -1;
 }
 
 bool windows_thread::plat_resume()
 {
-	return true;
 	if (isRPCpreCreate()) return true;
 
 	int result = ::ResumeThread(hthread);
@@ -252,12 +247,6 @@ bool windows_thread::plat_resume()
 	}
 
 	pthrd_printf("Resuming %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
-	if (result > 1) {
-		fprintf(stderr, "Hi!\n");
-	}
-	if (result == -1) {
-		fprintf(stderr, "Hi!\n");
-	}
 	return result != -1;
 }
 

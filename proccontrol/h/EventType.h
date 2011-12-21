@@ -81,6 +81,7 @@ class PC_EXPORT EventType
    static const int Nop                 = 507;
    static const int ThreadDB            = 508;
    static const int RPCLaunch           = 509;
+   static const int ThreadInfo			= 510;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

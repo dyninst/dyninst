@@ -81,8 +81,7 @@ hybrid_lwp_control_process(p, e, a, envp, f),
 x86_process(p, e, a, envp, f),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL),
-lowlevel_isRunning_(false)
+dummyRPCThread_(NULL)
 {
 }
 
@@ -92,8 +91,7 @@ hybrid_lwp_control_process(pid_, p),
 x86_process(pid_, p),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL),
-lowlevel_isRunning_(false)
+dummyRPCThread_(NULL)
 {
 }
 
@@ -146,15 +144,10 @@ bool windows_process::plat_create_int()
 		pid = procInfo.dwProcessId;
 		hproc = procInfo.hProcess;
 	}
-#if 0 // We believe this is unnecessary and will happen in the CreateProcess event handler
-	{
-		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
-			(Dyninst::LWP)procInfo.dwThreadId, false);
-		threadPool()->setInitialThread(initialThread);
-		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
-		wThread->setHandle(procInfo.hThread);
-	}
-#endif
+	int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
+		(Dyninst::LWP)procInfo.dwThreadId, true);
+	windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
+	wThread->setHandle(procInfo.hThread);
 	return result ? true : false;
 }
 bool windows_process::plat_attach(bool)
@@ -168,7 +161,7 @@ bool windows_process::plat_attach(bool)
 
 bool windows_process::plat_attach_int()
 {
-	setForceGeneratorBlock(true);
+	getStartupTeardownProcs().inc();
 	return (::DebugActiveProcess(pid)) ? true : false;
 }
 
@@ -505,7 +498,7 @@ void windows_process::instantiateRPCThread() {
 
 	// 2)
 	Dyninst::LWP lwp;
-	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, 0, (LPDWORD)&lwp);
+	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, CREATE_SUSPENDED, (LPDWORD)&lwp);
 	pthrd_printf("*********************** Created actual thread with lwp %d, hthrd %x for dummy RPC thread, start at 0x%lx\n",
 		(int) lwp, hthrd, dummyStart);
 
@@ -517,6 +510,9 @@ void windows_process::instantiateRPCThread() {
 	dummyRPCThread_->setUser(false);
 	dummyRPCThread_->markRPCRunning();
 
+	getStartupTeardownProcs().inc();
+	dummyRPCThread_->setSuspended(true);
+
 }
 
 void windows_process::destroyRPCThread() {
@@ -524,14 +520,6 @@ void windows_process::destroyRPCThread() {
 	dummyRPCThread_ = NULL;
 }
 
-void windows_process::handleRPCviaNewThread(bool user_cont) {
-	if (!dummyRPCThread_) return;
-
-	// Tell the iRPC manager to try and prep RPCs on this hacked up mess of a thing. 
-	bool completed = false;
-	assert(!"Figure this mess out");
-	//rpcMgr()->handleThreadContinue(dummyRPCThread_, user_cont, completed);
-}
 
 void* windows_process::plat_getDummyThreadHandle() const
 {
@@ -551,9 +539,4 @@ bool windows_process::plat_resumeThread(int_thread *thr)
 	windows_thread* wthr = static_cast<windows_thread*>(thr);
 	assert(wthr);
 	return wthr->plat_resume();
-}
-
-bool windows_process::plat_debuggerSuspended()
-{
-	return !lowlevel_isRunning_;
 }

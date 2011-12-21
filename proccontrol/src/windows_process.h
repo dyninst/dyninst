@@ -98,7 +98,6 @@ public:
 
 	virtual bool plat_suspendThread(int_thread *thr);
 	virtual bool plat_resumeThread(int_thread *thr);
-	virtual bool plat_debuggerSuspended();
 
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);
@@ -108,17 +107,8 @@ public:
    virtual int_thread *createRPCThread(bool create_running);
    void destroyRPCThread();
 
-   virtual void handleRPCviaNewThread(bool);
    virtual void* plat_getDummyThreadHandle() const;
 
-   void lowlevel_processSuspended() {
-	   pthrd_printf("Marking %d debugger suspended\n", getPid());
-	   lowlevel_isRunning_ = false; 
-   }
-   void lowlevel_processResumed() { 
-	   	   pthrd_printf("Marking %d debugger resumed\n", getPid());
-		   lowlevel_isRunning_ = true; 
-   }
    virtual void instantiateRPCThread();
    virtual bool plat_supportDirectAllocation() const { return true; }
    virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
@@ -132,7 +122,6 @@ private:
 
 	windows_thread *dummyRPCThread_;
 
-	bool lowlevel_isRunning_;
 };
 
 #endif //!defined(WINDOWS_PROCESS_H)

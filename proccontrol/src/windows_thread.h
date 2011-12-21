@@ -71,6 +71,9 @@ public:
 	void plat_setSuspendCount(int count);
 	bool haveUserThreadInfo();
 	bool getTID(Dyninst::THR_ID& tid);
+	void setLWP(Dyninst::LWP L) {
+		lwp = L;
+	}
 	bool getStartFuncAddress(Dyninst::Address& start_addr);
 	bool getStackBase(Dyninst::Address& stack_base);
 	bool getStackSize(unsigned long& stack_size);

@@ -351,8 +351,6 @@ class int_process
    // Platform-specific; is this address in what we consider a system lib.
    virtual bool addrInSystemLib(Address addr) { return false; }
 
-   virtual void handleRPCviaNewThread(bool) { return; }
-
    ProcStopEventManager &getProcStopManager();
 
    std::map<int, int> &getProcDesyncdStates();
@@ -422,7 +420,7 @@ class hybrid_lwp_control_process : virtual public int_process
    virtual bool plat_syncRunState();
    virtual bool plat_suspendThread(int_thread *thr) = 0;
    virtual bool plat_resumeThread(int_thread *thr) = 0;
-   virtual bool plat_debuggerSuspended() = 0;
+   bool debugger_stopped;
   public:
    hybrid_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                               std::vector<std::string> envp, std::map<int,int> f);
@@ -431,6 +429,9 @@ class hybrid_lwp_control_process : virtual public int_process
 
    virtual bool suspendThread(int_thread *thr);
    virtual bool resumeThread(int_thread *thr);
+
+   virtual void noteNewDequeuedEvent(Event::ptr ev);
+   virtual bool plat_debuggerSuspended();
 
    virtual bool plat_processGroupContinues();
 };

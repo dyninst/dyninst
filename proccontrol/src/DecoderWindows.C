@@ -223,6 +223,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					{
 						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						newEvt = Event::ptr(new EventStop());
+						windows_proc->clearPendingDebugBreak();
 					}
 					else
 					{
@@ -231,6 +232,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 						winGen->markUnhandledException(e.dwProcessId);
 						newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+						assert(0);
 					}
 				}
 				else
@@ -239,6 +241,9 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					pthrd_printf("Breakpoint due to startup, ignoring\n");
 					newEvt = Event::ptr(new EventBootstrap());
 					ntdll_ignore_breakpoint_address = (Address) e.u.Exception.ExceptionRecord.ExceptionAddress;
+					if(!thread) {
+						pthrd_printf("DEBUG: Missing thread on startup breakpoint\n");
+					}
 				}
 			}
 			break;
@@ -248,6 +253,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+				assert(0);
 			}
 			break;
 		case EXCEPTION_ACCESS_VIOLATION:
@@ -277,6 +283,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
+				assert(0);
 			}
 			break;
 		}
@@ -346,6 +353,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		pthrd_printf("Decoded RIP event, PID: %d, TID: %d, error = 0x%lx\n", e.dwProcessId, e.dwThreadId,
 			e.u.RipInfo.dwError);
 		newEvt = EventCrash::ptr(new EventCrash(e.u.RipInfo.dwError));
+		assert(0);
 		break;
 	default:
 		assert(!"invalid event type");
@@ -387,30 +395,28 @@ bool DecoderWindows::checkForFullString( DEBUG_EVENT &details, int chunkSize, wc
 bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int_process* &proc, std::vector<Event::ptr> &events )
 {
 	pthrd_printf("Decoded CreateThread event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-
-	if(e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT) {
-		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateProcessInfo.hThread,
-			e.u.CreateProcessInfo.lpStartAddress, e.u.CreateProcessInfo.lpThreadLocalBase));
-	} else {
-		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
-			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
-	}
 	proc = ProcPool()->findProcByPid(e.dwProcessId);
 	assert(proc);
 
 	// FIXME once things actually work
 	windows_process* wproc = dynamic_cast<windows_process*>(proc);
 	assert(wproc);
+
+	if(e.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT) {
+		newEvt = WinEventThreadInfo::ptr(new WinEventThreadInfo((Dyninst::LWP)(e.dwThreadId), e.u.CreateProcessInfo.hThread,
+			e.u.CreateProcessInfo.lpStartAddress, e.u.CreateProcessInfo.lpThreadLocalBase));
+		newEvt->setThread(proc->threadPool()->initialThread()->thread());
+		wproc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
+	} else {
+		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
+			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
+	}
 	int_thread* dummy = wproc->RPCThread();
 	if(dummy)
 	{
 		THR_ID thr_id = (THR_ID) e.dwThreadId;
 		THR_ID dummytid;
 		dummy->getTID(dummytid);
-		if(thr_id == dummytid)
-		{
-			proc->setForceGeneratorBlock(false);
-		}
 	}
 
 	newEvt->setProcess(proc->proc());

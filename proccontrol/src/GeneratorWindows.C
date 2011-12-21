@@ -147,7 +147,6 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 	}
 
 	windows_process *winproc = dynamic_cast<windows_process *>(process_for_cur_thread);
-	winproc->lowlevel_processResumed();
 
 	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
 	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;

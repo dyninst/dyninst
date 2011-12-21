@@ -151,7 +151,7 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
 	   if(we->getHandle() == thr->llproc()->plat_getDummyThreadHandle())
 	   {
-		   thr->llproc()->setForceGeneratorBlock(false);
+		   thr->llproc()->getStartupTeardownProcs().dec();
 	   }
    }
 
@@ -226,17 +226,20 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    static WindowsHandleLWPDestroy* wthreaddestroy = NULL;
   static WinHandleSingleStep* wsinglestep = NULL;
    static WinHandleBootstrap* wbootstrap = NULL;
+   static WindowsHandleSetThreadInfo* wsti = NULL;
    if (!initialized) {
       wnewthread = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
 	  wsinglestep = new WinHandleSingleStep();
 	  wbootstrap = new WinHandleBootstrap();
+	  wsti = new WindowsHandleSetThreadInfo();
       initialized = true;
    }
    hpool->addHandler(wnewthread);
    hpool->addHandler(wthreaddestroy);
    hpool->addHandler(wsinglestep);
    hpool->addHandler(wbootstrap);
+   hpool->addHandler(wsti);
    return hpool;
 }
 
@@ -260,6 +263,10 @@ Handler::handler_ret_t WinHandleBootstrap::handleEvent( Event::ptr ev )
 {
 	pthrd_printf("WinHandleBootstrap continuing process %d\n", ev->getProcess()->getPid());
 	ev->getProcess()->llproc()->setState(int_process::running);	
+	if(ev->getProcess()->llproc()->getStartupTeardownProcs().localCount())
+	{
+		ev->getProcess()->llproc()->getStartupTeardownProcs().dec();
+	}
 	return ret_success;
 }
 
@@ -273,4 +280,59 @@ void WinHandleBootstrap::getEventTypesHandled( std::vector<EventType> &etypes )
 	etypes.push_back(EventType::Bootstrap);
 }
 
+WindowsHandleSetThreadInfo::WindowsHandleSetThreadInfo()
+{
+
+}
+
+WindowsHandleSetThreadInfo::~WindowsHandleSetThreadInfo()
+{
+
+}
+
+Handler::handler_ret_t WindowsHandleSetThreadInfo::handleEvent( Event::ptr ev )
+{
+	windows_thread *thr = static_cast<windows_thread*>(ev->getThread()->llthrd());
+                                        
+   WinEventThreadInfo::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventThreadInfo>(ev);
+   if(we)
+   {
+	   ProcPool()->rmThread(thr);
+		pthrd_printf("WinHandleSetThreadInfo handling thread info update for initial thread %d, handle %x\n",
+			we->getLWP(), we->getHandle());
+	   thr->setHandle(we->getHandle());
+	   thr->setStartFuncAddress((Dyninst::Address)(we->getThreadStart()));
+	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
+	   thr->setTID(we->getLWP());
+	   thr->setLWP(we->getLWP());
+	   ProcPool()->addThread(thr->llproc(), thr);
+   }
+
+   // Check to see if our start address (if we have one...) is in a system library (if we know
+   // where it is...). If it is, set this as a system thread.
+   Address start_addr = 0;
+   if (thr->getStartFuncAddress(start_addr)) {
+	   if (thr->llproc()->addrInSystemLib(start_addr)) {
+		   thr->setUser(false);
+		   thr->getUserState().setState(int_thread::running);
+		   thr->getGeneratorState().setState(int_thread::stopped);
+		   thr->getHandlerState().setState(int_thread::stopped);
+	   }
+   }
+   if (!thr->isUser()) {
+	   ev->setSuppressCB(true);
+   }
+
+   return ret_success;
+}
+
+int WindowsHandleSetThreadInfo::getPriority() const
+{
+	return DefaultPriority;
+}
+
+void WindowsHandleSetThreadInfo::getEventTypesHandled( std::vector<EventType> &etypes )
+{
+	etypes.push_back(EventType(EventType::Any, EventType::ThreadInfo));
+}
 

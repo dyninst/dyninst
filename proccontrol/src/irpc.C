@@ -38,6 +38,8 @@
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/h/Mailbox.h"
+#include "proccontrol/src/procpool.h"
+
 // CLEANUP
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
@@ -824,6 +826,14 @@ bool int_iRPC::runIRPC()
 	   // Create it if necessary
 	   thrd->llproc()->instantiateRPCThread();
 	   pthrd_printf("\tInstantiated iRPC thread\n");
+	   // We really, really had better be running enough to get the CreateThread debug event.
+	   thrd->getIRPCState().desyncState(int_thread::running);
+	   // And the threadpool needs to know about us so that we will ContinueDebugEvent. Ugh.
+	   if(thrd->llproc()->threadPool()->findThreadByLWP(thrd->getLWP()) == NULL)
+	   {
+		   thrd->llproc()->threadPool()->addThread(thrd);
+		   ProcPool()->addThread(thrd->llproc(), thrd);
+	   }
    }
 
 
@@ -1025,15 +1035,27 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 		// We count as an active iRPC...
 	   assert(mgr->numActiveRPCs(thr) > 0);
 	   if (mgr->numActiveRPCs(thr) == 1) {
+	      pthrd_printf("Terminating RPC thread %d\n",
+			  thr->getLWP());
 			thr->terminate();
 			// CLEANUP on aisle 1
 #if defined(os_windows)
 			windows_process *winproc = dynamic_cast<windows_process *>(thr->llproc());
 			if (winproc) {
+		      pthrd_printf("Destroying RPC thread %d\n",
+				  thr->getLWP());
 				winproc->destroyRPCThread();
 			}
 #endif
+	   } else {
+	      pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
+			  thr->getLWP(), mgr->numActiveRPCs(thr));
+			// And we become stopped for setup of the next RPC. This *should* allow us to continue once setup occurs
+		  // (the new RPC is written and the PC is reset); we just want to make sure we don't run until we're in a valid state.
+		  thr->getIRPCSetupState().desyncState(int_thread::stopped);
+		  thr->getIRPCState().restoreState();
 	   }
+
 	   // Otherwise I hope this will get picked up for the next iRPC...
    }
    else if (!ievent->regrestore_response && 

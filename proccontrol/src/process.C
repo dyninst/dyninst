@@ -81,6 +81,8 @@ void Process::version(int& major, int& minor, int& maintenance)
 bool int_process::create()
 {
    //Should be called with procpool lock held
+	// plat_create is allowed to, but not required to, create an initial thread
+	// if the OS will cooperate
    bool result = plat_create();
    if (!result) {
       pthrd_printf("Could not create debuggee, %s\n", executable.c_str());
@@ -88,8 +90,14 @@ bool int_process::create()
       return false;
    }
 
-   int_thread *initial_thread;
-   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
+   // Windows gives us (some) initial thread info when we create the process.
+   // So don't double-create the initial thread, and don't create it with a junk
+   // TID/LWP if we had a legitimate one available.
+   if(threadPool()->empty())
+   {
+	   int_thread *initial_thread;
+	   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
+   }
 
    ProcPool()->addProcess(this);
    setState(neonatal_intermediate);
@@ -723,6 +731,12 @@ bool int_process::syncRunState()
       }
       thr->throwEventsBeforeContinue();
    }
+#if defined(os_windows)
+   windows_process* wproc = dynamic_cast<windows_process*>(this);
+   assert(wproc);
+   int_thread* rpcthread = wproc->RPCThread();
+   if(rpcthread) rpcthread->throwEventsBeforeContinue();
+#endif
    //3)
    pthrd_printf("Checking if any ProcStop events on %d are ready\n", getPid());
    getProcStopManager().checkEvents();
@@ -1623,11 +1637,6 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
                continue;
             st.setState(int_thread::stopped);
          }
-		 windows_process* w = dynamic_cast<windows_process*>(this);
-		 if(gen && w)
-		 {
-			 w->lowlevel_processSuspended();
-		 }
          break;
       }
       case Event::unset: {
@@ -1957,6 +1966,18 @@ bool hybrid_lwp_control_process::plat_processGroupContinues()
    return true;
 }
 
+void hybrid_lwp_control_process::noteNewDequeuedEvent(Event::ptr ev)
+{
+   if (ev->getSyncType() == Event::sync_process) {
+      debugger_stopped = true;
+   }
+}
+
+bool hybrid_lwp_control_process::plat_debuggerSuspended()
+{
+   return debugger_stopped;
+}
+
 bool hybrid_lwp_control_process::plat_syncRunState()
 {
    bool any_target_stopped = false, any_target_running = false;
@@ -1975,16 +1996,20 @@ bool hybrid_lwp_control_process::plat_syncRunState()
       int_thread *thr = *i;
       if (thr->getDetachState().getState() == int_thread::detached)
          continue;
+	  if (!RUNNING_STATE(thr->getHandlerState().getState())) {
+         any_stopped = true;
+	  } else {
+         any_running = true;
+         if (!a_running_thread) a_running_thread = thr;
+      }
+		// Ignore system threads in computing target states. This may lead to some problems later, but we'll
+	  // deal with them as they arise.
+	  if(!thr->isUser())
+		  continue;
       if (RUNNING_STATE(thr->getTargetState()))
          any_target_running = true;
       if (!RUNNING_STATE(thr->getTargetState()))
          any_target_stopped = true;
-      if (RUNNING_STATE(thr->getHandlerState().getState())) {
-         any_running = true;
-         if (!a_running_thread) a_running_thread = thr;
-      }
-      if (!RUNNING_STATE(thr->getHandlerState().getState()))
-         any_stopped = true;
    }
    if(!a_running_thread) {
 	   pthrd_printf("WARNING: did not find a running thread, using initial thread\n");
@@ -2028,6 +2053,7 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    }
 
    pthrd_printf("Continuing process %d after suspend/resume of threads\n", getPid());
+   debugger_stopped = false;
    return threadPool()->initialThread()->intCont();
 }
 
@@ -3093,6 +3119,8 @@ bool int_thread::singleStep() const
 void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
+   pthrd_printf("%d/%d marking clearing bp %p (at 0x%lx)\n",
+	   llproc()->getPid(), getLWP(), bp, bp ? bp->getAddr() : 0);
    clearing_breakpoint = bp;
    if (bp) {
       clearing_bp_count.inc();
@@ -3294,7 +3322,7 @@ bool int_thread::StateTracker::setState(State to)
       //We're moving a thread out of a running state...
       if (id == int_thread::GeneratorStateID) {
          up_thr->generatorRunningThreadsCount().dec();
-      }
+	  }
       else if (id == int_thread::HandlerStateID) {
          up_thr->handlerRunningThreadsCount().dec();
          if (up_thr->syncRPCCount().local()) {
@@ -3404,10 +3432,21 @@ void int_threadPool::addThread(int_thread *thrd)
 
 void int_threadPool::rmThread(int_thread *thrd)
 {
+	// On Windows we are not guaranteed that initial thread exit ==
+	// process exit. So we have to handle the case where the initial thread goes away.
+	// In particular this means we need to have a valid initial thread in the threadpool after
+	// we finish removing this one, so that we have an arbitrary thread available
+	// for continue calls.
+
+	// FIXME: should probably kill most of the data duplication here. Log search for thread by LWP is
+	// I guess legitimate, but there's AFAICT no reason for the initial thread to be anything other than
+	// pinned to threads[0]. And the data duplication involved in threads by LWP is not a good thing
+	// for consistency...
+
 #if !defined(os_windows)
-   assert(thrd != initial_thread);
+	assert(thrd != initial_thread);
 #endif
-   Dyninst::LWP lwp = thrd->getLWP();
+	Dyninst::LWP lwp = thrd->getLWP();
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
    assert (i != thrds_by_lwp.end());
    thrds_by_lwp.erase(i);
@@ -3419,6 +3458,10 @@ void int_threadPool::rmThread(int_thread *thrd)
       threads.pop_back();
       hl_threads[j] = hl_threads[hl_threads.size()-1];
       hl_threads.pop_back();
+   }
+   if(!threads.empty() && thrd == initial_thread)
+   {
+	   initial_thread = threads[0];
    }
 }
 
@@ -4765,7 +4808,6 @@ bool Process::continueProc()
       setLastError(err_incallback, "Cannot continueProc from callback\n");
       return false;
    }
-#pragma warning("Move RPC new thread to syncRunState system")
 
    pthrd_printf("User continuing entire process %d\n", getPid());
    llproc_->threadPool()->initialThread()->getUserState().setStateProc(int_thread::running);
@@ -6047,7 +6089,7 @@ ThreadPool::iterator ThreadPool::iterator::operator++()
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
-	  if (curh->isUser())
+	  if (!curh->isUser())
 		  continue;
       return orig;
    }
@@ -6162,6 +6204,8 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++()
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
+	  if (!curh->isUser())
+		  continue;
       return orig;
    }
 }
@@ -6183,6 +6227,8 @@ ThreadPool::const_iterator ThreadPool::const_iterator::operator++(int)
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
+	  if (!curh->isUser())
+		  continue;
       return *this;
    }
 }
@@ -6194,8 +6240,14 @@ ThreadPool::const_iterator ThreadPool::begin() const
    i.curp = threadpool;
    i.curi = 0;
 
-   if (!threadpool->hl_threads.empty())
+   if (!threadpool->hl_threads.empty()) {
+	   while(i.curi < threadpool->hl_threads.size() && 
+		   i.curp->hl_threads[i.curi] && 
+		   !i.curp->hl_threads[i.curi]->isUser()) {
+			   i.curi++;
+	   }
       i.curh = i.curp->hl_threads[i.curi];
+   }
    else
       i.curh = Thread::ptr();
 

@@ -58,6 +58,8 @@ public:
    virtual Event::ptr peek();
    virtual unsigned int size();
    virtual bool hasPriorityEvent();
+   virtual void lock_queue();
+   virtual void unlock_queue();
 private:
    void enqueue_worker(Event::ptr ev, bool priority, bool user);
 };
@@ -77,6 +79,17 @@ MailboxMT::MailboxMT()
 MailboxMT::~MailboxMT()
 {
 }
+
+void MailboxMT::lock_queue()
+{
+	message_cond.lock();
+}
+
+void MailboxMT::unlock_queue()
+{
+	message_cond.unlock();
+}
+
 
 void MailboxMT::enqueue(Event::ptr ev, bool priority)
 {

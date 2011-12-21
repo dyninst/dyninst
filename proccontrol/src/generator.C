@@ -165,6 +165,7 @@ bool Generator::getAndQueueEventInt(bool block)
    }
 
    setState(decoding);
+   //mbox()->lock_queue();
    ProcPool()->condvar()->lock();
    for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); ++i) {
       Decoder *decoder = *i;
@@ -189,6 +190,7 @@ bool Generator::getAndQueueEventInt(bool block)
       }
       Generator::cb_lock->unlock(); 
    }
+   //mbox()->unlock_queue();
 
 
    result = true;

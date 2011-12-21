@@ -44,7 +44,7 @@ private:
 test_results_t pc_libraryMutator::setup(ParameterDict &param)
 {
 	isAttach = false;
-	if(param["useAttach"]->getInt())
+	if(param["createmode"]->getInt() == 1)
 	{
 		isAttach = true;
 	}

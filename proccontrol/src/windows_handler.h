@@ -51,7 +51,39 @@ private:
 	LPVOID tls_base;
 };
 
+class PC_EXPORT WinEventThreadInfo : public Event
+{
+   friend void dyn_detail::boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *);
+   friend void dyn_detail::boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<WinEventThreadInfo> ptr;
+   typedef dyn_detail::boost::shared_ptr<const WinEventThreadInfo> const_ptr;
+	WinEventThreadInfo(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts,
+		LPVOID base) : Event(EventType(EventType::None, EventType::ThreadInfo)), hthread(ht), thread_start(ts), tls_base(base),
+		lwp(l)
+	{}
+	virtual ~WinEventThreadInfo() {}
 
+	HANDLE getHandle() const { return hthread; }
+	LPTHREAD_START_ROUTINE getThreadStart() const { return thread_start; }
+	LPVOID getTLSBase() const { return tls_base; }
+	Dyninst::LWP getLWP() const { return lwp; }
+private:
+	HANDLE hthread;
+	LPTHREAD_START_ROUTINE thread_start;
+	LPVOID tls_base;
+	Dyninst::LWP lwp;
+};
+
+class WindowsHandleSetThreadInfo : public Handler
+{
+ public:
+   WindowsHandleSetThreadInfo();
+   virtual ~WindowsHandleSetThreadInfo();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+   void getEventTypesHandled(std::vector<EventType> &etypes);
+};
 
 
 

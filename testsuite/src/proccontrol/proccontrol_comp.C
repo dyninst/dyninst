@@ -528,8 +528,8 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
          if (proc->threads().size() != num_threads+1) {
-			 //std::cerr << "Proc " << proc->getPid() << " has " << proc->threads().size() << " threads, expected " << num_threads+1 << std::endl;
-            logerror("Process has incorrect number of threads");
+			 std::cerr << "Proc " << proc->getPid() << " has " << proc->threads().size() << " threads, expected " << num_threads+1 << std::endl;
+            //logerror("Process has incorrect number of threads");
 //            error = true;
          }
       }

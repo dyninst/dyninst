@@ -1121,17 +1121,7 @@ bool freebsd_process::plat_resumeThread(int_thread *thr)
    return static_cast<freebsd_thread *>(thr)->plat_resume();
 }
 
-bool freebsd_process::plat_debuggerSuspended()
-{
-   return debugger_stopped;
-}
 
-void freebsd_process::noteNewDequeuedEvent(Event::ptr ev)
-{
-   if (ev->getSyncType() == Event::sync_process) {
-      debugger_stopped = true;
-   }
-}
 
 FreeBSDPollLWPDeathHandler::FreeBSDPollLWPDeathHandler() 
     : Handler("FreeBSD Poll LWP Death")
@@ -1477,7 +1467,6 @@ bool freebsd_thread::plat_suspend() {
 bool freebsd_thread::plat_cont() 
 {
    freebsd_process *proc = dynamic_cast<freebsd_process *>(llproc());
-   proc->debugger_stopped = false;
    int_threadPool *tp = llproc()->threadPool();
    int_threadPool::iterator i;
    

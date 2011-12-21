@@ -631,6 +631,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
+   ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -660,14 +661,11 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
 
-   ProcPool()->condvar()->lock();
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
       delete proc;
    }
-   ProcPool()->condvar()->signal();
-   ProcPool()->condvar()->unlock();
 
    return ret_success;
 }
