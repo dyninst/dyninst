@@ -245,6 +245,7 @@ void ABI::initialize64(){
     
 
     callRead64_ = getBitArray(machRegIndex_x86_64.size());
+    callRead64_[machRegIndex_x86_64[x86_64::rax]] = true;
     callRead64_[machRegIndex_x86_64[x86_64::rcx]] = true;
     callRead64_[machRegIndex_x86_64[x86_64::rdx]] = true;
     callRead64_[machRegIndex_x86_64[x86_64::r8]] = true;
