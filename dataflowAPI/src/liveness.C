@@ -245,7 +245,7 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
    // First, ensure that the block liveness is done.
    analyze(loc.func);
 
-   Address addr;
+   Address addr = 0;
    // For "pre"-instruction we subtract one from the address. This is done
    // because liveness is calculated backwards; therefore, accumulating
    // up to <addr> is actually the liveness _after_ that instruction, not
@@ -549,32 +549,15 @@ void *LivenessAnalyzer::getPtrToInstruction(Block *block, Address addr) const{
 bool LivenessAnalyzer::isExitBlock(Block *block)
 {
     Block::edgelist & trgs = block->targets();
-    if(trgs.empty()) {
-        return false;
+
+    bool interprocEdge = false;
+    bool intraprocEdge = false;
+    for (Block::edgelist::iterator eit=trgs.begin(); eit != trgs.end(); ++eit){
+        if ((*eit)->type() == CATCH) continue;
+	if ((*eit)->interproc()) interprocEdge = true; else intraprocEdge = true;
     }
 
-    Edge * e = *trgs.begin();
-    if (e->type() == RET) {
-        return true;
-    }
-
-    if (!e->interproc()) {
-        return false;
-    }
-
-    if (e->type() == CALL && trgs.size() > 1) {
-        // there's a CALL edge and at least one other edge, 
-        // it's an exit block if there is no CALL_FT edge
-        for(Block::edgelist::iterator eit = ++(trgs.begin());
-            eit != trgs.end();
-            eit++)
-        {
-            if ((*eit)->type() == CALL_FT && !(*eit)->sinkEdge()) {
-                return false;
-            }
-        }
-    }
-    return true;
+    if (interprocEdge && !intraprocEdge) return true; else return false;
 }
 
 void LivenessAnalyzer::clean(){

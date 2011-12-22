@@ -175,6 +175,10 @@ class Edge : public allocatable {
                type() == RET);
     }
 
+    bool intraproc() const {
+       return !interproc();
+    }
+
     PARSER_EXPORT void install();
 
     /* removes from blocks & finalized source functions if of type CALL */
