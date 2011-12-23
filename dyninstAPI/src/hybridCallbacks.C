@@ -868,11 +868,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
     proc()->beginInsertionSet();
     // 4.1 if the point is a direct branch, remove any instrumentation
-    if ((point->llpoint()->block() &&
-        !point->llpoint()->block()->containsDynamicCall())
-        ||
-        (point->llpoint()->edge() && point->isDynamic()))
-    {
+    if (!point->isDynamic()) {
         BPatch_function *func = point->getFunction();
         if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
             &&

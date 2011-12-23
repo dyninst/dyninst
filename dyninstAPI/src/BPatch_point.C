@@ -379,7 +379,6 @@ bool BPatch_point::isDynamicInt()
                return true;
             case ParseAPI::CALL:
                return point->edge()->src()->containsDynamicCall();
-               break;
             default:
                return false;
           }

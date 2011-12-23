@@ -1291,7 +1291,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
         // Determine if this stub already has been parsed
         // Which means looking up a block at the target address
         if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
-           cerr << "VERIFY THAT I WORK: parsing edge for target that already exists" << endl;
+           cerr << "KEVINTEST: VERIFY THAT I WORK: parsing edge for target that already exists" << endl;
           //continue; //KEVINTODO: don't we maybe want to add the edge anyway?
         }
 

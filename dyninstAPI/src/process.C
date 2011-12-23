@@ -4386,9 +4386,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // Clear all cache entries that match the runtime library
     // Read in the contents of the cache
-    Address cacheCopy[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+    Address cacheCopy[TARGET_CACHE_LENGTH][TARGET_CACHE_WAYS];
     if ( ! readDataSpace( (void*)RT_address_cache_addr,
-                          sizeof(Address)*TARGET_CACHE_WIDTH*TARGET_CACHE_WAYS,(void*)cacheCopy,
+                          sizeof(Address)*TARGET_CACHE_LENGTH*TARGET_CACHE_WAYS,(void*)cacheCopy,
                           false ) ) 
     {
         assert(0);
@@ -4422,10 +4422,10 @@ void process::flushAddressCache_RT(Address start, unsigned size)
             flushEnd = start + size;
         }
         //zero out entries that lie in the runtime heaps
-        for(int xidx=0; xidx < TARGET_CACHE_WIDTH; xidx++) {
+        for(int xidx=0; xidx < TARGET_CACHE_LENGTH; xidx++) {
            for(int yidx=0; yidx < TARGET_CACHE_WAYS; yidx++) {
               if (!flushedHeaps && cacheCopy[xidx][yidx] != 0) {
-                 mal_printf("cacheCopy[%d][%d]=%8lx\n",xidx,yidx,cacheCopy[xidx][yidx]);
+                 mal_printf("cacheCopy[%lx][%d]=%8lx\n",xidx,yidx,cacheCopy[xidx][yidx]);
               }
               if (flushStart <= cacheCopy[xidx][yidx] &&
                  flushEnd   >  cacheCopy[xidx][yidx]) {
@@ -4441,7 +4441,7 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // write the modified cache back into the RT_library
     if ( ! writeDataSpace( (void*)RT_address_cache_addr,
-                           sizeof(Address)*TARGET_CACHE_WIDTH*TARGET_CACHE_WAYS,
+                           sizeof(Address)*TARGET_CACHE_LENGTH*TARGET_CACHE_WAYS,
                            (void*)cacheCopy ) ) {
         assert(0);
     }

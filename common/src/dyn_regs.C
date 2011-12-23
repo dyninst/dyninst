@@ -146,7 +146,7 @@ unsigned int MachRegister::size() const {
             case x86::BIT:
                return 0;
             default:
-               return 0;//KEVINTODO: removed sanity-check assert for fuzz testing
+               return 0;//KEVINTODO: removed sanity-check assert because of asprotect fuzz testing, could use this as a sign that the parse has gone into junk
                assert(0);
          }
       case Arch_x86_64:

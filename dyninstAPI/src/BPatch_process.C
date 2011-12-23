@@ -2335,6 +2335,7 @@ void BPatch_process::printDefensiveStatsInt()
                     if (iit->second->readsMemory() || 
                         iit->second->writesMemory()) 
                     {
+                       //KEVINTODO: elminate stack accesses
                         dereferences++;
                     }
                 }

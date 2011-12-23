@@ -106,8 +106,7 @@ int block_instance::id() const {
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {
-    //KEVINTODO: implement this
-    // Relocation info caching...
+    // KEVINTODO: implement this: remove block from Relocation info caching...
    //PCSensitiveTransformer::invalidateCache(this);
 }
 
