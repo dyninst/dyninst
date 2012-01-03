@@ -88,6 +88,8 @@ PatchObject::~PatchObject() {
 
 PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
+  if (!f) return NULL;
+
   if (co_ != f->obj()) {
     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
     assert(0);

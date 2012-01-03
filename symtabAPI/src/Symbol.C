@@ -645,18 +645,6 @@ Symbol::~Symbol ()
 		}
 		delete (sfa_p);
 	}
-
-	std::vector<std::string> *vn_p = NULL;
-	if (getAnnotation(vn_p, SymbolVersionNamesAnno))
-	{
-		if (!removeAnnotation(SymbolVersionNamesAnno))
-		{
-			fprintf(stderr, "%s[%d]:  failed to remove version names anno\n", 
-					FILE__, __LINE__);
-		}
-		delete (vn_p);
-	}
-
 }
 
 void Symbol::setReferringSymbol(Symbol* referringSymbol) 

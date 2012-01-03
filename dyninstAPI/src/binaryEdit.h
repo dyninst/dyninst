@@ -157,10 +157,13 @@ class BinaryEdit : public AddressSpace {
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
     // add a shared library relocation
-	void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
+    void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
 
     // search for a shared library relocation
-	Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
+    Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
+
+    // Add a library prerequisite
+    void addLibraryPrereq(std::string libname);
 
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();

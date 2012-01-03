@@ -1789,8 +1789,10 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bt() || gen.bt()->alignedStack)
+      if (!gen.bt() || gen.bt()->alignedStack) {
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+          if (imm) emitLEA(dest_r, RealRegister(Null_Register), 0, imm, dest_r, gen);
+      }
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);

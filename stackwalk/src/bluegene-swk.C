@@ -767,7 +767,7 @@ namespace Dyninst {
             val = 0x0;
             break;
          default:
-            sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg.name());
+            sw_printf("[%s:%u] - Request for unsupported register %s\n", __FILE__, __LINE__, reg.name().c_str());
             setLastError(err_badparam, "Unknown register passed in reg field");
             return false;
       }   
@@ -794,7 +794,7 @@ namespace Dyninst {
             msg.dataArea.SET_REG.registerNumber = BG_IAR;
             break;
          default:
-            sw_printf("[%s:%u] - Request for unsupported register %s\n", __FILE__, __LINE__, reg.name());
+            sw_printf("[%s:%u] - Request for unsupported register %s\n", __FILE__, __LINE__, reg.name().c_str());
             setLastError(err_badparam, "Unknown register passed in reg field");
             return false;
       }  
@@ -993,7 +993,9 @@ namespace Dyninst {
      SymbolReaderFactory *getDefaultSymbolReader()
      {
         static SymElfFactory symelffact;
-        return &symelffact;
+        if (!Walker::symrfact)
+           Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+        return Walker::symrfact;
      }
   } // namespace Stackwalker
 } // namespace Dyninst

@@ -2541,7 +2541,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
       if (!foundHashSection) {
       	dynsecData[curpos].d_tag = DT_HASH;
       	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-	dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
+         dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
       	curpos++;
       	foundHashSection = true;
       }

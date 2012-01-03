@@ -45,6 +45,23 @@ void ParseFrame::set_status(Status s)
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
 
+ParseWorkElem * ParseFrame::mkWork(
+    ParseWorkBundle * b,
+    Edge * e,
+    Address target,
+    bool resolvable,
+    bool tailcall)
+{
+    if(!b) {
+        b = new ParseWorkBundle();
+        work_bundles.push_back(b); 
+    }
+    ParseWorkElem * ret = new ParseWorkElem(b,e,target,resolvable,tailcall);
+    b->add( ret );
+    return ret;
+}
+
+
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :

@@ -2225,3 +2225,14 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
   return findFunction(f);
 }
 
+func_instance *mapped_object::getCallee(const block_instance *b) const {
+   std::map<const block_instance *, func_instance *>::const_iterator iter = callees_.find(b);
+   if (iter == callees_.end()) return NULL;
+   return iter->second;
+}
+
+void mapped_object::setCallee(const block_instance *b, func_instance *f) {
+   callees_[b] = f;
+}
+
+   

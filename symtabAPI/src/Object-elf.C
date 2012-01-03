@@ -81,12 +81,10 @@ using namespace std;
 
 #include <fstream>
 #include <sys/stat.h>
-#include <boost/crc.hpp>
+
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
-#include <boost/assign/std/vector.hpp>
 
-using boost::crc_32_type;
 using namespace boost::assign;
 
 #include <libgen.h>
@@ -331,8 +329,6 @@ const char* DYNAMIC_NAME     = ".dynamic";
 const char* EH_FRAME_NAME    = ".eh_frame";
 const char* EXCEPT_NAME      = ".gcc_except_table";
 const char* EXCEPT_NAME_ALT  = ".except_table";
-const char* DEBUGLINK_NAME   = ".gnu_debuglink";
-const char* BUILD_ID_NAME    = ".note.gnu.build-id";
 
 set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
   (string(STRTAB_NAME));
@@ -477,8 +473,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   size_t dynamic_section_size = 0;
   for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if (! scnp->isValid())  // section is malformed
+    if (! scnp->isValid()) {  // section is malformed
+      delete scnp;
       continue; 
+    }
     if ((dynamic_offset_ !=0) && (scnp->sh_offset() == dynamic_offset_)) {
       if (!foundDynamicSection) {
 	dynamic_section_index = i;
@@ -500,6 +498,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
       } 
     }	
+    delete scnp;
   }
 
   if (dynamic_section_index != -1) {
@@ -588,6 +587,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
       it++;
     }
+    delete scnp;
   }
    
   isBlueGeneP_ = false;
@@ -601,7 +601,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     if(i < elfHdr.e_shnum()) {
       scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
       if (! scnp->isValid()) { // section is malformed
-	continue; 
+        delete scnp;
+	    continue; 
       } 
       name = &shnames[scnp->sh_name()];
       sectionsInOriginalBinary.insert(string(name));
@@ -619,7 +620,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	break;
       scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
       if(! scnp->isValid()) {
-	continue;
+        delete scnp;
+        continue;
       }
       name = &shnamesForDebugInfo[scnp->sh_name()];
 
@@ -2065,17 +2067,18 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);
 
-         symbols_[sname].push_back(newsym);
-         symsByOffset_[newsym->getOffset()].push_back(newsym);
-         symsToModules_[newsym] = smodule; 
-
          if (sec && sec->getRegionName() == OPD_NAME) {
             newsym = handle_opd_symbol(sec, newsym);
 
             symbols_[sname].push_back(newsym);
             symsByOffset_[newsym->getOffset()].push_back(newsym);
             symsToModules_[newsym] = smodule; 
-         }
+         } else {
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule; 
+	}
+
       }
    } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -2239,9 +2242,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 	 }
       }
       // register symbol in dictionary
-      symbols_[sname].push_back(newsym);
-      symsByOffset_[newsym->getOffset()].push_back(newsym);
-      symsToModules_[newsym] = smodule; 
 
       if (sec && sec->getRegionName() == OPD_NAME) {
         newsym = handle_opd_symbol(sec, newsym);
@@ -2249,7 +2249,11 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
         symbols_[sname].push_back(newsym);
         symsByOffset_[newsym->getOffset()].push_back(newsym);
         symsToModules_[newsym] = smodule;
-      }
+      } else {
+      symbols_[sname].push_back(newsym);
+      symsByOffset_[newsym->getOffset()].push_back(newsym);
+      symsToModules_[newsym] = smodule; 
+	}
     }
   }
   
@@ -3280,6 +3284,7 @@ Object::~Object()
 
   // This is necessary to free resources held internally by libelf
   elfHdr.end();
+  elfHdrForDebugInfo.end();
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
@@ -5132,106 +5137,20 @@ void Object::parseStabTypes(Symtab *obj)
 #endif
 } 
 
-// The standard procedure to look for a separate debug information file
-// is as follows:
-// 1. Lookup build_id from .note.gnu.build-id section and debug-file-name and
-//    crc from .gnu_debuglink section of the original binary.
-// 2. Look for the following files:
-//        /usr/lib/debug/.build-id/<path-obtained-using-build-id>.debug
-//        <debug-file-name> in <directory-of-executable>
-//        <debug-file-name> in <directory-of-executable>/.debug
-//        <debug-file-name> in /usr/lib/debug/<directory-of-executable>
-// Reference: http://sourceware.org/gdb/current/onlinedocs/gdb_16.html#SEC157
-
 MappedFile *Object::findMappedFileForDebugInfo() {
-  // ".shstrtab" section: string table for section header names
-  const char *shnames = pdelf_get_shnames(elfHdr);
-  if (shnames == NULL) {
-     //fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
-     //getFileName());
-    log_elferror(err_func_, ".shstrtab section");
-    return mf;
-  }
+   string debug_filename;
+   char *buffer;
+   unsigned long buffer_size;
 
-  string debugFileFromDebugLink, debugFileFromBuildID;
-  unsigned debugFileCrc = 0;
-  Elf_X_Shdr *scnp;
+   bool result = elfHdr.findDebugFile(mf->pathname(), debug_filename, buffer, buffer_size);
+   if (!result)
+      return mf;
 
-  for(int i = 0; i < elfHdr.e_shnum(); ++i) {
-    scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if(! scnp->isValid()) { // section is malformed
-      continue;
-    }
-
-    const char *name = &shnames[scnp->sh_name()];
-    if(strcmp(name, DEBUGLINK_NAME) == 0) {
-      Elf_X_Data data = scnp->get_data();
-      debugFileFromDebugLink = (char *) data.d_buf();
-      void *crcLocation = ((char *) data.d_buf() + data.d_size() - 4);
-      debugFileCrc = *(unsigned *) crcLocation;
-    }
-    else if(strcmp(name, BUILD_ID_NAME) == 0) {
-      char *buildId = (char *) scnp->get_data().d_buf();
-      string filename = string(buildId + 2) + ".debug";
-      string subdir = string(buildId, 2);
-      debugFileFromBuildID = "/usr/lib/debug/.build-id/" + subdir + "/" + filename;
-    }
-  }
-
-  if(! debugFileFromBuildID.empty()) {
-    ifstream debugFile(debugFileFromBuildID.c_str(), ios::in | ios::binary);
-    if(debugFile) {
-      debugFile.close();
-
-      dwarvenDebugInfo = true;
-      mfForDebugInfo = MappedFile::createMappedFile(debugFileFromBuildID);
-      if (!mfForDebugInfo)
-         return mf;
-      return mfForDebugInfo;
-    }
-  }
-
-  if(debugFileFromDebugLink.empty())
-    return mf;
-
-  char *mfPathNameCopy = strdup(mf->pathname().c_str());
-  string objectFileDirName = dirname(mfPathNameCopy);
-
-  vector<string> fnames = list_of
-    (objectFileDirName + "/" + debugFileFromDebugLink)
-    (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
-    ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
-
-  free(mfPathNameCopy);
-
-  for(unsigned i = 0; i < fnames.size(); ++ i) {
-    ifstream debugFile(fnames[i].c_str(), ios::in | ios::binary);
-    if(!debugFile)
-      continue;
-
-    struct stat fileStat;
-    if(stat(fnames[i].c_str(), &fileStat) != 0)
-      continue;
-
-    char *buffer = (char *) malloc(sizeof(char) * fileStat.st_size);
-    debugFile.read(buffer, fileStat.st_size);
-    debugFile.close();
-
-    boost::crc_32_type crcComputer;
-    crcComputer.process_bytes(buffer, fileStat.st_size);
-    free(buffer);
-
-    if(crcComputer.checksum() != debugFileCrc)
-      continue;
-
-    dwarvenDebugInfo = true;
-    mfForDebugInfo = MappedFile::createMappedFile(fnames[i]);
-    if (!mfForDebugInfo)
-       return mf;
-    return mfForDebugInfo;
-  }
-
-  return mf;
+   MappedFile *debug_mf = MappedFile::createMappedFile(buffer, buffer_size, debug_filename);
+   if (!debug_mf)
+      return mf;
+   dwarvenDebugInfo = true;
+   return debug_mf;
 }
 
 bool sort_dbg_map(const Object::DbgAddrConversion_t &a, 

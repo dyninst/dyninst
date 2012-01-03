@@ -598,3 +598,15 @@ StepperGroup *Walker::getStepperGroup() const
 {
    return group;
 }
+
+SymbolReaderFactory *Walker::symrfact = NULL;
+SymbolReaderFactory *Walker::getSymbolReader()
+{
+   return Dyninst::Stackwalker::getDefaultSymbolReader();
+}
+
+void Walker::setSymbolReader(SymbolReaderFactory *val)
+{
+   symrfact = val;
+}
+
