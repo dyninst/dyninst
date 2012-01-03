@@ -34,15 +34,15 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/swk_errors.h"
 
+using namespace Dyninst;
+using namespace Stackwalker;
+
+#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/SymLite-elf.h"
 
 #include "stackwalk/src/sw.h"
 
 #include <assert.h>
-
-
-using namespace Dyninst;
-using namespace Stackwalker;
 
 ProcSelf::ProcSelf(std::string exec_path) :
    ProcessState(getpid(), exec_path)

@@ -66,15 +66,16 @@ public:
    Address hiPC;
 };
 
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/Elf_X.h"
+#include "common/src/Elf_X.C"
+
 #include "dwarf.h"
 #include "libdwarf.h"
 #define setSymtabError(x) 
 #define dwarf_printf sw_printf
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
-
-#define INLINE_ELF_X 
-#include "common/src/Elf_X.C"
 
 static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
 {
@@ -141,7 +142,7 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
       return NULL;
    }
 
-   Elf_X *elfx = reader->getElfHandle();
+   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
    DwarfSW *dresult = ll_getDwarfInfo(elfx);
    dwarf_aux_info[s] = dresult;
    return dresult;

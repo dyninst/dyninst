@@ -130,7 +130,11 @@ vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
 
-class Elf_X;
-Elf_X *getElfHandle(std::string s);
+namespace Dyninst {
+   namespace Stackwalker {
+      class Elf_X;
+   }
+}
+Dyninst::Stackwalker::Elf_X *getElfHandle(std::string s);
 
 #endif
