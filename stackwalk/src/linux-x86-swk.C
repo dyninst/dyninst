@@ -381,10 +381,10 @@ struct sigframe_offsets {
 int frames_32_size = 1;
 sigframe_offsets frames_32[] = { {28, 60, 32, 728} };
 
-int frames_64_size = 4;
+int frames_64_size = 6;
 sigframe_offsets frames_64[] = { {120, 168, 160, 568}, {120, 168, 160, 1096}, 
-                                 {120, 168, 160, 1080}, {120, 168, 160, 1120},
-                                 {120, 168, 160, 0} };
+                                 {120, 168, 160, 1112}, {120, 168, 160, 1180},
+                                 {120, 168, 160, 1120}, {120, 168, 160, 0} };
 
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
