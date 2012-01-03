@@ -279,6 +279,7 @@ Walker::~Walker() {
   result = true; \
   Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
   Dyninst::MachRegisterVal pc, sp, fp; \
+  location_t loc; \
   if (thread == NULL_THR_ID) { \
     result = proc->getDefaultThread(thread); \
     if (!result) { \
@@ -298,6 +299,13 @@ Walker::~Walker() {
   frame.setRA(pc); \
   frame.setFP(fp); \
   frame.setSP(sp); \
+  loc.location = loc_register; \
+  loc.val.reg = Dyninst::ReturnAddr; \
+  frame.setRALocation(loc); \
+  loc.val.reg = Dyninst::StackTop; \
+  frame.setSPLocation(loc); \
+  loc.val.reg = Dyninst::FrameBase; \
+  frame.setFPLocation(loc); \
   frame.setThread(thread); \
   done_gifi: ; \
 }

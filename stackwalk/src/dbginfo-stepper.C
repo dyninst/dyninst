@@ -233,6 +233,24 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    }
 
    Address pc = in.getRA() - lib.second;
+   if (in.getRALocation().location != loc_register) {
+      /**
+       * If we're here, then our in.getRA() should be pointed at the
+       * instruction following a call.  We could either use the
+       * call instruction's debug info (pc - 1) or the following
+       * instruction's debug info (pc) to continue the stackwalk.
+       *
+       * In most cases it doesn't matter.  Because of how DWARF debug
+       * info is defined, the stack doesn't change between these two points.
+       *
+       * However, if the call is a non-returning call (e.g, a call to exit)
+       * then the next instruction may not exist or may be part of a separate
+       * block with different debug info.  In these cases we want to use the
+       * debug info associated with the call.  So, we subtract 1 from the
+       * pc to get at the call instruction.
+       **/
+      pc = pc - 1;
+   }
 
    /**
     * Some system libraries on some systems have their debug info split
