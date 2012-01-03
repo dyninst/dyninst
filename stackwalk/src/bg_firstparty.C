@@ -39,6 +39,7 @@ using namespace Stackwalker;
 
 #define ELF_X_NAMESPACE Stackwalker
 #include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 #include "stackwalk/src/sw.h"
 
