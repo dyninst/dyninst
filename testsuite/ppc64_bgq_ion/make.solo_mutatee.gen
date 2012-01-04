@@ -1,0 +1,274 @@
+# Define variables for our compilers, if they aren't already defined
+M_bg_CC ?= bgxlc++
+M_bg_cc ?= bgxlc
+
+######################################################################
+# Mutatees compiled with bgxlc for symtab
+######################################################################
+
+symtab_SOLO_MUTATEES_bg_cc = symtab_group_test.mutatee_solo_dynamic_bgxlc_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with bgxlc
+
+symtab_group_test.mutatee_solo_dynamic_bgxlc_32_none_none: symtab_group_test_group_bgxlc_32_none_none.o test_lookup_func_mutatee_solo_bgxlc_32_none_none.o test_lookup_var_mutatee_solo_bgxlc_32_none_none.o test_line_info_mutatee_solo_bgxlc_32_none_none.o test_module_mutatee_solo_bgxlc_32_none_none.o test_relocations_mutatee_solo_bgxlc_32_none_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc_32_none_none.o test_ser_anno_mutatee_solo_bgxlc_32_none_none.o test_type_info_mutatee_solo_bgxlc_32_none_none.o test_anno_basic_types_mutatee_solo_bgxlc_32_none_none.o test_add_symbols_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none: symtab_group_test_group_bgxlc_32_pic_none.o test_lookup_func_mutatee_solo_bgxlc_32_pic_none.o test_lookup_var_mutatee_solo_bgxlc_32_pic_none.o test_line_info_mutatee_solo_bgxlc_32_pic_none.o test_module_mutatee_solo_bgxlc_32_pic_none.o test_relocations_mutatee_solo_bgxlc_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc_32_pic_none.o test_ser_anno_mutatee_solo_bgxlc_32_pic_none.o test_type_info_mutatee_solo_bgxlc_32_pic_none.o test_anno_basic_types_mutatee_solo_bgxlc_32_pic_none.o test_add_symbols_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
+	$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+
+# Exceptional rules for mutatees compiled with bgxlc
+
+
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for symtab
+test_type_info_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_bgxlc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_bgxlc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+symtab_group_test_group_bgxlc_32_none_none.o: symtab_group_test_group.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_bgxlc_32_pic_none.o: symtab_group_test_group.c
+	$(M_bg_cc) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -DGROUPABLE=1 -o $@ $<
+
+%_bgxlc_32_none_none.o: ../src/symtab/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/symtab/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for instruction
+
+%_bgxlc_32_none_none.o: ../src/instruction/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/instruction/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc's mutatees and varying optimization levels for proccontrol
+
+%_bgxlc_32_none_none.o: ../src/proccontrol/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/proccontrol/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -o $@ $<
+%_bgxlc_32_none_none.o: ../src/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -o $@ $<
+%_bgxlc_32_pic_none.o: ../src/%.c
+	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_bgxlc_32.o: ../src/mutatee_driver.c
+	$(M_bg_cc) -qnostaticlink $(CFLAGS)  -o $@ -c $<
+mutatee_util_bgxlc_32.o: ../src/mutatee_util.c
+	$(M_bg_cc) -qnostaticlink $(CFLAGS)  -o $@ -c $<
+
+######################################################################
+# Mutatees compiled with bgxlc++ for symtab
+######################################################################
+
+symtab_SOLO_MUTATEES_bg_CC = symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with bgxlc++
+
+symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: symtab_group_test_group_bgxlc++_32_none_none.o test_lookup_func_mutatee_solo_bgxlc++_32_none_none.o test_lookup_var_mutatee_solo_bgxlc++_32_none_none.o test_line_info_mutatee_solo_bgxlc++_32_none_none.o test_module_mutatee_solo_bgxlc++_32_none_none.o test_relocations_mutatee_solo_bgxlc++_32_none_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_none_none.o test_ser_anno_mutatee_solo_bgxlc++_32_none_none.o test_type_info_mutatee_solo_bgxlc++_32_none_none.o test_anno_basic_types_mutatee_solo_bgxlc++_32_none_none.o test_add_symbols_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: symtab_group_test_group_bgxlc++_32_pic_none.o test_lookup_func_mutatee_solo_bgxlc++_32_pic_none.o test_lookup_var_mutatee_solo_bgxlc++_32_pic_none.o test_line_info_mutatee_solo_bgxlc++_32_pic_none.o test_module_mutatee_solo_bgxlc++_32_pic_none.o test_relocations_mutatee_solo_bgxlc++_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_pic_none.o test_ser_anno_mutatee_solo_bgxlc++_32_pic_none.o test_type_info_mutatee_solo_bgxlc++_32_pic_none.o test_anno_basic_types_mutatee_solo_bgxlc++_32_pic_none.o test_add_symbols_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
+	$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+
+# Exceptional rules for mutatees compiled with bgxlc++
+
+
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for symtab
+test_type_info_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_bgxlc++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_bgxlc++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+symtab_group_test_group_bgxlc++_32_none_none.o: symtab_group_test_group.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_bgxlc++_32_pic_none.o: symtab_group_test_group.c
+	$(M_bg_CC) $(symtab_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -DGROUPABLE=1 -o $@ $<
+
+%_bgxlc++_32_none_none.o: ../src/symtab/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/symtab/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/symtab/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/symtab/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for instruction
+
+%_bgxlc++_32_none_none.o: ../src/instruction/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/instruction/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/instruction/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/instruction/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+
+# Generic rules for bgxlc++'s mutatees and varying optimization levels for proccontrol
+
+%_bgxlc++_32_none_none.o: ../src/proccontrol/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/proccontrol/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/proccontrol/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/proccontrol/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_none_none.o: ../src/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/%.c
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+%_bgxlc++_32_pic_none.o: ../src/%.C
+	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_bgxlc++_32.o: ../src/mutatee_driver.c
+	$(M_bg_CC) -qnostaticlink $(CXXFLAGS)  -o $@ -c $<
+mutatee_util_bgxlc++_32.o: ../src/mutatee_util.c
+	$(M_bg_CC) -qnostaticlink $(CXXFLAGS)  -o $@ -c $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+
+# Generic rules for this platform's auxilliary compilers
+
+# And a rule to build all of the mutatees
+.PHONY: symtab_solo_mutatees
+symtab_solo_mutatees: $(symtabSOLO_MUTATEES_bg_cc) $(symtabSOLO_MUTATEES_bg_CC) 
+
+.PHONY: clean_solo_mutatees
+symtab_clean_solo_mutatees:
+	-$(RM) $(symtab_SOLO_MUTATEES_bg_cc)
+	-$(RM) $(symtab_SOLO_MUTATEES_bg_CC)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_bg_cc) $(symtab_SOLO_MUTATEES_bg_CC)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: instruction_solo_mutatees
+instruction_solo_mutatees: $(instructionSOLO_MUTATEES_bg_cc) $(instructionSOLO_MUTATEES_bg_CC) 
+
+.PHONY: clean_solo_mutatees
+instruction_clean_solo_mutatees:
+	-$(RM) $(instruction_SOLO_MUTATEES_bg_cc)
+	-$(RM) $(instruction_SOLO_MUTATEES_bg_CC)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_bg_cc) $(instruction_SOLO_MUTATEES_bg_CC)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: proccontrol_solo_mutatees
+proccontrol_solo_mutatees: $(proccontrolSOLO_MUTATEES_bg_cc) $(proccontrolSOLO_MUTATEES_bg_CC) 
+
+.PHONY: clean_solo_mutatees
+proccontrol_clean_solo_mutatees:
+	-$(RM) $(proccontrol_SOLO_MUTATEES_bg_cc)
+	-$(RM) $(proccontrol_SOLO_MUTATEES_bg_CC)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+proccontrol_SOLO_MUTATEES = $(proccontrol_SOLO_MUTATEES_bg_cc) $(proccontrol_SOLO_MUTATEES_bg_CC)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
