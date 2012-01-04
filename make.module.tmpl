@@ -108,6 +108,9 @@ LIBTESTSUITE = libtestSuite.so
 endif
 
 TESTDRIVER_LDFLAGS += $(DEMANGLER_EXEC_LINK)
+
+ALL_COMP_DIRS = $(TO_CORE)/common/$(PLATFORM)
+
 #######################################################
 # Dyninst infrastructure components
 #######################################################
@@ -128,14 +131,12 @@ SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
 
 dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI 
 
-ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
 DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
+ifdef M_ABI
 DYNINST_TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
 DYNINST_STATIC_TESTLIBS_ABI = $(addsuffix _$(M_ABI).a, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
 else
-DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
-DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
 DYNINST_TESTLIBS_ABI =
 DYNINST_STATIC_TESTLIBS_ABI = 
 endif
@@ -148,7 +149,7 @@ endif
 
 dyninst_MUTATOR_LIB = $(LIBDYNINSTCOMP)
 dyninst_COMPONENT_LIB = $(LIBDYNINSTCOMP)
-
+ALL_COMP_DIRS += $(TO_CORE)/dyninstAPI/$(PLATFORM)
 
 #######################################################
 # Symtab infrastructure components
@@ -165,6 +166,7 @@ endif
 
 symtab_MUTATOR_LIB = $(LIBSYMTABCOMP)
 symtab_COMPONENT_LIB = $(LIBSYMTABCOMP)
+ALL_COMP_DIRS += $(TO_CORE)/symtabAPI/$(PLATFORM)
 
 #######################################################
 # Instruction infrastructure components
@@ -181,6 +183,7 @@ endif
 
 instruction_MUTATOR_LIB = $(LIBINSTRUCTIONCOMP)
 instruction_COMPONENT_LIB = $(LIBINSTRUCTIONCOMP)
+ALL_COMP_DIRS += $(TO_CORE)/instructionAPI/$(PLATFORM)
 
 #######################################################
 # ProcControlAPI infrastructure components
@@ -197,11 +200,15 @@ endif
 
 proccontrol_MUTATOR_LIB = $(LIBPROCCONTROLCOMP)
 proccontrol_COMPONENT_LIB = $(LIBPROCCONTROLCOMP)
-
+ALL_COMP_DIRS += $(TO_CORE)/proccontrol/$(PLATFORM)
 
 ######################################################################
 ### Main target
 ######################################################################
+
+SPACE :=
+SPACE +=
+COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl,--enable-new-dtags$(ALL_COMP_DIRS:%=,-rpath,%))
 
 default: testlibs mutators mutatees_minimum drivers output_drivers components
 	@echo "**********************************************************"
@@ -321,7 +328,7 @@ mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FIL
 mutators: $(proccontrol_MUTATORS_SO)
 ifneq ($(proccontrol_MUTATORS_SO), )
 components: $(LIBPROCCONTROLCOMP)
-testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS)
+testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS) $(DYNINST_TESTLIBS_ABI)
 proccontrol_targs = $(LIBPROCCONTROLCOMP) $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI) $(DYNINST_TESTLIBS)
 endif
 proccontrol_targs += $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES)))
@@ -473,24 +480,23 @@ $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
--lcommon -linstructionAPI
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI -lcommon -linstructionAPI $(COMPONENT_LDFLAGS)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon $(COMPONENT_LDFLAGS)
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon $(COMPONENT_LDFLAGS)
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon $(COMPONENT_LDFLAGS)
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	@echo Compiling $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@ $(COMPONENT_LDFLAGS)
 
 #
 # Native Fortran mutatees
@@ -588,8 +594,7 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) -lcommon $(TESTDRIVER_LDFLAGS); $(TESTDRIVER_EXTRA_LINK_STEP)
-        
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -Wl,-rpath,$(TO_CORE)/testsuite/$(PLATFORM) ; $(TESTDRIVER_EXTRA_LINK_STEP)
 
 ######################################################################
 ### Output Drivers
