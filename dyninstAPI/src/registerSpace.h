@@ -98,7 +98,7 @@ class registerSlot {
     const initialLiveness_t initialState;
 
     // Are we off limits for allocation in this particular instance?
-    const bool offLimits; 
+    bool offLimits; 
 
     typedef enum { invalid, GPR, FPR, SPR, realReg} regType_t;
     const regType_t type; 

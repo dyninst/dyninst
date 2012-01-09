@@ -353,7 +353,7 @@ Function::removeBlock(Block* dead)
         mal_printf("Warning: removing entry block [%lx %lx) for function at "
                    "%lx\n", dead->start(), dead->end(), addr());
         _entry = NULL;
-        //assert(0);
+        assert(0);
     }
 
     // remove dead block from _return_blocks and _call_edges

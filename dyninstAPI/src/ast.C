@@ -764,6 +764,7 @@ bool AstNode::initRegisters(codeGen &g) {
     return ret;
 }
 
+
 bool AstNode::generateCode_phase2(codeGen &, bool,
                                   Address &,
                                   Register &) {
@@ -1215,6 +1216,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case RegOffset: {
+               cerr << "Emitting a regOffset for reg " << loperand->getOValue() << endl;
                assert(loperand);
                assert(loperand->operand());
             
@@ -1224,7 +1226,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                }
                addr = (Address) loperand->operand()->getOValue();
 	    
-               emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
+               emitVload(loadRegRelativeOp, addr, (long)loperand->getOValue(), retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
             }
@@ -1238,7 +1240,14 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                              retReg)) ERROR_RETURN;
                // Broken refCounts?
                break;
+            case origRegister:
+               // Added 2NOV11 Bernat - some variables live in original registers,
+               // and so we need to be able to dereference their contents. 
+               if (!loperand->generateCode_phase2(gen, noCost, addr, retReg)) ERROR_RETURN;
+               break;
             default:
+               cerr << "Uh oh, unknown loperand type in getAddrOp: " << loperand->getoType() << endl;
+               cerr << "\t Generating ast " << hex << this << dec << endl;
                assert(0);
          }
          break;
@@ -1701,6 +1710,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     // This means we'll save them if necessary (also, lets us use
     // them in our generated code because we've saved, instead
     // of saving others).
+    assert(gen.codeEmitter());
     gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
 
 
@@ -3236,6 +3246,9 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 }
 
 void AstNode::debugPrint(unsigned level) {
+   cerr << format("") << endl;
+#if 0
+
 
     if (!dyn_debug_ast) return;
     
@@ -3260,6 +3273,7 @@ void AstNode::debugPrint(unsigned level) {
     for (unsigned i=0; i<children.size(); i++) {
         children[i]->debugPrint(level+1);
     }
+#endif
 }
 
 void regTracker_t::debugPrint() {
@@ -3337,4 +3351,163 @@ bool AstNode::decRefCount()
    referenceCount--;
    //return referenceCount <= 0;
    return true;
+}
+
+std::string AstNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Default/" << hex << this << dec << "()" << endl;
+   return ret.str();
+}
+
+std::string AstNullNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Null/" << hex << this << dec << "()" << endl;
+   return ret.str();
+}
+
+std::string AstOperatorNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Op/" << hex << this << dec << "(" << convert(op) << ")" << endl;
+   if (loperand) ret << indent << loperand->format(indent + "  ");
+   if (roperand) ret << indent << roperand->format(indent + "  ");
+   if (eoperand) ret << indent << eoperand->format(indent + "  ");
+
+   return ret.str();
+}
+
+std::string AstOperandNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Oper/" << hex << this << dec << "(" << convert(oType) << "/" << oValue << ")" << endl;
+   if (operand_) ret << indent << operand_->format(indent + "  ");
+
+   return ret.str();
+}
+
+
+std::string AstCallNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Call/" << hex << this << dec;
+   if (func_) ret << "(" << func_->name() << ")";
+   else ret << "(" << func_name_ << ")"; 
+   ret << endl;
+   indent += "  ";
+   for (unsigned i = 0; i < args_.size(); ++i) {
+      ret << indent << args_[i]->format(indent + "  ");
+   }
+
+   return ret.str();
+}
+
+std::string AstSequenceNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Seq/" << hex << this << dec << "()" << endl;
+   for (unsigned i = 0; i < sequence_.size(); ++i) {
+      ret << indent << sequence_[i]->format(indent + "  ");
+   }
+   return ret.str();
+}
+
+
+std::string AstVariableNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Var/" << hex << this << dec << "(" << ast_wrappers_.size() << ")" << endl;
+   for (unsigned i = 0; i < ast_wrappers_.size(); ++i) {
+      ret << indent << ast_wrappers_[i]->format(indent + "  ");
+   }
+
+   return ret.str();
+}
+
+
+std::string AstNode::convert(operandType type) {
+   switch(type) {
+      case Constant: return "Constant";
+      case ConstantString: return "ConstantString";
+      case DataReg: return "DataReg";
+      case DataIndir: return "DataIndir";
+      case Param: return "Param";
+      case ParamAtCall: return "ParamAtCall";
+      case ParamAtEntry: return "ParamAtEntry";
+      case ReturnVal: return "ReturnVal";
+      case ReturnAddr: return "ReturnAddr";
+      case DataAddr: return "DataAddr";
+      case FrameAddr: return "FrameAddr";
+      case RegOffset: return "RegOffset";
+      case origRegister: return "OrigRegister";
+      case variableAddr: return "variableAddr";
+      case variableValue: return "variableValue";
+      default: return "UnknownOperand";
+   }
+}
+
+std::string AstNode::convert(opCode op) {
+   switch(op) {
+      case invalidOp: return "invalid";
+      case plusOp: return "plus";
+      case minusOp: return "minus";
+      case timesOp: return "times";
+      case divOp: return "div";
+      case lessOp: return "less";
+      case leOp: return "le";
+      case greaterOp: return "greater";
+      case geOp: return "ge";
+      case eqOp: return "equal";
+      case neOp: return "ne";
+      case loadOp: return "loadOp";
+      case loadConstOp: return "loadConstOp";
+      case loadFrameRelativeOp: return "loadFrameRelativeOp";
+      case loadFrameAddr: return "loadFrameAddr";
+      case loadRegRelativeOp: return "loadRegRelativeOp";
+      case loadRegRelativeAddr: return "loadRegRelativeAddr";
+      case storeOp: return "storeOp";
+      case storeFrameRelativeOp: return "storeFrameRelativeOp";
+      case ifOp: return "if";
+      case whileOp: return "while";
+      case doOp: return "do";
+      case callOp: return "call";
+      case noOp: return "no";
+      case orOp: return "or";
+      case andOp: return "and";
+      case getRetValOp: return "getRetValOp";
+      case getRetAddrOp: return "getRetAddrOp";
+      case getSysRetValOp: return "getSysRetValOp";
+      case getParamOp: return "getParamOp";
+      case getParamAtCallOp: return "getParamAtCallOp";
+      case getParamAtEntryOp: return "getParamAtEntryOp";
+      case getSysParamOp: return "getSysParamOp";
+      case getAddrOp: return "getAddrOp";
+      case loadIndirOp: return "loadIndirOp";
+      case storeIndirOp: return "storeIndirOp";
+      case saveRegOp: return "saveRegOp";
+      case loadRegOp: return "loadRegOp";
+      case saveStateOp: return "saveStateOp";
+      case loadStateOp: return "loadStateOp";
+      case funcJumpOp: return "funcJump";
+      case funcCallOp: return "funcCall";
+      case branchOp: return "branch";
+      case ifMCOp: return "ifMC";
+      case breakOp: return "break";
+      default: return "UnknownOp";
+   }
+}
+
+bool AstOperandNode::initRegisters(codeGen &g) {
+    bool ret = true;
+    pdvector<AstNodePtr> kids;
+    getChildren(kids);
+    for (unsigned i = 0; i < kids.size(); i++) {
+        if (!kids[i]->initRegisters(g))
+            ret = false;
+    }
+    
+    // If we're an origRegister, override its state as live. 
+    if (oType == origRegister) {
+       Address origReg = (Address) oValue;
+       cerr << "Override for origRegister use: marking register " << origReg << " off-limits!" << endl;
+       // Mark that register as live so we are sure to save it.
+       registerSlot *r = (*(g.rs()))[origReg];
+       r->offLimits = true;
+    }       
+    
+    return ret;
 }

@@ -1731,7 +1731,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         (cm->ptr(),cm->size(),getArch());
       Instruction::Ptr insn = deco.decode();
       while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
+        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        //cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
         base += insn->size();
         insn = deco.decode();
       }
@@ -1931,6 +1932,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
     return false;
   }
 
+  cerr << "Installing " << patches.size() << " springboards!" << endl;
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
@@ -1939,8 +1941,9 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
           iter->used(),
           iter->start_ptr())) 
       {
-          cerr << "Failed writing a springboard branch, ret false" << endl;
-          return false;
+         // HACK: code modification will make this happen...
+         cerr << "Failed writing a springboard branch @ " << hex << iter->startAddr() << dec << ", ret false" << endl;
+         //return false;
       }
 
     mapped_object *obj = findObject(iter->startAddr());

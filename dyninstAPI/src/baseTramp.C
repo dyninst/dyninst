@@ -320,7 +320,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    AstNodePtr threadIndex;
    AstNodePtr trampGuardAddr;
 
-   if (guarded() &&
+   if (0 &&
+       guarded() &&
        minis->containsFuncCall() &&
        (proc()->trampGuardAST() != AstNodePtr())) {
       // If we don't have a function call, then we don't

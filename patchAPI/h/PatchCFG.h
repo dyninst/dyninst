@@ -4,7 +4,7 @@
 #define _PATCHAPI_DYNINST_CFG_H_
 
 #include "CFG.h"
-#include "common.h"
+//#include "common.h"
 #include "PatchObject.h"
 #include "Point.h"
 

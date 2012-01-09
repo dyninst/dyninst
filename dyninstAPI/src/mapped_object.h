@@ -293,12 +293,12 @@ public:
     std::string getCalleeName(block_instance *);
     void setCalleeName(block_instance *, std::string name);
 
+    void setCallee(const block_instance *, func_instance *);
+    func_instance *getCallee(const block_instance *) const;
+
     void destroy(PatchAPI::PatchFunction *f);
     void destroy(PatchAPI::PatchBlock *b);
     // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
-
-    void setCallee(const block_instance *, func_instance *);
-    func_instance *getCallee(const block_instance *) const;
 
   private:
     //

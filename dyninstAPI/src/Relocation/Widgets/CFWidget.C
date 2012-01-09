@@ -488,6 +488,9 @@ PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, blo
 
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
+   // Oops...
+   return true;
+
    //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
    if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
