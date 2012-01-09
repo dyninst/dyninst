@@ -4,7 +4,20 @@
 #include "PatchCFG.h"
 
 namespace Dyninst {
+
+   namespace ParseAPI {
+      class Function;
+      class Block;
+      class Edge;
+   };
+
 namespace PatchAPI {
+
+   class PatchObject;
+   class PatchFunction;
+   class PatchBlock;
+   class PatchEdge;
+
 
 /* A factory class to make / copy CFG structures.
    We provide default implementations.  */

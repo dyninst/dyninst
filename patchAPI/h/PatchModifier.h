@@ -59,8 +59,8 @@ class PatchModifier {
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
    PATCHAPI_EXPORT static PatchBlock *split(PatchBlock *, Address, 
-                                          bool trust = false, 
-                                          Address newlast = (Address)-1);
+                                            bool trust = false, 
+                                            Address newlast = (Address)-1);
    
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.

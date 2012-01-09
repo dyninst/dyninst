@@ -78,9 +78,11 @@ unsigned int MachRegister::regClass() const
 MachRegister MachRegister::getBaseRegister() const { 
    switch (getArchitecture()) {
       case Arch_x86:
+         if (reg & x86::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_x86_64:
-	
-          return MachRegister(reg & 0xfffff0ff);
+         if (reg & x86_64::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_none:

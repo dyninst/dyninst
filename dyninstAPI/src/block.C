@@ -128,11 +128,14 @@ std::string block_instance::calleeName() {
 }
 
 void block_instance::updateCallTarget(func_instance *func) {
-  // Update a sink-typed call edge to
-  // have an inter-module target
-  edge_instance *e = getTarget();
-  assert(e->sinkEdge());
-  PatchAPI::PatchModifier::redirect(e, func->entryBlock());
+   // Update a sink-typed call edge to
+   // have an inter-module target
+   //
+   // Preserving original behavior on sink edges only
+   //
+   edge_instance *e = getTarget();
+   if (e->sinkEdge())
+      PatchAPI::PatchModifier::redirect(e, func->entryBlock());
 }
 
 func_instance *block_instance::entryOfFunc() const {

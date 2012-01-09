@@ -32,6 +32,7 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
+#include "dyn_detail/boost/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
@@ -65,6 +66,7 @@ class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
 class BPatch_variableExpr;
+class BPatch_type;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
@@ -73,6 +75,8 @@ class BPatch_image;
 
 class func_instance;
 struct batchInsertionRecord;
+class instPoint;
+class int_variable;
 
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
@@ -416,6 +420,18 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // statically-linked executable, false otherwise
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
+
+    // HACK-TASTIC
+    // I need a workaround for the fact that PatchAPI doesn't have snippet
+    // support yet; I'm getting it by putting an external interface on the 
+    // Dyninst compiler. 
+    // BTW, while I'm at it: SCREW API_EXPORT!
+
+    void snippetToBinary(const BPatch_snippet &expr, 
+                          BPatch_point &point,
+                          BPatch_callWhen when,
+                          char *buffer,
+                          unsigned &size);
 
 };
 
