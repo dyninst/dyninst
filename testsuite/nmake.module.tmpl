@@ -24,8 +24,8 @@ CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib  \
               $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib \
               $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib  \
-              $(TO_CORE)\patchAPI/$(PLATFORM)\patchAPI.lib  \
-              $(TO_CORE)\parseAPI\$(PLATFORM)\parseAPI.lib 
+              $(TO_CORE)\patchAPI/$(PLATFORM)\libpatchAPI.lib  \
+              $(TO_CORE)\parseAPI\$(PLATFORM)\libparseAPI.lib 
 
 SYSLIBS		= 
 
@@ -35,7 +35,7 @@ LIBSYMTABCOMP = libtestsymtab.dll
 LIBINSTRUCTIONCOMP = libtestinstruction.dll
 LIBPATCHAPICOMP = libtestpatchapi.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libtestpatchapi.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib patchAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libtestpatchapi.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib libpatchAPI.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -44,6 +44,7 @@ SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/TestMutator.C \
                     ../src/TestOutputDriver.C \
                     ../src/StdOutputDriver.C \
+                    ../src/QuietOutputDriver.C \
                     ../src/ResumeLog.C \
                     ../src/test_info_new.C
 
@@ -116,7 +117,7 @@ OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
 
 TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib libtestpatchapi.lib
 
-all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPATCHAPICOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPATCHAPICOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll $(PATCHAPI_TESTLIBS)
 
 
 UNCOMMON_INSTALL=true
@@ -138,7 +139,7 @@ clean:
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib -LIBPATH:$(TO_CORE)/parseAPI/$(PLATFORM) -LIBPATH:$(TO_CORE)/patchAPI/$(PLATFORM) 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib parseAPI.lib patchAPI.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib libparseAPI.lib libpatchAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)

@@ -522,6 +522,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
   if (entry) bpPoints.push_back(convertPoint(entry));
   // TODO bind pre- and post-call together
   if (preCall) bpPoints.push_back(convertPoint(preCall));
+  if (postCall) bpPoints.push_back(convertPoint(postCall));
   if (exit) bpPoints.push_back(convertPoint(exit));
 }
 
@@ -630,4 +631,12 @@ BPatch_flowGraph *BPatch_basicBlock::getFlowGraphInt() CONST_EXPORT {
 
 func_instance *BPatch_basicBlock::ifunc() CONST_EXPORT {
   return flowGraph->ll_func();
+}
+
+Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *b) {
+   return b->iblock->block();
+}
+
+Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *b) {
+   return b->iblock;
 }

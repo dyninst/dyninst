@@ -43,6 +43,8 @@
 #include "common/h/serialize.h"
 #include "common/h/pathName.h"
 
+#include "dyn_detail/boost/make_shared.hpp"
+
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -93,8 +95,7 @@ void symtab_log_perror(const char *msg)
 SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
-builtInTypeCollection *Symtab::builtInTypes = NULL;
-typeCollection *Symtab::stdTypes = NULL;
+
  
 SymtabError Symtab::getLastSymtabError()
 {
@@ -141,27 +142,39 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
-Type *Symtab::type_Error = NULL;
-Type *Symtab::type_Untyped = NULL;
-
-void Symtab::setupTypes()
+dyn_detail::boost::shared_ptr<Type> Symtab::type_Error()
 {
-    /*
-     * Create the "error" and "untyped" types.
-     */
-    std::string name = "<error>";
-    if (NULL == type_Error) type_Error  = new Type(name, 0, dataUnknownType);
-    name = std::string("<no type>");
-    if (NULL == type_Untyped) type_Untyped = new Type(name, 0, dataUnknownType);
-    setupStdTypes();
-}    
-
-void Symtab::setupStdTypes() 
+    static dyn_detail::boost::shared_ptr<Type> store =
+        dyn_detail::boost::make_shared<Type>( 
+            std::string("<error>"), 0, dataUnknownType);
+    return store;
+}
+dyn_detail::boost::shared_ptr<Type> Symtab::type_Untyped()
 {
-   if (builtInTypes)
-    	return;
+    static dyn_detail::boost::shared_ptr<Type> store =
+        dyn_detail::boost::make_shared<Type>(
+            std::string("<no type>"), 0, dataUnknownType);
+    return store;
+}
 
-   builtInTypes = new builtInTypeCollection;
+dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
+{
+    static dyn_detail::boost::shared_ptr<builtInTypeCollection> store =
+        setupBuiltinTypes();
+    return store;
+}
+dyn_detail::boost::shared_ptr<typeCollection> Symtab::stdTypes()
+{
+    static dyn_detail::boost::shared_ptr<typeCollection> store =
+        setupStdTypes();
+    return store;
+}
+
+dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
+{
+    dyn_detail::boost::shared_ptr<builtInTypeCollection> builtInTypes =
+        dyn_detail::boost::make_shared<builtInTypeCollection>(); 
+
    typeScalar *newType;
 
    // NOTE: integral type  mean twos-complement
@@ -290,13 +303,17 @@ void Symtab::setupStdTypes()
    builtInTypes->addBuiltInType(newType = new typeScalar(-34, 8, "integer*8", true));
    newType->decrRefCount();
 
-	/*
-    * Initialize hash table of standard types.
-    */
-	if (stdTypes)
-    	return;
+   return builtInTypes;
+}
 
-   stdTypes = new typeCollection();
+
+dyn_detail::boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
+{
+    dyn_detail::boost::shared_ptr<typeCollection> stdTypes =
+        dyn_detail::boost::make_shared<typeCollection>();
+
+   typeScalar *newType;
+
    stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
    newType->decrRefCount();
 
@@ -328,7 +345,7 @@ void Symtab::setupStdTypes()
 
 	newType->decrRefCount();
 
-   return;
+   return stdTypes;
 }
 
 SYMTAB_EXPORT unsigned Symtab::getAddressWidth() const 
@@ -808,7 +825,9 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
       
       char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
       if (prettyName) {
-         sym->prettyName_ = prettyName;
+         sym->prettyName_ = std::string(prettyName);
+         // XXX caller-freed
+         free(prettyName); 
       }
    }
 
@@ -1636,7 +1655,6 @@ Symtab::Symtab(const Symtab& obj) :
    }
 
    deps_ = obj.deps_;
-   setupTypes();
 }
 
 // Address must be in code or data range since some code may end up
@@ -1996,7 +2014,6 @@ bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size,
     if(!err)
     {
        allSymtabs.push_back(obj);
-       obj->setupTypes();	
     }
     else
     {
@@ -2019,9 +2036,11 @@ bool Symtab::closeSymtab(Symtab *st)
 	{
 		if (*iter == st)
 		{
-            if(0 == st->_ref_cnt)
+            found = true;
+			if(0 == st->_ref_cnt) {
 			    allSymtabs.erase(iter.base() -1);
-			found = true;
+				break;
+			}
 		}
 	}
     if(0 == st->_ref_cnt)
@@ -2109,7 +2128,6 @@ bool Symtab::openFile(Symtab *&obj, std::string filename, def_t def_binary)
       if (filename.find("/proc") == std::string::npos)
          allSymtabs.push_back(obj);
 
-      obj->setupTypes();	
 
 #if defined (cap_serialization)
 #if 0
@@ -2445,14 +2463,12 @@ bool Symtab::addType(Type *type)
 
 SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()
 {
-   setupStdTypes();
-   return stdTypes->getAllTypes(); 	
+   return stdTypes()->getAllTypes(); 	
 }
 
 SYMTAB_EXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
 {
-   setupStdTypes();
-   return builtInTypes->getAllBuiltInTypes();
+   return builtInTypes()->getAllBuiltInTypes();
 }
 
 SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
@@ -2497,9 +2513,9 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 
    if (t == NULL)
    {
-	   if (builtInTypes)
+	   if (builtInTypes())
 	   {
-		   t = builtInTypes->findBuiltInType(type_id);
+		   t = builtInTypes()->findBuiltInType(type_id);
 		   if (t) return t;
 	   }
 	   else
@@ -2507,9 +2523,9 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 		   //fprintf(stderr, "%s[%d]:  no built in types!\n", FILE__, __LINE__);
 	   }
 
-	   if (stdTypes)
+	   if (stdTypes())
 	   {
-		   t = stdTypes->findType(type_id);
+		   t = stdTypes()->findType(type_id);
 		   if (t) return t;
 	   }
 	   else
@@ -2748,9 +2764,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     // Find the symbol.
     if (symsByMangledName.count(name) == 0) return false;
     // /* DEBUG
-    if (symsByMangledName[name].size() != 1) 
-        fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
-                (unsigned) symsByMangledName[name].size(), name); // */
+    if (symsByMangledName[name].size() != 1)
+        fprintf(stderr, "*** Found %zu symbols with name %s.  Expecting 1.\n",
+                symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.
@@ -2897,9 +2913,10 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return 0;
 	}
-	bool isBlueGene = obj->isBlueGene();
+	bool isBlueGeneQ = obj->isBlueGeneP();
+	bool isBlueGeneP = obj->isBlueGeneQ();
 	bool hasNoteSection = obj->hasNoteSection();
-	if (isBlueGene && hasNoteSection)
+	if (isBlueGeneQ || (isBlueGeneP && hasNoteSection))
 		pgSize = 0x100000; 
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
@@ -3063,7 +3080,13 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 	if (is_input(sb))
 	{
 		//  don't bother with serializing standard and builtin types.
-		setupTypes();
+        /* XXX Change to use safe static allocation and initialization
+               of standard and builtin types changes serialization behavior:
+               these types are initialized on first access to the types
+               structures (no explicit initialization). I think this code
+               is dead anyway, though, so it probably doesn't matter.
+        */
+		//setupTypes();
 	}
 
 	ifxml_start_element(sb, tag);
@@ -3610,6 +3633,20 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 #endif
 }
 
+SYMTAB_EXPORT bool Symtab::removeLibraryDependency(std::string lib)
+{
+#if defined(os_aix) || defined(os_windows)
+   return false;
+#else
+   Object *obj = getObject();
+	if (!obj) {
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+   return obj->removePrereqLibrary(lib);
+#endif
+}
+   
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
 #if defined(os_aix)

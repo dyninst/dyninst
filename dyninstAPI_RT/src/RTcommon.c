@@ -809,7 +809,7 @@ void* dyninstTrapTranslate(void *source,
             mid = (min + max) / 2;
             if (mid == prev) {
                 fprintf(stderr,"ERROR: dyninstTrapTranslate couldn't find "
-                        "entry for 0x%lx: min=%lx mid=%lx max=%lx prev=%lx\n",
+                        "entry for 0x%x: min=%x mid=%x max=%x prev=%x\n",
                         source,min,mid,max,prev);
                break;
             }

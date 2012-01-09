@@ -56,7 +56,7 @@
 #include "BPatch_point.h"
 
 #include "addressSpace.h"
-
+#include "debug.h"
 #include "parseAPI/h/CodeSource.h"
 
 #include "ast.h"
@@ -1289,3 +1289,6 @@ void BPatch_image::clearNewCodeRegions()
     }
 }
 
+Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *i) {
+   return Dyninst::PatchAPI::convert(i->addSpace);
+}

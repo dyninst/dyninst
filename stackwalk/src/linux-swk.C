@@ -60,12 +60,15 @@
 #include <fcntl.h>
 #include <poll.h>
 
+using namespace Dyninst;
+using namespace Stackwalker;
+
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/Elf_X.h"
+
 #include "common/h/SymLite-elf.h"
 #include "common/h/parseauxv.h"
 #include "dynutil/h/dyn_regs.h"
-
-using namespace Dyninst;
-using namespace Dyninst::Stackwalker;
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
@@ -124,18 +127,18 @@ static bool t_kill(int pid, int sig)
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
    static SymElfFactory symelffact;
-   return &symelffact;
+   if (!Walker::symrfact)
+      Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+   return Walker::symrfact;
 }
 
-class Elf_X;
 Elf_X *getElfHandle(std::string s)
 {
    SymbolReaderFactory *fact = getDefaultSymbolReader();
    SymReader *reader = fact->openSymbolReader(s);
-   SymElf *symelf = dynamic_cast<SymElf *>(reader);
-   if (symelf)
-      return symelf->getElfHandle();
-   return NULL;
+   if (!reader)
+      return NULL;
+   return (Elf_X *) reader->getElfHandle();
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);
@@ -545,7 +548,7 @@ bool ProcDebugLinux::debug_attach(ThreadState *ts)
       sw_printf("[%s:%u] - Unable to attach to process %d: %s\n",
                 __FILE__, __LINE__, tid, strerror(errnum));
       if (errnum == EPERM)
-         setLastError(err_prem, "Do not have correct premissions to attach " \
+         setLastError(err_perm, "Do not have correct permissions to attach " \
                       "to pid");
       else if (errnum == ESRCH)
          setLastError(err_noproc, "The specified process was not found");
@@ -961,7 +964,7 @@ bool ProcDebugLinux::debug_create(std::string executable,
       if (errnum == ENOENT)
          setLastError(err_nofile, "No such file");
       if (errnum == EPERM || errnum == EACCES)
-         setLastError(err_prem, "Premission denied");
+         setLastError(err_perm, "Permission denied");
       else
          setLastError(err_internal, "Unable to exec process");
       exit(-1);
@@ -1254,7 +1257,7 @@ static void registerLibSpotterSelf(ProcSelf *pself)
                                PROT_READ|PROT_WRITE|PROT_EXEC);
          if (result == -1) {
             int errnum = errno;
-            sw_printf("[%s:%u] - Error setting premissions for page containing %lx. "
+            sw_printf("[%s:%u] - Error setting permissions for page containing %lx. "
                       "Can't install lib tracker: %s\n", __FILE__, __LINE__, 
                       lib_trap_addr_self, strerror(errnum));
             free(maps);
@@ -1359,7 +1362,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libc->getSymbolOffset(libc_restore);
+            Dyninst::Address start = libc->getSymbolOffset(libc_restore) + libc_addr.second;
             Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying
@@ -1397,7 +1400,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                       __FILE__, __LINE__);
          }
          else {
-            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore);
+            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore) + libpthread_addr.second;
             Dyninst::Address end = libpthread->getSymbolSize(libpthread_restore) + start;
             if (start == end)
                end = start + 16; //Estimate--annoying

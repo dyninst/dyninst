@@ -78,8 +78,8 @@ typedef struct {
 class SymReader
 {
  protected:
-   SymReader() {};
-   virtual ~SymReader() {};
+   SymReader() {}
+   virtual ~SymReader() {}
  public:
    virtual Symbol_t getSymbolByName(std::string symname) = 0;
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset) = 0;
@@ -103,13 +103,15 @@ class SymReader
 
    virtual Dyninst::Offset imageOffset() = 0;
    virtual Dyninst::Offset dataOffset() = 0;
+
+   virtual void *getElfHandle() { return NULL; }
 };
 
 class SymbolReaderFactory
 {
  public:
-   SymbolReaderFactory() {};
-   virtual ~SymbolReaderFactory() {};
+   SymbolReaderFactory() {}
+   virtual ~SymbolReaderFactory() {}
    virtual SymReader *openSymbolReader(std::string pathname) = 0;
    virtual SymReader *openSymbolReader(const char *buffer, unsigned long size) = 0;
    virtual bool closeSymbolReader(SymReader *sr) = 0;

@@ -49,7 +49,6 @@
 
 using Dyninst::PatchAPI::DynRemoveSnipCommand;
 using Dyninst::PatchAPI::Patcher;
-using Dyninst::PatchAPI::PatcherPtr;
 
 int miniTramp::_id = 1;
 
@@ -90,7 +89,7 @@ miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
 
 bool miniTramp::uninstrument() {
   /* PatchAPI stuffs */
-  DynRemoveSnipCommand::Ptr rm_snip = DynRemoveSnipCommand::create(this);
+  DynRemoveSnipCommand* rm_snip = DynRemoveSnipCommand::create(this);
   instP()->proc()->patcher()->add(rm_snip);
   /* end of PatchAPI stuffs */
   return true;

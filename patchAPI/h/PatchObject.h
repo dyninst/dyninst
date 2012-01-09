@@ -21,10 +21,13 @@ class PatchObject {
 
   public:
     PATCHAPI_EXPORT static PatchObject* create(ParseAPI::CodeObject* co, Address base,
-                                               CFGMakerPtr cm = CFGMakerPtr(new CFGMaker), 
+                                               CFGMaker* cm = NULL,
                                                PatchCallback *cb = NULL);
 
-    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base, PatchCallback *cb);
+    PATCHAPI_EXPORT static PatchObject* clone(PatchObject* par_obj, Address base,
+                                               CFGMaker* cm = NULL,
+                                               PatchCallback *cb = NULL);
+
     PATCHAPI_EXPORT virtual ~PatchObject();
 
     typedef std::vector<PatchFunction *> funclist;
@@ -38,8 +41,9 @@ class PatchObject {
     Address codeBase() { return codeBase_; }
     ParseAPI::CodeObject* co() const { return co_; }
     //ParseAPI::CodeSource* cs() const { return cs_; }
-    AddrSpacePtr addrSpace() const { return addr_space_; }
-    void setAddrSpace(AddrSpacePtr as) { addr_space_ = as; }
+    AddrSpace* addrSpace() const { return addr_space_; }
+    void setAddrSpace(AddrSpace* as) { addr_space_ = as; }
+    PatchMgrPtr mgr() const;
 
     // Function
     PATCHAPI_EXPORT PatchFunction *getFunc(ParseAPI::Function *, bool create = true);
@@ -67,19 +71,19 @@ class PatchObject {
     PATCHAPI_EXPORT PatchCallback *cb() const { return cb_; }
 
     PATCHAPI_EXPORT bool consistency(const AddrSpace *as) const;
-    
+
+
   protected:
     ParseAPI::CodeObject* co_;
-    //ParseAPI::CodeSource* cs_;
     Address codeBase_;
-    AddrSpacePtr addr_space_;
+    AddrSpace* addr_space_;
     FuncMap funcs_;
     BlockMap blocks_;
     EdgeMap edges_;
-    CFGMakerPtr cfg_maker_;
+    CFGMaker* cfg_maker_;
 
-    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb = NULL);
-    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, PatchCallback *cb = NULL);
+    PATCHAPI_EXPORT PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
+    PATCHAPI_EXPORT PatchObject(const PatchObject* par_obj, Address a, CFGMaker* cm, PatchCallback *cb = NULL);
     PATCHAPI_EXPORT void copyCFG(PatchObject* par_obj);
     PATCHAPI_EXPORT bool splitBlock(PatchBlock *first, ParseAPI::Block *second);
 

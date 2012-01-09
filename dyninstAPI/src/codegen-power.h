@@ -77,10 +77,14 @@ class insnCodeGen {
                                       Address to,
                                       bool isCall);
 
-    static void generateLoadReg(codeGen &gen, int op,
-                            Register rt, Register ra, Register rb);
-    static void generateStoreReg(codeGen &gen, int op,
-                            Register rt, Register ra, Register rb);
+    static void generateLoadReg(codeGen &gen, Register rt,
+                                Register ra, Register rb);
+    static void generateStoreReg(codeGen &gen, Register rs,
+                                 Register ra, Register rb);
+    static void generateLoadReg64(codeGen &gen, Register rt,
+                                  Register ra, Register rb);
+    static void generateStoreReg64(codeGen &gen, Register rs,
+                                   Register ra, Register rb);
     static void generateAddReg(codeGen &gen, int op,
                             Register rt, Register ra, Register rb);
     static void generateImm(codeGen &gen, int op,
@@ -111,24 +115,24 @@ class insnCodeGen {
     static void generateMoveFromLR(codeGen &gen, Register rt);
     static void generateMoveToLR(codeGen &gen, Register rs);
     static void generateMoveToCR(codeGen &gen, Register rs);
-    
+
     static void generate(codeGen &gen, instruction &insn);
     static void write(codeGen &gen, instruction &insn) { generate(gen,insn); }
 
     static bool generate(codeGen &gen,
-                  instruction &insn,
-                  AddressSpace *proc,
-                  Address origAddr,
-                  Address newAddr,
-                  patchTarget *fallthroughOverride = NULL,
-                  patchTarget *targetOverride = NULL);
-    
+                         instruction &insn,
+                         AddressSpace *proc,
+                         Address origAddr,
+                         Address newAddr,
+                         patchTarget *fallthroughOverride = NULL,
+                         patchTarget *targetOverride = NULL);
+
     static bool generateMem(codeGen &gen,
-                     instruction &insn,
-                     Address origAddr,
-                     Address newAddr,
-                     Register newLoadReg,
-                     Register newStoreReg);
+                            instruction &insn,
+                            Address origAddr,
+                            Address newAddr,
+                            Register newLoadReg,
+                            Register newStoreReg);
 
    // Routines to create/remove a new stack frame for getting scratch registers
    static int createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg,  pdvector<Register>& excludeReg);
@@ -149,7 +153,4 @@ class insnCodeGen {
                          codeGen &gen);
 };
 
-
 #endif
-
-

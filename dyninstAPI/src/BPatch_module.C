@@ -771,13 +771,15 @@ unsigned long BPatch_module::getSizeInt()
    return (unsigned long) mod->obj()->imageSize();
 }
 
-Dyninst::ParseAPI::CodeObject *
-BPatch_module::getCodeObjectInt()
-{
-    if(!mod) return NULL;
-    return mod->obj()->parse_img()->codeObject();
+Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return false;
+   return m->mod->obj()->parse_img()->codeObject();
 }
 
+Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return false;
+   return m->mod->obj();
+}
 
 bool BPatch_module::isNativeCompilerInt()
 {

@@ -312,8 +312,8 @@ namespace {
         Slicer slc(*ait,b,f);
         Default_Predicates preds;
         Graph::Ptr slg = slc.backwardSlice(preds);
-        SymEval::Result_t sl_res;
-        SymEval::expand(slg,sl_res);
+        DataflowAPI::Result_t sl_res;
+        DataflowAPI::SymEval::expand(slg,sl_res);
         AST::Ptr calculation = sl_res[*ait];
         SimpleArithVisitor visit; 
         AST::Ptr simplified = calculation->accept(&visit);
@@ -2068,6 +2068,19 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    return pltFuncs;
 }
 
+void image::getPltFuncs(std::map<Address, std::string> &out)
+{
+   out.clear();
+   vector<SymtabAPI::relocationEntry> fbt;
+   bool result = getObject()->getFuncBindingTable(fbt);
+   if (!result)
+      return;
+
+   for(unsigned k = 0; k < fbt.size(); k++) {
+      out[fbt[k].target_addr()] = fbt[k].name();
+   }
+}
+
 image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
     // What to do here?
@@ -2104,6 +2117,6 @@ void image::setImageLength(Address newlen)
     imageLen_ = newlen; 
 }
 
-void image::destroy(ParseAPI::Block *b) {}
-void image::destroy(ParseAPI::Edge *e) {}
-void image::destroy(ParseAPI::Function *f) {}
+void image::destroy(ParseAPI::Block *) {}
+void image::destroy(ParseAPI::Edge *) {}
+void image::destroy(ParseAPI::Function *) {}

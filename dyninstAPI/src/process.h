@@ -268,11 +268,6 @@ class process : public AddressSpace {
     Address length() const;
     Architecture getArch() const;
     
-    // this is only used on aix so far - naim
-    // And should really be defined in a arch-dependent place, not process.h - bernat
-    Address getTOCoffsetInfo(Address);
-    Address getTOCoffsetInfo(func_instance *);
-    
     bool dyninstLibAlreadyLoaded() { return runtime_lib.size() != 0; }
     
     rpcMgr *getRpcMgr() const { return theRpcMgr; }

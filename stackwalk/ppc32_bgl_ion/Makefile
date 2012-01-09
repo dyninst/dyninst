@@ -17,7 +17,6 @@ include ../../make.config
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = ../src/bluegene-swk.C \
-       ../../common/src/Elf_X.C \
        ../src/bluegenel-swk.C \
        ../src/ppc-swk.C \
        ../src/symtab-swk.C

@@ -63,6 +63,16 @@ typedef enum BPatch_LpModel {
 #endif
 
 class BPatch_statement;
+class BPatch_image;
+
+namespace Dyninst {
+   namespace PatchAPI {
+      class PatchMgr;
+      typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+      PatchMgrPtr convert(const BPatch_image *);
+   }
+}
+
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -76,6 +86,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     friend class BPatch_process;
     friend class BPatch_addressSpace;
     friend class BPatch_binaryEdit;
+    friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *);
 
     BPatch_variableExpr *findOrCreateVariable(int_variable *);
  public:
@@ -298,6 +309,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     API_EXPORT(Int, (expr, str, size_limit),
                bool, readString,(BPatch_variableExpr *expr, std::string &str, 
                                  unsigned size_limit = 0));
+
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Ptr, (name, funcs, showError, regex_case_sensitive, incUninstrumentable),

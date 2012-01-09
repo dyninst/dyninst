@@ -52,7 +52,7 @@ unsigned ProcDebugLinux::getAddressWidth()
 
 #define USER_OFFSET_OF(register) ((signed long) &(((struct user *) NULL)->regs.register))
 
-static long int getRegOffset(Dyninst::MachRegister reg, int addr_width)
+static long int getRegOffset(Dyninst::MachRegister reg, int /*addr_width*/)
 {
    switch (reg.val()) {
       case Dyninst::iReturnAddr:
@@ -79,7 +79,7 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg,
    }
    if (offset == -1) {
      sw_printf("[%s:%u] - Request for unsupported register %s\n",
-	       __FILE__, __LINE__, reg.name());
+               __FILE__, __LINE__, reg.name().c_str());
      setLastError(err_badparam, "Unknown register passed in reg field");
      return false;
    }
@@ -109,7 +109,7 @@ bool ProcDebugLinux::setRegValue(Dyninst::MachRegister reg,
    long int offset = getRegOffset(reg, getAddressWidth());
    if (offset < 0) {
      sw_printf("[%s:%u] - Request for unsupported register %s\n",
-	       __FILE__, __LINE__, reg.name());
+               __FILE__, __LINE__, reg.name().c_str());
      setLastError(err_badparam, "Unknown register passed in reg field");
      return false;
    }

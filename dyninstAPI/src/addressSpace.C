@@ -66,14 +66,10 @@
 // class.
 
 using namespace Dyninst;
-using PatchAPI::DynObjectPtr;
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
-using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
 using PatchAPI::Patcher;
-using PatchAPI::PointMakerPtr;
-using PatchAPI::DynInstrumenterPtr;
 using PatchAPI::DynInstrumenter;
 
 AddressSpace::AddressSpace () :
@@ -107,6 +103,55 @@ process *AddressSpace::proc() {
 BinaryEdit *AddressSpace::edit() {
     return dynamic_cast<BinaryEdit *>(this);
 }
+
+#if !defined(arch_power)
+Address AddressSpace::getTOCoffsetInfo(Address /*dest */)
+{
+  Address tmp = 0;
+  assert(0 && "getTOCoffsetInfo not implemented");
+  return tmp; // this is to make the nt compiler happy! - naim
+}
+#else
+Address AddressSpace ::getTOCoffsetInfo(Address dest)
+{
+   // Linux-power-32 bit: return 0 here, as it doesn't use the TOC.
+   // Linux-power-64 does. Lovely. 
+#if defined(arch_power) && defined(os_linux)
+   if (getAddressWidth() == 4)
+      return 0;
+#endif
+
+    // We have an address, and want to find the module the addr is
+    // contained in. Given the probabilities, we (probably) want
+    // the module dyninst_rt is contained in.
+    // I think this is the right func to use
+
+    // Find out which object we're in (by addr).
+   mapped_object *mobj = findObject(dest);
+   // Very odd case if this is not defined.
+   assert(mobj);
+   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
+
+    if (!TOCOffset)
+       return 0;
+    return TOCOffset + mobj->dataBase();
+
+}
+
+Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
+
+#if defined(arch_power) && defined(os_linux)
+   // See comment above.
+   if (getAddressWidth() == 4)
+      return 0;
+#endif
+   assert(func);
+    mapped_object *mobj = func->obj();
+
+    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
+}
+
+#endif
 
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
@@ -277,9 +322,9 @@ void AddressSpace::inferiorFreeCompact() {
 
    /* sort buffers by address */
 #if defined (cap_use_pdvector)
-   VECTOR_SORT(freeList, heapItemCmpByAddr);
+    std::sort(freeList.begin(), freeList.end(), ptr_fun(heapItemCmpByAddr));
 #else
-   VECTOR_SORT(freeList, heapItemLessByAddr);
+    std::sort(freeList.begin(), freeList.end(), ptr_fun(heapItemLessByAddr));
 #endif
 
 
@@ -366,6 +411,10 @@ void AddressSpace::addHeap(heapItem *h) {
    heapItem *h2 = new heapItem(h);
    h2->status = HEAPfree;
    heap_.heapFree.push_back(h2);
+    
+   /* When we add an item to heapFree, make sure it remains in sorted order */
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+
    heap_.totalFreeMemAvailable += h2->length;
 
    if (h->dynamic) {
@@ -421,6 +470,10 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
       heap_.heapFree[freeIndex] = heap_.heapFree[last-1];
       heap_.heapFree.resize(last-1);
    }
+
+   /* When we update an item in heapFree, make sure it remains in sorted order */
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+
    // add allocated block to active list
    h->length = size;
    h->status = HEAPallocated;
@@ -448,6 +501,10 @@ void AddressSpace::inferiorFreeInternal(Address block) {
    // Add to the free list
    h->status = HEAPfree;
    heap_.heapFree.push_back(h);
+
+   /* When we add an item to heapFree, make sure it remains in sorted order */
+   std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
+
    heap_.totalFreeMemAvailable += h->length;
    heap_.freed += h->length;
    infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %d bytes, type %d\n",
@@ -550,6 +607,9 @@ bool AddressSpace::inferiorShrinkBlock(heapItem *h,
                                        h->dynamic,
                                        HEAPfree);
       heap_.heapFree.push_back(freeEnd);
+
+      /* When we add an item to heapFree, make sure it remains sorted */
+      std::sort(heap_.heapFree.begin(), heap_.heapFree.end(), ptr_fun(heapItemLessByAddr));
    }
 
    heap_.totalFreeMemAvailable += shrink;
@@ -591,6 +651,27 @@ bool AddressSpace::inferiorExpandBlock(heapItem *h,
       int newFreeLen = succ->length - expand;
       succ->addr = newFreeBase;
       succ->length = newFreeLen;
+
+      // If we've enlarged to exactly the end of the successor (succ->length == 0),
+      // remove succ
+      if (0x0 == succ->length) {
+          pdvector<heapItem *> cleanList;
+          unsigned end = heap_.heapFree.size();
+          for (unsigned i = 0; i < end; i++) {
+              heapItem * h1 = heap_.heapFree[i];
+              if (h1->length != 0) {
+                  cleanList.push_back(h1);
+              } else {
+                  delete h1;
+              }
+          }
+          end--;
+          for (unsigned i = 0; i < end; i++) {
+              heap_.heapFree[i] = cleanList[i];  
+          }
+          // Remove the last (now unused) element of the freeList
+          heap_.heapFree.pop_back();
+      }
    }
    else {
       return false;
@@ -2125,12 +2206,13 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 
 /* PatchAPI Stuffs */
 void AddressSpace::initPatchAPI(mapped_object* aout) {
-   DynAddrSpacePtr addr_space = DynAddrSpace::create(aout);
+   DynAddrSpace* addr_space = DynAddrSpace::create(aout);
    assert(addr_space);
 
   mgr_ = PatchMgr::create(addr_space,
-                           DynPointMakerPtr(new DynPointMaker),
-                           DynInstrumenterPtr(new DynInstrumenter));
+                          new DynInstrumenter,
+                          new DynPointMaker);
+
    patcher_ = Patcher::create(mgr_);
 
    assert(mgr());
@@ -2145,5 +2227,5 @@ bool AddressSpace::patch(AddressSpace* as) {
 
 void AddressSpace::addMappedObject(mapped_object* obj) {
   mapped_objects.push_back(obj);
-  DYN_CAST(DynAddrSpace, mgr_->as())->loadLibrary(obj);
+  dynamic_cast<DynAddrSpace*>(mgr_->as())->loadLibrary(obj);
 }

@@ -22,11 +22,7 @@
 namespace Dyninst {
 namespace PatchAPI {
   class DynAddrSpace;
-  typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
-
   class DynObject;
-  typedef dyn_detail::boost::shared_ptr<DynObject> DynObjectPtr;
-
 }
 }
 

@@ -91,4 +91,3 @@ void DynPatchCallback::destroy_cb(PatchAPI::PatchObject *)
 {
     assert(0 && "implement me");
 }
-

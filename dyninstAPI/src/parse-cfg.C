@@ -100,8 +100,8 @@ parse_func::parse_func(
   instLevel_(NORMAL),
   canBeRelocated_(true),
   hasWeirdInsns_(false),
-  init_retstatus_(UNSET),
   prevBlocksUnresolvedCF_(0),
+  init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)
 #if defined(cap_liveness)

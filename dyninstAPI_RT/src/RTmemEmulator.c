@@ -214,7 +214,7 @@ int RTuntranslatedEntryCounter;
 extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
-    if ((int)direction == 1) {
+    if ((long)direction == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);

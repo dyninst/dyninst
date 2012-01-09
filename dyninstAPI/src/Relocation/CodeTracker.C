@@ -172,8 +172,6 @@ void CodeTracker::createIndices() {
    // If they have different types that's fine; if they have the same type
    // we accumulate instead of adding one of them.
 
-   TrackerElement *previous = NULL;
-
    for (TrackerList::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
       TrackerElement *e = *iter;

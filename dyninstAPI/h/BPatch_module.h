@@ -59,8 +59,18 @@ class instPoint;
 class AddressSpace;
 class BPatch_snippet;
 class BPatchSnippetHandle;
+class BPatch_module;
 
-namespace Dyninst { namespace ParseAPI { class CodeObject; }}
+namespace Dyninst { 
+   namespace ParseAPI { 
+      class CodeObject; 
+      CodeObject *convert(const BPatch_module *);
+   }
+   namespace PatchAPI {
+      class PatchObject;
+      PatchObject *convert(const BPatch_module *);
+   }
+}
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
@@ -81,10 +91,15 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
     friend class BPatch_statement;
+    friend Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *);
+    friend Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *);
+
 
     typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
     typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
+
+    
     
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
@@ -300,10 +315,6 @@ public:
     API_EXPORT(Int, (),
     std::vector<struct BPatch_module::Statement>, getStatements, ());
 #endif
-
-    // Tentative ParseAPI exposure
-    API_EXPORT(Int, (),
-    Dyninst::ParseAPI::CodeObject *, getCodeObject, ());
 
 private:
     // Parse wrapper

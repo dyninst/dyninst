@@ -356,10 +356,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         isHandler = true;
     }
 
-	assert(func);
-	assert(func->lowlevel_func());
-	assert(proc());
-	assert(proc()->lowlevel_process());
+    assert(func);
+    assert(func->lowlevel_func());
+    assert(proc());
+    assert(proc()->lowlevel_process());
 
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 

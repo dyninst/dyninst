@@ -995,7 +995,6 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
         blockPoints.clear();
 
         // if the block has a call, add it to the list of called funcs
-        Address last = (*bIter)->getLastInsnAddress();
         BPatch_function *targFunc = NULL;
         if ((*bIter)->lowlevel_block()->containsCall()) {
            targFunc = (*bIter)->getCallTarget();

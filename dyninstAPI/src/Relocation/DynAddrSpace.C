@@ -5,7 +5,6 @@
 
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::PatchAPI::DynAddrSpace;
-using Dyninst::PatchAPI::DynAddrSpacePtr;
 using Dyninst::PatchAPI::DynObject;
 using Dyninst::PatchAPI::PatchObject;
 
@@ -29,9 +28,9 @@ DynAddrSpace::DynAddrSpace()
   : AddrSpace(), recursive_(false) {
 }
 
-DynAddrSpacePtr DynAddrSpace::create(DynObject* obj) {
-  DynAddrSpacePtr ret = DynAddrSpacePtr(new DynAddrSpace());
-  if (!ret) return DynAddrSpacePtr();
+DynAddrSpace* DynAddrSpace::create(DynObject* obj) {
+  DynAddrSpace* ret = new DynAddrSpace();
+  if (!ret) return NULL;
   ret->initAs(obj);
   return ret;
 }
@@ -42,7 +41,7 @@ bool DynAddrSpace::write(PatchObject* obj, Address to, Address from, size_t size
                                      reinterpret_cast<void*>(from));
 }
 
-Address DynAddrSpace::malloc(PatchObject* obj, size_t size, Address near) {
+Address DynAddrSpace::malloc(PatchObject* obj, size_t size, Address /*near*/) {
   DynObject* dobj = dynamic_cast<DynObject*>(obj);
   return dobj->as()->inferiorMalloc(size);
 }

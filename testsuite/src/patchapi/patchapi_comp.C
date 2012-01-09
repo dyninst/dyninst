@@ -1,7 +1,6 @@
 #include "ParameterDict.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
-
 #include "Command.h"
 #include "PatchCFG.h"
 #include "PatchMgr.h"
@@ -11,13 +10,11 @@
 #include "patchapi_comp.h"
 
 using Dyninst::PatchAPI::AddrSpace;
-using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
 using Dyninst::PatchAPI::PatchObject;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::ParseAPI::CodeObject;
-using Dyninst::PatchAPI::PatcherPtr;
 using Dyninst::PatchAPI::Patcher;
 
 class PatchApiComponent : public ComponentTester {
@@ -113,13 +110,13 @@ test_results_t PatchApiMutator::setup(ParameterDict &param) {
 
 PatchMgrPtr PatchApiMutator::makePatchMgr(CodeObject* co) {
   PatchObject* obj = PatchObject::create(co, 0);
-  AddrSpacePtr as = AddrSpace::create(obj);
+  AddrSpace* as = AddrSpace::create(obj);
   PatchMgrPtr mgr = PatchMgr::create(as);
   return mgr;
 }
 
 PatchFunction* PatchApiMutator::findFunction(const char* name) {
-  AddrSpacePtr as = mgr_->as();
+  AddrSpace* as = mgr_->as();
   AddrSpace::ObjMap& obj_map = as->objMap();
 
   for (AddrSpace::ObjMap::iterator i = obj_map.begin(); i != obj_map.end(); i++) {
@@ -140,7 +137,7 @@ void PatchApiMutator::loadLibrary(char* libname) {
   char fullname[128];
   char lib_name[128];
   sprintf(lib_name, "%s", libname);
-  CodeObject* lib = mgr_->as()->getFirstObject()->co();
+  CodeObject* lib = mgr_->as()->executable()->co();
   SymtabCodeSource* scs = static_cast<SymtabCodeSource*>(lib->cs());
   bool isStatic = scs->getSymtabObject()->isStaticBinary();
 

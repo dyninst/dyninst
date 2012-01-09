@@ -47,13 +47,21 @@
 
 class AstNode;
 // Don't include the boost shared_ptr library
+class BPatch_snippet;
 
 namespace dyn_detail 
 {
-namespace boost {
-    template< typename T > class shared_ptr;
-    template<> class shared_ptr<AstNode *>;
+   namespace boost {
+      template< typename T > class shared_ptr;
+      template<> class shared_ptr<AstNode *>;
+   }
 }
+
+namespace Dyninst {
+   namespace PatchAPI {
+      class DynASTSnippet;
+      DynASTSnippet *convert(const BPatch_snippet *);
+   }
 }
 
 typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
@@ -116,6 +124,7 @@ typedef enum {
 #define DYNINST_CLASS_NAME BPatch_snippet
 
 class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
+
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
@@ -163,6 +172,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     API_EXPORT(Int, (),
     BPatch_type *,getType,());
 
+    operator Dyninst::PatchAPI::DynASTSnippet *() const;
 
   private: 
 

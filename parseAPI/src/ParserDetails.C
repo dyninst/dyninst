@@ -209,6 +209,15 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
         Edge *edge = link_tempsink(*bit, CALL);
 
         // create new bundle since we're not adding CALL,CALL_FT edge pairs
+        /* FIXME flag for Drew or Kevin:
+             this code (see original in comment below) does not add
+            the new work element to the worklist; I preserved this
+            behavior while changing code to fit the new, 
+            leak-free idiom, but I don't know whether this is intended
+            or a bug. You might want to wrap the call in a frame.pushWork.
+         */
+        (void)pf->mkWork(NULL,edge,target,true,true);
+        /*
         ParseWorkBundle *bundle = new ParseWorkBundle();
         pf->work_bundles.push_back(bundle);
         bundle->add(
@@ -219,6 +228,7 @@ Parser::getTamperAbsFrame(Function *tamperFunc)
                 true,
                 true)
           );
+        */
     }
 
     return pf;
@@ -585,10 +595,10 @@ void Parser::ProcessCFInsn(
         }
     }
 
-    if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
+    if (unlikely(has_unres && (!_obj.defensiveMode() || edges_out.empty()))) {
         link(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
-    }
+	 }
 
     if(ah.isDelaySlot())
         ah.advance();

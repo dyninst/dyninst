@@ -159,6 +159,11 @@ class AddressSpace : public InstructionSource {
                                 u_int amount,
                                 const void *inSelf) = 0;
 
+    // this is only used on aix so far - naim
+    // And should really be defined in a arch-dependent place, not process.h - bernat
+    Address getTOCoffsetInfo(Address);
+    Address getTOCoffsetInfo(func_instance *);
+
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
     // that you ask for an allocation "near" a point, where "near" has an
@@ -537,14 +542,14 @@ class AddressSpace : public InstructionSource {
   public:
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
-    void setPatcher(Dyninst::PatchAPI::PatcherPtr p) { patcher_ = p; }
+    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);
     void addMappedObject(mapped_object* obj);
-    Dyninst::PatchAPI::PatcherPtr patcher() { return patcher_; }
+    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
     static bool patch(AddressSpace*);
   protected:
     Dyninst::PatchAPI::PatchMgrPtr mgr_;
-    Dyninst::PatchAPI::PatcherPtr patcher_;
+    Dyninst::PatchAPI::Patcher* patcher_;
 };
 
 

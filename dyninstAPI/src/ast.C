@@ -1978,7 +1978,7 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                   REGNUM_RSP, 
                   retReg, 
                   gen, noCost);
-        bp_warn("Untested functionality for x86/64 platform");
+        bpwarn("WARNING: Untested functionality for x86/64 platform");
 #elif defined (arch_power) // KEVINTODO: untested
         emitVload(loadRegRelativeOp, 
                   (Address) sizeof(Address), 

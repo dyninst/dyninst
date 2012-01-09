@@ -131,8 +131,13 @@ void block_instance::updateCallTarget(func_instance *func) {
   // Update a sink-typed call edge to
   // have an inter-module target
   edge_instance *e = getTarget();
-  assert(e->sinkEdge());
-  PatchAPI::PatchModifier::redirect(e, func->entryBlock());
+  if (e && e->sinkEdge()) {
+     PatchAPI::PatchModifier::redirect(e, func->entryBlock());
+  } else {
+     mal_printf("WARNING: tried to update the call target of a block "
+        "[%lx %lx) with a non-sink target %lx to %lx %s[%d]\n", start(),
+        end(), e->target()->start(), func->addr(), FILE__,__LINE__);
+  }
 }
 
 func_instance *block_instance::entryOfFunc() const {

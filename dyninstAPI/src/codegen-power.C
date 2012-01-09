@@ -304,36 +304,64 @@ void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
   insnCodeGen::generate (gen,insn);
 }
 
-void insnCodeGen::generateLoadReg (codeGen & gen, int op, Register rt, 
-				   Register ra, Register rb)
+void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
+                                  Register ra, Register rb)
 {
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, LXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, LXxop);
+    XFORM_RC_SET(insn, 0);
 
-  instruction insn;
-  insn.clear();
-  XOFORM_OP_SET(insn, op);
-  XOFORM_RT_SET(insn, rt);
-  XOFORM_RA_SET(insn, ra);
-  XOFORM_RB_SET(insn, rb);
-  XOFORM_XO_SET(insn, 23);
-  XOFORM_RC_SET(insn, 0);
-
-  insnCodeGen::generate (gen,insn);
+    insnCodeGen::generate (gen,insn);
 }
 
-void insnCodeGen::generateStoreReg (codeGen & gen, int op, Register rt,
+void insnCodeGen::generateStoreReg(codeGen &gen, Register rt,
                                    Register ra, Register rb)
 {
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, STXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, STXxop);
+    XFORM_RC_SET(insn, 0);
 
-  instruction insn;
-  insn.clear();
-  XOFORM_OP_SET(insn, op);
-  XOFORM_RT_SET(insn, rt);
-  XOFORM_RA_SET(insn, ra);
-  XOFORM_RB_SET(insn, rb);
-  XOFORM_XO_SET(insn, 151);
-  XOFORM_RC_SET(insn, 0);
+    insnCodeGen::generate (gen,insn);
+}
 
-  insnCodeGen::generate (gen,insn);
+void insnCodeGen::generateLoadReg64(codeGen &gen, Register rt,
+                                    Register ra, Register rb)
+{
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, LXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, LDXxop);
+    XFORM_RC_SET(insn, 0);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateStoreReg64(codeGen &gen, Register rs,
+                                     Register ra, Register rb)
+{
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, STXop);
+    XFORM_RT_SET(insn, rs);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, STXxop);
+    XFORM_RC_SET(insn, 0);
+
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)

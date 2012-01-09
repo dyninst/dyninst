@@ -52,6 +52,7 @@ using namespace std;
 void userError();
 void parseArgs(int argc, char **argv);
 void usage(const char *);
+bool writeHunt();
 bool runHunt();
 bool runParseThat(int &bannerLen);
 
@@ -59,6 +60,13 @@ int main(int argc, char **argv)
 {
     int retval = 0;
     parseArgs(argc, argv);
+
+    if (config.write_crashes && !config.no_fork) {
+        getNextTarget();
+
+		printf(" write_crashes hunt_crashes \n");
+        return writeHunt();
+    }
 
     if (config.hunt_crashes && !config.no_fork) {
         getNextTarget();
@@ -259,6 +267,13 @@ bool runHunt_binaryEdit()
     }
         
     return false;
+}
+
+bool writeHunt()
+{
+    int bannerLen = 0;
+    runParseThat(bannerLen);
+    return true;
 }
 
 bool runHunt()
@@ -616,7 +631,9 @@ void parseArgs(int argc, char **argv)
                     needShift = true;
                 }
 
-                if (strcmp(ptr, "-all") == 0 ||
+                if (strcmp(ptr, "-check") == 0) {
+			
+		} else if (strcmp(ptr, "-all") == 0 ||
                     strcmp(ptr, "-include-libs") == 0) {
                     config.include_libs = true;
 
@@ -728,6 +745,10 @@ void parseArgs(int argc, char **argv)
                     if (!config.mod_rules.insert(arg, RULE_SKIP))
                         userError();
                     if (needShift) ++i;
+                } else if (strcmp(ptr, "-writehunt") == 0) {
+                    config.write_crashes = true;
+                    config.hunt_crashes = true;
+                    config.hunt_file = stderr;
                 } else if (strcmp(ptr, "-hunt") == 0) {
                     config.hunt_crashes = true;
                     if (arg) {

@@ -73,19 +73,19 @@ test_results_t patch2_1_Mutator::executeTest() {
   /* Step 2: insert snippets */
   Patcher patcher1(mgr_);
   SnippetDef(1);
-  PushBackCommand::Ptr c1 = PushBackCommand::create(pts[0], snip1);
+  PushBackCommand* c1 = PushBackCommand::create(pts[0], snip1);
   patcher1.add(c1);
 
   SnippetDef(2);
-  PushBackCommand::Ptr c2 = PushBackCommand::create(pts[0], snip2);
+  PushBackCommand* c2 = PushBackCommand::create(pts[0], snip2);
   patcher1.add(c2);
 
   SnippetDef(3);
-  PushBackCommand::Ptr c3 = PushBackCommand::create(pts[0], snip3);
+  PushBackCommand* c3 = PushBackCommand::create(pts[0], snip3);
   patcher1.add(c3);
 
   SnippetDef(4);
-  PushBackCommand::Ptr c4 = PushBackCommand::create(pts[0], snip4);
+  PushBackCommand* c4 = PushBackCommand::create(pts[0], snip4);
   patcher1.add(c4);
   patcher1.commit();
 

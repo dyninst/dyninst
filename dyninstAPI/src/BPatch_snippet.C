@@ -1733,3 +1733,12 @@ void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
     assert(type != NULL);
     ast_wrapper->setType(type);
 }
+
+
+#if 0
+// Conversions
+Dyninst::PatchAPI::DynASTSnippet *Dyninst::PatchAPI::convert(const BPatch_snippet *) {
+   // TODO when this class exists
+   
+}
+#endif

@@ -16,35 +16,13 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
-// For debug
-extern PATCHAPI_EXPORT bool debug_patchapi_flag;
-#define patch_cerr if (debug_patchapi_flag) std::cerr
-
-// For formating debug information
-#define  ws2 "  "
-#define  ws4 "    "
-#define  ws6 "      "
-#define  ws8 "        "
-#define ws10 "          "
-#define ws12 "            "
-#define ws14 "              "
-#define ws16 "                "
-#define ws18 "                  "
-#define ws20 "                    "
-
 namespace Dyninst {
 namespace PatchAPI {
 
 class AddrSpace;
-typedef dyn_detail::boost::shared_ptr<AddrSpace> AddrSpacePtr;
-
 class CFGMaker;
-typedef dyn_detail::boost::shared_ptr<CFGMaker> CFGMakerPtr;
-
 class PatchObject;
-
 class PointMaker;
-typedef dyn_detail::boost::shared_ptr<PointMaker> PointMakerPtr;
 
 class Point;
 typedef std::set<Point*> PointSet;
@@ -56,11 +34,6 @@ typedef std::set<InstancePtr> InstanceSet;
 typedef std::list<InstancePtr> InstanceList;
 
 class Instrumenter;
-typedef dyn_detail::boost::shared_ptr<Instrumenter> InstrumenterPtr;
-
-class Linker;
-typedef dyn_detail::boost::shared_ptr<Linker> LinkerPtr;
-
 class PatchMgr;
 typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
 
@@ -71,16 +44,9 @@ class PatchEdge;
 class Relocator;
 class Modificator;
 class SnippetGenerator;
-
 class Command;
-typedef dyn_detail::boost::shared_ptr<Command> CommandPtr;
-typedef std::list<CommandPtr> CommandList;
-
 class BatchCommand;
-typedef dyn_detail::boost::shared_ptr<BatchCommand> BatchCommandPtr;
-
 class Patcher;
-typedef dyn_detail::boost::shared_ptr<Patcher> PatcherPtr;
 
 typedef dyn_detail::boost::shared_ptr<void> VoidPtr;
 typedef VoidPtr SnippetPtr;
@@ -101,6 +67,21 @@ typedef std::set<ParseAPI::CodeObject*> CodeObjectSet;
 typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 }
 }
+
+#if defined(_MSC_VER)
+#define patchapi_debug(...)
+#else
+#define patchapi_debug(...) do { \
+  if (getenv("DYNINST_DEBUG_PATCHAPI")) {   \
+  const char* nodir = basename(__FILE__);              \
+  fprintf(stderr, "%s [%d]: ", nodir, __LINE__); \
+  fprintf(stderr, __VA_ARGS__); \
+  fprintf(stderr, "\n");  \
+  fflush(stderr); \
+  } \
+  else ; \
+} while(0)
+#endif
 
 using std::map;
 using std::list;

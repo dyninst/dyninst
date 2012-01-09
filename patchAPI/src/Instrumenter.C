@@ -3,27 +3,20 @@
 #include "Instrumenter.h"
 #include "PatchCFG.h"
 
-using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::Instrumenter;
 using Dyninst::PatchAPI::InstanceSet;
-using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::PatchFunction;
 using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::AddrSpace;
 
 /* Default implementation of Instrumenter */
 
-InstrumenterPtr
-Instrumenter::create(AddrSpacePtr as) {
-  InstrumenterPtr ret = InstrumenterPtr(new Instrumenter(as));
-  if (!ret) return InstrumenterPtr();
+Instrumenter*
+Instrumenter::create(AddrSpace* as) {
+  Instrumenter* ret = new Instrumenter(as);
   return ret;
 }
-/*
-bool
-Instrumenter::process() {
-  return true;
-}
-*/
+
 bool
 Instrumenter::replaceFunction(PatchFunction* oldfunc, PatchFunction *newfunc) {
   functionReplacements_[oldfunc] = newfunc;

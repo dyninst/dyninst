@@ -100,12 +100,10 @@
 #include "Relocation/DynObject.h"
 
 using namespace Dyninst;
-using PatchAPI::DynObjectPtr;
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::DynAddrSpacePtr;
 using PatchAPI::PatchMgr;
-using PatchAPI::PointMakerPtr;
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
@@ -131,56 +129,6 @@ void printLoadDyninstLibraryError() {
 #endif
     cerr << "Please check your environment and try again." << endl;
 }
-
-/* AIX method defined in aix.C; hijacked for IA-64's GP. */
-#if !defined(arch_power)
-Address process::getTOCoffsetInfo(Address /*dest */)
-{
-  Address tmp = 0;
-  assert(0 && "getTOCoffsetInfo not implemented");
-  return tmp; // this is to make the nt compiler happy! - naim
-}
-#else
-Address process::getTOCoffsetInfo(Address dest)
-{
-   // Linux-power-32 bit: return 0 here, as it doesn't use the TOC.
-   // Linux-power-64 does. Lovely. 
-#if defined(arch_power) && defined(os_linux)
-   if (getAddressWidth() == 4)
-      return 0;
-#endif
-
-    // We have an address, and want to find the module the addr is
-    // contained in. Given the probabilities, we (probably) want
-    // the module dyninst_rt is contained in.
-    // I think this is the right func to use
-    
-    // Find out which object we're in (by addr).
-   mapped_object *mobj = findObject(dest);
-   // Very odd case if this is not defined.
-   assert(mobj);
-   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
-   
-    if (!TOCOffset)
-       return 0;
-    return TOCOffset + mobj->dataBase();
-
-}
-
-Address process::getTOCoffsetInfo(func_instance *func) {
-  
-#if defined(arch_power) && defined(os_linux)
-   // See comment above.
-   if (getAddressWidth() == 4)
-      return 0;
-#endif
-   assert(func);
-    mapped_object *mobj = func->obj();
-
-    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
-}
-
-#endif
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 extern void calcVSyscallFrame(process *p);

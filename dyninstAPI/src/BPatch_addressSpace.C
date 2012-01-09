@@ -71,8 +71,9 @@
 #include "Command.h"
 #include "Relocation/DynInstrumenter.h"
 
+#include "PatchMgr.h"
+
 using Dyninst::PatchAPI::Patcher;
-using Dyninst::PatchAPI::PatcherPtr;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
 using Dyninst::PatchAPI::DynReplaceFuncCommand;
 using Dyninst::PatchAPI::DynModifyCallCommand;
@@ -369,15 +370,11 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
   /* PatchAPI stuffs */
    AddressSpace* addr_space = point.getAS();
-   DynModifyCallCommand::Ptr rep_call = DynModifyCallCommand::create(addr_space,
+   DynModifyCallCommand* rep_call = DynModifyCallCommand::create(addr_space,
       point.point->block(), newFunc.lowlevel_func(), point.point->func());
   addr_space->patcher()->add(rep_call);
   /* End of PatchAPI */
-  /*
-   point.getAS()->modifyCall(point.point->block(),
-                             newFunc.lowlevel_func(),
-                             point.point->func());
-  */
+
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
@@ -404,11 +401,10 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
   /* PatchAPI stuffs */
    AddressSpace* addr_space = point.getAS();
-   DynRemoveCallCommand::Ptr remove_call = DynRemoveCallCommand::create(addr_space,
+   DynRemoveCallCommand* remove_call = DynRemoveCallCommand::create(addr_space,
       point.point->block(), point.point->func());
   addr_space->patcher()->add(remove_call);
   /* End of PatchAPI */
-   // point.getAS()->removeCall(point.point->block(), point.point->func());
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -444,12 +440,10 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
 
   /* PatchAPI stuffs */
   AddressSpace* addr_space = oldFunc.lowlevel_func()->proc();
-  DynReplaceFuncCommand::Ptr rep_func = DynReplaceFuncCommand::create(addr_space,
+  DynReplaceFuncCommand* rep_func = DynReplaceFuncCommand::create(addr_space,
      oldFunc.lowlevel_func(), newFunc.lowlevel_func());
   addr_space->patcher()->add(rep_func);
   /* End of PatchAPI */
-
-  //oldFunc.lowlevel_func()->proc()->replaceFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func());
 
   if (pendingInsertions == NULL) {
     // Trigger it now
@@ -897,8 +891,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       /* PatchAPI stuffs */
       instPoint* ipoint = bppoint->getPoint(when);
       AddressSpace* ias = ipoint->proc();
-      PatcherPtr patcher = ias->patcher();
-      DynInsertSnipCommand::Ptr ins_snip = DynInsertSnipCommand::create(ipoint,
+      Patcher* patcher = ias->patcher();
+      DynInsertSnipCommand* ins_snip = DynInsertSnipCommand::create(ipoint,
               ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
       miniTramp* mini = ins_snip->mini();
       patcher->add(ins_snip);
@@ -1077,3 +1071,13 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(
                                                 (void *) at_addr, type);
 }
 
+Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *a) {
+   const BPatch_binaryEdit *edit = dynamic_cast<const BPatch_binaryEdit *>(a);
+   if (edit) {
+      return edit->lowlevel_edit()->mgr();
+   }
+   else {
+      const BPatch_process *proc = dynamic_cast<const BPatch_process *>(a);
+      return proc->lowlevel_process()->mgr();
+   }
+}

@@ -10,7 +10,7 @@ namespace PatchAPI {
 
 class DynAddrSpace : public AddrSpace {
   public:
-    static DynAddrSpacePtr create(DynObject* obj);
+    static DynAddrSpace* create(DynObject* obj);
     bool loadLibrary(DynObject*);
     bool initAs(DynObject*);
 
@@ -29,7 +29,7 @@ class DynAddrSpace : public AddrSpace {
 
   protected:
     DynAddrSpace();
-    DynAddrSpace(AddrSpacePtr par);
+    DynAddrSpace(AddrSpace* par);
 
     //CoAsMap coas_map_;
     AsSet as_set_;

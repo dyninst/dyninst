@@ -46,6 +46,10 @@ instructionAPI/doc/latex/doxygen.sty
 instructionAPI/doc/latex/hierarchy.tex
 instructionAPI/doc/latex/index.tex
 instructionAPI/doc/latex/modules.tex
+patchAPI/doc/patchapi.aux
+patchAPI/doc/patchapi.log
+patchAPI/doc/patchapi.out
+patchAPI/doc/patchapi.toc
 test.sh
 autodyninst/configure
 

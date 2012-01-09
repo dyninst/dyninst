@@ -31,7 +31,6 @@ using Dyninst::PatchAPI::Command;
 using Dyninst::PatchAPI::Patcher;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
-using Dyninst::PatchAPI::AddrSpacePtr;
 using Dyninst::PatchAPI::BatchCommand;
 
 typedef std::list<int> CmdList;
@@ -41,9 +40,8 @@ typedef std::list<int> CmdList;
 #define DummyCommandDef(NUM)     \
 class DummyCommand ## NUM : public Command { \
   public: \
-    typedef dyn_detail::boost::shared_ptr<DummyCommand ## NUM> Ptr; \
     DummyCommand ## NUM (CmdList* cl) : cl_(cl), run_ret_(true) {} \
-    static Ptr create(CmdList* cl) { return Ptr(new DummyCommand ## NUM (cl)); } \
+    static DummyCommand ## NUM *create(CmdList* cl) { return (new DummyCommand ## NUM (cl)); } \
     virtual bool run() { cl_->push_back(NUM); return run_ret_; } \
     virtual bool undo()  { cl_->pop_back(); return true; } \
     void setRunReturn(bool r) { run_ret_ = r; } \
@@ -66,12 +64,11 @@ DummyCommandDef(11) // DummyCommand11
 #define DummyBatchCommandDef(NUM, CHILD1, CHILD2)  \
 class DummyCommand ## NUM : public BatchCommand { \
   public: \
-    typedef dyn_detail::boost::shared_ptr<DummyCommand ## NUM> Ptr; \
     DummyCommand ## NUM (CmdList* cl) { \
       add(DummyCommand ## CHILD1::create(cl)); \
       add(DummyCommand ## CHILD2::create(cl)); \
     } \
-    static Ptr create(CmdList* cl) { return Ptr(new DummyCommand ## NUM(cl)); } \
+    static DummyCommand ## NUM *create(CmdList* cl) { return (new DummyCommand ## NUM(cl)); } \
 };
 
 DummyBatchCommandDef(5, 8, 9)
@@ -80,27 +77,25 @@ DummyBatchCommandDef(7, 10, 11)
 /* Implementation of DummyInstrumenter */
 class DummyInstrumenter : public BatchCommand {
   public:
-    typedef dyn_detail::boost::shared_ptr<DummyInstrumenter> Ptr;
     DummyInstrumenter(CmdList* cl) {
       add(DummyCommand5::create(cl));
       add(DummyCommand6::create(cl));
       add(DummyCommand7::create(cl));
     }
-    static Ptr create(CmdList* cl) { return Ptr(new DummyInstrumenter(cl)); }
+    static DummyInstrumenter *create(CmdList* cl) { return (new DummyInstrumenter(cl)); }
 };
 
 /* Implementation of BatchCommand5, and 7 that has failed subcommands */
 #define FailedBatchCommandDef(NUM, CHILD1, CHILD2)  \
 class FailedCommand ## NUM : public BatchCommand { \
   public: \
-    typedef dyn_detail::boost::shared_ptr<FailedCommand ## NUM> Ptr; \
     FailedCommand ## NUM (CmdList* cl) { \
-      DummyCommand ## CHILD1::Ptr f = DummyCommand ## CHILD1::create(cl); \
+      DummyCommand ## CHILD1 *f = DummyCommand ## CHILD1::create(cl); \
       f->setRunReturn(false); \
       add(f);\
       add(DummyCommand ## CHILD2::create(cl)); \
     } \
-    static Ptr create(CmdList* cl) { return Ptr(new FailedCommand ## NUM(cl)); } \
+    static FailedCommand ## NUM *create(CmdList* cl) { return (new FailedCommand ## NUM(cl)); } \
 };
 
 FailedBatchCommandDef(5, 8, 9)
@@ -109,13 +104,12 @@ FailedBatchCommandDef(7, 10, 11)
 /* Implementation of FailedInstrumenter */
 class FailedInstrumenter : public BatchCommand {
   public:
-    typedef dyn_detail::boost::shared_ptr<FailedInstrumenter> Ptr;
     FailedInstrumenter(CmdList* cl) {
       add(FailedCommand5::create(cl));
       add(DummyCommand6::create(cl));
       add(FailedCommand7::create(cl));
     }
-    static Ptr create(CmdList* cl) { return Ptr(new FailedInstrumenter(cl)); }
+    static FailedInstrumenter *create(CmdList* cl) { return (new FailedInstrumenter(cl)); }
 };
 
 class patch4_1_Mutator : public PatchApiMutator {

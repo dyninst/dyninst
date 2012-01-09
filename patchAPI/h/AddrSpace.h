@@ -12,12 +12,12 @@ namespace PatchAPI {
 /* Interface specification for the interation between a PatchMgr and
    the address space */
 
-class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
+class AddrSpace {
     friend class PatchMgr;
     friend class PatchFunction;
 
   public:
-    PATCHAPI_EXPORT static AddrSpacePtr create(PatchObject* obj);
+    PATCHAPI_EXPORT static AddrSpace* create(PatchObject* obj);
     PATCHAPI_EXPORT virtual ~AddrSpace();
 
     // Write data in mutatee's address space
@@ -41,8 +41,8 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
     ObjMap& objMap() { return obj_map_; }
     PatchObject* findObject(const ParseAPI::CodeObject*) const;
     template <class Iter> void objs(Iter iter); // EXPORTED
-    PATCHAPI_EXPORT PatchObject* getFirstObject() { return first_object_; }
-    PATCHAPI_EXPORT PatchMgrPtr mgr() { return mgr_; }
+    PATCHAPI_EXPORT PatchObject* executable() { return first_object_; }
+    PATCHAPI_EXPORT PatchMgrPtr mgr() const { return mgr_; }
 
     std::string format() const;
 
@@ -55,7 +55,7 @@ class AddrSpace : public dyn_detail::boost::enable_shared_from_this<AddrSpace>{
 
     PATCHAPI_EXPORT bool init(PatchObject*);
     AddrSpace() {}
-    explicit AddrSpace(AddrSpacePtr) {}
+    explicit AddrSpace(AddrSpace*) {}
 };
 
 template <class Iter>

@@ -790,6 +790,11 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 	return retAddr;
 }
 
+void BinaryEdit::addLibraryPrereq(std::string libname) {
+   Symtab *symObj = mobj->parse_img()->getObject();
+   symObj->addLibraryPrereq(libname);
+}
+
 
 // Build a list of symbols describing instrumentation and relocated functions. 
 // To keep this list (somewhat) short, we're doing one symbol per extent of 

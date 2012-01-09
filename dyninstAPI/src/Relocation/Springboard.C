@@ -136,7 +136,7 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *f, int funcID) {
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {

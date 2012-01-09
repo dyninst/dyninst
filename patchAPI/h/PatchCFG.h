@@ -108,7 +108,7 @@ class PatchBlock {
    PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
-   bool consistency() const;
+   PATCHAPI_EXPORT bool consistency() const;
 
   protected:
     typedef enum {
@@ -198,7 +198,7 @@ class PatchFunction {
    PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
-   bool consistency() const;
+   PATCHAPI_EXPORT bool consistency() const;
 
    protected:
      // For callbacks from ParseAPI to PatchAPI

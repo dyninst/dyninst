@@ -14,8 +14,8 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #if defined(cap_mem_emulation)
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
@@ -104,7 +104,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
                                   const RelocBlock *trace,
-				  Address origAddr) 
+                                  Address /*origAddr*/) 
 {
    // I'm pretty sure that anything that can get translated will be
    // turned into a push/jump combo already. 
@@ -265,14 +265,16 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
 }
 
 
+#if !defined(cap_mem_emulation)
+bool CFWidget::generateAddressTranslator(CodeBuffer &,const codeGen &,Register &,const RelocBlock *) {
+   return true;
+}
+#else
 bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
                                        Register &reg,
                                        const RelocBlock *trace) 
 {
-#if !defined(cap_mem_emulation)
-   return true;
-#else
 
    if (!templ.addrSpace()->isMemoryEmulated() ||
        BPatch_defensiveMode != trace->block()->obj()->hybridMode())
@@ -371,5 +373,5 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    buffer.addPIC(patch, tracker(trace));
    reg = REGNUM_ESP;
    return true;
-#endif
 }
+#endif

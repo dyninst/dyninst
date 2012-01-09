@@ -7,7 +7,6 @@
 using Dyninst::ParseAPI::CodeObject;
 using Dyninst::ParseAPI::CodeRegion;
 using Dyninst::PatchAPI::DynObject;
-using Dyninst::PatchAPI::DynObjectPtr;
 using Dyninst::PatchAPI::InstanceSet;
 using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::DynCFGMakerPtr;
@@ -15,13 +14,14 @@ using Dyninst::PatchAPI::DynCFGMaker;
 
 DynObject::DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base)
    : PatchObject(co, base, 
-                 DynCFGMakerPtr(new DynCFGMaker), 
+                 new DynCFGMaker, 
                  new DynPatchCallback(as)),
      as_(as) {
 }
 
 DynObject::DynObject(const DynObject* par_obj, process* child, Address base)
-  : PatchObject(par_obj, base, 
+  : PatchObject(par_obj, base,
+                new DynCFGMaker,
                 new DynPatchCallback(child)),
     as_(child) {
 }

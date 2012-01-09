@@ -16,6 +16,7 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil patchAPI
 DynC_API = ready common dyninstAPI dynC_API  dynutil
+Dyner = ready common dyninstAPI dynC_API dynutil dyner
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
@@ -24,7 +25,6 @@ ValueAdded = valueAdded/sharedMem
 #DataflowAPI = instructionAPI parseAPI dataflowAPI
 DataflowAPI = ParseAPI
 
-testsuites = dyninstAPI/tests 
 allSubdirs_noinstall =
 
 ifndef DONT_BUILD_DYNINST
@@ -49,7 +49,12 @@ fullSystem += parseAPI
 fullSystem += dynC_API
 Build_list += dynC_API
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI
+ifeq (-Dcap_have_tcl,$(findstring -Dcap_have_tcl,$(AC_DEF)))
+#fullSystem += dyner
+#Build_list += dyner
+endif
+
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API patchAPI #dyner
 allSubdirs	= $(allCoreSubdirs) $(testsuites) valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 
@@ -151,11 +156,30 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI Dyner DynC_API DataflowAPI ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
 
+check: check-symtab check-instruction check-proccontrol check-dyninst
+
+check-all: world
+	cd testsuite/$(PLATFORM); ./runTests -q -j4 -all; cd ../..
+
+check-symtab: SymtabAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-symtab
+
+check-instruction: InstructionAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-instruction
+
+check-proccontrol: ProcControlAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-proccontrol
+
+check-dyninst: DyninstAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-dyninst
+
+check-patch: patchAPI
+	$(MAKE) -C testsuite/$(PLATFORM) check-patch
 # Low-level directory-targets  (used in the sets defined above)
 # Explicit specification of these rules permits better parallelization
 # than building subsystems using a for loop

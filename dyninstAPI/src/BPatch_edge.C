@@ -135,3 +135,10 @@ BPatch_point *BPatch_edge::getPointInt()
    return point;
 }
 
+PatchAPI::PatchEdge *PatchAPI::convert(const BPatch_edge *e) {
+   return e->edge;
+}
+
+ParseAPI::Edge *ParseAPI::convert(const BPatch_edge *e) {
+   return e->edge->edge();
+}

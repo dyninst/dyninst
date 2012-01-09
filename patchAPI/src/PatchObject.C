@@ -12,40 +12,58 @@ using namespace PatchAPI;
 
 
 PatchObject*
-PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMakerPtr cm, PatchCallback *cb) {
+PatchObject::create(ParseAPI::CodeObject* co, Address base, CFGMaker* cm, PatchCallback *cb) {
+  patchapi_debug("Create PatchObject at %lx", base);
    PatchObject* obj = new PatchObject(co, base, cm, cb);
    return obj;
 }
 
 PatchObject*
-PatchObject::clone(PatchObject* par_obj, Address base, PatchCallback *cb) {
-   PatchObject* obj = new PatchObject(par_obj, base, cb);
-   obj->copyCFG(par_obj);
-   return obj;
+PatchObject::clone(PatchObject* par_obj, Address base, CFGMaker* cm, PatchCallback *cb) {
+  patchapi_debug("Clone PatchObject at %lx", base);
+  PatchObject* obj = new PatchObject(par_obj, base, cm, cb);
+  obj->copyCFG(par_obj);
+  return obj;
 }
 
-PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMakerPtr cm, PatchCallback *cb)
-  // : co_(o), cs_(o->cs()), codeBase_(a), cfg_maker_(cm) {
-  : co_(o), codeBase_(a), cfg_maker_(cm) {
+PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb)
+  : co_(o), codeBase_(a) {
+  if (!cm) {
+    patchapi_debug("Use default CFGMaker");
+    cfg_maker_ = new CFGMaker;
+  } else {
+    patchapi_debug("Use plugin CFGMaker");
+    cfg_maker_ = cm;
+  }
    if (!cb) { 
+     patchapi_debug("Use default PatchCallback");
       cb_ = new PatchCallback();
    }
    else {
-      cb_ = cb;
+     patchapi_debug("Use plugin PatchCallback");
+     cb_ = cb;
    }
    // Set up a new callback
    pcb_ = new PatchParseCallback(this);
    co_->registerCallback(pcb_);
 }
 
-PatchObject::PatchObject(const PatchObject* parObj, Address a, PatchCallback *cb)
-  // : co_(parObj->co()), cs_(parObj->cs()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
-  : co_(parObj->co()), codeBase_(a), cfg_maker_(parObj->cfg_maker_) {
+PatchObject::PatchObject(const PatchObject* parObj, Address a, CFGMaker* cm, PatchCallback *cb)
+  : co_(parObj->co()), codeBase_(a) {
+  if (!cm) {
+    patchapi_debug("Use default PatchObject");
+    cfg_maker_ = new CFGMaker;
+  } else {
+    patchapi_debug("Use plugin PatchObject");
+    cfg_maker_ = cm;
+  }
    if (!cb) {
-      cb_ = new PatchCallback();
+    patchapi_debug("Use default PatchCallback");
+    cb_ = new PatchCallback();
    }
    else  {
-      cb_ = cb;
+    patchapi_debug("Use plugin PatchCallback");
+    cb_ = cb;
    }
 
    // Set up a new callback
@@ -64,11 +82,14 @@ PatchObject::~PatchObject() {
     delete iter->second;
   }
   co_->unregisterCallback(pcb_);
+  delete cfg_maker_;
   delete cb_;
 }
 
 PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
+  if (!f) return NULL;
+
   if (co_ != f->obj()) {
     cerr << "ERROR: function " << f->name() << " doesn't exist in this object!\n";
     assert(0);
@@ -214,7 +235,7 @@ std::string PatchObject::format() const {
 
 bool PatchObject::consistency(const AddrSpace *as) const {
    if (!co_) return false;
-   if (as != addr_space_.get()) return false;
+   if (as != addr_space_) return false;
 
    for (FuncMap::const_iterator iter = funcs_.begin(); iter != funcs_.end(); ++iter) {
       if (!iter->second->consistency()) {
@@ -234,4 +255,8 @@ bool PatchObject::consistency(const AddrSpace *as) const {
    if (!cfg_maker_) return false;
    if (!cb_) return false;
    return true;
+}
+
+PatchMgrPtr PatchObject::mgr() const { 
+   return addr_space_->mgr();
 }

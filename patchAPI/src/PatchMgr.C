@@ -15,9 +15,6 @@ using Dyninst::InstructionAPI::Instruction;
 using Dyninst::PatchAPI::PatchMgr;
 using Dyninst::PatchAPI::PatchMgrPtr;
 using Dyninst::PatchAPI::PointMaker;
-using Dyninst::PatchAPI::AddrSpacePtr;
-using Dyninst::PatchAPI::PointMakerPtr;
-using Dyninst::PatchAPI::InstrumenterPtr;
 using Dyninst::PatchAPI::InstancePtr;
 using Dyninst::PatchAPI::Point;
 using Dyninst::PatchAPI::PointSet;
@@ -25,34 +22,32 @@ using Dyninst::PatchAPI::PatchBlock;
 using Dyninst::PatchAPI::PatchEdge;
 using Dyninst::PatchAPI::PatchFunction;
 
-bool debug_patchapi_flag = false;
-
-static void
-initDebugFlag() {
-  if (getenv("PATCHAPI_DEBUG"))
-    debug_patchapi_flag = true;
-}
-
-PatchMgr::PatchMgr(AddrSpacePtr as, PointMakerPtr pt, 
-                   InstrumenterPtr inst)
-  : point_maker_(pt), as_(as) {
-  if (inst == InstrumenterPtr()) {
+PatchMgr::PatchMgr(AddrSpace* as, Instrumenter* inst, PointMaker* pt)
+  : as_(as) {
+  if (!pt) {
+    patchapi_debug("Use default PointMaker");
+    point_maker_ = new PointMaker;
+  } else {
+    patchapi_debug("Use plugin PointMaker");
+    point_maker_ = pt;
+  }
+  if (!inst) {
+    patchapi_debug("Use default Instrumenter");
     instor_ = Instrumenter::create(as);
   } else {
+    patchapi_debug("Use plugin Instrumenter");
     inst->setAs(as);
     instor_ = inst;
   }
 }
 
 PatchMgrPtr
-PatchMgr::create(AddrSpacePtr as, PointMakerPtr pf, InstrumenterPtr inst) {
-   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, pf, inst));
+PatchMgr::create(AddrSpace* as, Instrumenter* inst, PointMaker* pf) {
+  patchapi_debug("Create PatchMgr");
+  PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, inst, pf));
   if (!ret) return PatchMgrPtr();
-  initDebugFlag();
   ret->as_->mgr_ = ret;
   ret->pointMaker()->setMgr(ret);
-  patch_cerr << "PatchAPI starts.\n";
-  patch_cerr << ws2 << "Glue Instrumenter and Linker ot PatchMgr.\n";
   return ret;
 }
 
@@ -69,7 +64,7 @@ Point *PatchMgr::findPoint(Location loc,
    // Verify an untrusted Location
    if (!loc.trusted) {
       if (!verify(loc)) return NULL;
-   }         
+   }
 
    // Not sure if it's better to go by type
    // or location first, so we're running
@@ -121,7 +116,9 @@ Point *PatchMgr::findPoint(Location loc,
 }
 
 PatchMgr::~PatchMgr() {
-   // TODO: do we delete PatchObjects, etc?
+  patchapi_debug("Destroy PatchMgr");
+  delete as_;
+  delete point_maker_;
 }
 
 bool PatchMgr::getCandidates(Scope &scope,
@@ -176,13 +173,13 @@ bool PatchMgr::wantInsns(Scope &scope, Point::Type types) {
 }
 
 bool PatchMgr::wantInsnInstances(Scope &scope, Point::Type types) {
-  return (scope.func == NULL && Point::TestType(types, Point::InsnTypes));
+  return (scope.func != NULL && Point::TestType(types, Point::InsnTypes));
 }
 
 void PatchMgr::getFuncCandidates(Scope &scope, Point::Type types, Candidates &ret) {
    // We can either have a scope of PatchObject and be looking for all
    // the functions it contains, a scope of a Function, or be looking
-   // for every single function we know about. 
+   // for every single function we know about.
    Functions funcs;
    getFuncs(scope, funcs);
 
@@ -311,7 +308,7 @@ void PatchMgr::getBlocks(Scope &scope, Blocks &blocks) {
       blocks.push_back(scope.block);
    }
 }
-      
+
 void PatchMgr::getEdges(Scope &scope, Edges &edges) {
    if (scope.wholeProgram) {
       const AddrSpace::ObjMap &objs = as()->objMap();
@@ -327,7 +324,7 @@ void PatchMgr::getEdges(Scope &scope, Edges &edges) {
 void PatchMgr::getInsns(Scope &scope, Insns &insns) {
    Blocks blocks;
    getBlocks(scope, blocks);
-   
+
    for (Blocks::iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
       PatchBlock::Insns tmp;
       (*iter)->getInsns(tmp);
@@ -340,7 +337,7 @@ void PatchMgr::getInsns(Scope &scope, Insns &insns) {
 void PatchMgr::getBlockInstances(Scope &scope, BlockInstances &blocks) {
    Functions funcs;
    getFuncs(scope, funcs);
-   
+
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
       const PatchFunction::Blockset &b = (*iter)->blocks();
       for (PatchFunction::Blockset::const_iterator iter2 = b.begin(); iter2 != b.end(); ++iter2) {
@@ -352,7 +349,7 @@ void PatchMgr::getBlockInstances(Scope &scope, BlockInstances &blocks) {
 void PatchMgr::getInsnInstances(Scope &scope, InsnInstances &insns) {
    Functions funcs;
    getFuncs(scope, funcs);
-   
+
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
       const PatchFunction::Blockset &b = (*iter)->blocks();
       for (PatchFunction::Blockset::const_iterator iter2 = b.begin(); iter2 != b.end(); ++iter2) {
@@ -391,8 +388,8 @@ bool PatchMgr::verify(Location &loc) {
          break;
       case Location::InstructionInstance_:
          if (loc.func->blocks().find(loc.block) == loc.func->blocks().end()) return false;
-         // Fall through to Instruction_ case for detailed checking. 
-      case Location::Instruction_: 
+         // Fall through to Instruction_ case for detailed checking.
+      case Location::Instruction_:
          if (loc.addr < loc.block->start()) return false;
          if (loc.addr > loc.block->last()) return false;
          loc.insn = loc.block->getInsn(loc.addr);
@@ -400,7 +397,7 @@ bool PatchMgr::verify(Location &loc) {
          break;
       case Location::Edge_:
          break;
-      case Location::EdgeInstance_: 
+      case Location::EdgeInstance_:
          if (loc.func->blocks().find(loc.edge->source()) == loc.func->blocks().end()) return false;
          if (loc.func->blocks().find(loc.edge->target()) == loc.func->blocks().end()) return false;
          break;

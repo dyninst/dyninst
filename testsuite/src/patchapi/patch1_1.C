@@ -107,6 +107,7 @@ test_results_t patch1_1_Mutator::executeTest() {
   Point* post_call = NULL;
 
   Patcher patcher(mgr_);
+
   for (vector<Point*>::iterator i = pts.begin(); i != pts.end(); i++) {
     Point* p = *i;
     switch (p->type()) {

@@ -1269,8 +1269,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 {
     using namespace SymtabAPI;
     using namespace ParseAPI;
-
-    bool unparsedTargets = false;
     vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
@@ -2200,3 +2198,14 @@ func_instance *mapped_object::findFuncByEntry(const block_instance *blk) {
   return findFunction(f);
 }
 
+func_instance *mapped_object::getCallee(const block_instance *b) const {
+   std::map<const block_instance *, func_instance *>::const_iterator iter = callees_.find(b);
+   if (iter == callees_.end()) return NULL;
+   return iter->second;
+}
+
+void mapped_object::setCallee(const block_instance *b, func_instance *f) {
+   callees_[b] = f;
+}
+
+   
