@@ -115,9 +115,6 @@ static bool hasSingleIndirectSinkEdge(PatchBlock *b)
 
 void PatchFunction::addBlock(PatchBlock *b) {
    if (all_blocks_.empty() && exit_blocks_.empty() && call_blocks_.empty()) return;
-   if (b->start() == 0xab5910) {
-      DebugBreak();
-   }
 
    all_blocks_.insert(b);
 

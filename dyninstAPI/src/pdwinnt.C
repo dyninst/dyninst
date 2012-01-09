@@ -2684,7 +2684,6 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
        }
        mal_printf("\n");
     }
-    DebugBreak();//KEVINTODO: remove this
     if (proc->readDataSpace((void*)(ev.address-TMPLEN),TMPLEN*sizeof(unsigned char),
                              (void*)tmp,false)) {
        mal_printf("the previous %d bytes were as follows %lx:", TMPLEN, ev.address-TMPLEN);
@@ -2744,6 +2743,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     faultFunc->getBlocks(origAddr,faultBBIs);
     assert(!faultBBIs.empty());
     faultBBI = *faultBBIs.begin(); // we can't be any more sure that we've got the right block
+
+    proc->flushAddressCache_RT(faultBBI->obj()); //KEVINTODO: remove this
 
     if (ev.proc->isMemoryEmulated() && 
         BPatch_defensiveMode == faultFunc->obj()->hybridMode())
