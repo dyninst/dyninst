@@ -95,6 +95,8 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     bool isFuncExit() const;
     static void destroy(block_instance *b);
 
+    virtual void markModified();
+
  private:
     void updateCallTarget(func_instance *func);
     func_instance *findFunction(ParseAPI::Function *);

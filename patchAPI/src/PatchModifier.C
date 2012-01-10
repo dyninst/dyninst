@@ -42,7 +42,7 @@ using namespace Dyninst;
 using namespace PatchAPI;
 
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
-   // Do we want edges to be in the same object? I don't think so.
+   // Do we want edges to only be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)
    if (edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
 
@@ -59,6 +59,9 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    assert(edge->source()->consistency());
    assert(edge->consistency());
    assert(target->consistency());
+
+   edge->source()->markModified();
+   edge->target()->markModified();
 
    return true;
 }
@@ -90,6 +93,8 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
    // We want to return the new block so that folks have a handle; 
    // look it up. 
    PatchBlock *split = block->obj()->getBlock(split_int);
+   block->markModified();
+   split->markModified();
 
    // DEBUG BUILD
    assert(block->consistency());

@@ -170,3 +170,11 @@ void block_instance::destroy(block_instance *b) {
   }
   delete b;
 }
+
+void block_instance::markModified() {
+   std::vector<PatchAPI::PatchFunction *> funcs;
+   getFunctions(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->markModified();
+   }
+}

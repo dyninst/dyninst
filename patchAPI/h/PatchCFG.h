@@ -112,6 +112,8 @@ class PatchBlock {
 
    PATCHAPI_EXPORT bool wasUserAdded() const;
 
+   PATCHAPI_EXPORT void markModified() const {};
+
   protected:
     typedef enum {
       backwards,
@@ -199,6 +201,8 @@ class PatchFunction {
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
    PATCHAPI_EXPORT bool consistency() const;
+
+   PATCHAPI_EXPORT void markModified() const {};
 
    protected:
      // For callbacks from ParseAPI to PatchAPI

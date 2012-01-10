@@ -798,3 +798,6 @@ void func_instance::add_block_cb(block_instance *block)
     }
 }
 
+void func_instance::markModified() {
+   proc()->addModifiedFunction(this);
+}
