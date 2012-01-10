@@ -223,6 +223,8 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
          const Priority &p = iter->second.first;
          func_instance *func = iter->second.second;
 
+         if (bbl->wasUserAdded()) continue;
+
          // the priority map may include things not in the block
          // map...
          RelocBlock * trace = cfg_->findSpringboard(bbl);
