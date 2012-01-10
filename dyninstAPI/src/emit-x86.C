@@ -53,6 +53,8 @@
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dataflowAPI/h/ABI.h"
+#include "dataflowAPI/h/liveness.h"
+#include "RegisterConversion.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -1688,8 +1690,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
          }
          else {
             Register r = reg->encoding();
-            if (regsClobberedByCall.test(r))
+	    static LivenessAnalyzer live(8);
+	    // mapping from Register to MachRegister, then to index in liveness bitArray
+	    if (regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second))){	  
                gen.markRegDefined(r);
+            }
          }
       }
    }

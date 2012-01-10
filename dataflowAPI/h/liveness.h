@@ -25,8 +25,8 @@ struct livenessData{
 };
 
 class LivenessAnalyzer{
-	map<Address, livenessData> blockLiveInfo;
-	map<Address, bool> liveFuncCalculated;
+	map<ParseAPI::Block*, livenessData> blockLiveInfo;
+	map<ParseAPI::Function*, bool> liveFuncCalculated;
 	InstructionCache cachedLivenessInfo;
 
 	const bitArray& getLivenessIn(ParseAPI::Block *block);

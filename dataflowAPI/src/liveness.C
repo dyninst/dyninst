@@ -60,17 +60,16 @@ int LivenessAnalyzer::getIndex(MachRegister machReg){
 
 const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     // Calculate if it hasn't been done already
-    Address lowAddr = block->start();
-    assert(blockLiveInfo.find(lowAddr) != blockLiveInfo.end());
-    livenessData& data = blockLiveInfo[lowAddr];
+    assert(blockLiveInfo.find(block) != blockLiveInfo.end());
+    livenessData& data = blockLiveInfo[block];
     assert(data.in.size());
     return data.in;
 }
 
 const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
-
-	assert(blockLiveInfo.find(block->start()) != blockLiveInfo.end());
-	livenessData &data = blockLiveInfo[block->start()];
+       
+	assert(blockLiveInfo.find(block) != blockLiveInfo.end());
+	livenessData &data = blockLiveInfo[block];
 	data.out = bitArray(data.in.size());
 	assert(data.out.size());
 	// ignore call, return edges
@@ -116,14 +115,13 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
 
 void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block) 
 {
-	Address lowAddr = block->start();
-   if (blockLiveInfo.find(lowAddr) != blockLiveInfo.end()){
+   if (blockLiveInfo.find(block) != blockLiveInfo.end()){
    	return;
    }
    
 
  
-   livenessData &data = blockLiveInfo[lowAddr];
+   livenessData &data = blockLiveInfo[block];
    data.use = data.def = data.in = abi->getBitArray();
 
    using namespace Dyninst::InstructionAPI;
@@ -174,7 +172,7 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block)
 bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block) 
 {
   bool change = false;
-  livenessData &data = blockLiveInfo[block->start()];
+  livenessData &data = blockLiveInfo[block];
 
 
   // old_IN = IN(X)
@@ -199,14 +197,11 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block)
 // Calculate basic block summaries of liveness information
 
 void LivenessAnalyzer::analyze(Function *func) {
-	Address lowAddr = func->addr();
-    if (liveFuncCalculated.find(lowAddr) != liveFuncCalculated.end()) return;
-
+    if (liveFuncCalculated.find(func) != liveFuncCalculated.end()) return;
     // Step 1: gather the block summaries
     Function::blocklist::iterator sit = func->blocks().begin();
     for( ; sit != func->blocks().end(); sit++) {
     	summarizeBlockLivenessInfo(func,*sit);
-
     }
     
     // Step 2: We now have block-level summaries of gen/kill info
@@ -222,7 +217,7 @@ void LivenessAnalyzer::analyze(Function *func) {
         }
     }
 
-    liveFuncCalculated[lowAddr] = true;
+    liveFuncCalculated[func] = true;
 }
 
 // This function does two things.
@@ -569,11 +564,11 @@ void LivenessAnalyzer::clean(){
 
 void LivenessAnalyzer::clean(Function *func){
 
-	if (liveFuncCalculated.find(func->addr()) != liveFuncCalculated.end()){		
-		liveFuncCalculated.erase(func->addr());
+	if (liveFuncCalculated.find(func) != liveFuncCalculated.end()){		
+		liveFuncCalculated.erase(func);
 		Function::blocklist::iterator sit = func->blocks().begin();
 		for( ; sit != func->blocks().end(); sit++) {
-			blockLiveInfo.erase((*sit)->start());
+			blockLiveInfo.erase(*sit);
 		}
 
 	}
