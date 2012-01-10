@@ -299,7 +299,10 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const std::string &member) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, 
+                                 PatchMgrPtr mgr, 
+                                 Dyninst::PatchAPI::Patcher *patch,
+                                 const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -334,9 +337,11 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const
 
     /* PatchAPI stuffs */
     if (!mgr) {
-      newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
+       newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
     } else {
-      newBinaryEdit->setMgr(mgr);
+       newBinaryEdit->setMgr(mgr);
+       assert(patch);
+       newBinaryEdit->setPatcher(patch);
     }
     newBinaryEdit->addMappedObject(newBinaryEdit->mobj);
     /* End of PatchAPI stuffs */
@@ -396,7 +401,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
      */
     std::map<std::string, BinaryEdit *> retMap;
     assert(mgr());
-    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr());
+    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr(), patcher());
 
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
         retMap.insert(std::make_pair(filename, temp));

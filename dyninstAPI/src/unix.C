@@ -1660,7 +1660,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-	      BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+               BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
 
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
@@ -1691,7 +1691,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                          BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
+                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, 
+                                                                   mgr(), patcher(), (*member_it)->memberName());
 
                             if (temp && temp->getAddressWidth() == getAddressWidth()) {
                                 std::string mapName = *pathIter + string(":") +
@@ -1711,7 +1712,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-		  BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+                   BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
 
 
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
