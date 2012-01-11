@@ -1267,7 +1267,6 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
    // If the input is a character, then mask off the value in the register so that we're
    // only comparing the low bytes. 
    if (src2imm < 0xff) {
-      cerr << "HACK: masking off high bytes" << endl;
       // Use a 32-bit mask instead of an 8-bit since it sign-extends...
       emitOpRegImm64(0x81, EXTENDED_0x81_AND, src1, 0xff, true, gen); 
   }
@@ -1527,7 +1526,6 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
    assert(dest);
 
    if (register_num == REGNUM_ESP) {
-      cerr << "ESP!" << endl;
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
       if (!gen.bt() || gen.bt()->alignedStack)
          emitMovRMToReg64(destination, loc.reg.reg(), loc.offset, 8, gen);
@@ -1538,7 +1536,6 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
    }
    if (src->spilledState == registerSlot::unspilled)
    {
-      cerr << "Unspilled reg!" << endl;
       emitMoveRegToReg((Register) register_num, destination, gen);
       return;
    }
