@@ -1932,7 +1932,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
     return false;
   }
 
-  cerr << "Installing " << patches.size() << " springboards!" << endl;
+  springboard_cerr << "Installing " << patches.size() << " springboards!" << endl;
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {

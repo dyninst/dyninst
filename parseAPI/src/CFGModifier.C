@@ -76,11 +76,11 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
       }
    }
 
-   if (hasSink) {
+   if (hasSink) { // sink & src are in same object, so remove edge from src->obj()
       Block *src = edge->src();
       CodeObject *obj = src->obj();
       obj->_pcb->removeEdge(src, edge, ParseCallback::target);
-      obj->_pcb->removeEdge(edge->trg(), edge, ParseCallback::source);
+      obj->_pcb->removeEdge(edge->trg(), edge, ParseCallback::source); 
       edge->uninstall();
       Edge::destroy(edge,obj);
    }
@@ -238,20 +238,21 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
          for (std::vector<Edge *>::iterator iter = b->_sources.begin();
               iter != b->_sources.end(); ++iter) 
          {
-            deadEdges.push_back(*iter);
+            Edge *edge = *iter;
+            deadEdges.push_back(edge);
             // callbacks
-            pcb->removeEdge(b, *iter, ParseCallback::source);
-            pcb->removeEdge((*iter)->src(), *iter, ParseCallback::target);
+            pcb->removeEdge(b, edge, ParseCallback::source);
+            edge->src()->obj()->_pcb->removeEdge(edge->src(), edge, ParseCallback::target);
             // clear up _call_edges vector in the caller function         
-            if ((*iter)->type() == CALL) {
+            if (edge->type() == CALL) {
                std::vector<Function *> funcs;
-               (*iter)->src()->getFuncs(funcs);
+               edge->src()->getFuncs(funcs);
                for (unsigned k = 0; k < funcs.size(); ++k) {
-                   funcs[k]->_call_edges.erase(*iter);
+                   funcs[k]->_call_edges.erase(edge);
                }
             }
             // remove edge from source block
-            (*iter)->src()->removeTarget(*iter);
+            edge->src()->removeTarget(edge);
          }
       }
 
@@ -259,17 +260,19 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       for (std::vector<Edge *>::iterator iter = b->_targets.begin();
            iter != b->_targets.end(); ++iter) 
       {
-         deadEdges.push_back(*iter);
-         pcb->removeEdge(b, *iter, ParseCallback::target);
-        (*iter)->trg()->removeSource(*iter); // even sink edge has source list
-         if (!(*iter)->sinkEdge()) {
-            pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
+         Edge *edge = *iter;
+         deadEdges.push_back(edge);
+         pcb->removeEdge(b, edge, ParseCallback::target);
+         ParseCallbackManager *pcbTrg = edge->trg()->obj()->_pcb;
+         if (!edge->sinkEdge()) {
+            pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
          } else {
             // we don't actually wire up edges to the sink block in the PatchAPI, 
             // but I'm not sure why not, so I'll keep this here in case that
             // changes in the future
-            pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
+            pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
          }
+         edge->trg()->removeSource(edge); // even sink edge has source list
       }
 
       // 4)

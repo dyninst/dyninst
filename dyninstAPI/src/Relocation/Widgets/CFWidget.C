@@ -488,9 +488,12 @@ PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, blo
 
 
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   // Oops...
-   return true;
-
+   //TODO: find smarter way of telling that we're doing CFG modification, 
+   // in which case we don't want to add padding in between blocks
+   if (BPatch_defensiveMode != block_->obj()->hybridMode()) {
+      bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
+      return true;
+   }
    //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
    if (noop_) {
       gen.fill(size_, codeGen::cgNOP);

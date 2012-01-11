@@ -3245,8 +3245,8 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 	return addrHash4((Address) ast);
 }
 
-void AstNode::debugPrint(unsigned level) {
-   cerr << format("") << endl;
+void AstNode::debugPrint(unsigned /*level*/) {
+   //cerr << format("") << endl;
 #if 0
 
 

@@ -107,7 +107,7 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
       return false;
    cfg_->addRelocBlock(block);
 
-   //priorityMap_[std::make_pair(bbl, f)] = Suggested;
+   priorityMap_[std::make_pair(bbl, f)] = Suggested;
       
    return true;
 }

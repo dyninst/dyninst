@@ -48,6 +48,10 @@ PatchBlock::getSources() {
          iter != block_->sources().end(); ++iter) 
     {
       // search for edge in object of source block
+       ParseAPI::Edge *edge = *iter;
+       if (edge->trg() != this->block()) {
+          DebugBreak();
+       }
       PatchObject *obj = obj_->addrSpace()->findObject((*iter)->src()->obj()); 
       PatchEdge *newEdge = obj->getEdge(*iter, NULL, this);
       srclist_.push_back(newEdge);
@@ -94,7 +98,7 @@ void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
 
    srclist_.push_back(e);
 
-  cb()->add_edge(this, e, PatchCallback::source);
+   cb()->add_edge(this, e, PatchCallback::source);
 }
 
 void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {

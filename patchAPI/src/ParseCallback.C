@@ -56,8 +56,14 @@ void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
       pe = dstObj->getEdge(edge,NULL,NULL,false);
       inSrc = false;
    }
-   if (inSrc) srcObj->removeEdge(edge);
-   else       dstObj->removeEdge(edge);
+   // remove edge from both source and target objects
+   if (inSrc) {
+      srcObj->removeEdge(edge);
+   }
+   if (srcObj != dstObj) {
+      dstObj->removeEdge(edge);
+   }
+   // destroy edge, can only do this once
    if (pe) {
       if (inSrc) srcObj->cb()->destroy(pe, srcObj);
       else       dstObj->cb()->destroy(pe, dstObj);

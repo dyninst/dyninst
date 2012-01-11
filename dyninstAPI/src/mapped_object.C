@@ -1247,11 +1247,6 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
         curEntry++;
     }
 
-    // split int layer
-    //if (parse_img()->hasSplitBlocks()) {
-    //    splitIntLayer();
-    //    parse_img()->clearSplitBlocks();
-    //}
     assert(consistency(&(*addrSpace())));
     return reparsedObject;
 }
@@ -1359,7 +1354,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 		}
 	}
  
-	/* 1. Parse intra-object edges, after removing any edges that 
+	/* 2. Parse intra-object edges, after removing any edges that 
           would be duplicates at the image-layer */
 	parse_img()->codeObject()->parseNewEdges(edgesInThisObject);
 
@@ -1383,22 +1378,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
        modFuncs[fidx]->getAllBlocks();
        modFuncs[fidx]->getCallBlocks();
        modFuncs[fidx]->getExitBlocks();
-       // assert(modFuncs[fidx]->consistency()); // redundant, see below
     }
 
-/* 5. fix mapping of split blocks that have points */
-    //if (parse_img()->hasSplitBlocks()) {
-    //    splitIntLayer();
-    //    parse_img()->clearSplitBlocks();
-    //}
-
-    //// update the function's liveness and PC sensitivity analysis,
-    //// and assert its consistency
-    //for (unsigned fidx=0; fidx < modFuncs.size(); fidx++)
-    //{
-    //	modFuncs[fidx]->triggerModified();
-    //    assert(modFuncs[fidx]->consistency());
-    //}
     assert(consistency(&(*addrSpace())));
     return true;
 }

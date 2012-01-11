@@ -2038,27 +2038,6 @@ void BPatch_process::overwriteAnalysisUpdate
                      "func %lx\n", fit->first->addr());
           //KEVINTEST: we used to wind up here with deleted functions, hopefully we do not anymore
        }
-#if 0
-        // parse new edges in the function
-        if (newFuncEntries.end() == newFuncEntries.find(fit->first) &&
-            stubs[fit->first].empty()) 
-        {
-            // there are no caller stubs for the function, parse it anyway
-            // (this is triggered when we overwrite the entry block of a 
-            // function when the overwritten block is on the call stack) 
-            mal_printf("WARNING: didn't have any stub edges for overwritten "
-                       "func %lx\n", fit->first->addr());
-            vector<edgeStub> svec;
-            svec.push_back(edgeStub(NULL, 
-                                    fit->first->addr(), 
-                                    ParseAPI::NOEDGE));
-            fit->first->obj()->parseNewEdges(svec);
-        }
-        else { 
-            // parse from stubs
-            fit->first->obj()->parseNewEdges(stubs[fit->first]);
-        } 
-#endif
         // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
         BPatch_function *bpfunc = findOrCreateBPFunc(fit->first,NULL);
         bpfunc->removeCFG();
@@ -2071,7 +2050,6 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != elimMap.end();
         fit++) 
     {
-        // fit->first->addMissingBlocks();
         assert(fit->first->consistency());
     }
 }

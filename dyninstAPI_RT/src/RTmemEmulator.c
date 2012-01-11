@@ -63,6 +63,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    //if (input >= 0x400000 && input < 0x500000) {
        fprintf(stOut, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
                input, origAddr, curAddr);
+       fflush(stOut);
        debug = 1;
    //}
 
@@ -121,7 +122,7 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
             fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
         }
         fflush(stOut);
-		return input + RTmemoryMapper.elements[index].shift;
+        return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
@@ -130,10 +131,12 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
       //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
       //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
 #endif
-	  if (debug) fprintf(stOut, "\t no shift, returning input\n");
+	   if (debug) fprintf(stOut, "\t no shift, returning input\n");
       fflush(stOut);
       return input;
    }
+   fflush(stOut);
+   return 0;
 }
 
 unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
@@ -208,6 +211,8 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
       fflush(stOut);
 	  return 0;
    }
+   fflush(stOut);
+   return 0;
 }
 
 int RTuntranslatedEntryCounter;

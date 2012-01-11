@@ -280,7 +280,13 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
           0, 
           sizeof(void*) * TARGET_CACHE_LENGTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_LENGTH);
-   stOut = fopen("rtdump.txt","w");
+   if (getenv("DYNINST_DEBUG_MALWARE")) {
+      stOut = fopen("rtdump.txt","w");
+      fprintf(stOut,"Runtime library output\n");
+      fflush(stOut);
+   } else {
+      stOut = 0;
+   }
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */
@@ -533,7 +539,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
         DYNINST_synch_event_arg2 = NULL;
         DYNINST_synch_event_arg3 = NULL;
     }
-
+    fflush(stOut);
     tc_lock_unlock(&DYNINST_trace_lock);
 	reentrant = 0;
     return;

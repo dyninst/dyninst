@@ -840,25 +840,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             }
             analyzeNewFunction( point, returnAddr, true , true );
 
-            // if there are call points that we're returning to, make
-            // sure to patch out any illegal instructions following the
-            // calls, as we may be returning normally but obfuscation
-            // may have caused us to split up the called function into
-            // chunks, resulting in failure to identify this as a normal
-            // return
-            vector<BPatch_point*> callPoints;
-            for (set<Block*>::iterator bit = callBlocks.begin(); 
-                 bit != callBlocks.end(); 
-                 bit++)
-            {
-                getPreCallPoints(*bit, proc(), callPoints);
-            }
-            for (vector<BPatch_point*>::iterator pit = callPoints.begin(); 
-                 pit != callPoints.end(); 
-                 pit++)
-            {
-                (*pit)->patchPostCallArea();
-            }
+            // there are no call blocks, so we don't have any post-call pads to patch
         }
 
         // 3. return
