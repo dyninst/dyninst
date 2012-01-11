@@ -112,7 +112,7 @@ class PatchBlock {
 
    PATCHAPI_EXPORT bool wasUserAdded() const;
 
-   PATCHAPI_EXPORT void markModified() const {};
+   PATCHAPI_EXPORT virtual void markModified() const {};
 
   protected:
     typedef enum {
@@ -202,7 +202,7 @@ class PatchFunction {
 
    PATCHAPI_EXPORT bool consistency() const;
 
-   PATCHAPI_EXPORT void markModified() const {};
+   PATCHAPI_EXPORT virtual void markModified() const {};
 
    protected:
      // For callbacks from ParseAPI to PatchAPI
