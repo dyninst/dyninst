@@ -518,14 +518,17 @@ bool baseTramp::doOptimizations()
         iter != point_->end(); ++iter) {
      miniTramp* mini = GET_MINI(*iter);
       if (mini->ast()->containsFuncCall()) {
+          cerr << "mini for point at " << point_->addr() << " has func call " <<endl;
          hasFuncCall = true;
          break;
-      }
+      } else 
+          cerr << "ERROR: mini for point at " << point_->addr() << " has NO func call " <<endl;
    }
 
    needsStackFrame_ = usesReg;
    
    if (!hasFuncCall) {
+      cerr << "Suppressing guards as there is no func call" <<endl;
       suppressThreads = true;
       suppressGuards = true;
       return true;
@@ -589,8 +592,8 @@ bool baseTramp::saveFPRs() {
 }
 
 bool baseTramp::guarded() const {
-   if (suppressGuards) return false;
-   if (!point_) return false; // iRPCs never guarded
+   if (suppressGuards) { cerr << "suppress guards is true"<<endl; return false; }
+   if (!point_) { cerr << "no point"<<endl; return false; }// iRPCs never guarded 
 
    bool guarded = false;
    bool recursive = false;
@@ -608,10 +611,14 @@ bool baseTramp::guarded() const {
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
      miniTramp* mini = GET_MINI(*iter);
-     if (mini->recursive())
+     if (mini->recursive()) 
+         cerr << "ERROR: minitramp is recursive, not guarding it" <<endl;
          recursive = true;
-      else
+     }
+     else {
+         cerr << "mini tramp not recursive, guarding" <<endl;
          guarded = true;
+     }
    }
 
    if (recursive && guarded) {

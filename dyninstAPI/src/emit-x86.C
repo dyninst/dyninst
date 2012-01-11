@@ -1262,6 +1262,7 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
                                 codeGen &gen)
 {
+/* disabling hack
    // HACKITY - remove before doing anything else
    // 
    // If the input is a character, then mask off the value in the register so that we're
@@ -1270,7 +1271,7 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
       // Use a 32-bit mask instead of an 8-bit since it sign-extends...
       emitOpRegImm64(0x81, EXTENDED_0x81_AND, src1, 0xff, true, gen); 
   }
-
+*/
 
    // cmp $src2imm, %src1
    emitOpRegImm64(0x81, 7, src1, src2imm, true, gen);

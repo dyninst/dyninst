@@ -1943,7 +1943,7 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
       {
          // HACK: code modification will make this happen...
          cerr << "Failed writing a springboard branch @ " << hex << iter->startAddr() << dec << ", ret false" << endl;
-         //return false;
+         return false;
       }
 
     mapped_object *obj = findObject(iter->startAddr());
