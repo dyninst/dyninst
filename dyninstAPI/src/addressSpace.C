@@ -1578,7 +1578,9 @@ bool AddressSpace::wrapFunction(func_instance *original,
    //    this is handled in the instrumenter. 
    // 2) Create a copy of original with the new provided name. 
    // 3) (binary editing): update the various Symtab tables
-   //    with the new name.
+   //      with the new name.
+   //    (process) replace any PLT stubs to the clone with intermodule
+   //      branches to this copy. 
 
    // TODO: once we have PatchAPI updated a bit, break this into
    // steps 1-3. For now, keep it together. 
@@ -1590,8 +1592,22 @@ bool AddressSpace::wrapFunction(func_instance *original,
       if (!original->addSymbolsForCopy()) return false;
    }
    else {
-      addModifiedFunction(wrapper);
-      // TODO dynamic mode; we need to update the names. 
+      if (!AddressSpace::patch(this)) return false;
+      Address newAddr = original->getWrapperSymbol()->getOffset();
+      // We have copied the original function and given it the address
+      // newAddr. We now need to update any references calling the clone
+      // symbol and point them at newAddr. Effectively, we're acting as
+      // a proactive loader. 
+
+      for (unsigned i = 0; i < mapped_objects.size(); ++i) {
+         // Need original to get intermodule working right. 
+         mapped_objects[i]->replacePLTStub(clone, original, newAddr);
+      }
+      // Aaaand patch again to make it all actually happen.
+      // We need to do the function wrapping first because relocation is
+      // per-mapped-object. Oy. 
+      if (!AddressSpace::patch(this)) return false;
+
       return false;
    }
    return true;

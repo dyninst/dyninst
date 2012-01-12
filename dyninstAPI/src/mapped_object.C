@@ -553,7 +553,9 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
 
     // First, check the underlying image.
     const pdvector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
-    if (img_funcs == NULL) return NULL;
+    if (img_funcs == NULL) {
+       return NULL;
+    }
 
     assert(img_funcs->size());
     // Fast path:
@@ -2189,4 +2191,17 @@ void mapped_object::setCallee(const block_instance *b, func_instance *f) {
    callees_[b] = f;
 }
 
+#include "Symtab.h"
+
+void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, Address newAddr) {
+   // Let's play relocation games...
+   vector<SymtabAPI::relocationEntry> fbt;
+   parse_img()->getObject()->getFuncBindingTable(fbt);
+   
+   for (unsigned i = 0; i < fbt.size(); ++i) {
+      if (fbt[i].name() == sym->getMangledName()) {
+         proc()->bindPLTEntry(fbt[i], codeBase(), orig, newAddr);
+      }
+   }
+}
    

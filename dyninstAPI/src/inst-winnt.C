@@ -113,6 +113,11 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, 
     return false;
 }
 
+bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance *, Address target_addr) {
+   return false;
+}
+
 bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	assert(!edge->sinkEdge());
 	// We have a direct call but don't yet know the callee.

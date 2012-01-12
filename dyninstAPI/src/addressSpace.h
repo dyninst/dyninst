@@ -340,6 +340,10 @@ class AddressSpace : public InstructionSource {
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               func_instance *&, 
                               Address) { return false; }
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry & /*entry*/,
+                              Address /*base_addr*/, 
+                              func_instance * /*target_func*/,
+                              Address /*target_addr*/) { return false; }
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }

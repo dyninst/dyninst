@@ -247,7 +247,7 @@ int DYNINSTloadLibrary(char *libname)
 {
    void *res;
    gLoadLibraryErrorString[0]='\0';
-   res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
+   res = dlopen(libname, RTLD_LAZY | RTLD_GLOBAL);
    if (res)
    {
       return 1;

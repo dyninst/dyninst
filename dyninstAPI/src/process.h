@@ -799,6 +799,9 @@ private:
     // function is returned in "target_pdf", else it returns false. 
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, 
                               Address base_addr) ;
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                              func_instance *target_func, Address target_addr);
+
  private:
 
   bool isRunning_() const;
