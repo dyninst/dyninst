@@ -1226,7 +1226,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                }
                addr = (Address) loperand->operand()->getOValue();
 	    
-               emitVload(loadRegRelativeOp, addr, (long)loperand->getOValue(), retReg, gen,
+               emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
                break;
             }
