@@ -1226,18 +1226,18 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname      The name of the library to load.
  */
-bool BPatch_process::loadLibraryInt(const char *libname, bool)
+BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    stopExecutionInt();
    if (!statusIsStopped()) {
       fprintf(stderr, "%s[%d]:  Process not stopped in loadLibrary\n", FILE__, __LINE__);
-      return false;
+      return NULL;
    }
 
    if (!libname) {
       fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
               __FILE__, __LINE__);
-      return false;
+      return NULL;
    }
 
    /**
@@ -1249,13 +1249,13 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
            << "DyninstAPI Runtime Library" << endl;
-      return false;
+      return NULL;
    }
    dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
    if (!bpfv.size()) {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
            << "Function DYNINSTloadLibrary" << endl;
-      return false;
+      return NULL;
    }
    if (bpfv.size() > 1) {
       std::string msg = std::string("Found ") + utos(bpfv.size()) +
@@ -1280,15 +1280,14 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
-      return false;
+      return NULL;
    }
 
-   /* PatchAPI stuffs */
+   /* Find the new mapped_object, map it to a BPatch_module, and return it */
    mapped_object* plib = llproc->findObject(libname);
-   if (plib) dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
-   /* End of PatchAPi stuffs */
-
-   return true;
+   assert(plib);
+   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+   return getImage()->findOrCreateModule(plib->getDefaultModule());
 }
 
 void BPatch_process::enableDumpPatchedImageInt(){

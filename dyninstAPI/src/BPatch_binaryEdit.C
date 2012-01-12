@@ -294,15 +294,17 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
     return true;
 }
 
-bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
+BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
+   BPatch_module *ret = NULL;
+
   std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
   std::map<std::string, BinaryEdit*>::iterator lib_it;
   for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
     std::pair<std::string, BinaryEdit*> lib = *lib_it;
 
     if(!lib.second)
-      return false;
+       return NULL;
 
     llBinEdits.insert(lib);
     /* PatchAPI stuffs */
@@ -312,6 +314,9 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
     lib.second->setMgr(origBinEdit->mgr());
     lib.second->setPatcher(origBinEdit->patcher());
     /* End of PatchAPi stuffs */
+    if (lib.first == std::string(libname)) {
+       ret = getImage()->findOrCreateModule(plib->getDefaultModule());
+    }
 
     int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
     assert(masterTrampGuard);
@@ -329,12 +334,12 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
        }
     */
     if (deps)
-      if( !lib.second->getAllDependencies(llBinEdits) ) return false;
+      if( !lib.second->getAllDependencies(llBinEdits) ) return NULL;
 
   }
   origBinEdit->addLibraryPrereq(libname);
 
-  return true;
+  return ret;
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation

@@ -953,8 +953,6 @@ int  BPatch_image::lpTypeInt()
 
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
 {
-   // As below, but don't create if none already exists
-
    BPatch_module *bpm = NULL;
    for (unsigned j = 0; j < modlist.size(); j++) {
       if (modlist[j]->lowlevel_mod() == base) {

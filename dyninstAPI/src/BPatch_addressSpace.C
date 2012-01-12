@@ -1005,9 +1005,9 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string,
 }
 #endif
 
-bool BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
+BPatch_module *BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
 {
-        return false;
+        return NULL;
 }
 
 void BPatch_addressSpace::allowTrapsInt(bool allowtraps)
