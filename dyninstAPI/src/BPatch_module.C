@@ -772,13 +772,18 @@ unsigned long BPatch_module::getSizeInt()
 }
 
 Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *m) {
-   if (!m->mod) return false;
+   if (!m->mod) return NULL;
    return m->mod->obj()->parse_img()->codeObject();
 }
 
 Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *m) {
-   if (!m->mod) return false;
+   if (!m->mod) return NULL;
    return m->mod->obj();
+}
+
+Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return NULL;
+   return m->mod->pmod()->mod()->exec();
 }
 
 bool BPatch_module::isNativeCompilerInt()

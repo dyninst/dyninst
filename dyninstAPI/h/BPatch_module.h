@@ -70,6 +70,10 @@ namespace Dyninst {
       class PatchObject;
       PatchObject *convert(const BPatch_module *);
    }
+   namespace SymtabAPI {
+      class Symtab;
+      Symtab *convert(const BPatch_module *);
+   }
 }
 
 extern BPatch_builtInTypeCollection * builtInTypes;
@@ -93,6 +97,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_statement;
     friend Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *);
     friend Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *);
+    friend Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *);
 
 
     typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
