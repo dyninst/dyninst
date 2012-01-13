@@ -1223,18 +1223,18 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname      The name of the library to load.
  */
-bool BPatch_process::loadLibraryInt(const char *libname, bool)
+BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    stopExecutionInt();
    if (!statusIsStopped()) {
       fprintf(stderr, "%s[%d]:  Process not stopped in loadLibrary\n", FILE__, __LINE__);
-      return false;
+      return NULL;
    }
 
    if (!libname) {
       fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
               __FILE__, __LINE__);
-      return false;
+      return NULL;
    }
 
    /**
@@ -1246,13 +1246,13 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
            << "DyninstAPI Runtime Library" << endl;
-      return false;
+      return NULL;
    }
    dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
    if (!bpfv.size()) {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
            << "Function DYNINSTloadLibrary" << endl;
-      return false;
+      return NULL;
    }
    if (bpfv.size() > 1) {
       std::string msg = std::string("Found ") + utos(bpfv.size()) +
@@ -1277,15 +1277,14 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
-      return false;
+      return NULL;
    }
 
-   /* PatchAPI stuffs */
+   /* Find the new mapped_object, map it to a BPatch_module, and return it */
    mapped_object* plib = llproc->findObject(libname);
-   if (plib) dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
-   /* End of PatchAPi stuffs */
-
-   return true;
+   assert(plib);
+   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+   return getImage()->findOrCreateModule(plib->getDefaultModule());
 }
 
 void BPatch_process::enableDumpPatchedImageInt(){
@@ -1646,8 +1645,6 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  */
 bool BPatch_process::hideDebuggerInt()
 {
-    return true; //KEVINTODO: re-enable this function
-
     // do non-instrumentation related hiding
     bool retval = llproc->hideDebugger();
 
@@ -1815,9 +1812,9 @@ static bool hasWeirdEntryBytes(func_instance *func)
     }
     unsigned short ebytes;
     memcpy(&ebytes,func->obj()->getPtrToInstruction(func->addr()),2);
-    //proc()->readDataSpace((void*)func->addr(), sizeof(short), &ebytes, false);
 
     if (0 == ebytes) {
+        mal_printf("funct at %lx hasWeirdEntryBytes, 0x0000\n", func->addr());
         return true;
     }
     return false;
@@ -1832,8 +1829,6 @@ void BPatch_process::overwriteAnalysisUpdate
       std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
       bool &changedPages, bool &changedCode) //output
 {
-    //KEVINTEST: step through this rewritten overwrite update function
-
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
     std::list<block_instance *> owBBIs;
@@ -1841,13 +1836,13 @@ void BPatch_process::overwriteAnalysisUpdate
     changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
 
-    /*2. remove dead code from the analysis */
-
     if ( !changedCode ) {
         // update the mapped data for the overwritten ranges
         llproc->updateCodeBytes(owRegions);
         return;
     }
+
+    /*2. remove dead code from the analysis */
 
     // identify the dead code (see getDeadCode for its parameter definitions)
     std::set<block_instance*> delBlocks; 
@@ -1876,10 +1871,10 @@ void BPatch_process::overwriteAnalysisUpdate
         findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
     }
 
+    finalizeInsertionSet(false);
+
     // update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owRegions);
-
-    finalizeInsertionSet(false);
 
     // create stub edge set which is: all edges such that:
     //     e->trg() in owBBIs and
@@ -1887,6 +1882,33 @@ void BPatch_process::overwriteAnalysisUpdate
     std::map<func_instance*,vector<edgeStub> > stubs =
        llproc->getStubs(owBBIs,delBlocks,deadFuncs);
 
+    // get stubs for dead funcs
+    map<Address,vector<block_instance*> > deadFuncCallers;
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
+    {
+       if ((*fit)->getLiveCallerBlocks(delBlocks, deadFuncs, deadFuncCallers) &&
+           ((*fit)->ifunc()->hasWeirdInsns() || hasWeirdEntryBytes(*fit))) 
+       {
+          // don't reparse the function if it's likely a garbage function, 
+          // but mark the caller point as unresolved so we'll re-parse
+          // if we actually call into the garbage func
+          Address funcAddr = (*fit)->addr();
+          vector<block_instance*>::iterator sit = deadFuncCallers[funcAddr].begin();
+          for ( ; sit != deadFuncCallers[funcAddr].end(); sit++) {
+             (*sit)->llb()->setUnresolvedCF(true);
+             vector<func_instance*> cfuncs;
+             (*sit)->getFuncs(std::back_inserter(cfuncs));
+             for (unsigned i=0; i < cfuncs.size(); i++) {
+                cfuncs[i]->ifunc()->setPrevBlocksUnresolvedCF(0); // force rebuild of unresolved list
+                cfuncs[i]->preCallPoint(*sit, true); // create point
+                monitorFuncs.insert(findOrCreateBPFunc(cfuncs[i], NULL));
+             }
+          }
+          deadFuncCallers.erase(deadFuncCallers.find(funcAddr));
+       }
+    }
 
     // set new entry points for functions with NewF blocks, the active blocks
     // in newFuncEntries serve as suggested entry points, but will not be 
@@ -1895,86 +1917,32 @@ void BPatch_process::overwriteAnalysisUpdate
          nit != newFuncEntries.end();
          nit++)
     {
-        nit->first->setNewEntryPoint(nit->second);
+        nit->first->setNewEntry(nit->second,delBlocks);
     }
     
     // delete delBlocks and set new function entry points, if necessary
+    vector<PatchBlock*> delVector;
     for(set<block_instance*>::reverse_iterator bit = delBlocks.rbegin(); 
         bit != delBlocks.rend();
         bit++)
     {
         mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
         deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
-        if (false == PatchAPI::PatchModifier::remove(*bit,true)) {
-            assert(0);
-        }
+        delVector.push_back(*bit);
+    }
+    if (!delVector.empty() && ! PatchAPI::PatchModifier::remove(delVector,true)) {
+        assert(0);
     }
     mal_printf("Done deleting blocks\n"); 
 
 
     // delete completely dead functions // 
 
-    // first, build up a list of stubs and save block addresses
-    map<block_instance*,Address> deadFuncCallers; // stubs
+    // save deadFunc block addresses in deadBlocks
     for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
         fit++)
     {
-        using namespace ParseAPI;
-        Address funcAddr = (*fit)->addr();
-
-        // get callers blocks as stubs for re-parsing the function if the 
-        // callers aren't also dead
-        Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {// includes tail calls
-                parse_block *cBlk = (parse_block*)((*eit)->src());
-                vector<ParseAPI::Function*> cFuncs;
-                cBlk->getFuncs(cFuncs);
-                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-
-                    // don't use stub if the block is dead
-                    func_instance *cfunc = llproc->findFunction(
-                        (parse_func*)(cFuncs[fix]));
-                    block_instance *cbbi = cfunc->obj()->findBlock(cBlk);
-                    if (delBlocks.end() != delBlocks.find(cbbi)) { //KEVINTODO: can't do this, delBlocks is full of dead pointers, should we put this ahead of deleting the blocks?
-                        continue; 
-                    }
-
-                    // don't use stub if the source func is dead
-                    bool isSrcFuncDead = false;
-                    for (std::list<func_instance*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end();
-                         dfit++)
-                    {
-                        if (cfunc == *dfit) {
-                            isSrcFuncDead = true;
-                            break;
-                        }
-                    }
-                    if (isSrcFuncDead) {
-                        continue; 
-                    }
-
-                    // don't reparse the function if it's likely a garbage function, 
-                    // but mark the caller point as unresolved so we'll re-parse
-                    // if we actually call into the garbage func
-                    if ( (*fit)->ifunc()->hasWeirdInsns() ||
-                         hasWeirdEntryBytes(*fit) )
-                    {  
-                       cfunc->preCallPoint(cbbi, true); // create point
-                       cbbi->llb()->setUnresolvedCF(true);
-                       monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
-                    }
-                    else { // found a stub!
-                        deadFuncCallers[cbbi] = funcAddr;
-                    }
-                }
-            }
-        }
- 
-        // add blocks to deadBlockAddrs 
         const PatchFunction::Blockset& deadBs = (*fit)->getAllBlocks();
         PatchFunction::Blockset::const_iterator bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
@@ -1982,59 +1950,72 @@ void BPatch_process::overwriteAnalysisUpdate
                                                    (*bIter)->size()));
         }
     }
-    // now actually delete the dead functions
+
+    // now actually delete the dead functions and redirect call edges to sink 
+    // block (if there already is an edge to the sink block, redirect 
+    // doesn't duplicate the edge)
     for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
         fit++)
     {
-       // Ensure creation
-       findOrCreateBPFunc(*fit,NULL);
-       if (false == PatchAPI::PatchModifier::remove(*fit)) {
-          assert(0);
-       }
+        const PatchBlock::edgelist & srcs = (*fit)->entry()->getSources();
+        vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
+        std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
+        for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
+             sit != srcVec.end();
+             sit++)
+        {
+           if ((*sit)->type() == ParseAPI::CALL) {
+              PatchAPI::PatchModifier::redirect(*sit, NULL);
+           }
+        }
+
+        if (false == PatchAPI::PatchModifier::remove(*fit)) {
+            assert(0);
+        }
     }
     mal_printf("Done deleting functions\n");
 
 
     // set up data structures for re-parsing dead functions from stubs
     map<mapped_object*,vector<edgeStub> > dfstubs;
-    set<Address> reParsedFuncs;
-    vector<BPatch_module*> dontcare;
-    vector<Address> targVec;
-    for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
-         bit != deadFuncCallers.end();
-         bit++)
+    for (map<Address, vector<block_instance*> >::iterator sit = deadFuncCallers.begin();
+         sit != deadFuncCallers.end();
+         sit++)
     {
-        // the function is still reachable, reparse it
-        if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
-            reParsedFuncs.insert(bit->second);
-            targVec.push_back(bit->second);
-        }
-        // re-instate call edges to the function
-        dfstubs[bit->first->obj()].push_back(edgeStub(bit->first,
-                                                      bit->second,
-                                                      ParseAPI::CALL));
+       for (vector<block_instance*>::iterator bit = sit->second.begin();
+            bit != sit->second.end();
+            bit++) 
+       {
+          // re-instate call edges to the function
+          dfstubs[(*bit)->obj()].push_back(edgeStub(*bit,
+                                                    sit->first,
+                                                    ParseAPI::CALL));
+       }
     }
 
     // re-parse the functions
     for (map<mapped_object*,vector<edgeStub> >::iterator mit= dfstubs.begin();
          mit != dfstubs.end(); mit++)
     {
-        if (getImage()->parseNewFunctions(dontcare, targVec)) {
-            // add function to output vector
-            for (unsigned tidx=0; tidx < targVec.size(); tidx++) {
-                BPatch_function *bpfunc = findFunctionByEntry(targVec[tidx]);
-                if (!bpfunc) {
-                    owFuncs.push_back(bpfunc);
-                } else {
-                    // couldn't reparse
-                    mal_printf("WARNING: Couldn't re-parse an overwritten "
-                               "function at %lx %s[%d]\n", targVec[tidx], 
-                               FILE__,__LINE__);
-                }
+        mit->first->setCodeBytesUpdated(false);
+        if (mit->first->parseNewEdges(mit->second)) {
+            // add functions to output vector
+            for (unsigned fidx=0; fidx < mit->second.size(); fidx++) {
+               BPatch_function *bpfunc = findFunctionByEntry(mit->second[fidx].trg);
+               if (bpfunc) {
+                  owFuncs.push_back(bpfunc);
+               } else {
+                  // couldn't reparse
+                  mal_printf("WARNING: Couldn't re-parse an overwritten "
+                             "function at %lx %s[%d]\n", mit->second[fidx].trg, 
+                             FILE__,__LINE__);
+               }
             }
+        } else {
+            mal_printf("ERROR: Couldn't re-parse overwritten "
+                       "functions %s[%d]\n", FILE__,__LINE__);
         }
-        mit->first->parseNewEdges(mit->second);
     }
 
     //3. parse new code, one overwritten function at a time
@@ -2044,24 +2025,15 @@ void BPatch_process::overwriteAnalysisUpdate
         fit++)
     {
         // parse new edges in the function
-        if (newFuncEntries.end() == newFuncEntries.find(fit->first) || 
-            stubs[fit->first].empty()) 
-        {
-            // there are no caller stubs for the function, parse it anyway
-            mal_printf("WARNING: didn't have any stub edges for overwritten "
-                       "func %lx\n", fit->first->addr());
-            vector<edgeStub> svec;
-            svec.push_back(edgeStub(NULL, 
-                                    fit->first->addr(), 
-                                    ParseAPI::NOEDGE));
-            fit->first->obj()->parseNewEdges(svec);
-            assert(0);
-        }
-        else { 
-            // parse from stubs
-            fit->first->obj()->parseNewEdges(stubs[fit->first]);
-        } 
-
+       if (!stubs[fit->first].empty()) {
+          fit->first->obj()->parseNewEdges(stubs[fit->first]);
+       } else {
+          // stubs may have been shared with another function and parsed in 
+          // the other function's context.  
+          mal_printf("WARNING: didn't have any stub edges for overwritten "
+                     "func %lx\n", fit->first->addr());
+          //KEVINTEST: we used to wind up here with deleted functions, hopefully we do not anymore
+       }
         // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
         BPatch_function *bpfunc = findOrCreateBPFunc(fit->first,NULL);
         bpfunc->removeCFG();
@@ -2074,7 +2046,6 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != elimMap.end();
         fit++) 
     {
-        // fit->first->addMissingBlocks();
         assert(fit->first->consistency());
     }
 }
@@ -2182,18 +2153,18 @@ void BPatch_process::printDefensiveStatsInt()
             << hex << funcTablePos << dec << endl;
     }
 
-    int calls = 0; //done
-    int dynCalls = 0; //done
-    int multiTargetCalls = 0; //done
-    int dynJumps = 0; //done
-    int nonRetRets = 0; // debug
+    int calls = 0; 
+    int dynCalls = 0; 
+    int multiTargetCalls = 0; 
+    int dynJumps = 0; 
+    int nonRetRets = 0; 
     int nonCallCalls = 0; // debug // calls with known targets, that don't return
-    int sharedBlocks = 0; // done
-	int sharedFuncs = 0; // done
-    int overlapBlocks = 0; // done
-    int overlapFuncs = 0; // debug
-    int vAllocObjs = 0; // done
-    int dereferences = 0; // done
+    int sharedBlocks = 0; 
+    int sharedFuncs = 0; 
+    int overlapBlocks = 0; 
+    int overlapFuncs = 0; 
+    int vAllocObjs = 0; 
+    int dereferences = 0; 
     int peHeaderCode = 0;
 
     // foreach defensive object
@@ -2216,7 +2187,7 @@ void BPatch_process::printDefensiveStatsInt()
         using namespace PatchAPI;
         mapped_object *obj = *oit;
         vector<func_instance*> funcs;
-		obj->getAllFunctions(funcs);
+        obj->getAllFunctions(funcs);
         for (vector<func_instance*>::iterator fit = funcs.begin(); 
              fit != funcs.end(); 
              fit++) 
@@ -2237,7 +2208,7 @@ void BPatch_process::printDefensiveStatsInt()
                 }
 
                 // is block in PE header? 
-                if (block->llb()->start() < (header->getMemOffset() + header->getMemSize())) {
+                if (header && block->llb()->start() < (header->getMemOffset() + header->getMemSize())) {
                     peHeaderCode += block->size();
                 }
 
@@ -2263,7 +2234,7 @@ void BPatch_process::printDefensiveStatsInt()
                     }
                     using namespace ParseAPI;
                     int callTrgCount = 0;
-                    Block::edgelist &edges = block->llb()->targets();
+                    const Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
                          eit != edges.end();
                          eit++)
@@ -2285,7 +2256,7 @@ void BPatch_process::printDefensiveStatsInt()
                 else if (block->isFuncExit()) {
                     using namespace ParseAPI;
                     // check for return edges that show call-stack tampering
-                    Block::edgelist &edges = block->llb()->targets();
+                    const Block::edgelist &edges = block->llb()->targets();
                     for (Block::edgelist::iterator eit = edges.begin();
                          eit != edges.end();
                          eit++)
@@ -2331,6 +2302,7 @@ void BPatch_process::printDefensiveStatsInt()
                     if (iit->second->readsMemory() || 
                         iit->second->writesMemory()) 
                     {
+                       //KEVINTODO: elminate stack accesses
                         dereferences++;
                     }
                 }
@@ -2390,5 +2362,21 @@ void BPatch_process::printDefensiveStatsInt()
     }
 
     const HybridAnalysis::AnalysisStats stats = hybridAnalysis_->getStats();
-    //KEVINTODO: print out overwrite stats
+
+   //TODO: add bootstrap code size, add number of functions, number of blocks, number of rets
+
+    printf("STATISTICS:\n");
+    printf("calls, dynCalls, multiTargetCalls, nonCallCalls, dynJumps, "
+           "nonRetRets, sharedBlocks, sharedFuncs, overlapBlocks, "
+           "overlapFuncs, vAllocObjs, dereferences, peHeaderCode, "
+           "stats.exceptions, stats.owBytes, stats.owCount, "
+           "stats.owExecFunc, stats.owFalseAlarm, "
+           "stats.unpackCount, stats.winApiCallbacks\n");
+    printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+           calls, dynCalls, multiTargetCalls, nonCallCalls, dynJumps,
+           nonRetRets, sharedBlocks, sharedFuncs, overlapBlocks,
+           overlapFuncs, vAllocObjs, dereferences, peHeaderCode,
+           stats.exceptions, stats.owBytes, stats.owCount, 
+           stats.owExecFunc, stats.owFalseAlarm, 
+           stats.unpackCount, stats.winApiCallbacks);
 }

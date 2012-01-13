@@ -78,12 +78,12 @@ class PatchModifier {
    // Split a block at a provided point.; we double-check whether the address
    // is a valid instruction boundary unless trust is true. 
    PATCHAPI_EXPORT static PatchBlock *split(PatchBlock *, Address, 
-                                          bool trust = false, 
-                                          Address newlast = (Address)-1);
+                                            bool trust = false, 
+                                            Address newlast = (Address)-1);
    
    // Remove a block from the CFG; the block must be unreachable
    // (that is, have no in-edges) unless force is true.
-   PATCHAPI_EXPORT static bool remove(PatchBlock *block, bool force = false);
+   PATCHAPI_EXPORT static bool remove(std::vector<PatchBlock *> &blocks, bool force = false);
 
    // As the above, but for functions. 
    PATCHAPI_EXPORT static bool remove(PatchFunction *);

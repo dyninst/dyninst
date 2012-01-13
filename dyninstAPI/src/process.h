@@ -636,7 +636,7 @@ public:
 
   // misc
   bool hideDebugger();
-  void flushAddressCache_RT(Address start = 0, unsigned size = 0);
+  void flushAddressCache_RT(Address start, unsigned size);
   void flushAddressCache_RT(codeRange *range) { flushAddressCache_RT(range->get_address(), range->get_size()); }
   BPatch_hybridMode getHybridMode() { return analysisMode_; }
   bool isExploratoryModeOn();
@@ -799,6 +799,9 @@ private:
     // function is returned in "target_pdf", else it returns false. 
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, func_instance *&target_pdf, 
                               Address base_addr) ;
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                              func_instance *target_func, Address target_addr);
+
  private:
 
   bool isRunning_() const;

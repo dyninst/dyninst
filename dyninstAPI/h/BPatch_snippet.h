@@ -424,6 +424,8 @@ class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
 
     API_EXPORT_CTOR(Int, (reg),
                     BPatch_registerExpr, (BPatch_register reg));
+    API_EXPORT_CTOR(Int, (reg),
+                    BPatch_registerExpr, (Dyninst::MachRegister reg));
 };
 
 #ifdef DYNINST_CLASS_NAME

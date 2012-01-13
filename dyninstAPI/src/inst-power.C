@@ -2486,8 +2486,11 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-
-
+bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance *, Address target_addr) {
+   assert(0 && "TODO!");
+   return false;
+}
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Register dest,
                                         codeGen &gen,

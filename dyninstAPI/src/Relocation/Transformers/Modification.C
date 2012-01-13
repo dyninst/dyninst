@@ -55,7 +55,7 @@ Modification::Modification(const CallModMap &callMod,
   funcWraps_(funcWraps) {};
 
 bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
-   relocation_cerr << "Modification transformer, processing block" << endl;
+  //relocation_cerr << "Modification transformer, processing block" << endl;
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -141,7 +141,7 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
 
    // Redirect the springboard to the replacement function
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    // Redirect all call in-edges to the replacement function
    Predicates::Interprocedural pred;
@@ -192,7 +192,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
    relocation_cerr << "Stub block is " << stub->format() << endl;
    
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    WrapperPredicate pred(trace->func());
    if (target) {

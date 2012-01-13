@@ -40,7 +40,7 @@
 using namespace Dyninst;
 using namespace Relocation;
 
-extern int dyn_debug_traps;
+extern int dyn_debug_trap;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
@@ -136,7 +136,7 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *f, int funcID) {
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
@@ -148,6 +148,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
     Address lastRangeStart = bbl->start();
+
     for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
     {/* there may be more than one range that overlaps with bbl, 
       * so we update lookup and lastRangeStart to after each conflict
@@ -196,17 +197,7 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
        }
     }
     if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-       if (lastRangeStart == bbl->start() &&
-           (bbl->end() - bbl->start()) < 5 &&
-           f &&
-           *begin == f->entryBlock() &&
-           f->getAllBlocks().size() == 1) {
-          //cerr << "Overriding small function of size " << bbl->end() - bbl->start() << " to 5 bytes" << endl;
-          validRanges_.insert(bbl->start(), bbl->start() + 5, funcID);
-       }
-       else {
-          validRanges_.insert(lastRangeStart, bbl->end(), funcID);
-       }
+        validRanges_.insert(lastRangeStart, bbl->end(), funcID);
     }
   }
   return true;
@@ -219,17 +210,19 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
 
    bool usedTrap = false;
-   generateBranch(r.from, r.destinations.begin()->second.second, gen);
+   // Arbitrarily select the first function containing this springboard, since only one can win. 
+   generateBranch(r.from, r.destinations.begin()->second, gen);
 
-   if (dyn_debug_traps || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if ((dyn_debug_trap /*&& r.from > 0xab0000 && r.from < 0xad0000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
-      generateTrap(r.from, r.destinations.begin()->second.second, gen);
+      generateTrap(r.from, r.destinations.begin()->second, gen);
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
+   	   cerr << hex << "Omitting springboard trap due to conflict: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
          return Failed;
       }
    }
@@ -340,7 +333,7 @@ void SpringboardBuilder::registerBranch
             dit++)
        {
            relocTraps_.insert(start);
-           relocTraps_.insert(dit->second.second);// if we relocate again it will need a trap too
+           relocTraps_.insert(dit->second);// if we relocate again it will need a trap too
        }
    }
     
@@ -427,17 +420,19 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
    assert(!req.fromRelocatedCode);
 
    // Just the requests for now.
-   //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
+   springboard_cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
+   block_instance *bbl = req.block;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
-      block_instance *bbl = b_iter->first;
-      func_instance *func = b_iter->second.first;
-      Address addr = b_iter->second.second;
+      func_instance *func = b_iter->first;
+      Address addr = b_iter->second;
 
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
+      addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);
       for (std::list<Address>::const_reverse_iterator a_iter = relocAddrs.rbegin(); 
            a_iter != relocAddrs.rend(); ++a_iter) { 
+         //springboard_cerr << "\t Mapped address " << hex << *a_iter << dec << endl;
          if (*a_iter == addr) continue;
          Priority newPriority;
          switch(req.priority) {

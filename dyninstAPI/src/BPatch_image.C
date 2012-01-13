@@ -56,7 +56,7 @@
 #include "BPatch_point.h"
 
 #include "addressSpace.h"
-
+#include "debug.h"
 #include "parseAPI/h/CodeSource.h"
 
 #include "ast.h"
@@ -953,8 +953,6 @@ int  BPatch_image::lpTypeInt()
 
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
 {
-   // As below, but don't create if none already exists
-
    BPatch_module *bpm = NULL;
    for (unsigned j = 0; j < modlist.size(); j++) {
       if (modlist[j]->lowlevel_mod() == base) {
@@ -1000,7 +998,7 @@ bool BPatch_image::parseNewFunctionsInt
                 "implemented for live processes\n", __FILE__, __LINE__);
         return false;
     }
-    if (funcEntryAddrs.size() == 0) {
+    if (funcEntryAddrs.empty()) {
         fprintf(stderr,"%s[%d] parseNewFunctions requires a non-empty vector "
                 "of function entry points\n", __FILE__, __LINE__);
         return false;
@@ -1016,20 +1014,21 @@ bool BPatch_image::parseNewFunctionsInt
 
     // check that the functions have not been parsed yet
     vector<Address> funcEntryAddrs_(funcEntryAddrs); // make an editable copy
-    vector<Address>::iterator curEntry;
     vector<Address> objEntries;
     vector<ParseAPI::Function *> blockFuncs;
 
     // group funcEntryAddrs by the mapped_objects that they fit into
-    for (unsigned int i=0; i < allobjs.size() && funcEntryAddrs_.size(); i++) { 
+    for (unsigned int i=0; i < allobjs.size() && !funcEntryAddrs_.empty(); i++) { 
 
         Symtab *curSymtab = allobjs[i]->parse_img()->getObject();
         Address baseAddress = allobjs[i]->codeBase();
 
         // iterate through func entry addrs to see which of them correspond to
         //  the current mapped object
-        curEntry = funcEntryAddrs_.begin();
-        while (curEntry != funcEntryAddrs_.end()) {
+            
+        for (vector<Address>::iterator curEntry = funcEntryAddrs_.begin();
+             curEntry != funcEntryAddrs_.end();) 
+        {
             Region *region = curSymtab->findEnclosingRegion(*curEntry-baseAddress);
             if (region) {
                 objEntries.push_back(*curEntry);
@@ -1040,19 +1039,31 @@ bool BPatch_image::parseNewFunctionsInt
         }
 
         /* 2. Trigger parsing in mapped_objects that contain function entry points */
-        if (objEntries.size()) {
+        if (!objEntries.empty()) {
             allobjs[i]->parseNewFunctions(objEntries);
 
             /* 3. Construct list of modules affected by parsing */
-            const std::vector<parse_block*> blocks = 
+            // Start by finding newly parsed blocks, and previously parsed 
+            // blocks that were not previously marked as function entries
+            const std::vector<parse_block*> newBlocks = 
                 allobjs[i]->parse_img()->getNewBlocks();
             std::set<mapped_module*> mods;
-            for (unsigned int j=0; j < blocks.size(); j++) {
-                blocks[j]->getFuncs(blockFuncs);
+            for (unsigned int j=0; j < newBlocks.size(); j++) {
+                newBlocks[j]->getFuncs(blockFuncs);
                 pdmodule *pdmod = 
                     dynamic_cast<parse_func*>(blockFuncs[0])->pdmod();
                 mods.insert( allobjs[i]->findModule(pdmod) );
                 blockFuncs.clear();
+            }
+            for (vector<Address>::iterator eit = objEntries.begin(); 
+                 eit != objEntries.end();
+                 eit++)
+            {  // add entry blocks, they may have existed previously, in which
+               // case they are not included in newBlocks
+               func_instance *func = allobjs[i]->findFuncByEntry(*eit);
+               if (func) {
+                  mods.insert( func->mod() );
+               }
             }
             objEntries.clear();
             // copy changed modules to affectedModules
@@ -1071,7 +1082,7 @@ bool BPatch_image::parseNewFunctionsInt
         return false;
     }
 
-    if (affectedModules.size() == 0) {
+    if (affectedModules.empty()) {
         return false;
     }
     return true;

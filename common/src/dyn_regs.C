@@ -78,9 +78,11 @@ unsigned int MachRegister::regClass() const
 MachRegister MachRegister::getBaseRegister() const { 
    switch (getArchitecture()) {
       case Arch_x86:
+         if (reg & x86::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_x86_64:
-	
-          return MachRegister(reg & 0xfffff0ff);
+         if (reg & x86_64::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_none:
@@ -146,7 +148,7 @@ unsigned int MachRegister::size() const {
             case x86::BIT:
                return 0;
             default:
-               return 0;//KEVINTODO: removed sanity-check assert for fuzz testing
+               return 0;//KEVINTODO: removed sanity-check assert because of asprotect fuzz testing, could use this as a sign that the parse has gone into junk
                assert(0);
          }
       case Arch_x86_64:

@@ -260,18 +260,18 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 
    if (func_ &&
        func_->entryBlock() == block_) {
-      p[block_] = std::make_pair(Required,func_);
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
-      p[block_] = std::make_pair(Required, func_);
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
-         p[block_] = std::make_pair(Required, func_);
+         p[std::make_pair(block_, func_)] = Required;
          return true;
       }
    }
@@ -510,6 +510,11 @@ bool RelocBlock::finalizeCF() {
       cerr << format() << endl;
       assert(0);
    }
+   bool debug = false;
+   if (origAddr() == 0x68e750) {
+      debug = true;
+      cerr << "Debugging finalizeCF for last snippet block" << endl;
+   }
 
    // We've had people munging our out-edges; now
    // push them to the CFWidget so that it can do its work. 
@@ -531,6 +536,9 @@ bool RelocBlock::finalizeCF() {
       else {
          assert((*iter)->type == ParseAPI::INDIRECT);
          index = (*iter)->trg->origAddr();
+      }
+      if (debug) {
+         cerr << "Adding destination /w/ index " << index << " and target " << hex << (*iter)->trg->origAddr() << dec << endl;
       }
       cfWidget_->addDestination(index, (*iter)->trg);
       (*iter)->trg->setNecessary(isNecessary((*iter)->trg, (*iter)->type));

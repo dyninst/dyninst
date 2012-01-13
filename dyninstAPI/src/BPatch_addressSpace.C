@@ -292,7 +292,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      return false;
    }
 
-   mal_printf("deleting snippet handle %p from func at %lx, point at %lx of type %d\n",
+   mal_printf("deleting snippet handle from func at %lx, point at %lx of type %d\n",
               (Address)handle->getFunc()->getBaseAddr(), 
               handle->instances_.empty() ? 0 : handle->instances_[0]->point()->addr(),
               handle->instances_.empty() ? -1 : handle->instances_[0]->point()->type());
@@ -1010,9 +1010,9 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string,
 }
 #endif
 
-bool BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
+BPatch_module *BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
 {
-        return false;
+        return NULL;
 }
 
 void BPatch_addressSpace::allowTrapsInt(bool allowtraps)
@@ -1085,4 +1085,41 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSp
       const BPatch_process *proc = dynamic_cast<const BPatch_process *>(a);
       return proc->lowlevel_process()->mgr();
    }
+}
+
+void BPatch_addressSpace::snippetToBinary(const BPatch_snippet &expr,
+                                            BPatch_point &point,
+                                            BPatch_callWhen when,
+                                            char *buffer,
+                                            unsigned &size) {
+   // We want to mimic the code generation of the snippet, which means wrapping it in a 
+   // baseTramp. First, we need to grab Dyninst internals; I've copied code from
+   // finalizeInsertionSet to do this. 
+   
+   callWhen ipWhen;
+   callOrder ipOrder;
+   if (!BPatchToInternalArgs(&point, when, BPatch_firstSnippet, ipWhen, ipOrder)) {
+      return;
+   }
+
+   instPoint *ipoint = point.getPoint(when);
+   baseTramp *tramp = ipoint->tramp();
+   
+   assert(ipoint->empty());
+   miniTramp *mini = ipoint->push_front(expr.ast_wrapper, true);
+
+   
+   codeGen gen((codeBuf_t *)buffer, size);
+   gen.setAddrSpace(ipoint->proc());
+   // This is the big "hey, I wonder..." moment...
+   tramp->generateCode(gen, 0);
+   cerr << "DEBUGGING GENERATED SNIPPET:" << endl;
+   cerr << gen.format() << endl;
+
+   size = gen.used();
+
+   // Clear out the instPoint!
+   ipoint->erase(mini);
+
+   return;
 }

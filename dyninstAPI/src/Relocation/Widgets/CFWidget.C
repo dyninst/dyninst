@@ -37,6 +37,7 @@
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/emitter.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/debug.h"
 
 #if defined(cap_mem_emulation)
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
@@ -479,8 +480,21 @@ unsigned CFPatch::estimate(codeGen &) {
    return 0;
 }
 
+PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b)
+  : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) 
+{
+   //malware_cerr << hex << "PaddingPatch(" << size << "," << registerDefensive << "," << noop << ", [" << b->start() << " " << b->end() << ") )" << dec <<  endl;
+}
+
+
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
+   //TODO: find smarter way of telling that we're doing CFG modification, 
+   // in which case we don't want to add padding in between blocks
+   if (BPatch_defensiveMode != block_->obj()->hybridMode()) {
+      bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
+      return true;
+   }
+   //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
    if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }

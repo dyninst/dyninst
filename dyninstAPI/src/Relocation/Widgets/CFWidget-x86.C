@@ -15,7 +15,7 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "BPatch_memoryAccess_NP.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #if defined(cap_mem_emulation)
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
@@ -264,6 +264,7 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
+<<<<<<< HEAD:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
 #if !defined(cap_mem_emulation)
 bool CFWidget::generateAddressTranslator(CodeBuffer &,
                                          const codeGen &,
@@ -273,6 +274,19 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &,
    return true;
 }
 
+=======
+
+#if !defined(cap_mem_emulation)
+bool CFWidget::generateAddressTranslator(CodeBuffer &,const codeGen &,Register &,const RelocBlock *) {
+   return true;
+}
+#else
+bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
+                                       const codeGen &templ,
+                                       Register &reg,
+                                       const RelocBlock *trace) 
+{
+>>>>>>> master:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
 
 #else
 bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
@@ -379,4 +393,7 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    return true;
 }
 #endif
+<<<<<<< HEAD:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
 
+=======
+>>>>>>> master:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C

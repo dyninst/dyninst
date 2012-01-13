@@ -197,6 +197,7 @@ bool HybridAnalysis::init()
     // instrument a.out module & protect analyzed code
     instrumentedFuncs = new map<BPatch_function*,map<BPatch_point*,BPatchSnippetHandle*>*>();
     vector<BPatch_module *> *allmods = proc()->getImage()->getModules();
+    bool isDefensive = (BPatch_defensiveMode == proc()->lowlevel_process()->getHybridMode());
     for (unsigned midx =0; midx < allmods->size(); midx++) {
 
         char namebuf[64];
@@ -212,8 +213,7 @@ bool HybridAnalysis::init()
                 ret = false;
             }
         } 
-#if 0
-        else if (!strncmp(namebuf,"msvcrt.dll",64)) {
+        else if (isDefensive && !strncmp(namebuf,"msvcrt.dll",64)) {
             // instrument msvcrt initterm, since it calls into the application
             vector<BPatch_function*> funcs;
             (*allmods)[midx]->findFunction("initterm",funcs,false,false);
@@ -223,7 +223,6 @@ bool HybridAnalysis::init()
             }
             proc()->finalizeInsertionSet(false);
         }
-#endif
     }
     mal_printf("   post-inst ");
     //proc()->printKTimer();
@@ -316,14 +315,15 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 {
     if (!instrumentReturns)
     {
-        ParseAPI::Block::edgelist &inEdges = func->lowlevel_func()->ifunc()->entry()->sources();
+        func->lowlevel_func()->ifunc()->blocks(); // ensure ParseAPI function finalization
+        const ParseAPI::Block::edgelist &inEdges = func->lowlevel_func()->ifunc()->entry()->sources();
         for (ParseAPI::Block::edgelist::iterator iter = inEdges.begin(); iter != inEdges.end(); ++iter)
         {
             if ((*iter)->type() != ParseAPI::CALL)
             {
-                cerr << "Overriding instrumentation for function " 
-                    << func->getName() << " : detected odd incoming edge " 
-                    << (*iter)->type() << endl;
+                malware_cerr << "Setting instrumentation for function " 
+                    << func->getName() << " to instrument returns, detected " 
+                    << "odd incoming edge " << (*iter)->type() << endl;
                 instrumentReturns = true;
                 break;
             }
@@ -356,10 +356,10 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         isHandler = true;
     }
 
-	assert(func);
-	assert(func->lowlevel_func());
-	assert(proc());
-	assert(proc()->lowlevel_process());
+    assert(func);
+    assert(func->lowlevel_func());
+    assert(proc());
+    assert(proc()->lowlevel_process());
 
     if (proc()->lowlevel_process()->isMemoryEmulated() && 
         BPatch_defensiveMode == func->lowlevel_func()->obj()->hybridMode()) 
@@ -505,24 +505,24 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     BPatch_retAddrExpr retAddrSnippet;
 
     if (retPoints != NULL) {
-		for (unsigned int j=0; j < retPoints->size(); j++) {
+      for (unsigned int j=0; j < retPoints->size(); j++) {
 			BPatch_point *curPoint = (*retPoints)[j];
 			BPatchSnippetHandle *handle;
 
 			// Workaround for a parsing inconsistency - instrument this with a snippet
 			// if _any_ of the functions that contain a retblock have unknown return status...
 			bool instrument = false;
-            if (BPatch_normalMode != SCAST_MO(curPoint->llpoint()->obj())->hybridMode()) {
-                std::vector<ParseAPI::Function *> funcs;
-                curPoint->llpoint()->block()->llb()->getFuncs(funcs);
-                for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
-                    if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
-                        funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
-                    {
-                        instrument = true;
-                    }
-                }
-            }
+         if (BPatch_normalMode != SCAST_MO(curPoint->llpoint()->obj())->hybridMode()) {
+             std::vector<ParseAPI::Function *> funcs;
+             curPoint->llpoint()->block()->llb()->getFuncs(funcs);
+             for (unsigned f_iter = 0; f_iter < funcs.size(); ++f_iter) {
+                 if (((parse_func *)funcs[f_iter])->init_retstatus() != ParseAPI::RETURN ||
+                     funcs[f_iter]->tampersStack() == ParseAPI::TAMPER_NONZERO) 
+                 {
+                     instrument = true;
+                 }
+             }
+         }
 			if (instrument || 
                 instrumentReturns || 
                 (handlerFunctions.find((Address)funcAddr) != handlerFunctions.end())) 
@@ -615,7 +615,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         if ((skipShadowFuncs_.find(func->getName()) == skipShadowFuncs_.end()) &&
             (instShadowFuncs_.find(func) == instShadowFuncs_.end()))
         {
-            cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
+            malware_cerr << "Adding shadow sync instrumentation to function " << func->getName() << endl;
             std::vector<BPatch_point *> *entryPoints = func->findPoint(BPatch_entry);
             if (entryPoints) {
                 pointCount++;
@@ -661,13 +661,23 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
     // remove overwrite loops
     std::set<HybridAnalysisOW::owLoop*> loops;
     if ( hybridOW() && hybridOW()->hasLoopInstrumentation(false, *func, &loops) ) {
-        mal_printf("Removing active loop instrumentation for func "
+        mal_printf("Removing loop instrumentation for func "
                   "%lx [%d]\n", func->getBaseAddr(), __LINE__);
         std::set<HybridAnalysisOW::owLoop*>::iterator lIter= loops.begin();
         for(; lIter != loops.end(); lIter++) {
-            hybridOW()->deleteLoop(*lIter,false);
+           mal_printf("Removing active loop %d\n", (*lIter)->getID());
+           hybridOW()->deleteLoop(*lIter,false);
         }
     }
+
+    malware_cerr << hex << "removing instrumentation from func at "<< func->getBaseAddr() << dec << endl;
+    //const PatchAPI::PatchFunction::Blockset & blocks = func->lowlevel_func()->getAllBlocks();
+    //for (PatchAPI::PatchFunction::Blockset::const_iterator bit = blocks.begin();
+    //     bit != blocks.end();
+    //     bit++)
+    //{
+    //   malware_cerr << hex << "  block [" << (*bit)->start() << " " << (*bit)->end() << ")" << dec << endl;
+    //}
 
     // 1. Remove elements from instrumentedFuncs
     if (instrumentedFuncs->end() != instrumentedFuncs->find(func)) {
@@ -724,7 +734,7 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func,
 // Protects the code in the module
 bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet) 
 {
-	malware_cerr << "HybridAnalysis (" << hex << this << "), instrumenting mod " << mod << dec << endl;
+	malware_cerr << "HybridAnalysis instrumenting mod at " << hex << (Address)mod->getBaseAddr() << dec << endl;
     assert(proc() && mod);
     if (false == mod->isExploratoryModeOn()) {
         return true;
@@ -961,7 +971,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
 {
     // see if the edge already exists
     using namespace ParseAPI;
-    Block::edgelist &edges = sourcePt->llpoint()->block()->llb()->targets();
+    const Block::edgelist &edges = sourcePt->llpoint()->block()->llb()->targets();
     Block::edgelist::iterator eit = edges.begin();
     mapped_object *targObj = proc()->lowlevel_process()->findObject(target);
     if (targObj) {
@@ -1055,9 +1065,6 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
             if (hybridow_ && modfuncs.size()) {
                 hybridow_->codeChangeCB(modfuncs);
             }
-            if (BPatch_defensiveMode == mode_) {
-                proc()->protectAnalyzedCode();
-            }
             bpatchCodeDiscoveryCB(newfuncs,modfuncs);
         }
     }
@@ -1077,6 +1084,19 @@ bool HybridAnalysis::analyzeNewFunction( BPatch_point *source,
         }
         else if (BPatch_defensiveMode == affectedMods[i]->getHybridMode()) {
             affectedMods[i]->setAnalyzedCodeWriteable(false); 
+        }
+        vector<HybridAnalysisOW::owLoop*> loops;
+        hybridOW()->getActiveLoops(loops);
+        for (unsigned lidx=0; lidx < loops.size(); lidx++) {
+           for (std::map<Dyninst::Address,unsigned char *>::iterator 
+              pit = loops[lidx]->shadowMap.begin(); 
+              pit != loops[lidx]->shadowMap.end(); 
+              pit++) 
+           {
+              proc()->setMemoryAccessRights(pit->first, 
+                    proc()->lowlevel_process()->getMemoryPageSize(),
+                    PAGE_EXECUTE_READWRITE);
+           }
         }
     }
     return parsed;
@@ -1274,27 +1294,6 @@ bool HybridAnalysis::processInterModuleEdge(BPatch_point *point,
     return doMoreProcessing;
 }
 
-#if 0
-// returns false if current evidence suggests that an indirect control 
-// transfer is always intramodular or if it is to a function that does
-// take pointers as parameters or produce them as a return value
-bool HybridAnalysis::needsSynchronization(BPatch_point *point)
-{
-    vector<Address> targs;
-    getCallAndBranchTargets(point->block(),targs);
-
-    if (targs.empty()) { 
-        ParseAPI::Block::edgelist & outEdges = point->llpoint()->block()->llb()->targets();
-        if (outEdges.size() <= 1) {
-            return true; // the point has not been resolved yet
-        } else {
-            return false; // the point has been resolved
-        }
-    }
-    return false;
-}
-#endif 
-
 bool HybridAnalysis::blockcmp::operator () (const BPatch_basicBlock *b1, 
                     const BPatch_basicBlock *b2) const
 {
@@ -1386,7 +1385,7 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
                                              std::vector<Address> & targs)
 {
     using namespace ParseAPI;
-    Block::edgelist & trgs = block->llb()->targets();
+    const Block::edgelist & trgs = block->llb()->targets();
     for (Block::edgelist::iterator eit = trgs.begin();
          eit != trgs.end();
          eit++)

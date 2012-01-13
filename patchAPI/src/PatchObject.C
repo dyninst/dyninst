@@ -170,6 +170,10 @@ PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool c
 
    PatchEdge *ret = cfg_maker_->makeEdge(e, src, trg, this);
    addEdge(ret);
+   if (ret->target()->obj() != this) {
+      ret->target()->obj()->addEdge(ret);
+   }
+   cb()->create(ret);
    return ret;
 }
 
@@ -177,7 +181,6 @@ void
 PatchObject::addEdge(PatchEdge* e) {
   assert(e);
   edges_[e->edge()] = e;
-  cb()->create(e);
 }
 
 void

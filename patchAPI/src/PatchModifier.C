@@ -41,10 +41,11 @@
 using namespace Dyninst;
 using namespace PatchAPI;
 
+/* If target is NULL, user is requesting a redirect to the sink block */
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Do we want edges to only be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)
-   if (edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
+   if (target && edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
 
    // Current limitation: cannot retarget indirect edges (well, we can,
    // but don't expect it to work)
@@ -54,11 +55,19 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
        edge->type() == ParseAPI::RET) return false;
    
    // I think this is all we do...
-   if (!ParseAPI::CFGModifier::redirect(edge->edge(), target->block())) return false;
+   PatchBlock *src = edge->source();
+   PatchBlock *oldTrg = edge->target();
+   ParseAPI::Block *llTrg = (target == NULL) ? NULL : target->block();
+   if (!ParseAPI::CFGModifier::redirect(edge->edge(), llTrg)) return false;
    
-   assert(edge->source()->consistency());
-   assert(edge->consistency());
-   assert(target->consistency());
+   assert(src->consistency());
+   assert(oldTrg->start() == numeric_limits<Address>::max() || // don't check sink block's consistency
+          oldTrg->consistency());
+   if (target) { // otherwise we're redirecting to a sink edge and deleted
+                 // the edge if there already was another one of the same type
+      assert(edge->consistency());
+      assert(target->consistency());
+   }
 
    edge->source()->markModified();
    edge->target()->markModified();
@@ -170,24 +179,29 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, SnippetPtr snip, Point
    return insert(obj, buf.start_ptr(), buf.size(), base);
 }
 
-
-bool PatchModifier::remove(PatchBlock *block, bool force)
+bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
 {
-    vector<PatchFunction*> funcs;
-    block->getFunctions(std::back_inserter(funcs));
-    bool success = ParseAPI::CFGModifier::remove(block->block(), force);
+    //vector<PatchFunction*> funcs;
+    //block->getFunctions(std::back_inserter(funcs));
+   vector<ParseAPI::Block*> parseBs;
+   for (unsigned bidx=0; bidx < blocks.size(); bidx++) {
+      parseBs.push_back(blocks[bidx]->block());
+   }
+   bool success = ParseAPI::CFGModifier::remove(parseBs, force);
 
-    // DEBUG
-    if (success) {
-        for (unsigned int fidx = 0; fidx < funcs.size(); fidx++) {
-            assert(funcs[fidx]->consistency());
-        }
-    }
+    //// DEBUG  // this check came too early, we haven't updated other block points
+                // to match changes to the underlying bytes after an overwrite
+    //if (success) {
+    //    for (unsigned int fidx = 0; fidx < funcs.size(); fidx++) {
+    //        assert(funcs[fidx]->consistency());
+    //    }
+    //}
     return success;
 }
 
 bool PatchModifier::remove(PatchFunction *func)
 {
+    cerr << "Removing whole function at " << hex << func->addr() << dec << endl;
     PatchObject *obj = func->obj();
     bool success = ParseAPI::CFGModifier::remove(func->function());
 

@@ -183,9 +183,6 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     image_edge * ret;
-    if (src->lastInsnAddr() == 0x1d1) {
-        cerr << "here we are" <<endl; //KEVINTODO: erase this
-    }
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
     ret = new image_edge((parse_block*)src,
@@ -272,10 +269,6 @@ DynParseCallback::updateCodeBytes(Address target)
     return codeBytesUpdateCB( _img->cb_arg0(), 
                               target + _img->desc().loadAddr() );
 }
-
-// KEVINTODO: add callback for deleted blocks and functions that 
-// trigger deletions at the int-layer.  Also make sure that the places
-// from which we were deleting blocks allow this to happen correctly. 
 
 bool
 DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const

@@ -19,9 +19,9 @@ void PatchCallback::batch_end() {
         iter != destroyedPoints_.end(); ++iter) {
       destroy_cb(*iter);
    }
-   for (std::vector<PatchEdge *>::iterator iter = destroyedEdges_.begin();
+   for (std::vector<std::pair<PatchEdge *,PatchObject*> >::iterator iter = destroyedEdges_.begin();
         iter != destroyedEdges_.end(); ++iter) {
-      destroy_cb(*iter);
+      destroy_cb(iter->first, iter->second);
    }
    for (std::vector<PatchBlock *>::iterator iter = destroyedBlocks_.begin();
         iter != destroyedBlocks_.end(); ++iter) {
@@ -98,9 +98,9 @@ void PatchCallback::batch_end() {
       delete *iter;
    }
    destroyedPoints_.clear();
-   for (std::vector<PatchEdge *>::iterator iter = destroyedEdges_.begin();
+   for (std::vector<std::pair<PatchEdge *,PatchObject*> >::iterator iter = destroyedEdges_.begin();
         iter != destroyedEdges_.end(); ++iter) {
-      delete *iter;
+      delete iter->first;
    }
    destroyedEdges_.clear();
    for (std::vector<PatchBlock *>::iterator iter = destroyedBlocks_.begin();
@@ -130,10 +130,13 @@ void PatchCallback::destroy(PatchBlock *b) {
    }
 }
 
-void PatchCallback::destroy(PatchEdge *e) {
-   if (batching_) destroyedEdges_.push_back(e);
+void PatchCallback::destroy(PatchEdge *e, PatchObject *o) {
+   if (batching_) { 
+      pair<PatchEdge*, PatchObject*> deadEdge(e,o);
+      destroyedEdges_.push_back(deadEdge);
+   }
    else {
-      destroy_cb(e);
+      destroy_cb(e, o);
       delete e;
    }
 }

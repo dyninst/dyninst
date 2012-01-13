@@ -125,7 +125,7 @@ const bitArray parse_block::getLivenessOut(parse_func * context) {
     Intraproc epred;
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
-    Block::edgelist & target_edges = targets();
+    const Block::edgelist & target_edges = targets();
     Block::edgelist::iterator eit = target_edges.begin(&epred);
 
     liveness_cerr << "getLivenessOut for block [" << hex << start() << "," << end() << "]" << dec << endl;

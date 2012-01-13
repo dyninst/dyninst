@@ -22,7 +22,6 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =          ../src/Object-elf.C \
-		../../common/src/Elf_X.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/relocationEntry-elf-ppc64.C

@@ -133,7 +133,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
   const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
                                 // parsing because things looked weird.
-  block_instance * setNewEntryPoint(block_instance *defaultNewEntryBlock);
+  block_instance * setNewEntry(block_instance *def, // if no better choice
+                               std::set<block_instance*> &deadBlocks);
   // kevin signal-handler information
   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
@@ -142,7 +143,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void setHandlerFaultAddrAddr(Address faa, bool set);
   void triggerModified();
 
-  block_instance *getBlock(const Address addr);
+  block_instance *getBlockByEntry(const Address addr);
+  // get all blocks that have an instruction starting at addr, or if 
+  // there are none, return all blocks containing addr
+  bool getBlocks(const Address addr, std::set<block_instance*> &blks);
 
   Offset addrToOffset(const Address addr) const;
 
@@ -219,6 +223,11 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
     void getCallerBlocks(OutputIterator result);
   template <class OutputIterator>
     void getCallerFuncs(OutputIterator result);
+  bool getLiveCallerBlocks(const std::set<block_instance*> &deadBlocks,
+                           const std::list<func_instance*> &deadFuncs,
+                           std::map<Address,vector<block_instance*> > & output_stubs);
+
+
 
 #if defined(arch_power)
   bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
@@ -270,7 +279,7 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void createWrapperSymbol(Address entry, std::string name);
 
   static void destroy(func_instance *f);
-  void destroyBlock(block_instance *block);
+  void removeBlock(block_instance *block);
 
   void split_block_cb(block_instance *b1, block_instance *b2);
   void add_block_cb(block_instance *block);
@@ -294,7 +303,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   // Defensive mode
   BlockSet unresolvedCF_;
   BlockSet abruptEnds_;
-  unsigned int prevBlocksUnresolvedCF_; // num func blocks when calculated
   unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
 
 

@@ -149,7 +149,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     //  Returns true if successful
 
     API_EXPORT_VIRT(Int, (libname, reload),
-    bool, loadLibrary,(const char *libname, bool reload = false));
+    BPatch_module *, loadLibrary,(const char *libname, bool reload = false));
 };    
 
 #endif /* BPatch_binaryEdit_h_ */

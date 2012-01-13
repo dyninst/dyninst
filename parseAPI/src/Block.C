@@ -196,8 +196,8 @@ void Edge::uninstall()
     _target->removeSource(this);
 }
 
-void Edge::destroy(Edge *e) {
-   e->src()->obj()->destroy(e);
+void Edge::destroy(Edge *e, CodeObject *o) {
+   o->destroy(e);
 }
 
 std::string format(EdgeTypeEnum e) {

@@ -243,6 +243,9 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     Register getEmulInsnReg(Address insnAddr);
     void setEmulInsnVal(Address insnAddr, void * val);
     int codeByteUpdates() { return codeByteUpdates_; }
+
+    void replacePLTStub(SymtabAPI::Symbol *PLTsym, func_instance *func, Address newAddr);
+
 private:
     // helper functions
     void updateCodeBytes(SymtabAPI::Region *reg);
@@ -293,12 +296,12 @@ public:
     std::string getCalleeName(block_instance *);
     void setCalleeName(block_instance *, std::string name);
 
-    void destroy(ParseAPI::Function *f);
-    void destroy(ParseAPI::Block *b);
-    void destroy(ParseAPI::Edge *e);
-
     void setCallee(const block_instance *, func_instance *);
     func_instance *getCallee(const block_instance *) const;
+
+    void destroy(PatchAPI::PatchFunction *f);
+    void destroy(PatchAPI::PatchBlock *b);
+    // void destroy(PatchAPI::PatchEdge *e); // don't need to destroy anything
 
   private:
     //

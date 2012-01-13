@@ -60,12 +60,15 @@
 #include <fcntl.h>
 #include <poll.h>
 
+using namespace Dyninst;
+using namespace Stackwalker;
+
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/Elf_X.h"
+
 #include "common/h/SymLite-elf.h"
 #include "common/h/parseauxv.h"
 #include "dynutil/h/dyn_regs.h"
-
-using namespace Dyninst;
-using namespace Dyninst::Stackwalker;
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
@@ -129,14 +132,13 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
    return Walker::symrfact;
 }
 
-class Elf_X;
 Elf_X *getElfHandle(std::string s)
 {
    SymbolReaderFactory *fact = getDefaultSymbolReader();
    SymReader *reader = fact->openSymbolReader(s);
    if (!reader)
       return NULL;
-   return reader->getElfHandle();
+   return (Elf_X *) reader->getElfHandle();
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);

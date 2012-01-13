@@ -1207,6 +1207,15 @@ bool process::hasBeenBound(const relocationEntry &entry,
     return false;
 }
 
+bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance *, Address target_addr) {
+   // We just want to overwrite the GOT entry with our target address. 
+   Address got_entry = entry.rel_addr() + base_addr;
+   writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
+   return true;
+}
+
+
 bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {

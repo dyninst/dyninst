@@ -45,8 +45,11 @@ const PatchBlock::edgelist&
 PatchBlock::getSources() {
   if (srclist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
-         iter != block_->sources().end(); ++iter) {
-      PatchEdge *newEdge = obj_->getEdge(*iter, NULL, this);
+         iter != block_->sources().end(); ++iter) 
+    {
+      // search for edge in object of source block
+      PatchObject *obj = obj_->addrSpace()->findObject((*iter)->src()->obj()); 
+      PatchEdge *newEdge = obj->getEdge(*iter, NULL, this);
       srclist_.push_back(newEdge);
     }
   }
@@ -81,7 +84,6 @@ PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
         iter != trglist_.end(); ++iter) {
       assert(*iter);
       assert((*iter)->edge());
-      cerr << "Looking for " << ParseAPI::format(type) << ", found edge with " << ParseAPI::format((*iter)->type()) << endl;
       if ((*iter)->type() == type) return *iter;
    }
    return NULL;
@@ -92,7 +94,7 @@ void PatchBlock::addSourceEdge(PatchEdge *e, bool addIfEmpty) {
 
    srclist_.push_back(e);
 
-  cb()->add_edge(this, e, PatchCallback::source);
+   cb()->add_edge(this, e, PatchCallback::source);
 }
 
 void PatchBlock::addTargetEdge(PatchEdge *e, bool addIfEmpty) {
@@ -112,8 +114,10 @@ PatchBlock::removeSourceEdge(PatchEdge *e) {
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(srclist_.begin(), srclist_.end(), e)) != srclist_.end()) {
     srclist_.erase(iter);
+  } else {
+      cerr << "WARNING: failed to remove target edge from block [" 
+          <<hex <<start() <<" " <<end() <<") from "<< e->source()->last() << dec <<endl;
   }
-
   cb()->remove_edge(this, e, PatchCallback::source);
 }
 
@@ -123,8 +127,10 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
 
   std::vector<PatchEdge *>::iterator iter;
   if ((iter = std::find(trglist_.begin(), trglist_.end(), e)) != trglist_.end()) {
-     cerr << "Erasing target edge" << endl;
     trglist_.erase(iter);
+  } else {
+      cerr << "WARNING: failed to remove target edge from block [" 
+          <<hex <<start() <<" " <<end() <<") to "<< e->source()->start() << dec <<endl;
   }
   cb()->remove_edge(this, e, PatchCallback::target);
 }
@@ -176,21 +182,38 @@ PatchBlock::containingFuncs() const {
   return block_->containingFuncs();
 }
 
-bool
-PatchBlock::containsCall() {
-  ParseAPI::Block::edgelist & out_edges = block_->targets();
+int 
+PatchBlock::numRetEdges() const {
+  int numRets = 0;
+  const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
   for( ; eit != out_edges.end(); ++eit) {
-    if ( ParseAPI::CALL == (*eit)->type() ) {
-      return true;
+    if ( ParseAPI::RET == (*eit)->type() ) {
+      numRets++;
     }
   }
-  return false;
+  return numRets;
+}
+
+int PatchBlock::numCallEdges() const
+{
+   using namespace ParseAPI;
+   int numCalls = 0;
+   const Block::edgelist & trgs = block()->targets();
+   for (Block::edgelist::iterator titer = trgs.begin();
+        titer != trgs.end();
+        titer++)
+   {
+      if ((*titer)->type() == CALL) {
+         numCalls++;
+      }
+   }
+   return numCalls;
 }
 
 bool
 PatchBlock::containsDynamicCall() {
-  ParseAPI::Block::edgelist & out_edges = block_->targets();
+  const ParseAPI::Block::edgelist & out_edges = block_->targets();
   ParseAPI::Block::edgelist::iterator eit = out_edges.begin();
    for( ; eit != out_edges.end(); ++eit) {
      if ( ParseAPI::CALL == (*eit)->type() ) { 
@@ -435,25 +458,26 @@ void PatchBlock::splitBlock(PatchBlock *succ)
    // 4) We fix up Points on the block, entry and during points stay here
 
    // 2)
-   bool hasFTEdge = false;
-   unsigned tidx= 0; 
-   while (tidx < trglist_.size()) {
-      PatchEdge *cur = trglist_[tidx];
-      if (cur->target() == succ) {
-          hasFTEdge = true;
-          tidx++;
-      } else {
-          cur->src_ = succ;
-          succ->trglist_.push_back(cur);
-          int last = trglist_.size()-1;
-          trglist_[tidx] = trglist_[last];
-          trglist_.pop_back();
+   const ParseAPI::Block::edgelist & trgs = succ->block()->targets();
+   ParseAPI::Block::edgelist::iterator titer = trgs.begin();
+   for (; titer != trgs.end(); titer++) {
+      PatchEdge *cur = obj()->getEdge(*titer, this, NULL, false);
+      if (cur != NULL) {
+         cur->src_ = succ;
       }
    }
+   trglist_.clear();
+   // list will be built up lazily when needed, hopefully after parsing is done
+   succ->trglist_.clear(); 
 
    // 3)
-   if (!hasFTEdge) { // may have been created by ParseAPI callbacks
-       ParseAPI::Block::edgelist &tmp = this->block()->targets();
+   assert(1 == block_->targets().size());
+   PatchEdge *patch_ft = obj()->getEdge(*block_->targets().begin(), this, succ, false);
+   if (patch_ft) {// patch_ft may have been created by another callback
+      trglist_.push_back(patch_ft);
+   }
+   else {
+       const ParseAPI::Block::edgelist &tmp = this->block()->targets();
        if (tmp.size() != 1) {
           cerr << "ERROR: split block has " << tmp.size() 
               << " edges, not 1 as expected!" << endl;
@@ -496,7 +520,19 @@ bool PatchBlock::consistency() const {
          cerr << "Error: block has inconsistent sources size" << endl;
          CONSIST_FAIL;
       }
+      set<PatchBlock*> srcs;
       for (unsigned i = 0; i < srclist_.size(); ++i) {
+         // shouldn't have multiple edges to the same block unless one
+         // is a conditional taken and the other a conditional not-taken
+         // (even this is weird, but it happens in obfuscated code)
+         if (srcs.find(srclist_[i]->source()) != srcs.end() &&
+             srclist_[i]->type() != ParseAPI::COND_TAKEN && 
+             srclist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
+         {
+            cerr << "Error: multiple source edges to same block" << endl;
+            CONSIST_FAIL;
+         }
+         srcs.insert(srclist_[i]->source());
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;
             CONSIST_FAIL;
@@ -505,12 +541,24 @@ bool PatchBlock::consistency() const {
    }
    if (!trglist_.empty()) {
       if (trglist_.size() != block_->targets().size()) {
-         cerr << "Error: block has inconsistent targets size; ParseAPI "
+         cerr << "Error: block at "<<hex<< block_->start()<< dec<<" has inconsistent targets size; ParseAPI "
               << block_->targets().size() << " and PatchAPI " 
               << trglist_.size() << endl;
          CONSIST_FAIL;
       }
+      set<PatchBlock*>trgs;
       for (unsigned i = 0; i < trglist_.size(); ++i) {
+         // shouldn't have multiple edges to the same block unless one
+         // is a conditional taken and the other a conditional not-taken
+         // (even this is weird, but it happens in obfuscated code)
+         if (trgs.find(trglist_[i]->target()) != trgs.end() &&
+             trglist_[i]->type() != ParseAPI::COND_TAKEN && 
+             trglist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
+         {
+            cerr << "Error: multiple target edges to same block" << endl;
+            CONSIST_FAIL;
+         }
+         trgs.insert(trglist_[i]->source());
          if (!trglist_[i]->consistency()) {
             cerr << "Error: target edge inconsistent" << endl;
             CONSIST_FAIL;

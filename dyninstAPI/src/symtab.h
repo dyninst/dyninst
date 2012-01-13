@@ -166,7 +166,11 @@ class fileDescriptor {
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
-     void setLoadAddr(Address a);
+     void setLoadAddr(Address a) { 
+        loadAddr_ = a;
+        code_ += a;
+        data_ += a;
+     }
      void setCode(Address c) { code_ = c; }
      void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
@@ -284,9 +288,6 @@ class image : public codeRange {
 
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
-
-   void addOwner(mapped_object *owner);
-   void removeOwner(mapped_object *owner);
 
  protected:
    ~image();
@@ -530,8 +531,6 @@ class image : public codeRange {
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
-
-   std::list<mapped_object *> owning_objects_;
 
 };
 

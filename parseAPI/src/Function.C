@@ -179,7 +179,7 @@ Function::blocks_int()
         add_block(_entry);
     }
 
-    // avoid duplicating return edges
+    // avoid adding duplicate return blocks
     for(vector<Block*>::iterator bit=_return_blocks.begin();
         bit!=_return_blocks.end();++bit)
     {
@@ -205,9 +205,10 @@ Function::blocks_int()
             }
 
             if(e->type() == RET) {
-               link_return = true;
+                link_return = true;
                 if (obj()->defensiveMode()) {
-                    if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) continue;
+                    if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
+                       continue;
                 }
                 
                 _rs = RETURN;
@@ -238,13 +239,18 @@ Function::blocks_int()
                 _return_blocks.push_back(cur);
         }
     }
-
     Block::compare comp;
     sort(_blocks.begin(),_blocks.end(),comp);
 
     return _blocks;
 }
 
+/* Adds return edges to the CFG for a particular retblk, based 
+ * on callers to this function.  Handles case of return block 
+ * that targets the entry block of a new function separately
+ * (ret to entry happens if the function tampers with its stack 
+ *  and maybe if this function is a signal handler?) 
+ */ 
 void
 Function::delayed_link_return(CodeObject * o, Block * retblk)
 {
@@ -347,11 +353,11 @@ Function::removeBlock(Block* dead)
         mal_printf("Warning: removing entry block [%lx %lx) for function at "
                    "%lx\n", dead->start(), dead->end(), addr());
         _entry = NULL;
-        //assert(0);
+        assert(0);
     }
 
     // remove dead block from _return_blocks and _call_edges
-    Block::edgelist & outs = dead->targets();
+    const Block::edgelist & outs = dead->targets();
     for (Block::edgelist::iterator oit = outs.begin();
          outs.end() != oit; 
          oit++ ) 
@@ -440,7 +446,8 @@ Function::tampersStack(bool recalculate)
                     in_iter != (*ait)->inputs().end(); ++in_iter) {
                     if (in_iter->type() != Absloc::Unknown) {
                         _tamper = TAMPER_NONZERO;
-                        _tamper_addr = 0; 
+                        _tamper_addr = 0;
+                        _rs = NORETURN;
                         mal_printf("Stack tamper analysis for ret block at "
                                "%lx found unresolved stack slot or heap "
                                "addr, marking as TAMPER_NONZERO\n", retnAddr);
@@ -454,13 +461,13 @@ Function::tampersStack(bool recalculate)
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() << "_" 
                               << hex << retnAddr << dec << ".dot";
-                    slGraph->printDOT(graphDump.str());
+                    //slGraph->printDOT(graphDump.str());
                 }
                 DataflowAPI::Result_t slRes;
                 DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];
                 if (dyn_debug_malware && sliceAtRet != NULL) {
-                    cout << "assignment " << (*ait)->format() << " is "
+                    cerr << "assignment " << (*ait)->format() << " is "
                          << sliceAtRet->format() << "\n";
                 }
                 break;

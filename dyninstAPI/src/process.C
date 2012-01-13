@@ -3770,11 +3770,19 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
         //    offset to figure out where we should be
         malware_cerr << "Looking for matches to incoming address " 
             << hex << target << dec << endl;
-        instPoint *callPt = NULL;
+        std::pair<func_instance*,Address> tmp;
 
-        if ( reverseDefensiveMap_.find(target,callPt) ) {
+        if ( reverseDefensiveMap_.find(target,tmp) ) {
             // a. 
-            unrelocTarget = callPt->block()->end();
+           std::set<block_instance*> callBs;
+           tmp.first->getBlocks(tmp.second, callBs);
+           block_instance *callB = (*callBs.begin());
+           edge_instance *fallthrough = callB->getFallthrough();
+           if (fallthrough) {
+              unrelocTarget = fallthrough->target()->start();
+           } else {
+              unrelocTarget = callB->end();
+           }
         }
         else {
             // b. 
@@ -3797,6 +3805,20 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            // into memory regions that are allocated at runtime
         mapped_object *obj = findObject(target);
         if (!obj) {
+
+#if 0           
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           for (unsigned i = 0; i < 0x100; ++i) {
+		          Address stackTOP = activeFrame.esp;
+		          Address stackTOPVAL =0;
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
+
             obj = createObjectNoFile(target);
             if (!obj) {
                 fprintf(stderr,"ERROR, point %lx has target %lx that responds "
@@ -3807,6 +3829,22 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
             }
         }
     }
+
+#if 0
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           Address stackTOP = activeFrame.esp;
+           Address stackTOPVAL =0;
+           for (unsigned i = 0; 
+                i < 0x100 && 0 != ((stackTOP + 4*i) % memoryPageSize_); 
+                ++i) 
+           {
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
 
     return unrelocTarget;
 } 
@@ -3855,7 +3893,7 @@ bool process::handleStopThread(EventRecord &ev)
        of the stopThread snippet */
     pdvector<int_variable *> vars;
     // get runtime library arg2 address from runtime lib
-    if (sh->sync_event_arg2_addr == 0) {
+    if (sh->sync_event_arg2_addr == 0) { //KEVINTODO: choose a new threadsafe mechanism
         std::string arg_str ("DYNINST_synch_event_arg2");
         if (!findVarsByAll(arg_str, vars)) {
             fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
@@ -3876,9 +3914,7 @@ bool process::handleStopThread(EventRecord &ev)
         return false;
     }
 
-/* 1c. The result of the snippet calculation that was given by the user, 
-       if the point is a return instruction, read the return address */
-    // get runtime library arg3 address from runtime lib
+/* 1c. The result of the snippet calculation that was given by the user */
     if (sh->sync_event_arg3_addr == 0) {
         std::string arg_str ("DYNINST_synch_event_arg3");
         vars.clear();
@@ -3894,7 +3930,6 @@ bool process::handleStopThread(EventRecord &ev)
         }
         sh->sync_event_arg3_addr = vars[0]->getAddress();
     }
-    //read arg3 (calculation)
     if (!readDataSpace((void *)sh->sync_event_arg3_addr, 
                        getAddressWidth(), &calculation, true)) 
     {
@@ -4069,6 +4104,7 @@ static void otherFuncBlocks(func_instance *func,
       block_instance* iblk = SCAST_BI(*bit);
         if (blks.end() == blks.find(iblk)) {
             otherBlks.insert(iblk);
+            mal_printf("block [%lx %lx) is in other blocks\n",iblk->start(),iblk->end());
         }
     }
 }
@@ -4103,7 +4139,7 @@ static void otherFuncBlocks(func_instance *func,
  *          forall f in F(b): B(f) - R( B(f) - ow , New(f) U (EP(f) \ ow(f)) U (ex(f) intersect Elim(f)) )
  * DeadF:   the set of functions that have no executing blocks 
  *          and were overwritten in their entry blocks
- *          EP(f) in ow(f) AND ex(f)-ow(f) is empty
+ *          EP(f) in ow(f) AND ex(f) is empty
  */
 bool process::getDeadCode
 ( const std::list<block_instance*> &owBlocks, // input
@@ -4141,7 +4177,7 @@ bool process::getDeadCode
          bIter++) 
     {
        vector<func_instance*> funcs;
-       (*bIter)->getFuncs(std::inserter(funcs, funcs.end()));
+       (*bIter)->getFuncs(std::back_inserter(funcs));
        for (vector<func_instance*>::iterator fit = funcs.begin(); 
             fit != funcs.end(); 
             fit++) 
@@ -4175,17 +4211,19 @@ bool process::getDeadCode
                 cb_iter != candidateBlocks.end(); ++cb_iter) 
             {
                 block_instance *exB = *cb_iter;
-                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) 
-                {
-                    execBlocks.insert(exB);
+                if (exB && owBlockAddrs.end() == owBlockAddrs.find(exB->start())) {
+                   set<func_instance*> funcs;
+                   exB->getFuncs(std::inserter(funcs, funcs.end()));
+                   if (funcs.find(fit->first) != funcs.end()) {
+                        execBlocks.insert(exB);
+                   }
                 }
             }
         }
 
-        // calculate DeadF: EP(f) in ow and EP(f) not in ex(f)
-        if (!execBlocks.empty()) {
-            set<block_instance*>::iterator eb = fit->second.find(
-                fit->first->entryBlock());
+        // calculate DeadF: EP(f) in ow and ex(f) is empty
+        if (execBlocks.empty()) {
+            set<block_instance*>::iterator eb = fit->second.find(fit->first->entryBlock());
             if (eb != fit->second.end()) {
                 deadFuncs.push_back(fit->first);
                 continue;// treated specially, don't need elimF, NewF or DelF
@@ -4260,8 +4298,8 @@ bool process::getDeadCode
 
 
 // will flush addresses of all addresses in the specified range, if the
-// range is null, flush all addresses from the cache.  Also flush 
-// rt-lib heap addrs that correspond to the range
+// range is null, flushes all runtime-library-heap addresses from the cache
+// Does this flush both ways out of the cache?
 void process::flushAddressCache_RT(Address start, unsigned size)
 {
     // if rtlib not loaded yet, nothing to flush
@@ -4296,9 +4334,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // Clear all cache entries that match the runtime library
     // Read in the contents of the cache
-    Address* cacheCopy = (Address*)malloc(TARGET_CACHE_WIDTH*sizeof(Address));
-    if ( ! readDataSpace( (void*)RT_address_cache_addr, 
-                          sizeof(Address)*TARGET_CACHE_WIDTH,(void*)cacheCopy,
+    Address cacheCopy[TARGET_CACHE_LENGTH][TARGET_CACHE_WAYS];
+    if ( ! readDataSpace( (void*)RT_address_cache_addr,
+                          sizeof(Address)*TARGET_CACHE_LENGTH*TARGET_CACHE_WAYS,(void*)cacheCopy,
                           false ) ) 
     {
         assert(0);
@@ -4307,8 +4345,9 @@ void process::flushAddressCache_RT(Address start, unsigned size)
     assert(dyninstRT_heaps.size());
     bool flushedHeaps = false;
 
-    while ( true ) // iterate twice, once to flush the heaps, 
-    {              // and once to flush the flush range
+    // iterate twice, once to flush the cache of RT-lib heap addrs, 
+    // and once to flush the flush range
+    for (unsigned i=0; i<2; i++) {
         Address flushStart=0;
         Address flushEnd=0;
         if (!flushedHeaps) {
@@ -4331,14 +4370,18 @@ void process::flushAddressCache_RT(Address start, unsigned size)
             flushEnd = start + size;
         }
         //zero out entries that lie in the runtime heaps
-        for(int idx=0; idx < TARGET_CACHE_WIDTH; idx++) {
-            //printf("cacheCopy[%d]=%lx\n",idx,cacheCopy[idx]);
-            if (flushStart <= cacheCopy[idx] &&
-                flushEnd   >  cacheCopy[idx]) {
-                cacheCopy[idx] = 0;
-            }
+        for(int xidx=0; xidx < TARGET_CACHE_LENGTH; xidx++) {
+           for(int yidx=0; yidx < TARGET_CACHE_WAYS; yidx++) {
+              if (!flushedHeaps && cacheCopy[xidx][yidx] != 0) {
+                 mal_printf("cacheCopy[%lx][%d]=%8lx\n",xidx,yidx,cacheCopy[xidx][yidx]);
+              }
+              if (flushStart <= cacheCopy[xidx][yidx] &&
+                 flushEnd   >  cacheCopy[xidx][yidx]) {
+                 cacheCopy[xidx][yidx] = 0;
+              }
+           }
         }
-        if ( flushedHeaps || (start == 0) ) {
+        if ( flushedHeaps ) {
             break;
         }
         flushedHeaps = true;
@@ -4346,11 +4389,10 @@ void process::flushAddressCache_RT(Address start, unsigned size)
 
     // write the modified cache back into the RT_library
     if ( ! writeDataSpace( (void*)RT_address_cache_addr,
-                           sizeof(Address)*TARGET_CACHE_WIDTH,
+                           sizeof(Address)*TARGET_CACHE_LENGTH*TARGET_CACHE_WAYS,
                            (void*)cacheCopy ) ) {
         assert(0);
     }
-    free(cacheCopy);
 }
 
 /* Given an address that's on the call stack, find the function that's 
@@ -4457,9 +4499,18 @@ bool process::generateRequiredPatches(instPoint *callPoint,
     //    its most recent relocated version (if that exists)
     // 2) For each padding area, create a (padAddr,target) pair
 
-    // 1)
+    // 3)
+
+    block_instance *callB = callPoint->block();
+    block_instance *ftBlk = callB->getFallthrough()->trg();
+    if (!ftBlk) {
+        // find the block at the next address, if there's no fallthrough block
+        ftBlk = callB->obj()->findBlockByEntry(callB->end());
+        assert(ftBlk);
+    }
 
     // ensure that we patch other callPts at the same address
+
     vector<ParseAPI::Function*> callFuncs;
     callPoint->block()->llb()->getFuncs(callFuncs);
     for (vector<ParseAPI::Function*>::iterator fit = callFuncs.begin();
@@ -4467,14 +4518,7 @@ bool process::generateRequiredPatches(instPoint *callPoint,
          fit++)
     {
         func_instance *callF = findFunction((parse_func*)*fit);
-        block_instance *callB = callPoint->block();
         instPoint *callP = instPoint::preCall(callF, callB);
-        block_instance *ftBlk = callB->getFallthrough()->trg();
-        if (!ftBlk) {
-            // find the block at the next address, if there's no fallthrough block
-            ftBlk = callF->obj()->findBlockByEntry(callB->end());
-            assert(ftBlk);
-        }
         Relocation::CodeTracker::RelocatedElements reloc;
         CodeTrackers::reverse_iterator rit;
         for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
@@ -4495,29 +4539,33 @@ bool process::generateRequiredPatches(instPoint *callPoint,
         if (!reloc.instrumentation.empty()) {
            // There could be a lot of instrumentation at this point. Bias towards the lowest,
            // non-edge instrumentation
-           to = 0;
            for (std::map<instPoint *, Address>::iterator inst_iter = reloc.instrumentation.begin();
                 inst_iter != reloc.instrumentation.end(); ++inst_iter) {
               if (inst_iter->first->type() == PatchAPI::Point::EdgeDuring) continue;
               to = (inst_iter->second < to) ? inst_iter->second : to;
            }
-           if (to == 0) to = reloc.instruction;
         }
 
         // 2) 
-        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callP)) {
-            set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callP].begin();
-            for (; d_iter != forwardDefensiveMap_[callP].end(); ++d_iter) 
-            {
-              Address jumpAddr = d_iter->first;
-              patchAreas.insert(std::make_pair(jumpAddr, to));
-              mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                         callB->end(), jumpAddr, to, FILE__,__LINE__);
+        Address callInsnAddr = callP->block()->last();
+        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callInsnAddr)) {
+            map<func_instance*,set<DefensivePad> >::iterator mit = forwardDefensiveMap_[callInsnAddr].begin();
+            for (; mit != forwardDefensiveMap_[callInsnAddr].end(); ++mit) {
+              if (callF == mit->first) {
+                  set<DefensivePad>::iterator dit = mit->second.begin();
+                  for (; dit != mit->second.end(); ++dit) {
+                     Address jumpAddr = dit->first;
+                     patchAreas.insert(std::make_pair(jumpAddr, to));
+                     mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                                callB->end(), jumpAddr, to, FILE__,__LINE__);
+                  }
+              }
             }
         }
     }
     if (patchAreas.empty()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPoint->addr_compat());
+       mal_printf("WARNING: no relocs to patch for call at %lx, block end %lx\n", 
+                  callPoint->addr_compat(),ftBlk->start());
     }
     return ! patchAreas.empty();
 }
@@ -4534,7 +4582,7 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 
     // Safety check: make sure we didn't overrun the patch area
     Address lb, ub;
-    instPoint *tmp;
+    std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!
       assert(0);
@@ -5932,3 +5980,4 @@ bool process::needsPIC()
 {
    return 0;
 }
+

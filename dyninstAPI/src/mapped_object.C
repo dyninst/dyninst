@@ -101,8 +101,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   memEnd_(-1),
   memoryImg_(false)
 {
-   image_->addOwner(this);
-
    // Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
 #if defined(os_windows)
@@ -293,8 +291,6 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    codeByteUpdates_(0),
    memoryImg_(s->memoryImg_)
 {
-   image_->addOwner(this);
-
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
       // Doesn't copy things like line info. Ah, well.
@@ -366,7 +362,6 @@ mapped_object::~mapped_object()
 
    // codeRangesByAddr_ is static
     // Remainder are static
-   image_->removeOwner(this);
    image::removeImage(image_);
 }
 
@@ -558,7 +553,9 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
 
     // First, check the underlying image.
     const pdvector<parse_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
-    if (img_funcs == NULL) return NULL;
+    if (img_funcs == NULL) {
+       return NULL;
+    }
 
     assert(img_funcs->size());
     // Fast path:
@@ -708,7 +705,7 @@ bool mapped_object::findBlocksByAddr(const Address addr, std::set<block_instance
            blocks.insert(block);
         }
     }
-    return true;
+    return !blocks.empty();
 }
 
 bool mapped_object::findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs)
@@ -1252,11 +1249,6 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
         curEntry++;
     }
 
-    // split int layer
-    //if (parse_img()->hasSplitBlocks()) {
-    //    splitIntLayer();
-    //    parse_img()->clearSplitBlocks();
-    //}
     assert(consistency(&(*addrSpace())));
     return reparsedObject;
 }
@@ -1295,7 +1287,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
         // Determine if this stub already has been parsed
         // Which means looking up a block at the target address
         if (targ_obj->findBlockByEntry(stubs[idx].trg)) {
-          continue; //KEVINTODO: don't we maybe want to add the edge anyway?
+           cerr << "KEVINTEST: VERIFY THAT I WORK: parsing edge for target that already exists" << endl;
+          //continue; //KEVINTODO: don't we maybe want to add the edge anyway?
         }
 
         // Otherwise we don't have a target block, so we need to make one.
@@ -1305,15 +1298,6 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
             // And we don't know what type of edge this is. Lovely. Let's
             // figure it out from the instruction class, since that's
             // the easy way to do things.
-
-            bool indirect = false;
-            Block::edgelist &edges = stubs[idx].src->llb()->targets();
-            for (Block::edgelist::iterator eit = edges.begin(); eit != edges.end(); ++eit) {
-                if ((*eit)->sinkEdge()) {
-                    indirect = true;
-                    break;
-                }
-            }
 
             block_instance::Insns insns;
             stubs[idx].src->getInsns(insns);
@@ -1336,7 +1320,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
                 edgeType = INDIRECT;
                 break;
             case c_BranchInsn:
-                if (indirect)
+                if (cf->readsMemory())
                 {
                     edgeType = INDIRECT;
                 }
@@ -1373,7 +1357,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 		}
 	}
  
-	/* 1. Parse intra-object edges, after removing any edges that 
+	/* 2. Parse intra-object edges, after removing any edges that 
           would be duplicates at the image-layer */
 	parse_img()->codeObject()->parseNewEdges(edgesInThisObject);
 
@@ -1381,7 +1365,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
     vector<ParseAPI::Function*> modIFuncs;
     vector<func_instance*> modFuncs;
     for(unsigned sidx=0; sidx < stubs.size(); sidx++) {
-        stubs[sidx].src->llb()->getFuncs(modIFuncs);
+        if (stubs[sidx].src != NULL) {
+            stubs[sidx].src->llb()->getFuncs(modIFuncs);
+        }
     }
 
     for (unsigned fidx=0; fidx < modIFuncs.size(); fidx++)
@@ -1395,22 +1381,8 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
        modFuncs[fidx]->getAllBlocks();
        modFuncs[fidx]->getCallBlocks();
        modFuncs[fidx]->getExitBlocks();
-       // assert(modFuncs[fidx]->consistency()); // redundant, see below
     }
 
-/* 5. fix mapping of split blocks that have points */
-    //if (parse_img()->hasSplitBlocks()) {
-    //    splitIntLayer();
-    //    parse_img()->clearSplitBlocks();
-    //}
-
-    //// update the function's liveness and PC sensitivity analysis,
-    //// and assert its consistency
-    //for (unsigned fidx=0; fidx < modFuncs.size(); fidx++)
-    //{
-    //	modFuncs[fidx]->triggerModified();
-    //    assert(modFuncs[fidx]->consistency());
-    //}
     assert(consistency(&(*addrSpace())));
     return true;
 }
@@ -1973,31 +1945,17 @@ void mapped_object::remove(instPoint *point)
     bpmod->remove(point);
 }
 
-void mapped_object::destroy(ParseAPI::Block *b) {
-   BlockMap::iterator iter = blocks_.find(b);
-   if (iter != blocks_.end()) {
-     calleeNames_.erase(SCAST_BI(iter->second));
-     if (as()->isMemoryEmulated()) {
-         as()->getMemEm()->removeSpringboards(SCAST_BI(iter->second));
-     }
-     block_instance::destroy(SCAST_BI(iter->second));
-     blocks_.erase(iter);
+// does not delete
+void mapped_object::destroy(PatchAPI::PatchBlock *b) {
+   calleeNames_.erase(SCAST_BI(b));
+   if (as()->isMemoryEmulated()) {
+      as()->getMemEm()->removeSpringboards(SCAST_BI(b));
    }
 }
 
-void mapped_object::destroy(ParseAPI::Edge *e) {
-   EdgeMap::iterator iter = edges_.find(e);
-   if (iter != edges_.end()) {
-   //  edge_instance::destroy(SCAST_EI(iter->second));
-       edges_.erase(iter);
-   }
-}
-
-void mapped_object::destroy(ParseAPI::Function *f) {
-    FuncMap::iterator iter = funcs_.find(f);
-    assert(iter != funcs_.end());
-    func_instance *fi = SCAST_FI(iter->second);
-    remove(fi); // does most of the work
+// does not delete
+void mapped_object::destroy(PatchAPI::PatchFunction *f) {
+    remove(SCAST_FI(f));
 }
 
 void mapped_object::removeEmptyPages()
@@ -2234,4 +2192,17 @@ void mapped_object::setCallee(const block_instance *b, func_instance *f) {
    callees_[b] = f;
 }
 
+#include "Symtab.h"
+
+void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, Address newAddr) {
+   // Let's play relocation games...
+   vector<SymtabAPI::relocationEntry> fbt;
+   parse_img()->getObject()->getFuncBindingTable(fbt);
+   
+   for (unsigned i = 0; i < fbt.size(); ++i) {
+      if (fbt[i].name() == sym->getMangledName()) {
+         proc()->bindPLTEntry(fbt[i], codeBase(), orig, newAddr);
+      }
+   }
+}
    

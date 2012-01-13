@@ -503,9 +503,7 @@ Parser::finalize(Function *f)
     vector<Block*> const& blocks = f->blocks_int();
 
     // is this the first time we've parsed this function?
-    bool firstParse = true;
-    if (unlikely( f->_extents.size() )) {
-        firstParse = false;
+    if (unlikely( !f->_extents.empty() )) {
         _parse_data->remove_extents(f->_extents);
         f->_extents.clear();
     }
@@ -555,11 +553,6 @@ Parser::finalize(Function *f)
                     link((*eit)->src(),ft,CALL_FT,false);
                 }
             }
-        }
-        // check for stack tampering
-        if ( firstParse ) {
-            f->tampersStack();
-            _pcb.newfunction_retstatus( f );
         }
     }
 }
@@ -837,8 +830,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         mal_printf("Disallowing FT edge: function %lx in "
                                    "defensive binary may not return\n", ct->addr());
                     } else {
-                        is_nonret |= (TAMPER_NONZERO == ct->tampersStack());
-                        is_nonret |= (TAMPER_ABS == ct->tampersStack());
+                        StackTamper ct_tamper = ct->tampersStack();
+                        is_nonret |= (TAMPER_NONZERO == ct_tamper);
+                        is_nonret |= (TAMPER_ABS == ct_tamper);
                         if (is_nonret) {
                             mal_printf("Disallowing FT edge: function at %lx "
                                        "tampers with its stack\n", ct->addr());
@@ -1191,7 +1185,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     else if(frame.func->_rs == UNSET) {
         frame.func->_rs = NORETURN;
     }
+
     frame.set_status(ParseFrame::PARSED);
+
+    if (unlikely(obj().defensiveMode())) {
+       // calculate this after setting the function to PARSED, so that when
+       // we finalize the function we'll actually save the results and won't 
+       // re-finalize it
+       func->tampersStack(); 
+       _pcb.newfunction_retstatus( func ); 
+    }
 }
 
 void
@@ -1350,6 +1353,7 @@ Parser::split_block(
 {
     Block * ret;
     CodeRegion * cr;
+    bool isRetBlock = false;
     if(owner->region()->contains(b->start()))
         cr = owner->region();
     else
@@ -1368,6 +1372,9 @@ Parser::split_block(
         Edge *e = *tit;
         e->_source = ret;
         ret->_targets.push_back(e);
+    }
+    if (!trgs.empty() && RET == (*trgs.begin())->type()) {
+       isRetBlock = true;
     }
     trgs.clear();
     ret->_end = b->_end;
@@ -1396,6 +1403,9 @@ Parser::split_block(
            parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
                    "func at %lx\n",
            FILE__,__LINE__,b->start(),b->end(),po->addr());
+        }
+        if (isRetBlock) {
+           po->_return_blocks.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
         }
     }
     // KEVINTODO: study performance impact of this callback

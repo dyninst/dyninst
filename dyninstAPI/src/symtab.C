@@ -141,13 +141,6 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
         return false;
 }
 
-void fileDescriptor::setLoadAddr(Address a) 
-{ 
-   loadAddr_ = a; 
-   code_ += a;
-   data_ += a;
-}
-
 // only for non-files
 unsigned char* fileDescriptor::rawPtr()
 {
@@ -2124,34 +2117,6 @@ void image::setImageLength(Address newlen)
     imageLen_ = newlen; 
 }
 
-void image::addOwner(mapped_object *owner) {
-   owning_objects_.push_back(owner);
-}
-
-void image::removeOwner(mapped_object *owner) {
-   std::list<mapped_object *>::iterator iter = std::find(owning_objects_.begin(),
-                                                         owning_objects_.end(),
-                                                         owner);
-   owning_objects_.erase(iter);
-}
-
-void image::destroy(ParseAPI::Block *b) {
-   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
-        iter != owning_objects_.end(); ++iter) {
-      (*iter)->destroy(b);
-   }
-}
-
-void image::destroy(ParseAPI::Edge *e) {
-   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
-        iter != owning_objects_.end(); ++iter) {
-      (*iter)->destroy(e);
-   }
-}
-
-void image::destroy(ParseAPI::Function *f) {
-   for (std::list<mapped_object *>::iterator iter = owning_objects_.begin();
-        iter != owning_objects_.end(); ++iter) {
-      (*iter)->destroy(f);
-   }
-}
+void image::destroy(ParseAPI::Block *) {}
+void image::destroy(ParseAPI::Edge *) {}
+void image::destroy(ParseAPI::Function *) {}

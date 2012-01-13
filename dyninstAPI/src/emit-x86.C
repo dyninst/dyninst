@@ -1262,6 +1262,17 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
                                 codeGen &gen)
 {
+/* disabling hack
+   // HACKITY - remove before doing anything else
+   // 
+   // If the input is a character, then mask off the value in the register so that we're
+   // only comparing the low bytes. 
+   if (src2imm < 0xff) {
+      // Use a 32-bit mask instead of an 8-bit since it sign-extends...
+      emitOpRegImm64(0x81, EXTENDED_0x81_AND, src1, 0xff, true, gen); 
+  }
+*/
+
    // cmp $src2imm, %src1
    emitOpRegImm64(0x81, 7, src1, src2imm, true, gen);
 
@@ -1483,6 +1494,7 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
                                            bool store)
 {
    Register scratch = gen.rs()->getScratchRegister(gen);
+   cerr << "emitLoadOrigRegRelative into " << scratch << " from " << base << endl;
    gen.markRegDefined(scratch);
    gen.markRegDefined(dest);
    // either load the address or the contents at that address
@@ -1514,11 +1526,6 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
    registerSlot *dest = (*gen.rs())[destination];
    assert(dest);
 
-   if (src->spilledState == registerSlot::unspilled)
-   {
-      emitMoveRegToReg((Register) register_num, destination, gen);
-      return;
-   }
    if (register_num == REGNUM_ESP) {
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
       if (!gen.bt() || gen.bt()->alignedStack)
@@ -1526,6 +1533,11 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
       else
          emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset,
                    destination, true, gen);
+      return;
+   }
+   if (src->spilledState == registerSlot::unspilled)
+   {
+      emitMoveRegToReg((Register) register_num, destination, gen);
       return;
    }
 

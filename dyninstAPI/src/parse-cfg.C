@@ -100,6 +100,7 @@ parse_func::parse_func(
   instLevel_(NORMAL),
   canBeRelocated_(true),
   hasWeirdInsns_(false),
+  prevBlocksUnresolvedCF_(0),
   init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)
@@ -255,7 +256,7 @@ void parse_block::debugPrint() {
                    end());
 
     parsing_printf("  Sources:\n");
-    Block::edgelist & srcs = sources();
+    const Block::edgelist & srcs = sources();
     Block::edgelist::iterator sit = srcs.begin();
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
@@ -266,7 +267,7 @@ void parse_block::debugPrint() {
         ++s;
     }
     parsing_printf("  Targets:\n");
-    Block::edgelist & trgs = sources();
+    const Block::edgelist & trgs = sources();
     Block::edgelist::iterator tit = trgs.begin();
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
@@ -325,7 +326,7 @@ bool parse_block::isEntryBlock(parse_func * f) const
  */
 bool parse_block::isExitBlock()
 {
-    Block::edgelist & trgs = targets();
+    const Block::edgelist & trgs = targets();
     if(trgs.empty()) {
         return false;
     }
@@ -356,7 +357,7 @@ bool parse_block::isExitBlock()
 
 bool parse_block::isCallBlock()
 {
-    Block::edgelist & trgs = targets();
+    const Block::edgelist & trgs = targets();
     if(!trgs.empty())
     {
         for (Block::edgelist::iterator eit = trgs.begin();
@@ -466,7 +467,7 @@ void parse_func::getReachableBlocks
     // reachBlocks set
     while(worklist.size()) {
         parse_block *curBlock = worklist.front();
-        Block::edgelist & outEdges = curBlock->targets();
+        const Block::edgelist & outEdges = curBlock->targets();
         Block::edgelist::iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
             parse_block *targB = (parse_block*) (*tIter)->trg();
@@ -488,96 +489,6 @@ void parse_func::getReachableBlocks
         worklist.pop_front();
     } 
 }
-
-#if 0
-/* This function is static.
- *
- * Find the blocks that would become unreachable if we were to delete
- * the dead blocks.
- */
-void parse_func::getUnreachableBlocks
-( std::set<parse_block*> &deadBlocks,  // input
-  std::set<parse_block*> &unreachable )// output
-{
-    using namespace ParseAPI;
-    mal_printf("GetUnreachableBlocks for %d dead blocks\n",deadBlocks.size());
-
-    // find all funcs containing dead blocks
-    std::set<parse_func*> deadFuncs; 
-    vector<Function*> curfuncs;
-    for (set<parse_block*>::iterator dIter = deadBlocks.begin();
-         dIter != deadBlocks.end(); 
-         dIter++) 
-    {
-        (*dIter)->getFuncs(curfuncs);
-        for (vector<Function*>::iterator fit = curfuncs.begin();
-             fit != curfuncs.end();
-             fit++) 
-        {
-            deadFuncs.insert(dynamic_cast<parse_func*>(*fit));
-        }
-        curfuncs.clear();
-    }
-
-    // add function entry blocks to the worklist and the visited set
-    std::set<parse_block*> visited;
-    std::list<parse_block*> worklist;
-    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
-        fIter != deadFuncs.end();
-        fIter++) 
-    {
-        parse_block *entryBlock = (*fIter)->entryBlock();
-        if (deadBlocks.end() == deadBlocks.find(entryBlock)) {
-            visited.insert(entryBlock);
-            worklist.push_back(entryBlock);
-            mal_printf("func [%lx %lx] entryBlock [%lx %lx]\n",
-                    (*fIter)->getOffset(),(*fIter)->getEndOffset(),
-                    entryBlock->firstInsnOffset(),
-                    entryBlock->endOffset());
-        }
-    }
-
-    // iterate through worklist, adding all blocks (except for
-    // deadBlocks) that are reachable through target edges to the
-    // visited set
-    while(worklist.size()) {
-        parse_block *curBlock = worklist.front();
-        Block::edgelist & outEdges = curBlock->targets();
-        Block::edgelist::iterator tIter = outEdges.begin();
-        for (; tIter != outEdges.end(); tIter++) {
-            parse_block *targB = (parse_block*) (*tIter)->trg();
-            if ( CALL != (*tIter)->type() &&
-                 deadBlocks.end() == deadBlocks.find(targB) && 
-                 visited.end() == visited.find(targB) )
-            {   
-                worklist.push_back(targB);
-                visited.insert(targB);
-                mal_printf("block [%lx %lx] is reachable\n",
-                           targB->firstInsnOffset(),
-                           targB->endOffset());
-            }
-        }
-        worklist.pop_front();
-    } 
-
-    // add all blocks in deadFuncs but not in "visited" to the unreachable set
-    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
-        fIter != deadFuncs.end();
-        fIter++) 
-    {
-        Function::blocklist & blks = (*fIter)->blocks();
-        Function::blocklist::iterator bIter = blks.begin();
-        for( ; bIter != blks.end(); ++bIter) {
-            if (visited.end() == visited.find( (parse_block*)(*bIter) )) {
-                unreachable.insert( (parse_block*)(*bIter) );
-                mal_printf("block [%lx %lx] is unreachable\n",
-                           (*bIter)->start(), (*bIter)->end());
-            }
-        }
-    }
-}
-#endif
-
 void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {
     init_retstatus_ = rs;
@@ -600,6 +511,11 @@ ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 void parse_func::setHasWeirdInsns(bool wi)
 {
    hasWeirdInsns_ = wi;
+}
+
+void parse_block::setUnresolvedCF(bool newVal) 
+{ 
+   unresolvedCF_ = newVal;
 }
 
 parse_func *parse_block::getCallee() {

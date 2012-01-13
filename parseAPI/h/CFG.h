@@ -48,6 +48,7 @@ namespace Dyninst {
 namespace ParseAPI {
 
 class CFGModifier;
+class CodeObject;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -174,10 +175,10 @@ class Edge : public allocatable {
 
     PARSER_EXPORT void install();
 
-    /* removes from blocks & finalized source functions if of type CALL */
+    /* removes from blocks (and if of type CALL, from finalized source functions ) */
     PARSER_EXPORT void uninstall();
 
-    PARSER_EXPORT static void destroy(Edge *);
+    PARSER_EXPORT static void destroy(Edge *, CodeObject *);
 
  friend class CFGFactory;
  friend class Parser;
@@ -298,8 +299,8 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT CodeRegion * region() const { return _region; }
 
     /* Edge access */
-    PARSER_EXPORT edgelist & sources() { return _srclist; }
-    PARSER_EXPORT edgelist & targets() { return _trglist; }
+    PARSER_EXPORT const edgelist & sources() const { return _srclist; }
+    PARSER_EXPORT const edgelist & targets() const { return _trglist; }
 
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn);
 

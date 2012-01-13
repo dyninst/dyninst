@@ -99,7 +99,7 @@ class parse_block : public codeRange, public ParseAPI::Block  {
 
     bool unresolvedCF() const { return unresolvedCF_; }
     bool abruptEnd() const { return abruptEnd_; }
-    void setUnresolvedCF(bool newVal) { unresolvedCF_ = newVal; }
+    void setUnresolvedCF(bool newVal);
     void setAbruptEnd(bool newVal) { abruptEnd_ = newVal; }
 
     // misc utility
@@ -325,6 +325,9 @@ class parse_func : public ParseAPI::Function
    bool hasWeirdInsns() { return hasWeirdInsns_; } // true if we stopped the 
                                 // parse at a weird instruction (e.g., arpl)
    void setHasWeirdInsns(bool wi);
+   void setPrevBlocksUnresolvedCF(int newVal) { prevBlocksUnresolvedCF_ = newVal; };
+   int getPrevBlocksUnresolvedCF() const { return prevBlocksUnresolvedCF_; };
+
 
    // ----------------------------------------------------------------------
 
@@ -417,6 +420,7 @@ class parse_func : public ParseAPI::Function
 
    bool hasWeirdInsns_;            // true if we stopped the parse at a 
 								           // weird instruction (e.g., arpl)
+   int prevBlocksUnresolvedCF_; // num func blocks when calculated
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();

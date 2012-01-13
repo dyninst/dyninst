@@ -85,6 +85,8 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
+#include "common/src/Elf_X.C"
+
 using namespace boost::assign;
 
 #include <libgen.h>

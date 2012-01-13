@@ -340,6 +340,10 @@ class AddressSpace : public InstructionSource {
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               func_instance *&, 
                               Address) { return false; }
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry & /*entry*/,
+                              Address /*base_addr*/, 
+                              func_instance * /*target_func*/,
+                              Address /*target_addr*/) { return false; }
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
@@ -475,7 +479,6 @@ class AddressSpace : public InstructionSource {
     bool isMemoryEmulated() { return emulateMem_; }
     bool emulatingPC() { return emulatePC_; }
     MemoryEmulator *getMemEm();
-    void invalidateMemory(Address base, Address size);
 
     bool delayRelocation() const { return delayRelocation_; }
  protected:
@@ -521,8 +524,8 @@ class AddressSpace : public InstructionSource {
 
     // defensive mode code
     typedef std::pair<Address, unsigned> DefensivePad;
-    std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
-    IntervalTree<Address, instPoint *> reverseDefensiveMap_;
+    std::map<Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;
+    IntervalTree<Address, std::pair<func_instance*,Address> > reverseDefensiveMap_;
 
     // Tracking instrumentation for fast removal
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;

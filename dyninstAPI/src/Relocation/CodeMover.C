@@ -56,6 +56,7 @@ CodeMover::CodeMover(CodeTracker *t) :
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
    init_debug_patchapi();
+   relocation_cerr << "Created CodeMover with tracker " << hex << t << dec << endl;
 
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));
@@ -86,7 +87,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
     
       // Add the function entry as Required in the priority map
       block_instance *entry = func->entryBlock();
-      priorityMap_[entry] = std::make_pair(Required,func);
+      priorityMap_[std::make_pair(entry, func)] = Required;
    }
 
    return true;
@@ -219,15 +220,15 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
    if (sboardMap_.empty()) {
       for (PriorityMap::const_iterator iter = priorityMap_.begin();
            iter != priorityMap_.end(); ++iter) {
-         block_instance *bbl = iter->first;
-         const Priority &p = iter->second.first;
-         func_instance *func = iter->second.second;
+         block_instance *bbl = iter->first.first;
+         const Priority &p = iter->second;
+         func_instance *func = iter->first.second;
 
          if (bbl->wasUserAdded()) continue;
 
          // the priority map may include things not in the block
          // map...
-         RelocBlock * trace = cfg_->findSpringboard(bbl);
+         RelocBlock * trace = cfg_->findSpringboard(bbl, func);
          if (!trace) continue;
          int labelID = trace->getLabel();
          Address to = buffer_.getLabelAddr(labelID);
@@ -239,7 +240,7 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
       }
       
       // And instrumentation that needs updating
-      createInstrumentationSpringboards(as);
+      //createInstrumentationSpringboards(as);
    }
 
    return sboardMap_;
@@ -271,6 +272,7 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
    }
 }
 
+<<<<<<< HEAD:dyninstAPI/src/Relocation/CodeMover.C
 void CodeMover::createInstrumentationSpringboards(AddressSpace *) {
    return;
 #if 0
@@ -299,3 +301,5 @@ void CodeMover::createInstrumentationSpringboards(AddressSpace *) {
 #endif
 }
 
+=======
+>>>>>>> master:dyninstAPI/src/Relocation/CodeMover.C

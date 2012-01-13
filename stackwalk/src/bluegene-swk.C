@@ -41,10 +41,13 @@ using namespace DebuggerInterface;
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/symtab-swk.h"
-#include "common/h/SymLite-elf.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
+
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/SymLite-elf.h"
+
 
 #include <string>
 #include <memory>
