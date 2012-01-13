@@ -264,17 +264,6 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
-<<<<<<< HEAD:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
-#if !defined(cap_mem_emulation)
-bool CFWidget::generateAddressTranslator(CodeBuffer &,
-                                         const codeGen &,
-                                         Register &,
-                                         const RelocBlock *) 
-{
-   return true;
-}
-
-=======
 
 #if !defined(cap_mem_emulation)
 bool CFWidget::generateAddressTranslator(CodeBuffer &,const codeGen &,Register &,const RelocBlock *) {
@@ -285,14 +274,6 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
                                        const codeGen &templ,
                                        Register &reg,
                                        const RelocBlock *trace) 
-{
->>>>>>> master:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
-
-#else
-bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
-                                         const codeGen &templ,
-                                         Register &reg,
-                                         const RelocBlock *trace) 
 {
    if (!templ.addrSpace()->isMemoryEmulated() ||
        BPatch_defensiveMode != trace->block()->obj()->hybridMode())
@@ -393,7 +374,3 @@ bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
    return true;
 }
 #endif
-<<<<<<< HEAD:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
-
-=======
->>>>>>> master:dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C

@@ -166,19 +166,6 @@ void *block_instance::getPtrToInstruction(Address addr) const {
   return obj()->getPtrToInstruction(addr);
 }
 
-void block_instance::destroy(block_instance *b) {
-  // Put things here that should go away when we destroy a block.
-  // Iterate through functions...
-
-  std::vector<ParseAPI::Function *> pFuncs;
-  b->llb()->getFuncs(pFuncs);
-  for (unsigned i = 0; i < pFuncs.size(); ++i) {
-    func_instance *func = b->findFunction(pFuncs[i]);
-    func->destroyBlock(b);
-  }
-  delete b;
-}
-
 void block_instance::markModified() {
    std::vector<PatchAPI::PatchFunction *> funcs;
    getFunctions(std::back_inserter(funcs));

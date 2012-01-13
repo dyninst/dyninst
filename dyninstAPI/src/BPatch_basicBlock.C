@@ -521,9 +521,7 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
   instPoint *exit = instPoint::blockExit(ifunc(), iblock);
 
   if (entry) bpPoints.push_back(convertPoint(entry));
-  // TODO bind pre- and post-call together
   if (preCall) bpPoints.push_back(convertPoint(preCall));
-  if (postCall) bpPoints.push_back(convertPoint(postCall));
   if (exit) bpPoints.push_back(convertPoint(exit));
 }
 

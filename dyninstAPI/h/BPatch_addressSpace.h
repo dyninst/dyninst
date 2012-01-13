@@ -425,18 +425,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
 
-    // HACK-TASTIC
-    // I need a workaround for the fact that PatchAPI doesn't have snippet
-    // support yet; I'm getting it by putting an external interface on the 
-    // Dyninst compiler. 
-    // BTW, while I'm at it: SCREW API_EXPORT!
-
-    void snippetToBinary(const BPatch_snippet &expr, 
-                          BPatch_point &point,
-                          BPatch_callWhen when,
-                          char *buffer,
-                          unsigned &size);
-
 };
 
 

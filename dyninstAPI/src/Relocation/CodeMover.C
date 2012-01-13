@@ -108,7 +108,7 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
    cfg_->addRelocBlock(block);
    
    if (!bbl->wasUserAdded()) {
-      priorityMap_[bbl] = std::make_pair(Suggested,f);
+      priorityMap_[std::make_pair(bbl, f)] = Suggested;
    }
 
    return true;
@@ -272,34 +272,3 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
    }
 }
 
-<<<<<<< HEAD:dyninstAPI/src/Relocation/CodeMover.C
-void CodeMover::createInstrumentationSpringboards(AddressSpace *) {
-   return;
-#if 0
-  for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
-        iter != gen().getInstrumentation().end(); ++iter) {
-      std::set<Address>::iterator begin, end;
-      as->getPreviousInstrumentationInstances(iter->first, begin, end);
-      for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         //relocation_cerr << "\t Added inst SB " << hex
-//                         << *begin << " -> " << iter->second << dec << endl;
-      }
-      as->addInstrumentationInstance(iter->first, iter->second);
-   }
-   for (std::map<baseTramp *, Address>::iterator iter = gen().getRemovedInstrumentation().begin();
-        iter != gen().getRemovedInstrumentation().end(); ++iter) {
-      // As above, without the add
-      std::set<Address>::iterator begin, end;
-      as->getPreviousInstrumentationInstances(iter->first, begin, end);
-      for (; begin != end; ++begin) {
-         sboardMap_.addFromRelocatedCode(*begin, iter->second, RelocSuggested);
-         //relocation_cerr << "\t Added inst SB " << hex
-//                         << *begin << " -> " << iter->second << dec << endl;
-      }
-   }
-#endif
-}
-
-=======
->>>>>>> master:dyninstAPI/src/Relocation/CodeMover.C

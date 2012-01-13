@@ -3448,7 +3448,6 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     // If we're an origRegister, override its state as live. 
     if (oType == origRegister) {
        Address origReg = (Address) oValue;
-       cerr << "Override for origRegister use: marking register " << origReg << " off-limits!" << endl;
        // Mark that register as live so we are sure to save it.
        registerSlot *r = (*(g.rs()))[origReg];
        r->offLimits = true;
