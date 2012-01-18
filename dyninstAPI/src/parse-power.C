@@ -735,7 +735,8 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     }
 
     if( loadLibc ) {
-        std::map<std::string, BinaryEdit *> res = openResolvedLibraryName("libc.a");
+       std::map<std::string, BinaryEdit *> res; 
+       openResolvedLibraryName("libc.a", res);
         std::map<std::string, BinaryEdit *>::iterator bedit_it;
         for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
             if( bedit_it->second == NULL ) {

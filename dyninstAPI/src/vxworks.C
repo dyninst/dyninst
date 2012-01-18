@@ -1426,7 +1426,8 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
 // Frame process::preStackWalkInit(Frame startFrame) { assert(0); return startFrame; }
 
 #if defined(cap_binary_rewriter)
-std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) { assert(0); }
+mapped_object *BinaryEdit::openResolvedLibraryName(std::string, 
+                                                   std::map<std::string, BinaryEdit *> &) { assert(0); }
 #endif
 
 void emitCallRel32(unsigned /*disp32*/, unsigned char *& /*insn*/) { assert(0); return; }
