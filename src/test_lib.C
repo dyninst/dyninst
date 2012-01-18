@@ -963,7 +963,7 @@ void reportTestResult(RunGroup *group, TestInfo *test)
    test->result_reported = true;
 }
 
-#if defined(os_linux_test)
+#if defined(cap_liberty_exec_test)
 #if !defined(cap_gnu_demangler_test)
 /**
  * Many linkers don't want to link the static libiberty.a unless
