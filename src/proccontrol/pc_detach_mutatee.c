@@ -80,6 +80,7 @@ static HANDLE am_signaled;
 
 static void self_signal()
 {
+	fprintf(stderr, "self_signal GO!\n");
 	SetEvent(am_signaled);
 }
 
@@ -141,16 +142,19 @@ int pc_detach_mutatee()
 #else
    am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
+   fprintf(stderr, "waiting for sync message in pc_detach_mutatee\n");
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
+	   fprintf(stderr, "Failed to receive sync message\n");
       output->log(STDERR, "Failed to recieve sync message\n");
       return -1;
    }
    if (syncloc_msg.code != SYNCLOC_CODE) {
+	   fprintf(stderr, "Incorrect sync code: %x\n", syncloc_msg.code);
       output->log(STDERR, "Incorrect sync code: %x\n", syncloc_msg.code);
       return -1;
    }
-
+   fprintf(stderr, "Mutatee calling self_signal()\n");
    self_signal();
 
    testUnlock(&init_lock);
