@@ -52,6 +52,7 @@ Process::cb_ret_t on_signal(Event::const_ptr ev)
 
 test_results_t pc_detachMutator::executeTest()
 {
+	logerror("Begin detachMutator::executeTest\n");
    std::vector<Process::ptr>::iterator i;
    bool error = false;
    comp->curgroup_self_cleaning = true;
@@ -60,6 +61,7 @@ test_results_t pc_detachMutator::executeTest()
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
+ 	  logerror("Continuing process %d\n", proc->getPid());
       bool result = proc->continueProc();
       if (!result) {
          logerror("Failed to continue process\n");
@@ -69,6 +71,7 @@ test_results_t pc_detachMutator::executeTest()
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
       Process::ptr proc = *i;
+ 	  logerror("Detaching from process %d\n", proc->getPid());
       bool result = proc->detach();
       if (!result) {
          logerror("Failed to detach from processes\n");
@@ -83,6 +86,7 @@ test_results_t pc_detachMutator::executeTest()
       logerror("Failed to send sync broadcast\n");
       return FAILED;
    }
+   logerror("Sent sync broadcast, waiting for response\n");
 
    syncloc sync_points[NUM_PARALLEL_PROCS];
    result = comp->recv_broadcast((unsigned char *) sync_points, sizeof(syncloc));

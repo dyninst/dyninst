@@ -1053,10 +1053,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 			// And we become stopped for setup of the next RPC. This *should* allow us to continue once setup occurs
 		  // (the new RPC is written and the PC is reset); we just want to make sure we don't run until we're in a valid state.
 		  thr->getIRPCSetupState().desyncState(int_thread::stopped);
-		  thr->getIRPCState().restoreState();
 	   }
-
-	   // Otherwise I hope this will get picked up for the next iRPC...
+ 	   thr->getIRPCState().restoreState();
    }
    else if (!ievent->regrestore_response && 
        (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))

@@ -403,7 +403,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Stop processes
     **/
-   if (thread_start == rpc_start_stopped)
+   if (true/*thread_start == rpc_start_stopped*/)
    {
       for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
            i != comp->procs.end(); i++)
@@ -425,9 +425,8 @@ void pc_irpcMutator::runIRPCs() {
    for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
         i != comp->procs.end(); i++) 
    {
-
-		logerror("Checking particular process\n");	   
 	   Process::ptr proc = *i;
+	   logerror("Checking process %d\n", proc->getPid());	   
       proc_info_t &p = pinfo[proc];
       p.clear();
       unsigned long start_offset;
@@ -438,6 +437,12 @@ void pc_irpcMutator::runIRPCs() {
       {
          Thread::ptr thr = *j;
          thread_info_t &t = tinfo[thr];
+		 logerror("Checking thread %d\n", thr->getLWP());	   
+		 if(!thr->isUser())
+		 {
+			 logerror("Thread is system, should NOT be in ThreadPool iteration, skipping anyway\n");
+			 continue;
+		 }
 
          for (unsigned k = 0; k < NUM_IRPCS; k++)
          {
@@ -464,6 +469,19 @@ void pc_irpcMutator::runIRPCs() {
       }
       free(buffer);
    }
+   if (thread_start != rpc_start_stopped)
+   {
+      for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
+           i != comp->procs.end(); i++)
+      {
+         Process::ptr proc = *i;
+         bool result = proc->continueProc();
+         if (!result) {
+            logerror("Failed to stop process\n");
+            myerror = true;
+         }
+      }
+   }
    
    /**
     * Post IRPCs
@@ -476,6 +494,11 @@ void pc_irpcMutator::runIRPCs() {
       Process::const_ptr proc = thr->getProcess();
       thread_info_t &t = i->second;
 
+	  if(!thr->isUser())
+	  {
+		  logerror("Skipping system thread, should NOT be in tinfo to begin with\n");
+		  continue;
+	  }
       int num_to_post_now = (post_time == post_all_once) ? NUM_IRPCS : 1;
       for (unsigned j=0; j<num_to_post_now; j++)
       {
@@ -781,7 +804,12 @@ test_results_t pc_irpcMutator::executeTest()
 
    unsigned allocation_mode_end = 1;
    unsigned post_time_end = 2;
+	// Windows does not support thread-specific RPCs due to the "create a thread" mechanism for dealing with all threads in syscall.
+#if defined(os_windows_test)
+   unsigned post_to_end = 0;
+#else
    unsigned post_to_end = 1;
+#endif
    unsigned rpc_sync_end = 1;
    unsigned thread_start_end = 1;
 

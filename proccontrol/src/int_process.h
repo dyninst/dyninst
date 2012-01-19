@@ -817,6 +817,7 @@ class int_threadPool {
    void setInitialThread(int_thread *thrd);
    void addThread(int_thread *thrd);
    void rmThread(int_thread *thrd);
+   void noteUpdatedLWP(int_thread *thrd);
    void clear();
    bool hadMultipleThreads() const;
 

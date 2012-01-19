@@ -68,6 +68,7 @@ public:
    virtual bool plat_supportLWPCreate() const;
    virtual bool plat_supportLWPPreDestroy() const;
    virtual bool plat_supportLWPPostDestroy() const;
+   virtual bool plat_supportThreadEvents() { return true; }
 	virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
 	virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
 	virtual bool plat_convertToBreakpointAddress(psaddr_t &);

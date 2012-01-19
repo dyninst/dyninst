@@ -161,7 +161,10 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
    if (thr->getStartFuncAddress(start_addr)) {
 	   if (thr->llproc()->addrInSystemLib(start_addr)) {
 		   thr->setUser(false);
-		   thr->getUserState().setState(int_thread::running);
+		   if(thr->llproc()->threadPool()->initialThread()->getPendingStopState().getState() == int_thread::running)
+		   {
+			   thr->setPendingStop(true);
+		   }
 		   thr->getGeneratorState().setState(int_thread::stopped);
 		   thr->getHandlerState().setState(int_thread::stopped);
 	   }

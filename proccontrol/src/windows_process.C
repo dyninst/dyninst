@@ -279,9 +279,9 @@ SymbolReaderFactory *windows_process::plat_defaultSymReader()
 	return NULL;
 }
 
-bool windows_process::plat_detach(result_response::ptr /* dummy */)
+bool windows_process::plat_detach(result_response::ptr did_detach)
 {
-	pendingDetach = true;
+/*	pendingDetach = true;
 	if(pendingDebugBreak()) {
 		return true;
 	}
@@ -294,6 +294,16 @@ bool windows_process::plat_detach(result_response::ptr /* dummy */)
 		pthrd_printf("Error in plat_detach: %d\n", error);
 	}
 	return result ? true : false;
+	*/
+	int result = ::DebugActiveProcessStop(getPid());
+	if(!result)
+	{
+		pthrd_printf("plat_detach() failed, DebugActiveProcessStop error %d\n", GetLastError());
+		return false;
+	}
+	did_detach->getResultResponse()->setResponse(true);
+	did_detach->getResultResponse()->markReady();
+	return true;
 }
 
 bool windows_process::plat_individualRegAccess()

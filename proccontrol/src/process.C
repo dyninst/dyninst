@@ -3388,9 +3388,9 @@ int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 
 int_thread *int_threadPool::initialThread() const
 {
-	if(!initial_thread) {
-		initial_thread = *(threads.begin());
-	}
+	//if(!initial_thread) {
+//		initial_thread = *(threads.begin());
+//	}
    return initial_thread;
 }
 
@@ -3464,6 +3464,22 @@ void int_threadPool::rmThread(int_thread *thrd)
 	   initial_thread = threads[0];
    }
 }
+
+void int_threadPool::noteUpdatedLWP(int_thread *thrd)
+{
+	std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.begin();
+	while(i != thrds_by_lwp.end())
+	{
+		if(i->second == thrd)
+		{
+			thrds_by_lwp.erase(i);
+			thrds_by_lwp.insert(std::make_pair(thrd->getLWP(), thrd));
+			return;
+		}
+		++i;
+	}
+}
+
 
 void int_threadPool::clear()
 {
@@ -5863,11 +5879,9 @@ Dyninst::LWP Thread::getLWP() const
 
 bool Thread::postIRPC(IRPC::ptr irpc) const
 {
-	// FIXME
-	assert(0);
    MTLock lock_this_func;
    if (!llthread_) {
-      perr_printf("postIRPC on deleted thread\n");
+	   perr_printf("postIRPC on deleted thread %d\n", getLWP());
       setLastError(err_exited, "Thread is exited\n");
       return false;
    }
