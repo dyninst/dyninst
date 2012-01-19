@@ -696,8 +696,8 @@ bool AstNode::generateCode(codeGen &gen,
     setUseCount();
     setVariableAST(gen);
     ast_printf("====== Code Generation Start ===== \n");
-    debugPrint();
-    ast_printf("\n\n\n\n");
+    ast_cerr << format("");
+    ast_printf("\n\n");
 
     // We can enter this guy recursively... inst-ia64 goes through
     // emitV and calls generateCode on the frame pointer AST. Now, it
@@ -717,10 +717,6 @@ bool AstNode::generateCode(codeGen &gen,
       delete gen.tracker();
       gen.setRegTracker(NULL);
     }
-    
-    ast_printf("====== Code Generation End ===== \n");
-    debugPrint();
-    ast_printf("\n\n\n\n");
 
     if (top_level) {
         entered = false;
@@ -1616,6 +1612,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
                                         Address &,
                                         Register &retReg) {
+  cerr << "AstMemoryNode::gCode_phase2, retReg == " << retReg << endl;
+  
 	RETURN_KEPT_REG(retReg);
 	
     const BPatch_memoryAccess* ma;
@@ -1625,7 +1623,8 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         retReg = allocateAndKeep(gen, noCost);    
     switch(mem_) {
     case EffectiveAddr: {
-        
+      cerr << "\t Emitting eff. addr. expr." << endl;
+      
         // VG(11/05/01): get effective address
         // VG(07/31/02): take care which one
         // 1. get the point being instrumented & memory access info
@@ -3274,10 +3273,6 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 	return addrHash4((Address) ast);
 }
 
-void AstNode::debugPrint(unsigned /*level*/) {
-   ast_cerr << format("") << endl;
-}
-
 void regTracker_t::debugPrint() {
     if (!dyn_debug_ast) return;
     
@@ -3420,6 +3415,14 @@ std::string AstVariableNode::format(std::string indent) {
    return ret.str();
 }
 
+std::string AstMemoryNode::format(std::string indent) {
+   std::stringstream ret;
+   ret << indent << "Mem/" << hex << this << dec << "(" 
+       << ((mem_ == EffectiveAddr) ? "EffAddr" : "BytesAcc")
+       << ")" << endl;
+
+   return ret.str();
+}
 
 std::string AstNode::convert(operandType type) {
    switch(type) {

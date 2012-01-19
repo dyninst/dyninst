@@ -1760,6 +1760,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
                                                noCost,
                                                unused,
                                                reg)) assert(0);
+	 if (reg != amd64_arg_regs[u]) {
+	   // Code generator said "we've already got this one in a different
+	   // register, so just reuse it"
+	   emitMovRegToReg64(amd64_arg_regs[u], reg, true, gen);
+	 }	
       }
    }
 
