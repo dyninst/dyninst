@@ -225,7 +225,10 @@ bool Generator::hasLiveProc()
       pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
       return false;
    }
-#pragma warning("fix force generator block")
+   if(num_force_generator_blocking) {
+      pthrd_printf("Generator forcing blocking, returning true from hasLiveProc\n");
+      return true;
+   }
    return true;
 }
 

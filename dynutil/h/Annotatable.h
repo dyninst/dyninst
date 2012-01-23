@@ -196,7 +196,7 @@ COMMON_EXPORT bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, S
 COMMON_EXPORT SerializerBase *getExistingOutputSB(unsigned short);
 COMMON_EXPORT bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *acb, sparse_or_dense_anno_t, const char *);
 
-class AnnotatableDense
+class COMMON_EXPORT AnnotatableDense
 {
 	friend COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
 	friend class SerializerBase;
@@ -225,7 +225,7 @@ class AnnotatableDense
 	  //  to reconstruct annotations without explicit type info -- don't use in 
 	  //  other contexts
 
-      COMMON_EXPORT bool addAnnotation(const void *a, AnnotationClassID id) 
+      bool addAnnotation(const void *a, AnnotationClassID id) 
 	  {
 		  if (annotation_debug_flag())
 		  {
@@ -268,11 +268,11 @@ class AnnotatableDense
          return true;
       }
    public:
-      COMMON_EXPORT AnnotatableDense() : annotations(NULL)
+      AnnotatableDense() : annotations(NULL)
       {
       }
 
-	  COMMON_EXPORT ~AnnotatableDense()
+	  ~AnnotatableDense()
 	  {
 		  if (annotations)
 		  {
@@ -376,7 +376,7 @@ class AnnotatableDense
          return true;
       }
 
-	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
+	  void serializeAnnotations(SerializerBase *sb, const char *tag)
 	  {
 		  serialize_printf("%s[%d]:  welcome to serializeAnotations:\n", FILE__, __LINE__);
 		  //  iterator over possible annotation types
@@ -449,7 +449,7 @@ class AnnotatableDense
 		  }
 	  }
 
-	  COMMON_EXPORT void annotationsReport()
+	  void annotationsReport()
 	  {
 		  std::vector<AnnotationClassBase *> atypes;
 		  if (annotations && annotations->data)
@@ -485,7 +485,7 @@ class AnnotatableDense
 #define NON_STATIC_SPARSE_MAP 1
 #define AN_INLINE inline
 
-class AnnotatableSparse
+class COMMON_EXPORT AnnotatableSparse
 {
 	friend class SerializerBase;
 	friend class Serializable;
@@ -503,13 +503,15 @@ class AnnotatableSparse
 
 #if defined (_MSC_VER)
       typedef dyn_hash_map<void *, void *> annos_by_type_t;
+#pragma warning (push)
+#pragma warning (disable:4251)
 #else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
 #endif
 
       typedef std::vector<annos_by_type_t *> annos_t;
 
-	  COMMON_EXPORT ~AnnotatableSparse()
+	  ~AnnotatableSparse()
 	  {
 		  //  We need to remove annotations from the static map when objects
 		  //  are destroyed:  (1)  memory may be reclaimed and reused at the same
@@ -555,12 +557,12 @@ class AnnotatableSparse
 #if defined (NON_STATIC_SPARSE_MAP)
       //COMMON_EXPORT static annos_t *annos;
 #else
-      COMMON_EXPORT static annos_t annos;
+      static annos_t annos;
 #endif
-	  COMMON_EXPORT annos_t *getAnnos() const;
-	  COMMON_EXPORT static dyn_hash_map<void *, unsigned short> ser_ndx_map;
+	  annos_t *getAnnos() const;
+	  static dyn_hash_map<void *, unsigned short> ser_ndx_map;
 
-      COMMON_EXPORT annos_by_type_t *getAnnosOfType(AnnotationClassID aid, bool do_create =false) const
+      annos_by_type_t *getAnnosOfType(AnnotationClassID aid, bool do_create =false) const
 	  {
 		  annos_t &l_annos = *getAnnos();
          long nelems_to_create = aid - l_annos.size() + 1;
@@ -594,7 +596,7 @@ class AnnotatableSparse
 	  }
 
 
-      COMMON_EXPORT void *getAnnosForObject(annos_by_type_t *abt,
+      void *getAnnosForObject(annos_by_type_t *abt,
             void *obj, bool do_create = false) const 
       {
          assert(abt);
@@ -623,7 +625,7 @@ class AnnotatableSparse
 
 	  //  private version of addAnnotation used by deserialize function to restore
 	  //  annotation set without explicitly specifying types
-	  COMMON_EXPORT AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
+	  AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
 	  {
 		  if (annotation_debug_flag())
 		  {
@@ -667,7 +669,7 @@ class AnnotatableSparse
 
    public:
 
-	  COMMON_EXPORT bool operator==(AnnotatableSparse &cmp)
+	  bool operator==(AnnotatableSparse &cmp)
 	  {
 		  annos_t &l_annos = *getAnnos();
 		  unsigned this_ntypes = l_annos.size();
@@ -868,7 +870,7 @@ class AnnotatableSparse
 	      return false;
 	  }
 
-	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
+	  void serializeAnnotations(SerializerBase *sb, const char *tag)
 	  {
 		  annos_t &l_annos = *getAnnos();
 		  std::vector<ser_rec_t> my_sers;
@@ -934,7 +936,7 @@ class AnnotatableSparse
 			}
 	  }
 
-	  COMMON_EXPORT void annotationsReport()
+	  void annotationsReport()
 	  {
 		  std::vector<AnnotationClassBase *> atypes;
 		  annos_t &l_annos = *getAnnos();
@@ -974,5 +976,9 @@ class AnnotatableSparse
 };
 
 } // namespace
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif

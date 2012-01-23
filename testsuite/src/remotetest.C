@@ -168,7 +168,7 @@ static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buf
 {
    char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, GROUP_ARG) == 0);
-   int group_index;
+   unsigned int group_index;
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
    assert(group_index >= 0 && group_index < groups.size());
@@ -187,7 +187,7 @@ static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffe
 {
    char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, TESTINFO_ARG) == 0);
-   int group_index, test_index;
+   unsigned int group_index, test_index;
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);

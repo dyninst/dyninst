@@ -229,7 +229,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 
 static void clear_resumelog()
 {
-   for (unsigned i=0; i<parallel_copies; i++)
+   for (int  i=0; i<parallel_copies; i++)
    {
       char s[32];
       snprintf(s, 32, "%d", i+1);
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
    for (;;)
    {
       done = true;
-      for (unsigned i=0; i<parallel_copies; i++) {
+      for (int i=0; i<parallel_copies; i++) {
          if (test_drivers[i].last_result == NOTESTS || timeout) {
             //This invocation is done or produced an error
             continue;
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
       if (driver == -1) {
           // Timeout was encountered, and children were reaped.
           timeout = true;
-          for (unsigned idx=0; idx < parallel_copies; idx++) {
+          for (int idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }
       }

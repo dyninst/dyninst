@@ -69,6 +69,11 @@ class func_instance;
 typedef void *BPatch_Address;
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4251)
+#endif
+
 //  BPatch_stats is a collection of instrumentation statistics.
 //  Introduced to export this information to paradyn, which 
 //  produces a summary of these numbers upon application exit.
@@ -696,5 +701,10 @@ public:
     API_EXPORT_V(Int, (name),
     void, addNonReturningFunc, (std::string name));
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 #endif /* _BPatch_h_ */

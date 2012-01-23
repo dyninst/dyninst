@@ -4728,6 +4728,7 @@ Dyninst::PID Process::getPid() const
    MTLock lock_this_func(MTLock::allow_generator);
    if (!llproc_) {
       assert(exitstate_);
+	  if(!exitstate_) return 0;
       return exitstate_->pid;
    }
    return llproc_->getPid();
@@ -6255,7 +6256,7 @@ ThreadPool::const_iterator ThreadPool::begin() const
    i.curi = 0;
 
    if (!threadpool->hl_threads.empty()) {
-	   while(i.curi < threadpool->hl_threads.size() && 
+	   while(i.curi < (int)threadpool->hl_threads.size() && 
 		   i.curp->hl_threads[i.curi] && 
 		   !i.curp->hl_threads[i.curi]->isUser()) {
 			   i.curi++;

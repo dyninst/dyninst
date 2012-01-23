@@ -1728,7 +1728,7 @@ AstNodePtr PCProcess::createLoadRTAST()
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
 	assert(0);
-	return inferiorHeapType::anyHeap;
+	return anyHeap;
 }
 
 mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)

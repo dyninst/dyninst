@@ -47,7 +47,7 @@ int snip_change_shlib_var = 20;
 int snip_ref_shlib_var1 = 5;
 long snip_ref_shlib_var2 = 5L;
 char snip_ref_shlib_var3 = 'e';
-char * snip_ref_shlib_var4 = 0x5;
+char * snip_ref_shlib_var4 = (char*)0x5;
 float snip_ref_shlib_var5 = 5.5e5;
 double snip_ref_shlib_var6 = 5.5e50;
 
