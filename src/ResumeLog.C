@@ -160,7 +160,8 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
       return;
    }
 
-   int groupnum, testnum, runstate_int;
+   unsigned int groupnum, testnum;
+   int runstate_int;
    test_runstate_t runstate;
    test_results_t result;
    
