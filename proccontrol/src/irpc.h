@@ -241,9 +241,6 @@ class iRPCMgr
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);
 
    bool isRPCTrap(int_thread *thr, Dyninst::Address addr);
-   int_iRPC::ptr getRPCForTransferBreakpoint(Dyninst::Address addr);
-private:
-	std::map<Dyninst::Address, int_iRPC::ptr> transfer_breakpoints;
 };
 
 iRPCMgr *rpcMgr();

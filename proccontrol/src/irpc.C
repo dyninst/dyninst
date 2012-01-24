@@ -349,55 +349,18 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
          // two more iRPCs.
          rpc_count += 2;
       }      
-#if defined(arch_x86)
-	  reg_response::ptr result(reg_response::createRegResponse());
-	  if(thr->needsSyscallTrapForRPC()) {
-		  if(!selected_thread)
-		  {
-			  if(thr->getRegister(x86::eip, result))
-			  {
-				  thr->proc()->llproc()->waitForAsyncEvent(result);
-				  traps_needed.insert(result->getResult());
-			  }
-		  }
-	  }
-	  else
-	  {
-		  if(!traps_needed.empty())
-		  {
-			  traps_needed.clear();
-			  min_rpc_count = -1;
-		  }
-	  }
-#endif
       pthrd_printf("Thread %d has %d running/posted iRPCs\n", thr->getLWP(), rpc_count);
       if (rpc_count < min_rpc_count || min_rpc_count == -1) {
          selected_thread = thr;
          min_rpc_count = rpc_count;
       }
    }
-   if(!traps_needed.empty())
-   {
-	   // This should only happen on Windows, because that is currently the only platform where we
-	   // need to trap at syscall exit in order to catch a thread currently in a syscall on the way out
-	   // and run an RPC there. On other OSes, we'll just interrupt the syscall and the OS will (normally)
-	   // restart it.
-	   // This means we'll be spawning a new thread specifically to run this RPC.
-	   // We create a thread with its threadproc at the RPC buffer, we replace the trap with a return, and life should
-	   // be good.
-	   selected_thread = createThreadForRPC(proc, found_user_running_thread);
-   }
+   selected_thread = createThreadForRPC(proc, found_user_running_thread);
    pthrd_printf("Selected thread %d for iRPC %d\n", selected_thread->getLWP(), rpc->id());
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
 }
 
-int_iRPC::ptr iRPCMgr::getRPCForTransferBreakpoint(Dyninst::Address addr)
-{
-	std::map<Address, int_iRPC::ptr>::iterator found = transfer_breakpoints.find(addr);
-	if(found != transfer_breakpoints.end()) return found->second;
-	return int_iRPC::ptr();
-}
 
 bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
 {
