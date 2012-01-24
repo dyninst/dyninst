@@ -1644,6 +1644,12 @@ void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
   addModifiedFunction(oldfunc);
 }
 
+void AddressSpace::revertWrapFunction(func_instance *wrappedfunc) {
+   // Undo the instrumentation component
+   mgr()->instrumenter()->revertWrappedFunction(wrappedfunc);
+   addModifiedFunction(wrappedfunc);
+}
+
 const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
 {
     PatchAPI::FuncModMap repFuncs = mgr_->instrumenter()->funcRepMap();

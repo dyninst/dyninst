@@ -305,6 +305,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
+    // BPatch_addressSpace::revertReplaceFunction
+    //
+    // Undo the operation of a replace function
+    API_EXPORT(Int, (oldFunc),
+               bool, revertReplaceFunction, (BPatch_function &oldFunc));
+
     // BPatch_addressSpace::wrapFunction
     //
     // Replace oldFunc with newFunc as above; however, also rename oldFunc
@@ -312,6 +318,14 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (oldFunc, newFunc, clone),
                bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
+
+    // BPatch_addressSpace::revertWrapFunction
+    //
+    // Undo the operations of a wrapFunction, restoring the original
+    // functionality
+
+    API_EXPORT(Int, (wrappedFunc),
+               bool,revertWrapFunction,(BPatch_function *wrappedFunc));
 
     //  BPatch_addressSpace::getSourceLines
     //  
