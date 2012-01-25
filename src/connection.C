@@ -30,6 +30,7 @@
  */
 
 #include "remotetest.h"
+#include "test_lib.h"
 
 #include <assert.h>
 #include <cstring>

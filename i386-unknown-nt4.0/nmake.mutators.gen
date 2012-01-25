@@ -6,12 +6,6 @@
 # A list of all the mutators to be compiled
 ######################################################################
 
-proccontrol_MUTATORS = pc_launch pc_thread_cont pc_breakpoint pc_library pc_singlestep pc_thread pc_irpc pc_detach pc_temp_detach pc_terminate pc_terminate_stopped 
-
-proccontrol_MUTATORS_SO = pc_launch.dll pc_thread_cont.dll pc_breakpoint.dll pc_library.dll pc_singlestep.dll pc_thread.dll pc_irpc.dll pc_detach.dll pc_temp_detach.dll pc_terminate.dll pc_terminate_stopped.dll 
-
-proccontrol_OBJS_ALL_MUTATORS = pc_launch.obj pc_thread_cont.obj pc_breakpoint.obj pc_library.obj pc_singlestep.obj pc_thread.obj pc_irpc.obj pc_detach.obj pc_temp_detach.obj pc_terminate.obj pc_terminate_stopped.obj 
-
 dyninst_MUTATORS = test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_21 test1_22 snip_ref_shlib_var snip_change_shlib_var test_snip_remove test1_23 test1_24 test1_25 test1_26 test1_27 test1_28 test1_29 test1_30 test1_31 test1_32 test1_33 test1_34 test1_36 test1_37 test1_38 test_write_param test2_1 test2_2 test2_3 test2_4 test2_5 test2_7 test2_8 test2_11 test2_12 test2_13 test2_14 test3_1 test3_2 test3_3 test3_4 test3_7 test4_1 test5_1 test5_2 test5_3 test5_4 test5_5 test5_7 test5_8 test5_9 test_mem_1 test_mem_2 test_mem_3 test_mem_4 test_mem_5 test_mem_6 test_mem_7 test_mem_8 test_stack_1 test_stack_3 test_thread_6 test_thread_7 test_thread_8 test1_1 test1_2 test1_3 test1_4 test1_5 test1_6 test1_7 test1_8 test1_9 test1_10 test1_11 test1_12 test1_13 test1_14 test1_15 test1_16 test1_17 test1_18 test1_19 test1_20 test1_25 test1_29 test1_31 test1_32 test1_34 test1_36 
 
 dyninst_MUTATORS_SO = test1_1.dll test1_2.dll test1_3.dll test1_4.dll test1_5.dll test1_6.dll test1_7.dll test1_8.dll test1_9.dll test1_10.dll test1_11.dll test1_12.dll test1_13.dll test1_14.dll test1_15.dll test1_16.dll test1_17.dll test1_18.dll test1_19.dll test1_20.dll test1_21.dll test1_22.dll snip_ref_shlib_var.dll snip_change_shlib_var.dll test_snip_remove.dll test1_23.dll test1_24.dll test1_25.dll test1_26.dll test1_27.dll test1_28.dll test1_29.dll test1_30.dll test1_31.dll test1_32.dll test1_33.dll test1_34.dll test1_36.dll test1_37.dll test1_38.dll test_write_param.dll test2_1.dll test2_2.dll test2_3.dll test2_4.dll test2_5.dll test2_7.dll test2_8.dll test2_11.dll test2_12.dll test2_13.dll test2_14.dll test3_1.dll test3_2.dll test3_3.dll test3_4.dll test3_7.dll test4_1.dll test5_1.dll test5_2.dll test5_3.dll test5_4.dll test5_5.dll test5_7.dll test5_8.dll test5_9.dll test_mem_1.dll test_mem_2.dll test_mem_3.dll test_mem_4.dll test_mem_5.dll test_mem_6.dll test_mem_7.dll test_mem_8.dll test_stack_1.dll test_stack_3.dll test_thread_6.dll test_thread_7.dll test_thread_8.dll test1_1.dll test1_2.dll test1_3.dll test1_4.dll test1_5.dll test1_6.dll test1_7.dll test1_8.dll test1_9.dll test1_10.dll test1_11.dll test1_12.dll test1_13.dll test1_14.dll test1_15.dll test1_16.dll test1_17.dll test1_18.dll test1_19.dll test1_20.dll test1_25.dll test1_29.dll test1_31.dll test1_32.dll test1_34.dll test1_36.dll 
@@ -30,73 +24,7 @@ symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_line_info.dll
 
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_line_info.obj test_module.obj test_type_info.obj test_symtab_ser_funcs.obj test_ser_anno.obj test_anno_basic_types.obj 
 
-mutators: $(proccontrol_MUTATORS_SO) $(dyninst_MUTATORS_SO) $(instruction_MUTATORS_SO) $(symtab_MUTATORS_SO)
-
-pc_breakpoint.dll: pc_breakpoint.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_breakpoint.obj $(MUTATOR_LIBS)
-
-pc_breakpoint.obj: ../src/proccontrol/pc_breakpoint.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_detach.dll: pc_detach.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_detach.obj $(MUTATOR_LIBS)
-
-pc_detach.obj: ../src/proccontrol/pc_detach.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_irpc.dll: pc_irpc.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_irpc.obj $(MUTATOR_LIBS)
-
-pc_irpc.obj: ../src/proccontrol/pc_irpc.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_launch.dll: pc_launch.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_launch.obj $(MUTATOR_LIBS)
-
-pc_launch.obj: ../src/proccontrol/pc_launch.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_library.dll: pc_library.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_library.obj $(MUTATOR_LIBS)
-
-pc_library.obj: ../src/proccontrol/pc_library.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_singlestep.dll: pc_singlestep.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_singlestep.obj $(MUTATOR_LIBS)
-
-pc_singlestep.obj: ../src/proccontrol/pc_singlestep.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_temp_detach.dll: pc_temp_detach.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_temp_detach.obj $(MUTATOR_LIBS)
-
-pc_temp_detach.obj: ../src/proccontrol/pc_temp_detach.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_terminate.dll: pc_terminate.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_terminate.obj $(MUTATOR_LIBS)
-
-pc_terminate.obj: ../src/proccontrol/pc_terminate.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_terminate_stopped.dll: pc_terminate_stopped.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_terminate_stopped.obj $(MUTATOR_LIBS)
-
-pc_terminate_stopped.obj: ../src/proccontrol/pc_terminate_stopped.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_thread.dll: pc_thread.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_thread.obj $(MUTATOR_LIBS)
-
-pc_thread.obj: ../src/proccontrol/pc_thread.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
-
-pc_thread_cont.dll: pc_thread_cont.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) -DLL -out:$@ pc_thread_cont.obj $(MUTATOR_LIBS)
-
-pc_thread_cont.obj: ../src/proccontrol/pc_thread_cont.C
-	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+mutators: $(dyninst_MUTATORS_SO) $(instruction_MUTATORS_SO) $(symtab_MUTATORS_SO)
 
 snip_change_shlib_var.dll: snip_change_shlib_var.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ snip_change_shlib_var.obj $(MUTATOR_LIBS)
