@@ -41,8 +41,6 @@
 #include "proccontrol/src/int_event.h"
 #include "dynutil/h/dyn_regs.h"
 
-#include "GeneratorWindows.h"
-
 using namespace Dyninst;
 
 #include <assert.h>

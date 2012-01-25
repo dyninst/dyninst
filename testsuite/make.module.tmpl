@@ -626,9 +626,10 @@ test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o $(D
 	@echo Linking $@
 	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMP_RPATHS); $(TESTDRIVER_EXTRA_LINK_STEP)
 
-testdriver_wrapper: connection.o testdriver_wrapper.o
-	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ $^ -static $(LAUNCHMON_BE_LINK)
+# What the hell is this BG-specific stuff doing in make.module.tmpl?
+#testdriver_wrapper: connection.o testdriver_wrapper.o
+#	@echo Linking $@
+#	$(HIDE_COMP)$(CXX) -o $@ $^ -static $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers

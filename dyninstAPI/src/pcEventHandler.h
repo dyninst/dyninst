@@ -194,7 +194,7 @@ protected:
     PCEventMailbox *callbackRPCMailbox_;
 
     // Callback Thread Management
-    static unsigned long WINAPI main_wrapper(void *);
+    static DThread::dthread_ret_t WINAPI main_wrapper(void *);
     void main(); // Callback thread main loop
 
     DThread thrd_;

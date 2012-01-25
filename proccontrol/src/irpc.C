@@ -1293,9 +1293,9 @@ unsigned long IRPC::getStartOffset() const
 
 
 #if !defined(os_windows)
-bool iRPCMgr::createThreadForRPC(int_process* proc, int_iRPC::ptr rpc)
+int_thread* iRPCMgr::createThreadForRPC(int_process*, bool)
 {
 	assert(0);
-	return false;
+	return NULL;
 }
 #endif

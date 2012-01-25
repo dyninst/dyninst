@@ -38,7 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/generator.h"
+#include "proccontrol/h/Generator.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>

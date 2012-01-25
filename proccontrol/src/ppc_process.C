@@ -54,7 +54,7 @@ unsigned ppc_process::plat_breakpointSize()
   return 4;
 }
 
-void ppc_process::plat_breakpointBytes(char *buffer)
+void ppc_process::plat_breakpointBytes(unsigned char *buffer)
 {
   buffer[0] = 0x7d;
   buffer[1] = 0x82;

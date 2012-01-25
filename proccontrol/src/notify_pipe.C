@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-void int_notify::writeToPipe()
+void int_notify::unix_details::writeToPipe()
 {
    if (pipe_out == -1) 
       return;
@@ -50,7 +50,7 @@ void int_notify::writeToPipe()
    pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
 }
 
-void int_notify::readFromPipe()
+void int_notify::unix_details::readFromPipe()
 {
    if (pipe_out == -1)
       return;
@@ -75,7 +75,7 @@ void int_notify::readFromPipe()
    pthrd_printf("Cleared notification pipe %d\n", pipe_in);
 }
 
-bool int_notify::createPipe()
+bool int_notify::unix_details::createInternals()
 {
    if (pipe_in != -1 || pipe_out != -1)
       return true;

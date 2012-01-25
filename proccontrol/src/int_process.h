@@ -1013,9 +1013,10 @@ class int_notify {
 			::ResetEvent(evt);
 		}
 
-		void createInternals()
+		bool createInternals()
 		{
 			evt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+			return evt  != INVALID_HANDLE_VALUE;
 		}
 		bool internalsValid()
 		{
@@ -1041,7 +1042,7 @@ class int_notify {
 		typedef int wait_object_t;
 		void noteEvent();
 		void clearEvent();
-		void createInternals();
+		bool createInternals();
 		bool internalsValid();
 		wait_object_t getWaitObject();
 	};
@@ -1091,7 +1092,11 @@ private:
   Process::thread_mode_t threadMode;
   
   void evhandler_main();
+#if defined(os_windows)
   static unsigned long WINAPI evhandler_main_wrapper(void *);
+#else
+  static void evhandler_main_wrapper(void *);
+#endif
   void eventqueue_cb();
   
 public:

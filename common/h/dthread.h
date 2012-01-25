@@ -49,13 +49,17 @@
 class COMMON_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
+ public:
    typedef void (*initial_func_t)(void *);
    typedef void dthread_ret_t;
+#define DTHREAD_RET_VAL
 #else
 	HANDLE thrd;
 	DWORD tid;
+ public:
 	typedef LPTHREAD_START_ROUTINE initial_func_t;
 	typedef int dthread_ret_t;
+	#define DTHREAD_RET_VAL 0
 #endif
    bool live;   
  public:
@@ -72,8 +76,10 @@ class COMMON_EXPORT Mutex {
    friend class CondVar;
 #if defined(cap_pthreads)
    pthread_mutex_t mutex;
-#else if defined(os_windows)
+#else
+#if defined(os_windows)
    HANDLE mutex;
+#endif
 #endif
  public:
    Mutex(bool recursive=false);

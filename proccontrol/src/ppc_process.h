@@ -44,7 +44,7 @@ class ppc_process : virtual public int_process
   virtual ~ppc_process();
 
   virtual unsigned plat_breakpointSize();
-  virtual void plat_breakpointBytes(char *buffer);
+  virtual void plat_breakpointBytes(unsigned char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
 
   virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult);

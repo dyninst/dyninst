@@ -102,10 +102,10 @@ unsigned int PCEventMailbox::size() {
 // Start Callback Thread Code
 
 // Callback thread entry point
-unsigned long PCEventHandler::main_wrapper(void *h) {
+DThread::dthread_ret_t PCEventHandler::main_wrapper(void *h) {
     PCEventHandler *handler = (PCEventHandler *) h;
     handler->main();
-	return 0;
+	return DTHREAD_RET_VAL;
 }
 
 // Set by callbacks - ProcControlAPI guarantees only one thread will

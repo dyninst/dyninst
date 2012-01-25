@@ -40,7 +40,6 @@
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
-#include "proccontrol/src/GeneratorWindows.h"
 
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
@@ -6642,11 +6641,20 @@ void MTManager::evhandler_main()
    }
 }
 
+#if defined(os_windows)
 unsigned long MTManager::evhandler_main_wrapper(void *)
+#else
+void MTManager::evhandler_main_wrapper(void *)
+#endif
 {
    setHandlerThread(DThread::self());
    mt()->evhandler_main();
+#if defined(os_windows)
    return 0;
+#else
+   return;
+#endif
+
 }
 
 void MTManager::eventqueue_cb_wrapper()

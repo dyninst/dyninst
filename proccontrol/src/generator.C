@@ -34,9 +34,6 @@
 #include "proccontrol/h/Process.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
-#include "proccontrol/src/windows_thread.h"
-#include "proccontrol/src/windows_process.h"
-#include "proccontrol/src/GeneratorWindows.h"
 
 #include "common/h/dthread.h"
 
@@ -243,11 +240,19 @@ struct GeneratorMTInternals
    DThread thrd;
 };
 
+#if defined(os_windows)
 static unsigned long WINAPI start_generator(void *g)
+#else
+static void start_generator(void *g)
+#endif
 {
    GeneratorMT *gen = (GeneratorMT *) g;
    gen->start();
+#if defined(os_windows)
    return 0;
+#else
+   return;
+#endif
 }
 
 GeneratorMT::GeneratorMT(std::string name_) :

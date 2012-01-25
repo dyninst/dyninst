@@ -253,8 +253,8 @@ OS& operator<<(OS& str, Event& e)
 		str << "<UNKNOWN SYNC TYPE> ";
 		break;
 	}
-	str << "on " << (e.getProcess() && e.getProcess()->llproc() ? e.getProcess()->llproc()->getPid() : -1);
-	str << "/" << ((e.getThread() && e.getThread()->llthrd()) ?  e.getThread()->llthrd()->getLWP() : (Dyninst::LWP) -1);
+	str << "on " << (e.getProcess() ? e.getProcess()->getPid() : -1);
+	str << "/" << ((e.getThread()) ?  e.getThread()->getLWP() : (Dyninst::LWP) -1);
 	str << "\n";
 	return str;
 }

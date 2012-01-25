@@ -123,7 +123,7 @@
       #define SW_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define PC_EXPORT
+    #define SW_EXPORT
 #endif
 #endif
 
