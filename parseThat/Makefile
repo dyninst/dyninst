@@ -6,11 +6,11 @@ USES_LIBELF = true
 include ../make.config
 VPATH = $(PLATFORM)
 
-ABS_PROGRAM_DEST := $(shell cd $(PROGRAM_DEST); pwd)
-ABS_LIBRARY_DEST := $(shell cd $(LIBRARY_DEST); pwd)
-ABS_INCLUDE_DEST := $(shell cd $(INCLUDE_DEST); pwd)
-ABS_LIBDWARF_DEST := $(shell cd $(LIBDWARF_LIB); pwd)
-ABS_LIBELF_DEST := $(shell cd $(LIBELF_LIB); pwd)
+ABS_PROGRAM_DEST := $(abspath $(PROGRAM_DEST))
+ABS_LIBRARY_DEST := $(abspath $(LIBRARY_DEST))
+ABS_INCLUDE_DEST := $(abspath $(INCLUDE_DEST))
+ABS_LIBDWARF_DEST := $(abspath $(LIBDWARF_LIB))
+ABS_LIBELF_DEST := $(abspath $(LIBELF_LIB))
 
 CONFIG_ARGS = "--with-dyninst-lib=$(ABS_LIBRARY_DEST)"
 CONFIG_ARGS += "--with-dyninst-include=$(ABS_INCLUDE_DEST)"
@@ -21,6 +21,14 @@ ifdef DEMANGLER_EXEC_LINK
 CONFIG_ARGS += "--with-liberty-lib=\"$(DEMANGLER_EXEC_LINK)\""
 endif
 
+CONFIG_LD_FLAGS = $(patsubst %,-L../%,$(shell echo ../*/$(PLATFORM)))
+CONFIG_CFLAGS = $(patsubst %,-I../%,$(shell echo ../*/h))
+
+ifdef ABS_PROGRAM_DEST
+INSTALL_PREFIX = --prefix=$(ABS_PROGRAM_DEST)
+else
+INSTALL_PREFIX =
+endif
 
 all:  $(PLATFORM)/parseThat
 
@@ -34,11 +42,7 @@ $(PLATFORM)/Makefile: Makefile.in
 		mkdir $(PLATFORM); \
 	fi; \
    cd $(PLATFORM); \
-   if [ -d $(ABS_PROGRAM_DEST) ]; then \
-	LDFLAGS="$(CONFIG_LD_FLAGS)" ../configure $(CONFIG_ARGS) --prefix=$(ABS_PROGRAM_DEST); \
-   else \
-	LDFLAGS="$(CONFIG_LD_FLAGS)" ../configure $(CONFIG_ARGS);\
-   fi; \
+	LDFLAGS="$(CONFIG_LD_FLAGS)" CXXFLAGS="$(CONFIG_CFLAGS)" CFLAGS="$(CONFIG_CFLAGS)" ../configure $(CONFIG_ARGS) $(INSTALL_PREFIX);
 
 clean:
 	cd $(PLATFORM); $(MAKE) clean;

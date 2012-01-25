@@ -15,9 +15,9 @@ depGraphAPI = dynutil common depGraphAPI
 parseAPI = dynutil common symtabAPI instructionAPI parseAPI
 dataflowAPI = $(parseAPI)
 parseThat = $(dyninstAPI) parseThat
-testsuite = $(dyninstAPI) testsuite
 dynC_API = $(dyninstAPI) dynC_API
 dyner = $(dyninstAPI) dyner
+testsuite = testsuite
 valueAdded = $(dyninstAPI) valueAdded/sharedMem
 
 #List all components with tests here
@@ -67,6 +67,8 @@ fullSystem += testsuite
 ifdef BUILD_PARSETHAT
 testsuites += parseThat
 fullSystem += parseThat
+testsuite: parseThat
+testsuite_install: parseThat_install
 endif
 endif
 
