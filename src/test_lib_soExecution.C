@@ -52,6 +52,9 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 
   void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
   if (NULL == odhandle) {
+     odhandle = dlopen(("./" + fname.str()).c_str(), RTLD_NOW);
+  }
+  if (NULL == odhandle) {
     fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, dlerror());
     return NULL;
   }
@@ -88,15 +91,13 @@ static void* openSO(const char *soname, bool local)
    if (!fullSoPath) {
       fullSoPath = strdup(soname);
    }
-   void *handle = dlopen(fullSoPath, RTLD_NOW | (local ? RTLD_LOCAL : RTLD_GLOBAL));
+   void *handle = dlopen(fullSoPath, RTLD_NOW);
+   if (!handle) {
+      std::string str = std::string("./") + std::string(soname);
+      handle = dlopen(str.c_str(), RTLD_NOW);
+   }
    ::free(fullSoPath);
    if (!handle) {
-      fprintf(stderr, "Error opening lib: %s\n", soname);
-      const char *errmsg = dlerror();
-      fprintf(stderr, "%s\n", errmsg);
-      if (getDebugLog()) {
-         fprintf(getDebugLog(), "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");
-      }
       return NULL; //Error
    }
    return handle;
