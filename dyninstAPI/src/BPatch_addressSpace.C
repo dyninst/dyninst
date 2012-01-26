@@ -459,6 +459,29 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
   return true;
 }
 
+/*
+ * BPatch_addressSpace::revertReplaceFunction
+ *
+ * Undoes a replaceFunction operation
+ */
+bool BPatch_addressSpace::revertReplaceFunctionInt(BPatch_function &oldFunc)
+{
+  assert(oldFunc.lowlevel_func());
+  if (!getMutationsActive())
+    return false;
+
+  func_instance *func = oldFunc.lowlevel_func();
+
+  func->proc()->revertReplacedFunction(func);
+
+  if (pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    finalizeInsertionSet(false, &tmp);
+  }
+  return true;
+}
+
 bool BPatch_addressSpace::wrapFunctionInt(BPatch_function *original,
                                           BPatch_function *wrapper,
                                           Dyninst::SymtabAPI::Symbol *clone)
@@ -478,6 +501,23 @@ bool BPatch_addressSpace::wrapFunctionInt(BPatch_function *original,
                                                       clone))
       return false;
 
+   if (pendingInsertions == NULL) {
+      // Trigger it now
+      bool tmp;
+      finalizeInsertionSet(false, &tmp);
+   }
+   return true;
+}
+
+bool BPatch_addressSpace::revertWrapFunctionInt(BPatch_function *original)
+{
+   assert(original->lowlevel_func());
+
+   func_instance *func = original->lowlevel_func();
+   assert(func);
+
+   func->proc()->revertWrapFunction(func);
+   
    if (pendingInsertions == NULL) {
       // Trigger it now
       bool tmp;

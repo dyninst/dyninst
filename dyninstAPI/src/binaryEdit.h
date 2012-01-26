@@ -186,7 +186,8 @@ class BinaryEdit : public AddressSpace {
    bool replaceTrapHandler();
    bool usedATrap();
    bool isMultiThreadCapable();
-   std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
+   mapped_object *openResolvedLibraryName(std::string filename, 
+                                          std::map<std::string, BinaryEdit*> &allOpened);
 
    bool writing() { return writing_; }
 

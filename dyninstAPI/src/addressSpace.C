@@ -931,14 +931,24 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 // This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
 {
+
+   // Update: check by full name first because we may have non-unique fileNames. 
+
    for(u_int j=0; j < mapped_objects.size(); j++){
-      if (mapped_objects[j]->fileName() == obj_name.c_str() ||
-          mapped_objects[j]->fullName() == obj_name.c_str() ||
+      if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
-           (wildcardEquiv(obj_name, mapped_objects[j]->fileName()) ||
-            wildcardEquiv(obj_name, mapped_objects[j]->fullName()))))
+           wildcardEquiv(obj_name, mapped_objects[j]->fullName())))
          return mapped_objects[j];
    }
+
+
+   for(u_int j=0; j < mapped_objects.size(); j++){
+      if (mapped_objects[j]->fileName() == obj_name ||
+          (wildcard &&
+           wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
+         return mapped_objects[j];
+   }
+
    return NULL;
 }
 
@@ -1634,6 +1644,12 @@ void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
   //functionReplacements_.erase(oldfunc);
   mgr()->instrumenter()->revertReplacedFunction(oldfunc);
   addModifiedFunction(oldfunc);
+}
+
+void AddressSpace::revertWrapFunction(func_instance *wrappedfunc) {
+   // Undo the instrumentation component
+   mgr()->instrumenter()->revertWrappedFunction(wrappedfunc);
+   addModifiedFunction(wrappedfunc);
 }
 
 const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const

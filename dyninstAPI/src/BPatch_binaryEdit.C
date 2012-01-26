@@ -116,7 +116,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   std::string rt_name = origBinEdit->dyninstRT_name;
 
   // Load the RT library and create the collection of BinaryEdits that represent it
-  std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
+  std::map<std::string, BinaryEdit *> rtlibs;
+  origBinEdit->openResolvedLibraryName(rt_name, rtlibs);
   std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
   for(rtlibs_it = rtlibs.begin(); rtlibs_it != rtlibs.end(); ++rtlibs_it) {
       if( !rtlibs_it->second ) {
@@ -296,27 +297,25 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
 
 BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-   BPatch_module *ret = NULL;
+   std::map<std::string, BinaryEdit*> libs;
+   mapped_object *obj = origBinEdit->openResolvedLibraryName(libname, libs);
+   if (!obj) return NULL;
 
-  std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
-  std::map<std::string, BinaryEdit*>::iterator lib_it;
-  for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
-    std::pair<std::string, BinaryEdit*> lib = *lib_it;
-
-    if(!lib.second)
-       return NULL;
-
-    llBinEdits.insert(lib);
-    /* PatchAPI stuffs */
-    mapped_object* plib = lib.second->getAOut();
-    assert(plib);
-    dynamic_cast<DynAddrSpace*>(origBinEdit->mgr()->as())->loadLibrary(plib);
-    lib.second->setMgr(origBinEdit->mgr());
-    lib.second->setPatcher(origBinEdit->patcher());
-    /* End of PatchAPi stuffs */
-    if (lib.first == std::string(libname)) {
-       ret = getImage()->findOrCreateModule(plib->getDefaultModule());
-    }
+   std::map<std::string, BinaryEdit*>::iterator lib_it;
+   for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
+      std::pair<std::string, BinaryEdit*> lib = *lib_it;
+      
+      if(!lib.second)
+         return NULL;
+      
+      llBinEdits.insert(lib);
+      /* PatchAPI stuffs */
+      mapped_object* plib = lib.second->getAOut();
+      assert(plib);
+      dynamic_cast<DynAddrSpace*>(origBinEdit->mgr()->as())->loadLibrary(plib);
+      lib.second->setMgr(origBinEdit->mgr());
+      lib.second->setPatcher(origBinEdit->patcher());
+      /* End of PatchAPi stuffs */
 
     int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
     assert(masterTrampGuard);
@@ -336,10 +335,10 @@ BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
     if (deps)
       if( !lib.second->getAllDependencies(llBinEdits) ) return NULL;
 
-  }
-  origBinEdit->addLibraryPrereq(libname);
+   }
 
-  return ret;
+   origBinEdit->addLibraryPrereq(libname);
+   return getImage()->findOrCreateModule(obj->getDefaultModule());
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation
