@@ -627,7 +627,6 @@ bool func_instance::addSymbolsForCopy() {
    }
    else {
       // I think we just add this to the dynamic symbol table...
-      cerr << "Adding symbol... " << hex << wrapperSym << " " << wrapperSym->getName() << dec << endl;
       wrapperSym->setDynamic(true);
       proc()->edit()->addDyninstSymbol(wrapperSym_);
    }

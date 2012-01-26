@@ -328,6 +328,8 @@ class AddressSpace : public InstructionSource {
     bool wrapFunction(func_instance *original, 
                       func_instance *wrapper, 
                       SymtabAPI::Symbol *clone);
+    void wrapFunctionPostPatch(func_instance *wrapped, Dyninst::SymtabAPI::Symbol *);
+
     void revertWrapFunction(func_instance *original);                      
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
@@ -547,6 +549,8 @@ class AddressSpace : public InstructionSource {
     bool emulatePC_;
 
     bool delayRelocation_;
+
+    std::map<func_instance *, Dyninst::SymtabAPI::Symbol *> wrappedFunctionWorklist_;
 
   // PatchAPI stuffs
   public:

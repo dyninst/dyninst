@@ -1599,30 +1599,27 @@ bool AddressSpace::wrapFunction(func_instance *original,
    mgr()->instrumenter()->wrapFunction(original, wrapper, clone->getMangledName());
    addModifiedFunction(original);
 
+   wrappedFunctionWorklist_[original] = clone;
+
+   return true;
+}
+
+void AddressSpace::wrapFunctionPostPatch(func_instance *func, Dyninst::SymtabAPI::Symbol *clone) {
    if (edit()) {
-      if (!AddressSpace::patch(this)) return false;
-      if (!original->addSymbolsForCopy()) return false;
+      func->addSymbolsForCopy();
    }
    else {
-      if (!AddressSpace::patch(this)) return false;
-      Address newAddr = original->getWrapperSymbol()->getOffset();
+      Address newAddr = func->getWrapperSymbol()->getOffset();
       // We have copied the original function and given it the address
       // newAddr. We now need to update any references calling the clone
       // symbol and point them at newAddr. Effectively, we're acting as
       // a proactive loader. 
-
+      
       for (unsigned i = 0; i < mapped_objects.size(); ++i) {
          // Need original to get intermodule working right. 
-         mapped_objects[i]->replacePLTStub(clone, original, newAddr);
+         mapped_objects[i]->replacePLTStub(clone, func, newAddr);
       }
-      // Aaaand patch again to make it all actually happen.
-      // We need to do the function wrapping first because relocation is
-      // per-mapped-object. Oy. 
-      if (!AddressSpace::patch(this)) return false;
-
-      return false;
    }
-   return true;
 }
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
@@ -1650,6 +1647,7 @@ void AddressSpace::revertWrapFunction(func_instance *wrappedfunc) {
    // Undo the instrumentation component
    mgr()->instrumenter()->revertWrappedFunction(wrappedfunc);
    addModifiedFunction(wrappedfunc);
+   wrappedFunctionWorklist_.erase(wrappedfunc);
 }
 
 const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
@@ -1670,10 +1668,9 @@ using namespace Relocation;
 
 bool AddressSpace::relocate() {
    if (delayRelocation()) return true;
-
-
-  relocation_cerr << "ADDRSPACE::Relocate called; modified functions reports "
-                  << modifiedFunctions_.size() << " objects to relocate." << endl;
+   
+   relocation_cerr << "ADDRSPACE::Relocate called; modified functions reports "
+                   << modifiedFunctions_.size() << " objects to relocate." << endl;
   if (!mapped_objects.size()) {
     relocation_cerr << "WARNING: No mapped_object in this addressSpace!\n";
     return false;
@@ -1723,6 +1720,13 @@ bool AddressSpace::relocate() {
   updateMemEmulator();
 
   modifiedFunctions_.clear();
+
+  for (std::map<func_instance *, Dyninst::SymtabAPI::Symbol *>::iterator foo = wrappedFunctionWorklist_.begin();
+       foo != wrappedFunctionWorklist_.end(); ++foo) {
+      wrapFunctionPostPatch(foo->first, foo->second);
+  }
+  wrappedFunctionWorklist_.clear();
+
   return ret;
 }
 
@@ -2260,7 +2264,7 @@ void AddressSpace::initPatchAPI(mapped_object* aout) {
 }
 
 bool AddressSpace::patch(AddressSpace* as) {
-  return as->patcher()->commit();
+   return as->patcher()->commit();
 }
 
 void AddressSpace::addMappedObject(mapped_object* obj) {
