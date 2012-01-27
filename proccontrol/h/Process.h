@@ -75,6 +75,7 @@ class EventHandler;
 class Event;
 class RegisterPool;
 class Breakpoint;
+class ExecFileInfo;
 
 class PC_EXPORT Breakpoint 
 {
@@ -362,6 +363,12 @@ class PC_EXPORT Process
     * Symbol access
     **/
    SymbolReaderFactory *getDefaultSymbolReader();
+
+   /**
+    * Executable info
+	**/
+	ExecFileInfo* getExecutableInfo() const;
+
 };
 
 class PC_EXPORT Thread
@@ -560,6 +567,15 @@ class PC_EXPORT EventNotify
    void removeCB(notify_cb_t cb);
 };
 PC_EXPORT EventNotify *evNotify();
+
+class PC_EXPORT ExecFileInfo
+{
+public:
+	void* fileHandle;
+	void* processHandle;
+	Address fileBase;
+};
+
 
 }
 }

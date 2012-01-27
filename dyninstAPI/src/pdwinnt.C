@@ -1630,8 +1630,26 @@ unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
 
 PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase(Dyninst::ProcControlAPI::EventType et)
 {
-	assert(0);
-	return PCEventHandler::BreakpointOnly;
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+    
+    switch(et.code()) {
+        case Dyninst::ProcControlAPI::EventType::Exit:
+            switch(et.time()) {
+                case Dyninst::ProcControlAPI::EventType::Pre:
+                    // Using the RT library breakpoint allows us to determine
+                    // the exit code in a uniform way across Unices
+                    return BreakpointOnly;
+                case Dyninst::ProcControlAPI::EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    return NoCallbackOrBreakpoint;
 }
 
 bool PCEventHandler::isKillSignal(int signal)
@@ -1658,23 +1676,22 @@ bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal
 
 bool PCProcess::usesDataLoadAddress() const
 {
-	assert(0);
 	return false;
 }
 bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName)
 {
-	assert(0);
-	return false;
+	// We don't LD_PRELOAD on Windows
+	return true;
 }
 
 void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd, std::map<int,int> &result)
 {
-	assert(0);
+	// Not implemented on existing dyninst-on-windows, just skip
+	return;
 }
 std::string PCProcess::createExecPath(const std::string &file, const std::string &dir)
 {
-	assert(0);
-	return "";
+	return dir + file;
 }
 
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet)
@@ -1697,8 +1714,17 @@ bool PCProcess::instrumentMTFuncs()
 
 bool PCProcess::getExecFileDescriptor(std::string filename, bool waitForTrap, fileDescriptor &desc)
 {
-	assert(0);
-	return false;
+	Address mainFileBase = 0;
+	Dyninst::ProcControlAPI::ExecFileInfo* efi = pcProc_->getExecutableInfo();
+
+	desc = fileDescriptor(filename.c_str(),
+			(Address)(0),
+			efi->processHandle,
+			efi->fileHandle,
+			false,
+			efi->fileBase);
+	delete efi;
+	return true;
 }
 
 bool PCProcess::skipHeap(const heapDescriptor &heap)
@@ -1728,7 +1754,7 @@ AstNodePtr PCProcess::createLoadRTAST()
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
 	assert(0);
-	return inferiorHeapType::anyHeap;
+	return anyHeap;
 }
 
 mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)

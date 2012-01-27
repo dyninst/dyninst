@@ -406,7 +406,7 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		newEvt = WinEventThreadInfo::ptr(new WinEventThreadInfo((Dyninst::LWP)(e.dwThreadId), e.u.CreateProcessInfo.hThread,
 			e.u.CreateProcessInfo.lpStartAddress, e.u.CreateProcessInfo.lpThreadLocalBase));
 		newEvt->setThread(proc->threadPool()->initialThread()->thread());
-		wproc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
+		wproc->plat_setHandles(e.u.CreateProcessInfo.hProcess, e.u.CreateProcessInfo.hFile, (Dyninst::Address)e.u.CreateProcessInfo.lpBaseOfImage);
 	} else {
 		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));

@@ -53,7 +53,7 @@ bool Mutex::lock()
 bool Mutex::unlock()
 {
 //	fprintf(stderr, "[%d]: Mutex::unlock() for 0x%lx\n", ::GetCurrentThreadId(), mutex);
-	bool ok = ::ReleaseMutex(mutex);
+	bool ok = (::ReleaseMutex(mutex) != 0);
 	if(!ok) {
 		fprintf(stderr, "Failed to release mutex: %d\n", ::GetLastError());
 	}

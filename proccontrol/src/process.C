@@ -4728,6 +4728,7 @@ Dyninst::PID Process::getPid() const
    MTLock lock_this_func(MTLock::allow_generator);
    if (!llproc_) {
       assert(exitstate_);
+	  if(!exitstate_) return 0;
       return exitstate_->pid;
    }
    return llproc_->getPid();
@@ -5512,6 +5513,19 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    return llproc()->plat_defaultSymReader();
 }
 
+ExecFileInfo* Process::getExecutableInfo() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getExecutableInfo on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc()->plat_getExecutableInfo();
+}
+
+
 Thread::Thread() :
    llthread_(NULL),
    exitstate_(NULL),
@@ -6255,7 +6269,7 @@ ThreadPool::const_iterator ThreadPool::begin() const
    i.curi = 0;
 
    if (!threadpool->hl_threads.empty()) {
-	   while(i.curi < threadpool->hl_threads.size() && 
+	   while(i.curi < (int)threadpool->hl_threads.size() && 
 		   i.curp->hl_threads[i.curi] && 
 		   !i.curp->hl_threads[i.curi]->isUser()) {
 			   i.curi++;

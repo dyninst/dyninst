@@ -81,6 +81,8 @@ hybrid_lwp_control_process(p, e, a, envp, f),
 x86_process(p, e, a, envp, f),
 pendingDetach(false),
 pendingDebugBreak_(false),
+hproc(INVALID_HANDLE_VALUE),
+hfile(INVALID_HANDLE_VALUE),
 dummyRPCThread_(NULL)
 {
 }
@@ -91,6 +93,8 @@ hybrid_lwp_control_process(pid_, p),
 x86_process(pid_, p),
 pendingDetach(false),
 pendingDebugBreak_(false),
+hproc(INVALID_HANDLE_VALUE),
+hfile(INVALID_HANDLE_VALUE),
 dummyRPCThread_(NULL)
 {
 }
@@ -117,9 +121,11 @@ HANDLE windows_process::plat_getHandle()
 	return hproc;
 }
 
-void windows_process::plat_setHandle(HANDLE h)
+void windows_process::plat_setHandles(HANDLE hp, HANDLE hf, Address eb)
 {
-	hproc = h;
+	hproc = hp;
+	hfile = hf;
+	execBase = eb;
 }
 
 bool windows_process::plat_create_int()
@@ -561,4 +567,13 @@ bool windows_process::plat_resumeThread(int_thread *thr)
 	windows_thread* wthr = static_cast<windows_thread*>(thr);
 	assert(wthr);
 	return wthr->plat_resume();
+}
+
+ExecFileInfo* windows_process::plat_getExecutableInfo() const
+{
+	ExecFileInfo* ret = new ExecFileInfo();
+	ret->fileHandle = (void*)hfile;
+	ret->processHandle = (void*)hproc;
+	ret->fileBase = execBase;
+	return ret;
 }

@@ -1329,7 +1329,7 @@ bool PCProcess::writeDataSpace(void *inTracedProcess,
                 amount, PAGE_EXECUTE_READWRITE);
         if( oldRights == PAGE_EXECUTE_READ || oldRights == PAGE_READONLY ) {
             result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
-            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == -1 ) {
+            if( setMemoryAccessRights((Address)inTracedProcess, amount, oldRights) == false ) {
                 result = false;
             }
         }else{

@@ -131,7 +131,9 @@ class fileDescriptor {
         dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0)
+        loadAddr_(0),
+		length_(0),
+		rawPtr_(NULL)
         {}
 
      ~fileDescriptor() {}
@@ -185,8 +187,6 @@ class fileDescriptor {
  private:
      HANDLE procHandle_;
      HANDLE fileHandle_;
-     Address length_;        // set only if this is not really a file
-     unsigned char* rawPtr_; // set only if this is not really a file
  public:
 #endif
 
@@ -201,6 +201,8 @@ class fileDescriptor {
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address loadAddr_;
+     Address length_;        // set only if this is not really a file
+     unsigned char* rawPtr_; // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };

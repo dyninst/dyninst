@@ -88,7 +88,7 @@ public:
 	virtual bool initLibraryMechanism();
 	virtual bool plat_isStaticBinary();
 	HANDLE plat_getHandle();
-	void plat_setHandle(HANDLE h);
+	void plat_setHandles(HANDLE hp, HANDLE hf, Address fb);
 	virtual bool hasPendingDetach() const { return pendingDetach; }
 	virtual void clearPendingDebugBreak() { pendingDebugBreak_ = false; }
 	virtual void setPendingDebugBreak() { pendingDebugBreak_ = true; }
@@ -113,10 +113,13 @@ public:
    virtual void instantiateRPCThread();
    virtual bool plat_supportDirectAllocation() const { return true; }
    virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
+   virtual ExecFileInfo* plat_getExecutableInfo() const;
 private:
 	HANDLE hproc;
+	HANDLE hfile;
 	bool pendingDetach;
 	bool pendingDebugBreak_;
+	Address execBase;
 
 	IntervalTree<Address, bool> systemLibIntervals_;
 	void findSystemLibs();

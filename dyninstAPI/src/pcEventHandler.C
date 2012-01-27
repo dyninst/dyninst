@@ -393,8 +393,8 @@ int makePipe(int* fds)
 #if !defined(os_windows)
 	return pipe(fds);
 #else
-	assert(!"not implemented");
-	return 0;
+	fds[0] = fds[1] = (int)::CreateEvent(NULL, false, false, NULL);
+	return fds[0] == (int)INVALID_HANDLE_VALUE;
 #endif
 }
 

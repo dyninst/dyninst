@@ -81,8 +81,10 @@ SymtabReader::~SymtabReader()
       Symtab::closeSymtab(symtab);
    symtab = NULL;
    mapped_regions = NULL;
+#if !defined(os_windows)
    if (dwarf_handle)
      delete dwarf_handle;
+#endif
    dwarf_handle = NULL;
 }
 

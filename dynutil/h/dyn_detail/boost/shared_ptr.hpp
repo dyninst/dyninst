@@ -50,7 +50,9 @@
 #endif
 #endif
 
-#ifdef DYN_DETAIL_BOOST_MSVC  // moved here to work around VC++ compiler crash
+#ifdef _MSC_VER  // moved here to work around VC++ compiler crash
+# pragma warning(disable:4251) // allow use of shared ptr in dll-exported classes
+# pragma warning(disable:4396) // allow friend declarations of checked_delete, inline will be ignored
 # pragma warning(push)
 # pragma warning(disable:4284) // odd return type for operator->
 #endif
@@ -309,7 +311,7 @@ public:
 
 #endif // DYN_DETAIL_BOOST_NO_AUTO_PTR
 
-#if !defined(DYN_DETAIL_BOOST_MSVC) || (DYN_DETAIL_BOOST_MSVC >= 1300)
+#if !defined(_MSVC) || (_MSVC >= 1300)
 
     template<class Y>
     shared_ptr & operator=(shared_ptr<Y> const & r) // never throws
@@ -746,7 +748,7 @@ template<class T> inline bool atomic_compare_exchange_explicit( shared_ptr<T> * 
 } // namespace boost
 } // namespace dyn_detail
 
-#ifdef DYN_DETAIL_BOOST_MSVC
+#ifdef _MSC_VER
 # pragma warning(pop)
 #endif
 

@@ -443,7 +443,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
    else
       num_processes = 1;
    
-   for (unsigned i=0; i<num_processes; i++) {
+   for (int  i=0; i<num_processes; i++) {
       Process::ptr proc = launchMutatee(group, param);
       if (proc == NULL) {
          error = true;
@@ -879,7 +879,7 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 		break;
 	}
    }
-   for (unsigned i=0; i<num; i++) {
+   for (int i=0; i<num; i++) {
       send_pid msg;
       bool result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
       if (!result) {

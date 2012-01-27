@@ -357,7 +357,7 @@ class int_process
 
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
-   
+   virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
  protected:
    State state;
    Dyninst::PID pid;
@@ -1129,16 +1129,16 @@ class MTLock
       should_unlock = true;
       if (!MTManager::mt_) {
          MTManager::mt_ = new MTManager();
-         if (MTManager::default_thread_mode == Process::HandlerThreading ||
-             MTManager::default_thread_mode == Process::CallbackThreading) {
+         if ((MTManager::default_thread_mode == Process::HandlerThreading) ||
+             (MTManager::default_thread_mode == Process::CallbackThreading)) {
             mt()->startWork();
          }
          mt()->setThreadMode(MTManager::default_thread_mode, true);
       }
       else if (mt()->handlerThreading()) {
          mt()->startWork();
-         if (c == deliver_callbacks && 
-             MTManager::default_thread_mode == Process::HandlerThreading && 
+         if ((c == deliver_callbacks) && 
+             (MTManager::default_thread_mode == Process::HandlerThreading) && 
              notify()->hasEvents()) 
          {
             pthrd_printf("MTLock triggered event handling\n");
@@ -1167,7 +1167,7 @@ class MTLock
       if (mt()->handlerThreading()) {
          mt()->startWork();
          if (notify()->hasEvents() && 
-             MTManager::default_thread_mode == Process::HandlerThreading) 
+             (MTManager::default_thread_mode == Process::HandlerThreading) )
          {
             pthrd_printf("MTLock triggered event handling\n");
             int_process::waitAndHandleEvents(false);

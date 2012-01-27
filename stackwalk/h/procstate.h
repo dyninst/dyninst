@@ -51,7 +51,7 @@ class LibraryState;
 class ThreadState;
 class Walker;
 
-class ProcessState {
+class SW_EXPORT ProcessState {
    friend class Walker;
 protected:
    Dyninst::PID pid;
