@@ -32,7 +32,7 @@
 // $Id: test_lib_mutateeStart.C,v 1.1 2008/10/30 19:21:46 legendre Exp $
 // Functions Dealing with mutatee Startup
 
-#if !defined(COMLIB_DLL_BUILD)
+#if !defined(COMPLIB_DLL_BUILD)
 #define COMPLIB_DLL_BUILD
 #endif
 
