@@ -206,6 +206,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
          
          if (group->state == RUNNING)
          {
+			 printf("group->state == RUNNING, appProc continue Execution\n");
             appProc->continueExecution();
          }
       }
@@ -300,8 +301,9 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    do {
-       //fprintf(stderr, "continuing mutatee...\n");
+       //fprintf(stderr, "continuing mutatee...\n");	   
       appProc->continueExecution();
+	  
       bpatch->waitForStatusChange();
    } while (appProc && !appProc->isTerminated());
 
@@ -494,7 +496,7 @@ bool signalAttached(BPatch_image *appImage)
         return false;
     }
 
-    int yes = 1;
+    int yes = 1;	
     isAttached->writeValue(&yes);
     return true;
 }
@@ -1022,7 +1024,7 @@ TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appP
 {
 
     dprintf("Proc %d is pointer %p\n", *threadCount, appProc);
-	myprocs[(*threadCount)++] = appProc;
+	myprocs[(*threadCount)++] = appProc;	
         appProc->continueExecution();
 
 	while (1) {
@@ -1045,7 +1047,7 @@ TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appP
 
 		for (i=0; i < *threadCount; i++) {
                     if (myprocs[i]->isStopped()) {
-				dprintf("Thread %d marked stopped, continuing\n", i);
+				dprintf("Thread %d marked stopped, continuing\n", i);				
                                 myprocs[i]->continueExecution();
 			}
 		}
@@ -1624,6 +1626,7 @@ int letOriginalMutateeFinish(BPatch_process *appThread){
 
 	/*fprintf(stderr,"\n************************\n");	
 	  fprintf(stderr,"Running the original mutatee\n\n");*/
+	printf("letOriginalMutateeFinish: continueExecution()\n");
 	appThread->continueExecution();
 
 	while( !appThread->isTerminated());

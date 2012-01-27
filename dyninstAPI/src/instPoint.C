@@ -471,6 +471,9 @@ bitArray instPoint::liveRegisters(){
 	static LivenessAnalyzer live2(8);
 	LivenessAnalyzer *live;
 	if (func()->function()->region()->getAddressWidth() == 4) live = &live1; else live = &live2;
+	if (liveRegs_.size() && liveRegs_.size() == live->getABI()->getAllRegs().size()){
+		return liveRegs_;
+	}	
 	switch(type()) {
 		case FuncEntry:
 			if (!live->query(Location(EntrySite(func()->function(), func()->function()->entry())), LivenessAnalyzer::Before, liveRegs_)) assert(0);

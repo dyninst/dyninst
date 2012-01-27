@@ -33,7 +33,7 @@
 
 #ifndef _BITARRAY_
 #define _BITARRAY_
-#include "boost/dynamic_bitset.hpp"
+#include <boost/dynamic_bitset.hpp>
 typedef boost::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
 
 // Bitarrays for register liveness. This could move to registerSpace...

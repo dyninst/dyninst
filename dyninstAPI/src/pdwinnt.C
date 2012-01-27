@@ -1106,7 +1106,7 @@ bool process::waitUntilStopped() {
 }
 
 Frame dyn_lwp::getActiveFrame()
-{
+{		
 	w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
 
 	Address pc = 0, fp = 0, sp = 0;
@@ -1132,7 +1132,7 @@ Frame dyn_lwp::getActiveFrame()
 		frame.eflags = cont.EFlags;
 
 		return frame;
-	}
+	}	
 	printSysError(GetLastError());
 	return Frame();
 }
@@ -1168,8 +1168,10 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    handleT handle = get_fd();
    if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
    {
+	   printf("GetThreadContext Fails\n");
       return false;
-   }
+   }   
+
    return true;
 }
 
@@ -1191,7 +1193,13 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
       cerr << " to func " << (funcs.empty() ? "<UNKNOWN>" :
                               ((funcs.size() == 1) ? (*(funcs.begin()))->symTabName() : "<MULTIPLE>"));
       cerr << dec << endl;
-      cerr << "Currently at: " << getActiveFrame();
+      cerr << "Currently at: " << getActiveFrame() << endl;
+	  funcs.clear();
+	  proc()->findFuncsByAddr(getActiveFrame().getPC(), funcs);
+      cerr << " in func " << (funcs.empty() ? "<UNKNOWN>" :
+                              ((funcs.size() == 1) ? (*(funcs.begin()))->symTabName() : "<MULTIPLE>"));
+	  cerr << dec << endl;
+
   }
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
@@ -1210,16 +1218,16 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
   {
     printf("SethreadContext failed\n");
     return false;
-  }
+  }  
   return true;
 }
 
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP) {
   if (!SetThreadContext((HANDLE)get_fd(), &(regs.cont)))
   {
-    //printf("SetThreadContext failed\n");
+    printf("SetThreadContext failed\n");
     return false;
-  }
+  }   
   return true;
 }
 
@@ -2136,7 +2144,8 @@ bool process::loadDYNINSTlib()
 
     bool status = lwp->getRegisters(savedRegs);
     assert(status == true);    
-    lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
+
+	lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
     
     setBootstrapState(loadingRT_bs);
     return true;

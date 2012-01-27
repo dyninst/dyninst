@@ -115,7 +115,7 @@ SRCS_INSTRUCTIONCOMP = ../src/instruction/instruction_comp.C
 OBJS_INSTRUCTIONCOMP = $(SRCS_INSTRUCTIONCOMP:.C=.obj)
 OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
 
-TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib libtestpatchapi.lib
+TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib libtestpatchapi.lib shlwapi.lib
 
 all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPATCHAPICOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll $(PATCHAPI_TESTLIBS)
 

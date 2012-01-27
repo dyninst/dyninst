@@ -46,8 +46,8 @@ class LivenessAnalyzer{
 public:
 	typedef enum {Before, After} Type;
 	typedef enum {Invalid_Location} ErrorType;
-	LivenessAnalyzer(int w);
-	void analyze(ParseAPI::Function *func);
+	DATAFLOW_EXPORT LivenessAnalyzer(int w);
+	DATAFLOW_EXPORT void analyze(ParseAPI::Function *func);
 
 	template <class OutputIterator>
 	bool query(ParseAPI::Location loc, Type type, OutputIterator outIter){
@@ -62,15 +62,16 @@ public:
 		}
 		return false;
 	}
-	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
-	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
+	DATAFLOW_EXPORT bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
+	DATAFLOW_EXPORT bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
 
-	ErrorType getLastError(){ return errorno; }
+	DATAFLOW_EXPORT ErrorType getLastError(){ return errorno; }
 
-	void clean(ParseAPI::Function *func);
-	void clean();
+	DATAFLOW_EXPORT void clean(ParseAPI::Function *func);
+	DATAFLOW_EXPORT void clean();
 
-	int getIndex(MachRegister machReg);
+	DATAFLOW_EXPORT int getIndex(MachRegister machReg);
+	DATAFLOW_EXPORT ABI* getABI() { return abi;}
 
 private:
 	ErrorType errorno;

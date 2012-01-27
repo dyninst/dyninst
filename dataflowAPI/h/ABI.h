@@ -16,25 +16,25 @@ class ABI{
     int addr_width;
 
  public:
-    const bitArray &getCallReadRegisters() const;
-    const bitArray &getCallWrittenRegisters() const;
-    const bitArray &getReturnReadRegisters() const;
+    DATAFLOW_EXPORT const bitArray &getCallReadRegisters() const;
+    DATAFLOW_EXPORT const bitArray &getCallWrittenRegisters() const;
+    DATAFLOW_EXPORT const bitArray &getReturnReadRegisters() const;
     // No such thing as return written...
 
     // Syscall!
-    const bitArray &getSyscallReadRegisters() const;
-    const bitArray &getSyscallWrittenRegisters() const;
+    DATAFLOW_EXPORT const bitArray &getSyscallReadRegisters() const;
+    DATAFLOW_EXPORT const bitArray &getSyscallWrittenRegisters() const;
 
-    const bitArray &getAllRegs() const;
+    DATAFLOW_EXPORT const bitArray &getAllRegs() const;
 
-    int getIndex(MachRegister machReg);
-    std::map<MachRegister,int>* getIndexMap();
+    DATAFLOW_EXPORT int getIndex(MachRegister machReg);
+    DATAFLOW_EXPORT std::map<MachRegister,int>* getIndexMap();
 
-    static void initialize32();
-    static void initialize64();
+    DATAFLOW_EXPORT static void initialize32();
+    DATAFLOW_EXPORT static void initialize64();
 
-    static ABI* getABI(int addr_width);
-    bitArray getBitArray();
+    DATAFLOW_EXPORT static ABI* getABI(int addr_width);
+    DATAFLOW_EXPORT bitArray getBitArray();
  private:
     static bitArray callRead_;
     static bitArray callRead64_;

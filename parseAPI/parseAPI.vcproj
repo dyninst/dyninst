@@ -43,7 +43,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../dynutil/h;h;..;../dynutil/h;../../include;../external;../dataflowAPI/h;../dataflowAPI/src;../symtabAPI/h;../instructionAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -192,6 +192,18 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath="..\dataflowAPI\src\ABI.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
 			<File
 				RelativePath="..\dataflowAPI\src\Absloc.C"
 				>
@@ -461,6 +473,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\dataflowAPI\src\InstructionCache.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\InstructionSource-x86.C"
 				>
 				<FileConfiguration
@@ -473,6 +497,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\src\liveness.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -565,6 +601,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\src\RegisterMap.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -719,11 +767,19 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath="..\dataflowAPI\h\ABI.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\h\Absloc.h"
 				>
 			</File>
 			<File
 				RelativePath="..\dataflowAPI\h\AbslocInterface.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\h\bitArray.h"
 				>
 			</File>
 			<File
@@ -779,7 +835,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\dataflowAPI\h\InstructionCache.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\InstructionSource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\h\liveness.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\Location.h"
 				>
 			</File>
 			<File
@@ -804,6 +872,10 @@
 			</File>
 			<File
 				RelativePath=".\src\ParserDetails.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\src\RegisterMap.h"
 				>
 			</File>
 			<File
@@ -853,6 +925,10 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
+		<File
+			RelativePath=".\ClassDiagram1.cd"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
