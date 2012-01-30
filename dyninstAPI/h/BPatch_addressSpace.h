@@ -49,8 +49,6 @@
 //#include "Command.h"
 
 class BPatch_addressSpace;
-class Dyninst::PatchAPI::Point;
-
 
 namespace Dyninst {
 namespace PatchAPI { 
@@ -58,6 +56,8 @@ namespace PatchAPI {
    class DynAddrSpace;
    class Patcher;
    class Instance;
+   class PatchFunction;
+   class Point;
    typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
    typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
    typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
@@ -80,7 +80,6 @@ class miniTramp;
 class BPatch;
 class BPatch_image;
 
-class Dyninst::PatchAPI::PatchFunction;
 struct batchInsertionRecord;
 class instPoint;
 class int_variable;

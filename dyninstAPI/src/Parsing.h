@@ -46,7 +46,11 @@ using ParseAPI::FuncSource;
 
 /*** The image_* object factory ***/
 class image;
-class ParseAPI::CodeObject;
+namespace Dyninst {
+namespace ParseAPI {
+   class CodeObject;
+}
+}
 
 class DynCFGFactory : public ParseAPI::CFGFactory {
   public:

@@ -79,7 +79,7 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
   fprintf(stderr, "\n");  \
   fflush(stderr); \
   } \
-  else ; \
+  else {};                                      \
 } while(0)
 #endif
 

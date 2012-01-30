@@ -1654,7 +1654,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * symReg)
     Address curPage = (regStart / page_size) * page_size + base;
     Address regEnd = base + regStart + symReg->getDiskSize();
     for (; protPages_.end() == protPages_.find(curPage)  && curPage < regEnd;
-           curPage += page_size);
+         curPage += page_size) {};
     for (map<Address,WriteableStatus>::iterator pit = protPages_.find(curPage);
          pit != protPages_.end() && pit->first < regEnd;
          pit++)

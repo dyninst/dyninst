@@ -29,11 +29,11 @@ PatchObject::clone(PatchObject* par_obj, Address base, CFGMaker* cm, PatchCallba
 PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb)
   : co_(o), codeBase_(a) {
   if (!cm) {
-    patchapi_debug("Use default CFGMaker");
-    cfg_maker_ = new CFGMaker;
+     patchapi_debug("Use default CFGMaker");
+     cfg_maker_ = new CFGMaker;
   } else {
-    patchapi_debug("Use plugin CFGMaker");
-    cfg_maker_ = cm;
+     patchapi_debug("Use plugin CFGMaker");
+     cfg_maker_ = cm;
   }
    if (!cb) { 
      patchapi_debug("Use default PatchCallback");
