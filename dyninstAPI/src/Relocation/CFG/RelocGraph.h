@@ -113,10 +113,8 @@ class RelocGraph {
      bool interpose(Predicate &p, RelocEdges *e, RelocBlock *t);
   template <class Predicate, class Dest> 
      bool changeTargets(Predicate &p, RelocEdges *e, Dest n);
-#if 0
-  template <class Predicate, class Dest> 
-     bool changeSources(Predicate &p, RelocEdges *e, Dest *n);
-#endif
+  template <class Predicate, class Source> 
+     bool changeSources(Predicate &p, RelocEdges *e, Source n);
   template <class Predicate>
      bool removeEdge(Predicate &p, RelocEdges *e);
   template <class Predicate>
@@ -179,6 +177,17 @@ template <class Predicate, class Dest>
    for (RelocEdges::iterator iter = tmp.begin();
         iter != tmp.end(); ++iter) {
       if (!changeTarget(*iter, new Target<Dest >(n))) return false;
+   }
+   return true;
+}
+
+template <class Predicate, class Source>
+   bool RelocGraph::changeSources(Predicate &p, RelocEdges *e, Source n) {
+   RelocEdges tmp;
+   applyPredicate(p, e, tmp);
+   for (RelocEdges::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      if (!changeSource(*iter, new Target<Source>(n))) return false;
    }
    return true;
 }

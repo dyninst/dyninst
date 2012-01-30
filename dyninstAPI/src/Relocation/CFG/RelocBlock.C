@@ -487,7 +487,8 @@ std::string RelocBlock::format() const {
   ret << "Out edges:";
   for (RelocEdges::const_iterator iter = outEdges_.begin();
        iter != outEdges_.end(); ++iter) {
-     ret << (*iter)->trg->format() << ", ";
+     ret << (*iter)->trg->format() 
+	 << "<" << ParseAPI::format((*iter)->type) << ">, ";
   }
   ret << endl;
 
@@ -573,4 +574,9 @@ bool RelocBlock::isNecessary(TargetInt *target,
    return false;
 }
 
+void RelocBlock::setCF(CFWidgetPtr cf) {
+   elements_.pop_back();
+   elements_.push_back(cf);
+   cfWidget_ = cf;
+}
 

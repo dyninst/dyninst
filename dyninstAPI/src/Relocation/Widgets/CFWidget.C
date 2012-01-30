@@ -426,7 +426,7 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
                                        const RelocBlock *trace,
 				       Instruction::Ptr insn) {
    assert(to);
-
+   cerr << "Generating a conditional branch off of " << insn->format() << endl;
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
 
    buffer.addPatch(newPatch, tracker(trace));
