@@ -84,14 +84,30 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    insn_(insn),
    addr_(addr) {
    
+   // HACK to be sure things are parsed...
+   insn->format();
+
+   for (Instruction::cftConstIter iter = insn->cft_begin(); iter != insn->cft_end(); ++iter) {
+      if (iter->isCall) isCall_ = true;
+      if (iter->isIndirect) isIndirect_ = true;
+      if (iter->isConditional) isConditional_ = true;
+   }
+
+#if 0
+   // Old way
    if (insn->getCategory() == c_CallInsn) {
       // Calls have a fallthrough but are not conditional.
       // TODO: conditional calls work how?
-
       isCall_ = true;
    } else if (insn->allowsFallThrough()) {
       isConditional_ = true;
    }
+#endif
+
+   // This whole next section is obsolete, but IAPI's CFT interface doesn't say
+   // what a "return" is (aka, they don't include "indirect"). So I'm using it
+   // so that things work. 
+
 
    // TODO: IAPI is recording all PPC64 instructions as PPC32. However, the
    // registers they use are still PPC64. This is a pain to fix, and therefore
@@ -110,8 +126,12 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
-      isIndirect_ = true;
+      if (!isIndirect_) {
+         cerr << "DEBUG: for insn " << insn->format() << " CFT interface does not report indirect, but has unknown successor!" << endl;
+         isIndirect_ = true;
+      }
    }
+
 }
 
 
@@ -391,7 +411,6 @@ bool CFWidget::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
-      // DebugBreak();
       return true;
    }
 

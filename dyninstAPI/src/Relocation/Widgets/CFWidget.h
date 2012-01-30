@@ -96,11 +96,12 @@ class CFWidget : public Widget {
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
   unsigned gap() const { return gap_; };
   void clearIsCall() { isCall_ = false; };
+  void clearIsIndirect() { isIndirect_ = false; };
+  void clearIsConditional() { isConditional_ = false; }
 
  private:
    CFWidget(Address a)
