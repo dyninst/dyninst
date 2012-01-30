@@ -102,6 +102,9 @@ class CFWidget : public Widget {
   void clearIsCall() { isCall_ = false; };
   void clearIsIndirect() { isIndirect_ = false; };
   void clearIsConditional() { isConditional_ = false; }
+  bool isCall() const { return isCall_; }
+  bool isIndirect() const { return isIndirect_; }
+  bool isConditional() const { return isConditional_; }
 
  private:
    CFWidget(Address a)
