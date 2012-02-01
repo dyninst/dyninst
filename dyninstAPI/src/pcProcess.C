@@ -869,32 +869,12 @@ bool PCProcess::loadRTLib() {
 
     // If not, load it using a iRPC
 
-    // First, generate the code to load the RT lib
-    AstNodePtr loadRTAst = createLoadRTAST();
-    if( loadRTAst == AstNodePtr() ) {
-        startup_printf("%s[%d]: failed to generate code to load RT lib\n", FILE__,
-                __LINE__);
-        return false;
-    }
+	if(!postRTLoadRPC())
+	{
+		return false;
+	}
 
-    // on some platforms, this RPC needs to be run from a specific address range
-    Address execAddress = findFunctionToHijack();
-    if( !postIRPC(loadRTAst, 
-                NULL,  // no user data
-                false, // don't run after it is done
-                NULL,  // doesn't matter which thread
-                true,  // wait for completion
-                NULL,  // don't need to check result directly
-                false, // internal RPC
-                false, // is not a memory allocation RPC
-                execAddress) ) 
-    {
-        startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
-                __LINE__);
-        return false;
-    }
-
-    if( runtime_lib.size() == 0 ) {
+	if( runtime_lib.size() == 0 ) {
         startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
                 __LINE__);
         return false;
@@ -1658,6 +1638,10 @@ static const Address ADDRESS_HI = ((Address)~((Address)0));
 Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
                                   Address near_, bool *err) 
 {
+	if(bootstrapState_ != bs_initialized)
+	{
+		return pcProc_->mallocMemory(size, near_);		
+	}
     enum MallocAttempt {
         AsIs = 0,
         DeferredFree = 1, // compact free blocks
@@ -3229,6 +3213,35 @@ void PCProcess::invalidateMTCache() {
     mt_cache_result_ = not_cached;
 }
 
+#if !defined(os_windows)
+bool PCProcess::postRTLoadRPC()
+{
+	// First, generate the code to load the RT lib
+	AstNodePtr loadRTAst = createLoadRTAST();
+	if( loadRTAst == AstNodePtr() ) {
+		startup_printf("%s[%d]: failed to generate code to load RT lib\n", FILE__,
+			__LINE__);
+		return false;
+	}
+
+	// on some platforms, this RPC needs to be run from a specific address range
+	Address execAddress = findFunctionToHijack();
+	if( !postIRPC(loadRTAst, 
+		NULL,  // no user data
+		false, // don't run after it is done
+		NULL,  // doesn't matter which thread
+		true,  // wait for completion
+		NULL,  // don't need to check result directly
+		false, // internal RPC
+		false, // is not a memory allocation RPC
+		execAddress) ) 
+	{
+		startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
+			__LINE__);
+		return false;
+	}
+}
+#endif
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
   : proc_(p)
 {}

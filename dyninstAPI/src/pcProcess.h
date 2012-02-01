@@ -436,7 +436,10 @@ protected:
 
     // RT library management
     bool loadRTLib();
-    AstNodePtr createLoadRTAST(); // architecture-specific
+
+	bool postRTLoadRPC();
+
+	AstNodePtr createLoadRTAST(); // architecture-specific
     AstNodePtr createUnprotectStackAST(); // architecture-specific
     bool setRTLibInitParams();
     bool instrumentMTFuncs();

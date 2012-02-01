@@ -1741,13 +1741,84 @@ bool PCProcess::postRTLoadCleanup()
 
 unsigned long PCProcess::findFunctionToHijack()
 {
-	assert(0);
 	return 0;
 }
 
+bool PCProcess::postRTLoadRPC()
+{
+    Address loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
+    Address LoadLibAddr;
+    int_symbol sym;
+    
+
+    if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
+        !getSymbolInfo("_LoadLibraryA", sym) &&
+        !getSymbolInfo("LoadLibraryA", sym))
+        {
+            printf("unable to find function LoadLibrary\n");
+            assert(0);
+        }
+    LoadLibAddr = sym.getAddr();
+    assert(LoadLibAddr);
+
+    char ibuf[BYTES_TO_SAVE];
+    memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
+    char *iptr = ibuf;
+    strcpy(iptr, dyninstRT_name.c_str());
+    
+    // Code overview:
+    // Dynininst library name
+    //    Executable code begins here:
+    // Push (address of dyninst lib name)
+    // Call LoadLibrary
+    // Pop (cancel push)
+    // Trap
+    
+    // 4: give us plenty of room after the string to start instructions
+    int instructionOffset = strlen(iptr) + 4;
+    // Regenerate the pointer
+    iptr = &(ibuf[instructionOffset]);
+    
+    // At this point, the buffer contains the name of the dyninst
+    // RT lib. We now generate code to load this string into memory
+    // via a call to LoadLibrary
+    
+    // push nameAddr ; 5 bytes
+    *iptr++ = (char)0x68; 
+    // Argument for push
+    *(int *)iptr = loadDyninstLibAddr; // string at codeBase
+    iptr += sizeof(int);
+    
+    int offsetFromBufferStart = (int)iptr - (int)ibuf;
+    offsetFromBufferStart += 5; // Skip next instruction as well.
+    // call LoadLibrary ; 5 bytes
+    *iptr++ = (char)0xe8;
+    
+    // Jump offset is relative
+    *(int *)iptr = LoadLibAddr - (loadDyninstLibAddr + 
+                                  offsetFromBufferStart); // End of next instruction
+    iptr += sizeof(int);
+    
+    
+    // add sp, 4 (Pop)
+    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+    
+    // int3
+    *iptr = (char)0xcc;
+    
+    int offsetToTrap = (int) iptr - (int) ibuf;
+
+	ProcControlAPI::IRPC::ptr rtLoader = ProcControlAPI::IRPC::createIRPC(ibuf, BYTES_TO_SAVE);
+	pcProc_->stopProc();
+	pcProc_->postIRPC(rtLoader);
+    
+   return true;
+}
+
+
 AstNodePtr PCProcess::createLoadRTAST()
 {
-	assert(0);
+	assert(!"Unused on Windows");
 	return AstNodePtr();
 }
 

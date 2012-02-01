@@ -507,8 +507,12 @@ PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
 bool PCEventHandler::eventMux(Event::const_ptr ev) const {
     proccontrol_printf("%s[%d]: attempting to handle event %s on thread %d/%d\n",
             FILE__, __LINE__, ev->getEventType().name().c_str(),
-            ev->getProcess()->getPid(), ev->getThread()->getLWP());
-
+            (ev->getProcess() ? ev->getProcess()->getPid() : -1), (ev->getThread() ? ev->getThread()->getLWP() : (Dyninst::LWP)-1));
+	if(!ev->getProcess())
+	{
+		proccontrol_printf("%s[%d]: ERROR: event received w/o associated ProcControl process object\n", FILE__, __LINE__);
+		return false;
+	}
     PCProcess *evProc = (PCProcess *)ev->getProcess()->getData();
     if( evProc == NULL ) {
         proccontrol_printf("%s[%d]: ERROR: handle to Dyninst process is invalid\n",
