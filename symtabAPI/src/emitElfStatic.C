@@ -538,6 +538,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 
                 // Find symbols that need to be put in the GOT
 
+#if defined(arch_power) && defined(arch_64bit)
 		// If statically linked binary, we need to put all the entries in region toc to GOT
 		if(target->isStaticBinary()) {
 			if(regionName.compare(".toc") == 0){
@@ -578,15 +579,14 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 			}
 
 		} 
-
+#endif
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
                 for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
 
-                    //if(isGOTRelocation(rel_it->getRelType()) || (regionName.compare(".toc") == 0) ) {
-                    if(isGOTRelocation(rel_it->getRelType() == 0) ) {
+                    if(isGOTRelocation(rel_it->getRelType()) ) {
                         	lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
-				lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
+									lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
 			
 		    }
 			
