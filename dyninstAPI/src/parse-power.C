@@ -727,11 +727,16 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      * about these dependencies. So if the dependencies haven't already been
      * loaded, load them.
      */
+
+    vector<Archive *> libs1;
+    vector<Archive *>::iterator libIter1;
     bool loadLibc = true;
-    for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-        if( (*libIter)->name().find("libc.a") != std::string::npos ) {
-            loadLibc = false;
-        }
+    if( origBinary->getLinkingResources(libs1) ) {
+    	for(libIter1 = libs1.begin(); libIter1 != libs1.end(); ++libIter1) {
+        	if( (*libIter1)->name().find("libc.a") != std::string::npos ) {
+            		loadLibc = false;
+        	}
+    	}
     }
 
     if( loadLibc ) {

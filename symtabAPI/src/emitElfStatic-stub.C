@@ -54,7 +54,7 @@ using namespace Dyninst::SymtabAPI;
 // This needs to be a #define so the assert actually shows the message
 #define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
 
-bool emitElfStatic::archSpecificRelocation(char *, relocationEntry &,
+bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *, relocationEntry &,
         Offset, Offset, Offset, LinkMap &, string &) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
@@ -121,6 +121,11 @@ bool emitElfStatic::createNewCtorRegion(LinkMap &) {
 }
 
 bool emitElfStatic::isDestructorRegion(Region *) {
+    assert(!EMIT_STATIC_ASSERT);
+    return false;
+}
+
+bool emitElfStatic::isiGOTRegion(Region *) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }

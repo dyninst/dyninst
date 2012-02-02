@@ -2778,6 +2778,7 @@ bool EmitterPOWER::emitCallRelative(Register dest, Address offset, Register base
 }
 
 bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){
+
     // Loads a saved register from the stack. 
     int imm = offset;
     if (gen.addrSpace()->getAddressWidth() == 4) {
@@ -3053,8 +3054,63 @@ bool EmitterPOWER32Stat::emitPLTCall(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, true, gen);
 }
 
-bool EmitterPOWER32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
-  return emitPLTCommon(callee, false, gen);
+bool EmitterPOWER32Stat::emitPLTJump(func_instance *block, codeGen &gen) {
+  return emitPLTCommon(block, false, gen);
+}
+
+bool EmitterPOWER32Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+
+bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  if (scratchReg == REG_NULL) return false;
+
+  Register scratchLR = REG_NULL;
+  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  if (scratchLR == REG_NULL) {
+    if (scratchReg == registerSpace::r0) return false;
+    // We can use r0 for this, since it's volatile. 
+    scratchReg = registerSpace::r0;
+  }
+
+  if (!call) {
+    // Save the LR in scratchLR
+    insnCodeGen::generateMoveFromLR(gen, scratchLR);
+  }
+
+  // Generate the PLT call
+
+  Address dest = block->llb()->firstInsnOffset();
+  Address pcVal = emitMovePCToReg(scratchReg, gen);
+
+  if (!call) {
+    insnCodeGen::generateMoveToLR(gen, scratchLR);
+  }
+
+  // We can now use scratchLR
+
+  Address varOffset = dest - pcVal;
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+  
+  insnCodeGen::generateMoveToCR(gen, scratchLR);
+
+  if (!call) {
+    instruction br(BCTRraw);
+    insnCodeGen::generate(gen, br);
+  }
+  else {
+    instruction brl(BCTRLraw);
+    insnCodeGen::generate(gen, brl);
+  }
+
+  return true;
 }
 
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
@@ -3075,25 +3131,35 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
     //   Set up new TOC in R2 from function descriptor + 8
     //   Call
 
+	bool isStaticBinary = false;
+
+	if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
+		isStaticBinary = true;
+	}
+
     const unsigned TOCreg = 2;
     const unsigned wordsize = gen.addrSpace()->getAddressWidth();
     assert(wordsize == 8);
     Address dest = getInterModuleFuncAddr(callee, gen);
-    Address caller_toc;
+    Address caller_toc = 0;
     Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
     // Instead of saving the TOC (if we can't), just reset it afterwards.
     if (gen.func()) {
-           caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
     }
-        else if (gen.point()) {
-           caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
-        }
-        else {
-           // Don't need it, and this might be an iRPC
-        }
+    else if (gen.point()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+      // Don't need it, and this might be an iRPC
+    }
+
+    if(isStaticBinary)
+	caller_toc = 0;
 
     //Offset destOff = dest - gen.currAddr();
     Offset destOff = dest - caller_toc;
+
 //    insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    int stackSize = 0;
@@ -3105,19 +3171,23 @@ bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen
    	scratchReg = freeReg[0];
    }
    insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
-   insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
 
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+   if(!isStaticBinary) {
+   	insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
+
+    	insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
                                      TOCreg, scratchReg, 8);
-    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                     scratchReg, scratchReg, 0);
-    insnCodeGen::generateMoveToLR(gen, scratchReg);
+   } 
+   insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                        scratchReg, scratchReg, 0);
+
+   insnCodeGen::generateMoveToCR(gen, scratchReg);
 
    if (stackSize > 0)
    	insnCodeGen::removeStackFrame(gen);
 
 
-    instruction branch_insn(call ? BRLraw : BRraw);
+    instruction branch_insn(call ? BCTRLraw : BCTRraw);
     insnCodeGen::generate(gen, branch_insn);
 
 
@@ -3134,15 +3204,94 @@ bool EmitterPOWER64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, false, gen);
 }
 
+bool EmitterPOWER64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+
+    bool isStaticBinary = false;
+
+    if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
+	isStaticBinary = true;
+    }
+
+    const unsigned TOCreg = 2;
+    const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+    assert(wordsize == 8);
+    Address dest = block->llb()->firstInsnOffset();
+    Address caller_toc = 0;
+    Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(block->callee());
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    if (gen.func()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+    }
+    else if (gen.point()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+      // Don't need it, and this might be an iRPC
+    }
+
+    if(isStaticBinary)
+	caller_toc = 0;
+
+    //Offset destOff = dest - gen.currAddr();
+    Offset destOff = dest - caller_toc;
+
+   // insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
+   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   int stackSize = 0;
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+   	assert (stackSize == 1);
+   	scratchReg = freeReg[0];
+   }
+   insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
+
+   if(!isStaticBinary) {
+   	insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
+
+    	insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                     TOCreg, scratchReg, 8);
+   } 
+   insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                        scratchReg, scratchReg, 0);
+
+   insnCodeGen::generateMoveToCR(gen, scratchReg);
+
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
+
+
+    instruction branch_insn(call ? BCTRLraw : BCTRraw);
+    insnCodeGen::generate(gen, branch_insn);
+
+
+    return true;
+}
 bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
                                              bool setTOC, Address) {
     // if the TOC changes, generate a PIC call
+
+    Address dest =  callee->addr();
+    if( dest == 0)
+    	dest = getInterModuleFuncAddr(callee, gen);
+
+ 
+
     if (setTOC) {
         return emitPLTCall(callee, gen);
     }
 
-    insnCodeGen::generateCall(gen, gen.currAddr(), callee->addr());
+    insnCodeGen::generateCall(gen, gen.currAddr(), dest);
     return true;
 }
 
@@ -3222,7 +3371,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 
    // load register with address from jump slot
 
-   inst_printf("emitLoadrelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+   inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
    	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
@@ -3240,9 +3389,9 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    
    if (op ==loadOp) {
    	if(!is_local && (var != NULL)){
-     		emitLoadRelative(scratchReg, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+     		emitLoadRelative(dest, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
      		// Deference the pointer to get the variable
-     		emitLoadRelative(dest, 0, scratchReg, size, gen);
+     		emitLoadRelative(dest, 0, dest, size, gen);
    	} else {
      		emitLoadRelative(dest, varOffset, scratchReg, size, gen);
    	}
@@ -3296,8 +3445,20 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Address varOffset = addr - gen.currAddr()+4;
    
    if(!is_local) {
-     	emitLoadRelative(scratchReg, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
-   	emitStoreRelative(source, 0, scratchReg, size, gen);
+
+   	Register scratchReg1 = gen.rs()->getScratchRegister(gen, true);
+   	if (scratchReg1 == REG_NULL) {
+   		pdvector<Register> freeReg;
+        	pdvector<Register> excludeReg;
+   		stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+		assert (stackSize == 1);
+		scratchReg1 = freeReg[0];
+	
+   		inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+   		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+   	}
+     	emitLoadRelative(scratchReg1, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+   	emitStoreRelative(source, 0, scratchReg1, size, gen);
    } else {
    	emitStoreRelative(source, varOffset, scratchReg, size, gen);
    }

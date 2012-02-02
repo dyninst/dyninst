@@ -114,7 +114,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
     return true;
 }
 
-bool emitElfStatic::archSpecificRelocation(char *targetData, relocationEntry &rel,
+bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData, relocationEntry &rel,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
@@ -548,6 +548,10 @@ static const string CTOR_NAME(".ctors");
 
 bool emitElfStatic::isConstructorRegion(Region *reg) {
     return ( CTOR_NAME.compare(reg->getRegionName()) == 0 );
+}
+
+bool emitElfStatic::isGOTRegion(Region *) {
+        return false;
 }
 
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
