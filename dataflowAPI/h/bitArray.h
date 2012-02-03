@@ -29,36 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
+// $Id: bitArray.h,v 1.2 2007/12/04 21:47:15 bernat Exp $
 
-#include <string>
-extern int dyn_debug_crash;
+#ifndef _BITARRAY_
+#define _BITARRAY_
+#include <boost/dynamic_bitset.hpp>
+typedef boost::dynamic_bitset<unsigned long, std::allocator<unsigned long> > bitArray;
 
-extern int patch_debug_relocation;
-extern int patch_debug_springboard;
-
-#define relocation_cerr   if (patch_debug_relocation) std::cerr
-#define springboard_cerr  if (patch_debug_relocation) std::cerr
-
-extern int relocation_printf_int(const char *format, ...);
-extern int springboard_printf_int(const char *format, ...);
-
-
-#if defined(__GNUC__)
-
-#define relocation_printf(format, args...) do { if (patch_debug_relocation) relocation_printf_int(format, ## args); } while(0)
-#define springboard_printf(format, args...) do { if (patch_debug_springboard) springboard_printf_int(format, ## args); } while(0)
-
-#else
-// Non-GCC doesn't have the ## macro
-#define relocation_printf relocation_printf_int
-#define springboard_printf springboard_printf_int
-
-#endif
-
-
-// And initialization
-extern bool init_debug_patchapi();
-
+// Bitarrays for register liveness. This could move to registerSpace...
+#define SPEC_GPR_BIT(x) (x.size() - 3)
+#define SPEC_FPR_BIT(x) (x.size() - 2)
+#define SPEC_SPR_BIT(x) (x.size() - 1)
+#define SPEC_BIT_COUNT 3
 #endif

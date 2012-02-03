@@ -515,6 +515,7 @@ COMMON_EXPORT dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movq2dq, "movq2dq")
   (e_movsb, "movsb")
   (e_movsd, "movsd")
+  (e_movsd_sse, "movsd")
   (e_movss, "movss")
   (e_movsw, "movsw")
   (e_movsx, "movsx")
@@ -2006,13 +2007,13 @@ static ia32_entry sseMap[][4] = {
     { e_movups, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
     { e_movss,  t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
     { e_movupd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
-    { e_movsd,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
+    { e_movsd_sse,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE11 */
     { e_movups, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
     { e_movss,  t_done, 0, true, { Wss, Vss, Zz }, 0, s1W2R },
     { e_movupd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
-    { e_movsd,  t_done, 0, true, { Wsd, Vsd, Zz }, 0, s1W2R }, // Book is wrong, this is a W/V
+    { e_movsd_sse,  t_done, 0, true, { Wsd, Vsd, Zz }, 0, s1W2R }, // Book is wrong, this is a W/V
   },
   { /* SSE12 */
     { e_movlps_movhlps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op

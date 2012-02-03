@@ -144,7 +144,7 @@ public:
 class dataReqNode;
 class AstNode {
  public:
-   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t};
+   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
    enum operandType { Constant, 
                       ConstantString,
                       DataReg,
@@ -230,6 +230,8 @@ class AstNode {
 
    // Acquire the thread index value - a 0...n labelling of threads.
    static AstNodePtr threadIndexNode();
+
+   static AstNodePtr scrambleRegistersNode();
    
    
    // TODO...
@@ -898,6 +900,24 @@ class AstDynamicTargetNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 };
+class AstScrambleRegistersNode : public AstNode {
+ public:
+    AstScrambleRegistersNode() {};
+
+    virtual ~AstScrambleRegistersNode() {};
+
+    virtual bool canBeKept() const { return false; }
+    virtual bool containsFuncCall() const;
+    virtual cfjRet_t containsFuncJump() const;
+    virtual bool usesAppRegister() const;
+ 
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,

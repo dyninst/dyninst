@@ -31,7 +31,7 @@
 
 #include "Transformer.h"
 #include "Movement-adhoc.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../Widgets/RelDataWidget.h"
 #include "../Widgets/CFWidget.h"

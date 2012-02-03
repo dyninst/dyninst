@@ -336,7 +336,6 @@ BPatch_module *BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
       if( !lib.second->getAllDependencies(llBinEdits) ) return NULL;
 
    }
-
    origBinEdit->addLibraryPrereq(libname);
    return getImage()->findOrCreateModule(obj->getDefaultModule());
 }

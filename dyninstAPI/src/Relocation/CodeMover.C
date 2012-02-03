@@ -39,7 +39,7 @@
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
 #include "dyninstAPI/src/function.h"
 
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "CodeTracker.h"
 #include "CFG/RelocGraph.h"
 
@@ -55,8 +55,6 @@ CodeMover::CodeMover(CodeTracker *t) :
    finalized_(false) {};
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
-   init_debug_patchapi();
-   relocation_cerr << "Created CodeMover with tracker " << hex << t << dec << endl;
 
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));

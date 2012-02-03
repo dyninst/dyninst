@@ -38,22 +38,26 @@ extern int df_debug_slicing;
 extern int df_debug_stackanalysis;
 extern int df_debug_convert;
 extern int df_debug_expand;
+extern int df_debug_liveness;
 
 #define slicing_cerr       if (df_debug_slicing) cerr
 #define stackanalysis_cerr if (df_debug_stackanalysis) cerr
 #define convert_cerr       if (df_debug_convert) cerr
 #define expand_cerr        if (df_debug_expand) cerr
+#define liveness_cerr        if (df_debug_liveness) cerr
 
 extern int slicing_printf_int(const char *format, ...);
 extern int stackanalysis_printf_int(const char *format, ...);
 extern int convert_printf_int(const char *format, ...);
 extern int expand_printf_int(const char *format, ...);
+extern int liveness_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
 #define slicing_printf(format, args...) do {if (df_debug_slicing) slicing_printf_int(format, ## args); } while(0)
 #define stackanalysis_printf(format, args...) do {if (df_debug_stackanalysis) stackanalysis_printf_int(format, ## args); } while(0)
 #define convert_printf(format, args...) do {if (df_debug_convert) convert_printf_int(format, ## args); } while(0)
 #define expand_printf(format, args...) do {if (df_debug_expand) expand_printf_int(format, ## args); } while(0)
+#define liveness_printf(format, args...) do {if (df_debug_liveness) liveness_printf_int(format, ## args); } while(0)
 
 #else
 // Non-GCC doesn't have the ## macro
@@ -61,6 +65,7 @@ extern int expand_printf_int(const char *format, ...);
 #define stackanalysis_printf stackanalysis_printf_int
 #define convert_printf convert_printf_int
 #define expand_printf expand_printf_int
+#define liveness_printf liveness_printf_int
 
 
 #endif

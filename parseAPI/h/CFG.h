@@ -41,7 +41,6 @@
 
 #include "InstructionSource.h"
 #include "ParseContainers.h"
-
 #include "Annotatable.h"
 #include <iostream>
 namespace Dyninst {
@@ -171,6 +170,10 @@ class Edge : public allocatable {
        return (_type._interproc != 0 ||
                type() == CALL ||
                type() == RET);
+    }
+
+    bool intraproc() const {
+       return !interproc();
     }
 
     PARSER_EXPORT void install();

@@ -35,8 +35,8 @@
 #include "dyntypes.h"
 #include "bitArray.h"
 #include <map>
+#include "CFG.h"
 
-class parse_func;
 using namespace Dyninst;
 
 
@@ -48,12 +48,16 @@ struct ReadWriteInfo
 };
 
 
-struct InstructionCache
+class InstructionCache
 {
   std::map<Address, ReadWriteInfo> cache;
-  parse_func* currentFunction;
-  bool getLivenessInfo(Address addr, parse_func* func, ReadWriteInfo& rw);
-  void insertInstructionInfo(Address addr, ReadWriteInfo rw, parse_func* func);
+  ParseAPI::Function* currentFunction;
+
+  public:
+  bool getLivenessInfo(Address addr, ParseAPI::Function* func, ReadWriteInfo& rw);
+  void insertInstructionInfo(Address addr, ReadWriteInfo rw, ParseAPI::Function* func);
+  void clean() {cache.clear();}
+  ParseAPI::Function* getCurFunc() {return currentFunction;}
 };
 
 #endif //!defined(INSTRUCTION_CACHE_H)

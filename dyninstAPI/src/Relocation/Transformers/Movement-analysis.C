@@ -34,7 +34,7 @@
 #include "Transformer.h"
 #include "Movement-analysis.h"
 #include "Modification.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "dyninstAPI/src/function.h"
 #include "../Widgets/CFWidget.h"
@@ -58,8 +58,6 @@ using namespace InstructionAPI;
 using namespace SymtabAPI;
 
 using namespace DataflowAPI;
-
-#define sensitivity_cerr if(0) cerr
 
 PCSensitiveTransformer::AnalysisCache PCSensitiveTransformer::analysisCache_;
 

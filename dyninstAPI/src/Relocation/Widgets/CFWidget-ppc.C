@@ -6,7 +6,7 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"

@@ -77,7 +77,6 @@ extern int dyn_debug_catchup;
 extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
 extern int dyn_debug_write;
-extern int dyn_debug_liveness;
 extern int dyn_debug_infmalloc;
 extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
@@ -132,7 +131,6 @@ extern StatContainer stats_codegen;
 #define sensitivity_cerr  if (dyn_debug_sensitivity) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
 #define thread_cerr       if (dyn_debug_thread) cerr
-#define liveness_cerr     if (dyn_debug_liveness) cerr
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 #define crash_cerr        if (dyn_debug_crash) cerr
 
@@ -158,7 +156,6 @@ extern int catchup_printf_int(const char *format, ...);
 extern int regalloc_printf_int(const char *format, ...);
 extern int ast_printf_int(const char *format, ...);
 extern int write_printf_int(const char *format, ...);
-extern int liveness_printf_int(const char *format, ...);
 extern int infmalloc_printf_int(const char *format, ...);
 extern int crash_printf_int(const char *format, ...);
 
@@ -184,7 +181,6 @@ extern int crash_printf_int(const char *format, ...);
 #define regalloc_printf(format, args...) do {if (dyn_debug_regalloc) regalloc_printf_int(format, ## args); } while(0)
 #define ast_printf(format, args...) do {if (dyn_debug_ast) ast_printf_int(format, ## args); } while(0)
 #define write_printf(format, args...) do {if (dyn_debug_write) write_printf_int(format, ## args); } while(0)
-#define liveness_printf(format, args...) do {if (dyn_debug_liveness) liveness_printf_int(format, ## args); } while(0)
 #define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
 #define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
 
@@ -210,7 +206,6 @@ extern int crash_printf_int(const char *format, ...);
 #define regalloc_printf regalloc_printf_int
 #define ast_printf ast_printf_int
 #define write_printf write_printf_int
-#define liveness_printf liveness_printf_int
 #define infmalloc_printf infmalloc_printf_int
 #define crash_printf crash_printf_int
 

@@ -42,7 +42,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "common/h/stats.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/bitArray.h"
+#include "bitArray.h"
 
 #include "dyninstAPI/src/baseTramp.h" // iterator
 

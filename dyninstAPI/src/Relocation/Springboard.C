@@ -31,7 +31,7 @@
 
 #include "CFG.h"
 #include "Springboard.h"
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/codegen.h"
 
 #include "dyninstAPI/src/addressSpace.h"
@@ -114,11 +114,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
-   if (patch_debug_springboard) {
-      cerr << "SPRINGBOARD GENERATION" << endl;
-      debugRanges();
-   }
-
 
    if (!generateInt(springboards, input, Required))
       return false;

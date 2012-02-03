@@ -1576,26 +1576,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\InstructionCache.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
 				>
 				<FileConfiguration
@@ -1632,18 +1612,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\liveness.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2661,11 +2629,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File

@@ -30,7 +30,7 @@
  */
 
 #include "CallbackWidget.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "CFG.h"
 
 #include "../CodeTracker.h"

@@ -52,6 +52,9 @@
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
+#include "ABI.h"
+#include "liveness.h"
+#include "RegisterConversion.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -1669,7 +1672,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    // the call. 
    pdvector<pair<unsigned,int> > savedRegsToRestore;
    if (inInstrumentation) {
-      bitArray regsClobberedByCall = registerSpace::getRegisterSpace(8)->getCallWrittenRegisters();
+      bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
          registerSlot *reg = gen.rs()->GPRs()[i];
          regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
@@ -1699,8 +1702,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
          }
          else {
             Register r = reg->encoding();
-            if (regsClobberedByCall.test(r))
+	    static LivenessAnalyzer live(8);
+	    // mapping from Register to MachRegister, then to index in liveness bitArray
+	    if (regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second))){	  
                gen.markRegDefined(r);
+            }
          }
       }
    }
@@ -2359,10 +2365,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (!shouldSaveReg(reg, bt, saveFlags))
-         continue;
+           continue; 
       if (createFrame && reg->encoding() == REGNUM_RBP)
-         continue;
-
+           continue;
       emitPushReg64(reg->encoding(),gen);
       // We move the FP down to just under here, so we're actually
       // measuring _up_ from the FP. 

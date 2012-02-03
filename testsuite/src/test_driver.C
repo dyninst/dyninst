@@ -49,6 +49,7 @@
 #define vsnprintf _vsnprintf
 #define snprintf _snprintf
 #pragma warning(disable:4786)
+#include <shlwapi.h>
 #include <direct.h>
 #else
 #include <fnmatch.h>
@@ -334,7 +335,7 @@ struct failureInfo
 bool nameMatches(const char *wcname, const char *tomatch) {
 #if defined(os_windows_test)
    // Sadly, we can't assume the presence of fnmatch on Windows
-   return (strcmp(wcname, tomatch) == 0);
+   return (PathMatchSpec(tomatch, wcname));
 #else
    // The other systems we support are unix-based and should provide fnmatch (?)
    return (fnmatch(wcname, tomatch, 0) == 0);

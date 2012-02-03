@@ -43,7 +43,7 @@
 #include "parRegion.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
-#include "dyninstAPI/src/bitArray.h"
+#include "bitArray.h"
 #include "InstructionCache.h"
 #include <set>
 

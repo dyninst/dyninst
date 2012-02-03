@@ -235,7 +235,6 @@ int dyn_debug_bpatch = 0;
 int dyn_debug_regalloc = 0;
 int dyn_debug_ast = 0;
 int dyn_debug_write = 0;
-int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
@@ -369,10 +368,6 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI process write debugging\n");
     dyn_debug_write = 1;
     dyn_debug_write_filename = p;
-  }
-  if ( (p=getenv("DYNINST_DEBUG_LIVENESS"))) {
-    fprintf(stderr, "Enabling DyninstAPI liveness debugging\n");
-    dyn_debug_liveness = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_INFMALLOC")) ||
        (p=getenv("DYNINST_DEBUG_INFERIORMALLOC"))) {
@@ -818,23 +813,6 @@ int write_printf_int(const char *format, ...)
   return ret;
 }
 
-int liveness_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_liveness) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
 
 int infmalloc_printf_int(const char *format, ...)
 {
