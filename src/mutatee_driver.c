@@ -177,7 +177,6 @@ int main(int iargc, char *argv[])
 #if !defined(os_windows_test)
    struct timeval start_time;
 #endif
-
    gargc = argc;
    gargv = argv;
 
@@ -319,8 +318,9 @@ int main(int iargc, char *argv[])
 	   char ch = 'T';
 	   LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
 	   DWORD bytes_written = 0;
-	   BOOL wrote_ok = FALSE;
-	   HANDLE signalPipe = CreateFile(pipeName,
+	   BOOL wrote_ok = FALSE;	   
+	   HANDLE signalPipe;
+	   signalPipe = CreateFile(pipeName,
 		   GENERIC_WRITE,
 		   0,
 		   NULL,
@@ -331,15 +331,17 @@ int main(int iargc, char *argv[])
 	   {
 		   if(GetLastError() != ERROR_PIPE_BUSY)
 		   {
-			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+			   output->log(STDERR, "*ERROR*: Couldn't open pipe Not ERROR_PIPE_BUSY\n");
+			   fprintf(stderr, "Erroe code = %d\n", GetLastError());
 			   exit(-1);
-		   }
+
+		   } 
 		   if(!WaitNamedPipe(pipeName, 2000))
 		   {
-			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+			   output->log(STDERR, "*ERROR*: Couldn't open pipe WaitNamedPipe Fail\n");
 			   exit(-1);
 		   }
-	   }
+	   }	 
 	   wrote_ok = WriteFile(signalPipe,
 		   &ch,
 		   1,
@@ -349,7 +351,7 @@ int main(int iargc, char *argv[])
 	   {
 		   output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
 		   exit(-1);
-	   }
+	   }	   
 	   CloseHandle(signalPipe);
 #endif
       setUseAttach(TRUE);

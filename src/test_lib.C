@@ -520,7 +520,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 	{
       fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
       return -1;
-	}
+	}	
 	char child_args[1024];
    strcpy(child_args, "");
    if (argv[0] != NULL) {
@@ -531,7 +531,6 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       }
       strcat(child_args, " -attach");
    }
-
    STARTUPINFO si;
    memset(&si, 0, sizeof(STARTUPINFO));
    si.cb = sizeof(STARTUPINFO);
@@ -561,8 +560,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 						  LocalFree(lastErrorMsg);
 
       return -1;
-   }
-
+   }   
    registerPID(pi.dwProcessId);
 	// Keep synchronization pattern the same as on Unix...
 	BOOL conn_ok = ConnectNamedPipe(mutatee_signal_pipe, NULL) ?
