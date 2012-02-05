@@ -45,7 +45,7 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dynutil/h/AST.h"
+#include "dynutil/h/DynAST.h"
 #include "Relocation/CodeMover.h"
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"

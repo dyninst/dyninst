@@ -52,7 +52,7 @@
 #include "dyn_detail/boost/shared_ptr.hpp"
 
 // To define StackAST
-#include "AST.h"
+#include "DynAST.h"
 
 #if defined(os_aix) 
 // AIX is missing a MINLONG...

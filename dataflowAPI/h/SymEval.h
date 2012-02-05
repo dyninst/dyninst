@@ -37,7 +37,7 @@
 #include <map>
 
 #include "Absloc.h"
-#include "AST.h"
+#include "DynAST.h"
 
 #include "Graph.h"
 #include "util.h"
