@@ -50,6 +50,8 @@ class PatchEdge {
 
    PATCHAPI_EXPORT bool consistency() const;
 
+   PATCHAPI_EXPORT std::string format() const;
+
  protected:
     ParseAPI::Edge *edge_;
     PatchBlock *src_;

@@ -62,7 +62,9 @@ class BPatch_register;
 namespace Dyninst {
    namespace PatchAPI {
       class Instance;
+      class Point;
       typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+      Point *convert(const BPatch_point *, BPatch_callWhen);
    }
 }
 
@@ -107,6 +109,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class process;
     friend class BPatch_edge;
     friend class BPatch_snippet;
+    friend Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *, BPatch_callWhen);
 
 private:
     
@@ -145,8 +148,8 @@ private:
     //  maybe we want BPatchSnippetHandle here
     Dyninst::PatchAPI::InstancePtr dynamic_point_monitor_func;
 
-    instPoint *getPoint() {return point;}
-    instPoint *getPoint(BPatch_callWhen when);
+    instPoint *getPoint() const {return point;}
+    instPoint *getPoint(BPatch_callWhen when) const;
 
     // If we're edge inst
     BPatch_edge *edge_;
