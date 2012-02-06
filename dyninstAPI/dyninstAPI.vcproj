@@ -42,9 +42,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/MP"
+				AdditionalOptions="/MP&#x0D;&#x0A;"
 				Optimization="0"
-				AdditionalIncludeDirectories="./h;..;../external;../symtabAPI/h;../dynutil/h;../instructionAPI/h;../parseAPI/h;../patchAPI/h;../dataflowAPI/h"
+				AdditionalIncludeDirectories="../../include;../../dynutil/h;../dynutil/h;./h;..;../external;../symtabAPI/h;../instructionAPI/h;../parseAPI/h;../patchAPI/h;../dataflowAPI/h"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_mem_emulation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_mutatee_traps;cap_noaddr_gen;cap_tramp_liveness;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
@@ -1957,6 +1957,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2629,11 +2630,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File

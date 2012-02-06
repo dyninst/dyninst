@@ -930,9 +930,8 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
 {
 
-   // Update: check by full name first because we may have non-unique fileNames. 
-
-   for(u_int j=0; j < mapped_objects.size(); j++){
+   // Update: check by full name first because we may have non-unique fileNames. 	
+   for(u_int j=0; j < mapped_objects.size(); j++){	   
       if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
            wildcardEquiv(obj_name, mapped_objects[j]->fullName())))

@@ -54,8 +54,11 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+#if defined(os_windows)
+#define FS_FIELD_SEPERATOR '\\'
+#else
 #define FS_FIELD_SEPERATOR '/'
-
+#endif
 // Whee hasher...
 
 unsigned imgFuncHash(const parse_func * const &func) {
