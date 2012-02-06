@@ -214,7 +214,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
 	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
          // Someone could already be there; omit the trap. 
-   	   cerr << hex << "Omitting springboard trap due to conflict: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
          return Failed;
       }
    }

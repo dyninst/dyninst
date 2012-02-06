@@ -927,17 +927,28 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
-mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
+mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) const
 {
-
-   // Update: check by full name first because we may have non-unique fileNames. 	
-   for(u_int j=0; j < mapped_objects.size(); j++){	   
+   // Update: check by full name first because we may have non-unique fileNames. 
+   for(u_int j=0; j < mapped_objects.size(); j++){
       if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
            wildcardEquiv(obj_name, mapped_objects[j]->fullName())))
          return mapped_objects[j];
    }
 
+   // Strip the wildcard name
+#if defined(os_windows)
+   char separator = '\\';
+#else
+   char separator = '/';
+#endif
+
+   std::string::size_type dir = obj_name.rfind(separator);
+   if (dir != std::string::npos) {
+      // +1, as that finds the slash and we don't want it. 
+      obj_name = obj_name.substr(dir+1);
+   }
 
    for(u_int j=0; j < mapped_objects.size(); j++){
       if (mapped_objects[j]->fileName() == obj_name ||
@@ -1973,7 +1984,6 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
           iter->start_ptr())) 
       {
          // HACK: code modification will make this happen...
-         cerr << "Failed writing a springboard branch @ " << hex << iter->startAddr() << dec << ", ret false" << endl;
          return false;
       }
 
