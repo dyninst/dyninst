@@ -782,7 +782,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
                                          size
 #endif
 ) {
-#if !defined(arch_x86) && !defined(arch_power)
+#if !defined(arch_x86) && !defined(arch_power) && !defined(arch_x86_64)
     emitStorePreviousStackFrameRegister((Address) destination,
                                         source,
                                         gen,

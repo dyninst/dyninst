@@ -706,7 +706,7 @@ bool BPatch_point::patchPostCallArea()
     return false;
 }
 
-instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
+instPoint *BPatch_point::getPoint(BPatch_callWhen when) const {
    switch(when) {
       case BPatch_callBefore:
       case BPatch_callUnset:
@@ -721,4 +721,8 @@ instPoint *BPatch_point::getPoint(BPatch_callWhen when) {
 std::string BPatch_point::getCalledFunctionNameInt() {
 	assert(point->block());
 	return point->block()->obj()->getCalleeName(point->block());
+}
+
+Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *p, BPatch_callWhen when) {
+   return p->getPoint(when);
 }
