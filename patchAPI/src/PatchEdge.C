@@ -101,3 +101,15 @@ bool EdgePoints::consistency(const PatchEdge *edge, const PatchFunction *func) c
    }
    return true;
 }
+
+std::string PatchEdge::format() const {
+   stringstream ret;
+   ret << "{"
+       << src_->format()
+       << ","
+       << trg_->format()
+       << ","
+       << ParseAPI::format(type())
+       << "}";
+   return ret.str();
+}
