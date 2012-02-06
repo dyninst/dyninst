@@ -338,7 +338,7 @@ void Parser::ProcessUnresBranchEdge(
     det.ibuf = (unsigned char*)
        frame.func->isrc()->getPtrToInstruction(ah.getAddr());
     det.isize = ah.getSize();
-    if (-1 == target) {
+    if (((Address)-1) == target) {
         det.data.unres.target = 0;
     } else {
         det.data.unres.target = target;
@@ -595,10 +595,7 @@ void Parser::ProcessCFInsn(
         }
     }
 
-    if (unlikely(_obj.defensiveMode() && edges_out.empty() && has_unres)) {
-        link(cur, _sink, INDIRECT, true);
-        ProcessUnresBranchEdge(frame, cur, ah, -1);
-    } else if (has_unres){
+    if (unlikely(has_unres && (!_obj.defensiveMode() || edges_out.empty()))) {
         link(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
 	 }

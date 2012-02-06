@@ -1641,9 +1641,9 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
 
 using namespace Dyninst::SymtabAPI;
 
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
-    std::map<std::string, BinaryEdit *> retMap;
 
+mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
+                                                   std::map<std::string, BinaryEdit*> &retMap) {
     std::vector<std::string> paths;
     std::vector<std::string>::iterator pathIter;
 
@@ -1664,7 +1664,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
-                    return retMap;
+                    return temp->getMappedObject();
                 }
                 delete temp;
             }
@@ -1691,22 +1691,25 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                          BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
-
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                                std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
-                                retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
-                            }
+                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
+                           
+                           if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                              std::string mapName = *pathIter + string(":") +
+                                 (*member_it)->memberName();
+                              retMap.insert(std::make_pair(mapName, temp));
+                           }else{
+                              if(temp) delete temp;
+                              retMap.clear();
+                              break;
+                           }
                         }
 
                         if (retMap.size() > 0) {
                             origSymtab->addLinkingResource(library);
-                            return retMap;
+                            // So we tried loading "libc.a", and got back a swarm of individual members. 
+                            // Lovely. 
+                            // Just return the first thing...
+                            return retMap.begin()->second->getMappedObject();
                         }
                         //if( library ) delete library;
                     }
@@ -1726,7 +1729,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                           delete singleObject;
                         }else{
                             retMap.insert(std::make_pair(*pathIter, temp));
-                            return retMap;
+                            return temp->getMappedObject();
                         }
                     }
                     if(temp) delete temp;
@@ -1737,9 +1740,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 
     startup_printf("[%s:%u] - Creation error opening %s\n",
                    FILE__, __LINE__, filename.c_str());
-    retMap.clear();
-    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-    return retMap;
+    return NULL;
 }
 
 #endif

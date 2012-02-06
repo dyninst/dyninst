@@ -32,6 +32,7 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
+#include "dyn_detail/boost/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
@@ -70,6 +71,7 @@ class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
 class BPatch_variableExpr;
+class BPatch_type;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
@@ -78,6 +80,8 @@ class BPatch_image;
 
 class func_instance;
 struct batchInsertionRecord;
+class instPoint;
+class int_variable;
 
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
@@ -301,6 +305,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
+    // BPatch_addressSpace::revertReplaceFunction
+    //
+    // Undo the operation of a replace function
+    API_EXPORT(Int, (oldFunc),
+               bool, revertReplaceFunction, (BPatch_function &oldFunc));
+
     // BPatch_addressSpace::wrapFunction
     //
     // Replace oldFunc with newFunc as above; however, also rename oldFunc
@@ -308,6 +318,14 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (oldFunc, newFunc, clone),
                bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
+
+    // BPatch_addressSpace::revertWrapFunction
+    //
+    // Undo the operations of a wrapFunction, restoring the original
+    // functionality
+
+    API_EXPORT(Int, (wrappedFunc),
+               bool,revertWrapFunction,(BPatch_function *wrappedFunc));
 
     //  BPatch_addressSpace::getSourceLines
     //  
@@ -414,7 +432,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  function by redefining a function  
 
     API_EXPORT_VIRT(Int, (libname, reload),
-    bool, loadLibrary,(const char *libname, bool reload = false));
+    BPatch_module *, loadLibrary,(const char *libname, bool reload = false));
 
     // BPatch_addressSpace::isStaticExecutable
     //
@@ -422,6 +440,18 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     // statically-linked executable, false otherwise
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
+
+    // HACK-TASTIC
+    // I need a workaround for the fact that PatchAPI doesn't have snippet
+    // support yet; I'm getting it by putting an external interface on the 
+    // Dyninst compiler. 
+    // BTW, while I'm at it: SCREW API_EXPORT!
+
+    void snippetToBinary(const BPatch_snippet &expr, 
+                          BPatch_point &point,
+                          BPatch_callWhen when,
+                          char *buffer,
+                          unsigned &size);
 
 };
 

@@ -32,7 +32,7 @@ class PatchCallback {
    // Users override these to provide their callbacks
   protected:
    virtual void destroy_cb(PatchBlock *) {};
-   virtual void destroy_cb(PatchEdge *) {};
+   virtual void destroy_cb(PatchEdge *, PatchObject * /*owner*/) {};
    virtual void destroy_cb(PatchFunction *) {};
    virtual void destroy_cb(PatchObject *) {};
 
@@ -63,7 +63,7 @@ class PatchCallback {
    void batch_end();
 
    void destroy(PatchBlock *);
-   void destroy(PatchEdge *);
+   void destroy(PatchEdge *, PatchObject *owner);
    void destroy(PatchFunction *);
    void destroy(PatchObject *);
 
@@ -112,7 +112,7 @@ class PatchCallback {
    };
 
    typedef std::pair<PatchBlock *, PatchBlock *> BlockSplit;
-   std::vector<PatchEdge *> destroyedEdges_;
+   std::vector<std::pair<PatchEdge *, PatchObject*> > destroyedEdges_;
    std::vector<PatchBlock *> destroyedBlocks_;
    std::vector<PatchFunction *> destroyedFuncs_;
    std::vector<PatchObject *> destroyedObjects_;

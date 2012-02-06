@@ -55,7 +55,7 @@ Modification::Modification(const CallModMap &callMod,
   funcWraps_(funcWraps) {};
 
 bool Modification::process(RelocBlock *cur, RelocGraph *cfg) {
-   relocation_cerr << "Modification transformer, processing block" << endl;
+  //relocation_cerr << "Modification transformer, processing block" << endl;
   // We define three types of program modification:
   // 1) Function call replacement; change the target of the corresponding
   //    call element
@@ -110,12 +110,15 @@ bool Modification::replaceCall(RelocBlock *trace, RelocGraph *cfg) {
 }
 
 bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
+  // See if we were something created later
+  if (trace->elements().empty()) return true;
+  
    // See if we're the entry block
    if (trace->block() != trace->func()->entryBlock()) return true;
 
    FuncModMap::const_iterator iter = funcReps_.find(trace->func());
    if (iter == funcReps_.end()) return true;
-   //func_instance* oldfun = SCAST_FI(iter->first);
+   func_instance* oldfun = SCAST_FI(iter->first);
    PatchFunction* pnewfun = iter->second;
    //func_instance* newfun = SCAST_FI(iter->second);
    func_instance* newfun = SCAST_FI(pnewfun);
@@ -125,8 +128,9 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
                    << " /w/ entry block "
                    << (newfun->entryBlock() ? newfun->entryBlock()->start() : -1) << endl;
    // Stub a jump to the replacement function
-   RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
-                                     newfun,
+   RelocBlock *stub = makeRelocBlock(oldfun->entryBlock(),
+                                     oldfun,
+				     trace,
                                      cfg);
    RelocBlock *target = cfg->find(newfun->entryBlock(), newfun);
    if (target) {
@@ -141,7 +145,7 @@ bool Modification::replaceFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
 
    // Redirect the springboard to the replacement function
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    // Redirect all call in-edges to the replacement function
    Predicates::Interprocedural pred;
@@ -175,6 +179,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    // wrapper are redirected".
    RelocBlock *stub = makeRelocBlock(newfun->entryBlock(),
                                      newfun,
+				     trace,
                                      cfg);
    RelocBlock *target = cfg->find(newfun->entryBlock(), newfun);
    if (target) {
@@ -192,7 +197,7 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    }
    relocation_cerr << "Stub block is " << stub->format() << endl;
    
-   cfg->setSpringboard(trace->block(), stub);
+   cfg->setSpringboard(trace->block(), trace->func(), stub);
 
    WrapperPredicate pred(trace->func());
    if (target) {
@@ -208,10 +213,11 @@ bool Modification::wrapFunction(RelocBlock *trace, RelocGraph *cfg) {
    return true;
 }
 
-RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg) {
+RelocBlock *Modification::makeRelocBlock(block_instance *block, func_instance *func, RelocBlock *trace, RelocGraph *cfg) {
    RelocBlock *t = RelocBlock::createStub(block, func);
-   // Put it at the end, why not.
-   cfg->addRelocBlock(t);
+
+   // Current, new. 
+   cfg->addRelocBlockBefore(trace, t);
    return t;
 }
 

@@ -379,7 +379,6 @@ bool BPatch_point::isDynamicInt()
                return true;
             case ParseAPI::CALL:
                return point->edge()->src()->containsDynamicCall();
-               break;
             default:
                return false;
           }
@@ -466,14 +465,6 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
 
-
-#if 0
-  miniTramp *res = point->instrument(ast,
-                                     callPreInsn,
-                                     orderLastAtPoint,
-                                     true,
-                                     false);
-#endif
   miniTramp *res = point->push_back(ast, true);
 
   if (addSpace->pendingInsertions == NULL) {

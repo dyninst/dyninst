@@ -147,7 +147,9 @@ void CodeTracker::addTracker(TrackerElement *e) {
 
    if (!trackers_.empty()) {
       TrackerElement *previous = trackers_.back();
-      if (previous->type() == e->type() &&
+      if (previous->mergeable() &&
+          e->mergeable() && 
+          previous->type() == e->type() &&
           e->orig() == previous->orig() &&
           e->block() == previous->block() &&
           e->func() == previous->func()) {
@@ -169,8 +171,6 @@ void CodeTracker::createIndices() {
    // We may have multiple Trackers for the same original address.
    // If they have different types that's fine; if they have the same type
    // we accumulate instead of adding one of them.
-
-   TrackerElement *previous = NULL;
 
    for (TrackerList::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {

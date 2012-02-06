@@ -14,7 +14,6 @@ TARGET = libpcontrol.so
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux.C \
-        ../../common/src/Elf_X.C \
         ../src/sysv.C \
         ../src/unix.C \
         ../src/x86_process.C \

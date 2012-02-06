@@ -93,7 +93,7 @@ class block_instance : public Dyninst::PatchAPI::PatchBlock {
     // lookups, and thus should be avoided. 
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
-    static void destroy(block_instance *b);
+    // static void destroy(block_instance *b); // doesn't need to do anything
 
  private:
     void updateCallTarget(func_instance *func);

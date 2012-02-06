@@ -68,7 +68,7 @@ const PatchFunction::Blockset&
 PatchFunction::getCallBlocks() {
   // Compute the list if it's empty or if the list of function blocks
   // has grown
-  if (call_blocks_.size() != func_->callEdges().size())
+  if (call_blocks_.empty() && !func_->callEdges().empty())
   {
     const ParseAPI::Function::edgelist &callEdges = func_->callEdges();
     for (ParseAPI::Function::edgelist::iterator iter = callEdges.begin();
@@ -98,10 +98,40 @@ void PatchFunction::removeBlock(PatchBlock *b) {
    cb()->remove_block(this, b);
 }
 
+static bool hasSingleIndirectSinkEdge(PatchBlock *b)
+{
+   fprintf(stderr,"hasSingleIndirectSinkEdge(%lx)=",b->start());
+   const ParseAPI::Block::edgelist & trgs = b->block()->targets();
+   if (trgs.size() == 1) {
+      ParseAPI::Edge *edge = * trgs.begin();
+      if (edge->sinkEdge() && edge->type() == ParseAPI::INDIRECT) {
+         fprintf(stderr,"true\n");
+         return true;
+      }
+   }
+   fprintf(stderr,"false\n");
+   return false;
+}
+
 void PatchFunction::addBlock(PatchBlock *b) {
    if (all_blocks_.empty() && exit_blocks_.empty() && call_blocks_.empty()) return;
 
    all_blocks_.insert(b);
+
+   if (!call_blocks_.empty()) {
+      if (b->containsCall()) {
+         call_blocks_.insert(b);
+      } 
+      else if (hasSingleIndirectSinkEdge(b)) {
+         // don't know what the edge will resolve to, until then the 
+         // call_blocks_ vector shouldn't be considered complete
+         call_blocks_.clear(); 
+      }
+   }
+
+   if (0 < b->numRetEdges() && !exit_blocks_.empty()) {
+      exit_blocks_.insert(b);
+   }
 
    cb()->add_block(this, b);
 }
@@ -259,28 +289,55 @@ bool PatchFunction::findInsnPoints(Point::Type type,
       end = iter->second.postInsn.end();
       return (start != end);
    }
-   else return false;
+   else 
+      return false;
 }
 
+// remove block points from points_ and blockPoints_
 void PatchFunction::destroyBlockPoints(PatchBlock *block)
 {
+    PatchCallback *cb = obj()->cb();
+
+    // remove from points_
+    if (points_.entry && points_.entry->block() == block) {
+        cb->destroy(points_.entry); // KEVINTEST: can you delete a function's entry point?
+        points_.entry = NULL;
+    }
+    std::map<PatchBlock *, Point *>::iterator pit = points_.exits.find(block);
+    if (pit != points_.exits.end()) {
+        cb->destroy(pit->second);
+        points_.exits.erase(pit);
+    }
+    pit = points_.postCalls.find(block);
+    if (pit != points_.postCalls.end()) {
+        cb->destroy(pit->second);
+        points_.postCalls.erase(pit);
+    }
+    pit = points_.preCalls.find(block);
+    if (pit != points_.preCalls.end()) {
+        cb->destroy(pit->second);
+        points_.preCalls.erase(pit);
+    }
+    
+    // remove from blockPoints_
     map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.find(block);
     if (bit == blockPoints_.end()) {
         return;
     }
-
-    PatchCallback *cb = obj()->cb();
     if (bit->second.during) {
         bit->first->remove(bit->second.during);
         cb->destroy(bit->second.during);
+        bit->second.during = NULL;
     }
     if (bit->second.entry) {
         bit->first->remove(bit->second.entry);
         cb->destroy(bit->second.entry);
+        bit->second.entry = NULL;
     }
     if (bit->second.exit) {
         bit->first->remove(bit->second.exit);
         cb->destroy(bit->second.exit);
+        bit->second.exit = NULL;
     }
     if (!bit->second.postInsn.empty()) {
         for (InsnPoints::iterator iit = bit->second.postInsn.begin();
@@ -313,10 +370,11 @@ void PatchFunction::destroyPoints()
     // 3) clear points_
 
     // 1)
-    for(map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin(); 
-        bit != blockPoints_.end(); bit++) 
+    map<PatchBlock *, BlockPoints>::iterator bit = blockPoints_.begin();
+    while (bit != blockPoints_.end()) 
     {
-        destroyBlockPoints(bit->first);
+        destroyBlockPoints(bit->first); // eliminates bit from blockPoints_
+        bit = blockPoints_.begin();
     }
     blockPoints_.clear();
 
@@ -327,6 +385,7 @@ void PatchFunction::destroyPoints()
         if (eit->second.during) {
             eit->first->remove(eit->second.during);
             cb->destroy(eit->second.during);
+            eit->second.during = NULL;
         }
     }
     edgePoints_.clear();
@@ -510,6 +569,11 @@ bool PatchFunction::consistency() const {
          CONSIST_FAIL;
       }
       for (Blockset::const_iterator iter = all_blocks_.begin(); iter != all_blocks_.end(); ++iter) {
+          if (!(*iter)->consistency()) {
+             CONSIST_FAIL;
+             cerr << "Error: block ["<< hex << (*iter)->start() << " " 
+                 << (*iter)->end() << dec << ") failed consistency check" << endl;
+          }
          bool found = false;
          for (ParseAPI::Function::blocklist::iterator iter2 = func_->blocks().begin();
               iter2 != func_->blocks().end(); ++iter2) {
@@ -544,14 +608,20 @@ bool PatchFunction::consistency() const {
    }
 
    if (!call_blocks_.empty()) {
-      // Comparing edges to blocks; may not be safe. 
+      // build up set of parseAPI-level call blocks
       set<ParseAPI::Block*> llcbs;
       for (ParseAPI::Function::edgelist::iterator llit = func_->callEdges().begin();
            llit != func_->callEdges().end(); ++llit) 
       {
           llcbs.insert((*llit)->src());
+          assert((*llit)->type() == ParseAPI::CALL);
       }
-      if (call_blocks_.size() != llcbs.size()) CONSIST_FAIL;
+      if (call_blocks_.size() != llcbs.size()) {
+         cerr << "PatchAPI call_blocks_ not same size ("<<call_blocks_.size()
+            <<") as ParseAPI call blocks list ("<<llcbs.size()<<")"<<endl; 
+         //CONSIST_FAIL;
+      }
+      // verify that call_blocks_ are in llcbs
       for (Blockset::const_iterator cit = call_blocks_.begin(); 
            cit != call_blocks_.end(); ++cit) 
       {

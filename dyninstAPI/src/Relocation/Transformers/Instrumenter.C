@@ -134,6 +134,17 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
          ++elem;
          assert(elem != trace->elements().end());
       }
+
+      if ((preAddr != 0) &&
+          (preAddr < (*elem)->addr())) {
+         // We missed this? Bad instPoint!
+         assert(0);
+      }
+      if ((postAddr != 0) &&
+          (postAddr < (*elem)->addr())) {
+         assert(0);
+      }
+
       if (preAddr == (*elem)->addr()) {
          if (!pre->second->empty()) {
             Widget::Ptr inst = makeInstrumentation(pre->second);
@@ -144,8 +155,11 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       }
       if (postAddr == (*elem)->addr()) {
          if (!post->second->empty()) {
+            // We can split an instruction into multiple widgets so skip over all of them...
             RelocBlock::WidgetList::iterator tmp = elem;
-            ++tmp;
+            while ((tmp != trace->elements().end()) &&
+                   ((*tmp)->addr() == postAddr) &&
+                   ((*tmp)->insn())) ++tmp;
             Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) return false;
             trace->elements().insert(tmp, inst);
@@ -167,11 +181,20 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    RelocBlock::WidgetList &elements = trace->elements();
    // For now, we're inserting this instrumentation immediately before the last instruction
    // in the list of elements. 
+
+   // Unfortunately, we may have split the last instruction into multiple Widgets to 
+   // piecewise emulate. Therefore, we can't just drop it in second-to-last; instead, we
+   // need to put it in before that instruction. 
+
    Widget::Ptr inst = makeInstrumentation(call);
    if (!inst) return false;
 
-   inst.swap(elements.back());
-   elements.push_back(inst);
+   RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
+   InstructionAPI::Instruction::Ptr call_insn = (*riter)->insn();
+   if (call_insn) {
+      while (riter != elements.rend() && (*riter)->insn() == call_insn) ++riter;
+   }
+   elements.insert(riter.base(), inst);
 
    return true;
 }
@@ -302,7 +325,7 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
                       new Target<RelocBlock *>(trace),
                       ParseAPI::FALLTHROUGH)) return false;
 
-   if (!cfg->setSpringboard(trace->block(), instRelocBlock)) return false;
+   if (!cfg->setSpringboard(trace->block(), trace->func(), instRelocBlock)) return false;
    Predicates::Interprocedural pred;
    if (!cfg->changeTargets(pred, trace->ins(), instRelocBlock)) return false;
 

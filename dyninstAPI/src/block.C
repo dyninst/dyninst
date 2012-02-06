@@ -36,6 +36,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "InstructionDecoder.h"
+#include "PatchModifier.h"
 #include <set>
 #include <sstream>
 #include "Relocation/Transformers/Movement-analysis.h"
@@ -105,8 +106,7 @@ int block_instance::id() const {
 
 using namespace Dyninst::Relocation;
 void block_instance::triggerModified() {
-    //KEVINTODO: implement this
-    // Relocation info caching...
+    // KEVINTODO: implement this: remove block from Relocation info caching...
    //PCSensitiveTransformer::invalidateCache(this);
 }
 
@@ -128,11 +128,19 @@ std::string block_instance::calleeName() {
 }
 
 void block_instance::updateCallTarget(func_instance *func) {
-
-   edge_instance *e = getTarget();
-   if (e && e->sinkEdge()) {
-      e->trg_ = func->entry();
-   }
+  // Update a sink-typed call edge to
+  // have an inter-module target
+   //
+   // Preserving original behavior on sink edges only
+   //
+  edge_instance *e = getTarget();
+  if (e && e->sinkEdge()) {
+     PatchAPI::PatchModifier::redirect(e, func->entryBlock());
+  } else {
+     mal_printf("WARNING: tried to update the call target of a block "
+        "[%lx %lx) with a non-sink target %lx to %lx %s[%d]\n", start(),
+        end(), e->target()->start(), func->addr(), FILE__,__LINE__);
+  }
 }
 
 func_instance *block_instance::entryOfFunc() const {
@@ -158,15 +166,3 @@ void *block_instance::getPtrToInstruction(Address addr) const {
   return obj()->getPtrToInstruction(addr);
 }
 
-void block_instance::destroy(block_instance *b) {
-  // Put things here that should go away when we destroy a block.
-  // Iterate through functions...
-
-  std::vector<ParseAPI::Function *> pFuncs;
-  b->llb()->getFuncs(pFuncs);
-  for (unsigned i = 0; i < pFuncs.size(); ++i) {
-    func_instance *func = b->findFunction(pFuncs[i]);
-    func->destroyBlock(b);
-  }
-  delete b;
-}

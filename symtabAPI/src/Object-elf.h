@@ -59,6 +59,7 @@
 #include <libelf.h>
 #include <string>
 
+#define ELF_X_NAMESPACE SymtabAPI
 #include "common/h/Elf_X.h"
 
 #include <fcntl.h>

@@ -61,7 +61,6 @@ func_instance::func_instance(parse_func *f,
   PatchFunction(f, mod->obj()),
   ptrAddr_(f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0),
   mod_(mod),
-  prevBlocksUnresolvedCF_(0),
   prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
@@ -97,7 +96,6 @@ func_instance::func_instance(const func_instance *parFunc,
   PatchFunction(parFunc->ifunc(), childMod->obj()),
   ptrAddr_(parFunc->ptrAddr_),
   mod_(childMod),
-  prevBlocksUnresolvedCF_(0),
   prevBlocksAbruptEnds_(0),
   handlerFaultAddr_(0),
   handlerFaultAddrAddr_(0)
@@ -125,9 +123,11 @@ func_instance::~func_instance() {
 }
 
 // the original entry block is gone, we choose a new entry block from the
-// function, whichever block we can find that has no intraprocedural incoming 
-// edges
-block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
+// function, whichever non-dead block we can find that has no intraprocedural 
+// incoming edges.  If there's no obvious block to choose, we stick with the
+// default block
+block_instance * func_instance::setNewEntry(block_instance *def,
+                                            std::set<block_instance*> &deadBlocks)
 {
     block_instance *newEntry = NULL;
     assert(!all_blocks_.empty());
@@ -139,31 +139,34 @@ block_instance * func_instance::setNewEntryPoint(block_instance *defaultBlock)
          bIter++) 
     {
         block_instance *block = static_cast<block_instance*>(*bIter);
-        ParseAPI::Intraproc epred;
-        Block::edgelist & ib_ins = block->llb()->sources();
-        Block::edgelist::iterator eit = ib_ins.begin(&epred);
-        if (eit == ib_ins.end()) {
-            if (NULL != newEntry) {
-                fprintf(stderr,"WARNING: multiple blocks in function %lx "
-                    "with overwritten entry point have no incoming edges: "
-                    "[%lx %lx) and [%lx %lx) %s[%d]\n",
-                    addr_, newEntry->llb()->start(),
-                    newEntry->llb()->start() + newEntry->llb()->end(),
-                    block->llb()->start(),
-                    block->llb()->start() + block->llb()->end(),
-                    FILE__,__LINE__);
-            } else {
-                newEntry = block;
+        if (deadBlocks.find(block) == deadBlocks.end()) {
+            ParseAPI::Intraproc epred;
+            const Block::edgelist & ib_ins = block->llb()->sources();
+            Block::edgelist::iterator eit = ib_ins.begin(&epred);
+            if (eit == ib_ins.end()) 
+            {
+                if (NULL != newEntry) {
+                    fprintf(stderr,"WARNING: multiple blocks in function %lx "
+                        "with overwritten entry point have no incoming edges: "
+                        "[%lx %lx) and [%lx %lx) %s[%d]\n",
+                        addr_, newEntry->llb()->start(),
+                        newEntry->llb()->start() + newEntry->llb()->end(),
+                        block->llb()->start(),
+                        block->llb()->start() + block->llb()->end(),
+                        FILE__,__LINE__);
+                } else {
+                    newEntry = block;
+                }
             }
         }
     }
     // if all blocks have incoming edges, choose the default block
     if( ! newEntry ) {
-        newEntry = defaultBlock;
+        newEntry = def;
         mal_printf("Setting new entry block for func at 0x%lx to "
                 "actively executing block [%lx %lx), as none of the function "
                 "blocks lacks intraprocedural edges %s[%d]\n", addr_, 
-                defaultBlock->start(), defaultBlock->end(), FILE__,__LINE__);
+                def->start(), def->end(), FILE__,__LINE__);
     }
 
     // set the new entry block
@@ -264,10 +267,11 @@ mapped_object *func_instance::obj() const { return mod()->obj(); }
 AddressSpace *func_instance::proc() const { return obj()->proc(); }
 
 const func_instance::BlockSet &func_instance::unresolvedCF() {
-   if (prevBlocksUnresolvedCF_ < ifunc()->blocks().size()) {
-       prevBlocksUnresolvedCF_ = getAllBlocks().size();
+   if (ifunc()->getPrevBlocksUnresolvedCF() != (int)ifunc()->blocks().size()) {
+       ifunc()->setPrevBlocksUnresolvedCF(ifunc()->blocks().size());
        // A block has unresolved control flow if it has an indirect
        // out-edge.
+       blocks(); // force initialization of all_blocks_
        for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
             iter != all_blocks_.end(); ++iter) 
        {
@@ -281,8 +285,8 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 }
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
-    if (prevBlocksAbruptEnds_ < ifunc()->blocks().size()) {
-        prevBlocksUnresolvedCF_ = getAllBlocks().size();
+    if (prevBlocksAbruptEnds_ != ifunc()->blocks().size()) {
+        prevBlocksAbruptEnds_ = getAllBlocks().size();
         for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
              iter != all_blocks_.end(); ++iter) 
         {
@@ -327,6 +331,8 @@ unsigned func_instance::getNumDynamicCalls()
 }
 
 
+// warning: doesn't (and can't) force initialization of lazily-built 
+// data structures because this function is declared to be constant
 void func_instance::debugPrint() const {
     fprintf(stderr, "Function debug dump (%p):\n", this);
     fprintf(stderr, "  Symbol table names:\n");
@@ -551,17 +557,51 @@ bool func_instance::isInstrumentable() {
    return true;
 }
 
-block_instance *func_instance::getBlock(const Address addr) {
-        block_instance *block = obj()->findOneBlockByAddr(addr);
-        // Make sure it's one of ours
-        std::set<func_instance *> funcs;
-        block->getFuncs(std::inserter(funcs, funcs.end()));
-        if (funcs.find(this) != funcs.end()) {
-          //addBlock(block); // Update parent class's bookkeeping stuffs
-          return block;
-        }
-        return NULL;
+block_instance *func_instance::getBlockByEntry(const Address addr) {
+   block_instance *block = obj()->findBlockByEntry(addr);
+   if (block) {
+      blocks(); // force initialization of all_blocks_
+      if (all_blocks_.find(block) != all_blocks_.end()) {
+         return block;
+      }
+   }
+   return NULL;
 }
+
+
+// get all blocks that have an instruction starting at addr, or if 
+// there are none, return all blocks containing addr
+bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
+   set<block_instance*> objblks;
+   obj()->findBlocksByAddr(addr, objblks);
+   getAllBlocks(); // ensure that all_blocks_ is filled in 
+   std::vector<std::set<block_instance *>::iterator> to_erase; 
+   for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
+      // Make sure it's one of ours
+      if (all_blocks_.find(*bit) == all_blocks_.end()) {
+         to_erase.push_back(bit);
+      }
+   }
+   for (unsigned i = 0; i < to_erase.size(); ++i) {
+      objblks.erase(to_erase[i]);
+   }
+
+   if (objblks.size() > 1) { 
+      // only add blocks that have an instruction at "addr"
+      for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
+         if ((*bit)->getInsn(addr)) {
+            blks.insert(*bit);
+         }
+      }
+   }
+   // if there are no blocks containing an instruction that starts at addr, 
+   // but there are blocks that contain addr, add those to blks
+   if (blks.empty() && !objblks.empty()) {
+      std::copy(objblks.begin(), objblks.end(), std::inserter(blks, blks.end()));
+   }
+   return ! blks.empty();
+}
+
 
 using namespace SymtabAPI;
 
@@ -587,6 +627,7 @@ bool func_instance::addSymbolsForCopy() {
    }
    else {
       // I think we just add this to the dynamic symbol table...
+      cerr << "Adding symbol... " << hex << wrapperSym << " " << wrapperSym->getName() << dec << endl;
       wrapperSym->setDynamic(true);
       proc()->edit()->addDyninstSymbol(wrapperSym_);
    }
@@ -750,17 +791,23 @@ void func_instance::edgePoints(Points* pts) {
    }
 }
 
-void func_instance::destroyBlock(block_instance *block) {
+
+void func_instance::removeBlock(block_instance *block) {
     // Put things here that go away from the perspective of this function
     BlockSet::iterator bit = unresolvedCF_.find(block);
     if (bit != unresolvedCF_.end()) {
         unresolvedCF_.erase(bit);
-        prevBlocksUnresolvedCF_ --;
+        int prev = ifunc()->getPrevBlocksUnresolvedCF();
+        if (prev > 0) {
+           ifunc()->setPrevBlocksUnresolvedCF(prev - 1);
+        }
     }
     bit = abruptEnds_.find(block);
     if (bit != abruptEnds_.end()) {
         abruptEnds_.erase(block);
-        prevBlocksAbruptEnds_ --;
+        if (prevBlocksAbruptEnds_ > 0) {
+           prevBlocksAbruptEnds_ --;
+        }
     }
 }
 
@@ -784,17 +831,74 @@ void func_instance::split_block_cb(block_instance *b1, block_instance *b2)
     }
 }
 
-void func_instance::add_block_cb(block_instance *block)
+void func_instance::add_block_cb(block_instance * /*block*/)
 {
-    if (block->llb()->unresolvedCF() && 
-        prevBlocksUnresolvedCF_ == ifunc()->blocks().size()) 
-    {
-        unresolvedCF_.insert(block);
+#if 0 // KEVINTODO: eliminate this?  as presently constituted, 
+      // these if cases will never execute anyway, at least not 
+      // when we intend them to
+    if (block->llb()->unresolvedCF()) {
+       int prev = ifunc()->getPrevBlocksUnresolvedCF();
+       if (ifunc()->blocks().size() == prev) {
+          unresolvedCF_.insert(block);
+          ifunc()->setPrevBlocksUnresolvedCF(prev+1);
+       }
     }
     if (block->llb()->abruptEnd() && 
         prevBlocksAbruptEnds_ == ifunc()->blocks().size())
     {
         abruptEnds_.insert(block);
+        prevBlocksAbruptEnds_ ++;
     }
+#endif
 }
 
+
+// get caller blocks that aren't in deadBlocks
+bool func_instance::getLiveCallerBlocks
+(const std::set<block_instance*> &deadBlocks, 
+ const std::list<func_instance*> &deadFuncs, 
+ std::map<Address,vector<block_instance*> > & stubs)  // output: block + target addr
+{
+   using namespace ParseAPI;
+
+   const PatchBlock::edgelist &callEdges = entryBlock()->getSources();
+   PatchBlock::edgelist::const_iterator eit = callEdges.begin();
+   for( ; eit != callEdges.end(); ++eit) {
+      if (CALL == (*eit)->type()) {// includes tail calls
+          block_instance *cbbi = static_cast<block_instance*>((*eit)->source());
+          if (deadBlocks.end() != deadBlocks.find(cbbi)) {
+             continue; 
+          }
+
+          // don't use stub if it only appears in dead functions 
+          std::set<func_instance*> bfuncs;
+          cbbi->getFuncs(std::inserter(bfuncs,bfuncs.end()));
+          bool allSrcFuncsDead = true;
+          for (std::set<func_instance*>::iterator bfit = bfuncs.begin();
+               bfit != bfuncs.end(); 
+               bfit++) 
+          {
+             bool isSrcFuncDead = false;
+             for (std::list<func_instance*>::const_iterator dfit = deadFuncs.begin();
+                  dfit != deadFuncs.end();
+                  dfit++)
+             {
+                if (*bfit == *dfit) {
+                   isSrcFuncDead = true;
+                   break;
+                }
+             }
+             if (!isSrcFuncDead) {
+                allSrcFuncsDead = false;
+                break;
+             }
+          }
+          if (allSrcFuncsDead) {
+             continue; 
+          }
+          // add stub
+          stubs[addr()].push_back(cbbi);
+      }
+   }
+   return stubs.end() != stubs.find(addr()) && !stubs[addr()].empty();
+}

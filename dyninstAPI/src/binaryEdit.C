@@ -385,7 +385,7 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
 }
 
 #if !defined(os_linux) && !defined(os_freebsd)
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
+mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename, std::map<std::string, BinaryEdit *> &allOpened) {
     /*
      * Note: this does not actually do any library name resolution, as that is OS-dependent
      * If resolution is required, it should be implemented in an OS-dependent file
@@ -399,12 +399,11 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
     BinaryEdit *temp = BinaryEdit::openFile(filename, mgr());
 
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
-        retMap.insert(std::make_pair(filename, temp));
-        return retMap;
+       allOpened.insert(std::make_pair(filename, temp));
+       return temp->getMappedObject();
     }
-
-    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-    return retMap;
+    
+    return NULL;
 }
 
 bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::string> &) {
@@ -445,7 +444,8 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    {
      std::string lib = depends.front();
      if(deps.find(lib) == deps.end()) {
-         std::map<std::string, BinaryEdit*> res = openResolvedLibraryName(lib);
+        std::map<std::string, BinaryEdit*> res;
+        openResolvedLibraryName(lib, res);
          std::map<std::string, BinaryEdit*>::iterator bedit_it;
          for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
            if (bedit_it->second) {
@@ -464,7 +464,7 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    return true;
 }
 
-#if 0
+#if 0 //KEVINTODO: I think this is redundant, SymtabAPI::emitWin.C does this
 static unsigned long addTrapTableSpace_win(AddressSpace *as)
 {
 #if defined (os_windows)

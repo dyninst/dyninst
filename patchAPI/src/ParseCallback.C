@@ -39,11 +39,35 @@ void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block 
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Block *block) {
-   _obj->removeBlock(block);
+   PatchBlock *pb = _obj->getBlock(block,false);
+   if (pb) {
+       pb->destroyPoints();
+       _obj->removeBlock(block);
+       _obj->cb()->destroy(pb);
+   }
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Edge *edge) {
-   _obj->removeEdge(edge);
+   bool inSrc = true;
+   PatchObject *srcObj = _obj->addrSpace()->findObject(edge->src()->obj());
+   PatchObject *dstObj = _obj->addrSpace()->findObject(edge->trg()->obj());
+   PatchEdge *pe = srcObj->getEdge(edge,NULL,NULL,false);
+   if (!pe) {
+      pe = dstObj->getEdge(edge,NULL,NULL,false);
+      inSrc = false;
+   }
+   // remove edge from both source and target objects
+   if (inSrc) {
+      srcObj->removeEdge(edge);
+   }
+   if (srcObj != dstObj) {
+      dstObj->removeEdge(edge);
+   }
+   // destroy edge, can only do this once
+   if (pe) {
+      if (inSrc) srcObj->cb()->destroy(pe, srcObj);
+      else       dstObj->cb()->destroy(pe, dstObj);
+   }
 }
 
 void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
@@ -51,25 +75,39 @@ void PatchParseCallback::destroy_cb(ParseAPI::Function *func) {
    _obj->removeFunc(func);
    if (pf) {
        pf->destroyPoints();
+       _obj->cb()->destroy(pf);
    }
 }
 
 void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *edge, edge_type_t type) {
    // We get this callback before the edge is deleted; we need to tell the block that we 
-   // nuked an edge. 
-   PatchEdge *pe = _obj->getEdge(edge, NULL, NULL, false);
+   // nuked an edge.
+   PatchObject *pbObj = _obj->addrSpace()->findObject(block->obj());
+   PatchEdge *pe = pbObj->getEdge(edge, NULL, NULL, false);
    if (!pe) return;
 
-   PatchBlock *pb = _obj->getBlock(block, false);
+   PatchBlock *pb = _obj->addrSpace()->findObject(block->obj())->getBlock(block, false);
+   vector<PatchFunction*> funcs;
    assert(pb); // If we have an edge we better DAMN well have the block
    
    if (type == source) pb->removeSourceEdge(pe);
-   else pb->removeTargetEdge(pe);
+   else { 
+      pb->removeTargetEdge(pe);
+      // remove block from callBlocks, if this is the block's one only call edge
+      int numCalls = pb->numCallEdges();
+      if (numCalls == 1) {
+         pb->getFunctions(std::back_inserter(funcs));
+         for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
+            (*fit)->call_blocks_.erase(pb);
+         }
+      }
+   }
 
    if (pe->points_.during) {
        pb->obj()->cb()->destroy(pe->points_.during);
-       vector<PatchFunction*> funcs;
-       pb->getFunctions(back_inserter(funcs));
+       if (funcs.empty()) {
+          pb->getFunctions(std::back_inserter(funcs));
+       }
        for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
            (*fit)->remove(pe->points_.during);
        }

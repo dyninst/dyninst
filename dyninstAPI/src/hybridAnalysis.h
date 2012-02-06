@@ -123,7 +123,6 @@ public:
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }
     void deleteSynchSnippet(SynchHandle *handle);
-    //bool needsSynchronization(BPatch_point *point);
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
@@ -352,6 +351,12 @@ public:
     static InternalCodeOverwriteCallback getCodeOverwriteCB();
 
 private:
+    // helper to deleteLoop, does not delete loop or its shadowMap
+    bool removeLoop(HybridAnalysisOW::owLoop *loop, 
+                    bool useInsertionSet,
+                    BPatch_point *writePoint=NULL,
+                    bool uninstrument=true);
+   
     // gets biggest loop without unresolved/multiply resolved indirect ctrl flow that it can find
     BPatch_basicBlockLoop* getWriteLoop(BPatch_function &func, 
                                         Dyninst::Address writeAddr, 

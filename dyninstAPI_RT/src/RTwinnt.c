@@ -96,7 +96,7 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
    static int DllMainCalledOnce = 0;
-   fprintf(stderr,"RTLIB: In DllMain staticmode=%d %s[%d]\n", DYNINSTstaticMode, __FILE__,__LINE__);
+   //fprintf(stderr,"RTLIB: In DllMain staticmode=%d %s[%d]\n", DYNINSTstaticMode, __FILE__,__LINE__);
 
    if(DllMainCalledOnce)
       return 1;
@@ -111,7 +111,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
       DYNINSTinitializeTrapHandler();
    }
    else {
-      fprintf(stderr,"DllMain: Runtime lib initialized for dynamic mode\n");
+      //fprintf(stderr,"DllMain: Runtime lib initialized for dynamic mode\n");
    }
 #endif
 
@@ -507,4 +507,5 @@ VOID __stdcall DYNINST_FakeGetSystemTime(LPSYSTEMTIME lpSystemTime)
     lpSystemTime->wSecond = 33;
     lpSystemTime->wMilliseconds = 855;
     fprintf(stOut,"called DYNINST_FakeGetSystemTime()\n");
+    fflush(stOut);
 }

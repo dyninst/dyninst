@@ -34,8 +34,6 @@
 #include "dyntypes.h"
 #include <string>
 
-class Elf_X;
-
 namespace Dyninst
 {
 
@@ -106,7 +104,7 @@ class SymReader
    virtual Dyninst::Offset imageOffset() = 0;
    virtual Dyninst::Offset dataOffset() = 0;
 
-   virtual Elf_X *getElfHandle() { return NULL; }
+   virtual void *getElfHandle() { return NULL; }
 };
 
 class SymbolReaderFactory

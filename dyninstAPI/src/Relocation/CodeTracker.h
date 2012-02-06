@@ -85,6 +85,7 @@ class TrackerElement {
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
 
+  virtual bool mergeable() const { return true; } 
 
  protected:
   TrackerElement() { assert(0); };
@@ -116,6 +117,7 @@ class OriginalTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::original; };
 
+
  private:
 };
 
@@ -137,6 +139,8 @@ class EmulatorTracker : public TrackerElement {
   }
 
   virtual type_t type() const { return TrackerElement::emulated; };
+
+
 
  private:
 };
@@ -160,6 +164,8 @@ class InstTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
   baseTramp *baseT() const { return baseT_; };
+  
+  virtual bool mergeable() const { return false; };
 
  private:
   baseTramp *baseT_;
@@ -184,6 +190,8 @@ class PaddingTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::padding; };
   unsigned pad() const { return pad_; }
+
+  virtual bool mergeable() const { return false; };
 
  private:
   unsigned pad_; 

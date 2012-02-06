@@ -929,14 +929,24 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 // This just iterates over the mapped object vector
 mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard) const
 {
+
+   // Update: check by full name first because we may have non-unique fileNames. 
+
    for(u_int j=0; j < mapped_objects.size(); j++){
-      if (mapped_objects[j]->fileName() == obj_name.c_str() ||
-          mapped_objects[j]->fullName() == obj_name.c_str() ||
+      if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
-           (wildcardEquiv(obj_name, mapped_objects[j]->fileName()) ||
-            wildcardEquiv(obj_name, mapped_objects[j]->fullName()))))
+           wildcardEquiv(obj_name, mapped_objects[j]->fullName())))
          return mapped_objects[j];
    }
+
+
+   for(u_int j=0; j < mapped_objects.size(); j++){
+      if (mapped_objects[j]->fileName() == obj_name ||
+          (wildcard &&
+           wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
+         return mapped_objects[j];
+   }
+
    return NULL;
 }
 
@@ -1400,6 +1410,18 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::set<func_instance*> &funcs
    if (includeReloc) {
       RelocInfo ri;
       if (getRelocInfo(addr, ri)) {
+
+         if (proc() && BPatch_defensiveMode == proc()->getHybridMode()) {
+            // check that the block & function still exist
+            mapped_object *obj = findObject(ri.orig);
+            if (!obj) {
+               return false;
+            }
+            std::set<block_instance*> blocks;
+            if (!obj->findBlocksByAddr(ri.orig, blocks)) {
+               return false; // block no longer exists
+            }
+         }
          if (ri.func) {
             // We cloned for some reason. Nifty.
             funcs.insert(ri.func);
@@ -1566,7 +1588,9 @@ bool AddressSpace::wrapFunction(func_instance *original,
    //    this is handled in the instrumenter. 
    // 2) Create a copy of original with the new provided name. 
    // 3) (binary editing): update the various Symtab tables
-   //    with the new name.
+   //      with the new name.
+   //    (process) replace any PLT stubs to the clone with intermodule
+   //      branches to this copy. 
 
    // TODO: once we have PatchAPI updated a bit, break this into
    // steps 1-3. For now, keep it together. 
@@ -1578,8 +1602,22 @@ bool AddressSpace::wrapFunction(func_instance *original,
       if (!original->addSymbolsForCopy()) return false;
    }
    else {
-      addModifiedFunction(wrapper);
-      // TODO dynamic mode; we need to update the names. 
+      if (!AddressSpace::patch(this)) return false;
+      Address newAddr = original->getWrapperSymbol()->getOffset();
+      // We have copied the original function and given it the address
+      // newAddr. We now need to update any references calling the clone
+      // symbol and point them at newAddr. Effectively, we're acting as
+      // a proactive loader. 
+
+      for (unsigned i = 0; i < mapped_objects.size(); ++i) {
+         // Need original to get intermodule working right. 
+         mapped_objects[i]->replacePLTStub(clone, original, newAddr);
+      }
+      // Aaaand patch again to make it all actually happen.
+      // We need to do the function wrapping first because relocation is
+      // per-mapped-object. Oy. 
+      if (!AddressSpace::patch(this)) return false;
+
       return false;
    }
    return true;
@@ -1604,6 +1642,12 @@ void AddressSpace::revertReplacedFunction(func_instance *oldfunc) {
   //functionReplacements_.erase(oldfunc);
   mgr()->instrumenter()->revertReplacedFunction(oldfunc);
   addModifiedFunction(oldfunc);
+}
+
+void AddressSpace::revertWrapFunction(func_instance *wrappedfunc) {
+   // Undo the instrumentation component
+   mgr()->instrumenter()->revertWrappedFunction(wrappedfunc);
+   addModifiedFunction(wrappedfunc);
 }
 
 const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
@@ -1719,7 +1763,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         (cm->ptr(),cm->size(),getArch());
       Instruction::Ptr insn = deco.decode();
       while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
+        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        //cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
         base += insn->size();
         insn = deco.decode();
       }
@@ -1764,7 +1809,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address relocAddr = tframe.getPC();
-          mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
+          //mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
 
           RelocInfo ri;
           if (!getRelocInfo(relocAddr, ri)) continue; // Not in instrumentation already
@@ -1810,15 +1855,6 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
        PCSensitiveTransformer pc(this, cm->priorityMap());
         cm->transform(pc);
    }
-
-#if 0
-   if (proc() && BPatch_defensiveMode != proc()->getHybridMode()) {
-   }
-   else {
-       PCSensitiveTransformer pc(this, cm->priorityMap());
-        cm->transform(pc);
-   }
-#endif
 
 #if defined(cap_mem_emulation)
    if (emulateMem_) {
@@ -1928,16 +1964,18 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
     return false;
   }
 
+  springboard_cerr << "Installing " << patches.size() << " springboards!" << endl;
   for (std::list<codeGen>::iterator iter = patches.begin();
        iter != patches.end(); ++iter) 
   {
-     relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
-        if (!writeTextSpace((void *)iter->startAddr(),
+      //relocation_cerr << "Writing springboard @ " << hex << iter->startAddr() << endl;
+      if (!writeTextSpace((void *)iter->startAddr(),
           iter->used(),
           iter->start_ptr())) 
       {
-          cerr << "Failed writing a springboard branch, ret false" << endl;
-          return false;
+         // HACK: code modification will make this happen...
+         cerr << "Failed writing a springboard branch @ " << hex << iter->startAddr() << dec << ", ret false" << endl;
+         return false;
       }
 
     mapped_object *obj = findObject(iter->startAddr());
@@ -1963,11 +2001,14 @@ void AddressSpace::getRelocAddrs(Address orig,
                                  func_instance *func,
                                  std::list<Address> &relocs,
                                  bool getInstrumentationAddrs) const {
+  springboard_cerr << "getRelocAddrs for orig addr " << hex << orig << " /w/ block start " << block->start() << dec << endl;
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
+    //springboard_cerr << "\t Checking CodeTracker " << hex << *iter << dec << endl;
     if ((*iter)->origToReloc(orig, block, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
+       //springboard_cerr << "\t\t ... match" << endl;
        if (!reloc.instrumentation.empty() && getInstrumentationAddrs) {
           for (std::map<instPoint *, Address>::iterator iter2 = reloc.instrumentation.begin();
                iter2 != reloc.instrumentation.end(); ++iter2) {
@@ -2012,7 +2053,7 @@ bool AddressSpace::getAddrInfo(Address relocAddr,
    return false;
 }
 
-
+// KEVINTODO: not clearing out entries when deleting code, and extremely slow in defensive mode, over 300 codetrackers for Yoda
 bool AddressSpace::getRelocInfo(Address relocAddr,
                                 RelocInfo &ri) {
   bool ret = false;
@@ -2066,21 +2107,19 @@ void AddressSpace::addDefensivePad(block_instance *callBlock, func_instance *cal
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
    instPoint *point = instPoint::preCall(callFunc, callBlock);
-   if (!point || point->empty()) {
-      // We recorded a gap for some other reason than a return-address-modifying call;
-      // ignore (for now). 
-      //cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
+   if (!point) {
+      cerr << "Error: no preCall point for " << callBlock->long_format() << endl;
       return;
-   }
-   if (!point || point->empty()) {
-       // Kevin didn't instrument it so we don't care :)
-       return;
    }
 
    mal_printf("Adding pad for callBlock [%lx %lx), pad at 0%lx\n", 
               callBlock->start(), callBlock->end(), padStart);
-   forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));
-   reverseDefensiveMap_.insert(padStart, padStart+size, point);
+
+   forwardDefensiveMap_[callBlock->last()][callFunc].insert(std::make_pair(padStart, size));
+   std::pair<func_instance*,Address> padContext;
+   padContext.first = callFunc;
+   padContext.second = callBlock->last();
+   reverseDefensiveMap_.insert(padStart, padStart+size, padContext);
 }
 
 void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
@@ -2113,39 +2152,17 @@ MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
 
-void AddressSpace::invalidateMemory(Address addr, Address size) {
-	// To do list:
-	// Remove this section from the memory shadow
-	// Flush the RT cache of indirect transfers
-	// Ensure that we will catch if we transfer into this code again.
-	// Add an override to the mapped_object so that we don't try to
-	// set permissions on the deallocated range. 
-	return;
-
-	if (memEmulator_) memEmulator_->removeRegion(addr, size);
-
-	proc()->flushAddressCache_RT(addr, size);
-
-	std::set<func_instance *> funcsToDelete;
-	for (Address i = addr; i < (addr + size); ++i)
-	{
-		findFuncsByAddr(i, funcsToDelete);
-	}
-
-}
-
-
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBlocks and e->src() not in delBlocks, 
 //     in which case, choose stub from among e->src()->sources()
-// KEVINTODO: this should keep crawling farther and farther back until it hits a dead end or finds a valid stub, but only goes 2 levels
 std::map<func_instance*,vector<edgeStub> > 
 AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                        const std::set<block_instance*> &delBlocks,
                        const std::list<func_instance*> &deadFuncs)
 {
     std::map<func_instance*,vector<edgeStub> > stubs;
-    //KEVINTODO: test
+    std::set<ParseAPI::Edge*> stubEdges;
+    std::set<ParseAPI::Edge*> visited;
 
     for (list<block_instance*>::const_iterator bit = owBlocks.begin();
          bit != owBlocks.end(); 
@@ -2164,39 +2181,58 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
            }
         }
         if (inDeadFunc) {
-            continue;
+           mal_printf("block [%lx %lx) is in a dead function, will not reparse\n", 
+                      (*bit)->start(), (*bit)->end());
+           continue;
         }
 
-        // search for stubs in all functions containing the overwritten block
         using namespace ParseAPI;
         bool foundStub = false;
+        parse_block *curImgBlock = (*bit)->llb();
+        Address base = (*bit)->start() - curImgBlock->firstInsnOffset();
+        const Block::edgelist & sourceEdges = curImgBlock->sources();
+
+        // search for stubs in all functions containing the overwritten block
         for (set<func_instance*>::iterator fit = bFuncs.begin();
              !foundStub && fit != bFuncs.end();
              fit++)
         {
+            // build "srcList" worklist
             SingleContext epred_((*fit)->ifunc(),true,true);
             Intraproc epred(&epred_);
-            parse_block *curImgBlock = (*bit)->llb();
-            ParseAPI::Block::edgelist & sourceEdges = curImgBlock->sources();
-            Address baseAddr = (*bit)->start() - curImgBlock->firstInsnOffset();
-            ParseAPI::Block::edgelist::iterator eit;
+            std::list<ParseAPI::Edge*> srcList;
+            for(Block::edgelist::iterator eit = sourceEdges.begin(&epred); eit != sourceEdges.end(); ++eit) {
+               if (visited.find(*eit) == visited.end()) {
+                  srcList.push_back(*eit);
+                  visited.insert(*eit);
+               }
+            }
 
             // find all stub blocks for this edge
-            for(eit = sourceEdges.begin(&epred); 
-                eit != sourceEdges.end(); 
-                ++eit) 
-            {
-                parse_block *sourceBlock = (parse_block*)((*eit)->src());
-                block_instance *src = (*fit)->obj()->
-                    findBlockByEntry(baseAddr + sourceBlock->start());
+            for (list<ParseAPI::Edge*>::iterator eit = srcList.begin(); eit != srcList.end(); eit++) {
+                parse_block *isrc = (parse_block*)((*eit)->src());
+                block_instance *src = (*fit)->obj()->findBlockByEntry(base + isrc->start());
                 assert(src);
 
-                edgeStub st(src, 
-                            curImgBlock->start() + baseAddr, 
-                            (*eit)->type());
-                if (delBlocks.end() == delBlocks.find(src) ) {
-                    stubs[*fit].push_back(st);
+                if ( delBlocks.end() == delBlocks.find(src) ) {
+                   if (stubEdges.find(*eit) == stubEdges.end()) {
+                      edgeStub st(src, (*eit)->trg()->start() + base, (*eit)->type());
+                      stubs[*fit].push_back(st);
+                      foundStub = true;
+                   }
                 } 
+                else {
+                   const Block::edgelist &srcSrcs = isrc->sources();
+                   for (Block::edgelist::iterator sit = srcSrcs.begin(&epred);
+                        sit != srcSrcs.end();
+                        sit++)
+                   {
+                      if (visited.find(*sit) == visited.end()) {
+                         srcList.push_back(*sit);
+                         visited.insert(*sit);
+                      }
+                   }
+                }
             }
         }
     }

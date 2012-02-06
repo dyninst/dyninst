@@ -65,8 +65,29 @@ void DynPatchCallback::add_block_cb(PatchFunction *func, PatchBlock *block)
     SCAST_FI(func)->add_block_cb(SCAST_BI(block));
 }
 
-// really remove, not destroy
+void DynPatchCallback::remove_block_cb(PatchFunction *f, PatchBlock *b)
+{
+   SCAST_FI(f)->removeBlock(SCAST_BI(b));
+}
+
 void DynPatchCallback::destroy_cb(Point *p) 
 {
     static_cast<instPoint*>(p)->func()->obj()->remove(static_cast<instPoint*>(p));
+}
+
+void DynPatchCallback::destroy_cb(PatchAPI::PatchBlock *b)
+{
+    SCAST_MO(b->obj())->destroy(SCAST_BI(b));
+}
+void DynPatchCallback::destroy_cb(PatchEdge *e, PatchObject *o)
+{
+    // nothing to do
+}
+void DynPatchCallback::destroy_cb(PatchAPI::PatchFunction *f)
+{
+    SCAST_MO(f->obj())->destroy(SCAST_FI(f));
+}
+void DynPatchCallback::destroy_cb(PatchAPI::PatchObject *)
+{
+    assert(0 && "implement me");
 }

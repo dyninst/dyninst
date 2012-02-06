@@ -1727,15 +1727,20 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    }
 
    if (reg.reg() == REGNUM_ESP) {
+      cerr << "Special handling for REGNUM_ESP!" << endl;
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bt() || gen.bt()->alignedStack)
+      if (!gen.bt() || gen.bt()->alignedStack) {
+         cerr << "emitting a movRMtoReg..." << endl;
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-      else
+      }
+      else {
+         cerr << "Emitting an LEA, no bt or not aligned stack" << endl;
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);
+      }
       return dest;
    }
 

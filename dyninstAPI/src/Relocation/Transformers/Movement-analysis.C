@@ -528,7 +528,7 @@ void PCSensitiveTransformer::recordIntSensitive(Address addr) {
    assert(!funcs.empty());
 
    // We arbitrarily go to the first one...
-   priMap[block] = std::make_pair(Required, funcs[0]);
+   priMap[std::make_pair(block, funcs[0])] = Required;
 
 }
 

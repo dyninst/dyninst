@@ -135,8 +135,8 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
-	cerr << "Removing region " << obj->fileName() << endl;
-	cerr << "\t Before: " << endl;
+	sensitivity_cerr << "Removing region " << obj->fileName() << endl;
+	sensitivity_cerr << "\t Before: " << endl;
 	debug();
 	// Remove each code region
 	std::vector<Region *> codeRegions;
@@ -147,7 +147,7 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 		removeRegion(reg, obj->codeBase());
 	}
-	cerr << "\t After: " << endl;
+	sensitivity_cerr << "\t After: " << endl;
 	debug();
 }
 
@@ -490,12 +490,31 @@ void MemoryEmulator::removeSpringboards(const block_instance *bbi)
 }
 
 void  MemoryEmulator::debug() const {
+   if (!dyn_debug_sensitivity) {
+      return;
+   }
 	std::vector<MemoryMapTree::Entry> elements;
 	memoryMap_.elements(elements);
 	cerr << "\t Forward map: " << endl;
 	for (std::vector<MemoryMapTree::Entry>::iterator iter = elements.begin(); iter != elements.end(); ++iter)
 	{
 		cerr << "\t\t " << hex << "[" << iter->first.first << "," << iter->first.second << "]: " << iter->second << dec << endl;
+#if 0 // debug output
+      if (iter->first.first == 0x40d000) {
+         Address val;
+         Address addr = (iter->second + 0x40d84b);
+         assert(sizeof(Address) == aS_->getAddressWidth());
+         Address width = aS_->getAddressWidth();
+         for (Address idx=0; idx < 0x40; idx+=width) {
+            aS_->readDataSpace((void*)(addr+idx), width, &val, true);
+            cerr << hex << " " << 0x40d84b + idx << "[" << addr+idx << "]:  ";
+            fprintf(stderr,"%2x",((unsigned char*)&val)[3]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[2]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[1]);
+            fprintf(stderr,"%2x\n",((unsigned char*)&val)[0]);
+         }
+      }
+#endif
 	}
 	elements.clear();
 	cerr << "\t Backwards map: " << endl;

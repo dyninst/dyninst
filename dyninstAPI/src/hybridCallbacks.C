@@ -42,6 +42,8 @@
 
 #include "mapped_object.h"
 
+extern pdvector<image*> allImages;
+
 void newCodeCB(std::vector<BPatch_function*> &newFuncs, 
                std::vector<BPatch_function*> &modFuncs)
 {
@@ -336,9 +338,19 @@ void HybridAnalysis::virtualFreeCB(BPatch_point *, void *t) {
 		virtualFreeAddr_ = obj->codeBase();
 		virtualFreeSize_ = obj->imageSize();
 		// DEBUG!
-		cerr << "Removing shared object " << obj->fileName() << endl;
+		cerr << "Removing VirtualAlloc'ed shared object " << obj->fileName() << endl;
+      image *img = obj->parse_img();
 		proc()->lowlevel_process()->removeASharedObject(obj);
 		virtualFreeAddr_ = 0;
+      // Since removeASharedObject doesn't actually delete the object, 
+      // or its image (even if its refCount==0), make sure the image
+      // goes away from global datastructure allImages
+      for (unsigned int i=0; i < allImages.size(); i++) {
+         if (img == allImages[i]) {
+            allImages[i] = allImages.back();
+            allImages.pop_back();
+         }
+      }
 		return;
 	}
 
@@ -442,8 +454,11 @@ void HybridAnalysis::abruptEndCB(BPatch_point *point, void *)
     Address nextInsn =0;
     point->llpoint()->block()->setNotAbruptEnd();
     getCFTargets(point,*targets);
-    assert(!targets->empty());
-    nextInsn = (*targets)[0];
+    if (targets->empty()) {
+       nextInsn = point->llpoint()->block()->end();
+    } else {
+       nextInsn = (*targets)[0];
+    }
     delete(targets);
 
     proc()->beginInsertionSet();
@@ -545,7 +560,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
       // or that it tail-calls to the function containing the ret, 
       // or that the return insn is in a replacement for the called 
       // or tail-called func
-      Block::edgelist & trgs = (*bit)->targets();
+      const Block::edgelist & trgs = (*bit)->targets();
       for (Block::edgelist::iterator eit = trgs.begin();
            eit != trgs.end(); 
            eit++)
@@ -629,7 +644,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
 
-    printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
+    mal_printf("badTransferCB %lx=>%lx %s\n\n", pointAddr, target, timeStr);
     BPatch_module * targMod = proc()->findModuleByAddr(target);
     if (!targMod) {
         mal_printf( "ERROR, NO MODULE for target addr %lx %s[%d]\n", 
@@ -692,21 +707,29 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                      (long)point->getAddress(), target,FILE__,__LINE__);
             if (!analyzeNewFunction( point,target,false,false )) {
                 //this happens for some single-instruction functions
-                mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
+                mal_printf("ERROR: parse of call target %lx=>%lx failed %s[%d]\n",
                          (long)point->getAddress(), target, FILE__,__LINE__);
+                assert(0);
+                instrumentModules(false);
+                proc()->finalizeInsertionSet(false);
+                return;
             }
             targFunc = proc()->findFunctionByEntry(target);
         }
 
         // 2.2 if the target is a returning function, parse at the fallthrough
+        bool instrument = true;
         if ( ParseAPI::RETURN == 
              targFunc->lowlevel_func()->ifunc()->retstatus() ) 
         {
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
             //         (long)point->getAddress(), target);
-            parseAfterCallAndInstrument(point, targFunc, false);
-        } else {
+            if (parseAfterCallAndInstrument(point, targFunc, false)) {
+               instrument = false;
+            }
+        } 
+        if (instrument) {
             instrumentModules(false);
         }
         proc()->finalizeInsertionSet(false);
@@ -817,25 +840,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             }
             analyzeNewFunction( point, returnAddr, true , true );
 
-            // if there are call points that we're returning to, make
-            // sure to patch out any illegal instructions following the
-            // calls, as we may be returning normally but obfuscation
-            // may have caused us to split up the called function into
-            // chunks, resulting in failure to identify this as a normal
-            // return
-            vector<BPatch_point*> callPoints;
-            for (set<Block*>::iterator bit = callBlocks.begin(); 
-                 bit != callBlocks.end(); 
-                 bit++)
-            {
-                getPreCallPoints(*bit, proc(), callPoints);
-            }
-            for (vector<BPatch_point*>::iterator pit = callPoints.begin(); 
-                 pit != callPoints.end(); 
-                 pit++)
-            {
-                (*pit)->patchPostCallArea();
-            }
+            // there are no call blocks, so we don't have any post-call pads to patch
         }
 
         // 3. return
@@ -845,11 +850,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // 4. else case: the point is a jump/branch 
     proc()->beginInsertionSet();
     // 4.1 if the point is a direct branch, remove any instrumentation
-    if ((point->llpoint()->block() &&
-        !point->llpoint()->block()->containsDynamicCall())
-        ||
-        (point->llpoint()->edge() && point->isDynamic()))
-    {
+    if (!point->isDynamic()) {
         BPatch_function *func = point->getFunction();
         if (instrumentedFuncs->end() != instrumentedFuncs->find(func)
             &&

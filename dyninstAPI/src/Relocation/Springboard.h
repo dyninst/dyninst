@@ -63,42 +63,50 @@ typedef enum {
    MAX_PRIORITY } Priority;
 
 struct SpringboardReq {
+   typedef std::map<func_instance *, Address> Destinations;
+
    Address from;
    Priority priority;
-   typedef std::map<block_instance *, std::pair<func_instance *, Address> > Destinations;
+   block_instance *block;
    Destinations destinations;
    bool checkConflicts;
    bool includeRelocatedCopies;
    bool fromRelocatedCode;
    bool useTrap;
-   SpringboardReq(const Address a, const Address b, 
-                  const Priority c, 
-                  func_instance *d,
-                  block_instance *e, 
-                  bool f, 
-                  bool g, 
-                  bool h,
-                  bool i)
-   : from(a), 
-      priority(c), 
-      checkConflicts(f), 
-      includeRelocatedCopies(g),
-      fromRelocatedCode(h),
-      useTrap(i) 
+   SpringboardReq(const Address from_, 
+                  const Address to_, 
+                  const Priority priority_, 
+                  func_instance *func_,
+                  block_instance *block_, 
+                  bool checkConflicts_, 
+                  bool includeRelocCopies_, 
+                  bool fromRelocCode_,
+                  bool useTrap_)
+   : from(from_), 
+      priority(priority_),
+      block(block_),
+      checkConflicts(checkConflicts_), 
+      includeRelocatedCopies(includeRelocCopies_),
+      fromRelocatedCode(fromRelocCode_),
+      useTrap(useTrap_) 
    {
-      destinations[e] = make_pair(d, b);
+      destinations[func_] = to_;
    }
-   SpringboardReq() 
-   : from(0), priority(NotRequired), 
+SpringboardReq() 
+: from(0), priority(NotRequired), 
+      block(NULL),
       checkConflicts(false),
       includeRelocatedCopies(false),
       fromRelocatedCode(false),
       useTrap(false) {};
-    void addReq (const Address a, const Address b,
-                        const Priority c, 
-                 func_instance *d, block_instance *e,
-                        bool f, bool g, bool h, bool i) 
-    {
+   void addReq (const Address from_, const Address to_,
+                const Priority priority_, 
+                func_instance *func_, block_instance *block_,
+                bool checkConflicts_,
+                bool includeRelocCopies_,
+                bool fromRelocCode_, 
+                bool useTrap_) 
+   {
         // This mechanism handles overlapping functions, where
         // we might see springboards from the same address to
         // different targets. In this case only one can win,
@@ -107,19 +115,20 @@ struct SpringboardReq {
         if (from == 0) {
             // New version version
             assert(destinations.empty()); 
-            from = a;
-            priority = c;
-            destinations[e] = make_pair(d,b);
-            checkConflicts = f;
-            includeRelocatedCopies = g;
-            fromRelocatedCode = h;
-            useTrap = i;
+            from = from_;
+            block = block_;
+            priority = priority_;
+            destinations[func_] = to_;
+            checkConflicts = checkConflicts_;
+            includeRelocatedCopies = includeRelocCopies_;
+            fromRelocatedCode = fromRelocCode_;
+            useTrap = useTrap_;
         }
         else {
-            assert(from == a);
-            destinations[e] = make_pair(d, b);
+            assert(from == from_);
+            destinations[func_] = to_;
         }
-    }
+   }
 };
 
 class SpringboardBuilder;

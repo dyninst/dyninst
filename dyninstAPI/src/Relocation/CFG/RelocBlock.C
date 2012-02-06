@@ -260,18 +260,18 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 
    if (func_ &&
        func_->entryBlock() == block_) {
-      p[block_] = std::make_pair(Required,func_);
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
-      p[block_] = std::make_pair(Required, func_);
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
-         p[block_] = std::make_pair(Required, func_);
+         p[std::make_pair(block_, func_)] = Required;
          return true;
       }
    }
@@ -442,16 +442,22 @@ void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
 
 
 bool RelocBlock::generate(const codeGen &templ,
-                     CodeBuffer &buffer) {
+			  CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
    relocation_cerr << "\t" << elements_.size() << " elements" << endl;
    
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
+   codeGen ourTemplate;
+   ourTemplate.applyTemplate(templ);
+   ourTemplate.setFunction(func());
+
+   relocation_cerr << "\t With function " << (func() ? func()->name() : "<NULL>") << endl;
+
    // Simple form: iterate over every Widget, in order, and generate it.
    for (WidgetList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-      if (!(*iter)->generate(templ, 
+      if (!(*iter)->generate(ourTemplate, 
                              this,
                              buffer)) {
          cerr << "Failed to generate widget: " << (*iter)->format() << endl;
@@ -506,6 +512,11 @@ bool RelocBlock::finalizeCF() {
       cerr << format() << endl;
       assert(0);
    }
+   bool debug = false;
+   if (origAddr() == 0x68e750) {
+      debug = true;
+      cerr << "Debugging finalizeCF for last snippet block" << endl;
+   }
 
    // We've had people munging our out-edges; now
    // push them to the CFWidget so that it can do its work. 
@@ -527,6 +538,9 @@ bool RelocBlock::finalizeCF() {
       else {
          assert((*iter)->type == ParseAPI::INDIRECT);
          index = (*iter)->trg->origAddr();
+      }
+      if (debug) {
+         cerr << "Adding destination /w/ index " << index << " and target " << hex << (*iter)->trg->origAddr() << dec << endl;
       }
       cfWidget_->addDestination(index, (*iter)->trg);
       (*iter)->trg->setNecessary(isNecessary((*iter)->trg, (*iter)->type));

@@ -40,47 +40,81 @@
 using namespace Dyninst;
 using namespace ParseAPI;
 
+
+/* If target is NULL, user is requesting a redirect to the sink block
+ * (create edge only if source block doesn't have a sink edge of the 
+ * same type already) */
 bool CFGModifier::redirect(Edge *edge, Block *target) {
    // What happens if we try a redirect to the sink? I'm
    // thinking fail, as it's a virtual block.
-   if (!target) return false;
+   bool linkToSink = false;
    if (!edge) return false;
-   if (target->start() == numeric_limits<Address>::max()) return false;
+   if (!target) {
+      target = edge->src()->obj()->parser->_sink;
+      linkToSink = true;
+   }
    if (edge->trg() == target) return true;
 
    // Have to stay within the same CodeObject.
    // TODO: Kevin claims we don't. 
    if (edge->trg()->obj() != target->obj()) return false;
 
-   // Okay, that's done. Let's rock.
-   // Pull edge from the old target's source list;
-   // Add it to the new target's source list;
-   // Queue up callbacks.
+   std::vector<Function *> modifiedFuncs;
+   if (!edge->interproc()) {
+      edge->src()->getFuncs(modifiedFuncs);
+   }
 
-   if (!edge->sinkEdge()) {
-      Block *oldTarget = edge->trg();
-      oldTarget->removeSource(edge);
-      oldTarget->obj()->_pcb->removeEdge(oldTarget, edge, ParseCallback::source);
+   // if the source block has a sink edge of the same type, remove this edge
+   bool hasSink = false;
+   if (linkToSink) {
+      const Block::edgelist & trgs = edge->src()->targets();
+      for (Block::edgelist::iterator titer = trgs.begin(); titer != trgs.end(); titer++) {
+         if ((*titer)->sinkEdge() && (*titer)->type() == edge->type()) {
+            hasSink = true;
+            break;
+         }
+      }
+   }
+
+   if (hasSink) { // sink & src are in same object, so remove edge from src->obj()
+      Block *src = edge->src();
+      CodeObject *obj = src->obj();
+      obj->_pcb->removeEdge(src, edge, ParseCallback::target);
+      obj->_pcb->removeEdge(edge->trg(), edge, ParseCallback::source); 
+      edge->uninstall();
+      Edge::destroy(edge,obj);
    }
    else {
-      // No longer a sink edge!
-      edge->_type._sink = 0;
+      // Okay, that's done. Let's rock.
+      // Pull edge from the old target's source list;
+      // Add it to the new target's source list;
+      // Queue up callbacks.
+
+      if (!edge->sinkEdge()) {
+         Block *oldTarget = edge->trg();
+         oldTarget->obj()->_pcb->removeEdge(oldTarget, edge, ParseCallback::source);
+         oldTarget->removeSource(edge);
+         if (linkToSink) {
+            edge->_type._sink = 1;
+         }
+      }
+      else {
+         // No longer a sink edge!
+         edge->_type._sink = 0;
+      }
+
+      edge->_target = target;
+      target->addSource(edge);
+      target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
+      edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);
    }
 
-   edge->_target = target;
-   target->addSource(edge);
-   target->obj()->_pcb->addEdge(target, edge, ParseCallback::source);
-   edge->src()->obj()->_pcb->modifyEdge(edge, target, ParseCallback::target);
 
-   // This may have just played merry hell with function boundaries, so we
+   // If this is an intraprocedural edge it may have changed function boundaries, so we 
    // mark any function that contains the source block as out of date. 
-   
-   std::vector<Function *> funcs;
-   edge->src()->getFuncs(funcs);
-   for (unsigned i = 0; i < funcs.size(); ++i) {
-      funcs[i]->invalidateCache();
+   for (unsigned i = 0; i < modifiedFuncs.size(); ++i) {
+      modifiedFuncs[i]->invalidateCache();
    }
-
    return true;
 }
 
@@ -158,83 +192,110 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    return ret;
 }
 
-bool CFGModifier::remove(Block *b, bool force) { //KEVINTODO: why would you ever not want to force removal?
+bool CFGModifier::remove(vector<Block*> &blks, bool force) { 
 
-   if (!b) return false;
+   malware_cerr << "removing "<< blks.size() << " ParseAPI blocks" << endl; 
+   if (blks.empty()) return false;
+
+   set<Function*> allFuncs;
+   map<Block*,vector<Function*> > blocksToFuncs;
+   for (vector<Block*>::iterator bit = blks.begin(); bit != blks.end(); bit++) {
+      (*bit)->getFuncs(blocksToFuncs[*bit]);
+   }
 
    // 1) Remove from containing functions
    // 2) Remove all source edges (and clear up src func's _call_edges)
    // 3) Remove all target edges. 
    // 4) Remove from Parser data structures;
-   // 5) destroy the block and related edges
+   // 5) Destroy the block and related edges
+   // 6) Finalize owner funcs so that they re-build their extents
 
-   ParseCallbackManager *pcb = b->obj()->_pcb;
-   vector<Edge*> deadEdges;
+   for (vector<Block*>::iterator bit = blks.begin(); bit != blks.end(); bit++) {
+      Block *b = *bit;
+      ParseCallbackManager *pcb = b->obj()->_pcb;
+      vector<Edge*> deadEdges;
 
-   // 1)
-   std::vector<Function *> funcs;
-   b->getFuncs(funcs);
-   for (std::vector<Function *>::iterator iter = funcs.begin(); 
-        iter != funcs.end(); ++iter) 
+      // 1)
+      for (std::vector<Function *>::iterator iter = blocksToFuncs[b].begin(); 
+           iter != blocksToFuncs[b].end(); ++iter) 
+      {
+         Function *func = *iter;
+         pcb->removeBlock(func, b);
+         func->removeBlock(b);
+         if (b->_func_cnt > 0) {// remove func if count is not 0, in which case 
+                                // we haven't finalized the block
+             b->removeFunc(func);
+         }
+         b->obj()->parser->_parse_data->remove_extents(func->_extents);
+         func->_extents.clear();
+         allFuncs.insert(func);
+      }
+      
+      // 2)
+      if (!b->_sources.empty()) {
+         if (!force) return false;
+
+         for (std::vector<Edge *>::iterator iter = b->_sources.begin();
+              iter != b->_sources.end(); ++iter) 
+         {
+            Edge *edge = *iter;
+            deadEdges.push_back(edge);
+            // callbacks
+            pcb->removeEdge(b, edge, ParseCallback::source);
+            edge->src()->obj()->_pcb->removeEdge(edge->src(), edge, ParseCallback::target);
+            // clear up _call_edges vector in the caller function         
+            if (edge->type() == CALL) {
+               std::vector<Function *> funcs;
+               edge->src()->getFuncs(funcs);
+               for (unsigned k = 0; k < funcs.size(); ++k) {
+                   funcs[k]->_call_edges.erase(edge);
+               }
+            }
+            // remove edge from source block
+            edge->src()->removeTarget(edge);
+         }
+      }
+
+      // 3)
+      for (std::vector<Edge *>::iterator iter = b->_targets.begin();
+           iter != b->_targets.end(); ++iter) 
+      {
+         Edge *edge = *iter;
+         deadEdges.push_back(edge);
+         pcb->removeEdge(b, edge, ParseCallback::target);
+         ParseCallbackManager *pcbTrg = edge->trg()->obj()->_pcb;
+         if (!edge->sinkEdge()) {
+            pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
+         } else {
+            // we don't actually wire up edges to the sink block in the PatchAPI, 
+            // but I'm not sure why not, so I'll keep this here in case that
+            // changes in the future
+            pcbTrg->removeEdge(edge->trg(), edge, ParseCallback::source);
+         }
+         edge->trg()->removeSource(edge); // even sink edge has source list
+      }
+
+      // 4)
+      region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
+      assert(rd);
+      rd->blocksByRange.remove(b);
+      rd->blocksByAddr.erase(b->start());
+
+      // 5)
+      CFGFactory *fact = b->obj()->fact();
+      for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
+          pcb->destroy(*eit, fact);
+      }
+      pcb->destroy(b, fact);
+   }
+
+   // 6)
+   for (std::set<Function *>::iterator iter = allFuncs.begin(); 
+        iter != allFuncs.end(); ++iter) 
    {
       Function *func = *iter;
-      pcb->removeBlock(func, b);
-      func->removeBlock(b);
-      if (b->_func_cnt > 0) {// remove func if count is not 0, in which case 
-                             // we haven't finalized the block
-          b->removeFunc(func);
-      }
-      b->obj()->parser->_parse_data->remove_extents(func->_extents);
-      func->_extents.clear();
-   }
-   
-   // 2)
-   if (!b->_sources.empty()) {
-      if (!force) return false;
-
-      for (std::vector<Edge *>::iterator iter = b->_sources.begin();
-           iter != b->_sources.end(); ++iter) 
-      {
-         deadEdges.push_back(*iter);
-         // callbacks
-         pcb->removeEdge(b, *iter, ParseCallback::source);
-         pcb->removeEdge((*iter)->src(), *iter, ParseCallback::target);
-         // clear up _call_edges vector in the caller function         
-         if ((*iter)->type() == CALL) {
-            std::vector<Function *> funcs;
-            (*iter)->src()->getFuncs(funcs);
-            for (unsigned k = 0; k < funcs.size(); ++k) {
-                funcs[k]->_call_edges.erase(*iter);
-            }
-         }
-         // remove edge from source block
-         (*iter)->src()->removeTarget(*iter);
-      }
-   }
-
-   // 3)
-   for (std::vector<Edge *>::iterator iter = b->_targets.begin();
-        iter != b->_targets.end(); ++iter) 
-   {
-      deadEdges.push_back(*iter);
-      pcb->removeEdge(b, *iter, ParseCallback::target);
-      if (!(*iter)->sinkEdge()) {
-         (*iter)->trg()->removeSource(*iter);
-         pcb->removeEdge((*iter)->trg(), (*iter), ParseCallback::source);
-      }
-   }
-
-   // 4)
-   region_data *rd = b->obj()->parser->_parse_data->findRegion(b->region());
-   assert(rd);
-   rd->blocksByRange.remove(b);
-   rd->blocksByAddr.erase(b->start());
-
-   // 5)
-   CFGFactory *fact = b->obj()->fact();
-   pcb->destroy(b, fact);
-   for (vector<Edge*>::iterator eit = deadEdges.begin(); eit != deadEdges.end(); eit++) {
-       pcb->destroy(*eit, fact);
+      func->_cache_valid = false;
+      func->finalize();
    }
 
    return true;
@@ -244,17 +305,6 @@ bool CFGModifier::remove(Function *f) {
    // Remove this function and all of its blocks; 
    // actually refcount the blocks one lower. 
    vector<Block*> destroyBs;
-
-   // remove call edges
-   Block *entry = f->entry();
-   Interproc pred;
-   Block::edgelist calls = entry->sources();
-   for (Block::edgelist::iterator cit = calls.begin(&pred);
-        cit != calls.end();
-        cit++)
-   {
-       f->obj()->destroy(*cit);
-   }
 
    // remove blocks from func, store unshared block list for destruction
    vector<Block*> destBs;
@@ -272,9 +322,7 @@ bool CFGModifier::remove(Function *f) {
    f->obj()->destroy(f);
 
    // destroy function blocks
-   for (unsigned int bidx= 0; bidx < destBs.size(); bidx++) {
-      CFGModifier::remove(destBs[bidx],true);
-   }
+   CFGModifier::remove(destBs,true);
 
    return true;
 }
