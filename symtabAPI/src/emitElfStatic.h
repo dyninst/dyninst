@@ -163,7 +163,9 @@ class emitElfStatic {
      *
      * Returns true, on success; false, otherwise and sets errMsg
      */
-    bool archSpecificRelocation(char *targetData, 
+    bool archSpecificRelocation(Symtab *targetSymtab,
+    				Symtab *srcSymtab,
+				char *targetData, 
                                 relocationEntry &rel, 
                                 Offset dest, 
                                 Offset relOffset,
@@ -283,6 +285,7 @@ class emitElfStatic {
      * Determines if the passed Region corresponds to a destructor table Region
      */
     bool isDestructorRegion(Region *reg);
+    bool isGOTRegion(Region *reg);
 
     /**
      * Architecture specific

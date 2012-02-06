@@ -116,7 +116,9 @@ class LinkMap {
         Offset gotRegionOffset;
         Offset gotSize;
         Offset gotRegionAlign;
-        map<Symbol *, Offset> gotSymbols;
+	     vector<pair<Symbol *, Offset> >gotSymbolTable;
+        map <Symbol *, Offset> gotSymbols;
+        deque<Region *> gotRegions;
 
         Symtab *ctorDtorHandler;
 
