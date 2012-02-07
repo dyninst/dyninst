@@ -937,17 +937,16 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
          return mapped_objects[j];
    }
 
-   // Strip the wildcard name
-#if defined(os_windows)
-   char separator = '\\';
-#else
-   char separator = '/';
-#endif
-
-   std::string::size_type dir = obj_name.rfind(separator);
+   // get rid of the directory in the path
+   std::string::size_type dir = obj_name.rfind('/');
    if (dir != std::string::npos) {
       // +1, as that finds the slash and we don't want it. 
       obj_name = obj_name.substr(dir+1);
+   } else {
+	   dir = obj_name.rfind('\\');
+	   if (dir != std::string::npos){
+		 obj_name = obj_name.substr(dir+1);
+	   }
    }
 
    for(u_int j=0; j < mapped_objects.size(); j++){
