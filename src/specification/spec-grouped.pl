@@ -2651,6 +2651,8 @@ platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('power32', 'bluegene', _, P).
+platform_format(P, 'staticMutatee') :- platform('power64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('power64', 'bluegene', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
