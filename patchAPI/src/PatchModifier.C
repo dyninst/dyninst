@@ -144,6 +144,7 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned 
            iter != cur->getTargets().end(); ++iter) {
          PatchEdge *e = (*iter);
          if (e->sinkEdge()) {
+
             ret->exits_.push_back(e);
             continue;
          }
@@ -201,7 +202,6 @@ bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
 
 bool PatchModifier::remove(PatchFunction *func)
 {
-    cerr << "Removing whole function at " << hex << func->addr() << dec << endl;
     PatchObject *obj = func->obj();
     bool success = ParseAPI::CFGModifier::remove(func->function());
 

@@ -66,7 +66,6 @@ class InstWidget : public Widget {
 
  private:
   instPoint *point_;
-
 };
 
 struct InstWidgetPatch : public Patch {

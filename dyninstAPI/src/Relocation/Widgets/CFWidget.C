@@ -127,7 +127,6 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    Result res = exp->eval();
    if (!res.defined) {
       if (!isIndirect_) {
-         cerr << "DEBUG: for insn " << insn->format() << " CFT interface does not report indirect, but has unknown successor!" << endl;
          isIndirect_ = true;
       }
    }
@@ -325,7 +324,7 @@ TrackerElement *CFWidget::tracker(const RelocBlock *trace) const {
    return e;
 }
 
-TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
+TrackerElement *CFWidget::destTracker(TargetInt *dest, const RelocBlock *trace) const {
    block_instance *destBlock = NULL;
    func_instance *destFunc = NULL;
    switch (dest->type()) {
@@ -343,7 +342,7 @@ TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
          assert(destBlock);
          break;
       default:
-         assert(0);
+         return new EmulatorTracker(trace->block()->last(), trace->block(), trace->func());
          break;
    }
    EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock, destFunc);
@@ -396,7 +395,7 @@ bool CFWidget::generateBranch(CodeBuffer &buffer,
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, trace->func(), addr_);
 
    if (fallthrough || trace->block() == NULL) {
-      buffer.addPatch(newPatch, destTracker(to));
+      buffer.addPatch(newPatch, destTracker(to, trace));
    }
    else {
       buffer.addPatch(newPatch, tracker(trace));
@@ -426,7 +425,6 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
                                        const RelocBlock *trace,
 				       Instruction::Ptr insn) {
    assert(to);
-   cerr << "Generating a conditional branch off of " << insn->format() << endl;
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
 
    buffer.addPatch(newPatch, tracker(trace));

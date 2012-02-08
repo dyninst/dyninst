@@ -201,6 +201,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          case ParseAPI::COND_NOT_TAKEN:
          case ParseAPI::FALLTHROUGH:
          case ParseAPI::CALL_FT: {
+
             cfg->makeEdge(new Target<RelocBlock *>(this), 
                           new Target<Address>(block_->end()), 
                           type);
@@ -332,6 +333,8 @@ void RelocBlock::createCFWidget() {
 void RelocBlock::preserveBlockGap() {
   /*   const block_instance::edgelist &targets = block_->targets();
        for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   if (block_->wasUserAdded()) return;
+
    const PatchBlock::edgelist &targets = block_->getTargets();
    bool hasCall = false;
    bool hasFT = false;
@@ -354,8 +357,8 @@ void RelocBlock::preserveBlockGap() {
             if (target->start() < block_->end()) {
                cerr << "Error: source should precede target; edge type " << ParseAPI::format((*iter)->type()) << hex
                     << " src[" << block_->start() << " " << block_->end()
-                    << " trg[" << target->start() << " " << target->end() << dec << endl;
-                assert(0);
+                    << "] trg[" << target->start() << " " << target->end() << dec << "]" << endl;
+               assert(0);
             }
             cfWidget()->setGap(target->start() - block_->end());
             return;

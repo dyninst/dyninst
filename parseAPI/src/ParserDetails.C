@@ -595,7 +595,7 @@ void Parser::ProcessCFInsn(
         }
     }
 
-    if (unlikely(has_unres && (!_obj.defensiveMode() || edges_out.empty()))) {
+    if (unlikely(has_unres && edges_out.empty())) {
         link(cur, _sink, INDIRECT, true);
         ProcessUnresBranchEdge(frame, cur, ah, -1);
 	 }

@@ -3278,7 +3278,7 @@ bool AstNode::generate(Point *point, Buffer &buffer) {
 
    gen.setPoint(ip);
    gen.setRegisterSpace(registerSpace::actualRegSpace(ip));
-   
+   gen.setAddrSpace(ip->proc());
    if (!generateCode(gen, false)) return false;
 
    unsigned char *start_ptr = (unsigned char *)gen.start_ptr();
@@ -3444,14 +3444,14 @@ bool AstOperandNode::initRegisters(codeGen &g) {
         if (!kids[i]->initRegisters(g))
             ret = false;
     }
-    
+
     // If we're an origRegister, override its state as live. 
     if (oType == origRegister) {
        Address origReg = (Address) oValue;
        // Mark that register as live so we are sure to save it.
        registerSlot *r = (*(g.rs()))[origReg];
-       r->offLimits = true;
+       r->liveState = registerSlot::live;
     }       
-    
+
     return ret;
 }

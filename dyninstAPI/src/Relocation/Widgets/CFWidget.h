@@ -119,7 +119,7 @@ class CFWidget : public Widget {
           Address addr);
 
    TrackerElement *tracker(const RelocBlock *) const;
-   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *destTracker(TargetInt *dest, const RelocBlock *) const;
    TrackerElement *addrTracker(Address addr, const RelocBlock *) const;
    TrackerElement *padTracker(Address addr, unsigned size, const RelocBlock *) const;
    
