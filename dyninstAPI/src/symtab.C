@@ -163,7 +163,7 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-#if defined(ppc32_linux) || defined(ppc32_bgp)
+#if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux) || defined(ppc64_bgq)
 
 #include <dataflowAPI/h/slicing.h>
 #include <dataflowAPI/h/SymEval.h>

@@ -45,7 +45,8 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
-   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
+   relocation_cerr << "\t\t CFPatch::apply(" 
+		   << hex << this << dec << "), type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
    if (orig_insn) {
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;

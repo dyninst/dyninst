@@ -2053,6 +2053,12 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          }
          int ind = int (i);
          int strindex = syms.st_name(i);
+
+    	  if(stype == Symbol::ST_SECTION && sec != NULL) {
+	  	  	sname = sec->getRegionName();
+			soffset = sec->getRegionAddr();
+	 	} 
+
          Symbol *newsym = new Symbol(sname, 
                                      stype,
                                      slinkage, 
@@ -5225,6 +5231,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
         Elf_X_Shdr *strtab_scnp) {
 
+  const char *shnames = pdelf_get_shnames(elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;    
@@ -5338,6 +5345,9 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 sym_it = dynsymByIndex.find(symbol_index);
                 if( sym_it != dynsymByIndex.end() ) {
                     sym = sym_it->second;
+   	 	    if(sym->getType() == Symbol::ST_SECTION) {
+			name = sym->getSec()->getRegionName().c_str();
+	            }		 
                 }
             }else if( curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
@@ -5346,6 +5356,9 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 sym_it = symtabByIndex.find(symbol_index);
                 if( sym_it != symtabByIndex.end() ) {
                     sym = sym_it->second;
+   	 	    if(sym->getType() == Symbol::ST_SECTION) {
+			name = sym->getSec()->getRegionName().c_str();
+		    }
                 }
             }else{
                 fprintf(stderr, "%s[%d]: warning: unknown symbol table "

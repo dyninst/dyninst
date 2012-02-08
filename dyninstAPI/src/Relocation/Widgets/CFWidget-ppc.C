@@ -59,9 +59,11 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
 }
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
+
    // Question 1: are we doing an inter-module static control transfer?
    // If so, things get... complicated
    if (isPLT(gen)) {
+     relocation_cerr << "\t\t\t isPLT..." << endl;
       if (!applyPLT(gen, buf)) {
 	relocation_cerr << "PLT special case handling in PPC64" << endl;
          return false;
@@ -70,6 +72,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    }
 
    if (isSpecialCase()) {
+     relocation_cerr << "\t\t\t isSpecialCase..." << endl;
      gen.setFunction(const_cast<func_instance *>(func));
      if (!handleSpecialCase(gen)) {
        relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
@@ -77,11 +80,13 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
      }
      return true;
    }
+
    // Otherwise this is a classic, and therefore easy.
    int targetLabel = target->label(buf);
 
    relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
                    << ", and label " << dec << targetLabel << endl;
+
    if (orig_insn) {
       relocation_cerr << "\t\t\t Currently at " << hex << gen.currAddr() << " and targeting predicted " << buf->predictedAddr(targetLabel) << dec << endl;
       switch(type) {
@@ -162,8 +167,7 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    // We should try and keep any prefixes that were on the instruction. 
    // However... yeah, right. I'm not that good with x86. So instead
    // I'm copying the code from emitCallInstruction...
-   
-   
+      
    if (target->type() != TargetInt::BlockTarget) {
       return false;
    }
@@ -173,8 +177,13 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
       return false;
    }
 
+   relocation_cerr << "\t\t\t ApplyPLT..." << endl;
+
    Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
    block_instance *tb = t->t();
+
+   // Set caller in codegen structure
+   gen.setFunction(const_cast<func_instance *>(func));
 
    // We can (for now) only jump to functions
    func_instance *callee = tb->entryOfFunc();
@@ -216,6 +225,7 @@ bool CFPatch::isSpecialCase() {
 
 bool CFPatch::handleSpecialCase(codeGen &gen) {
   // Annoying, pain in the butt case...
+
   assert(target->type() == TargetInt::BlockTarget);
   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
 

@@ -449,16 +449,22 @@ void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
 
 
 bool RelocBlock::generate(const codeGen &templ,
-                     CodeBuffer &buffer) {
+			  CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
    relocation_cerr << "\t" << elements_.size() << " elements" << endl;
    
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
+   codeGen ourTemplate;
+   ourTemplate.applyTemplate(templ);
+   ourTemplate.setFunction(func());
+
+   relocation_cerr << "\t With function " << (func() ? func()->name() : "<NULL>") << endl;
+
    // Simple form: iterate over every Widget, in order, and generate it.
    for (WidgetList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-      if (!(*iter)->generate(templ, 
+      if (!(*iter)->generate(ourTemplate, 
                              this,
                              buffer)) {
          cerr << "Failed to generate widget: " << (*iter)->format() << endl;

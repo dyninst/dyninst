@@ -61,20 +61,45 @@ static const Elf64_Word X86_TRAILER = 0x00000000;
 static const Elf64_Xword X86_64_HEADER = 0xffffffffffffffffULL;
 static const Elf64_Xword X86_64_TRAILER = 0x0000000000000000ULL;
 
+static const Offset GOT_RESERVED_SLOTS = 0;
+
 unsigned int setBits(unsigned int target, unsigned int pos, unsigned int len, unsigned int value) {
-	rewrite_printf("setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
-    unsigned int mask;
+    rewrite_printf("setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
+// There are three parts of the target - 0:pos, pos:len, len:32 
+// We want to create a mask with 0:pos and len:32 set to 1
+    unsigned int mask, mask1, mask2;
+    mask1 = ~(~0 << pos);
+    mask1 = (mask1 << (32-pos));
+    mask2 = ~(~0 << (32-(pos+len)));
+    mask = mask1 | mask2;
+    target = target & mask;
+    rewrite_printf(" mask1 0x%lx mask2 0x%lx mask 0x%lx target 0x%lx \n", mask1, mask2, mask, target);
+
+    if(len != 32)
+    	mask = ~mask;
+
+    value = value & mask;
+    rewrite_printf(" mask 0x%lx value 0x%lx \n", mask, value);
+
+    target = target | value;
+    rewrite_printf( "setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
+
+    return target;
+}
+
+unsigned long setBits64(unsigned long target, unsigned int pos, unsigned int len, unsigned long value) {
+    unsigned  long mask;
     mask = ~(~0 << len);
+    mask = (mask << pos);
+    target = target & mask;
+        if(len != 32)
+    mask = ~mask;
     value = value & mask;
 
-    mask = ~(mask << pos);
-    value = value << pos;
-
-    target = target & mask;
     target = target | value;
-	rewrite_printf( "setBits target 0x%lx value 0x%lx pos %d len %d \n", target, value, pos, len);
-	return target;
+    return target;
 }
+
 
 #if defined(os_freebsd)
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
@@ -112,8 +137,10 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         // This needs to be: (the location of the .ctors table)
         if( lmap.newCtorRegions.size() > 0 ) {
             symbolOffset = lmap.ctorRegionOffset + globalOffset;
+	    rewrite_printf("new CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else if( lmap.originalCtorRegion != NULL ) {
             symbolOffset = lmap.originalCtorRegion->getRegionAddr();
+	    rewrite_printf("original CTOR computeCtorDtorAddress symbolOffset 0x%lx \n", symbolOffset);
         }else{
             errMsg = "Failed to locate original .ctors Region -- cannot apply relocation";
             rewrite_printf("Failed to locate original .ctors Region -- cannot apply relocation\n");
@@ -131,17 +158,262 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
             return false;
         }
     }
-
     return true;
 }
 
 
-bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData, relocationEntry &rel,
+bool emitElfStatic::archSpecificRelocation(Symtab* targetSymtab, Symtab* srcSymtab, char *targetData, relocationEntry &rel,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
-	rewrite_printf(" archSpecificRelocation %s  \n",  rel.name().c_str());
-    if( PPC32_WIDTH == addressWidth_ ) {
+
+    if( PPC64_WIDTH == addressWidth_ ) {
+
+	Symbol *dynsym = rel.getDynSym();
+	Offset TOCoffset = targetSymtab->getTOCoffset();
+
+	rewrite_printf(" archSpecificRelocation %s dynsym %s address 0x%lx TOC 0x%lx dest %d \n", 
+		 rel.name().c_str(), dynsym->getName().c_str(), relOffset, TOCoffset, dest );
+
+	int relocation_length = sizeof(Elf64_Word)*8; // in bits
+	int relocation_pos = 0; // in bits
+	int branch_pred = -1;
+        /*
+         * Referring to the SYSV 386 supplement:
+         *
+         * All relocations on x86 are one word32 == Elf32_Word
+         *
+         * S = symbolOffset
+         * A = addend
+         * P = relOffset
+         */
+       
+        Offset symbolOffset = rel.getDynSym()->getOffset();
+
+        Elf64_Word addend;
+        if( rel.regionType() == Region::RT_REL ) {
+            memcpy(&addend, &targetData[dest], sizeof(Elf64_Word));
+        }else if( rel.regionType() == Region::RT_RELA ) {
+            addend = rel.addend();
+        }
+        
+	if(!computeCtorDtorAddress(rel, globalOffset, lmap, errMsg, symbolOffset)) {
+		return false;
+	}
+	
+//	printf("Original symbol offset 0x%lx \n", symbolOffset);
+	// If symbol is .toc, we must return the got offset
+    	if(rel.getRelType() == R_PPC64_TOC16_DS || rel.getRelType() == R_PPC64_TOC16) {
+		vector<Region *> allRegions;
+        	srcSymtab->getAllRegions(allRegions);
+		vector<Region *>::iterator region_it;
+        	for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
+//			printf("srcSymtab %s regions %s \n", srcSymtab->name().c_str(), (*region_it)->getRegionName().c_str());
+			if((*region_it)->getRegionName().compare(".toc") == 0) {
+				map<Region *, LinkMap::AllocPair>::iterator result = lmap.regionAllocs.find(*region_it);
+		            	if( result != lmap.regionAllocs.end() ) {
+		                	Offset regionOffset = result->second.second;
+					symbolOffset = globalOffset + regionOffset;
+//					printf(" regionOffset 0x%lx symbolOffset 0x%lx \n", regionOffset, symbolOffset);
+			    	}
+			}
+		}
+
+    	}
+
+        rewrite_printf("relocation for '%s': TYPE = %s(%lu) S = %lx A = %lx P = %lx Total 0x%lx \n",
+                rel.name().c_str(), 
+                relocationEntry::relType2Str(rel.getRelType(), addressWidth_),
+                rel.getRelType(), symbolOffset, addend, relOffset, symbolOffset+addend);
+
+
+        Offset relocation = 0;
+        map<Symbol *, Offset>::iterator result;
+        stringstream tmp;
+
+        switch(rel.getRelType()) {
+/* PowerPC64 relocations defined by the ABIs */
+case R_PPC64_ADDR64:
+case R_PPC64_GLOB_DAT:
+	relocation_length = 64;
+	relocation = symbolOffset + addend;
+	break;
+case R_PPC64_GOT_TPREL16_DS:
+case R_PPC64_REL24:
+	relocation_length = 24;
+      	relocation_pos = 6;
+        //relocation = (symbolOffset + addend - relOffset)>> 2;
+        relocation = symbolOffset + addend - relOffset;
+	rewrite_printf(" R_PPC64_REL24 S = 0x%lx A = %d relOffset = 0x%lx relocation without shift 0x%lx %ld \n", 
+		symbolOffset, addend, relOffset, symbolOffset + addend - relOffset, symbolOffset + addend - relOffset);
+      	break;
+case R_PPC64_REL32:
+	relocation_length = 24;
+      	relocation_pos = 6;
+        relocation = symbolOffset + addend - relOffset;
+      	break;
+case R_PPC64_REL64:
+        relocation = symbolOffset + addend - relOffset;
+      	break;
+case R_PPC64_TLS:
+	break;
+case R_PPC64_TOC16:
+	relocation_length = 16;
+      	relocation_pos = 0;
+        relocation = symbolOffset + addend - TOCoffset;
+      	break;
+case R_PPC64_TOC16_DS:
+	relocation_length = 16;
+      	relocation_pos = 16;
+        relocation = (symbolOffset + addend - TOCoffset) >> 2 ;
+        relocation = relocation << 2;
+	break;
+}
+        rewrite_printf("before: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", 
+	relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+
+	if (rel.getRelType() == R_PPC64_ADDR64 || rel.getRelType() == R_PPC64_GLOB_DAT) {
+		char *td = (targetData + dest - (dest%8));
+	        unsigned long target = *((unsigned long *) td);
+	        target = setBits64(target, relocation_pos, relocation_length, relocation);
+        	memcpy(td, &target, 2*sizeof(Elf64_Word));
+	} else {
+		char *td = (targetData + dest - (dest%4));
+	        unsigned int target = *((unsigned int *) td);
+	        target = setBits(target, relocation_pos, relocation_length, relocation);
+        	memcpy(td, &target, sizeof(Elf64_Word));
+	}
+
+        rewrite_printf("after: relocation = 0x%lx @ 0x%lx target data %lx %lx %lx %lx %lx %lx \n", relocation, relOffset,targetData[dest-2],  targetData[dest-1], targetData[dest], targetData[dest+1],  targetData[dest+2],  targetData[dest+3]);
+
+/*
+    if (branch_pred >= 0) {
+	unsigned int *td = (unsigned int *) targetData;
+	unsigned int target;
+	target = td[dest/4];
+	target = setBits(target, 10, 1, branch_pred);
+        memcpy(&td[dest/4], &target, sizeof(Elf64_Word));
+    } 
+*/
+
+#if 0
+switch(0){
+case R_PPC64_NONE           :/* R_PPC_NONE */
+case R_PPC64_ADDR32         :/* R_PPC_ADDR32  32bit absolute address */
+case R_PPC64_ADDR24         :/* R_PPC_ADDR24  26bit address, word aligned */
+case R_PPC64_ADDR16         :/* R_PPC_ADDR16  16bit absolute address */
+case R_PPC64_ADDR16_LO      :/* R_PPC_ADDR16_LO  lower 16bits of address */
+case R_PPC64_ADDR16_HI      :/* R_PPC_ADDR16_HI  high 16bits of address. */
+case R_PPC64_ADDR16_HA      :/* R_PPC_ADDR16_HA  adjusted high 16bits.  */
+case R_PPC64_ADDR14         :/* R_PPC_ADDR14  16bit address, word aligned */
+case R_PPC64_ADDR14_BRTAKEN :/* R_PPC_ADDR14_BRTAKEN */
+case R_PPC64_ADDR14_BRNTAKEN:/* R_PPC_ADDR14_BRNTAKEN */
+case R_PPC64_REL24          :/* R_PPC_REL24 PC-rel. 26 bit, word aligned */
+case R_PPC64_REL14          :/* R_PPC_REL14  PC relative 16 bit */
+case R_PPC64_REL14_BRTAKEN  :/* R_PPC_REL14_BRTAKEN */
+case R_PPC64_REL14_BRNTAKEN :/* R_PPC_REL14_BRNTAKEN */
+case R_PPC64_GOT16          :/* R_PPC_GOT16 */
+case R_PPC64_GOT16_LO       :/* R_PPC_GOT16_LO */
+case R_PPC64_GOT16_HI       :/* R_PPC_GOT16_HI */
+case R_PPC64_GOT16_HA       :/* R_PPC_GOT16_HA*/
+case R_PPC64_COPY           :/* R_PPC_COPY*/
+case R_PPC64_GLOB_DAT       :/* R_PPC_GLOB_DAT*/
+case R_PPC64_JMP_SLOT       :/* R_PPC_JMP_SLOT*/
+case R_PPC64_RELATIVE       :/* R_PPC_RELATIVE*/
+case R_PPC64_UADDR32        :/* R_PPC_UADDR32*/
+case R_PPC64_UADDR16        :/* R_PPC_UADDR16*/
+case R_PPC64_REL32          :/* R_PPC_REL32*/
+case R_PPC64_PLT32          :/* R_PPC_PLT32*/
+case R_PPC64_PLTREL32       :/* R_PPC_PLTREL32*/
+case R_PPC64_PLT16_LO       :/* R_PPC_PLT16_LO*/
+case R_PPC64_PLT16_HI       :/* R_PPC_PLT16_HI*/
+case R_PPC64_PLT16_HA       :/* R_PPC_PLT16_HA*/
+case R_PPC64_SECTOFF        :/* R_PPC_SECTOFF*/
+case R_PPC64_SECTOFF_LO     :/* R_PPC_SECTOFF_LO*/
+case R_PPC64_SECTOFF_HI     :/* R_PPC_SECTOFF_HI*/
+case R_PPC64_SECTOFF_HA     :/* R_PPC_SECTOFF_HA*/
+case R_PPC64_ADDR30         : /* 37  word30 (S + A - P) >> 2 */
+case R_PPC64_ADDR64         : /* 38 doubleword64 S + A */
+case R_PPC64_ADDR16_HIGHER  : /* 39 half16 #higher(S + A) */
+case R_PPC64_ADDR16_HIGHERA :/* 40 half16 #highera(S + A) */
+case R_PPC64_ADDR16_HIGHEST :/*41 half16 #highest(S + A) */
+case R_PPC64_ADDR16_HIGHESTA:/*42  half16 #highesta(S + A) */
+case R_PPC64_UADDR64        :/*43  doubleword64 S + A */
+case R_PPC64_REL64          :/*44  doubleword64 S + A - P */
+case R_PPC64_PLT64          :/*45  doubleword64 L + A */
+case R_PPC64_PLTREL64       :/*46  doubleword64 L + A - P */
+case R_PPC64_TOC16          :/*47  half16* S + A - .TOC */
+case R_PPC64_TOC16_LO       :/*48  half16 #lo(S + A - .TOC.) */
+case R_PPC64_TOC16_HI       :/*49  half16 #hi(S + A - .TOC.) */
+case R_PPC64_TOC16_HA       :/*50  half16 #ha(S + A - .TOC.) */
+case R_PPC64_TOC            :/*51  doubleword64 .TOC */
+case R_PPC64_PLTGOT16       :/*52  half16* M + A */
+case R_PPC64_PLTGOT16_LO    :/*53  half16 #lo(M + A) */
+case R_PPC64_PLTGOT16_HI    :/*54  half16 #hi(M + A) */
+case R_PPC64_PLTGOT16_HA    :/*55  half16 #ha(M + A) */
+
+case R_PPC64_ADDR16_DS      :/*56  half16ds* (S + A) >> 2 */
+case R_PPC64_ADDR16_LO_DS   :/*57  half16ds  #lo(S + A) >> 2 */
+case R_PPC64_GOT16_DS       :/*58  half16ds* (G + A) >> 2 */
+case R_PPC64_GOT16_LO_DS    :/*59  half16ds  #lo(G + A) >> 2 */
+case R_PPC64_PLT16_LO_DS    :/*60  half16ds  #lo(L + A) >> 2 */
+case R_PPC64_SECTOFF_DS     :/*61  half16ds* (R + A) >> 2 */
+case R_PPC64_SECTOFF_LO_DS  :/*62  half16ds  #lo(R + A) >> 2 */
+case R_PPC64_TOC16_DS       :/*63  half16ds* (S + A - .TOC.) >> 2 */
+case R_PPC64_TOC16_LO_DS    :/*64  half16ds  #lo(S + A - .TOC.) >> 2 */
+case R_PPC64_PLTGOT16_DS    :/*65  half16ds* (M + A) >> 2 */
+case R_PPC64_PLTGOT16_LO_DS :/*66  half16ds  #lo(M + A) >> 2 */
+
+/* PowerPC64 relocations defined for the TLS access ABI.  */
+case R_PPC64_TLS            :/*67  none      (sym+add)@tls */
+case R_PPC64_DTPMOD64       :/*68  doubleword64 (sym+add)@dtpmod */
+case R_PPC64_TPREL16        :/*69  half16*   (sym+add)@tprel */
+case R_PPC64_TPREL16_LO     :/*70  half16    (sym+add)@tprel@l */
+case R_PPC64_TPREL16_HI     :/*71  half16    (sym+add)@tprel@h */
+case R_PPC64_TPREL16_HA     :/*72  half16    (sym+add)@tprel@ha */
+case R_PPC64_TPREL64        :/*73  doubleword64 (sym+add)@tprel */
+case R_PPC64_DTPREL16       :/*74  half16*   (sym+add)@dtprel */
+case R_PPC64_DTPREL16_LO    :/*75  half16    (sym+add)@dtprel@l */
+case R_PPC64_DTPREL16_HI    :/*76  half16    (sym+add)@dtprel@h */
+case R_PPC64_DTPREL16_HA    :/*77  half16    (sym+add)@dtprel@ha */
+case R_PPC64_DTPREL64       :/*78  doubleword64 (sym+add)@dtprel */
+case R_PPC64_GOT_TLSGD16    :/*79  half16*   (sym+add)@got@tlsgd */
+case R_PPC64_GOT_TLSGD16_LO :/*80  half16    (sym+add)@got@tlsgd@l */
+case R_PPC64_GOT_TLSGD16_HI :/*81  half16    (sym+add)@got@tlsgd@h */
+case R_PPC64_GOT_TLSGD16_HA :/*82  half16    (sym+add)@got@tlsgd@ha */
+case R_PPC64_GOT_TLSLD16    :/*83  half16*   (sym+add)@got@tlsld */
+case R_PPC64_GOT_TLSLD16_LO :/*84  half16    (sym+add)@got@tlsld@l */
+case R_PPC64_GOT_TLSLD16_HI :/*85  half16    (sym+add)@got@tlsld@h */
+case R_PPC64_GOT_TLSLD16_HA :/*86  half16    (sym+add)@got@tlsld@ha */
+case R_PPC64_GOT_TPREL16_DS :/*87  half16ds* (sym+add)@got@tprel */
+case R_PPC64_GOT_TPREL16_LO_DS:/*88  half16ds (sym+add)@got@tprel@l */
+case R_PPC64_GOT_TPREL16_HI :/*89  half16    (sym+add)@got@tprel@h */
+case R_PPC64_GOT_TPREL16_HA :/*90  half16    (sym+add)@got@tprel@ha */
+case R_PPC64_GOT_DTPREL16_DS:/*91  half16ds* (sym+add)@got@dtprel */
+case R_PPC64_GOT_DTPREL16_LO_DS:/*92  half16ds (sym+add)@got@dtprel@l */
+case R_PPC64_GOT_DTPREL16_HI:/*93  half16    (sym+add)@got@dtprel@h */
+case R_PPC64_GOT_DTPREL16_HA:/*94  half16    (sym+add)@got@dtprel@ha */
+case R_PPC64_TPREL16_DS     :/*95  half16ds* (sym+add)@tprel */
+case R_PPC64_TPREL16_LO_DS  :/*96  half16ds  (sym+add)@tprel@l */
+case R_PPC64_TPREL16_HIGHER :/*97  half16    (sym+add)@tprel@higher */
+case R_PPC64_TPREL16_HIGHERA:/*98  half16    (sym+add)@tprel@highera */
+case R_PPC64_TPREL16_HIGHEST:/*99  half16    (sym+add)@tprel@highest */
+case R_PPC64_TPREL16_HIGHESTA:/*100  half16  (sym+add)@tprel@highesta */
+case R_PPC64_DTPREL16_DS    :/*101  half16ds* (sym+add)@dtprel */
+case R_PPC64_DTPREL16_LO_DS :/*102  half16ds (sym+add)@dtprel@l */
+case R_PPC64_DTPREL16_HIGHER:/*103  half16   (sym+add)@dtprel@higher */
+case R_PPC64_DTPREL16_HIGHERA:/*104  half16  (sym+add)@dtprel@highera */
+case R_PPC64_DTPREL16_HIGHEST:/*105  half16  (sym+add)@dtprel@highest */
+case R_PPC64_DTPREL16_HIGHESTA:/*106  half16 (sym+add)@dtprel@highesta */
+
+/* Keep this the last entry.  */
+case R_PPC64_NUM            :/*107 */
+
+		default:
+			break;
+	}
+#endif
+    } else if (PPC32_WIDTH == addressWidth_ ){
 	int relocation_length = sizeof(Elf32_Word)*8; // in bits
 	int relocation_pos = 0; // in bits
 	int branch_pred = -1;
@@ -174,7 +446,8 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                 rel.getRelType(), symbolOffset, addend, relOffset);
 
         Offset relocation = 0;
-        map<Symbol *, Offset>::iterator result;
+	map<Symbol *, Offset>::iterator result;
+
         stringstream tmp;
 
         switch(rel.getRelType()) {
@@ -495,8 +768,102 @@ void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &r
     tlsCleanupVariant2(regionAllocs, dataTLS, bssTLS);
 }
 
+Offset emitElfStatic::getGOTSize(LinkMap &lmap) {
+    Offset size = 0;
+
+    unsigned slotSize = 0;
+    if( PPC32_WIDTH == addressWidth_ ) {
+        slotSize = sizeof(Elf32_Addr);
+    }else if( PPC64_WIDTH == addressWidth_ ) {
+        slotSize = sizeof(Elf64_Addr);
+    }else{
+        assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
+    }
+
+    // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
+    if( lmap.gotSymbolTable.size() > 0 ) {
+        size = (lmap.gotSymbols.size()+GOT_RESERVED_SLOTS)*slotSize;
+    }
+
+    return size;
+}
+
+Offset emitElfStatic::getGOTAlign(LinkMap &) {
+
+    if( PPC32_WIDTH == addressWidth_ ) {
+	return 0;
+    }
+    if( PPC32_WIDTH == addressWidth_ ) {
+        return sizeof(Elf32_Word);
+    }else if( PPC64_WIDTH == addressWidth_ ) {
+        return sizeof(Elf64_Xword);
+    }else{
+        assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
+    }
+
+    return 0;
+}
+
+void emitElfStatic::buildGOT(LinkMap &lmap) {
+
+    if( PPC32_WIDTH == addressWidth_ ) {
+	return;
+    }
+    char *targetData = lmap.allocatedData;
+
+    unsigned slotSize = 0;
+    if( PPC32_WIDTH == addressWidth_ ) {
+        slotSize = sizeof(Elf32_Addr);
+    }else if( PPC64_WIDTH == addressWidth_ ) {
+        slotSize = sizeof(Elf64_Addr);
+    }else{
+        assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
+    }
+
+    // For each GOT symbol, allocate an entry and copy the value of the
+    // symbol into the table, additionally store the offset in the GOT
+    // back into the map
+    Offset curOffset = GOT_RESERVED_SLOTS*slotSize;
+    memset(&targetData[lmap.gotRegionOffset], 0, GOT_RESERVED_SLOTS*slotSize);
+
+    vector<pair<Symbol *, Offset> >::iterator sym_it;
+    for(sym_it = lmap.gotSymbolTable.begin(); sym_it != lmap.gotSymbolTable.end(); ++sym_it) {
+        Offset value = sym_it->first->getOffset()+sym_it->second;
+        memcpy(&targetData[lmap.gotRegionOffset + curOffset], &value, slotSize);
+
+        sym_it->second = curOffset;
+	rewrite_printf(" Building GOT at 0x%lx is 0x%lx name %s Offset 0x%lx addend 0x%lx addr 0x%lx \n", 
+	curOffset, value,  sym_it->first->getPrettyName().c_str(),  sym_it->first->getOffset(), sym_it->second, lmap.gotRegionOffset + curOffset);
+        curOffset += slotSize;
+    }
+}
+
+/*
+ * .ctors and .dtors section handling
+ * 
+ * .ctors/.dtors sections are not defined by the ELF standard, LSB defines them.
+ * This is why this implementation is specific to Linux and x86.
+ *
+ * Layout of .ctors and .dtors sections on Linux x86
+ *
+ * Executable .ctors/.dtors format (size in bytes = n)
+ *
+ *  byte 0..3    byte 4..7     byte 8..11        byte n-4..n-1
+ * 0xffffffff <func. ptr 1> <func. ptr 2> ...  0x00000000
+ *
+ * Relocatable file .ctors/.dtors format (size in bytes = n)
+ *
+ *   byte 0..3         byte n-4..n-1
+ * <func. ptr 1> ... <last func. ptr>
+ *
+ * The layout is the same on Linux x86_64 except each entry is 8 bytes
+ * instead of 4. So the header and trailler are the same, but extended to
+ * 8 bytes.
+ */
+static const string DTOR_NAME(".dtors");
 static const string CTOR_NAME(".ctors");
-static const string DTOR_NAME(".dtors"); 
+static const string TOC_NAME(".toc");
+
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
     /* 
      * .ctors sections are processed in reverse order on Linux x86. New .ctors
@@ -654,10 +1021,13 @@ bool emitElfStatic::isDestructorRegion(Region *reg) {
 	return ( DTOR_NAME.compare(reg->getRegionName()) == 0 );
 }
 
-bool emitElfStatic::isGOTRegion(Region *) {
-	return false;
-}
+bool emitElfStatic::isGOTRegion(Region *reg) {
 
+    if( PPC32_WIDTH == addressWidth_ ) {
+	return false;
+    }
+	return ( TOC_NAME.compare(reg->getRegionName()) == 0 );
+}
 bool emitElfStatic::isGOTRelocation(unsigned long relType) {
     if( PPC32_WIDTH == addressWidth_ ) {
         switch(relType) {
@@ -673,22 +1043,26 @@ bool emitElfStatic::isGOTRelocation(unsigned long relType) {
                 return false;
                 break;
         }
+    } else if( PPC64_WIDTH == addressWidth_) {
+        switch(relType) {
+            case R_PPC64_GOT16:
+            case R_PPC64_GOT16_LO:
+            case R_PPC64_GOT16_HI:
+            case R_PPC64_GOT16_HA:
+            case R_PPC64_TLS:
+	    case R_PPC64_TOC16_DS:
+            case R_PPC64_TOC16:
+                return true;
+                break;
+            default:
+                return false;
+                break;
+        }
     } else{
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
     }
 
     return false;
-}
-
-Offset emitElfStatic::getGOTSize(LinkMap &) {
-    return 0;
-}
-
-Offset emitElfStatic::getGOTAlign(LinkMap &) {
-    return 0;
-}
-
-void emitElfStatic::buildGOT(LinkMap &) {
 }
 
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {

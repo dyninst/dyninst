@@ -74,7 +74,10 @@ class Modification : public Transformer {
     bool replaceFunction(RelocBlock *trace, RelocGraph *);
     bool wrapFunction(RelocBlock *trace, RelocGraph *);
 
-    RelocBlock *makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg);
+    RelocBlock *makeRelocBlock(block_instance *block, 
+			       func_instance *func, 
+			       RelocBlock *cur,
+			       RelocGraph *cfg);
 
     const CallModMap &callMods_;
     const FuncModMap &funcReps_;
