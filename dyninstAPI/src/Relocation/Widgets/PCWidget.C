@@ -92,6 +92,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     // Fun for the whole family... we need a spare register. Argh!
 
     codeGen gen(16);
+    gen.applyTemplate(templ);
     
     // Must be in LR
     instPoint *point = templ.point();
