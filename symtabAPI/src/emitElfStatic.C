@@ -393,7 +393,9 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
                     + "' for object '" + curObjFile->memberName() + "'";
-                return false;
+rewrite_printf(" failed to locate symbol %s for %s  \n" , curUndefSym->getMangledName().c_str(), curObjFile->memberName().c_str());
+		continue;
+                //return false;
             }
 
             // Store the found symbol with the related relocations

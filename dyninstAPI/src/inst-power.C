@@ -3058,6 +3058,61 @@ bool EmitterPOWER32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, false, gen);
 }
 
+bool EmitterPOWER32Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+
+bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  if (scratchReg == REG_NULL) return false;
+
+  Register scratchLR = REG_NULL;
+  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  if (scratchLR == REG_NULL) {
+    if (scratchReg == registerSpace::r0) return false;
+    // We can use r0 for this, since it's volatile. 
+    scratchReg = registerSpace::r0;
+  }
+
+  if (!call) {
+    // Save the LR in scratchLR
+    insnCodeGen::generateMoveFromLR(gen, scratchLR);
+  }
+
+  // Generate the PLT call
+
+  Address dest = block->llb()->firstInsnOffset();
+  Address pcVal = emitMovePCToReg(scratchReg, gen);
+
+  if (!call) {
+    insnCodeGen::generateMoveToLR(gen, scratchLR);
+  }
+
+  // We can now use scratchLR
+
+  Address varOffset = dest - pcVal;
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+  
+  insnCodeGen::generateMoveToCR(gen, scratchLR);
+
+  if (!call) {
+    instruction br(BCTRraw);
+    insnCodeGen::generate(gen, br);
+  }
+  else {
+    instruction brl(BCTRLraw);
+    insnCodeGen::generate(gen, brl);
+  }
+
+  return true;
+}
+
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
     // In PPC64 Linux, function descriptors are used in place of direct
     // function pointers.  The descriptors have the following layout:
@@ -3149,6 +3204,78 @@ bool EmitterPOWER64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, false, gen);
 }
 
+bool EmitterPOWER64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+
+    bool isStaticBinary = false;
+
+    if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
+	isStaticBinary = true;
+    }
+
+    const unsigned TOCreg = 2;
+    const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+    assert(wordsize == 8);
+    Address dest = block->llb()->firstInsnOffset();
+    Address caller_toc = 0;
+    Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(block->callee());
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    if (gen.func()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+    }
+    else if (gen.point()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+      // Don't need it, and this might be an iRPC
+    }
+
+    if(isStaticBinary)
+	caller_toc = 0;
+
+    //Offset destOff = dest - gen.currAddr();
+    Offset destOff = dest - caller_toc;
+
+   // insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
+   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   int stackSize = 0;
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+   	assert (stackSize == 1);
+   	scratchReg = freeReg[0];
+   }
+   insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
+
+   if(!isStaticBinary) {
+   	insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
+
+    	insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                     TOCreg, scratchReg, 8);
+   } 
+   insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                        scratchReg, scratchReg, 0);
+
+   insnCodeGen::generateMoveToCR(gen, scratchReg);
+
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
+
+
+    instruction branch_insn(call ? BCTRLraw : BCTRraw);
+    insnCodeGen::generate(gen, branch_insn);
+
+
+    return true;
+}
 bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
                                              bool setTOC, Address) {

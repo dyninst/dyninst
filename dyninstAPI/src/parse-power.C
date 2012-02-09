@@ -611,24 +611,28 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     func_instance *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
     if( !globalCtorHandler ) {
         logLine("failed to find libc constructor handler\n");
+        fprintf (stderr, "failed to find libc constructor handler\n");
         return false;
     }
 
     func_instance *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
     if( !dyninstCtorHandler ) {
         logLine("failed to find Dyninst constructor handler\n");
+        fprintf (stderr,"failed to find Dyninst constructor handler\n");
         return false;
     }
 
     func_instance *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
     if( !globalDtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
+        logLine ("failed to find libc destructor handler\n");
+        fprintf (stderr,"failed to find libc destructor handler\n");
         return false;
     }
 
     func_instance *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
     if( !dyninstDtorHandler ) {
         logLine("failed to find Dyninst destructor handler\n");
+        fprintf (stderr,"failed to find Dyninst destructor handler\n");
         return false;
     }
 
@@ -649,11 +653,13 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     }
     if( !ctorFound ) {
          logLine("failed to find ctors list symbol\n");
+         fprintf (stderr,"failed to find ctors list symbol\n");
          return false;
     }
 
     if( !dtorFound ) {
         logLine("failed to find dtors list symbol\n");
+        fprintf (stderr,"failed to find dtors list symbol\n");
         return false;
     }
 
@@ -664,6 +670,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     if( !replaceHandler(globalCtorHandler, dyninstCtorHandler,
                 &ctorsListInt, SYMTAB_CTOR_LIST_REL) ) {
         logLine("Failed to replace libc ctor handler with special handler");
+        fprintf (stderr,"Failed to replace libc ctor handler with special handler");
         return false;
     }else{
         inst_printf("%s[%d]: replaced ctor function %s with %s\n",
@@ -674,6 +681,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     if( !replaceHandler(globalDtorHandler, dyninstDtorHandler,
                 &dtorsListInt, SYMTAB_DTOR_LIST_REL) ) {
         logLine("Failed to replace libc dtor handler with special handler");
+        fprintf (stderr,"Failed to replace libc dtor handler with special handler");
         return false;
     }else{
         inst_printf("%s[%d]: replaced dtor function %s with %s\n",
@@ -746,6 +754,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
             if( bedit_it->second == NULL ) {
                 logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
+                fprintf (stderr,"Failed to load DyninstAPI_RT library dependency (libc.a)");
                 return false;
             }
         }

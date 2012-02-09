@@ -775,14 +775,14 @@ Offset emitElfStatic::getGOTSize(LinkMap &lmap) {
     if( PPC32_WIDTH == addressWidth_ ) {
         slotSize = sizeof(Elf32_Addr);
     }else if( PPC64_WIDTH == addressWidth_ ) {
-        slotSize = sizeof(Elf64_Addr);
+        slotSize = sizeof(Elf64_Addr)*2;
     }else{
         assert(!UNKNOWN_ADDRESS_WIDTH_ASSERT);
     }
 
     // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
     if( lmap.gotSymbolTable.size() > 0 ) {
-        size = (lmap.gotSymbols.size()+GOT_RESERVED_SLOTS)*slotSize;
+        size = (lmap.gotSymbolTable.size()+GOT_RESERVED_SLOTS)*slotSize;
     }
 
     return size;

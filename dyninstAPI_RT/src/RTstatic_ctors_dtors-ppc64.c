@@ -87,7 +87,7 @@ void DYNINSTglobal_ctors_handler() {
 }
 
 void DYNINSTglobal_dtors_handler() {
-/*    void (**dtors_array)(void) = &DYNINSTdtors_addr;
+    void (**dtors_array)(void) = &DYNINSTdtors_addr;
 
     // Destructors are called in the forward order that they are listed
     void (**tmp_ptr)(void) = &dtors_array[1]; // skip list start
@@ -95,7 +95,7 @@ void DYNINSTglobal_dtors_handler() {
         (*tmp_ptr)();
         tmp_ptr++;
     }
-*/
+
 }
 
 #endif

@@ -15,14 +15,7 @@ DEBUG_FLAG = -g
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
 
-LDFLAGS=
-TESTSUITE_FLAGS=$(LDFLAGS)
-
 # Now make any necessary architecture specific changes to variables:
-
-#if M_ABI is defined, secondary ABI specific mutatees will be built
-#M_ABI = m32
-#M_ABI_FLAG = -m32 -D$(PLATFORM) -Dm32_test
 
 #if M_G77 is defined, g77 mutatees will be built
 #M_G77 = g77
@@ -45,28 +38,36 @@ MUTATEE_LDFLAGS_GNU    += -ldl $(LDFLAGS)
 MUTATEE_LDFLAGS_NATIVE += -ldl $(LDFLAGS)
 
 COMMA=,
-MUTATEE_G77_FFLAGS += -D$(PLATFORM) -DF77 -fno-second-underscore -g
+MUTATEE_G77_FFLAGS += -Dppc64_linux -DF77 -fno-second-underscore -g
+MUTATEE_G77_FFLAGS += $(F77FLAGS)
 MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
-MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
+MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c
+MUTATEE_G77_CFLAGS += $(CFLAGS)
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
-MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
+MUTATEE_G77_LDFLAGS += $(LDFLAGS)
+
+MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
 
 # Definitions used for test1 assembly
 TEST1_AS = bgxlc -c
 TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
-CALL35_1_SRC = call35_1.c
-CALL35_1_SRC_ABI = call35_1.c
+#CALL35_1_SRC = call35_1_x86_linux.s
 
 # Definition used for test6 assembly
-TEST6_AS_GNU = $(GCC)
+NASM = $(GCC)
+TEST6_AS_GNU = $(NASM)
+#TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
 TEST6_ASFLAGS_GNU = $(CFLAGS) -c
 TEST6_AS_SRC = test6LS-powerpc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 #TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -qpic -qmkshrobj -g -Wl,-export-dynamic -Wl,-ldl
+TESTLIB_FLAGS += $(LDFLAGS)
+TESTSUITE_FLAGS += $(LDFLAGS)
+MUTATOR_LDFLAGS += $(LDFLAGS)
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe

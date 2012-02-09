@@ -256,6 +256,11 @@ unsigned long Region::getDiskSize() const
     return diskSize_;
 }
 
+unsigned long Region::getFileOffset()
+{
+    return fileOff_;
+}
+
 Offset Region::getMemOffset() const
 {
     return memOff_;
@@ -274,6 +279,11 @@ unsigned long Region::getMemAlignment() const
 void Region::setMemOffset(Offset newoff)
 {
     memOff_ = newoff;
+}
+
+void Region::setFileOffset(Offset newoff)
+{
+    fileOff_ = newoff;
 }
 
 void Region::setMemSize(unsigned long newsize)
