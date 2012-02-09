@@ -498,9 +498,7 @@ bitArray instPoint::liveRegisters(){
 			if (!live->query(Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case PreInsn:
-			if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::Before, liveRegs_)) 
-			assert(0);
-			
+			if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case PostInsn:
 		        if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::After, liveRegs_)) assert(0);

@@ -89,6 +89,7 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
         // Is this correct?
         if ((*eit)->type() == CATCH) continue;
 	if ((*eit)->sinkEdge()) {
+		liveness_cerr << "Sink edge from " << hex << block->start() << dec << endl;
 		data.out = abi->getAllRegs();
 		break;
 	}
@@ -100,13 +101,6 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
     }
     
     liveness_cerr << " Returning liveness for out " << endl;
-#if defined(arch_x86) || defined(arch_x86_64)
-    liveness_cerr << "  ?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-    liveness_cerr << "  ?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-#elif defined(arch_power)
-    liveness_cerr << "  001101000000000000000000000000001010033222222222211111111110000000000" << endl;
-    liveness_cerr << "  001101000000000000000000000000001010010987654321098765432109876543210" << endl;
-#endif
     liveness_cerr << "  " << data.out << endl;
 
 
@@ -148,10 +142,6 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block)
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
-#if defined(arch_power)
-     liveness_cerr << "        " << "000000000000000000000000000000000000033222222222211111111110000000000" << endl;
-     liveness_cerr << "        " << "000000000000000000000000000000000000010987654321098765432109876543210" << endl;
-#endif
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << data.use << endl;
@@ -365,14 +355,12 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 
       liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
                       FILE__, __LINE__, addr, *current);
-#if defined(arch_power)
-      liveness_cerr << "        " << "000000000000000000000000000000000000033222222222211111111110000000000" << endl;
-      liveness_cerr << "        " << "000000000000000000000000000000000000010987654321098765432109876543210" << endl;
-#endif
       liveness_cerr << "Pre:    " << working << endl;
       working &= (~rwAtCurrent.written);
       working |= rwAtCurrent.read;
       liveness_cerr << "Post:   " << working << endl;
+      liveness_cerr << "Current read:  " << rwAtCurrent.read << endl;
+      liveness_cerr << "Current Write: " << rwAtCurrent.written << endl;
       
       ++current;
    }
@@ -484,7 +472,7 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       // Call instructions not at the end of a block are thunks, which are not ABI-compliant.
       // So make conservative assumptions about what they may read (ABI) but don't assume they write anything.
       ret.read |= (abi->getCallReadRegisters());
-      if(blk->end() == a)
+      if(blk->lastInsnAddr() == a)
       {
           ret.written |= (abi->getCallWrittenRegisters());
       }
