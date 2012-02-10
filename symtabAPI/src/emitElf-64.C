@@ -1071,7 +1071,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
      if(isBlueGeneQ && isStaticBinary && last_load_segment) {
 
 		// add new load to this segment
-		 newPhdr->p_filesz = (newSegmentStart -  newPhdr->p_vaddr) + loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+		 newPhdr->p_filesz = (newSeg.p_offset - newPhdr->p_offset) + loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
 		 newPhdr->p_memsz = (newSegmentStart -  newPhdr->p_vaddr) + (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
 		 newPhdr->p_flags = PF_R+PF_W+PF_X;
 		last_load_segment = false;

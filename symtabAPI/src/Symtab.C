@@ -2922,13 +2922,26 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 	   In BlueGeneP, we replace NOTE section with new LOAD section, else we extend existing LOAD section
 		If we add a new LOAD section in BlueGene, it needs to be aligned to 1MB
 	*/
-	if ((isBlueGeneQ && !isStaticBinary) || (isBlueGeneP && hasNoteSection))
+	if ((isBlueGeneQ && !isStaticBinary) || (isBlueGeneP && hasNoteSection)) {
 		pgSize = 0x100000; 
+	} else if( isBlueGeneQ && isStaticBinary ) {
+	/* UGLY:: The maximum offset from TOC pointer is 0x7fff (15 bits + 1 sign bit).
+	   For static binaries, the TOC pointer must be able to reach the new load segment.
+		If we align by page size (1MB), the TOC pointer will not be able to reach the new segment.
+		Since we do not create a new PT_LOAD segment, but rather extend the existing PT_LOAD segment,
+		we do not need to align by page size. 
+		Note1: 64 bytes is just random number I choose. 
+		Note2: We need to do this only for memory offset and not disk offset as TOC pointer
+		uses only memory offset */
+		pgSize = 64;
+	}	
+
+	}
+		
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;
-
    return newaddr;
 #endif	
 }
