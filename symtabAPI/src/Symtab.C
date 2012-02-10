@@ -2913,10 +2913,16 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return 0;
 	}
-	bool isBlueGeneQ = obj->isBlueGeneP();
-	bool isBlueGeneP = obj->isBlueGeneQ();
+	bool isBlueGeneQ = obj->isBlueGeneQ();
+	bool isBlueGeneP = obj->isBlueGeneP();
 	bool hasNoteSection = obj->hasNoteSection();
-	if (isBlueGeneQ || (isBlueGeneP && hasNoteSection))
+	bool isStaticBinary = obj->isStaticBinary();
+	/* In BlueGeneQ static binary, we extend the existing LOAD section to add Dyninst code and data
+		In BlueGeneQ dynamic binary, we add a new LOAD section
+	   In BlueGeneP, we replace NOTE section with new LOAD section, else we extend existing LOAD section
+		If we add a new LOAD section in BlueGene, it needs to be aligned to 1MB
+	*/
+	if ((isBlueGeneQ && !isStaticBinary) || (isBlueGeneP && hasNoteSection))
 		pgSize = 0x100000; 
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));

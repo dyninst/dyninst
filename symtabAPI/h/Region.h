@@ -107,6 +107,7 @@ class Region : public Serializable, public AnnotatableSparse {
 
    SYMTAB_EXPORT Offset getDiskOffset() const;
    SYMTAB_EXPORT unsigned long getDiskSize() const;
+   SYMTAB_EXPORT unsigned long getFileOffset();
 
    SYMTAB_EXPORT Offset getMemOffset() const;
    SYMTAB_EXPORT unsigned long getMemSize() const;
@@ -114,6 +115,7 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT void setMemOffset(Offset);
    SYMTAB_EXPORT void setMemSize(unsigned long);
    SYMTAB_EXPORT void setDiskSize(unsigned long);
+   SYMTAB_EXPORT void setFileOffset(Offset);
 
    SYMTAB_EXPORT void *getPtrToRawData() const;
    SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long);//also sets diskSize
@@ -154,6 +156,7 @@ class Region : public Serializable, public AnnotatableSparse {
    unsigned long diskSize_;
    Offset memOff_;
    unsigned long memSize_;
+   Offset fileOff_;
    void *rawDataPtr_;
    perm_t permissions_;
    RegionType rType_;
