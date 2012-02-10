@@ -2936,7 +2936,6 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 		pgSize = 64;
 	}	
 
-	}
 		
 #endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
