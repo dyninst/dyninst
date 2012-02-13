@@ -1106,6 +1106,7 @@ namespace Dyninst
         if(decodedInstruction->getEntry()) {
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
                                     decodedInstruction->getPrefix(), locs, m_Arch));
+            
         }
         else
         {
@@ -1126,7 +1127,14 @@ namespace Dyninst
         if(!decodedInstruction) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
 	InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-	
+
+        if (decodedInstruction->getEntry()->getID() == e_ret_near ||
+            decodedInstruction->getEntry()->getID() == e_ret_far) {
+           Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(ia32_is_mode_64() ? x86_64::rsp : x86::esp), 
+                                                                ia32_is_mode_64() ? u64 : u32);
+           insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
+	}
+
         for(unsigned i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && 
