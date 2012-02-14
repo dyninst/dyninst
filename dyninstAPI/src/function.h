@@ -176,13 +176,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 #endif
 
   ////////////////////////////////////////////////
-  // Relocation
-  ////////////////////////////////////////////////
-
-  bool canBeRelocated() const { return ifunc()->canBeRelocated(); }
-
-
-  ////////////////////////////////////////////////
   // Code overlapping
   ////////////////////////////////////////////////
   // Get all functions that "share" the block. Actually, the

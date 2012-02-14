@@ -127,19 +127,6 @@ DynCFGFactory::mkfunc(
     if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
         ret->isPLTFunction_ = true;
 
-#if defined(os_vxworks)
-   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
-    if(!ret->isInstrumentableByFunctionName())
-#else
-    if(!ret->isInstrumentableByFunctionName() || _img->isRelocatableObj())
-#endif
-        ret->setInstLevel(UNINSTRUMENTABLE);
-    else {
-        // Create instrumentation points for non-plt functions 
-        if(obj->cs()->linkage().find(addr) != obj->cs()->linkage().end()) { 
-            ret->setInstLevel(UNINSTRUMENTABLE);
-        }
-    }
 
     /*
      * OMP parallel regions support
