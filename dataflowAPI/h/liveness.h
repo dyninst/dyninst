@@ -27,12 +27,13 @@ struct livenessData{
 class LivenessAnalyzer{
 	map<ParseAPI::Block*, livenessData> blockLiveInfo;
 	map<ParseAPI::Function*, bool> liveFuncCalculated;
+        map<ParseAPI::Function*, bitArray> funcRegsDefined;
 	InstructionCache cachedLivenessInfo;
 
 	const bitArray& getLivenessIn(ParseAPI::Block *block);
-	const bitArray& getLivenessOut(ParseAPI::Block *block);
-	void summarizeBlockLivenessInfo(ParseAPI::Function* func, ParseAPI::Block *block);
-	bool updateBlockLivenessInfo(ParseAPI::Block *block);
+	const bitArray& getLivenessOut(ParseAPI::Block *block, bitArray &allRegsDefined);
+	void summarizeBlockLivenessInfo(ParseAPI::Function* func, ParseAPI::Block *block, bitArray &allRegsDefined);
+	bool updateBlockLivenessInfo(ParseAPI::Block *block, bitArray &allRegsDefined);
 	
 	ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, ParseAPI::Block* blk, Address a);
 
