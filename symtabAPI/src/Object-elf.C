@@ -1743,6 +1743,9 @@ void Object::load_shared_object(bool alloc_syms)
                     dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
       goto cleanup2;
 
+    if (interp_scnp)
+      interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
+
     addressWidth_nbytes = elfHdr.wordSize();
 
     // find code and data segments....
