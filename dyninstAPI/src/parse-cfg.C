@@ -556,9 +556,6 @@ bool parse_func::hasUnresolvedCF() {
               iter2 != (*iter)->targets().end(); ++iter2) {
             if ((*iter2)->sinkEdge() &&
                 (*iter2)->type() == ParseAPI::INDIRECT) {
-               cerr << symTabName() << " has unresolved CF @ " 
-                    << hex << (*iter)->start() 
-                    << ", " << (*iter)->end() << dec << endl;
                unresolvedCF_ = HAS_UNRESOLVED_CF;
                break;
             }
@@ -588,7 +585,6 @@ bool parse_func::isInstrumentable() {
     }
 
    if (hasUnresolvedCF()) {
-      cerr << "Function " << symTabName() << " is uninstrumentable" << endl;
       return false;
    }
    return true;
