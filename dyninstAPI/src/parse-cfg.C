@@ -97,10 +97,9 @@ parse_func::parse_func(
   containsFPRWrites_(unknown),
   containsSPRWrites_(unknown),
   containsSharedBlocks_(false),
-  instLevel_(NORMAL),
-  canBeRelocated_(true),
   hasWeirdInsns_(false),
   prevBlocksUnresolvedCF_(0),
+  unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)
@@ -213,8 +212,7 @@ parse_block::parse_block(
         CodeRegion * reg,
         Address addr) :
     Block(obj,reg,addr),
-    needsRelocation_(false),
-    canBeRelocated_(false)
+    needsRelocation_(false)
 {
      
 }
@@ -225,7 +223,6 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
-    canBeRelocated_(true),
     unresolvedCF_(false),
     abruptEnd_(false)
 { 
@@ -549,4 +546,46 @@ std::pair<bool, Address> parse_block::callTarget() {
       return std::make_pair(true, res.convert<Address>());
    }
    return std::make_pair(false, 0);
+}
+
+bool parse_func::hasUnresolvedCF() {
+   if (unresolvedCF_ == UNSET_CF) {
+      for (blocklist::iterator iter = blocks().begin();
+           iter != blocks().end(); ++iter) {
+         for (Block::edgelist::iterator iter2 = (*iter)->targets().begin();
+              iter2 != (*iter)->targets().end(); ++iter2) {
+            if ((*iter2)->sinkEdge() &&
+                (*iter2)->type() == ParseAPI::INDIRECT) {
+               unresolvedCF_ = HAS_UNRESOLVED_CF;
+               break;
+            }
+         }
+         if (unresolvedCF_ == HAS_UNRESOLVED_CF) break;
+      }
+      if (unresolvedCF_ == UNSET_CF)
+         unresolvedCF_ = NO_UNRESOLVED_CF;
+   }
+
+   return (unresolvedCF_ == HAS_UNRESOLVED_CF);
+}
+
+bool parse_func::isInstrumentable() {
+#if defined(os_vxworks)
+   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
+   if(!isInstrumentableByFunctionName())
+#else
+   if(!isInstrumentableByFunctionName() || img()->isRelocatableObj())
+#endif
+      return false;
+   else {
+      // Create instrumentation points for non-plt functions 
+      if(obj()->cs()->linkage().find(getOffset()) != obj()->cs()->linkage().end()) { 
+         return false;
+      }
+    }
+
+   if (hasUnresolvedCF()) {
+      return false;
+   }
+   return true;
 }

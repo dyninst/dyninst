@@ -133,6 +133,7 @@ extern StatContainer stats_codegen;
 #define thread_cerr       if (dyn_debug_thread) cerr
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 #define crash_cerr        if (dyn_debug_crash) cerr
+#define ast_cerr          if (dyn_debug_ast) cerr
 
 // C prototypes for internal debugging functions
 extern int mal_printf(const char *format, ...);

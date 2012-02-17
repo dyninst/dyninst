@@ -45,6 +45,10 @@ using namespace Dyninst::InstructionAPI;
 #include "dataflowAPI/h/liveness.h"
 #include "dataflowAPI/h/ABI.h"
 
+std::string regs1 = " ttttttttddddddddcccccccmxxxxxxxxxxxxxxxxgf                  rrrrrrrrrrrrrrrrr";
+std::string regs2 = " rrrrrrrrrrrrrrrrrrrrrrrm1111110000000000ssoscgfedrnoditszapci11111100dsbsbdca";
+std::string regs3 = " 7654321076543210765432105432109876543210bbrssssssftfffffffffp54321098iippxxxx";
+
 using namespace Dyninst::ParseAPI;
 
 // Code for register liveness detection
@@ -66,7 +70,7 @@ const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     return data.in;
 }
 
-const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
+const bitArray& LivenessAnalyzer::getLivenessOut(Block *block, bitArray &allRegsDefined) {
        
 	assert(blockLiveInfo.find(block) != blockLiveInfo.end());
 	livenessData &data = blockLiveInfo[block];
@@ -90,7 +94,7 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
         if ((*eit)->type() == CATCH) continue;
 	if ((*eit)->sinkEdge()) {
 		liveness_cerr << "Sink edge from " << hex << block->start() << dec << endl;
-		data.out = abi->getAllRegs();
+                data.out |= allRegsDefined;
 		break;
 	}
 
@@ -107,13 +111,11 @@ const bitArray& LivenessAnalyzer::getLivenessOut(Block *block) {
     return data.out;
 }
 
-void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block) 
+void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block, bitArray &allRegsDefined) 
 {
    if (blockLiveInfo.find(block) != blockLiveInfo.end()){
    	return;
    }
-   
-
  
    livenessData &data = blockLiveInfo[block];
    data.use = data.def = data.in = abi->getBitArray();
@@ -125,8 +127,7 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block)
                        block->size(),
                        block->obj()->cs()->getArch());
    Instruction::Ptr curInsn = decoder.decode();
-   while(curInsn)
-   {
+   while(curInsn) {
      ReadWriteInfo curInsnRW;
      liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
                      FILE__, __LINE__, curInsn->format().c_str(), current);
@@ -142,6 +143,9 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block)
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
+     liveness_cerr << "        " << regs1 << endl;
+     liveness_cerr << "        " << regs2 << endl;
+     liveness_cerr << "        " << regs3 << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << data.use << endl;
@@ -150,32 +154,47 @@ void LivenessAnalyzer::summarizeBlockLivenessInfo(Function* func, Block *block)
       current += curInsn->size();
       curInsn = decoder.decode();
    }
-     liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
-     liveness_cerr << data.in << endl << data.def << endl << data.use << endl;
-     liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
+
+   liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
+   liveness_cerr << "     " << regs1 << endl;
+   liveness_cerr << "     " << regs2 << endl;
+   liveness_cerr << "     " << regs3 << endl;
+   liveness_cerr << "Used " << data.in << endl;
+   liveness_cerr << "Def  " << data.def << endl;
+   liveness_cerr << "Use  " << data.use << endl;
+   liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
+
+   allRegsDefined |= data.def;
 
    return;
 }
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block) 
+bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block, bitArray &allRegsDefined) 
 {
   bool change = false;
   livenessData &data = blockLiveInfo[block];
-
+  liveness_cerr << "Updating block info for block " << hex << block->start() << dec << endl;
 
   // old_IN = IN(X)
   bitArray oldIn = data.in;
   // tmp is an accumulator
-  getLivenessOut(block);
+  getLivenessOut(block, allRegsDefined);
   
   // Liveness is a reverse dataflow algorithm
  
   // OUT(X) = UNION(IN(Y)) for all successors Y of X
 
   // IN(X) = USE(X) + (OUT(X) - DEF(X))
+  liveness_cerr << "     " << regs1 << endl;
+  liveness_cerr << "     " << regs2 << endl;
+  liveness_cerr << "     " << regs3 << endl;
+  liveness_cerr << "Out: " << data.out << endl;
+  liveness_cerr << "Def: " << data.def << endl;
+  liveness_cerr << "Use: " << data.use << endl;
   data.in = data.use | (data.out - data.def);
+  liveness_cerr << "In:  " << data.in << endl;
   
   // if (old_IN != IN(X)) then change = true
   if (data.in != oldIn)
@@ -188,10 +207,17 @@ bool LivenessAnalyzer::updateBlockLivenessInfo(Block* block)
 
 void LivenessAnalyzer::analyze(Function *func) {
     if (liveFuncCalculated.find(func) != liveFuncCalculated.end()) return;
+    // Step 0: initialize the "registers this function has defined" bitarray
+    assert(funcRegsDefined.find(func) == funcRegsDefined.end());
+    // Let's assume the regs that are normally live at the entry to a function
+    // are the regs a call can read.
+    funcRegsDefined[func] = abi->getCallReadRegisters();
+    bitArray &regsDefined = funcRegsDefined[func];
+
     // Step 1: gather the block summaries
     Function::blocklist::iterator sit = func->blocks().begin();
     for( ; sit != func->blocks().end(); sit++) {
-    	summarizeBlockLivenessInfo(func,*sit);
+       summarizeBlockLivenessInfo(func,*sit, regsDefined);
     }
     
     // Step 2: We now have block-level summaries of gen/kill info
@@ -201,7 +227,7 @@ void LivenessAnalyzer::analyze(Function *func) {
     while (changed) {
         changed = false;
         for(sit = func->blocks().begin(); sit != func->blocks().end(); sit++) {
-            if (updateBlockLivenessInfo(*sit)) {
+           if (updateBlockLivenessInfo(*sit, regsDefined)) {
                 changed = true;
             }
         }
@@ -209,6 +235,7 @@ void LivenessAnalyzer::analyze(Function *func) {
 
     liveFuncCalculated[func] = true;
 }
+
 
 // This function does two things.
 // First, it does a backwards iteration over instructions in its
@@ -269,8 +296,8 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 	 }
 	 if (type == After) {
 	 	if (loc.offset == loc.block->lastInsnAddr()) {
-			bitarray = getLivenessOut(loc.block);
-			return true;
+                   bitarray = blockLiveInfo[loc.block].out;
+                   return true;
 		}
 	 	addr = loc.offset;
 	}
@@ -288,8 +315,8 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
       case Location::call_:
 	 if (type == Before) addr = loc.block->lastInsnAddr()-1;
 	 if (type == After) {
-	 	bitarray = getLivenessOut(loc.block);
-		return true;
+            bitarray = blockLiveInfo[loc.block].out;
+            return true;
 	 }
 	 break;
       case Location::exit_:
@@ -306,8 +333,8 @@ bool LivenessAnalyzer::query(Location loc, Type type, bitArray &bitarray) {
 	
    // We know: 
    //    liveness _out_ at the block level:
-   bitArray working = getLivenessOut(loc.block);
-  assert(!working.empty());
+   bitArray working = blockLiveInfo[loc.block].out;
+   assert(!working.empty());
 
    // We now want to do liveness analysis for straight-line code. 
         

@@ -515,46 +515,6 @@ bool func_instance::isInstrumentable() {
   Dyninst::PatchAPI::Instrumenter* inst = proc()->mgr()->instrumenter();
   if (inst) return inst->isInstrumentable(this);
   return false;
-
-  
-   return ifunc()->isInstrumentable();
-
-   if (!ifunc()->isInstrumentable()) return false;
-
-   // Hack: avoid things that throw exceptions
-   // Make sure we parsed calls
-   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
-        iter != getCallBlocks().end(); ++iter) 
-   {
-      block_instance* iblk = SCAST_BI(*iter);
-      if (iblk->calleeName().find("cxa_throw") != std::string::npos) {
-         cerr << "Func " << symTabName() << " found exception ret false" << endl;
-         return false;
-      }
-      func_instance *callee = iblk->callee();
-
-      cerr << "Func " << symTabName() << " @ " << hex
-           << iblk->start() << ", callee " << iblk->calleeName() << dec << endl;
-
-      if (!callee) {
-         cerr << "Warning: null callee" << endl;
-         continue;
-      }
-      cerr << "Checking callee named " << callee->symTabName() << endl;
-
-      if (callee->symTabName().find("cxa_throw") != std::string::npos) {
-         cerr << "Func " << symTabName() << " found exception ret false" << endl;
-         return false;
-      }
-
-      // TEMPORARY HACKAGE because we're not picking up names for
-      // PLT functions?
-      if (callee->symTabName().find("402700") != std::string::npos) {
-         cerr << "Func " << symTabName() << " found exception ret false" << endl;
-         return false;
-      }
-   }
-   return true;
 }
 
 block_instance *func_instance::getBlockByEntry(const Address addr) {
