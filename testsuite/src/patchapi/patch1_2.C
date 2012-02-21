@@ -53,7 +53,6 @@ test_results_t patch1_2_Mutator::executeTest() {
   PatchFunction* func = findFunction("patch1_2_func");
   if (func == NULL) {
     logerror("**Failed patch1_2 (snippet insertion order)\n");
-    logerror("  Cannot find function %s \n", func->name().c_str());
     return FAILED;
   }
   logerror("- function %s found!\n", func->name().c_str());

@@ -724,5 +724,5 @@ std::string BPatch_point::getCalledFunctionNameInt() {
 }
 
 Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *p, BPatch_callWhen when) {
-   return p->getPoint(when);
+  return p->getPoint(when);
 }
