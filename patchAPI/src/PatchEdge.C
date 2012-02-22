@@ -23,7 +23,7 @@ PatchEdge::PatchEdge(const PatchEdge *parent, PatchBlock *src, PatchBlock *trg)
 }
 
 PatchBlock*
-PatchEdge::source() {
+PatchEdge::src() {
   if (src_) return src_;
   // Interprocedural sources _must_ be pre-created since we don't
   // have enough information to create them here.
@@ -36,7 +36,7 @@ PatchEdge::source() {
 }
 
 PatchBlock*
-PatchEdge::target() {
+PatchEdge::trg() {
   if (trg_) return trg_;
   assert(!interproc());
   assert(src_);

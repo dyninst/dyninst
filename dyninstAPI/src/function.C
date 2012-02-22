@@ -286,7 +286,7 @@ const func_instance::BlockSet &func_instance::unresolvedCF() {
 
 const func_instance::BlockSet &func_instance::abruptEnds() {
     if (prevBlocksAbruptEnds_ != ifunc()->blocks().size()) {
-        prevBlocksAbruptEnds_ = getAllBlocks().size();
+       prevBlocksAbruptEnds_ = blocks().size();
         for (PatchFunction::Blockset::const_iterator iter = all_blocks_.begin(); 
              iter != all_blocks_.end(); ++iter) 
         {
@@ -313,14 +313,14 @@ void func_instance::removeAbruptEnd(const block_instance *block)
 
 
 block_instance *func_instance::entryBlock() {
-  return SCAST_BI(getEntryBlock());
+  return SCAST_BI(entry());
 }
 
 unsigned func_instance::getNumDynamicCalls()
 {
    unsigned count=0;
-   for (PatchFunction::Blockset::const_iterator iter = getCallBlocks().begin(); 
-        iter != getCallBlocks().end(); ++iter) 
+   for (PatchFunction::Blockset::const_iterator iter = callBlocks().begin(); 
+        iter != callBlocks().end(); ++iter) 
    {
       block_instance* iblk = SCAST_BI(*iter);
       if (iblk->containsDynamicCall()) {
@@ -411,8 +411,8 @@ bool func_instance::getSharingFuncs(std::set<func_instance *> &funcs) {
 
     // Create the block list.
     PatchFunction::Blockset::const_iterator bIter;
-    for (bIter = getAllBlocks().begin();
-         bIter != getAllBlocks().end();
+    for (bIter = blocks().begin();
+         bIter != blocks().end();
          bIter++) {
       block_instance* iblk = SCAST_BI(*bIter);
        if (getSharingFuncs(iblk,funcs))
@@ -450,8 +450,8 @@ bool func_instance::getOverlappingFuncs(std::set<func_instance *> &funcs)
 
     // Create the block list.
     PatchFunction::Blockset::const_iterator bIter;
-    for (bIter = getAllBlocks().begin();
-         bIter != getAllBlocks().end();
+    for (bIter = blocks().begin();
+         bIter != blocks().end();
          bIter++) {
       block_instance* iblk = SCAST_BI(*bIter);
        if (getOverlappingFuncs(iblk,funcs))
@@ -534,7 +534,7 @@ block_instance *func_instance::getBlockByEntry(const Address addr) {
 bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    set<block_instance*> objblks;
    obj()->findBlocksByAddr(addr, objblks);
-   getAllBlocks(); // ensure that all_blocks_ is filled in 
+   blocks(); // ensure that all_blocks_ is filled in 
    std::vector<std::set<block_instance *>::iterator> to_erase; 
    for (set<block_instance*>::iterator bit = objblks.begin(); bit != objblks.end(); bit++) {
       // Make sure it's one of ours
@@ -596,8 +596,8 @@ bool func_instance::addSymbolsForCopy() {
 }
 
 bool func_instance::updateRelocationsToSym(Symbol *oldsym, Symbol *newsym) {
-   for (Blockset::const_iterator iter = getAllBlocks().begin();
-        iter != getAllBlocks().end(); ++iter) {
+   for (Blockset::const_iterator iter = blocks().begin();
+        iter != blocks().end(); ++iter) {
       obj()->parse_img()->getObject()->updateRelocations((*iter)->start(), (*iter)->last(), oldsym, newsym);
    }
    return true;
@@ -821,11 +821,11 @@ bool func_instance::getLiveCallerBlocks
 {
    using namespace ParseAPI;
 
-   const PatchBlock::edgelist &callEdges = entryBlock()->getSources();
+   const PatchBlock::edgelist &callEdges = entryBlock()->sources();
    PatchBlock::edgelist::const_iterator eit = callEdges.begin();
    for( ; eit != callEdges.end(); ++eit) {
       if (CALL == (*eit)->type()) {// includes tail calls
-          block_instance *cbbi = static_cast<block_instance*>((*eit)->source());
+          block_instance *cbbi = static_cast<block_instance*>((*eit)->src());
           if (deadBlocks.end() != deadBlocks.find(cbbi)) {
              continue; 
           }

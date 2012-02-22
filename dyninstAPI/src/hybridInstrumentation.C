@@ -1108,7 +1108,7 @@ bool HybridAnalysis::hasEdge(BPatch_function *func, Address source, Address targ
 // 0. first see if the edge needs to be parsed
 
    block_instance *block = func->lowlevel_func()->obj()->findBlockByEntry(source);
-   const PatchBlock::edgelist &targets = block->getTargets();
+   const PatchBlock::edgelist &targets = block->targets();
    for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
 
       if (SCAST_EI(*iter)->trg()->start() == target)
@@ -1468,14 +1468,14 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
         // (these get linked to the sink block by ParseAPI)
         using namespace ParseAPI;
         using namespace PatchAPI;
-        PatchBlock::edgelist trgs = ipoint->block()->getTargets();
+        PatchBlock::edgelist trgs = ipoint->block()->targets();
         PatchBlock::edgelist::iterator iter = trgs.begin();
         mapped_object *obj = SCAST_MO(ipoint->func()->obj());
         Architecture arch = ipoint->proc()->getArch();
 
         for ( ; iter != trgs.end(); iter++) {
             if ( ! (*iter)->sinkEdge() ) {
-                targets.push_back( (*iter)->target()->start() );
+                targets.push_back( (*iter)->trg()->start() );
             } else {
                 // this is a sink edge, if the edge type is cond'l branch 
                 // taken or direct, crack instruction to get its target,

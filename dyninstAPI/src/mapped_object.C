@@ -1380,9 +1380,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
        //func->ifunc()->invalidateCache();//KEVINTEST: used to call this, which might have been important
 
        modFuncs[fidx]->triggerModified();
-       modFuncs[fidx]->getAllBlocks();
-       modFuncs[fidx]->getCallBlocks();
-       modFuncs[fidx]->getExitBlocks();
+       modFuncs[fidx]->blocks();
+       modFuncs[fidx]->callBlocks();
+       modFuncs[fidx]->exitBlocks();
     }
 
     assert(consistency(&(*addrSpace())));

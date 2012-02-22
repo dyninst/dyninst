@@ -67,7 +67,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
      //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
-     if (!ret->addBlocks(func->getAllBlocks().begin(), func->getAllBlocks().end(), func, id++)) {
+     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
         return Ptr();
      }
   }

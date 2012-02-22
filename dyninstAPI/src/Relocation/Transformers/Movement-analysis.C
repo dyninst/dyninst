@@ -629,9 +629,9 @@ void PCSensitiveTransformer::invalidateCache(func_instance *f) {
    }
    
    // Get callers of this function
-   PatchAPI::PatchBlock::edgelist edges = f->entry()->getSources();
+   PatchAPI::PatchBlock::edgelist edges = f->entry()->sources();
    for (PatchAPI::PatchBlock::edgelist::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      invalidateCache(SCAST_BI((*iter)->source()));
+      invalidateCache(SCAST_BI((*iter)->src()));
    }
 }
 

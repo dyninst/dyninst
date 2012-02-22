@@ -79,7 +79,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
       //if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
-      if (!addRelocBlocks(func->getAllBlocks().begin(), func->getAllBlocks().end(), func)) {
+      if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
          return false;
       }
     
@@ -206,7 +206,7 @@ PriorityMap &CodeMover::priorityMap() {
 
 ///////////////////////
 
-SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
+SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
    // Take the current PriorityMap, digest it,
    // and return a sorted list of where we need 
    // patches (from and to)

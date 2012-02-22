@@ -763,19 +763,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
-                                         unsigned 
-#if !defined(arch_x86) && !defined(arch_power)
-                                         size
-#endif
-) {
-#if !defined(arch_x86) && !defined(arch_power) && !defined(arch_x86_64)
-    emitStorePreviousStackFrameRegister((Address) destination,
-                                        source,
-                                        gen,
-                                        size,
-                                        true);
-    return true;
-#else
+                                         unsigned) {
     registerSlot *src = registers_[source];
     assert(source);
     registerSlot *dest = registers_[destination];
@@ -807,7 +795,6 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return false;
         break;
     }
-#endif
 }
 
 

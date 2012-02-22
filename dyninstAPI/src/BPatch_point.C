@@ -392,7 +392,7 @@ bool BPatch_point::isDynamicInt()
              if (point->block()->containsCall()) {
                  return point->block()->containsDynamicCall();
              }
-             PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
+             PatchAPI::PatchBlock::edgelist trgs = point->block()->targets();
              for (PatchAPI::PatchBlock::edgelist::iterator eit = trgs.begin();
                   eit != trgs.end(); 
                   eit++)

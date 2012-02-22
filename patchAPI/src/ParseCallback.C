@@ -29,7 +29,7 @@ void PatchParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block 
 
    // 4)
    std::vector<PatchFunction *> funcs;
-   p1->getFunctions(std::back_inserter(funcs));
+   p1->getFuncs(std::back_inserter(funcs));
    for (unsigned i = 0; i < funcs.size(); ++i) {
       funcs[i]->splitBlock(p1, p2);
    }
@@ -96,7 +96,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
       // remove block from callBlocks, if this is the block's one only call edge
       int numCalls = pb->numCallEdges();
       if (numCalls == 1) {
-         pb->getFunctions(std::back_inserter(funcs));
+         pb->getFuncs(std::back_inserter(funcs));
          for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
             (*fit)->call_blocks_.erase(pb);
          }
@@ -106,7 +106,7 @@ void PatchParseCallback::remove_edge_cb(ParseAPI::Block *block, ParseAPI::Edge *
    if (pe->points_.during) {
        pb->obj()->cb()->destroy(pe->points_.during);
        if (funcs.empty()) {
-          pb->getFunctions(std::back_inserter(funcs));
+          pb->getFuncs(std::back_inserter(funcs));
        }
        for (vector<PatchFunction*>::iterator fit = funcs.begin(); fit != funcs.end(); fit++) {
            (*fit)->remove(pe->points_.during);
