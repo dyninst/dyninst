@@ -47,7 +47,7 @@
 #include "dyninstAPI/src/registerSpace.h"
 #endif
 
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"

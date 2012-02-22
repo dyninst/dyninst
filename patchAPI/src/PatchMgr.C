@@ -273,7 +273,7 @@ void PatchMgr::getCallSites(Scope &scope, CallSites &sites) {
    Functions funcs;
    getFuncs(scope, funcs);
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-      const PatchFunction::Blockset &c = (*iter)->calls();
+      const PatchFunction::Blockset &c = (*iter)->callBlocks();
       for (PatchFunction::Blockset::const_iterator iter2 = c.begin(); iter2 != c.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
             sites.push_back(CallSite_t(*iter, *iter2));
@@ -286,7 +286,7 @@ void PatchMgr::getExitSites(Scope &scope, ExitSites &sites) {
    Functions funcs;
    getFuncs(scope, funcs);
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
-      const PatchFunction::Blockset &e = (*iter)->exits();
+      const PatchFunction::Blockset &e = (*iter)->exitBlocks();
       for (PatchFunction::Blockset::const_iterator iter2 = e.begin(); iter2 != e.end(); ++iter2) {
          if (!scope.block || (scope.block == *iter2))
             sites.push_back(ExitSite_t(*iter, *iter2));
@@ -402,18 +402,18 @@ bool PatchMgr::verify(Location &loc) {
       case Location::Edge_:
          break;
       case Location::EdgeInstance_:
-         if (loc.func->blocks().find(loc.edge->source()) == loc.func->blocks().end()) return false;
-         if (loc.func->blocks().find(loc.edge->target()) == loc.func->blocks().end()) return false;
+         if (loc.func->blocks().find(loc.edge->src()) == loc.func->blocks().end()) return false;
+         if (loc.func->blocks().find(loc.edge->trg()) == loc.func->blocks().end()) return false;
          break;
       case Location::Entry_:
          if (loc.func->entry() != loc.block) return false;
          break;
       case Location::Call_:
          // Check to see if the block is in the call blocks
-         if (loc.func->calls().find(loc.block) == loc.func->calls().end()) return false;
+         if (loc.func->callBlocks().find(loc.block) == loc.func->callBlocks().end()) return false;
          break;
       case Location::Exit_:
-         if (loc.func->exits().find(loc.block) == loc.func->exits().end()) return false;
+         if (loc.func->exitBlocks().find(loc.block) == loc.func->exitBlocks().end()) return false;
          break;
       default:
          assert(0);

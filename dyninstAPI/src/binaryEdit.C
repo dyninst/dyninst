@@ -994,8 +994,8 @@ bool BinaryEdit::replaceTrapHandler() {
             func_instance *func = allFuncs[i];        
             assert(func);
 
-            for (PatchFunction::Blockset::const_iterator iter = func->getAllBlocks().begin();
-                 iter != func->getAllBlocks().end(); ++iter) {
+            for (PatchFunction::Blockset::const_iterator iter = func->blocks().begin();
+                 iter != func->blocks().end(); ++iter) {
                 block_instance* iblk = SCAST_BI(*iter);
                 if (iblk->containsCall()) {
                     

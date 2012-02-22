@@ -37,8 +37,6 @@
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/ParseCallback.h"
 
-using namespace Dyninst;
-
 // some useful types
 using ParseAPI::EdgeTypeEnum;
 using ParseAPI::FuncReturnStatus;
@@ -46,13 +44,14 @@ using ParseAPI::FuncSource;
 
 /*** The image_* object factory ***/
 class image;
+
 namespace Dyninst {
 namespace ParseAPI {
    class CodeObject;
-}
-}
+};
+};
 
-class DynCFGFactory : public ParseAPI::CFGFactory {
+class DynCFGFactory : public Dyninst::ParseAPI::CFGFactory {
   public:
     DynCFGFactory(image * im);
     ~DynCFGFactory() {};

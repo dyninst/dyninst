@@ -47,7 +47,10 @@
 #include "dyninstAPI/src/baseTramp.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
+#include "Location.h"
+#include "liveness.h"
 using namespace Dyninst::InstructionAPI;
+using namespace Dyninst::ParseAPI;
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/parse-cfg.h"
@@ -478,3 +481,47 @@ void instPoint::markModified() {
    }
 }
          
+bitArray instPoint::liveRegisters(){
+	stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+	static LivenessAnalyzer live1(4);
+	static LivenessAnalyzer live2(8);
+	LivenessAnalyzer *live;
+	if (func()->function()->region()->getAddressWidth() == 4) live = &live1; else live = &live2;
+	if (liveRegs_.size() && liveRegs_.size() == live->getABI()->getAllRegs().size()){
+		return liveRegs_;
+	}	
+	switch(type()) {
+		case FuncEntry:
+			if (!live->query(Location(EntrySite(func()->function(), func()->function()->entry())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			break;
+		case BlockEntry:
+			if (!live->query(Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			break;
+		case BlockExit:
+			if (!live->query(Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			break;
+		case EdgeDuring:
+			if (!live->query(Location(EdgeLoc(func()->function(), edge()->edge())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			break;
+		case FuncExit:
+			if (!live->query(Location(ExitSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			break;
+		case PostCall:
+			if (!live->query(Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			break;
+		case PreCall:
+			if (!live->query(Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			break;
+		case PreInsn:
+			if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			break;
+		case PostInsn:
+		        if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			break;
+		default:
+			assert(0);  
+	}
+	stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+	return liveRegs_;
+
+}

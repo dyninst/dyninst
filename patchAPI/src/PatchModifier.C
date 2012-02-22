@@ -45,7 +45,7 @@ using namespace PatchAPI;
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
    // Do we want edges to only be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)
-   if (target && edge->source()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
+   if (target && edge->src()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
 
    // Current limitation: cannot retarget indirect edges (well, we can,
    // but don't expect it to work)
@@ -55,8 +55,8 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
        edge->type() == ParseAPI::RET) return false;
    
    // I think this is all we do...
-   PatchBlock *src = edge->source();
-   PatchBlock *oldTrg = edge->target();
+   PatchBlock *src = edge->src();
+   PatchBlock *oldTrg = edge->trg();
    ParseAPI::Block *llTrg = (target == NULL) ? NULL : target->block();
    if (!ParseAPI::CFGModifier::redirect(edge->edge(), llTrg)) return false;
    

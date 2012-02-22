@@ -3779,7 +3779,7 @@ Address process::stopThreadCtrlTransfer (instPoint* intPoint,
            block_instance *callB = (*callBs.begin());
            edge_instance *fallthrough = callB->getFallthrough();
            if (fallthrough) {
-              unrelocTarget = fallthrough->target()->start();
+              unrelocTarget = fallthrough->trg()->start();
            } else {
               unrelocTarget = callB->end();
            }
@@ -4095,7 +4095,7 @@ static void otherFuncBlocks(func_instance *func,
          bit++) 
   */
   const PatchFunction::Blockset &allBlocks = 
-        func->getAllBlocks();
+        func->blocks();
     for (PatchFunction::Blockset::const_iterator bit =
          allBlocks.begin();
          bit != allBlocks.end(); 

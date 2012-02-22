@@ -1943,7 +1943,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != deadFuncs.end();
         fit++)
     {
-        const PatchFunction::Blockset& deadBs = (*fit)->getAllBlocks();
+        const PatchFunction::Blockset& deadBs = (*fit)->blocks();
         PatchFunction::Blockset::const_iterator bIter= deadBs.begin();
         for (; bIter != deadBs.end(); bIter++) {
             deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
@@ -1958,7 +1958,7 @@ void BPatch_process::overwriteAnalysisUpdate
         fit != deadFuncs.end();
         fit++)
     {
-        const PatchBlock::edgelist & srcs = (*fit)->entry()->getSources();
+        const PatchBlock::edgelist & srcs = (*fit)->entry()->sources();
         vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
         std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
         for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
@@ -2194,7 +2194,7 @@ void BPatch_process::printDefensiveStatsInt()
         {
             //foreach block
             func_instance *func = *fit;
-            const PatchFunction::Blockset & blocks = func->getAllBlocks();
+            const PatchFunction::Blockset & blocks = func->blocks();
             bool sharedFunc = false;
             for (PatchFunction::Blockset::const_iterator bit = blocks.begin();
                  bit != blocks.end();
@@ -2291,8 +2291,8 @@ void BPatch_process::printDefensiveStatsInt()
                 }
                 // non-returning calls that we identified as such at parse-time
                 // and therefore labeled as jumps instead of calls
-                if (1 == block->getTargets().size() &&
-                    ParseAPI::DIRECT == (*block->getTargets().begin())->type() &&
+                if (1 == block->targets().size() &&
+                    ParseAPI::DIRECT == (*block->targets().begin())->type() &&
                     InstructionAPI::c_CallInsn == iit->second->getCategory())
                 {
                     nonCallCalls++;

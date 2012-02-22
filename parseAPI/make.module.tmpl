@@ -40,6 +40,7 @@ PUBLIC_H = \
     CFG.h\
     CodeObject.h\
     CodeSource.h\
+    Location.h\
     InstructionAdapter.h\
     InstructionSource.h\
     ParseCallback.h\
@@ -63,11 +64,15 @@ SRCS +=	../src/ParserDetails.C \
         ../src/CFGModifier.C
         
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
-SRCS +=	../../dataflowAPI/src/Absloc.C \
+SRCS +=	../../dataflowAPI/src/ABI.C \
+	../../dataflowAPI/src/Absloc.C \
      	../../dataflowAPI/src/AbslocInterface.C \
 	../../dataflowAPI/src/convertOpcodes.C \
 	../../dataflowAPI/src/debug_dataflow.C \
 	../../dataflowAPI/src/ExpressionConversionVisitor.C \
+	../../dataflowAPI/src/InstructionCache.C \
+	../../dataflowAPI/src/liveness.C \
+	../../dataflowAPI/src/RegisterMap.C \
 	../../dataflowAPI/src/RoseImpl.C \
 	../../dataflowAPI/src/RoseInsnFactory.C \
 	../../dataflowAPI/src/slicing.C \
@@ -86,7 +91,11 @@ PUBLIC_H += Absloc.h \
 	 AbslocInterface.h \
 	 slicing.h \
 	 SymEval.h \
-	 stackanalysis.h
+	 stackanalysis.h \
+	 liveness.h \
+	 ABI.h \
+	 bitArray.h \
+	 InstructionCache.h	 
 endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h

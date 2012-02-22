@@ -553,6 +553,7 @@ class Object : public AObject {
           bool a_out=false);
   
   Symbol *handle_opd_symbol(Region *opd, Symbol *sym);
+  void handle_opd_relocations();
   void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
   void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
 

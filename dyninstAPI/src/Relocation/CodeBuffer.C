@@ -33,7 +33,7 @@
 #include "CodeTracker.h"
 #include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.
 
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/codegen.h"
 #include <iostream>
 

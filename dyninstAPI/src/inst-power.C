@@ -249,39 +249,7 @@ void registerSpace::initialize32() {
 
     // TODO: Linux/PPC needs these set as well.
     
-#if defined(cap_liveness)
-    returnRead_ = getBitArray();
-    // Return reads r3, r4, fpr1, fpr2
-    returnRead_[r3] = true;
-    returnRead_[r4] = true;
-    returnRead_[fpr1] = true;
-    returnRead_[fpr2] = true;
 
-    // Calls
-    callRead_ = getBitArray();
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-    for (unsigned i = r3; i <= r10; i++) 
-        callRead_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++) 
-        callRead_[i] = true;
-    callWritten_ = getBitArray();
-    // Calls write to pretty much every register we use for code generation
-    callWritten_[r0] = true;
-    for (unsigned i = r3; i <= r12; i++)
-        callWritten_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten_[i] = true;
-
-    // Syscall - assume the same as call
-    //syscallRead_ = getBitArray().set();
-    //syscallWritten_ = getBitArray().set();
-    syscallRead_ = callRead_;
-    syscallRead_[r0] = true;
-    syscallWritten_ = callWritten_;
-
-    allRegs_ = getBitArray().set();
-#endif
 }
 
 void registerSpace::initialize64() {
@@ -406,36 +374,7 @@ void registerSpace::initialize64() {
 
     // TODO: Linux/PPC needs these set as well.
     
-#if defined(cap_liveness)
-    returnRead64_ = getBitArray();
-    // Return reads r3, r4, fpr1, fpr2
-    returnRead64_[r3] = true;
-    returnRead64_[r4] = true;
-    returnRead64_[fpr1] = true;
-    returnRead64_[fpr2] = true;
 
-    // Calls
-    callRead64_ = getBitArray();
-    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
-    for (unsigned i = r3; i <= r10; i++) 
-        callRead64_[i] = true;
-    for (unsigned i = fpr1; i <= fpr13; i++) 
-        callRead64_[i] = true;
-    callWritten64_ = getBitArray();
-    // Calls write to pretty much every register we use for code generation
-    callWritten64_[r0] = true;
-    for (unsigned i = r3; i <= r12; i++)
-        callWritten64_[i] = true;
-    // FPRs 0->13 are volatile
-    for (unsigned i = fpr0; i <= fpr13; i++)
-        callWritten64_[i] = true;
-
-    // Syscall - assume the same as call
-    syscallRead64_ = getBitArray().set();
-    syscallWritten64_ = getBitArray().set();
-
-    allRegs64_ = getBitArray().set();
-#endif
 }
 
 void registerSpace::initialize() {
@@ -3058,6 +2997,61 @@ bool EmitterPOWER32Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, false, gen);
 }
 
+bool EmitterPOWER32Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER32Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+
+bool EmitterPOWER32Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+  Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+  if (scratchReg == REG_NULL) return false;
+
+  Register scratchLR = REG_NULL;
+  std::vector<Register> excluded; excluded.push_back(scratchReg);
+  scratchLR = gen.rs()->getScratchRegister(gen, excluded, true);
+  if (scratchLR == REG_NULL) {
+    if (scratchReg == registerSpace::r0) return false;
+    // We can use r0 for this, since it's volatile. 
+    scratchReg = registerSpace::r0;
+  }
+
+  if (!call) {
+    // Save the LR in scratchLR
+    insnCodeGen::generateMoveFromLR(gen, scratchLR);
+  }
+
+  // Generate the PLT call
+
+  Address dest = block->llb()->firstInsnOffset();
+  Address pcVal = emitMovePCToReg(scratchReg, gen);
+
+  if (!call) {
+    insnCodeGen::generateMoveToLR(gen, scratchLR);
+  }
+
+  // We can now use scratchLR
+
+  Address varOffset = dest - pcVal;
+  emitLoadRelative(scratchLR, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
+  
+  insnCodeGen::generateMoveToCR(gen, scratchLR);
+
+  if (!call) {
+    instruction br(BCTRraw);
+    insnCodeGen::generate(gen, br);
+  }
+  else {
+    instruction brl(BCTRLraw);
+    insnCodeGen::generate(gen, brl);
+  }
+
+  return true;
+}
+
 bool EmitterPOWER64Stat::emitPLTCommon(func_instance *callee, bool call, codeGen &gen) {
     // In PPC64 Linux, function descriptors are used in place of direct
     // function pointers.  The descriptors have the following layout:
@@ -3149,6 +3143,78 @@ bool EmitterPOWER64Stat::emitPLTJump(func_instance *callee, codeGen &gen) {
   return emitPLTCommon(callee, false, gen);
 }
 
+bool EmitterPOWER64Stat::emitTOCCall(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, true, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCJump(block_instance *block, codeGen &gen) {
+  return emitTOCCommon(block, false, gen);
+}
+
+bool EmitterPOWER64Stat::emitTOCCommon(block_instance *block, bool call, codeGen &gen) {
+
+    bool isStaticBinary = false;
+
+    if(gen.addrSpace()->edit()->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
+	isStaticBinary = true;
+    }
+
+    const unsigned TOCreg = 2;
+    const unsigned wordsize = gen.addrSpace()->getAddressWidth();
+    assert(wordsize == 8);
+    Address dest = block->llb()->firstInsnOffset();
+    Address caller_toc = 0;
+    Address toc_anchor = gen.addrSpace()->getTOCoffsetInfo(block->callee());
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    if (gen.func()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.func());
+    }
+    else if (gen.point()) {
+      caller_toc = gen.addrSpace()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+      // Don't need it, and this might be an iRPC
+    }
+
+    if(isStaticBinary)
+	caller_toc = 0;
+
+    //Offset destOff = dest - gen.currAddr();
+    Offset destOff = dest - caller_toc;
+
+   // insnCodeGen::loadPartialImmIntoReg(gen, TOCreg, destOff);
+   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   int stackSize = 0;
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
+   	assert (stackSize == 1);
+   	scratchReg = freeReg[0];
+   }
+   insnCodeGen::loadImmIntoReg(gen, scratchReg, destOff);
+
+   if(!isStaticBinary) {
+   	insnCodeGen::generateLoadReg64(gen, scratchReg, scratchReg, TOCreg);
+
+    	insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                     TOCreg, scratchReg, 8);
+   } 
+   insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+                                        scratchReg, scratchReg, 0);
+
+   insnCodeGen::generateMoveToCR(gen, scratchReg);
+
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
+
+
+    instruction branch_insn(call ? BCTRLraw : BCTRraw);
+    insnCodeGen::generate(gen, branch_insn);
+
+
+    return true;
+}
 bool EmitterPOWER64Stat::emitCallInstruction(codeGen &gen,
                                              func_instance *callee,
                                              bool setTOC, Address) {

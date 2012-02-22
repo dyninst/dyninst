@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "AST.h"
+#include "DynAST.h"
 
 #include "../../common/h/singleton_object_pool.h"
 

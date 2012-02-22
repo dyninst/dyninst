@@ -168,11 +168,11 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
               cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
           }
           */
-          if (!pcDef) assert(0);
           break;
       }
   }
 
+  if (!pcDef) { return false; }
   PPC_BLR_Visitor checker(ret_addr);
   pcDef->accept(&checker);
   if (checker.returnState() == PPC_BLR_Visitor::PPC_BLR_RETURN) {
@@ -185,11 +185,17 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
 bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 {
   RegisterAST::Ptr regLR, regSP;
+  regLR = ppc32_LR; regSP = ppc32_SP;
+
+ /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
+  * For now, use ppc32:LR for ppc64 also.
+
   switch (_isrc->getArch()) {
   case Arch_ppc32: regLR = ppc32_LR; regSP = ppc32_SP; break;
   case Arch_ppc64: regLR = ppc64_LR; regSP = ppc64_SP; break;
   default: assert(0 && "Inappropriate _isrc architechture.");
   }
+  */
 
   std::set < RegisterAST::Ptr > regs;
   RegisterAST::Ptr destLRReg;
@@ -263,6 +269,11 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
       parsing_printf ("\t LR saved for %s \n", func->name().c_str());
       // Check for lwz from Stack - mtlr - blr 
       RegisterAST::Ptr regLR, regSP, reg11;
+		regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11;
+
+ /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
+  * For now, use ppc32:LR for ppc64 also.
+
       switch (_isrc->getArch()) {
       case Arch_ppc32:
           regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11; break;
@@ -270,7 +281,7 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
           regLR = ppc64_LR; regSP = ppc64_SP; reg11 = ppc64_R11; break;
       default: assert(0 && "Inappropriate _isrc architechture.");
       }
-
+*/
       std::set < RegisterAST::Ptr > regs;
       RegisterAST::Ptr sourceLRReg;
 

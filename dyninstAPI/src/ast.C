@@ -269,6 +269,10 @@ AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
    return AstNodePtr(new AstSnippetNode(snip));
 }
 
+AstNodePtr AstNode::scrambleRegistersNode(){
+    return AstNodePtr(new AstScrambleRegistersNode());
+}
+
 bool isPowerOf2(int value, int &result)
 {
   if (value<=0) return(false);
@@ -2018,6 +2022,20 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
    }
 }
 
+bool AstScrambleRegistersNode::generateCode_phase2(codeGen &gen, 
+ 						  bool , 
+						  Address&, 
+						  Register& )
+{
+#if defined(arch_x86_64)
+   for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+      registerSlot *reg = gen.rs()->GPRs()[i];
+      if (reg->encoding() != REGNUM_RBP && reg->encoding() != REGNUM_RSP)
+          gen.codeEmitter()->emitLoadConst(reg->encoding() , -1, gen);
+   }
+#endif
+   return true;
+}
 
 #if defined(AST_PRINT)
 std::string getOpString(opCode op)
@@ -2995,6 +3013,10 @@ bool AstDynamicTargetNode::containsFuncCall() const
 {
    return false;
 }
+bool AstScrambleRegistersNode::containsFuncCall() const
+{
+   return false;
+}
 
 bool AstCallNode::usesAppRegister() const {
    for (unsigned i=0; i<args_.size(); i++) {
@@ -3083,6 +3105,10 @@ bool AstInsnNode::usesAppRegister() const
 {
    return true;
 }
+bool AstScrambleRegistersNode::usesAppRegister() const
+{
+   return true;
+}
 
 void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Register reg) {
 	assert(n);
@@ -3164,34 +3190,7 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 }
 
 void AstNode::debugPrint(unsigned /*level*/) {
-   //cerr << format("") << endl;
-#if 0
-
-
-    if (!dyn_debug_ast) return;
-    
-    for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
-   
-    std::string type;
-    if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
-    else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
-    else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
-    else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
-    else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
-    else if (dynamic_cast<AstVariableNode *>(this)) type = "variableNode";
-    else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
-    else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
-    else type = "unknownNode";
-
-    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
-
-    pdvector<AstNodePtr> children;
-    getChildren(children);
-    for (unsigned i=0; i<children.size(); i++) {
-        children[i]->debugPrint(level+1);
-    }
-#endif
+   ast_cerr << format("") << endl;
 }
 
 void regTracker_t::debugPrint() {

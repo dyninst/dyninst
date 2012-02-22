@@ -724,15 +724,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\dynutil\h\AST.h"
-				>
-			</File>
-			<File
 				RelativePath=".\h\debugOstream.h"
 				>
 			</File>
 			<File
 				RelativePath="..\dynutil\h\dyn_regs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dynutil\h\DynAST.h"
 				>
 			</File>
 			<File
@@ -878,4 +878,3 @@
 	<Globals>
 	</Globals>
 </VisualStudioProject>
-

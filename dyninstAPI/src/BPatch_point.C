@@ -389,7 +389,7 @@ bool BPatch_point::isDynamicInt()
              if (point->block()->containsCall()) {
                  return point->block()->containsDynamicCall();
              }
-             PatchAPI::PatchBlock::edgelist trgs = point->block()->getTargets();
+             PatchAPI::PatchBlock::edgelist trgs = point->block()->targets();
              for (PatchAPI::PatchBlock::edgelist::iterator eit = trgs.begin();
                   eit != trgs.end(); 
                   eit++)
@@ -721,5 +721,5 @@ std::string BPatch_point::getCalledFunctionNameInt() {
 }
 
 Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *p, BPatch_callWhen when) {
-   return p->getPoint(when);
+  return p->getPoint(when);
 }

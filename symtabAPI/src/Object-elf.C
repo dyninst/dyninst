@@ -100,6 +100,7 @@ string symt_current_func_name;
 string symt_current_mangled_func_name;
 Symbol *symt_current_func = NULL;
 
+std::vector<Symbol *> opdsymbols_;
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
@@ -663,7 +664,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                                  name), 
                                    true, ((scnp->sh_flags() & SHF_TLS) != 0),
                                    scnp->sh_addralign());
-          
+	  reg->setFileOffset(scnp->sh_offset());
           regions_.push_back(reg);
        }
        else {
@@ -676,6 +677,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                    false, ((scnp->sh_flags() & SHF_TLS) != 0),
                                    scnp->sh_addralign());
 
+	  reg->setFileOffset(scnp->sh_offset());
           regions_.push_back(reg);
        }
     }
@@ -1676,6 +1678,8 @@ void Object::load_object(bool alloc_syms)
 	  }
         parse_all_relocations(elfHdr, dynsym_scnp, dynstr_scnp,
                 symscnp, strscnp);
+
+ 	handle_opd_relocations();	 
       }
 
     //Set object type
@@ -1738,6 +1742,9 @@ void Object::load_shared_object(bool alloc_syms)
 		    rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp, dynstr_scnp,
                     dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
       goto cleanup2;
+
+    if (interp_scnp)
+      interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
     addressWidth_nbytes = elfHdr.wordSize();
 
@@ -1819,6 +1826,8 @@ void Object::load_shared_object(bool alloc_syms)
 
       parse_all_relocations(elfHdr, dynsym_scnp, dynstr_scnp,
                 symscnp, strscnp);
+	// Apply relocations to opd
+ 	handle_opd_relocations();	 
     }
 
     //Set object type
@@ -1936,6 +1945,45 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 // Symbol altering routines should be minimized to prevent problems
 // in the rewrite case.  Instead, return a new symbol the encapsulates
 // the correct information.
+
+// In statically linked binaries, there are relocations against 
+// .opd section. We need to apply the relocations before using
+// opd symbols. 
+
+void Object::handle_opd_relocations(){
+
+  unsigned int i = 0, opdregion = 0;
+  while (i < regions_.size()) {
+	if(regions_[i]->getRegionName().compare(".opd") == 0){
+		opdregion = i;
+		break;
+	}
+	i++;
+   }
+
+  vector<relocationEntry> region_rels = (regions_[opdregion])->getRelocations();
+  vector<relocationEntry>::iterator rel_it;
+  vector<Symbol *>::iterator sym_it;
+  for(sym_it = opdsymbols_.begin(); sym_it != opdsymbols_.end(); ++sym_it) {
+	for(rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+		if((*sym_it)->getPtrOffset() == (*rel_it).rel_addr()) {
+			  i = 0;
+			  while (i < regions_.size()) {
+			    if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getName()) == 0){
+			      Region *targetRegion = regions_[i];
+                              Offset regionOffset = targetRegion->getDiskOffset()+(*rel_it).addend();
+			      (*sym_it)->setRegion(targetRegion);
+  			      (*sym_it)->setOffset(regionOffset);   // Store code address for the function.
+			      break;
+			    }
+			    ++i;
+			  }
+		}
+	}
+			
+  }
+  opdsymbols_.clear();
+}
 
 Symbol *Object::handle_opd_symbol(Region *opd, Symbol *sym)
 {
@@ -2075,9 +2123,10 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);
 
-         if (sec && sec->getRegionName() == OPD_NAME) {
+         if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION ) {
             newsym = handle_opd_symbol(sec, newsym);
 
+  	    opdsymbols_.push_back(newsym);
             symbols_[sname].push_back(newsym);
             symsByOffset_[newsym->getOffset()].push_back(newsym);
             symsToModules_[newsym] = smodule; 
@@ -2251,8 +2300,9 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       }
       // register symbol in dictionary
 
-      if (sec && sec->getRegionName() == OPD_NAME) {
+      if (sec && sec->getRegionName() == OPD_NAME && stype == Symbol::ST_FUNCTION ) {
         newsym = handle_opd_symbol(sec, newsym);
+  	opdsymbols_.push_back(newsym);
 
         symbols_[sname].push_back(newsym);
         symsByOffset_[newsym->getOffset()].push_back(newsym);

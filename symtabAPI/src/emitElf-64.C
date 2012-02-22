@@ -62,6 +62,7 @@ extern unsigned int elfHash(const char *name);
 
 unsigned long bgq_sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;;
 bool isBlueGeneQ = false;
+bool isStaticBinary = false;
 
 // Error reporting
 extern void setSymtabError(SymtabError new_err);
@@ -233,6 +234,7 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   // works and will avoid the kernel bug.
 
   isBlueGeneQ = obj_->isBlueGeneQ();
+  isStaticBinary = obj_->isStaticBinary();
   if(isBlueGeneQ){
   movePHdrsFirst = false;
   } else {
@@ -906,6 +908,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
   void *phdr_data = (void *) newPhdr;
 
   Elf64_Phdr newSeg;
+  bool last_load_segment = false;
   for(unsigned i=0;i<oldEhdr->e_phnum;i++)
   {
     /*
@@ -930,6 +933,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
         else if(old->p_type == PT_LOAD && (old+1)->p_type != PT_LOAD) {
             // insert at end of loadable phdrs
             insert_phdr = newPhdr+1;
+  	    last_load_segment = true;
         }
         else if(old->p_type != PT_LOAD &&
                 (old+1)->p_type == PT_LOAD &&
@@ -969,6 +973,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_align = pgSize;
          memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
          added_new_sec = true;
+         rewrite_printf("Added New program header : offset 0x%lx,addr 0x%lx file Size 0x%lx memsize 0x%lx \n", newSeg.p_paddr, newSeg.p_vaddr, newSeg.p_filesz, newSeg.p_memsz);
 #ifdef BINEDIT_DEBUG
          fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
 #endif
@@ -1024,8 +1029,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 	      newPhdr->p_paddr = newPhdr->p_vaddr;
 	      newPhdr->p_filesz += pgSize;
 	      newPhdr->p_memsz = newPhdr->p_filesz;
-           }
-           else {
+           } else {
               newPhdr->p_offset += pgSize;
            }
            if (newPhdr->p_vaddr) {
@@ -1058,12 +1062,30 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
         }
      }
 
+     /* For BlueGeneQ statically linked binary, we cannot create a new LOAD section, 
+	     hence we extend existing LOAD section to include instrmentation.
+	  	  A new LOAD section must be aligned to 1MB in BlueGene. 
+		  But if we create a LOAD segment after 1MB, the TOC pointer will no longer be able to reach the new segment,
+		  as we have only 4 byte offset from TOC */
+
+     if(isBlueGeneQ && isStaticBinary && last_load_segment) {
+
+		// add new load to this segment
+		 newPhdr->p_filesz = (newSeg.p_offset - newPhdr->p_offset) + loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+		 newPhdr->p_memsz = (newSegmentStart -  newPhdr->p_vaddr) + (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
+		 newPhdr->p_flags = PF_R+PF_W+PF_X;
+		last_load_segment = false;
+
+		// add new load to this segment
+     } else {
+    	 if(insert_phdr)
+        	newPhdr++;
+    }	
+
      rewrite_printf("Existing program header: type %u, offset 0x%lx, addr 0x%lx\n", 
              newPhdr->p_type, newPhdr->p_offset, newPhdr->p_vaddr);
      
      newPhdr++;
-     if(insert_phdr)
-        newPhdr++;
 
      old++;
   }

@@ -176,13 +176,6 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 #endif
 
   ////////////////////////////////////////////////
-  // Relocation
-  ////////////////////////////////////////////////
-
-  bool canBeRelocated() const { return ifunc()->canBeRelocated(); }
-
-
-  ////////////////////////////////////////////////
   // Code overlapping
   ////////////////////////////////////////////////
   // Get all functions that "share" the block. Actually, the
@@ -334,7 +327,7 @@ void func_instance::getCallerBlocks(OutputIterator result)
   for (block_instance::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) {
   */
-  const PatchBlock::edgelist &ins = entryBlock()->getSources();
+  const PatchBlock::edgelist &ins = entryBlock()->sources();
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) 
   {

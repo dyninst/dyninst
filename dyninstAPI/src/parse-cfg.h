@@ -43,7 +43,7 @@
 #include "parRegion.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
-#include "dyninstAPI/src/bitArray.h"
+#include "bitArray.h"
 #include "InstructionCache.h"
 #include <set>
 
@@ -59,21 +59,6 @@ class pdmodule;
 
 class parse_block;
 class image_edge;
-
-#if !defined(ESSENTIAL_PARSING_ENUMS)
-#define ESSENTIAL_PARSING_ENUMS
-// There are three levels of function-level "instrumentability":
-// 1) The function can be instrumented normally with no problems (normal case)
-// 2) The function contains unresolved indirect branches; we have to assume
-//    these can go anywhere in the function to be safe, so we must instrument
-//    safely (e.g., with traps)
-// 3) The function is flatly uninstrumentable and must not be touched.
-enum InstrumentableLevel {
-    NORMAL,
-    HAS_BR_INDIR,
-    UNINSTRUMENTABLE
-};
-#endif //!defined(ESSENTIAL_PARSING_ENUMS)
 
 class parse_block : public codeRange, public ParseAPI::Block  {
     friend class parse_func;
@@ -113,7 +98,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
     std::pair<bool, Address> callTarget();
 
     // instrumentation-related
-    bool canBeRelocated() const { return canBeRelocated_; }
     bool needsRelocation() const { return needsRelocation_; }
     void markAsNeedingRelocation() { needsRelocation_ = true; }
 
@@ -156,7 +140,6 @@ class parse_block : public codeRange, public ParseAPI::Block  {
  private:
     bool needsRelocation_;
     int blockNumber_;
-    bool canBeRelocated_; // some blocks contain uninstrumentable constructs
 
     bool unresolvedCF_;
     bool abruptEnd_;
@@ -228,6 +211,12 @@ class parse_func_registers {
 
 class parse_func : public ParseAPI::Function
 {
+   enum UnresolvedCF {
+      UNSET_CF,
+      HAS_UNRESOLVED_CF,
+      NO_UNRESOLVED_CF
+   };
+
   friend class DynCFGFactory;
   friend class DynParseCallback;
   public:
@@ -305,9 +294,8 @@ class parse_func : public ParseAPI::Function
  
    const pdvector<image_parRegion*> &parRegions();
 
-   bool isInstrumentable() const { return instLevel_ != UNINSTRUMENTABLE; }
-   InstrumentableLevel instLevel() const { return instLevel_; }
-   void setInstLevel(InstrumentableLevel l) { instLevel_ = l; }
+   bool isInstrumentable();
+   bool hasUnresolvedCF();
 
    // ----------------------------------------------------------------------
 
@@ -350,9 +338,6 @@ class parse_func : public ParseAPI::Function
 #if defined(arch_power)
    bool savesReturnAddr() const { return ppc_saves_return_addr_; }
 #endif
-
-   // Ifdef relocation... but set at parse time.
-   bool canBeRelocated() const { return canBeRelocated_; }
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
 
@@ -411,19 +396,13 @@ class parse_func : public ParseAPI::Function
     void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 
-   InstrumentableLevel instLevel_;   // the degree of freedom we have in
-                                    // instrumenting the function
-   
-   bool canBeRelocated_;           // True if nothing prevents us from
-                                   // relocating function
-   bool needsRelocation_;          // Override -- "relocate this func"
-
    bool hasWeirdInsns_;            // true if we stopped the parse at a 
 								           // weird instruction (e.g., arpl)
    int prevBlocksUnresolvedCF_; // num func blocks when calculated
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
+   UnresolvedCF unresolvedCF_;
 
    ParseAPI::FuncReturnStatus init_retstatus_;
 

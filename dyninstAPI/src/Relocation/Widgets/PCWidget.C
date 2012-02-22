@@ -31,7 +31,7 @@
 
 #include "PCWidget.h"
 #include "instructionAPI/h/Instruction.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "../CFG/RelocBlock.h"
 #include "../CodeBuffer.h"
 #include "../CodeTracker.h"
@@ -92,7 +92,7 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     // Fun for the whole family... we need a spare register. Argh!
 
     codeGen gen(16);
-    
+    gen.applyTemplate(templ);
     // Must be in LR
     instPoint *point = templ.point();
     // If we do not have a point then we have to invent one
@@ -105,7 +105,6 @@ bool PCWidget::PCtoReturnAddr(const codeGen &templ, const RelocBlock *t, CodeBuf
     
     registerSpace *rs = registerSpace::actualRegSpace(point);
     gen.setRegisterSpace(rs);
-    
     int stackSize = 0;
     pdvector<Register> freeReg;
     pdvector<Register> excludeReg;

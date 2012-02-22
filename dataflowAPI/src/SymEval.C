@@ -35,7 +35,7 @@
 #include "../h/SymEval.h"
 #include "SymEvalPolicy.h"
 
-#include "AST.h"
+#include "DynAST.h"
 
 #include "parseAPI/h/CFG.h"
 

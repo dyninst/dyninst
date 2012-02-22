@@ -40,7 +40,7 @@
 #include "process.h"
 #include "function.h"
 #include "debug.h"
-#include "dynutil/h/AST.h"
+#include "dynutil/h/DynAST.h"
 #include "dataflowAPI/h/Absloc.h"
 #include "dataflowAPI/h/AbslocInterface.h"
 #include "instructionAPI/h/InstructionDecoder.h"

@@ -42,7 +42,7 @@ PatchBlock::getInsns(Insns &insns) const {
 }
 
 const PatchBlock::edgelist&
-PatchBlock::getSources() {
+PatchBlock::sources() {
   if (srclist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->sources().begin();
          iter != block_->sources().end(); ++iter) 
@@ -57,7 +57,7 @@ PatchBlock::getSources() {
 }
 
 const PatchBlock::edgelist&
-PatchBlock::getTargets() {
+PatchBlock::targets() {
   if (trglist_.empty()) {
     for (ParseAPI::Block::edgelist::iterator iter = block_->targets().begin();
          iter != block_->targets().end(); ++iter) {
@@ -70,7 +70,7 @@ PatchBlock::getTargets() {
 }
 
 PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
-   getSources();
+   sources();
    for (edgelist::iterator iter = srclist_.begin();
         iter != srclist_.end(); ++iter) {
       if ((*iter)->type() == type) return *iter;
@@ -79,7 +79,7 @@ PatchEdge *PatchBlock::findSource(ParseAPI::EdgeTypeEnum type) {
 }
 
 PatchEdge *PatchBlock::findTarget(ParseAPI::EdgeTypeEnum type) {
-   getTargets();
+   targets();
    for (edgelist::iterator iter = trglist_.begin();
         iter != trglist_.end(); ++iter) {
       assert(*iter);
@@ -116,7 +116,7 @@ PatchBlock::removeSourceEdge(PatchEdge *e) {
     srclist_.erase(iter);
   } else {
       cerr << "WARNING: failed to remove target edge from block [" 
-          <<hex <<start() <<" " <<end() <<") from "<< e->source()->last() << dec <<endl;
+          <<hex <<start() <<" " <<end() <<") from "<< e->src()->last() << dec <<endl;
   }
   cb()->remove_edge(this, e, PatchCallback::source);
 }
@@ -130,7 +130,7 @@ PatchBlock::removeTargetEdge(PatchEdge *e) {
     trglist_.erase(iter);
   } else {
       cerr << "WARNING: failed to remove target edge from block [" 
-          <<hex <<start() <<" " <<end() <<") to "<< e->source()->start() << dec <<endl;
+          <<hex <<start() <<" " <<end() <<") to "<< e->src()->start() << dec <<endl;
   }
   cb()->remove_edge(this, e, PatchCallback::target);
 }
@@ -297,10 +297,10 @@ PatchBlock::object() const { return obj_; }
 
 PatchFunction*
 PatchBlock::getCallee() {
-  PatchBlock::edgelist::const_iterator it = getTargets().begin();
-  for (; it != getTargets().end(); ++it) {
+   PatchBlock::edgelist::const_iterator it = targets().begin();
+   for (; it != targets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
-      PatchBlock* trg = (*it)->target();
+      PatchBlock* trg = (*it)->trg();
       return obj_->getFunc(obj_->co()->findFuncByEntry(trg->block()->region(),
                                                        trg->block()->start()));
     }
@@ -432,7 +432,7 @@ void PatchBlock::destroyPoints()
 
     // now destroy function's context-specific points for this block
     vector<PatchFunction *> funcs;
-    getFunctions(back_inserter(funcs));
+    getFuncs(back_inserter(funcs));
     for (vector<PatchFunction *>::iterator fit = funcs.begin();
          fit != funcs.end();
          fit++)
@@ -525,14 +525,14 @@ bool PatchBlock::consistency() const {
          // shouldn't have multiple edges to the same block unless one
          // is a conditional taken and the other a conditional not-taken
          // (even this is weird, but it happens in obfuscated code)
-         if (srcs.find(srclist_[i]->source()) != srcs.end() &&
+         if (srcs.find(srclist_[i]->src()) != srcs.end() &&
              srclist_[i]->type() != ParseAPI::COND_TAKEN && 
              srclist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
          {
             cerr << "Error: multiple source edges to same block" << endl;
             CONSIST_FAIL;
          }
-         srcs.insert(srclist_[i]->source());
+         srcs.insert(srclist_[i]->src());
          if (!srclist_[i]->consistency()) {
             cerr << "Error: source edge inconsistent" << endl;
             CONSIST_FAIL;
@@ -551,14 +551,14 @@ bool PatchBlock::consistency() const {
          // shouldn't have multiple edges to the same block unless one
          // is a conditional taken and the other a conditional not-taken
          // (even this is weird, but it happens in obfuscated code)
-         if (trgs.find(trglist_[i]->target()) != trgs.end() &&
+         if (trgs.find(trglist_[i]->trg()) != trgs.end() &&
              trglist_[i]->type() != ParseAPI::COND_TAKEN && 
              trglist_[i]->type() != ParseAPI::COND_NOT_TAKEN) 
          {
             cerr << "Error: multiple target edges to same block" << endl;
             CONSIST_FAIL;
          }
-         trgs.insert(trglist_[i]->source());
+         trgs.insert(trglist_[i]->src());
          if (!trglist_[i]->consistency()) {
             cerr << "Error: target edge inconsistent" << endl;
             CONSIST_FAIL;

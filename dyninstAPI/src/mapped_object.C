@@ -54,8 +54,11 @@
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+#if defined(os_windows)
+#define FS_FIELD_SEPERATOR '\\'
+#else
 #define FS_FIELD_SEPERATOR '/'
-
+#endif
 // Whee hasher...
 
 unsigned imgFuncHash(const parse_func * const &func) {
@@ -1378,9 +1381,9 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
        //func->ifunc()->invalidateCache();//KEVINTEST: used to call this, which might have been important
 
        modFuncs[fidx]->triggerModified();
-       modFuncs[fidx]->getAllBlocks();
-       modFuncs[fidx]->getCallBlocks();
-       modFuncs[fidx]->getExitBlocks();
+       modFuncs[fidx]->blocks();
+       modFuncs[fidx]->callBlocks();
+       modFuncs[fidx]->exitBlocks();
     }
 
     assert(consistency(&(*addrSpace())));

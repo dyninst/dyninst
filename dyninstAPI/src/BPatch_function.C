@@ -464,7 +464,7 @@ void BPatch_function::getCallPoints(BPatch_Vector<BPatch_point *> &callPoints) {
   for (func_instance::BlockSet::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {
 */
-  const PatchFunction::Blockset &blocks = func->getCallBlocks();
+   const PatchFunction::Blockset &blocks = func->callBlocks();
   for (PatchFunction::Blockset::const_iterator iter = blocks.begin();
        iter != blocks.end(); ++iter) {
     block_instance* iblk = SCAST_BI(*iter);
@@ -922,8 +922,8 @@ bool BPatch_function::getAddressRangeInt(Dyninst::Address &start, Dyninst::Addre
    
    // end is a little tougher
    end = func->addr();
-   for (PatchFunction::Blockset::const_iterator iter = func->getAllBlocks().begin();
-        iter != func->getAllBlocks().end(); ++iter) {
+   for (PatchFunction::Blockset::const_iterator iter = func->blocks().begin();
+        iter != func->blocks().end(); ++iter) {
       end = (end < (*iter)->end()) ? (*iter)->end() : end;
    }
 

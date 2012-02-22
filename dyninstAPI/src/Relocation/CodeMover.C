@@ -39,7 +39,7 @@
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
 #include "dyninstAPI/src/function.h"
 
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "CodeTracker.h"
 #include "CFG/RelocGraph.h"
 
@@ -55,8 +55,6 @@ CodeMover::CodeMover(CodeTracker *t) :
    finalized_(false) {};
 
 CodeMover::Ptr CodeMover::create(CodeTracker *t) {
-   init_debug_patchapi();
-   relocation_cerr << "Created CodeMover with tracker " << hex << t << dec << endl;
 
    // Make a CodeMover
    Ptr ret = Ptr(new CodeMover(t));
@@ -81,7 +79,7 @@ bool CodeMover::addFunctions(FuncSet::const_iterator begin,
       }
       relocation_cerr << "\tAdding function " << func->symTabName() << endl;
       //if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
-      if (!addRelocBlocks(func->getAllBlocks().begin(), func->getAllBlocks().end(), func)) {
+      if (!addRelocBlocks(func->blocks().begin(), func->blocks().end(), func)) {
          return false;
       }
     
@@ -210,7 +208,7 @@ PriorityMap &CodeMover::priorityMap() {
 
 ///////////////////////
 
-SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
+SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
    // Take the current PriorityMap, digest it,
    // and return a sorted list of where we need 
    // patches (from and to)

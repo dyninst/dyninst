@@ -393,7 +393,9 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
                     + "' for object '" + curObjFile->memberName() + "'";
-                return false;
+rewrite_printf(" failed to locate symbol %s for %s  \n" , curUndefSym->getMangledName().c_str(), curObjFile->memberName().c_str());
+		continue;
+                //return false;
             }
 
             // Store the found symbol with the related relocations
@@ -1000,7 +1002,7 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-#if defined(arch_x86) || defined(arch_x86_64)  || (defined(arch_power) && defined(arch_64bit))
+#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power) 
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),

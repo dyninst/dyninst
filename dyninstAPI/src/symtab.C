@@ -169,7 +169,7 @@ int codeBytesSeen = 0;
 #include <dataflowAPI/h/SymEval.h>
 #include <dataflowAPI/h/AbslocInterface.h>
 #include <dataflowAPI/h/Absloc.h>
-#include <dynutil/h/AST.h>
+#include <dynutil/h/DynAST.h>
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure

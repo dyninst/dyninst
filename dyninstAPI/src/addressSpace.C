@@ -45,7 +45,7 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dynutil/h/AST.h"
+#include "dynutil/h/DynAST.h"
 #include "Relocation/CodeMover.h"
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"
@@ -932,7 +932,6 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
 mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) const
 {
    // Update: check by full name first because we may have non-unique fileNames. 
-
    for(u_int j=0; j < mapped_objects.size(); j++){
       if (mapped_objects[j]->fullName() == obj_name ||
           (wildcard &&
@@ -940,17 +939,16 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
          return mapped_objects[j];
    }
 
-   // Strip the wildcard name
-#if defined(os_windows)
-   char separator = '\\';
-#else
-   char separator = '/';
-#endif
-
-   std::string::size_type dir = obj_name.rfind(separator);
+   // get rid of the directory in the path
+   std::string::size_type dir = obj_name.rfind('/');
    if (dir != std::string::npos) {
       // +1, as that finds the slash and we don't want it. 
       obj_name = obj_name.substr(dir+1);
+   } else {
+	   dir = obj_name.rfind('\\');
+	   if (dir != std::string::npos){
+		 obj_name = obj_name.substr(dir+1);
+	   }
    }
 
    for(u_int j=0; j < mapped_objects.size(); j++){

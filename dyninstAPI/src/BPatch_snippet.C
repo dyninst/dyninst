@@ -1749,6 +1749,15 @@ void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
     ast_wrapper->setType(type);
 }
 
+void BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExprInt(){
+
+
+    ast_wrapper = AstNodePtr(AstNode::scrambleRegistersNode());
+    ast_wrapper->setType(BPatch::bpatch->type_Untyped);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+   
+}
+
 // Conversions
 Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists
