@@ -102,7 +102,7 @@ bool patchModifier_Mutator::splitBlock() {
       return false;
    }
 
-   if (entry->getSources().size() != 1) {
+   if (entry->sources().size() != 1) {
       logerror("** Failed patch_modifier: split block has more than one out-edge\n");
       return false;
    }
@@ -141,9 +141,9 @@ bool patchModifier_Mutator::redirect() {
       return false;
    }
 
-   if (entry->getTargets().size() != 2) {
+   if (entry->targets().size() != 2) {
       logerror("** Failed patch_modifier: entry block has %d out-edges instead of 2, inconsistency\n",
-               entry->getTargets().size());
+               entry->targets().size());
       return false;
    }
 
@@ -159,7 +159,7 @@ bool patchModifier_Mutator::redirect() {
       return false;
    }
       
-   PatchBlock *target = ft->target();
+   PatchBlock *target = ft->trg();
    if (!target) {
       logerror("** Failed patch_modifier: conditional fallthrough has no target block\n");
       return false;
@@ -171,19 +171,19 @@ bool patchModifier_Mutator::redirect() {
    }
 
    // Verify consistency and that things are what we want. 
-   for (PatchBlock::edgelist::const_iterator iter = entry->getTargets().begin();
-        iter != entry->getTargets().end(); ++iter) {
-      if ((*iter)->target() != target) {
+   for (PatchBlock::edgelist::const_iterator iter = entry->targets().begin();
+        iter != entry->targets().end(); ++iter) {
+      if ((*iter)->trg() != target) {
          logerror("** Failed patch_modifier: post-redirect, found edge with incorrect target block; wanted 0x%lx (%p) and found 0x%lx (%p)\n",
                   target->start(), target,
-                  (*iter)->target()->start(),
-                  (*iter)->target());
+                  (*iter)->trg()->start(),
+                  (*iter)->trg());
          return false;
       }
    }
-   for (PatchBlock::edgelist::const_iterator iter = target->getSources().begin();
-        iter != target->getSources().end(); ++iter) {
-      if ((*iter)->source() != entry) {
+   for (PatchBlock::edgelist::const_iterator iter = target->sources().begin();
+        iter != target->sources().end(); ++iter) {
+      if ((*iter)->src() != entry) {
          logerror("** Failed patch_modifier: post-redirect, found edge with incorrect source block\n");
          return false;
       }
@@ -212,10 +212,10 @@ bool patchModifier_Mutator::insert() {
       std::cerr << std::hex << iter->first << " : " << iter->second->format() << std::dec << std::endl;
    }
 
-   std::cerr << "Block has " << block->getSources().size() << " incoming edges and " 
-             << block->getTargets().size() << " outgoing edges." << std::endl;
-   for (PatchBlock::edgelist::const_iterator iter = block->getTargets().begin();
-        iter != block->getTargets().end(); ++iter) {
+   std::cerr << "Block has " << block->sources().size() << " incoming edges and " 
+             << block->targets().size() << " outgoing edges." << std::endl;
+   for (PatchBlock::edgelist::const_iterator iter = block->targets().begin();
+        iter != block->targets().end(); ++iter) {
       std::cerr << "Target edge: "
                 << ((*iter)->sinkEdge() ? "<sink>" : "")
 #if defined(_MSC_VER)
