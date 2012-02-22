@@ -36,16 +36,17 @@ ABI* ABI::getABI(int addr_width){
         globalABI_ = new ABI();
 	globalABI_->addr_width = 4;
 	globalABI64_ = new ABI();
-	globalABI64_->addr_width = 8;
 
 #if defined(arch_x86) || defined(arch_x86_64)
+	globalABI64_->addr_width = 8;
 	globalABI_->index = &machRegIndex_x86;
 	globalABI64_->index = &machRegIndex_x86_64;
 #endif
 
 #if defined(arch_power)
+	globalABI64_->addr_width = 4;
 	globalABI_->index = &machRegIndex_ppc;
-	globalABI64_->index = &machRegIndex_ppc_64;
+	globalABI64_->index = &machRegIndex_ppc;
 
 #endif
 

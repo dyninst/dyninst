@@ -271,9 +271,12 @@ map<MachRegister, int> machRegIndex_ppc = map_list_of
 (ppc32::sprg1, 107)
 (ppc32::sprg2, 108)
 (ppc32::sprg3, 109)
+(ppc32::sprg3_ro, 109)
 (ppc32::ear, 110)
-(ppc32::tbl, 111)
-(ppc32::tbu, 112)
+(ppc32::tbl_wo, 111)
+(ppc32::tbl_ro, 111)
+(ppc32::tbu_wo, 112)
+(ppc32::tbu_ro, 112)
 (ppc32::pvr, 113)
 (ppc32::ibat0u, 114)
 (ppc32::ibat0l, 115)
@@ -320,7 +323,16 @@ map<MachRegister, int> machRegIndex_ppc = map_list_of
 (ppc32::cr5, 156)
 (ppc32::cr6, 157)
 (ppc32::cr7, 158)
-(ppc32::cr, 159);
+(ppc32::cr, 159)
+(ppc32::sprg4, 160)
+(ppc32::sprg4_ro, 160)
+(ppc32::sprg5, 161)
+(ppc32::sprg5_ro, 161)
+(ppc32::sprg6, 162)
+(ppc32::sprg6_ro, 162)
+(ppc32::sprg7, 163)
+(ppc32::sprg7_ro, 163);
+
 
 
 map<MachRegister, int> machRegIndex_ppc_64 = map_list_of
@@ -434,9 +446,12 @@ map<MachRegister, int> machRegIndex_ppc_64 = map_list_of
 (ppc64::sprg1, 107)
 (ppc64::sprg2, 108)
 (ppc64::sprg3, 109)
+(ppc64::sprg3_ro, 109)
 (ppc64::ear, 110)
-(ppc64::tbl, 111)
-(ppc64::tbu, 112)
+(ppc64::tbl_wo, 111)
+(ppc64::tbl_ro, 111)
+(ppc64::tbu_wo, 112)
+(ppc64::tbu_ro, 112)
 (ppc64::pvr, 113)
 (ppc64::ibat0u, 114)
 (ppc64::ibat0l, 115)
@@ -483,6 +498,14 @@ map<MachRegister, int> machRegIndex_ppc_64 = map_list_of
 (ppc64::cr5, 156)
 (ppc64::cr6, 157)
 (ppc64::cr7, 158)
-(ppc64::cr, 159);
+(ppc64::cr, 159)
+(ppc64::sprg4, 160)
+(ppc64::sprg4_ro, 160)
+(ppc64::sprg5, 161)
+(ppc64::sprg5_ro, 161)
+(ppc64::sprg6, 162)
+(ppc64::sprg6_ro, 162)
+(ppc64::sprg7, 163)
+(ppc64::sprg7_ro, 163);
 
 
