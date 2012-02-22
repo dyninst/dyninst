@@ -3275,34 +3275,7 @@ unsigned regTracker_t::astHash(AstNode* const &ast) {
 }
 
 void AstNode::debugPrint(unsigned /*level*/) {
-   //cerr << format("") << endl;
-#if 0
-
-
-    if (!dyn_debug_ast) return;
-    
-    for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
-   
-    std::string type;
-    if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
-    else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
-    else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
-    else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
-    else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
-    else if (dynamic_cast<AstVariableNode *>(this)) type = "variableNode";
-    else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
-    else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
-    else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
-    else type = "unknownNode";
-
-    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
-
-    pdvector<AstNodePtr> children;
-    getChildren(children);
-    for (unsigned i=0; i<children.size(); i++) {
-        children[i]->debugPrint(level+1);
-    }
-#endif
+   ast_cerr << format("") << endl;
 }
 
 void regTracker_t::debugPrint() {
@@ -3532,10 +3505,9 @@ bool AstOperandNode::initRegisters(codeGen &g) {
     // If we're an origRegister, override its state as live. 
     if (oType == origRegister) {
        Address origReg = (Address) oValue;
-       cerr << "Override for origRegister use: marking register " << origReg << " off-limits!" << endl;
        // Mark that register as live so we are sure to save it.
        registerSlot *r = (*(g.rs()))[origReg];
-       r->offLimits = true;
+       r->liveState = registerSlot::live;
     }       
     
     return ret;
