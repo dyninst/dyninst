@@ -158,8 +158,20 @@ void setLabel(unsigned int label_ndx, char *label) {
   mutatee_funcs[0].testlabel = label;
 }
 
+#if !defined(i386_unknown_nt4_0_test)
+void alarm_handler(int signum) {
+  output->log(STDERR, "Timeout after 120 seconds, exit mutatee.\n");
+  exit(0);
+}
+#endif
+
 int main(int iargc, char *argv[])
-{                                       /* despite different conventions */
+{
+#if !defined(i386_unknown_nt4_0_test)
+   signal(SIGALRM, alarm_handler);
+   alarm(120);
+#endif
+                                       /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
    unsigned int i;
    signed int j;
@@ -193,6 +205,7 @@ int main(int iargc, char *argv[])
       mutatee_name += 1; /* Skip past the '/' */
       setExecutableName(mutatee_name);
    }
+   // output->log(STDERR, "Mutatee: %s @ pid=%d.\n", mutatee_name, getpid());
 
    for (j=0; j < max_tests; j++) {
       runTest[j] = FALSE;
