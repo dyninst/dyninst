@@ -149,14 +149,14 @@ void RelocBlock::getSuccessors(RelocGraph *cfg) {
    //   -- this last is a Defensive mode special.
   /*   const block_instance::edgelist &targets = block_->targets();
        for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
-   const PatchBlock::edgelist &targets = block_->getTargets();
+   const PatchBlock::edgelist &targets = block_->targets();
    for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
      processEdge(OutEdge, SCAST_EI(*iter), cfg);
    }
 }
 
 void RelocBlock::getPredecessors(RelocGraph *cfg) {
-   const PatchBlock::edgelist &edges = block_->getSources();
+   const PatchBlock::edgelist &edges = block_->sources();
    for (PatchBlock::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
      processEdge(InEdge, SCAST_EI(*iter), cfg);
    }
@@ -332,7 +332,7 @@ void RelocBlock::createCFWidget() {
 void RelocBlock::preserveBlockGap() {
   /*   const block_instance::edgelist &targets = block_->targets();
        for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
-   const PatchBlock::edgelist &targets = block_->getTargets();
+   const PatchBlock::edgelist &targets = block_->targets();
    bool hasCall = false;
    bool hasFT = false;
    for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {

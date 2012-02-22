@@ -19,7 +19,7 @@ PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}
 
 const PatchFunction::Blockset&
-PatchFunction::getAllBlocks() {
+PatchFunction::blocks() {
   if (all_blocks_.size() == func_->blocks().size()) 
       return all_blocks_;
 
@@ -37,14 +37,14 @@ PatchFunction::getAllBlocks() {
 }
 
 PatchBlock*
-PatchFunction::getEntryBlock() {
+PatchFunction::entry() {
   assert(obj());
   assert(func_);
 
   ParseAPI::Block* ientry = func_->entry();
   if (!ientry) {
     // In case we haven't parsed yet ...
-    getAllBlocks();
+     blocks();
     ientry = func_->entry();
   }
   assert(ientry);
@@ -52,11 +52,11 @@ PatchFunction::getEntryBlock() {
 }
 
 const PatchFunction::Blockset&
-PatchFunction::getExitBlocks() {
-  if (func_->returnBlocks().size() != exit_blocks_.size()) 
+PatchFunction::exitBlocks() {
+  if (func_->exitBlocks().size() != exit_blocks_.size()) 
   {
-      for (ParseAPI::Function::blocklist::iterator iter = func_->returnBlocks().begin();
-           iter != func_->returnBlocks().end(); ++iter) {
+      for (ParseAPI::Function::blocklist::iterator iter = func_->exitBlocks().begin();
+           iter != func_->exitBlocks().end(); ++iter) {
         PatchBlock* pblk = obj()->getBlock(*iter);
         exit_blocks_.insert(pblk);
       }
@@ -65,7 +65,7 @@ PatchFunction::getExitBlocks() {
 }
 
 const PatchFunction::Blockset&
-PatchFunction::getCallBlocks() {
+PatchFunction::callBlocks() {
   // Compute the list if it's empty or if the list of function blocks
   // has grown
   if (call_blocks_.empty() && !func_->callEdges().empty())
@@ -760,4 +760,3 @@ bool FuncPoints::consistency(const PatchFunction *func) const {
    }
    return true;
 }
-

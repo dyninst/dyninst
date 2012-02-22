@@ -170,8 +170,8 @@ PatchObject::getEdge(ParseAPI::Edge* e, PatchBlock* src, PatchBlock* trg, bool c
 
    PatchEdge *ret = cfg_maker_->makeEdge(e, src, trg, this);
    addEdge(ret);
-   if (ret->target()->obj() != this) {
-      ret->target()->obj()->addEdge(ret);
+   if (ret->trg()->obj() != this) {
+      ret->trg()->obj()->addEdge(ret);
    }
    cb()->create(ret);
    return ret;
@@ -214,7 +214,7 @@ PatchObject::copyCFG(PatchObject* parObj) {
 }
 
 
-bool PatchObject::splitBlock(PatchBlock *p1, ParseAPI::Block *second) {
+bool PatchObject::splitBlock(PatchBlock * /*orig*/, ParseAPI::Block *second) {
    PatchBlock *p2 = getBlock(second, false);
    if (p2) return true;
    p2 = getBlock(second);

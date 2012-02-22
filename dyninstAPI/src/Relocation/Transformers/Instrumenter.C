@@ -337,7 +337,7 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    assert(trace->type() == RelocBlock::Relocated);
    block_instance *block = trace->block();
    assert(block);
-   const PatchBlock::edgelist &targets = block->getTargets();
+   const PatchBlock::edgelist &targets = block->targets();
    for (PatchBlock::edgelist::const_iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
       instPoint *point = NULL;
