@@ -62,6 +62,7 @@ test_results_t PatchApiComponent::group_setup(RunGroup *group,
 
 test_results_t PatchApiComponent::group_teardown(RunGroup *group,
                                                 ParameterDict &params) {
+
   delete sts_;
   delete co_;
   return PASSED;
@@ -130,6 +131,7 @@ PatchFunction* PatchApiMutator::findFunction(const char* name) {
     }
   }
 
+	logerror("failed to find function %s\n", name);
   return NULL;
 }
 
