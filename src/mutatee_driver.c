@@ -436,6 +436,8 @@ int main(int iargc, char *argv[])
 	   for (i = 0; i < max_tests; ++i)
 	   {
 		   if (runTest[i])
+			   logstatus("%s[%d]: %s: %s \n",  __FILE__, __LINE__, 
+					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel, passedTest[i] ? "PASSED" : "FAILED");
 			   logstatus("%s[%d]: %s: %s \n", passedTest[i] ? "PASSED" : "FAILED", __FILE__, __LINE__, 
 					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel);
 	   }
