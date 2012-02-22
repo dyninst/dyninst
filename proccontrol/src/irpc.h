@@ -253,6 +253,7 @@ class iRPCHandler : public Handler
    virtual ~iRPCHandler();
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
 };
 
 class iRPCLaunchHandler : public Handler

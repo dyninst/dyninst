@@ -180,7 +180,19 @@ public:
                  bool userRPC,
                  bool isMemAlloc = false,
                  Address addr = 0);
-
+	bool postIRPC(void* buffer, 
+		int size, 
+		void* userData, 
+		bool runProcessWhenDone, 
+		PCThread* thread, 
+		bool synchronous, 
+		void** result, 
+		bool userRPC, 
+		bool isMemAlloc = false, 
+		Address addr = 0);
+private:
+	bool commonIRPCSetup(PCThread* thread, bool& tempStop);
+public:
     /////////////////////////////////////////////
     // Begin Exploratory and Defensive mode stuff
     /////////////////////////////////////////////

@@ -123,6 +123,8 @@ private:
 
 	IntervalTree<Address, bool> systemLibIntervals_;
 	void findSystemLibs();
+	void dumpMemoryMap();
+	int_library* m_executable;
 
 	windows_thread *dummyRPCThread_;
 

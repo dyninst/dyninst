@@ -37,6 +37,7 @@
 #include "irpc.h"
 #include "proccontrol/h/Mailbox.h"
 #include <iostream>
+#include <psapi.h>
 
 using namespace std;
 
@@ -83,7 +84,8 @@ pendingDetach(false),
 pendingDebugBreak_(false),
 hproc(INVALID_HANDLE_VALUE),
 hfile(INVALID_HANDLE_VALUE),
-dummyRPCThread_(NULL)
+dummyRPCThread_(NULL),
+m_executable(NULL)
 {
 }
 
@@ -95,7 +97,8 @@ pendingDetach(false),
 pendingDebugBreak_(false),
 hproc(INVALID_HANDLE_VALUE),
 hfile(INVALID_HANDLE_VALUE),
-dummyRPCThread_(NULL)
+dummyRPCThread_(NULL),
+m_executable(NULL)
 {
 }
 
@@ -126,6 +129,23 @@ void windows_process::plat_setHandles(HANDLE hp, HANDLE hf, Address eb)
 	hproc = hp;
 	hfile = hf;
 	execBase = eb;
+	std::string fileName;
+    void *pmap = NULL;
+    HANDLE fmap = CreateFileMapping(hfile, NULL, 
+                                    PAGE_READONLY, 0, 1, NULL);
+    if (fmap) {
+        pmap = MapViewOfFile(fmap, FILE_MAP_READ, 0, 0, 1);
+        if (pmap) {   
+            char filename[MAX_PATH+1];
+            int result = GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
+            if (result)
+                fileName = std::string(filename);
+            UnmapViewOfFile(pmap);
+        }
+        CloseHandle(fmap);
+    }
+	m_executable = new int_library(fileName, execBase, execBase);
+
 }
 
 bool windows_process::plat_create_int()
@@ -230,12 +250,32 @@ bool windows_process::plat_readMem(int_thread *thr, void *local,
 	return true;
 }
 
+void windows_process::dumpMemoryMap()
+{
+	for(LibraryPool::iterator i = libpool.begin();
+		i != libpool.end();
+		++i)
+	{
+		pthrd_printf("Library %s:\t0x%lx\n",
+			(*i)->getName().c_str(), (*i)->getLoadAddress());
+	}
+}
+
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
 									Dyninst::Address remote, size_t size)
 {
 	int lasterr = 0;
-	//fprintf(stderr, "writing %d bytes to %p, first byte %x\n", size, remote, *((unsigned char*)local));
-	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
+	SIZE_T written = 0;
+	// DEBUG: this will only work for small sizes
+	unsigned char temp[1024];
+
+	BOOL read1_ok = ::ReadProcessMemory(hproc, (void*) remote, temp, size, &written);
+
+	written = 0;
+
+	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, &written);
+	written = 0;
+	BOOL read2_ok = ::ReadProcessMemory(hproc, (void*) remote, temp, size, &written);
 	if(ok)
 	{
 		if(FlushInstructionCache(hproc, NULL, 0))
@@ -245,6 +285,7 @@ bool windows_process::plat_writeMem(int_thread *thr, const void *local,
 	}
 	lasterr = GetLastError();
 	pthrd_printf("Error writing memory: %d\n", lasterr);
+	dumpMemoryMap();
 	return false;
 }
 
@@ -425,8 +466,7 @@ bool windows_process::refresh_libraries(std::set<int_library *> &added_libs,
 
 int_library* windows_process::plat_getExecutable()
 {
-	assert(!"not implemented");
-	return NULL;
+	return m_executable;
 }
 
 bool windows_process::initLibraryMechanism()

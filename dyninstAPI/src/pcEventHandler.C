@@ -147,7 +147,8 @@ void PCEventHandler::main() {
     // Check if callbacks should be registered for syscalls on this platform
     vector<EventType> syscallTypes;
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Exit));
-    // unused syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
+	// Used on Windows, at least...
+    syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Fork));
     syscallTypes.push_back(EventType(EventType::Post, EventType::Fork));
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Exec));
@@ -176,7 +177,8 @@ void PCEventHandler::main() {
         proccontrol_printf("%s[%d]: waiting for ProcControlAPI callbacks...\n",
                 FILE__, __LINE__);
 
-        int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
+#if !defined(os_windows)
+		int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
         fd_set readset; FD_ZERO(&readset);
         fd_set writeset; FD_ZERO(&writeset);
         fd_set exceptset; FD_ZERO(&exceptset);
@@ -187,10 +189,9 @@ void PCEventHandler::main() {
         do {
            result = P_select(nfds, &readset, &writeset, &exceptset, NULL);
         } while( result == -1 && errno == EINTR );
-
         if( result == 0 || result == -1 ) {
             // Report the error but keep trying anyway
-            proccontrol_printf("%s[%d]: select on ProcControlAPI fd failed\n");
+            proccontrol_printf("%s[%d]: select on ProcControlAPI fd failed\n", FILE__, __LINE__);
             Event::const_ptr evError = Event::const_ptr(new Event(EventType::Error));
             eventMailbox_->enqueue(evError);
         }
@@ -205,6 +206,12 @@ void PCEventHandler::main() {
             proccontrol_printf("%s[%d]: ProcControlAPI fd not set, waiting again\n");
             continue;
         }
+#else
+		HANDLE waitables[2];
+		waitables[0] = (HANDLE)pcFD;
+		waitables[1] = (HANDLE)exitNotificationOutput_;
+		DWORD result = ::WaitForMultipleObjects(2, waitables, FALSE, INFINITE);
+#endif
 
         proccontrol_printf("%s[%d]: attempting to handle events via ProcControlAPI\n",
                 FILE__, __LINE__);
@@ -510,8 +517,8 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             (ev->getProcess() ? ev->getProcess()->getPid() : -1), (ev->getThread() ? ev->getThread()->getLWP() : (Dyninst::LWP)-1));
 	if(!ev->getProcess())
 	{
-		proccontrol_printf("%s[%d]: ERROR: event received w/o associated ProcControl process object\n", FILE__, __LINE__);
-		return false;
+		proccontrol_printf("%s[%d]: Event received w/o associated ProcControl process object, treating as handled successfully\n", FILE__, __LINE__);
+		return true;
 	}
     PCProcess *evProc = (PCProcess *)ev->getProcess()->getData();
     if( evProc == NULL ) {
@@ -1300,7 +1307,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         fileDescriptor rtLibDesc(evProc->dyninstRT_name, (*i)->getLoadAddress(),
             dataAddress, true);
-        if( rtLibDesc == tmpDesc ) {
+		if( rtLibDesc == tmpDesc ) {
             assert( !evProc->hasReachedBootstrapState(PCProcess::bs_initialized) );
             proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
 

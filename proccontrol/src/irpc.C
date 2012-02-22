@@ -970,6 +970,12 @@ void iRPCHandler::getEventTypesHandled(std::vector<EventType> &etypes)
   etypes.push_back(EventType(EventType::None, EventType::RPC));
 }
 
+int iRPCHandler::getPriority() const
+{
+	// This *must* be after callbacks, so that the user can read any return result they need...
+   return PostCallbackPriority;
+}
+
 Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 {
    //An RPC has completed, clean-up

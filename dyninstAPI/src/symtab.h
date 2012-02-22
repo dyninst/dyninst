@@ -124,14 +124,22 @@ class fileDescriptor {
     // hand in the same address for code and data.
     fileDescriptor(string file, Address code, Address data, 
                    bool isShared=false, Address dynamic=0) :
-        file_(file),
+#if defined(os_windows)
+		procHandle_(INVALID_HANDLE_VALUE),
+		fileHandle_(INVALID_HANDLE_VALUE),
+#endif
+		file_(file),
         member_(emptyString),
         code_(code),
         data_(data),
-        dynamic_(dynamic),
+		dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0),
+#if defined(os_windows)
+		loadAddr_(code),
+#else
+		loadAddr_(0),
+#endif
 		length_(0),
 		rawPtr_(NULL)
         {}

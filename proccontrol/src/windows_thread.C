@@ -268,7 +268,7 @@ bool windows_thread::plat_getAllRegisters(int_registerPool &regpool)
 		regpool.regs[x86::ebp] = c.Ebp;
 		regpool.regs[x86::esi] = c.Esi;
 		regpool.regs[x86::edi] = c.Edi;
-		regpool.regs[x86::flags] = c.ContextFlags;
+		regpool.regs[x86::flags] = c.EFlags;
 		regpool.regs[x86::dr0] = c.Dr0;
 		regpool.regs[x86::dr1] = c.Dr1;
 		regpool.regs[x86::dr2] = c.Dr2;
@@ -325,7 +325,7 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 		c.Ebp = regpool.regs[x86::ebp];
 		c.Esi = regpool.regs[x86::esi];
 		c.Edi = regpool.regs[x86::edi];
-		c.ContextFlags = regpool.regs[x86::flags];
+		c.EFlags = regpool.regs[x86::flags];
 		c.Dr0 = regpool.regs[x86::dr0];
 		c.Dr1 = regpool.regs[x86::dr1];
 		c.Dr2 = regpool.regs[x86::dr2];

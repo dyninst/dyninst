@@ -1640,7 +1640,7 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
                 case Dyninst::ProcControlAPI::EventType::Pre:
                     // Using the RT library breakpoint allows us to determine
                     // the exit code in a uniform way across Unices
-                    return BreakpointOnly;
+					return BothCallbackBreakpoint;
                 case Dyninst::ProcControlAPI::EventType::Post:
                     return CallbackOnly;
                 default:
@@ -1696,8 +1696,7 @@ std::string PCProcess::createExecPath(const std::string &file, const std::string
 
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet)
 {
-	assert(0);
-	return false;
+	return true;
 }
 
 bool PCProcess::copyDanglingMemory(PCProcess *parent)
@@ -1708,8 +1707,8 @@ bool PCProcess::copyDanglingMemory(PCProcess *parent)
 
 bool PCProcess::instrumentMTFuncs()
 {
-	assert(0);
-	return false;
+	// This is not needed on Windows, as we get thread events directly.
+	return true;
 }
 
 bool PCProcess::getExecFileDescriptor(std::string filename, bool waitForTrap, fileDescriptor &desc)
@@ -1729,25 +1728,28 @@ bool PCProcess::getExecFileDescriptor(std::string filename, bool waitForTrap, fi
 
 bool PCProcess::skipHeap(const heapDescriptor &heap)
 {
-	assert(0);
 	return false;
 }
 
 bool PCProcess::postRTLoadCleanup()
 {
-	assert(0);
-	return false;
+	return true;
 }
 
 unsigned long PCProcess::findFunctionToHijack()
 {
 	return 0;
 }
-
+#undef BYTES_TO_SAVE
+#define BYTES_TO_SAVE 1
 bool PCProcess::postRTLoadRPC()
 {
     Address loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
-    Address LoadLibAddr;
+	std::vector<int_variable*> vars;
+	findVarsByAll("RPC_BUFFER", vars);
+	assert(!vars.empty());
+	loadDyninstLibAddr = vars[0]->getAddress();
+	Address LoadLibAddr;
     int_symbol sym;
     
 
@@ -1824,7 +1826,6 @@ AstNodePtr PCProcess::createLoadRTAST()
 
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
-	assert(0);
 	return anyHeap;
 }
 

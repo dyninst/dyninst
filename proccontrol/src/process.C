@@ -5384,7 +5384,7 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
        return false;
    }
 
-   pthrd_printf("User wants to write memory from 0x%lx to 0x%p of size %lu\n", 
+   pthrd_printf("User wants to write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
    result_response::ptr resp = result_response::createResultResponse();
    bool result = llproc_->writeMem(buffer, addr, size, resp);
