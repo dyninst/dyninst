@@ -294,6 +294,7 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT Address start() const { return _start; }
     PARSER_EXPORT Address end() const { return _end; }
     PARSER_EXPORT Address lastInsnAddr() const { return _lastInsn; } 
+    PARSER_EXPORT Address last() const { return lastInsnAddr(); }
     PARSER_EXPORT Address size() const { return _end - _start; }
 
     PARSER_EXPORT bool parsed() const { return _parsed; }
@@ -470,6 +471,7 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool contains(Block *b);
     PARSER_EXPORT edgelist & callEdges();
     PARSER_EXPORT blocklist & returnBlocks();
+    PARSER_EXPORT blocklist & exitBlocks();
 
     /* Function details */
     PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -521,7 +523,12 @@ class Function : public allocatable, public AnnotatableSparse {
     edgelist _call_edge_list;
     std::vector<Block *> _return_blocks;
     blocklist _retBL;
-
+    // Superset of return blocks; this includes all blocks where
+    // execution leaves the function without coming back, including
+    // returns, calls to non-returning calls, tail calls, etc.
+    // Might want to include exceptions...
+    std::vector<Block *> _exit_blocks;
+    blocklist _exitBL;
 
     /* function details */
     bool _no_stack_frame;
