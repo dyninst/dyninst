@@ -901,7 +901,6 @@ class AstScrambleRegistersNode : public AstNode {
 
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
  private:

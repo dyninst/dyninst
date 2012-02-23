@@ -168,7 +168,7 @@ void *block_instance::getPtrToInstruction(Address addr) const {
 
 void block_instance::markModified() {
    std::vector<PatchAPI::PatchFunction *> funcs;
-   getFunctions(std::back_inserter(funcs));
+   getFuncs(std::back_inserter(funcs));
    for (unsigned i = 0; i < funcs.size(); ++i) {
       funcs[i]->markModified();
    }

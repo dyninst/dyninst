@@ -341,7 +341,7 @@ void RelocBlock::preserveBlockGap() {
       if ((*iter)->type() == ParseAPI::CALL) {
          hasCall = true;
       }
-      if ((*iter)->target()->wasUserAdded()) {
+      if ((*iter)->trg()->wasUserAdded()) {
          // DO NOT ADD A GAP. 
          continue;
       }

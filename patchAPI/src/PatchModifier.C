@@ -69,8 +69,8 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
       assert(target->consistency());
    }
 
-   edge->source()->markModified();
-   edge->target()->markModified();
+   edge->src()->markModified();
+   edge->trg()->markModified();
 
    return true;
 }
@@ -140,8 +140,8 @@ InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned 
       if (ret->blocks_.find(cur) != ret->blocks_.end()) continue;
       ret->blocks_.insert(cur);
 
-      for (PatchBlock::edgelist::const_iterator iter = cur->getTargets().begin();
-           iter != cur->getTargets().end(); ++iter) {
+      for (PatchBlock::edgelist::const_iterator iter = cur->targets().begin();
+           iter != cur->targets().end(); ++iter) {
          PatchEdge *e = (*iter);
          if (e->sinkEdge()) {
 
