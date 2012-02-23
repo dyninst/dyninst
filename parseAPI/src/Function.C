@@ -250,7 +250,7 @@ Function::blocks_int()
                 add_block(t);
             }
         } 
-        if (found_call && !found_call_ft)
+        if (found_call && !found_call_ft && !obj()->defensiveMode())
            exits_func = true;
         
         if (link_return) assert(exits_func);
