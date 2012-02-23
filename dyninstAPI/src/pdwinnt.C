@@ -1654,23 +1654,57 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
 
 bool PCEventHandler::isKillSignal(int signal)
 {
-	assert(0);
+	// Kill on Windows does not generate a signal
 	return false;
 }
 bool PCEventHandler::isCrashSignal(int signal)
 {
-	assert(0);
+	switch(signal)
+	{
+	case EXCEPTION_ACCESS_VIOLATION:
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+	case EXCEPTION_DATATYPE_MISALIGNMENT:
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+	case EXCEPTION_FLT_INVALID_OPERATION:
+	case EXCEPTION_ILLEGAL_INSTRUCTION:
+	case EXCEPTION_IN_PAGE_ERROR:
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+	case EXCEPTION_PRIV_INSTRUCTION:
+	case EXCEPTION_STACK_OVERFLOW:
+		return true;
+	}
 	return false;
 }
 bool PCEventHandler::shouldStopForSignal(int signal)
 {
-	assert(0);
+	switch(signal)
+	{
+		case EXCEPTION_BREAKPOINT:
+		case EXCEPTION_SINGLE_STEP:
+			return true;
+	}
 	return false;
 }
 bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal breakpointVal,
 									 Dyninst::Address arg1, int status)
 {
-	assert(0);
+	if(signal == EXCEPTION_BREAKPOINT)
+	{
+        if( breakpointVal == NormalRTBreakpoint ) {
+            if( (status != DSE_forkExit) || (arg1 != 0) ) return true;
+
+            proccontrol_printf("%s[%d]: child received signal %d\n",
+                    FILE__, __LINE__, EXCEPTION_BREAKPOINT);
+        }else{
+            proccontrol_printf("%s[%d]: mismatch in signal for breakpoint type\n",
+                    FILE__, __LINE__);
+        }
+	} else {
+        proccontrol_printf("%s[%d]: signal wasn't sent by RT library\n",
+                FILE__, __LINE__);
+    }
+
 	return false;
 }
 
