@@ -107,6 +107,9 @@ windows_process::~windows_process()
 {
 	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 	winGen->removeProcess(this);
+	::CloseHandle(hproc);
+	::CloseHandle(hfile);
+	
 }
 
 
@@ -264,18 +267,13 @@ void windows_process::dumpMemoryMap()
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
 									Dyninst::Address remote, size_t size)
 {
+	assert(local || !size);
+	if(!local || !size) return false;
 	int lasterr = 0;
 	SIZE_T written = 0;
-	// DEBUG: this will only work for small sizes
-	unsigned char temp[1024];
-
-	BOOL read1_ok = ::ReadProcessMemory(hproc, (void*) remote, temp, size, &written);
-
 	written = 0;
 
 	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, &written);
-	written = 0;
-	BOOL read2_ok = ::ReadProcessMemory(hproc, (void*) remote, temp, size, &written);
 	if(ok)
 	{
 		if(FlushInstructionCache(hproc, NULL, 0))
@@ -285,7 +283,6 @@ bool windows_process::plat_writeMem(int_thread *thr, const void *local,
 	}
 	lasterr = GetLastError();
 	pthrd_printf("Error writing memory: %d\n", lasterr);
-	dumpMemoryMap();
 	return false;
 }
 

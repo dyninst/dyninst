@@ -1746,6 +1746,7 @@ int_process::~int_process()
       delete mem;
    }
    mem = NULL;
+   if(ProcPool()->findProcByPid(getPid())) ProcPool()->rmProcess(this);
 }
 
 indep_lwp_control_process::indep_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -3563,7 +3564,11 @@ int_threadPool::~int_threadPool()
 
    for (vector<int_thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
    {
-      delete *i;
+	   if(ProcPool()->findThread((*i)->getLWP()))
+	   {
+		   ProcPool()->rmThread(*i);
+	   }
+	   delete *i;
    }
 }
 

@@ -444,7 +444,7 @@ bool setupConnectionToRemote(RunGroup *, ParameterDict &)
 
 void executeGroup(RunGroup *group,
                   vector<RunGroup *> &groups,
-                  ParameterDict param)
+                  ParameterDict& param)
 {
    setMutateeDict(group, param);
 

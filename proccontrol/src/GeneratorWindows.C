@@ -42,10 +42,16 @@ void GeneratorWindows::plat_start()
 	switch(todo.mode)
 	{
 	case create:
-		proc->plat_create_int();
+		if(!proc->plat_create_int()) { 
+			proc->setState(int_process::exited);
+			return;
+		}
 		break;
 	case attach:
-		proc->plat_attach_int();
+		if(!proc->plat_attach_int()) { 
+			proc->setState(int_process::exited);
+			return;
+		}
 		break;
 	default:
 		assert(!"unknown mode in GeneratorWindows::plat_start, expected create or attach");
@@ -180,6 +186,7 @@ ArchEvent *GeneratorWindows::getEvent(bool block)
 		char buffer[size];
 		::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, size-1, NULL);
 		fprintf(stderr, "Error in WaitForDebugEvent: %s\n", buffer);
+		setState(error);
 		return NULL;
 	}
 }

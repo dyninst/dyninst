@@ -105,6 +105,7 @@ dummyRpcPC_(0)
 
 windows_thread::~windows_thread() 
 {
+	::CloseHandle(hthread);
 }
 
 void windows_thread::setHandle(HANDLE h)

@@ -1740,15 +1740,10 @@ unsigned long PCProcess::findFunctionToHijack()
 {
 	return 0;
 }
-#undef BYTES_TO_SAVE
-#define BYTES_TO_SAVE 1
+
 bool PCProcess::postRTLoadRPC()
 {
     Address loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
-	std::vector<int_variable*> vars;
-	findVarsByAll("RPC_BUFFER", vars);
-	assert(!vars.empty());
-	loadDyninstLibAddr = vars[0]->getAddress();
 	Address LoadLibAddr;
     int_symbol sym;
     
@@ -1766,7 +1761,6 @@ bool PCProcess::postRTLoadRPC()
     char ibuf[BYTES_TO_SAVE];
     memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
     char *iptr = ibuf;
-    strcpy(iptr, dyninstRT_name.c_str());
     
     // Code overview:
     // Dynininst library name
@@ -1776,19 +1770,11 @@ bool PCProcess::postRTLoadRPC()
     // Pop (cancel push)
     // Trap
     
-    // 4: give us plenty of room after the string to start instructions
-    int instructionOffset = strlen(iptr) + 4;
-    // Regenerate the pointer
-    iptr = &(ibuf[instructionOffset]);
-    
-    // At this point, the buffer contains the name of the dyninst
-    // RT lib. We now generate code to load this string into memory
-    // via a call to LoadLibrary
     
     // push nameAddr ; 5 bytes
     *iptr++ = (char)0x68; 
     // Argument for push
-    *(int *)iptr = loadDyninstLibAddr; // string at codeBase
+	int* relocAddr = (int*)(iptr);
     iptr += sizeof(int);
     
     int offsetFromBufferStart = (int)iptr - (int)ibuf;
@@ -1809,11 +1795,11 @@ bool PCProcess::postRTLoadRPC()
     *iptr = (char)0xcc;
     
     int offsetToTrap = (int) iptr - (int) ibuf;
+	strcpy(iptr+1, dyninstRT_name.c_str());
+    *(int *)relocAddr = offsetToTrap + 1 + loadDyninstLibAddr; // string at end of code
+	void* result;
+	postIRPC(ibuf, BYTES_TO_SAVE, NULL, false, NULL, true, &result, false, false, loadDyninstLibAddr);
 
-	ProcControlAPI::IRPC::ptr rtLoader = ProcControlAPI::IRPC::createIRPC(ibuf, BYTES_TO_SAVE);
-	pcProc_->stopProc();
-	pcProc_->postIRPC(rtLoader);
-    
    return true;
 }
 
