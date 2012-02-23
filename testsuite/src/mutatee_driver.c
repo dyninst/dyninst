@@ -159,8 +159,9 @@ void setLabel(unsigned int label_ndx, char *label) {
 }
 
 #if !defined(i386_unknown_nt4_0_test)
+int timeout_secs = 3600;
 void alarm_handler(int signum) {
-  output->log(STDERR, "Timeout after 120 seconds, exit mutatee.\n");
+  output->log(STDERR, "Timeout after %d seconds, exit mutatee.\n", timeout_secs);
   exit(0);
 }
 #endif
@@ -169,7 +170,7 @@ int main(int iargc, char *argv[])
 {
 #if !defined(i386_unknown_nt4_0_test)
    signal(SIGALRM, alarm_handler);
-   alarm(120);
+   alarm(timeout_secs);
 #endif
                                        /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
