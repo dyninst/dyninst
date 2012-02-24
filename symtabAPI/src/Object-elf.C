@@ -2107,6 +2107,10 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 			soffset = sec->getRegionAddr();
 	 	} 
 
+         if (stype == Symbol::ST_MODULE) {
+            smodule = sname;
+         }
+
          Symbol *newsym = new Symbol(sname, 
                                      stype,
                                      slinkage, 
@@ -2120,6 +2124,8 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                      ind,
                                      strindex,
                                      (secNumber == SHN_COMMON));
+
+
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);
 
@@ -2131,9 +2137,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             symsByOffset_[newsym->getOffset()].push_back(newsym);
             symsToModules_[newsym] = smodule; 
          } else {
-         symbols_[sname].push_back(newsym);
-         symsByOffset_[newsym->getOffset()].push_back(newsym);
-         symsToModules_[newsym] = smodule; 
+            symbols_[sname].push_back(newsym);
+            symsByOffset_[newsym->getOffset()].push_back(newsym);
+            symsToModules_[newsym] = smodule; 
 	}
 
       }
@@ -2260,6 +2266,10 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       }
       int ind = int (i);
       int strindex = syms.st_name(i);
+
+      if (stype == Symbol::ST_MODULE) {
+         smodule = sname;
+      }
 
       Symbol *newsym = new Symbol(sname, 
                                   stype, 

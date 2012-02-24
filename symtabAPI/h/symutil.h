@@ -93,6 +93,7 @@ typedef enum {
    Bad_Frame_Data,
    No_Frame_Entry,
    Frame_Read_Error,
+   Multiple_Region_Matches,
 	       No_Error
 } SymtabError;
 

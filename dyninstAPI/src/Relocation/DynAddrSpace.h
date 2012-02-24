@@ -5,6 +5,8 @@
 
 #include "DynCommon.h"
 
+class AddressSpace;
+
 namespace Dyninst {
 namespace PatchAPI {
 
@@ -13,6 +15,7 @@ class DynAddrSpace : public AddrSpace {
     static DynAddrSpace* create(DynObject* obj);
     bool loadLibrary(DynObject*);
     bool initAs(DynObject*);
+    bool removeAddrSpace(AddressSpace *);
 
     typedef std::set<AddressSpace*> AsSet;
     AsSet& asSet() { return as_set_; }

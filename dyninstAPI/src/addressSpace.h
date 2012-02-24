@@ -480,7 +480,7 @@ class AddressSpace : public InstructionSource {
     bool emulatingPC() { return emulatePC_; }
     MemoryEmulator *getMemEm();
 
-    bool delayRelocation() const { return delayRelocation_; }
+    bool delayRelocation() const;
  protected:
 
     // inferior malloc support functions

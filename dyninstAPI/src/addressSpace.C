@@ -94,6 +94,7 @@ AddressSpace::AddressSpace () :
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
+    static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
 }
 
 process *AddressSpace::proc() {
@@ -1674,6 +1675,10 @@ const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) co
 
 using namespace Dyninst;
 using namespace Relocation;
+
+bool AddressSpace::delayRelocation() const {
+   return delayRelocation_;
+}
 
 bool AddressSpace::relocate() {
    if (delayRelocation()) return true;
