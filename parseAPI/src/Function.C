@@ -205,6 +205,10 @@ Function::blocks_int()
         bool found_call = false;
         bool found_call_ft = false;
         const Block::edgelist & trgs = cur->targets();
+        if (trgs.empty()) {
+           // Woo hlt!
+           exits_func = true;
+        }
         for(Block::edgelist::iterator tit=trgs.begin();
             tit!=trgs.end();++tit) {
             Edge * e = *tit;

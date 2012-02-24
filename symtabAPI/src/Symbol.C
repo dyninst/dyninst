@@ -495,24 +495,25 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
 	return os << "{"
-		<< " mangled=" << s.getMangledName()
-		<< " pretty="  << s.getPrettyName()
-              << " module="  << s.module_
-        //<< " type="    << (unsigned) s.type_
-              << " type="    << s.symbolType2Str(s.type_)
-        //<< " linkage=" << (unsigned) s.linkage_
-              << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-              << " offset=0x"    << hex << s.offset_ << dec
-              << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
-              << " localTOC=0x"    << hex << s.localTOC_ << dec
+                  << " mangled=" << s.getMangledName()
+                  << " pretty="  << s.getPrettyName()
+                  << " module="  << s.module_
+           //<< " type="    << (unsigned) s.type_
+                  << " type="    << s.symbolType2Str(s.type_)
+           //<< " linkage=" << (unsigned) s.linkage_
+                  << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+                  << " offset=0x"    << hex << s.offset_ << dec
+                  << " size=0x" << hex << s.size_ << dec
+                  << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
+                  << " localTOC=0x"    << hex << s.localTOC_ << dec
         //<< " tag="     << (unsigned) s.tag_
-              << " tag="     << s.symbolTag2Str(s.tag_)
-              << " isAbs="   << s.isAbsolute_
-              << " isCommon=" << s.isCommonStorage_
-              << (s.isFunction() ? " [FUNC]" : "")
-              << (s.isVariable() ? " [VAR]" : "")
-              << (s.isInSymtab() ? "[STA]" : "[DYN]")
-              << " }";
+                  << " tag="     << s.symbolTag2Str(s.tag_)
+                  << " isAbs="   << s.isAbsolute_
+                  << " isCommon=" << s.isCommonStorage_
+                  << (s.isFunction() ? " [FUNC]" : "")
+                  << (s.isVariable() ? " [VAR]" : "")
+                  << (s.isInSymtab() ? "[STA]" : "[DYN]")
+                  << " }";
 }
 
      Offset tryStart_;

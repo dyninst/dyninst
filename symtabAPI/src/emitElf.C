@@ -572,17 +572,18 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   bool startMovingSections = false;
   for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    //copy sections from oldElf to newElf
+   //copy sections from oldElf to newElf
     shdr = elf32_getshdr(scn);
 
     // resolve section name
     Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    if (!result) {
-      result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
-      result = obj->findRegion(foundSec, name);
+    // You know, what happens if we expanded the section we're looking for above
+    // so the size doesn't match, but we expanded a different section to have
+    // the same size as the one we're looking for...
+    if (!result || foundSec->isDirty()) {
+       result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end
@@ -618,13 +619,14 @@ bool emitElf::driver(Symtab *obj, string fName){
        memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
        newdata->d_size = foundSec->getDiskSize();
        newshdr->sh_size = foundSec->getDiskSize();
+
     }
     else if(olddata->d_buf)     //copy the data buffer from oldElf
     {
        //printf("  SYMTAB: copy from old data [%s]\n", name);
        newdata->d_buf = (char *)malloc(olddata->d_size);
        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-      }
+    }
 
     if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
     {
@@ -1933,6 +1935,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     syms[i] = *(symbols[i]);
 
   char *str = (char *)malloc(symbolNamesLength);
+  char *tmpfoo = str;
   unsigned cur=0;
   for(i=0;i<symbolStrs.size();i++)
     {
@@ -1943,10 +1946,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   if(!isStripped)
     {
       Region *sec;
-      if (obj->findRegion(sec,".symtab"))
-	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym));
-      else
-              obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
+      if (obj->findRegion(sec,".symtab")) {
+	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym)); 
+      }
+      else {
+         obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
+      }
     }
   else
     obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
@@ -1955,10 +1960,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   if(!isStripped)
     {
       Region *sec;
-      if (obj->findRegion(sec,".strtab"))
-	      sec->setPtrToRawData(str, symbolNamesLength);
-      else
-    	      obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
+      if (obj->findRegion(sec,".strtab")) {
+         sec->setPtrToRawData(str, symbolNamesLength);
+      }
+      else {
+         obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
+      }
     }
   else
     obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);

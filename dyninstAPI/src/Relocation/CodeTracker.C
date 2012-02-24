@@ -143,14 +143,14 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // If that happens, the assumption origToReloc makes that we can
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
-   if (false) relocation_cerr << "Adding tracker: " << *e << endl;
+   //relocation_cerr << "Adding tracker: " << *e << endl;
 
    if (!trackers_.empty()) {
       TrackerElement *previous = trackers_.back();
       if (previous->mergeable() &&
           e->mergeable() && 
           previous->type() == e->type() &&
-          e->orig() == previous->orig() &&
+          e->orig() == (previous->orig()+previous->size()) &&
           e->block() == previous->block() &&
           e->func() == previous->func()) {
          // Merge!
@@ -192,6 +192,7 @@ void CodeTracker::createIndices() {
          origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
       }
    }
+
 }
 
 void CodeTracker::debug() {
