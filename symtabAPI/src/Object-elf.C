@@ -2094,7 +2094,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
             continue;
 
          Region *sec;
-         if(secNumber >= 1 && secNumber <= regions_.size()) {
+         if(secNumber >= 1 && secNumber < regions_.size()) {
             sec = regions_[secNumber];
          } else {
             sec = NULL;
@@ -2105,7 +2105,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
     	  if(stype == Symbol::ST_SECTION && sec != NULL) {
 	  	  	sname = sec->getRegionName();
 			soffset = sec->getRegionAddr();
-	 	} 
+          } 
 
          if (stype == Symbol::ST_MODULE) {
             smodule = sname;
