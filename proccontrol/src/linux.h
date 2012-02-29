@@ -162,7 +162,7 @@ class linux_ppc_process : public linux_process, public ppc_process
    virtual Dyninst::Architecture getTargetArch();
 };
 
-class linux_thread : public thread_db_thread
+class linux_thread : public thread_db_thread, public x86_thread
 {
  public:
    linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);

@@ -84,6 +84,10 @@ class Breakpoint
    Breakpoint();
    ~Breakpoint();
  public:
+   static const int BP_X = 1;
+   static const int BP_W = 2;
+   static const int BP_R = 4;
+
    int_breakpoint *llbp() const;
    typedef dyn_detail::boost::shared_ptr<Breakpoint> ptr;
    typedef dyn_detail::boost::shared_ptr<const Breakpoint> const_ptr;
@@ -91,6 +95,7 @@ class Breakpoint
 
    static Breakpoint::ptr newBreakpoint();
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
+   static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 
    void *getData() const;
    void setData(void *p);
@@ -347,6 +352,7 @@ class Process
     **/
    bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
    bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
+   unsigned numHardwareBreakpointsAvail(unsigned mode);
 
    /**
     * IRPC

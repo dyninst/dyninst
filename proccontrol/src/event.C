@@ -313,7 +313,7 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
 {
    if (!int_bp)
       return;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
@@ -324,7 +324,7 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 {
    if (!int_bp)
       return;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
@@ -333,8 +333,9 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 
 bool EventBreakpoint::suppressCB() const
 {
-   if (Event::suppressCB()) return true;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   if (Event::suppressCB())
+      return true;
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    return ibp->hl_bps.empty();
 }
 
@@ -346,12 +347,12 @@ int_eventBreakpoint *EventBreakpoint::getInternal() const
 bool EventBreakpoint::procStopper() const
 {
    int num_proc_stoppers = 0;
-   installed_breakpoint *bp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *bp = int_bp->lookupInstalledBreakpoint();
    if (!bp) {
       return false;
    }
 
-   for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
+   for (sw_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
       if (!(*i)->isProcessStopper())
          continue;
       if (isGeneratorThread()) {
@@ -632,6 +633,9 @@ int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 
 bool EventBreakpointClear::procStopper() const
 {
+   if (!int_bpc->stopped_proc)
+      return false;
+
    if (!handled_by.empty())
       return false;
 
@@ -806,8 +810,17 @@ bool EventThreadDB::triggersCB() const
    return false;
 }
 
-int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *, int_thread *thr) :
+int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
    addr(a),
+   hwbp(NULL),
+   thrd(thr),
+   stopped_proc(false)
+{
+}
+
+int_eventBreakpoint::int_eventBreakpoint(hw_breakpoint *i, int_thread *thr) :
+   addr(i->getAddr()),
+   hwbp(i),
    thrd(thr),
    stopped_proc(false)
 {
@@ -817,15 +830,19 @@ int_eventBreakpoint::~int_eventBreakpoint()
 {
 }
 
-installed_breakpoint *int_eventBreakpoint::lookupInstalledBreakpoint()
+bp_instance *int_eventBreakpoint::lookupInstalledBreakpoint()
 {
-   return thrd->llproc()->getBreakpoint(addr);
+   if (hwbp)
+      return static_cast<bp_instance *>(hwbp);
+   else
+      return static_cast<bp_instance *>(thrd->llproc()->getBreakpoint(addr));
 }
 
 int_eventBreakpointClear::int_eventBreakpointClear() :
    started_bp_suspends(false),
    cached_bp_sets(false),
-   set_singlestep(false)
+   set_singlestep(false),
+   stopped_proc(false)
 {
 }
 
@@ -833,8 +850,9 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
 
-int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
+int_eventBreakpointRestore::int_eventBreakpointRestore(bp_instance *breakpoint_) :
    set_states(false),
+   bp_resume_started(false),
    bp(breakpoint_)
 {
 }

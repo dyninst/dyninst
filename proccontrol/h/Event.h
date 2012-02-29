@@ -40,10 +40,8 @@
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include "dyn_detail/boost/enable_shared_from_this.hpp"
 
-class installed_breakpoint;
 class HandlerPool;
 class HandleCallbacks;
-class emulated_singlestep;
 
 namespace Dyninst {
 namespace ProcControlAPI {

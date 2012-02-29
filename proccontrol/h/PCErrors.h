@@ -103,6 +103,8 @@ const err_t err_incallback     = 0x10014;
 const err_t err_nouserthrd     = 0x10015;
 const err_t err_detached       = 0x10016;
 const err_t err_pendingirpcs   = 0x10017;
+const err_t err_bpfull         = 0x10018;
+const err_t err_notfound       = 0x10019;
 
 err_t getLastError();
 void clearLastError();
