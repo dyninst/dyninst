@@ -333,3 +333,45 @@ bool ppc_process::plat_needsPCSaveBeforeSingleStep()
 {
    return true;
 }
+
+ppc_thread::ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l)
+{
+}
+
+ppc_thread::~ppc_thread()
+{
+}
+
+bool ppc_thread::rmHWBreakpoint(hw_breakpoint *,
+                                bool,
+                                std::set<response::ptr> &,
+                                bool &)
+{
+   return false;
+}
+
+bool ppc_thread::addHWBreakpoint(hw_breakpoint *,
+                                 bool,
+                                 std::set<response::ptr> &,
+                                 bool &)
+{
+   return false;
+}
+
+unsigned ppc_thread::hwBPAvail(unsigned)
+{
+   return 0;
+}
+
+EventBreakpoint::ptr ppc_thread::decodeHWBreakpoint(response::ptr &,
+                                                    bool,
+                                                    Dyninst::MachRegisterVal)
+{
+   return EventBreakpoint::ptr();
+}
+
+bool ppc_thread::bpNeedsClear(hw_breakpoint *)
+{
+   return false;
+}

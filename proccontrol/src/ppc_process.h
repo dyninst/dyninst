@@ -63,5 +63,27 @@ class ppc_process : virtual public int_process
   std::map<Address, mem_response::ptr> mem_for_ss;
 };
 
+class ppc_thread : virtual public int_thread
+{
+  public:
+   ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~ppc_thread();
+
+   virtual bool rmHWBreakpoint(hw_breakpoint *bp,
+                               bool suspend,
+                               std::set<response::ptr> &resps,
+                               bool &done);
+   virtual bool addHWBreakpoint(hw_breakpoint *bp,
+                                bool resume,
+                                std::set<response::ptr> &resps,
+                                bool &done);
+   virtual unsigned hwBPAvail(unsigned mode);
+
+   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+                                                   bool have_reg = false,
+                                                   Dyninst::MachRegisterVal regval = 0);
+   virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+};
+
 #endif
 

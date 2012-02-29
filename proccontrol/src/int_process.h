@@ -319,6 +319,8 @@ class int_process
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
 
+   virtual bool plat_supportHWBreakpoint();
+
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);

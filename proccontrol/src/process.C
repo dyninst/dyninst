@@ -1573,6 +1573,11 @@ bool int_process::plat_supportLWPPostDestroy()
    return false;
 }
 
+bool int_process::plat_supportHWBreakpoint()
+{
+   return false;
+}
+
 bool int_process::plat_supportFork()
 {
    return false;
@@ -5703,6 +5708,12 @@ bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
    if (!llproc_) {
       perr_printf("addBreakpoint on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if (bp->llbp()->isHW() && !llproc_->plat_supportHWBreakpoint()) {
+      perr_printf("User attempted to insert hardware breakpoint into unsupported process\n");
+      setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
       return false;
    }
 
