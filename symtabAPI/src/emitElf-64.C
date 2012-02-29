@@ -551,9 +551,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
     Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    if (!result) {
-      result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
+    if (!result || foundSec->isDirty()) {
       result = obj->findRegion(foundSec, name);
     }
 

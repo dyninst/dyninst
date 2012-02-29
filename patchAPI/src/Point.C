@@ -49,10 +49,10 @@ PatchFunction*
 Point::getCallee() {
   if (type() != PreCall && type() != PostCall) return NULL;
   PatchBlock* b = the_block_;
-  PatchBlock::edgelist::const_iterator it = b->getTargets().begin();
-  for (; it != b->getTargets().end(); ++it) {
+  PatchBlock::edgelist::const_iterator it = b->targets().begin();
+  for (; it != b->targets().end(); ++it) {
     if ((*it)->type() == ParseAPI::CALL) {
-      PatchBlock* trg = (*it)->target();
+       PatchBlock* trg = (*it)->trg();
       return obj()->getFunc(obj()->co()->findFuncByEntry(trg->block()->region(),
                                                          trg->block()->start()));
     }
@@ -77,7 +77,7 @@ PatchObject *Point::obj() const {
       return the_block_->obj();
    }
    else if (the_edge_) {
-      return the_edge_->source()->obj();
+      return the_edge_->src()->obj();
    }
    return NULL;
 }

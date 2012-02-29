@@ -65,6 +65,7 @@ Function::Function() :
         _bl(_blocks),
         _call_edge_list(_call_edges),
 	_retBL(_return_blocks),
+        _exitBL(_exit_blocks),
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
@@ -91,6 +92,7 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _bl(_blocks),
         _call_edge_list(_call_edges),
 	_retBL(_return_blocks),
+        _exitBL(_exit_blocks),
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
@@ -133,6 +135,13 @@ Function::returnBlocks() {
   if (!_cache_valid) 
     finalize();
   return _retBL;
+}
+
+Function::blocklist &
+Function::exitBlocks() {
+  if (!_cache_valid) 
+    finalize();
+  return _exitBL;
 }
 
 vector<FuncExtent *> const&
@@ -180,8 +189,8 @@ Function::blocks_int()
     }
 
     // avoid adding duplicate return blocks
-    for(vector<Block*>::iterator bit=_return_blocks.begin();
-        bit!=_return_blocks.end();++bit)
+    for(vector<Block*>::iterator bit=_exit_blocks.begin();
+        bit!=_exit_blocks.end();++bit)
     {
         Block * b = *bit;
         visited[b->start()] = 2;
@@ -192,20 +201,32 @@ Function::blocks_int()
         worklist.pop_back();
 
         bool link_return = false;
+        bool exits_func = false;
+        bool found_call = false;
+        bool found_call_ft = false;
         const Block::edgelist & trgs = cur->targets();
+        if (trgs.empty()) {
+           // Woo hlt!
+           exits_func = true;
+        }
         for(Block::edgelist::iterator tit=trgs.begin();
             tit!=trgs.end();++tit) {
             Edge * e = *tit;
             Block * t = e->trg();
 
+            if (e->type() == CALL_FT) {
+               found_call_ft = true;
+            }
 
             if(e->type() == CALL) {
                 _call_edges.insert(e);
+                found_call = true;
                 continue;
             }
 
             if(e->type() == RET) {
                 link_return = true;
+                exits_func = true;
                 if (obj()->defensiveMode()) {
                     if (_tamper != TAMPER_UNSET && _tamper != TAMPER_NONE) 
                        continue;
@@ -218,8 +239,8 @@ Function::blocks_int()
             // If we are heading to a different CodeObject, call it a return
             // and don't add target blocks.
             if (t->obj() != cur->obj()) {
-                // Wowza
-                // Call or return?
+               // This is a jump to a different CodeObject; call it an exit
+               exits_func = true;
                 continue;
             }
 
@@ -233,10 +254,19 @@ Function::blocks_int()
                 add_block(t);
             }
         } 
-        if(link_return) {
-            delayed_link_return(_obj,cur);
-            if(visited[cur->start()] <= 1)
-                _return_blocks.push_back(cur);
+        if (found_call && !found_call_ft && !obj()->defensiveMode())
+           exits_func = true;
+        
+        if (link_return) assert(exits_func);
+
+        if(exits_func) {
+           if (link_return)
+              delayed_link_return(_obj,cur);
+           if(visited[cur->start()] <= 1) {
+              _exit_blocks.push_back(cur);
+              if (link_return)
+                 _return_blocks.push_back(cur);
+           }
         }
     }
     Block::compare comp;

@@ -333,8 +333,8 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
   /*   for (func_instance::BlockSet::const_iterator iter = ll_func()->exitBlocks().begin();
        iter != ll_func()->exitBlocks().end(); ++iter) { */
-  for (PatchFunction::Blockset::const_iterator iter = ll_func()->getExitBlocks().begin();
-       iter != ll_func()->getExitBlocks().end(); ++iter) {
+  for (PatchFunction::Blockset::const_iterator iter = ll_func()->exitBlocks().begin();
+       iter != ll_func()->exitBlocks().end(); ++iter) {
     nbb.push_back(findBlock(SCAST_BI(*iter)));
   }
   return true;
@@ -535,7 +535,7 @@ bool BPatch_flowGraph::createBasicBlocks()
   assert(ll_func());
   // create blocks from block_instances
   const PatchFunction::Blockset&
-    iblocks = ll_func()->getAllBlocks();
+    iblocks = ll_func()->blocks();
   PatchFunction::Blockset::const_iterator ibIter;
   //for( unsigned int i = 0; i < iblocks.size(); i++ )
   for (ibIter = iblocks.begin();
@@ -551,7 +551,7 @@ bool BPatch_flowGraph::createBasicBlocks()
       //const block_instance::edgelist &srcs = (*ibIter)->sources();
       for (block_instance::edgelist::const_iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
       */
-      const PatchBlock::edgelist &srcs = iblk->getSources();
+      const PatchBlock::edgelist &srcs = iblk->sources();
       //const block_instance::edgelist &srcs = (*ibIter)->sources();
       for (PatchBlock::edgelist::const_iterator iter = srcs.begin(); iter != srcs.end(); ++iter) {
         edge_instance* iedge = SCAST_EI(*iter);
@@ -561,7 +561,7 @@ bool BPatch_flowGraph::createBasicBlocks()
         newblock->incomingEdges.insert(e);
       }
       // Insert source/target edges
-      const PatchBlock::edgelist &trgs = iblk->getTargets();
+      const PatchBlock::edgelist &trgs = iblk->targets();
       for (PatchBlock::edgelist::const_iterator iter = trgs.begin(); iter != trgs.end(); ++iter) {
         edge_instance* iedge = SCAST_EI(*iter);
         // Skip interprocedural edges
@@ -913,7 +913,7 @@ void BPatch_flowGraph::createLoopHierarchy()
 
   dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-  const PatchFunction::Blockset &blocks = ll_func()->getAllBlocks();
+  const PatchFunction::Blockset &blocks = ll_func()->blocks();
   for (PatchFunction::Blockset::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
     block_instance* iblk = SCAST_BI(*iter);
     func_instance *callee = iblk->callee();

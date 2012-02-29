@@ -70,7 +70,7 @@ AddressSpace *block_instance::addrSpace() const {
 }
 
 edge_instance *block_instance::getFallthrough() {
-  for (edgelist::const_iterator iter = getTargets().begin(); iter != getTargets().end(); ++iter) {
+  for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
     if ((*iter)->type() == FALLTHROUGH ||
         (*iter)->type() == CALL_FT ||
         (*iter)->type() == COND_NOT_TAKEN) {
@@ -90,7 +90,7 @@ block_instance *block_instance::getFallthroughBlock() {
 }
 
 edge_instance *block_instance::getTarget() {
-  for (edgelist::const_iterator iter = getTargets().begin(); iter != getTargets().end(); ++iter) {
+  for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
     if ((*iter)->type() == CALL ||
         (*iter)->type() == DIRECT ||
         (*iter)->type() == COND_TAKEN) {
@@ -139,7 +139,7 @@ void block_instance::updateCallTarget(func_instance *func) {
   } else {
      mal_printf("WARNING: tried to update the call target of a block "
         "[%lx %lx) with a non-sink target %lx to %lx %s[%d]\n", start(),
-        end(), e->target()->start(), func->addr(), FILE__,__LINE__);
+        end(), e->trg()->start(), func->addr(), FILE__,__LINE__);
   }
 }
 

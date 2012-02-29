@@ -668,19 +668,18 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
         fixSymModule(raw_syms[i]);
     }
-	Object *obj = getObject();
-	if (!obj)
-	{
+    Object *obj = getObject();
+    if (!obj) {
 #if !defined(os_vxworks)
-		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 #endif
-		return false;
-	}
+       return false;
+    }
     const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
     for (unsigned i=0; i< mods.size(); i++) {
        getOrCreateModule(mods[i].first, mods[i].second);
     }
-       
+    
     return true;
 }
 

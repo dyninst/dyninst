@@ -64,6 +64,7 @@ int LivenessAnalyzer::getIndex(MachRegister machReg){
 
 const bitArray& LivenessAnalyzer::getLivenessIn(Block *block) {
     // Calculate if it hasn't been done already
+   liveness_cerr << "Getting liveness for block " << hex << block->start() << dec << endl;
     assert(blockLiveInfo.find(block) != blockLiveInfo.end());
     livenessData& data = blockLiveInfo[block];
     assert(data.in.size());

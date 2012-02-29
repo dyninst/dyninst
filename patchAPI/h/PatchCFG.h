@@ -39,11 +39,12 @@ class PatchEdge {
 
    // Getters
    PATCHAPI_EXPORT ParseAPI::Edge *edge() const;
-   PATCHAPI_EXPORT PatchBlock *source();
-   PATCHAPI_EXPORT PatchBlock *target();
+   PATCHAPI_EXPORT PatchBlock *src();
+   PATCHAPI_EXPORT PatchBlock *trg();
    PATCHAPI_EXPORT ParseAPI::EdgeTypeEnum type() const;
    PATCHAPI_EXPORT bool sinkEdge() const;
    PATCHAPI_EXPORT bool interproc() const;
+   PATCHAPI_EXPORT bool intraproc() const { return !interproc(); }
 
    PATCHAPI_EXPORT void remove(Point *);
    PATCHAPI_EXPORT PatchCallback *cb() const;
@@ -96,14 +97,14 @@ class PatchBlock {
     PATCHAPI_EXPORT ParseAPI::Block *block() const;
     PATCHAPI_EXPORT PatchObject* object() const;
     PATCHAPI_EXPORT PatchObject *obj() const { return object(); }
-    PATCHAPI_EXPORT const edgelist &getSources();
-    PATCHAPI_EXPORT const edgelist &getTargets();
+    PATCHAPI_EXPORT const edgelist &sources();
+    PATCHAPI_EXPORT const edgelist &targets();
     
     PATCHAPI_EXPORT PatchEdge *findSource(ParseAPI::EdgeTypeEnum type);
     PATCHAPI_EXPORT PatchEdge *findTarget(ParseAPI::EdgeTypeEnum type);
 
     template <class OutputIterator> 
-    void getFunctions(OutputIterator result);
+    void getFuncs(OutputIterator result);
 
     PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
 
@@ -166,21 +167,17 @@ class PatchFunction {
      ParseAPI::Function *function() const { return func_; }
      PATCHAPI_EXPORT PatchObject *obj() const { return obj_; }
 
-     PATCHAPI_EXPORT const Blockset &getAllBlocks();
-     PATCHAPI_EXPORT PatchBlock *getEntryBlock();
-     PATCHAPI_EXPORT const Blockset &getExitBlocks();
-     PATCHAPI_EXPORT const Blockset &getCallBlocks();
-
-     // Shorter aliases
-     PATCHAPI_EXPORT const Blockset &blocks() { return getAllBlocks(); }
-     PATCHAPI_EXPORT PatchBlock *entry() { return getEntryBlock(); }
-     PATCHAPI_EXPORT const Blockset &exits() { return getExitBlocks(); }
-     PATCHAPI_EXPORT const Blockset &calls() { return getCallBlocks(); }
+     PATCHAPI_EXPORT PatchBlock *entry();
+     PATCHAPI_EXPORT const Blockset &blocks();
+     PATCHAPI_EXPORT const Blockset &callBlocks();
+     //PATCHAPI_EXPORT const Blockset &returnBlocks();
+     PATCHAPI_EXPORT const Blockset &exitBlocks();
 
      PATCHAPI_EXPORT Point *findPoint(Location loc, Point::Type type, bool create = true);
 
-     bool verifyExit(PatchBlock *block) { return exits().find(block) != exits().end(); }
-     bool verifyCall(PatchBlock *block) { return calls().find(block) != calls().end(); }
+     // Moved to source code because we treat non-returning calls as exits
+     bool verifyExit(PatchBlock *block) { return exitBlocks().find(block) != exitBlocks().end(); }
+     bool verifyCall(PatchBlock *block) { return callBlocks().find(block) != callBlocks().end(); }
 
      // Const : no building the exit/call sets (returns true if set is empty)
      bool verifyExitConst(const PatchBlock *block) const { 
@@ -215,8 +212,9 @@ class PatchFunction {
      Address addr_;
 
      Blockset all_blocks_;
-     Blockset exit_blocks_;
      Blockset call_blocks_;
+     Blockset return_blocks_;
+     Blockset exit_blocks_;
 
      FuncPoints points_;
      // For context-specific
@@ -225,7 +223,7 @@ class PatchFunction {
 };
 
 template <class OutputIterator>
-void PatchBlock::getFunctions(OutputIterator result) {
+void PatchBlock::getFuncs(OutputIterator result) {
   std::vector<ParseAPI::Function *> pFuncs;
   block()->getFuncs(pFuncs);
   for (unsigned i = 0; i < pFuncs.size(); ++i) {

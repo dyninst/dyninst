@@ -47,6 +47,6 @@ CFGMaker::makeEdge(ParseAPI::Edge* e, PatchBlock* s, PatchBlock* t, PatchObject*
 PatchEdge*
 CFGMaker::copyEdge(PatchEdge* e, PatchObject* o) {
   return (new PatchEdge(e,
-                        o->getBlock(e->source()->block()),
-                        o->getBlock(e->target()->block())));
+                        o->getBlock(e->src()->block()),
+                        o->getBlock(e->trg()->block())));
 }

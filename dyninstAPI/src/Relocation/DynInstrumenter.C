@@ -20,8 +20,8 @@ bool DynInstrumenter::run() {
        i != das->asSet().end(); i++) {
     AddressSpace* as = *i;
     if (std::find(seen.begin(), seen.end(), as) == seen.end()) {
-      seen.insert(as);
-      if (!as->relocate()) { ret = false; }
+       seen.insert(as);
+       if (!as->relocate()) { ret = false; }
     }
   }
   return ret;

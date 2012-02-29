@@ -570,16 +570,28 @@ bool Symtab::findRegion(Region *&ret, const std::string secName)
 
 bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long size)
 {
-    for(unsigned index=0;index<regions_.size();index++)
-    {
-        if(regions_[index]->getRegionAddr() == addr && regions_[index]->getRegionSize() == size)
-        {
-            ret = regions_[index];
-            return true;
-        }
-    }
-    serr = No_Such_Region;
-    return false;
+   ret = NULL;
+   for(unsigned index=0;index<regions_.size();index++) {
+      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getRegionSize() == size) {
+         if (ret) {
+#if 0
+            cerr << "Error: region inconsistency" << endl;
+            cerr << "\t" << ret->getRegionName() << " @ "
+                 << hex << ret->getRegionAddr() << "/" << ret->getRegionSize() << endl;
+            cerr << "\t" << regions_[index]->getRegionName() << " @ "
+                 << regions_[index]->getRegionAddr() << "/" << regions_[index]->getRegionSize() << dec << endl;
+#endif
+            assert(addr == 0); // Two regions with the same address and size, with non-zero address,
+            // is incorrect parsing of symbol table. 
+            serr = Multiple_Region_Matches;
+            return false;
+         }
+         ret = regions_[index];
+      }
+   }
+   if (ret) return true;
+   serr = No_Such_Region;
+   return false;
 }
 
 ///////////////////////// REGEX //////////////////////

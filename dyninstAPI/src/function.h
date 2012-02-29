@@ -325,7 +325,7 @@ void func_instance::getCallerBlocks(OutputIterator result)
   for (block_instance::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) {
   */
-  const PatchBlock::edgelist &ins = entryBlock()->getSources();
+  const PatchBlock::edgelist &ins = entryBlock()->sources();
   for (PatchBlock::edgelist::const_iterator iter = ins.begin();
        iter != ins.end(); ++iter) 
   {

@@ -448,7 +448,9 @@ SymtabCodeSource::non_returning_funcs =
         ("__cxa_throw",true)
         ("_ZSt21__throw_runtime_errorPKc",true)
         ("_gfortran_os_error",true)
-        ("_gfortran_runtime_error",true);
+        ("_gfortran_runtime_error",true)
+        ("_gfortran_stop_numeric", true)
+   ("for_stop_core", true);
 
 bool
 SymtabCodeSource::nonReturning(string name)

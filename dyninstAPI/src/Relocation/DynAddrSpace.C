@@ -24,6 +24,11 @@ bool DynAddrSpace::initAs(DynObject* obj) {
   return true;
 }
 
+bool DynAddrSpace::removeAddrSpace(AddressSpace *as) {
+   as_set_.erase(as);
+   return true;
+}
+
 DynAddrSpace::DynAddrSpace()
   : AddrSpace(), recursive_(false) {
 }

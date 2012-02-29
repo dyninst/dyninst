@@ -303,7 +303,7 @@ void *Region::getPtrToRawData() const
 
 bool Region::setPtrToRawData(void *buf, unsigned long newsize)
 {
-    rawDataPtr_ = buf;
+   rawDataPtr_ = buf;
     diskSize_ = newsize;
     isDirty_ = true;
     return true;
