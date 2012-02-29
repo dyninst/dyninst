@@ -372,11 +372,11 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       int val;
       std::vector<Operand> ops;
       insn->getOperands(ops);
-      if (ops.size() == 0) {
+      if (ops.size() == 1) {
 	val = 0;
       }
       else {      
-	Result imm = ops[0].getValue()->eval();
+	Result imm = ops[1].getValue()->eval();
 	assert(imm.defined);
 	val = (int) imm.val.s16val;
       }

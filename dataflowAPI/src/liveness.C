@@ -426,8 +426,10 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
        i != cur_read.end(); i++) 
   {
-    liveness_printf("\t%s \n", (*i)->format().c_str());
     MachRegister cur = (*i)->getID();
+    if (cur.getArchitecture() == Arch_ppc64)
+	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
+    liveness_printf("\t%s \n", cur.name().c_str());
     MachRegister base = cur.getBaseRegister();
     if (cur == x86::flags || cur == x86_64::flags){
       if (width == 4){
@@ -458,10 +460,13 @@ ReadWriteInfo LivenessAnalyzer::calcRWSets(Instruction::Ptr curInsn, Block* blk,
       ret.read[getIndex(base)] = true;
     }
   }
- 
+  liveness_printf("Write Registers: \n"); 
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {  
     MachRegister cur = (*i)->getID();
+    if (cur.getArchitecture() == Arch_ppc64)
+	cur = MachRegister((cur.val() & ~Arch_ppc64) | Arch_ppc32);
+    liveness_printf("\t%s \n", cur.name().c_str());
     MachRegister base = cur.getBaseRegister();
     if (cur == x86::flags || cur == x86_64::flags){
       if (width == 4){
