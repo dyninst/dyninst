@@ -46,6 +46,7 @@ class Transaction
   private:
    bgq_process *proc;
    bool temporary_transaction;
+   bool attach_transaction;
    signed int running_transaction;
    unsigned transaction_index;
    char *packet_buffer;
@@ -62,6 +63,8 @@ class Transaction
       if (!transaction_index)
          return true;
 
+      pthrd_printf("Flushing transaction for rank %d of size %lu\n", proc->getRank(), packet_buffer_size);
+
       assert(set_resp);
       getResponses().addResponse(set_resp, proc);
       set_resp = set_response::ptr();
@@ -69,7 +72,12 @@ class Transaction
       CmdType *msg = (CmdType *) packet_buffer;
       msg->header.length = packet_buffer_size;
 
-      proc->getComputeNode()->writeToolMessage(proc, msg, true);
+      if (!attach_transaction) {
+	proc->getComputeNode()->writeToolMessage(proc, msg, true);
+      }
+      else {
+	proc->getComputeNode()->writeToolAttachMessage(proc, msg, true);
+      }
 
       resetTransactionState();
       return true;
@@ -77,15 +85,20 @@ class Transaction
    
    void growTransactionBuffer(size_t size)
    {
-      if (size <= packet_buffer_maxsize)
-         return;
+      if (size <= packet_buffer_maxsize) {
+	if (!packet_buffer) {
+	  packet_buffer = (char *) malloc(packet_buffer_maxsize);
+	  size = packet_buffer_maxsize;
+	}
+	return;
+      }
       size += 64; //little extra padding to reduce growth operations
       packet_buffer = (char *) realloc(packet_buffer, size);
       assert(packet_buffer);
       packet_buffer_maxsize = size;
    }
 
-   size_t copyToTransactionBuffer(char *src, size_t size)
+   size_t copyToTransactionBuffer(const void *src, size_t size)
    {
       growTransactionBuffer(size + packet_buffer_size);
       memcpy(packet_buffer + packet_buffer_size, src, size);
@@ -99,6 +112,7 @@ class Transaction
    Transaction(bgq_process *p, uint16_t mid) :
      proc(p),
      temporary_transaction(false),
+     attach_transaction(false),
      running_transaction(0),
      transaction_index(0),
      packet_buffer(NULL),
@@ -108,28 +122,21 @@ class Transaction
      msg_id(mid)
    {
    }
-        
 
    bool beginTransaction()
    {
-      if (!temporary_transaction)
-         pthrd_printf("Beginning transaction (%d) for rank %d\n", running_transaction, proc->getRank());
-      
       running_transaction++;
       return true;
    }
 
    bool endTransaction()
    {
-      if (!temporary_transaction)
-         pthrd_printf("Ending transaction (%d) for rank %d\n", running_transaction, proc->getRank());
-      
-      running_transaction--;
-      assert(running_transaction >= 0);
+      assert(running_transaction > 0);
       bool result = true;
-      if (!running_transaction && transaction_index) {
+      if (running_transaction == 1 && transaction_index) {
          result = flushTransaction();
       }
+      running_transaction--;
       return result;
    }
 
@@ -146,39 +153,43 @@ class Transaction
       if (!running_transaction) {
          //If we're not in a transaction, start a temporary one for this one command.
          temporary_transaction = true;
+	 pthrd_printf("Begin temporary transaction\n");
          beginTransaction();
       }
       size_t cmd_size = bgq_process::getCommandLength(cmd_type, *cmd);
       unsigned int next_start_offset;
       CmdType *msg;
       if (!transaction_index) {
+         pthrd_printf("Writing initial command to transaction\n");
          assert(!set_resp);
          set_resp = set_response::createSetResponse();
          
          assert(packet_buffer_size == 0);
          growTransactionBuffer(sizeof(CmdType) + cmd_size);
-         msg = (CmdType *) packet_buffer;;
-         msg->numCommands = 0;
+         msg = (CmdType *) packet_buffer;
          msg->header.service = ToolctlService;
          msg->header.version = ProtocolVersion;
          msg->header.type = msg_id;
          msg->header.rank = rank;
-         msg->header.sequenceId = resp->getID();
+         msg->header.sequenceId = set_resp->getID();
          msg->header.returnCode = 0;
          msg->header.errorCode = 0;
          msg->header.length = 0; //Fill in after packet is ready
          msg->header.jobId = bgq_process::getJobID();
          msg->toolId = bgq_process::getToolID();
-         next_start_offset = sizeof(CmdType);
+         packet_buffer_size = next_start_offset = sizeof(CmdType);
       }
       else {
+         pthrd_printf("Writing command %u to transaction\n", (unsigned) transaction_index);
          msg = (CmdType *) packet_buffer;
          CommandDescriptor &last_cmd = msg->cmdList[transaction_index-1];
          next_start_offset = last_cmd.offset + last_cmd.length;
       }
 
-      growTransactionBuffer(next_start_offset + cmd_size);
-      memcpy(packet_buffer + next_start_offset, &cmd, cmd_size);
+      //growTransactionBuffer(next_start_offset + cmd_size);
+      //memcpy(packet_buffer + next_start_offset, &cmd, cmd_size);
+      copyToTransactionBuffer(cmd, cmd_size);
+
       CommandDescriptor &this_cmd = msg->cmdList[transaction_index];
       this_cmd.type = cmd_type;
       this_cmd.reserved = 0;
@@ -186,11 +197,22 @@ class Transaction
       this_cmd.length = cmd_size;
       this_cmd.returnCode = 0;
       set_resp->addResp(resp);
-      transaction_index++;
+      msg->numCommands = ++transaction_index;
 
-      if (temporary_transaction || bgq_process::isActionCommand(cmd_type)) {
+      if (temporary_transaction) {
          //If we started a temporary transaction, then end it.
-         return endTransaction();
+	 pthrd_printf("Ending temporary transaction\n");
+	 return endTransaction();
+      }
+      else if (bgq_process::isActionCommand(cmd_type)) {
+	pthrd_printf("Rotating transactions due to action command\n");
+	endTransaction();
+	beginTransaction();
+      }
+      else if (transaction_index == MaxQueryCommands) {
+	pthrd_printf("Rotating transactions due to max commands reached\n");
+	endTransaction();
+	beginTransaction();
       }
       return true;
    }
@@ -198,6 +220,17 @@ class Transaction
    void resetTransactionState()
    {
       packet_buffer_size = 0;
+      packet_buffer = NULL;
       transaction_index = 0;
+      attach_transaction = false;
+   }
+   
+   bool activeTransaction()
+   {
+     return (transaction_index != 0);
+   }
+
+   void setAttachTransaction(bool b) {
+     attach_transaction = b;
    }
 };

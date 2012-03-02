@@ -2475,6 +2475,7 @@ DebugPortReader::DebugPortReader() :
    while (!initialized && !shutdown) {
       init_lock.wait();
    }
+   init_lock.unlock();
 }
 
 DebugPortReader::~DebugPortReader()

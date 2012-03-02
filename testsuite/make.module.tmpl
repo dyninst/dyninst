@@ -628,7 +628,7 @@ test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o $(D
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ $^ -static $(LAUNCHMON_BE_LINK)
+	$(HIDE_COMP)$(CXX) -o $@ $^ $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers

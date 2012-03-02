@@ -129,6 +129,10 @@ bool int_process::waitfor_startup()
    }
 }
 
+void int_process::plat_threadAttachDone()
+{
+}
+
 bool int_process::attachThreads()
 {
    if (!needIndividualThreadAttach())
@@ -206,10 +210,10 @@ bool int_process::attach()
    initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
 
    if (should_sync) {
-      pthrd_printf("Handling events after attach to %d\n", getPid());
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
       while (getState() == neonatal) {
+	 pthrd_printf("Handling events after attach to %d\n", getPid());
          bool result = waitAndHandleEvents(true);
          if (!result) {
             pthrd_printf("Error during waitAndHandleEvents during %d attach\n", getPid());
@@ -223,6 +227,7 @@ bool int_process::attach()
       setState(neonatal_intermediate);
    }
 
+   pthrd_printf("Attaching to threads for %d\n", getPid());
    result = attachThreads();
    if (!result) {
       pthrd_printf("Failed to attach to threads in %d--will try again\n", pid);
@@ -248,6 +253,9 @@ bool int_process::attach()
        }
    }
       
+   pthrd_printf("Thread attach is done for process %d\n", pid);
+   plat_threadAttachDone();
+
    pthrd_printf("Wait for attach from process %d\n", pid);
    result = waitfor_startup();
    if (!result) {
@@ -262,7 +270,6 @@ bool int_process::attach()
       setLastError(err_internal, "Could not get threads during attach\n");
       goto error;
    }
-
 
    result = post_attach(false);
    if (!result) {
@@ -606,11 +613,13 @@ bool int_process::initializeAddressSpace()
 
 bool int_process::post_attach(bool)
 {
+   pthrd_printf("Starting post_attach for process %d\n", getPid());
    return initializeAddressSpace();
 }
 
 bool int_process::post_create()
 {
+   pthrd_printf("Starting post_create for process %d\n", getPid());
    return initializeAddressSpace();
 }
 
@@ -791,11 +800,25 @@ bool int_process::syncRunState()
 
 bool int_process::waitForAsyncEvent(response::ptr resp)
 {
-   return getResponses().waitFor(resp);
+  if (resp) {
+    int_process *proc = resp->getProcess();
+    assert(proc);
+    proc->plat_preAsyncWait();
+  }
+  return getResponses().waitFor(resp);
 }
 
 bool int_process::waitForAsyncEvent(std::set<response::ptr> resp)
 {
+   for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); i++) {
+     response::ptr r = *i;
+     if (!r)
+       continue;
+     int_process *proc = r->getProcess();
+     assert(proc);
+     proc->plat_preAsyncWait();
+   }
+
    bool has_error = false;
    for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); i++) {
       bool result = getResponses().waitFor(*i);
@@ -964,8 +987,8 @@ bool int_process::waitAndHandleEvents(bool block)
     
       llproc = proc->llproc();
       if (llproc) {
-         bool result = llproc->syncRunState();
          llproc->plat_postHandleEvent();
+         bool result = llproc->syncRunState();
          if (!result) {
             pthrd_printf("syncRunState failed.  Returning error from waitAndHandleEvents\n");
             error = true;
@@ -1331,6 +1354,9 @@ void int_process::setForceGeneratorBlock(bool b)
       force_generator_block_count.inc();
    else
       force_generator_block_count.dec();
+   pthrd_printf("forceGeneratorBlock - Count is now %d/%d\n", 
+		force_generator_block_count.localCount(),
+		Counter::globalCount(Counter::ForceGeneratorBlock));
 }
 
 int int_process::getAddressWidth()
@@ -1706,6 +1732,11 @@ bool int_process::plat_preHandleEvent()
 bool int_process::plat_postHandleEvent()
 {
    return true;
+}
+
+bool int_process::plat_preAsyncWait()
+{
+  return true;
 }
 
 int_process::~int_process()
@@ -2608,6 +2639,23 @@ int_thread *int_thread::createThread(int_process *proc,
    return newthr;
 }
 
+void int_thread::changeLWP(Dyninst::LWP new_lwp)
+{
+  pthrd_printf("Changing LWP of %d/%d to %d\n", llproc()->getPid(), lwp, new_lwp);
+
+  int_threadPool *tpool = llproc()->threadPool();
+  map<Dyninst::LWP, int_thread *>::iterator i = tpool->thrds_by_lwp.find(lwp);
+  assert(i != tpool->thrds_by_lwp.end());
+  tpool->thrds_by_lwp.erase(i);
+  tpool->thrds_by_lwp.insert(make_pair(new_lwp, this));
+
+  ProcPool()->condvar()->lock();
+  ProcPool()->rmThread(this);
+  lwp = new_lwp;
+  ProcPool()->addThread(llproc(), this);
+  ProcPool()->condvar()->unlock();
+}
+
 void int_thread::throwEventsBeforeContinue()
 {
    Event::ptr new_ev;
@@ -3258,7 +3306,7 @@ bool int_thread::StateTracker::setState(State to)
                   s.c_str(), pid, lwp, stateStr(state));
       return false;
    }
-
+   
    /**
     * We need to keep track of the running threads counts.  We'll do that here.
     **/
@@ -6438,7 +6486,11 @@ void MTManager::run()
 void MTManager::stop()
 {
    if( !is_running ) return;
-
+   if (isHandlerThread()) {
+     should_exit = true;
+     return;
+   }
+   
    pending_event_lock.lock();
    should_exit = true;
    pending_event_lock.signal();

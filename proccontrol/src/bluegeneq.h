@@ -39,8 +39,8 @@
 #include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/mmapalloc.h"
 
-#include "external/bluegene/MessageHeader.h"
-#include "external/bluegene/ToolctlMessages.h"
+#include "ramdisk/include/services/MessageHeader.h"
+#include "ramdisk/include/services/ToolctlMessages.h"
 
 #include <queue>
 #include <set>
@@ -105,6 +105,7 @@ class bgq_process :
    virtual bool plat_individualRegAccess();
    virtual bool plat_supportLWPPostDestroy();
    virtual SymbolReaderFactory *plat_defaultSymReader();
+   virtual void noteNewDequeuedEvent(Event::ptr ev);
 
    virtual bool plat_readMem(int_thread *thr, void *local, Dyninst::Address addr, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, Dyninst::Address addr, size_t size);
@@ -120,6 +121,8 @@ class bgq_process :
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
+   virtual bool plat_preAsyncWait();
+   bool rotateTransaction();
 
    virtual bool plat_individualRegRead();
    virtual bool plat_individualRegSet();
@@ -129,6 +132,7 @@ class bgq_process :
    virtual bool plat_suspendThread(int_thread *thrd);
    virtual bool plat_resumeThread(int_thread *thrd);
    virtual bool plat_debuggerSuspended();
+   virtual void plat_threadAttachDone();
 
    bool handleStartupEvent(void *data);
    ComputeNode *getComputeNode();
@@ -170,13 +174,15 @@ class bgq_process :
       issue_control_request,
       waitfor_control_request_ack,
       waitfor_control_request_notice,
+      skip_control_request_signal,
       waitfor_control_request_signal,
       issue_data_collection,
       waitfor_data_collection,
+      data_collected,
       startup_done
    } startup_state;
 
-   static char *tooltag;
+   static const char *tooltag;
    static uint64_t jobid;
    static uint32_t toolid;
    static bool set_ids;
@@ -247,7 +253,7 @@ class ComputeNode
    ~ComputeNode();
 
    static const std::set<ComputeNode *> &allNodes();
-
+   static void emergencyShutdown();
   private:
    int fd;
    int cn_id;
@@ -273,14 +279,15 @@ class HandleBGQStartup : public Handler
 
 class GeneratorBGQ : public GeneratorMT
 {
+  friend class ComputeNode;
   private:
    int kick_pipe[2];
    static const int kick_val = 0xfeedf00d; //0xdeadbeef is passe
 
    bool readMessage(int fd, vector<ArchEvent *> &events);
    bool read_multiple_msgs;
-
    bool reliableRead(int fd, void *buffer, size_t buffer_size);
+
  public:
    GeneratorBGQ();
    virtual ~GeneratorBGQ();
@@ -291,6 +298,7 @@ class GeneratorBGQ : public GeneratorMT
    virtual bool getEvent(bool block, vector<ArchEvent *> &events);
 
    void kick();
+   void shutdown();
 };
 
 class ArchEventBGQ : public ArchEvent
@@ -337,7 +345,27 @@ class DecoderBlueGeneQ : public Decoder
    DecoderBlueGeneQ();
    virtual ~DecoderBlueGeneQ();
    virtual bool decode(ArchEvent *ae, std::vector<Event::ptr> &events);
+   virtual unsigned getPriority() const;
 };
+
+class DebugThread
+{
+  private:
+   DThread debug_thread;
+   static DebugThread *me;
+   bool shutdown;
+   bool initialized;
+   int pfd[2];
+   CondVar init_lock;
+   bool init();
+   DebugThread();
+  public:
+   static DebugThread *getDebugThread();
+   ~DebugThread();
+   static void mainLoopWrapper(void *);
+   void mainLoop();
+};
+
 
 #include "bgq-transactions.h"
 

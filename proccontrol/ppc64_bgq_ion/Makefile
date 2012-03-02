@@ -19,6 +19,7 @@ ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
 endif
 
+MYFLAGS += -I/bgsys/drivers/ppcfloor
 CXXFLAGS += $(MYFLAGS)
 CFLAGS += $(MYFLAGS)
 

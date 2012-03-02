@@ -196,6 +196,7 @@ class int_process
    virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 
+   virtual void plat_threadAttachDone();
    bool waitfor_startup();
 
    void setPid(Dyninst::PID pid);
@@ -319,6 +320,7 @@ class int_process
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
+   virtual bool plat_preAsyncWait();
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
@@ -511,6 +513,7 @@ class int_thread
    int_process *llproc() const;
 
    Dyninst::LWP getLWP() const;
+   void changeLWP(Dyninst::LWP new_lwp);
 
 #define RUNNING_STATE(S) (S == int_thread::running || S == int_thread::neonatal_intermediate)
    typedef enum {
@@ -773,6 +776,7 @@ class int_thread
 class int_threadPool {
    friend class Dyninst::ProcControlAPI::ThreadPool;
    friend class Dyninst::ProcControlAPI::ThreadPool::iterator;
+   friend class int_thread;
  private:
    std::vector<int_thread *> threads;
    std::vector<Thread::ptr> hl_threads;

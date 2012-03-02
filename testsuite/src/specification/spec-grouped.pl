@@ -2404,7 +2404,7 @@ pcMutateeLibs(Libs) :-
 compiler_for_mutatee(Mutatee, Compiler) :-
            test(T, _, Mutatee),
     tests_module(T, 'proccontrol'),
-    member(Compiler, ['gcc', 'g++', 'bg_gcc', 'bg_g++']).
+    member(Compiler, ['gcc', 'g++', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
 
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
@@ -2675,6 +2675,9 @@ compiler_format('gfortran', 'staticMutatee').
 compiler_format('bg_gcc', 'staticMutatee').
 compiler_format('bg_g++', 'staticMutatee').
 compiler_format('bg_gfortran', 'staticMutatee').
+compiler_format('bgq_gcc', 'staticMutatee').
+compiler_format('bgq_g++', 'staticMutatee').
+compiler_format('bgq_gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
 format_runmode(_, 'binary', 'staticMutatee').
@@ -2695,7 +2698,8 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
 platform_abi(Platform, 32) :-
     platform(_, _, _, Platform),
     \+ member(Platform, ['amd64-unknown-freebsd7.2',
-                         'ppc64_linux']).
+                         'ppc64_linux',
+                         'ppc64_bgq_ion']).
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('x86_64-unknown-linux2.4', 64).
@@ -2703,6 +2707,7 @@ platform_abi('ppc64_linux', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
 platform_abi('x86_64_cnl', 64).
 platform_abi('amd64-unknown-freebsd7.2', 64).
+platform_abi('ppc64_bgq_ion', 64).
 
 runmode_launch_params(Runmode, Platform, Mutator, Mutatee, Launchtime) :-
    runmode(Runmode),
@@ -2918,10 +2923,10 @@ insane('Too many compilers on platform P1 for extension P2',
 % Compiler/language constraints
 comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
-    member(Compiler, ['gcc', 'pgcc', 'VC', 'xlc', 'icc', 'bg_gcc', 'bgxlc']);
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bg_g++', 'bgxlc++']).
+    member(Compiler, ['gcc', 'pgcc', 'VC', 'xlc', 'icc', 'bg_gcc', 'bgq_gcc', 'bgxlc']);
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bg_g++', 'bgq_g++', 'bgxlc++']).
 comp_lang(Compiler, 'c++') :-
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bg_g++', 'bgxlc++']).
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'xlC', 'iCC', 'bg_g++', 'bgq_g++', 'bgxlc++']).
 comp_lang('gcc', 'att_asm') :-
     % We dont use gcc for assembly files on AIX
     current_platform(Platform),
@@ -2943,6 +2948,9 @@ mutatee_comp('iCC').
 mutatee_comp('bg_gcc').
 mutatee_comp('bg_g++').
 mutatee_comp('bg_gfortran').
+mutatee_comp('bgq_gcc').
+mutatee_comp('bgq_g++').
+mutatee_comp('bgq_gfortran').
 mutatee_comp('bgxlc').
 mutatee_comp('bgxlc++').
 
@@ -2975,6 +2983,9 @@ compiler_define_string('iCC', 'intel_CC').
 compiler_define_string('bg_gcc', 'gnu_cc').
 compiler_define_string('bg_g++', 'gnu_xx').
 compiler_define_string('bg_gfortran', 'gnu_fc').
+compiler_define_string('bgq_gcc', 'gnu_cc').
+compiler_define_string('bgq_g++', 'gnu_xx').
+compiler_define_string('bgq_gfortran', 'gnu_fc').
 compiler_define_string('bgxlc', 'bg_cc').
 compiler_define_string('bgxlc++', 'bg_CC').
 

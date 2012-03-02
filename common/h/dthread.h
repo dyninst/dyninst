@@ -65,6 +65,7 @@ class Mutex {
    Mutex(bool recursive=false);
    ~Mutex();
 
+   bool trylock();
    bool lock();
    bool unlock();
 };
@@ -80,6 +81,7 @@ class CondVar {
    ~CondVar();
 
    bool unlock();
+   bool trylock();
    bool lock();
    bool signal();
    bool broadcast();

@@ -47,7 +47,7 @@ class ppc_process : virtual public int_process
   virtual void plat_breakpointBytes(char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
 
-  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, vector<Address> &addrResult);
+  virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Address> &addrResult);
   virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
   virtual bool plat_needsPCSaveBeforeSingleStep();
   virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);

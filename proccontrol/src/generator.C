@@ -129,6 +129,11 @@ bool Generator::getAndQueueEventInt(bool block)
    vector<Event::ptr> events;
    vector<ArchEvent *> archEvents;
 
+   if (isExitingState()) {
+      pthrd_printf("Generator exiting before processWait\n");
+      result = false;
+      goto done;
+   }
    setState(process_blocked);
    result = processWait(block);
    if (isExitingState()) {
@@ -232,6 +237,10 @@ struct GeneratorMTInternals
 
    DThread thrd;
 };
+void GeneratorInternalJoin(GeneratorMTInternals *gen_int)
+{
+  gen_int->thrd.join();
+}
 
 static void start_generator(void *g)
 {
@@ -335,4 +344,9 @@ bool GeneratorMT::getAndQueueEvent(bool)
    // generator--part of the point is that you don't have
    // to call it.
    return true;
+}
+
+GeneratorMTInternals *GeneratorMT::getInternals()
+{
+  return sync;
 }

@@ -116,6 +116,8 @@ class GeneratorMT : public Generator
  public:
    void launch(); //Launch thread
    void start(); //Startup function for new thread
+   GeneratorMTInternals *getInternals();
+
    GeneratorMT(std::string name_);
    virtual ~GeneratorMT();
    

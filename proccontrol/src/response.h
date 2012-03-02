@@ -38,6 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "common/h/dthread.h"
 #include <map>
+#include <vector>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -70,6 +71,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    
    bool error;
    int errorcode;
+   int_process *proc;
 
   protected:
    response();
@@ -121,6 +123,9 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
 
    void setDecoderEvent(ArchEvent *ae);
    ArchEvent *getDecoderEvent();
+
+   void setProcess(int_process *p);
+   int_process *getProcess() const;
 
    std::string name() const;
 
@@ -258,7 +263,7 @@ class mem_response : public response
 class set_response : public response
 {
   private:
-   vector<response::ptr> resps;
+   std::vector<response::ptr> resps;
    set_response();
    int sub_resps;
   public:
@@ -272,7 +277,7 @@ class set_response : public response
    void setResponse();
    void postResponse();
 
-   vector<response::ptr> &getResps();
+   std::vector<response::ptr> &getResps();
    void addResp(response::ptr r);
 
    int numSubResps();

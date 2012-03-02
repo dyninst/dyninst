@@ -27,15 +27,35 @@ static char **gargv;
 
 FILE *debug_log = stderr;
 
+#include <link.h>
+void copy_iolibs()
+{
+  char cmd_line[4096], *last_slash;
+  struct link_map *lm;
+  for (lm = _r_debug.r_map; lm != NULL; lm = lm->l_next) {
+    if (!lm->l_name || !lm->l_name[0]) 
+      continue;
+    snprintf(cmd_line, 4096, "mkdir -p io_libs%s", lm->l_name);
+    last_slash = strrchr(cmd_line, '/');
+    if (last_slash) *last_slash = '\0';
+    fprintf(debug_log, "%s\n", cmd_line);
+    system(cmd_line);
+    snprintf(cmd_line, 4096, "cp -u %s io_libs%s", lm->l_name, lm->l_name);
+    last_slash = strrchr(cmd_line, '/');
+    if (last_slash) *last_slash = '\0';
+    fprintf(debug_log, "%s\n", cmd_line);
+    system(cmd_line);
+  }
+}
+
 int main(int argc, char *argv[])
 {
    struct rlimit infin;
    int result;
 
-   debug_log = fopen("/g/g0/legendre/output_wrapper", "w+");
 // static volatile int loop = 0;
 // while (loop == 0);
-
+   
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
    result = setrlimit(RLIMIT_CORE, &infin);
@@ -44,13 +64,16 @@ int main(int argc, char *argv[])
    gargv = argv;
 
    setcwd();
+   debug_log = fopen("./wrapper_output", "w");
+
+   copy_iolibs();
 
    parse_args(argc, argv);
 
    connection = new Connection(hostname, port);
    assert(!connection->hasError());
 
-   setcwd();
+   setcwd();   
 
    char *buffer = NULL;
    for (;;) {
@@ -76,6 +99,10 @@ int main(int argc, char *argv[])
 
    return 0;
 }
+
+#if !defined(PATH_MAX)
+#define PATH_MAX 4096
+#endif
 
 static bool setcwd()
 {
@@ -125,7 +152,7 @@ static void parse_execargs(char *buffer) {
    assert(arg_count);
    while (*(cur++) != ':');
 
-   args = (char **) malloc(sizeof(char *) * (arg_count+gargc+6));
+   args = (char **) malloc(sizeof(char *) * (arg_count+gargc+7));
    int i, j=0;
    //args[j++] = "/g/g0/legendre/tools/dyninst/githead/ppc32_bgp_ion/lib/ld.so.1";
    //args[j++] = "/g/g0/legendre/tools/valgrind/bin/valgrind";
@@ -154,7 +181,8 @@ static void parse_go()
    assert(args);
    execv(args[0], args);
    error = errno;
-   fprintf(stderr, "Failed to execv %s: %s\n", args[0], strerror(error));
+   if (debug_log)
+     fprintf(debug_log, "Failed to execv %s: %s\n", args[0], strerror(error));
    assert(0);
 }
 
@@ -200,7 +228,7 @@ static void parse_args(int argc, char *argv[])
          char *filename = argv[i+1];
          assert(filename);
          
-         int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT);
+         int fd = open(filename, O_WRONLY | O_TRUNC | O_CREAT, 0666);
          if (fd == -1) {
             perror("Could not open file for debug output");
             continue;
@@ -217,6 +245,29 @@ static void parse_args(int argc, char *argv[])
          assert(i+1 < argc);
          port = atoi(argv[++i]);
       }
+   }
+
+   if (!hostname && argc == 4) {
+     //LaunchMON sometimes compacts all arguments into a space separated argv[1]
+     int num_spaces = 0, i = 0;
+     char *str = argv[1];
+     char **new_argv = NULL, *entry = NULL;
+     do {
+       if (str[i] == ' ') num_spaces++;
+     } while (str[i++]);
+     new_argv = (char **) malloc(sizeof(char *) * (num_spaces+3));
+     i = 0;
+     for (entry = strtok(str, " "); entry != NULL; entry = strtok(NULL, " ")) {
+       new_argv[i++] = strdup(entry);
+     }
+     new_argv[i++] = argv[2];
+     new_argv[i++] = argv[3];
+     new_argv[i] = NULL;
+     parse_args(i, new_argv);
+     if (hostname) {
+       gargc = i;
+       gargv = new_argv;
+     }
    }
 }
 

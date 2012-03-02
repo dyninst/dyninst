@@ -54,6 +54,7 @@ response::response() :
    isSyncHandled(false),
    error(false),
    errorcode(0),
+   proc(NULL),
    decoder_event(NULL),
    multi_resp_size(0),
    multi_resp_recvd(0)
@@ -194,6 +195,15 @@ ArchEvent *response::getDecoderEvent()
    return decoder_event;
 }
 
+int_process *response::getProcess() const
+{
+  return proc;
+}
+
+void response::setProcess(int_process *p)
+{
+  proc = p;
+}
 
 result_response::ptr response::getResultResponse()
 {
@@ -327,6 +337,8 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
    Event::ptr ev = proc->handlerPool()->curEvent();
    if (r->isSyncHandled)
       ev = Event::ptr();
+
+   r->setProcess(proc);
 
    r->setEvent(ev);
    r->markPosted();
