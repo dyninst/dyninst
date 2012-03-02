@@ -34,6 +34,7 @@
 #include "test_info_new.h"
 #include "test_lib.h"
 #include <assert.h>
+#include <stdio.h>
 
 using namespace std;
 

@@ -79,7 +79,7 @@ int testsRun = 0;
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *logfilename;
-FILE *debug_log;
+FILE *debug_log = stderr;
 
 int gargc;
 char **gargv;
@@ -123,7 +123,7 @@ int runScript(const char *name, ...)
 int runScript(const char *name, ...) {
    getOutput()->log(STDERR, "runScript not implemented on Windows\n");
    assert(0);
-   return -1;
+  return -1;
 }
 #endif
 
@@ -378,10 +378,8 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    char **c_driver_args = getCParams(driver_exec, driver_args);
    bool attach_mode = (group->createmode == USEATTACH);
 
-   fprintf(debug_log, "[%s:%u] - Calling LMONInvoke\n", __FILE__, __LINE__);
    lmon_session = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode, launcher_pid);
 
-   fprintf(debug_log, "[%s:%u] - Calling server accept\n", __FILE__, __LINE__);
    result = con->server_accept();
    if (!result) {
       fprintf(stderr, "Failed to accept connection from client\n");
@@ -824,16 +822,14 @@ bool isRemoteDriver(int argc, char *argv[]) {
 extern int be_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
-   if (isRemoteDriver(argc, argv)) {
-      debug_log = fopen("/g/g0/legendre/output_be", "w+");
-      return be_main(argc, argv);
-   }
-   debug_log = fopen("/g/g0/legendre/output_driver", "w+");
    struct rlimit infin;
    infin.rlim_cur = RLIM_INFINITY;
    infin.rlim_max = RLIM_INFINITY;
    setrlimit(RLIMIT_CORE, &infin);
 
+   if (isRemoteDriver(argc, argv)) {
+      return be_main(argc, argv);
+   }
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
