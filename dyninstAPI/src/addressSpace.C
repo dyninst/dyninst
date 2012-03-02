@@ -105,54 +105,42 @@ BinaryEdit *AddressSpace::edit() {
     return dynamic_cast<BinaryEdit *>(this);
 }
 
-#if !defined(arch_power)
-Address AddressSpace::getTOCoffsetInfo(Address /*dest */)
-{
-  Address tmp = 0;
-  assert(0 && "getTOCoffsetInfo not implemented");
-  return tmp; // this is to make the nt compiler happy! - naim
+Address AddressSpace::getTOCoffsetInfo(mapped_object *mobj) {
+#if !defined(cap_toc_32)
+  if (getAddressWidth() == 4)
+    return 0;
+#endif
+#if !defined(cap_toc_64)
+  if (getAddressWidth() == 8)
+    return 0;
+#endif
+  assert(mobj);
+  Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
+  if (!TOCOffset)
+    return 0;
+  return TOCOffset + mobj->dataBase();
 }
-#else
+
 Address AddressSpace ::getTOCoffsetInfo(Address dest)
 {
    // Linux-power-32 bit: return 0 here, as it doesn't use the TOC.
    // Linux-power-64 does. Lovely. 
-#if defined(arch_power) && defined(os_linux)
-   if (getAddressWidth() == 4)
-      return 0;
-#endif
 
-    // We have an address, and want to find the module the addr is
-    // contained in. Given the probabilities, we (probably) want
-    // the module dyninst_rt is contained in.
-    // I think this is the right func to use
-
-    // Find out which object we're in (by addr).
-   mapped_object *mobj = findObject(dest);
-   // Very odd case if this is not defined.
-   assert(mobj);
-   Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset();
-
-    if (!TOCOffset)
-       return 0;
-    return TOCOffset + mobj->dataBase();
-
+  // We have an address, and want to find the module the addr is
+  // contained in. Given the probabilities, we (probably) want
+  // the module dyninst_rt is contained in.
+  // I think this is the right func to use
+  
+  // Find out which object we're in (by addr).
+  mapped_object *mobj = findObject(dest);
+  // Very odd case if this is not defined.
+  
+  return getTOCoffsetInfo(mobj);
 }
 
 Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
-
-#if defined(arch_power) && defined(os_linux)
-   // See comment above.
-   if (getAddressWidth() == 4)
-      return 0;
-#endif
-   assert(func);
-    mapped_object *mobj = func->obj();
-
-    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
+  return getTOCoffsetInfo(func->obj());
 }
-
-#endif
 
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
@@ -923,6 +911,7 @@ mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildca
          return (mod);
       }
    }
+
    return NULL;
 }
 

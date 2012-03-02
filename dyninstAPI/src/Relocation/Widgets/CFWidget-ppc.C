@@ -60,7 +60,17 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
 
 bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
 
-   // Question 1: are we doing an inter-module static control transfer?
+  if (needsTOCUpdate()) {
+     relocation_cerr << "\t\t\t isSpecialCase..." << endl;
+     gen.setFunction(const_cast<func_instance *>(func));
+     if (!handleTOCUpdate(gen)) {
+       relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
+       return false;
+     }
+     return true;
+   }
+
+   // Question: are we doing an inter-module static control transfer?
    // If so, things get... complicated
    if (isPLT(gen)) {
      relocation_cerr << "\t\t\t isPLT..." << endl;
@@ -69,16 +79,6 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
          return false;
       }
       return true;
-   }
-
-   if (isSpecialCase()) {
-     relocation_cerr << "\t\t\t isSpecialCase..." << endl;
-     gen.setFunction(const_cast<func_instance *>(func));
-     if (!handleSpecialCase(gen)) {
-       relocation_cerr << "TOC special case handling in PPC64 failed" << endl;
-       return false;
-     }
-     return true;
    }
 
    // Otherwise this is a classic, and therefore easy.
@@ -208,7 +208,7 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
-bool CFPatch::isSpecialCase() {
+bool CFPatch::needsTOCUpdate() {
   // 64-bit check
   if (func->proc()->getAddressWidth() != 8) return false;
 
@@ -218,12 +218,13 @@ bool CFPatch::isSpecialCase() {
   if (target->type() != TargetInt::BlockTarget) return false;
 
   Target<block_instance *> *t = static_cast<Target<block_instance *> *>(target);
+  // If we're in the same object, then we don't need to update TOC
   if (t->t()->obj() == func->obj()) return false;
 
   return true;
 }
 
-bool CFPatch::handleSpecialCase(codeGen &gen) {
+bool CFPatch::handleTOCUpdate(codeGen &gen) {
   // Annoying, pain in the butt case...
 
   assert(target->type() == TargetInt::BlockTarget);

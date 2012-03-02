@@ -215,8 +215,8 @@ struct CFPatch : public Patch {
   // 64-bit PPC/Linux has a TOC register we need
   // to maintain. That puts it in "special case"
   // territory...
-  bool isSpecialCase();
-  bool handleSpecialCase(codeGen &gen);
+  bool needsTOCUpdate();
+  bool handleTOCUpdate(codeGen &gen);
 #endif
 
   private:

@@ -1965,22 +1965,21 @@ void Object::handle_opd_relocations(){
   vector<relocationEntry>::iterator rel_it;
   vector<Symbol *>::iterator sym_it;
   for(sym_it = opdsymbols_.begin(); sym_it != opdsymbols_.end(); ++sym_it) {
-	for(rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-		if((*sym_it)->getPtrOffset() == (*rel_it).rel_addr()) {
-			  i = 0;
-			  while (i < regions_.size()) {
-			    if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getName()) == 0){
-			      Region *targetRegion = regions_[i];
-                              Offset regionOffset = targetRegion->getDiskOffset()+(*rel_it).addend();
-			      (*sym_it)->setRegion(targetRegion);
-  			      (*sym_it)->setOffset(regionOffset);   // Store code address for the function.
-			      break;
-			    }
-			    ++i;
-			  }
-		}
+    for(rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+      if((*sym_it)->getPtrOffset() == (*rel_it).rel_addr()) {
+	i = 0;
+	while (i < regions_.size()) {
+	  if(regions_[i]->getRegionName().compare((*rel_it).getDynSym()->getName()) == 0){
+	    Region *targetRegion = regions_[i];
+	    Offset regionOffset = targetRegion->getDiskOffset()+(*rel_it).addend();
+	    (*sym_it)->setRegion(targetRegion);
+	    (*sym_it)->setOffset(regionOffset);   // Store code address for the function.
+	    break;
+	  }
+	  ++i;
 	}
-			
+      }
+    }
   }
   opdsymbols_.clear();
 }
@@ -2124,7 +2123,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                      ind,
                                      strindex,
                                      (secNumber == SHN_COMMON));
-
 
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);

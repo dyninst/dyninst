@@ -154,7 +154,12 @@ class EmitterPOWER32Stat : public EmitterPOWER
 class EmitterPOWER64Dyn : public EmitterPOWER
 {
   public:
+  virtual bool emitTOCCall(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, true, gen); }
+  virtual bool emitTOCJump(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, false, gen); }
     virtual ~EmitterPOWER64Dyn() {}
+ private:
+    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
+
 };
 
 class EmitterPOWER64Stat : public EmitterPOWER {

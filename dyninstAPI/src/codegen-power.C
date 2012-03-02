@@ -583,6 +583,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
          insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
       
    } else {
+
       insnCodeGen::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
       if (TOP_LO(value))
          insnCodeGen::generateImm(gen, ORILop, rt, rt, TOP_LO(value));

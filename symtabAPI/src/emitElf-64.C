@@ -259,8 +259,14 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
   Elf64_Sym *sym = new Elf64_Sym();
   sym->st_name = strIndex;
 
-  if (symbol->getAddr())
+  // OPD-based systems
+  if (symbol->getPtrOffset()) {
+    sym->st_value = symbol->getPtrOffset() + library_adjust;
+  }
+  else if (symbol->getAddr()) {
        sym->st_value = symbol->getAddr() + library_adjust;
+  }
+
   sym->st_size = symbol->getSize();
   sym->st_other = ELF64_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
   sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType(symbol));
@@ -2081,7 +2087,10 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #elif defined(arch_x86_64)
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+	    if (newRels[i].getDynSym() && (newRels[i].getDynSym()->getType() == Symbol::ST_FUNCTION))
+	      rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_JMP_SLOT);
+	    else
+	      rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
          } else {
 #if defined(arch_x86)
@@ -2104,7 +2113,10 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #elif defined(arch_x86_64)
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+	    if (newRels[i].getDynSym() && (newRels[i].getDynSym()->getType() == Symbol::ST_FUNCTION))
+	      relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_JMP_SLOT);
+	    else
+	      relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
          } else {
 #if defined(arch_x86)

@@ -163,6 +163,7 @@ class AddressSpace : public InstructionSource {
     // And should really be defined in a arch-dependent place, not process.h - bernat
     Address getTOCoffsetInfo(Address);
     Address getTOCoffsetInfo(func_instance *);
+    Address getTOCoffsetInfo(mapped_object *);
 
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
