@@ -76,6 +76,7 @@ DLLEXPORT int check_snip_change_shlib_var()
 
 DLLEXPORT int call22_5b(int x)
 {
+
     return x + MAGIC22_5B;
 }
 /* function to make regex (test 21)search non-trivial */
