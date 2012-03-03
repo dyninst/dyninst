@@ -567,8 +567,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
    // Writing a full 64 bits takes 5 instructions in the worst case.
    // Let's see if we use sign-extention to cheat.
    if (MIN_IMM16 <= value && value <= MAX_IMM16) {
-      insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));
-      
+      insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));      
    } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
       insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
       insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));

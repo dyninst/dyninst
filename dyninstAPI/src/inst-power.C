@@ -2716,104 +2716,129 @@ bool EmitterPOWER::emitCallRelative(Register dest, Address offset, Register base
     return true;
 }
 
-bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){
-
-    // Loads a saved register from the stack. 
-    int imm = offset;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-      if (((signed)MIN_IMM16 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM16))
-        {
-	  int ocode = Lop;
-	  switch (size) {
-	  case 1:
-		ocode = LBZop;
-		break;
-	  case 2:
-		ocode = LHZop;
-		break;
-	  case 4:
-		ocode = Lop;
-		break;
-	  default:
-		printf(" Unrecognized size for load operation(%d). Assuming size of 4 \n", size);
-		break;
-	  }
-          insnCodeGen::generateImm (gen, ocode, dest, base, imm);
-
-        }
-      else if (((signed)MIN_IMM32 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM32))
-        {
-	  // We're about to stomp dest to get a number in it... make sure that
-	  // it's not also the base register
-	  assert(dest != base); 
-          insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (offset));
-          insnCodeGen::generateImm (gen, ORILop, dest, dest, BOT_LO (offset));
-          insnCodeGen::generateLoadReg (gen, dest, dest, base);
-        }
-	else {
-		assert(0);
-	}
+bool EmitterPOWER::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen){ 
+  if (((long)MIN_IMM16 <= (long)offset) && ((long) offset <= (long)MAX_IMM16)) {
+    int ocode = Lop;
+    switch (size) {
+    case 1:
+      ocode = LBZop;
+      break;
+    case 2:
+      ocode = LHZop;
+      break;
+    case 4:
+      ocode = Lop;
+      break;
+    case 8:
+      ocode = LDop;
+      break;
+    default:
+      return false;
+      break;
     }
-    else {
-        if (((signed)MIN_IMM16 <= (signed)imm) &&
-            ((signed)imm <= (signed)MAX_IMM16)) {
-            insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                             dest, base, imm);
-        } else {
-            assert(dest != base);
-            insnCodeGen::loadImmIntoReg(gen, offset, dest);
-            insnCodeGen::generateLoadReg64(gen, dest, dest, base);
-        }
+    insnCodeGen::generateImm (gen, ocode, dest, base, offset);    
+  }
+  else {
+    // We're about to stomp dest to get a number in it... make sure that
+    // it's not also the base register
+    assert(dest != base); 
+    insnCodeGen::loadImmIntoReg(gen, dest, offset);
+
+    int ocode = LXop;
+    int xcode = 0;
+    switch (size) {
+    case 1:
+      xcode = LBZXxop;
+      break;
+    case 2:
+      xcode = LHZXxop;
+      break;
+    case 4:
+      xcode = LXxop;
+      break;
+    case 8:
+      xcode = LDXxop;
+      break;
+    default:
+      printf(" Unrecognized size for load operation(%d). Assuming size of 4 \n", size);
+      return false;
+      break;
     }
-    return true;
+    
+    instruction insn; insn.clear();
+    XFORM_OP_SET(insn, ocode);
+    XFORM_RT_SET(insn, dest);
+    XFORM_RA_SET(insn, dest);
+    XFORM_RB_SET(insn, base);
+    XFORM_XO_SET(insn, xcode);
+    XFORM_RC_SET(insn, 0);
+    insnCodeGen::generate(gen, insn);
+  }
+  return true;
 }
 
-void EmitterPOWER::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen){
-    int imm = offset;
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-      if (((signed)MIN_IMM16 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM16))
-        {
-	  int ocode = STop;
-	  switch (size) {
-	  case 1:
-		ocode = STBop;
-		break;
-	  case 2:
-		ocode = STHop;
-		break;
-	  case 4:
-		ocode = STop;
-		break;
-	  default:
-		printf(" Unrecognized size for store operation(%d). Assuming size of 4 \n", size);
-		break;
-	  }
-          insnCodeGen::generateImm (gen, ocode, source, base, imm);
 
-        }
-      else if (((signed)MIN_IMM32 <= (signed)imm) && ((signed)imm <= (signed)MAX_IMM32))
-        {
-          insnCodeGen::generateImm (gen, CAUop, source, 0, BOT_HI (offset));
-          insnCodeGen::generateImm (gen, ORILop, source, source, BOT_LO (offset));
-          insnCodeGen::generateStoreReg (gen, source, source, base);
-        }
-	else {
-		assert(0);
-	}
-	
+void EmitterPOWER::emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen){
+  if (((long)MIN_IMM16 <= (long)offset) && ((long) offset <= (long)MAX_IMM16)) {
+    int ocode = STop;
+    switch (size) {
+    case 1:
+      ocode = STBop;
+      break;
+    case 2:
+      ocode = STHop;
+      break;
+    case 4:
+      ocode = STop;
+      break;
+    case 8:
+      ocode = STDop;
+      break;
+    default:
+      //return false;
+      assert(0);
+      break;
     }
-    else {
-        if (((signed)MIN_IMM16 <= (signed)offset) &&
-            ((signed)offset <= (signed)MAX_IMM16)) {
-            insnCodeGen::generateMemAccess64(gen, STDop, STDxop,
-                                             source, base, offset);
-        } else {
-            // Need an extra register.
-            Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-            assert(scratchReg != REG_NULL);
-            insnCodeGen::generateStoreReg64(gen, source, scratchReg, base);
-        }
+    insnCodeGen::generateImm (gen, ocode, source, base, offset);    
+  }
+  else {
+    Register scratch = gen.rs()->getScratchRegister(gen, true);
+    assert(scratch != REG_NULL);
+
+    insnCodeGen::loadImmIntoReg(gen, scratch, offset);
+
+    int ocode = STXop;
+    int xcode = 0;
+    switch (size) {
+    case 1:
+      xcode = STBXxop;
+      break;
+    case 2:
+      xcode = STHXxop;
+      break;
+    case 4:
+      xcode = STXxop;
+      break;
+    case 8:
+      xcode = STDXxop;
+      break;
+    default:
+      printf(" Unrecognized size for load operation(%d). Assuming size of 4 \n", size);
+      //return false;
+      assert(0);
+      break;
     }
+    
+    instruction insn; insn.clear();
+    XFORM_OP_SET(insn, ocode);
+    XFORM_RT_SET(insn, source);
+    XFORM_RA_SET(insn, scratch);
+    XFORM_RB_SET(insn, base);
+    XFORM_XO_SET(insn, xcode);
+    XFORM_RC_SET(insn, 0);
+    insnCodeGen::generate(gen, insn);
+  }
+  //return true;
 }
 
 bool EmitterPOWER::emitMoveRegToReg(registerSlot *src,
@@ -3454,6 +3479,7 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    inst_printf("emitLoadShared addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
    	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+
    if (scratchReg == REG_NULL) {
    	pdvector<Register> freeReg;
         pdvector<Register> excludeReg;
@@ -3469,16 +3495,20 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    
    if (op ==loadOp) {
    	if(!is_local && (var != NULL)){
+
 	  emitLoadRelative(dest, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
 	  // Deference the pointer to get the variable
 	  emitLoadRelative(dest, 0, dest, size, gen);
    	} else {
+
 	  emitLoadRelative(dest, varOffset, scratchReg, size, gen);
    	}
    } else { //loadConstop
      if(!is_local && (var != NULL)){
+
        emitLoadRelative(dest, varOffset, scratchReg, gen.addrSpace()->getAddressWidth(), gen);
      } else {
+
        // Move address of the variable into the register - load effective address
        //dest = effective address of pc+offset ;
        insnCodeGen::generateImm (gen, CAUop, dest, 0, BOT_HI (varOffset));
