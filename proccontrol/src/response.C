@@ -43,7 +43,6 @@ using namespace ProcControlAPI;
 using namespace std;
 
 unsigned int response::next_id = 1;
-bool response::set_ids_only = false;
 
 static Mutex id_lock;
 
@@ -59,13 +58,9 @@ response::response() :
    multi_resp_size(0),
    multi_resp_recvd(0)
 {
-   if (!set_ids_only) {
-      id_lock.lock();
-      id = next_id++;
-      id_lock.unlock();
-   }
-   else 
-      id = 0;
+  id_lock.lock();
+  id = next_id++;
+  id_lock.unlock();
 }
 
 response::~response()
@@ -233,19 +228,12 @@ allreg_response::ptr response::getAllRegResponse()
       allreg_response::ptr();
 }
 
-set_response::ptr response::getSetResponse()
-{
-   return resp_type == rt_set ? 
-      dyn_detail::boost::static_pointer_cast<set_response>(shared_from_this()) :
-      set_response::ptr();
-}
-
 response::ptr responses_pending::rmResponse(unsigned int id)
 {
    //cvar lock should already be held.
    std::map<unsigned int, response::ptr>::iterator i = pending.find(id);
    if (i == pending.end()) {
-      //I've seen this happen on BlueGene, it sometimes throws duplicate ACKs
+      //I've seen this happen on BlueGene/P, it sometimes throws duplicate ACKs
       pthrd_printf("Unknown response.  Recieved duplicate ACK message on BlueGene?\n");
       return response::ptr();
    }
@@ -342,9 +330,6 @@ void responses_pending::addResponse(response::ptr r, int_process *proc)
 
    r->setEvent(ev);
    r->markPosted();
-
-   if (response::set_ids_only && r->resp_type != response::rt_set)
-      return;
 
    if (!r->isMultiResponse()) {
       pending[r->getID()] = r;
@@ -601,54 +586,50 @@ unsigned mem_response::getSize() const
 {
    return size;
 }
+ 
+unsigned int ResponseSet::next_id = 1;
+Mutex ResponseSet::id_lock;
+std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
 
-set_response::set_response() :
-   sub_resps(0)
+ResponseSet::ResponseSet()
 {
-   resp_type = rt_set;
-
-   assert(set_ids_only);
-   id_lock.lock();
-   id = next_id++;
-   id_lock.unlock();
+  id_lock.lock();
+  myid = next_id++;
+  if (!myid)
+    myid = next_id++;
+  all_respsets.insert(make_pair(myid, this));
+  id_lock.unlock();
 }
 
-set_response::~set_response()
+void ResponseSet::addID(unsigned id, unsigned index)
 {
+  ids.insert(make_pair(index, id));
 }
 
-set_response::ptr set_response::createSetResponse()
+unsigned ResponseSet::getIDByIndex(unsigned int index, bool &found) const
 {
-   return set_response::ptr(new set_response());
+  map<unsigned, unsigned>::const_iterator i = ids.find(index);
+  if (i == ids.end()) {
+    found = false;
+    return 0;
+  }
+  found = true;
+  return i->second;
+}
+unsigned int ResponseSet::getID() const {
+  return myid;
 }
 
-void set_response::setResponse()
-{
-   markReady();
+ResponseSet *ResponseSet::getResponseSetByID(unsigned int id) {
+  map<unsigned int, ResponseSet *>::iterator i;
+  ResponseSet *respset = NULL;
+  id_lock.lock();
+  i = all_respsets.find(id);
+  if (i != all_respsets.end()) {
+    respset = i->second;
+    all_respsets.erase(i);
+  }
+  id_lock.unlock();
+  return respset;
 }
 
-void set_response::postResponse()
-{
-}
-
-vector<response::ptr> &set_response::getResps()
-{
-   return resps;
-}
-
-void set_response::addResp(response::ptr r)
-{
-   if (r)
-      sub_resps++;
-   resps.push_back(r);
-}
-
-int set_response::numSubResps()
-{
-   return sub_resps;
-}
-
-void set_response::subResps(int update)
-{
-   sub_resps += update;
-}

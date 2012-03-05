@@ -54,7 +54,7 @@ class Transaction
    size_t packet_buffer_maxsize;
    uint32_t rank;
    uint16_t msg_id;
-   set_response::ptr set_resp;
+   ResponseSet *resp_set;
 
   private:
    bool flushTransaction()
@@ -64,10 +64,6 @@ class Transaction
          return true;
 
       pthrd_printf("Flushing transaction for rank %d of size %lu\n", proc->getRank(), packet_buffer_size);
-
-      assert(set_resp);
-      getResponses().addResponse(set_resp, proc);
-      set_resp = set_response::ptr();
 
       CmdType *msg = (CmdType *) packet_buffer;
       msg->header.length = packet_buffer_size;
@@ -119,7 +115,8 @@ class Transaction
      packet_buffer_size(0),
      packet_buffer_maxsize(0),
      rank(p->getRank()),
-     msg_id(mid)
+     msg_id(mid),
+     resp_set(NULL)
    {
    }
 
@@ -145,7 +142,7 @@ class Transaction
       return *((CmdType *) packet_buffer);
    }
 
-   bool writeCommand(const ToolCommand *cmd, uint16_t cmd_type, response::ptr resp)
+   bool writeCommand(const ToolCommand *cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
    {
       uint16_t msg_type = bgq_process::getCommandMsgType(cmd_type);
       assert(msg_type == msg_id);
@@ -160,10 +157,7 @@ class Transaction
       unsigned int next_start_offset;
       CmdType *msg;
       if (!transaction_index) {
-         pthrd_printf("Writing initial command to transaction\n");
-         assert(!set_resp);
-         set_resp = set_response::createSetResponse();
-         
+         pthrd_printf("Writing initial command to transaction\n");	          
          assert(packet_buffer_size == 0);
          growTransactionBuffer(sizeof(CmdType) + cmd_size);
          msg = (CmdType *) packet_buffer;
@@ -171,19 +165,28 @@ class Transaction
          msg->header.version = ProtocolVersion;
          msg->header.type = msg_id;
          msg->header.rank = rank;
-         msg->header.sequenceId = set_resp->getID();
+         msg->header.sequenceId = 0;
          msg->header.returnCode = 0;
          msg->header.errorCode = 0;
          msg->header.length = 0; //Fill in after packet is ready
          msg->header.jobId = bgq_process::getJobID();
          msg->toolId = bgq_process::getToolID();
          packet_buffer_size = next_start_offset = sizeof(CmdType);
+	 assert(!resp_set);
       }
       else {
          pthrd_printf("Writing command %u to transaction\n", (unsigned) transaction_index);
          msg = (CmdType *) packet_buffer;
          CommandDescriptor &last_cmd = msg->cmdList[transaction_index-1];
          next_start_offset = last_cmd.offset + last_cmd.length;
+      }
+
+      if (resp) {
+	if (!resp_set) {
+	  resp_set = new ResponseSet();
+	  msg->header.sequenceId = resp_set->getID();
+	}
+	resp_set->addID(resp->getID() + resp_mod, transaction_index);
       }
 
       //growTransactionBuffer(next_start_offset + cmd_size);
@@ -196,7 +199,6 @@ class Transaction
       this_cmd.offset = next_start_offset;
       this_cmd.length = cmd_size;
       this_cmd.returnCode = 0;
-      set_resp->addResp(resp);
       msg->numCommands = ++transaction_index;
 
       if (temporary_transaction) {
@@ -214,6 +216,7 @@ class Transaction
 	endTransaction();
 	beginTransaction();
       }
+
       return true;
    }
 
@@ -223,6 +226,7 @@ class Transaction
       packet_buffer = NULL;
       transaction_index = 0;
       attach_transaction = false;
+      resp_set = NULL;
    }
    
    bool activeTransaction()

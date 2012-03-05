@@ -241,6 +241,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       return false;
    }
 
+   assert(translator);
    result = translator->refresh();
    if (!result && procreader->hasPendingAsync()) {
       procreader->getNewAsyncs(async_responses);
@@ -251,13 +252,11 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
    if (!result) {
       pthrd_printf("Failed to refresh library list for %d\n", getPid());
    }
-
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); i++) 
    {
       (*i)->setMark(false);
    }
-
    vector<LoadedLib *> ll_libs;
    translator->getLibs(ll_libs);
    for (vector<LoadedLib *>::iterator i = ll_libs.begin(); i != ll_libs.end(); i++)

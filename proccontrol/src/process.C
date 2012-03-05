@@ -4664,7 +4664,8 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    bool result = llproc->attach(); //Releases procpool lock
    if (!result) {
       pthrd_printf("Unable to attach to process %d\n", pid);
-      delete llproc;
+#warning Disabled proc delete for debugging purposes
+      //delete llproc;
       return Process::ptr();
    }
 

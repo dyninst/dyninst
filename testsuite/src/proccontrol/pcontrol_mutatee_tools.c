@@ -247,10 +247,18 @@ int finiProcControlTest(int expected_ret_code)
 #include <sys/socket.h>
 #include <sys/un.h>
 
-static volatile char MutatorSocket[4096];
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-static char *socket_type = NULL;
-static char *socket_name = NULL;
+volatile char MutatorSocket[4096];
+
+char *socket_type = NULL;
+char *socket_name = NULL;
+
+#if defined(__cplusplus)
+}
+#endif
 
 void getSocketInfo()
 {
@@ -265,6 +273,7 @@ void getSocketInfo()
          exit(-2);
       }
    }
+   MutatorSocket[4095] = '\0';
    socket_type = (char *) MutatorSocket;
    char *space = strchr((char *) MutatorSocket, ' ');
    socket_name = space+1;
@@ -332,6 +341,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
    static int warned_syscall_restart = 0;
    int result = -1;
    int timeout = MESSAGE_TIMEOUT * 10;
+   bool no_select = false;
    while( result != (int) msg_size && result != 0 ) {
        fd_set read_set;
        FD_ZERO(&read_set);
@@ -341,6 +351,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
        s_timeout.tv_usec = 100000; //.1 sec
        int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
        int error = errno;
+       fprintf(stderr, "select returned %d (%d)\n", sresult, error);
        if (sresult == -1)
        {
           if (error == EINVAL || error == EBADF) {
@@ -350,6 +361,9 @@ int recv_message(unsigned char *msg, size_t msg_size)
           else if (error == EINTR) {
              continue;
           }
+	  else if (error = ENOSYS) {
+	    no_select = true;
+	  }
           else {
              //Seen as kernels with broken system call restarting during IRPC test.
              if (!warned_syscall_restart) {
@@ -367,7 +381,9 @@ int recv_message(unsigned char *msg, size_t msg_size)
           return -1;
        }
        
-       
+       if (no_select) {
+	 
+       }
        result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
        if (result == -1 && errno != EINTR ) {

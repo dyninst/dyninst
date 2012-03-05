@@ -54,6 +54,7 @@ using namespace std;
 ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName, 
         const char *symName, psaddr_t *symbolAddr)
 {
+    pthrd_printf("Looking up symbol %s in %s\n", symName, objName);
     return handle->thread_db_proc->getSymbolAddr(objName, symName, symbolAddr);
 }
 
@@ -348,8 +349,15 @@ static void *dlopenThreadDB(char *path)
       filename = std::string("libthread_db.so");
    }
 
+#if defined(os_bgq)
+   alt_filename = filename;
+   filename = std::string("/bgsys/drivers/ppcfloor/gnu-linux/powerpc64-bgq-linux/lib/libthread_db.so.1");
+#endif
+
+   pthrd_printf("Opening thread_db with %s\n", filename.c_str());
    void *libhandle = dlopen(filename.c_str(), RTLD_LAZY);
    if (!libhandle && !alt_filename.empty()) {
+   pthrd_printf("Opening thread_db with %s\n", alt_filename.c_str());
       libhandle = dlopen(alt_filename.c_str(), RTLD_LAZY);
    }
    if (!libhandle) {

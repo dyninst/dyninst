@@ -74,7 +74,7 @@ class bgq_process :
    static bool sendMessage(const ToolMessage &msg, uint16_t msg_type, uint32_t rank,
                            response::ptr resp);
 
-   bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp = response::ptr());
+   bool sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp = response::ptr(), unsigned int resp_mod = 0);
 
   public:
    static uint32_t getCommandLength(uint16_t cmd_type, const ToolCommand &cmd);
@@ -296,7 +296,7 @@ class GeneratorBGQ : public GeneratorMT
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
    virtual bool getEvent(bool block, vector<ArchEvent *> &events);
-
+   virtual bool plat_skipGeneratorBlock();
    void kick();
    void shutdown();
 };
@@ -317,7 +317,7 @@ class ArchEventBGQ : public ArchEvent
 class DecoderBlueGeneQ : public Decoder
 {
   private:
-   Event::ptr decodeCompletedResponse(response::ptr resp, set_response::ptr set_resp,
+   Event::ptr decodeCompletedResponse(response::ptr resp,
                                       map<Event::ptr, EventAsync::ptr> &async_evs);
 
    bool decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, 

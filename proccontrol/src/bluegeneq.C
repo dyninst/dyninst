@@ -409,7 +409,7 @@ unsigned int bgq_process::getTargetPageSize()
       return page_size;
    }
 
-   uint32_t len = get_auxvectors_result.length / sizeof(Elf64_auxv_t);
+   uint32_t len = get_auxvectors_result.length / 2;
    Elf64_auxv_t *auxvs = (Elf64_auxv_t *) get_auxvectors_result.data;
    
    for (uint32_t i = 0; i < len; i++) {
@@ -569,7 +569,7 @@ bool bgq_process::internal_readMem(int_thread * /*stop_thr*/, Dyninst::Address a
 bool bgq_process::internal_writeMem(int_thread * /*stop_thr*/, const void *local, Dyninst::Address addr,
                                     size_t size, result_response::ptr resp, int_thread *thr)
 {
-   pthrd_printf("Writing memory %lx +%lx on %d with response ID %d\n", 
+   pthrd_printf("Writing memory %lx +%lu on %d with response ID %d\n", 
                 addr, (unsigned long) size, getPid(), resp->getID());
 
    int num_writes_needed = (size / MaxMemorySize);
@@ -1021,14 +1021,14 @@ uint32_t bgq_process::getToolID()
    return toolid;
 }
 
-bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp)
+bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
 {
    uint16_t msg_type = getCommandMsgType(cmd_type);
    if (msg_type == Query) {
-      return query_transaction->writeCommand(&cmd, cmd_type, resp);
+      return query_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
    }
    else if (msg_type == Update) {
-      return update_transaction->writeCommand(&cmd, cmd_type, resp);
+      return update_transaction->writeCommand(&cmd, cmd_type, resp, resp_mod);
    }
    else {
       assert(0); //Are we trying to send an Ack?
@@ -1037,6 +1037,7 @@ bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, respons
 }
 
 #define CMD_RET_SIZE(X) case X: return sizeof(X ## Cmd)
+
 #define CMD_RET_VAR_SIZE(X, F) case X: return sizeof(X ## Cmd) + static_cast<const X ## Cmd &>(cmd).F
 uint32_t bgq_process::getCommandLength(uint16_t cmd_type, const ToolCommand &cmd)
 {
@@ -1073,8 +1074,8 @@ uint32_t bgq_process::getCommandLength(uint16_t cmd_type, const ToolCommand &cmd
       CMD_RET_SIZE(SetFloatRegAck);
       CMD_RET_SIZE(SetDebugReg);
       CMD_RET_SIZE(SetDebugRegAck);
-      CMD_RET_SIZE(SetMemory);
-      CMD_RET_VAR_SIZE(SetMemoryAck, length);
+      CMD_RET_VAR_SIZE(SetMemory, length);
+      CMD_RET_SIZE(SetMemoryAck);
       CMD_RET_SIZE(HoldThread);
       CMD_RET_SIZE(HoldThreadAck);
       CMD_RET_SIZE(ReleaseThread);
@@ -1634,13 +1635,13 @@ bool bgq_thread::plat_getAllRegistersAsync(allreg_response::ptr resp)
 
    resp->markAsMultiResponse(2); //2 commands need to complete: gpr and spec
 
-   bool result = bgproc->sendCommand(get_gpr_regs, GetGeneralRegs, resp);
+   bool result = bgproc->sendCommand(get_gpr_regs, GetGeneralRegs, resp, 0);
    if (!result) {
       pthrd_printf("Error in sendCommand for GetGeneralRegs\n");
       return false;
    }
 
-   result = bgproc->sendCommand(get_spec_regs, GetSpecialRegs, resp);
+   result = bgproc->sendCommand(get_spec_regs, GetSpecialRegs, resp, 1);
    if (!result) {
       pthrd_printf("Error in sendCommand for GetSpecialRegs\n");
       return false;
@@ -1670,13 +1671,13 @@ bool bgq_thread::plat_setAllRegistersAsync(int_registerPool &pool,
 
    resp->markAsMultiResponse(2);
    
-   bool result = bgproc->sendCommand(set_gen, GetGeneralRegs, resp);
+   bool result = bgproc->sendCommand(set_gen, GetGeneralRegs, resp, 0);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetGeneralRegs\n");
       return false;
    }
 
-   result = bgproc->sendCommand(set_spec, GetSpecialRegs, resp);
+   result = bgproc->sendCommand(set_spec, GetSpecialRegs, resp, 1);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetSpecialRegs\n");
       return false;
@@ -2299,6 +2300,15 @@ bool GeneratorBGQ::readMessage(int fd, vector<ArchEvent *> &events)
    return (msgs_read > 0);
 }
 
+bool GeneratorBGQ::plat_skipGeneratorBlock()
+{
+   bool result = getResponses().hasAsyncPending(false);
+   if (result) {
+      pthrd_printf("Async events pending, skipping generator block\n");
+   }
+   return result;
+}
+
 void GeneratorBGQ::kick()
 {
    int result;
@@ -2318,12 +2328,8 @@ void GeneratorBGQ::shutdown()
   if (result) {
     ProcPool()->condvar()->signal();
     ProcPool()->condvar()->unlock();
-  }
-
-  if (isGeneratorThread())
-    return;
-
-  GeneratorInternalJoin(getInternals());
+  } 
+  sleep(1);
 }
 
 static GeneratorBGQ *gen = NULL;
@@ -2362,7 +2368,6 @@ void ArchEventBGQ::dontFreeMsg()
 
 DecoderBlueGeneQ::DecoderBlueGeneQ()
 {
-   response::set_ids_only = true;
 }
 
 DecoderBlueGeneQ::~DecoderBlueGeneQ()
@@ -2374,18 +2379,17 @@ unsigned DecoderBlueGeneQ::getPriority() const
    return Decoder::default_priority;
 }
 
-Event::ptr DecoderBlueGeneQ::decodeCompletedResponse(response::ptr resp, set_response::ptr set_resp,
+Event::ptr DecoderBlueGeneQ::decodeCompletedResponse(response::ptr resp,
                                                      map<Event::ptr, EventAsync::ptr> &async_evs)
 {
-   set_resp->subResps(-1); //One fewer sub-response left
-
    if (resp->isMultiResponse() && !resp->isMultiResponseComplete())
       return Event::ptr();
-   
+
    Event::ptr ev = resp->getEvent();
    if (!ev) {
       pthrd_printf("Marking response %s/%d ready\n", resp->name().c_str(), resp->getID());
       resp->markReady();
+
       return Event::ptr();
    }
 
@@ -2433,52 +2437,69 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
    map<Event::ptr, EventAsync::ptr> async_ev_map;
    ToolMessage *msg = archevent->getMsg();
    uint32_t seq_id = msg->header.sequenceId;
+   bool resp_lock_held = false;
 
-   ScopeLock lock(getResponses().condvar());
-
-   set_response::ptr set_resp = getResponses().rmResponse(seq_id)->getSetResponse();
-   assert(set_resp);
+   ResponseSet *resp_set = NULL;
+   if (seq_id) {
+     resp_set = ResponseSet::getResponseSetByID(seq_id);
+     if (resp_set)
+       pthrd_printf("Associated ACK with response set %d\n", seq_id);
+   }
 
    for (int i=0; i<num_commands; i++) 
    {
-      if (lock.isLocked() && !set_resp->numSubResps())
-         lock.unlock();
-
       CommandDescriptor *desc = cmd_list+i;
       ToolCommand *base_cmd = (ToolCommand *) (((char *) msg) + desc->offset);
-      response::ptr cur_resp = set_resp->getResps()[i];
 
       BG_ThreadID_t threadID = base_cmd->threadID;
       int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);
 
+      response::ptr cur_resp = response::ptr();
+      if (resp_set) {
+	getResponses().lock();
+	resp_lock_held = true;
+	bool found = false;
+	unsigned int id = resp_set->getIDByIndex(i, found);
+	pthrd_printf("Associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+	if (found)
+	  cur_resp = getResponses().rmResponse(id);
+	if (!cur_resp) {
+	  resp_lock_held = false;
+	  getResponses().unlock();
+	}
+	pthrd_printf("%s response in message\n", cur_resp ? "Found" : "Did not find");
+      }
+  
       switch (desc->type) {
          case GetSpecialRegsAck: 
-            pthrd_printf("Decoding GetSpecialRegsAck on %d/%d\n", 
-                         proc->getPid(), thr->getLWP());
-            goto HandleGetRegsAck;
-         case GetGeneralRegsAck: 
-            pthrd_printf("Decoding GetGeneralRegsAck on %d/%d\n", 
-                         proc->getPid(), thr->getLWP());
-         HandleGetRegsAck: {
+         case GetGeneralRegsAck: {
             allreg_response::ptr allreg = cur_resp->getAllRegResponse();
             int_registerPool *regpool = allreg->getRegPool();
             assert(allreg);
             assert(regpool);
             if (desc->type == GetSpecialRegsAck) {
+               pthrd_printf("Decoding GetSpecialRegsAck on %d/%d\n", 
+			    proc->getPid(), thr->getLWP());
                GetSpecialRegsAckCmd *cmd = static_cast<GetSpecialRegsAckCmd *>(base_cmd);
                bgq_thread::regBufferToPool(NULL, &cmd->sregs, *regpool);
             }
             else {
-               GetGeneralRegsAckCmd *cmd = static_cast<GetGeneralRegsAckCmd *>(base_cmd);
-               bgq_thread::regBufferToPool(cmd->gpr, NULL, *regpool);
+               pthrd_printf("Decoding GetGeneralRegsAck on %d/%d\n", 
+			    proc->getPid(), thr->getLWP());
+	       GetGeneralRegsAckCmd *cmd = static_cast<GetGeneralRegsAckCmd *>(base_cmd);
+	       bgq_thread::regBufferToPool(cmd->gpr, NULL, *regpool);
             }
             allreg->postResponse();
             if (desc->returnCode)
                allreg->markError(desc->returnCode);
             
-            Event::ptr new_ev = decodeCompletedResponse(allreg, set_resp, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(allreg, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
+
+	    resp_lock_held = false;
+	    getResponses().signal();
+	    getResponses().unlock();
             break;
          }
          case GetFloatRegsAck:
@@ -2495,9 +2516,14 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (desc->returnCode)
                memresp->markError(desc->returnCode);
 
-            Event::ptr new_ev = decodeCompletedResponse(memresp, set_resp, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(memresp, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
+
+	    resp_lock_held = false;
+	    getResponses().signal();
+	    getResponses().unlock();
+	    break;
          }
          case GetThreadListAck:
             pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
@@ -2546,9 +2572,14 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (has_error) 
                result_resp->markError(desc->returnCode);
             result_resp->postResponse(!has_error);
-            Event::ptr new_ev = decodeCompletedResponse(result_resp, set_resp, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(result_resp, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
+
+	    resp_lock_held = false;
+	    getResponses().signal();
+	    getResponses().unlock();
+	    break;
          }
          case SetFloatRegAck:
          case SetDebugRegAck:
@@ -2591,7 +2622,11 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          default:
             break;
       }
+      assert(!resp_lock_held);
    }
+
+   if (resp_set)
+     delete resp_set;
 
    return true;
 }
@@ -3033,17 +3068,25 @@ void ComputeNode::emergencyShutdown()
   pthrd_printf("Shutting down generator\n");
   GeneratorBGQ *gen = static_cast<GeneratorBGQ *>(Generator::getDefaultGenerator());
   gen->shutdown();
+  pthrd_printf("Done shutting down generator\n");
 
+  pthrd_printf("all_compute_nodes.size() = %u\n", (unsigned) all_compute_nodes.size());
   for (set<ComputeNode *>::iterator i = all_compute_nodes.begin(); i != all_compute_nodes.end(); i++) {
     ComputeNode *cn = *i;
-    if (!cn)
+    if (!cn) {
+      pthrd_printf("Skipping empty compute node\n");
       continue;
+    }
+    pthrd_printf("cn->procs.size() = %u\n", (unsigned) cn->procs.size());
     for (set<bgq_process *>::iterator j = cn->procs.begin(); j != cn->procs.end(); j++) {
       again: {
 	bgq_process *proc = *j;
-	if (!proc)
+	if (!proc) {
+	  pthrd_printf("Skipping NULL proc\n");
 	  continue;
+	}
 	int pid = proc->getPid();
+	pthrd_printf("Emergency shutdown of %d\n", pid);
 	
 	UpdateMessage *update = (UpdateMessage *) message;
 	MessageHeader *header = &update->header;
