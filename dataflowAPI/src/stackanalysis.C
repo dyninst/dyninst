@@ -1007,6 +1007,12 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          assert(!alias.isAbs());
          input = alias;
 		 assert(input.target.isValid());
+                   
+                 // if the input was also a delta, apply this also 
+                 if (isDelta()) {
+                    input.delta += delta;
+                 }
+      
          return;
       }
 
@@ -1021,8 +1027,13 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	  else {
 		  input.delta = delta;
 	  }
-      
-      return;
+
+          // if the input was also a delta, apply this also 
+          if (isDelta()) {
+            input.delta += delta;
+          }
+
+	  return;
    }
    if (isDelta()) {
       // A delta can apply cleanly to anything, since Height += handles top/bottom
