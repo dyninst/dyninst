@@ -1025,7 +1025,7 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          input.delta = alias.delta;
 	  }
 	  else {
-		  input.delta = delta;
+		  input.delta = Height::top;
 	  }
 
           // if the input was also a delta, apply this also 
