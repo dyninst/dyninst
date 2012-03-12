@@ -802,8 +802,8 @@ bool int_process::waitForAsyncEvent(response::ptr resp)
 {
   if (resp) {
     int_process *proc = resp->getProcess();
-    assert(proc);
-    proc->plat_preAsyncWait();
+    if (proc)
+       proc->plat_preAsyncWait();
   }
   return getResponses().waitFor(resp);
 }
