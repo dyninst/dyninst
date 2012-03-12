@@ -83,9 +83,6 @@ static void* openSO(const char *soname, bool local)
 #else
    fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
-   if (debug_log) {
-      fprintf(debug_log, "openSO: search path is %s\n", fullSoPath ? fullSoPath : "NULL");
-   }
    
    if (!fullSoPath) {
       fullSoPath = strdup(soname);

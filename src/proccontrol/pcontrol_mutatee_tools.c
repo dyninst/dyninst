@@ -41,10 +41,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
 int sockfd;
+int r_pipe;
+int w_pipe;
+
 extern int signal_fd;
 
 typedef struct {
@@ -203,6 +210,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
    }
    pingSignalFD(signal_fd);
    getSocketInfo();
+
    result = initMutatorConnection();
    if (result != 0) {
       fprintf(stderr, "Error initializing connection to mutator\n");
@@ -302,6 +310,52 @@ void resetTimeoutAlarm()
    alarm(0);
 }
 
+static int created_named_pipes = 0;
+static void createNamedPipes()
+{
+   uint32_t ready = 0x42;
+   if (created_named_pipes)
+      return;
+   created_named_pipes = 1;
+
+   if (strcmp(socket_type, "named_pipe") != 0) 
+      return;
+
+   unsigned int len = strlen(socket_name) + 16;
+   char *rd_socketname = (char *) malloc(len);
+   char *wr_socketname = (char *) malloc(len);
+   
+#if defined(os_bgq_test)
+#error TODO
+   int id = ;
+#else
+   int id = getpid();
+#endif
+
+   snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
+   r_pipe = open(rd_socketname, O_RDONLY);
+   if (r_pipe == -1) {
+      int error = errno;
+      fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
+      assert(0);
+   }
+
+   snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
+   w_pipe = open(wr_socketname, O_WRONLY);
+   if (w_pipe == -1) {
+      int error = errno;
+      fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
+      assert(0);
+   }
+
+   unlink(rd_socketname);
+   unlink(wr_socketname);
+   free(rd_socketname);
+   free(wr_socketname);
+
+   write(w_pipe, &ready, 4);
+}
+
 int initMutatorConnection()
 {
    int result;
@@ -322,13 +376,24 @@ int initMutatorConnection()
          return -1;
       }
    }
+   if (strcmp(socket_type, "named_pipe") == 0) {
+      createNamedPipes();
+   }
+   
    return 0;
 }
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
    int result;
-   result = send(sockfd, msg, msg_size, 0);
+
+   if (strcmp(socket_type, "un_socket") == 0) {
+      result = send(sockfd, msg, msg_size, 0);
+   }
+   else if (strcmp(socket_type, "named_pipe") == 0) {
+      assert(created_named_pipes);
+      result = write(w_pipe, msg, msg_size);
+   }
    if (result == -1) {
       perror("Mutatee unable to send message");
       return -1;
@@ -338,69 +403,85 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
-   static int warned_syscall_restart = 0;
-   int result = -1;
-   int timeout = MESSAGE_TIMEOUT * 10;
-   bool no_select = false;
-   while( result != (int) msg_size && result != 0 ) {
-       fd_set read_set;
-       FD_ZERO(&read_set);
-       FD_SET(sockfd, &read_set);
-       struct timeval s_timeout;
-       s_timeout.tv_sec = 0;
-       s_timeout.tv_usec = 100000; //.1 sec
-       int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
-       int error = errno;
-       fprintf(stderr, "select returned %d (%d)\n", sresult, error);
-       if (sresult == -1)
-       {
-          if (error == EINVAL || error == EBADF) {
-             fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
-             return -1;
-          }
-          else if (error == EINTR) {
-             continue;
-          }
-	  else if (error = ENOSYS) {
-	    no_select = true;
-	  }
-          else {
-             //Seen as kernels with broken system call restarting during IRPC test.
-             if (!warned_syscall_restart) {
-                fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
-                warned_syscall_restart = 1;
-             }
-             continue;
-          }
-       }
-       if (sresult == 0) {
-          timeout--;
-          if (timeout > 0)
-             continue;
-          perror("Timeout waiting for message\n");
-          return -1;
-       }
+   if (strcmp(socket_type, "un_socket") == 0) {
+      static int warned_syscall_restart = 0;
+      int result = -1;
+      int timeout = MESSAGE_TIMEOUT * 10;
+      int no_select = 0;
+      while( result != (int) msg_size && result != 0 ) {
+         fd_set read_set;
+         FD_ZERO(&read_set);
+         FD_SET(sockfd, &read_set);
+         struct timeval s_timeout;
+         s_timeout.tv_sec = 0;
+         s_timeout.tv_usec = 100000; //.1 sec
+         int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
+         int error = errno;
+         if (sresult == -1)
+         {
+            if (error == EINVAL || error == EBADF) {
+               fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
+               return -1;
+            }
+            else if (error == EINTR) {
+               continue;
+            }
+            else if (error == ENOSYS) {
+               no_select = 1;
+            }
+            else {
+               //Seen as kernels with broken system call restarting during IRPC test.
+               if (!warned_syscall_restart) {
+                  fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
+                  warned_syscall_restart = 1;
+               }
+               continue;
+            }
+         }
+         if (sresult == 0) {
+            timeout--;
+            if (timeout > 0)
+               continue;
+            perror("Timeout waiting for message\n");
+            return -1;
+         }
        
-       if (no_select) {
-	 
-       }
-       result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+         result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
-       if (result == -1 && errno != EINTR ) {
-          perror("Mutatee unable to recieve message");
-          return -1;
-       }
+         if (result == -1 && errno != EINTR ) {
+            perror("Mutatee unable to recieve message");
+            return -1;
+         }
 
 #if defined(os_freebsd_test)
-       /* Sometimes the recv system call is not restarted properly after a
-        * signal and an iRPC. TODO a workaround for this bug
-        */
-       if( result > 0 && result != msg_size ) {
-           logerror("Received message of unexpected size %d (expected %d)\n",
-                   result, msg_size);
-       }
+         /* Sometimes the recv system call is not restarted properly after a
+          * signal and an iRPC. TODO a workaround for this bug
+          */
+         if( result > 0 && result != msg_size ) {
+            logerror("Received message of unexpected size %d (expected %d)\n",
+                     result, msg_size);
+         }
 #endif
+      }
    }
+   else if (strcmp(socket_type, "named_pipe") == 0) {
+      unsigned int bytes_read = 0, num_retries = 10;
+      assert(created_named_pipes);
+      
+      do {
+         int result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
+         if (result == -1) {
+            int error = errno;
+            fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
+            return -1;
+         }
+         if (result == 0 && --num_retries == 0) {
+            fprintf(stderr, "Failed to read message from read pipe\n");
+            return -1;
+         }
+         bytes_read += result;
+         assert(bytes_read <= msg_size);
+      } while (bytes_read < msg_size);
+   }      
    return 0;
 }
-

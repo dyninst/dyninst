@@ -49,18 +49,32 @@ class commInfo;
 //NUM_PARALLEL_PROCS is actually a maximum number across all platforms
 #define NUM_PARALLEL_PROCS 256
 
+typedef enum {
+   un_socket,
+   named_pipe
+} mutatee_connection_t;
+
 class ProcControlComponent : public ComponentTester
 {
 private:
    bool setupServerSocket(ParameterDict &param);
+   bool setupNamedPipe(Process::ptr proc, ParameterDict &param);
    bool acceptConnections(int num, int *attach_sock);
    bool cleanSocket();
    Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
    bool startMutatees(RunGroup *group, ParameterDict &param);
+
+   bool createPipes();
+   bool cleanPipes();
 public:
    int sockfd;
    char *sockname;
    int notification_fd;
+
+   std::map<Process::ptr, int> w_pipe;
+   std::map<Process::ptr, int> r_pipe;
+   std::map<Process::ptr, std::string> pipe_read_names;
+   std::map<Process::ptr, std::string> pipe_write_names;
 
    int num_processes;
    int num_threads;
@@ -83,6 +97,11 @@ public:
    bool recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool send_message(unsigned char *msg, unsigned msg_size, int sfd);
    bool send_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool create_pipes(Process::ptr p, bool read_pipe);
+   bool init_pipes(Process::ptr p);
+
    bool block_for_events();
    bool poll_for_events();
    
