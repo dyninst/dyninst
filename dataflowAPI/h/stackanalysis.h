@@ -366,6 +366,7 @@ class StackAnalysis {
     void handlePushPop(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
+    void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
 	void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);
