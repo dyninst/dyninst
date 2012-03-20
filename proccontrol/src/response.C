@@ -549,6 +549,11 @@ void mem_response::setLastBase(Address a)
    last_base = a;
 }
 
+Address mem_response::lastBase()
+{
+   return last_base;
+}
+
 void mem_response::postResponse()
 {
 }

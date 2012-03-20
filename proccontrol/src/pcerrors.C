@@ -118,7 +118,7 @@ const char *Dyninst::ProcControlAPI::getLastErrorMsg()
    return last_error_msg;
 }
 
-void Dyninst::ProcControlAPI::setLastError(err_t err, const char *msg)
+void Dyninst::ProcControlAPI::globalSetLastError(err_t err, const char *msg)
 {
    last_error = err;
    last_error_msg = msg;

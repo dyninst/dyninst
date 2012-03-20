@@ -40,8 +40,10 @@
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "EventType.h"
+#include "PCErrors.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include "dyn_detail/boost/weak_ptr.hpp"
+#include "dyn_detail/boost/enable_shared_from_this.hpp"
 
 class int_process;
 class int_breakpoint;
@@ -73,6 +75,7 @@ class EventHandler;
 class Event;
 class RegisterPool;
 class Breakpoint;
+class ProcessSet;
 
 class Breakpoint 
 {
@@ -93,7 +96,7 @@ class Breakpoint
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
 
    void *getData() const;
-   void setData(void *p);
+   void setData(void *p) const;
 
    bool isCtrlTransfer() const;
    Dyninst::Address getToAddress() const;
@@ -179,7 +182,6 @@ class IRPC
    friend void dyn_detail::boost::checked_delete<const IRPC>(const IRPC *);
  private:
    rpc_wrapper *wrapper;
-   void *userData_;
    IRPC(rpc_wrapper *wrapper_);
    ~IRPC();
  public:
@@ -191,6 +193,8 @@ class IRPC
                                bool async = false);
    static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
                                Dyninst::Address addr, bool async = false);
+   static IRPC::ptr createIRPC(IRPC::ptr orig);
+   static IRPC::ptr createIRPC(IRPC::ptr orig, Address addr);
    
    rpc_wrapper *llrpc() const;
 
@@ -203,17 +207,18 @@ class IRPC
 
    // user-defined data retrievable during a callback
    void *getData() const;
-   void setData(void *p);
+   void setData(void *p) const;
 };
 
-class Process
+class Process : public dyn_detail::boost::enable_shared_from_this<Process>
 {
  private:
    friend class ::int_process;
+   friend class ProcessSet;
+
    int_process *llproc_;
    proc_exitstate *exitstate_;
-   void *userData_;
-
+   
    Process();
    ~Process();
    friend void dyn_detail::boost::checked_delete<Process>(Process *);
@@ -223,7 +228,12 @@ class Process
    typedef dyn_detail::boost::shared_ptr<const Process> const_ptr;
    static void version(int& major, int& minor, int& maintenance);
 
-   int_process *llproc() const;
+   //These four functions are not for end-users.  
+   int_process *llproc() const { return llproc_; }
+   proc_exitstate *exitstate() const { return exitstate_; }
+   void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
+   void clearLastError() const;
+   
 
    /**
     * Threading modes control
@@ -277,7 +287,7 @@ class Process
 
    // user-defined data retrievable during a callback
    void *getData() const;
-   void setData(void *p);
+   void setData(void *p) const;
 
    Dyninst::PID getPid() const;
 
@@ -336,6 +346,9 @@ class Process
    bool writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const;
    bool readMemory(void *buffer, Dyninst::Address addr, size_t size) const;
 
+   bool writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val = NULL) const;
+   bool readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val = NULL) const;
+
    /**
     * Libraries
     **/
@@ -358,6 +371,12 @@ class Process
     * Symbol access
     **/
    SymbolReaderFactory *getDefaultSymbolReader();
+
+   /**
+    * Errors that occured on this process
+    **/
+   ProcControlAPI::err_t getLastError() const;
+   const char *getLastErrorMsg() const;
 };
 
 class Thread
@@ -366,12 +385,13 @@ class Thread
    friend class ::int_thread;
    int_thread *llthread_;
    thread_exitstate *exitstate_;
-   void *userData_;
 
    Thread();
    ~Thread();
    friend void dyn_detail::boost::checked_delete<Thread>(Thread *);
    friend void dyn_detail::boost::checked_delete<const Thread>(const Thread *);
+
+   void setLastError(err_t ec, const char *es) const;
  public:
    typedef dyn_detail::boost::shared_ptr<Thread> ptr;
    typedef dyn_detail::boost::shared_ptr<const Thread> const_ptr;
@@ -416,7 +436,7 @@ class Thread
    IRPC::const_ptr getRunningIRPC() const;
 
    void *getData() const;
-   void setData(void *p);
+   void setData(void *p) const;
 };
 
 class ThreadPool

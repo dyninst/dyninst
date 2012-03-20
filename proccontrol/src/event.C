@@ -205,6 +205,12 @@ Event::~Event()
 {
 }
 
+void Event::setLastError(err_t ec, const char *es) {
+   if (proc) {
+      proc->setLastError(ec, es);
+   }
+}
+
 EventTerminate::EventTerminate(EventType type_) :
    Event(type_)
 {

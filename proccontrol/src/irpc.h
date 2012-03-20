@@ -125,6 +125,7 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
 {
    friend void dyn_detail::boost::checked_delete<int_iRPC>(int_iRPC *);   
    friend class iRPCMgr;
+   friend class Dyninst::ProcControlAPI::IRPC;
  public:
    typedef dyn_detail::boost::shared_ptr<int_iRPC> ptr;
 
@@ -219,6 +220,7 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    Dyninst::Address infMallocResult();
    void setMallocResult(Dyninst::Address addr);
    rpc_wrapper *getWrapperForDecode();
+   Address getInfFreeTarget();
  private:
    static unsigned long next_id;
    unsigned long my_id;
@@ -228,6 +230,7 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    unsigned long binary_size;
    unsigned long start_offset;
    int_thread *thrd;
+   Address inffree_target;
    iRPCAllocation::ptr cur_allocation;
    iRPCAllocation::ptr target_allocation;
    IRPC::weak_ptr hl_irpc;
@@ -243,6 +246,7 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    allreg_response::ptr regsave_result;
    result_response::ptr rpcwrite_result;
    result_response::ptr pcset_result;
+   void *user_data;
 };
 
 //Singleton class, only one of these across all processes.

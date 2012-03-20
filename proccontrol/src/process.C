@@ -66,67 +66,109 @@ void Process::version(int& major, int& minor, int& maintenance)
     maintenance = ProcControl_maintenance_version;
 }
 
+bool int_process::create(int_processSet *ps) {
+   bool had_error = false;
+   set<int_process *> procs;
+   transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
 
-bool int_process::create()
-{
    //Should be called with procpool lock held
-   bool result = plat_create();
-   if (!result) {
-      pthrd_printf("Could not create debuggee, %s\n", executable.c_str());
-      ProcPool()->condvar()->unlock();
-      return false;
+   pthrd_printf("Calling plat_create for %d processes\n", (int) procs.size());
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = *i;
+      bool result = proc->plat_create();
+      if (!result) {
+         pthrd_printf("Could not create debuggee, %s\n", proc->executable.c_str());
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+      i++;
    }
 
-   int_thread *initial_thread;
-   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
+   pthrd_printf("Creating initial threads for %d processes\n", (int) procs.size());
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
+      int_process *proc = *i;
 
-   ProcPool()->addProcess(this);
-   setState(neonatal_intermediate);
+      int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true);      
+      ProcPool()->addProcess(proc);
+      proc->setState(neonatal_intermediate);
+      pthrd_printf("Created debugged %s on pid %d\n", proc->executable.c_str(), proc->pid);
+   }
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
+      
+   
+   pthrd_printf("Waiting for startup for %d processes\n", (int) procs.size());
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = *i;
 
-   pthrd_printf("Created debugged %s on pid %d\n", executable.c_str(), pid);
-   result = waitfor_startup();
-   if (getState() == int_process::exited) {
-      pthrd_printf("Process %s exited during create\n", executable.c_str());
-      return false;
+      bool result = proc->waitfor_startup();
+      if (proc->getState() == int_process::exited) {
+         pthrd_printf("Process %s/%d exited during create\n", proc->executable.c_str(), proc->pid);
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Error during process create for %d\n", proc->pid);
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+      i++;
    }
-   if (!result) {
-      pthrd_printf("Error during process create for %d\n", pid);
-      return false;
+
+   pthrd_printf("Triggering post-create for %d processes\n", (int) procs.size());
+   while (!procs.empty()) {
+      set<response::ptr> async_responses;
+      bool ret_async = false;
+      for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+         int_process *proc = *i;
+
+         async_ret_t result = proc->post_create(async_responses);
+         if (result == aret_error) {
+            pthrd_printf("Error during post create for %d\n", proc->pid);
+            had_error = true;
+            procs.erase(i++);
+         }
+         else if (result == aret_success) {
+            assert(proc->getState() == running);
+            pthrd_printf("Finished post-create for %d.  Process is ready\n", proc->pid);
+            procs.erase(i++);
+         }
+         else {
+            pthrd_printf("post-create for %d return async\n", proc->pid);
+            ret_async = true;
+            i++;
+         }
+      }
+      if (ret_async) {
+         waitForAsyncEvent(async_responses);
+      }
    }
-   result = post_create();
-   if (!result) {
-      pthrd_printf("Error during post create for %d\n", pid);
-      return false;
-   }
-  
-   assert(getState() == running);
-   return true;
+
+   return !had_error;
 }
 
 bool int_process::waitfor_startup()
 {
-   bool proc_exited;
-   for (;;) {
-      bool result;
-      
-      pthrd_printf("Waiting for startup to complete for %d\n", pid);
-      result = waitAndHandleForProc(true, this, proc_exited);
+   bool proc_exited = false;
+   while (getState() != running) {
       if (proc_exited || getState() == exited) {
          pthrd_printf("Error.  Proces exited during create/attach\n");
+         setLastError(err_exited, "Process exited during startup");
          return false;
       }
-      if (!result || getState() == errorstate) {
+      pthrd_printf("Waiting for startup to complete for %d\n", pid);
+      bool result = waitAndHandleForProc(true, this, proc_exited);
+      if (!proc_exited && (!result || getState() == errorstate)) {
          pthrd_printf("Error.  Process %d errored during create/attach\n", pid);
+         setLastError(err_internal, "Process failed to startup");
          return false;
-      }
-      if (getState() == running) {
-         pthrd_printf("Successfully completed create/attach on %d\n", pid);
-         return true;
       }
    }
+   return true;
 }
 
 bool int_process::attachThreads()
@@ -167,247 +209,237 @@ bool int_process::attachThreads()
    return true;
 }
 
-bool int_process::attach()
+bool int_process::attach(int_processSet *ps, bool reattach)
 {
-   //Should be called with procpool lock held
-
-   // Determine the running state of all threads before attaching
-   map<Dyninst::LWP, bool> runningStates;
-   if( !plat_getOSRunningStates(runningStates) ) {
-       ProcPool()->condvar()->broadcast();
-       ProcPool()->condvar()->unlock();
-       return false;
-   }
-
-   bool allStopped = true;
-   for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
-           i != runningStates.end(); ++i)
-   {
-       if( i->second ) {
-           allStopped = false;
-           break;
-       }
-   }
-
-   pthrd_printf("Attaching to process %d\n", pid);
-   bool result = plat_attach(allStopped);
-   if (!result) {
-      ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();
-      pthrd_printf("Could not attach to debuggee, %d\n", pid);
-      return false;
-   }
-
-   int_thread *initial_thread;
-   initial_thread = int_thread::createThread(this, NULL_THR_ID, NULL_LWP, true);
-
-   ProcPool()->addProcess(this);
-
-   setState(neonatal_intermediate);
-
-   result = attachThreads();
-   if (!result) {
-      pthrd_printf("Failed to attach to threads in %d--will try again\n", pid);
-   }
-
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-
-   // Now that all the threads are created, set their running states
-   for(int_threadPool::iterator i = threadPool()->begin();
-           i != threadPool()->end(); ++i)
-   {
-       map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
-
-       // There is a race that could be visible here where we are not
-       // guaranteed to determine the running state of all threads in a process
-       // before we attach -- if for some reason we don't know the running
-       // state, assume it was running
-       if( findIter == runningStates.end() ) {
-           (*i)->setRunningWhenAttached(true);
-       }else{
-           (*i)->setRunningWhenAttached(findIter->second);
-       }
-   }
-      
-   pthrd_printf("Wait for attach from process %d\n", pid);
-   result = waitfor_startup();
-   if (!result) {
-      pthrd_printf("Error waiting for attach to %d\n", pid);
-      setLastError(err_internal, "Process failed to startup");
-      goto error;
-   }
-
-   result = attachThreads();
-   if (!result) {
-      pthrd_printf("Failed to attach to threads in %d--now an error\n", pid);
-      setLastError(err_internal, "Could not get threads during attach\n");
-      goto error;
-   }
-
-
-   result = post_attach(false);
-   if (!result) {
-      pthrd_printf("Error on post attach for %d\n", pid);
-      setLastError(err_internal, "Process failed post-startup");
-      goto error;
-   }
-
-   return true;
-
-  error:
-   if (getState() == exited) {
-      setLastError(err_exited, "Process exited unexpectedly during attach\n");
-      return false;
-   }
-   pthrd_printf("Error during process attach for %d\n", pid);
-   return false;
-}
-
-bool int_process::reattach()
-{
+   bool had_error = false;
+   set<int_process *> procs;
    vector<Event::ptr> observedEvents;
-   std::set<response::ptr> async_responses;
+   set<response::ptr> async_responses;
+   transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
 
-   ProcPool()->condvar()->lock();
+   //Should be called with procpool lock held
+   pthrd_printf("Calling plat_attach for %d processes\n", (int) procs.size());
+   map<pair<int_process *, Dyninst::LWP>, bool> runningStates;
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
+      int_process *proc = *i;
+      if (!proc) {
+         procs.erase(i++);
+         continue;
+      }
+      if (reattach && proc->getState() != int_process::detached) {
+         perr_printf("Attempted to reattach to attached process %d\n", proc->getPid());
+         proc->setLastError(err_attached, "Cannot reAttach to attached process.\n");
+         procs.erase(i++);
+         continue;
+      }
 
-   // Determine the running state of all threads before attaching
-   map<Dyninst::LWP, bool> runningStates;
-   if( !plat_getOSRunningStates(runningStates) ) {
-       ProcPool()->condvar()->broadcast();
-       ProcPool()->condvar()->unlock();
-       return false;
+      // Determine the running state of all threads before attaching
+      map<Dyninst::LWP, bool> temp_runningStates;
+      if (!proc->plat_getOSRunningStates(temp_runningStates)) {
+         pthrd_printf("Could not get OS running states for %d\n", proc->getPid());
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+
+      //Keep track of the initial running states for each thread.  We'll fill them in latter
+      // after we create the int_thread objects.
+      bool allStopped = true;
+      for(map<Dyninst::LWP, bool>::iterator j = temp_runningStates.begin(); j != temp_runningStates.end(); ++j) {
+         if (j->second) {
+            allStopped = false;
+         }
+         runningStates[pair<int_process *, LWP>(proc, j->first)] = j->second;
+      }
+
+      pthrd_printf("Calling plat_attach for process %d\n", proc->getPid());
+      bool result = proc->plat_attach(allStopped);
+      if (!result) {
+         pthrd_printf("Failed to plat_attach to %d\n", proc->getPid());
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+      i++;
    }
 
-   bool allStopped = true;
-   for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
-           i != runningStates.end(); ++i)
-   {
-       if( i->second ) {
-           allStopped = false;
-           break;
-       }
-   }
+   //Create the int_thread objects via attach_threads
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = *i;
+      if (!reattach) {
+         int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true); //initial thread
+         ProcPool()->addProcess(proc);
+      }
+      proc->setState(neonatal_intermediate);
+      bool result = proc->attachThreads();
+      if (!result) {
+         pthrd_printf("Could not attach to threads in %d--will try again\n", proc->pid);
+         procs.erase(i++);
+      }
 
-   pthrd_printf("Re-attaching to process %d\n", pid);
-   bool result = plat_attach(allStopped);
-   if (!result) {
-      ProcPool()->condvar()->broadcast();
-      ProcPool()->condvar()->unlock();
-      pthrd_printf("Could not attach to debuggee, %d\n", pid);
-      return false;
-   }
+      if (reattach) {
+         // Now, go back and set non-existing threads to detached to exclude them
+         // from the bootstrap handling, creating thread destruction events for
+         // these non-existing threads
+         //
+         // Also, at the same time issue attaches to existing threads
+         int_threadPool *tp = proc->threadPool();
+         for(int_threadPool::iterator j = tp->begin(); j != tp->end(); j++)
+         {
+            int_thread *thr = *j;
 
-   result = attachThreads();
-   if (!result) {
-      pthrd_printf("Failed to re-attach to threads in %d\n", pid);
-      setLastError(err_internal, "Could not re-attach to process' threads");
-      goto error;
-   }
+            if (thr->getDetachState().getState() != int_thread::detached) {
+               //Small hack: This thread is new since we're reattaching.  Every old
+               //thread has it's DetachState in 'detached', and we'd like to unset
+               //those for the entire process.  Temporarily set this thread to detached
+               //so that it gets properly restored with the rest.
+               thr->getDetachState().desyncState(int_thread::detached);
+               continue;
+            }
 
-   // To reuse existing bootstrap code this needs to be set
-   setState(neonatal_intermediate);
-
-   // Now, go back and set non-existing threads to detached to exclude them
-   // from the bootstrap handling, creating thread destruction events for
-   // these non-existing threads
-   //
-   // Also, at the same time issue attaches to existing threads
-
-   threadPool()->initialThread()->getDetachState().restoreStateProc();
-   for(int_threadPool::iterator i = threadPool()->begin();
-           i != threadPool()->end(); ++i)
-   {
-       map<Dyninst::LWP, bool>::iterator findIter = runningStates.find((*i)->getLWP());
-       if( findIter == runningStates.end() ) {
-           pthrd_printf("Creating thread destroy event for thread %d/%d\n", pid,
-                   (*i)->getLWP());
-           (*i)->getGeneratorState().setState(int_thread::detached);
-           (*i)->getHandlerState().setState(int_thread::detached);
-           (*i)->getUserState().setState(int_thread::detached);
-           (*i)->getDetachState().setState(int_thread::detached);
-
-           Event::ptr destroyEv;
-           if (plat_supportLWPPostDestroy()) {
-              destroyEv = Event::ptr(new EventLWPDestroy(EventType::Post));
-           }
-           else if (plat_supportThreadEvents()) {
-              destroyEv = Event::ptr(new EventUserThreadDestroy(EventType::Post));
-           }
-           else {
-              perr_printf("Platform does not support any thread destroy events.  Now what?\n");
-              assert(0);
-           }
-
-           destroyEv->setProcess(proc());
-           destroyEv->setThread((*i)->thread());
-           destroyEv->setSyncType(Event::async);
-           destroyEv->setUserEvent(true);
-           observedEvents.push_back(destroyEv);
-       }else{
-           pthrd_printf("Re-attaching to thread %d/%d\n", pid, (*i)->getLWP());
-           if( !(*i)->attach() ) {
-               perr_printf("Failed to re-attach to thread %d/%d\n", pid, (*i)->getLWP());
-               setLastError(err_internal, "Could not re-attach to thread\n");
-               goto error;
-           }
-       }
+            pair<int_process *, LWP> key(proc, thr->getLWP());
+            map<pair<int_process *, LWP>, bool>::iterator findIter = runningStates.find(key);
+            
+            pthrd_printf("Re-attaching to thread %d/%d\n", proc->getPid(), thr->getLWP());
+            if (findIter == runningStates.end() || !thr->attach()) {
+               pthrd_printf("Creating thread destroy event for thread %d/%d\n", proc->getPid(), thr->getLWP());
+               thr->getGeneratorState().setState(int_thread::detached);
+               thr->getHandlerState().setState(int_thread::detached);
+               thr->getUserState().setState(int_thread::detached);
+               thr->getDetachState().setState(int_thread::detached);
+               
+               Event::ptr destroyEv;
+               if (proc->plat_supportLWPPostDestroy()) {
+                  destroyEv = Event::ptr(new EventLWPDestroy(EventType::Post));
+               }
+               else if (proc->plat_supportThreadEvents()) {
+                  destroyEv = Event::ptr(new EventUserThreadDestroy(EventType::Post));
+               }
+               else {
+                  perr_printf("Platform does not support any thread destroy events.  Now what?\n");
+                  assert(0);
+               }
+               
+               destroyEv->setProcess(proc->proc());
+               destroyEv->setThread(thr->thread());
+               destroyEv->setSyncType(Event::async);
+               destroyEv->setUserEvent(true);
+               observedEvents.push_back(destroyEv);
+            }
+         }
+         proc->threadPool()->initialThread()->getDetachState().restoreStateProc();         
+      }
+      i++;
    }
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
-   pthrd_printf("Wait for re-attach from process %d\n", pid);
-   result = waitfor_startup();
-   if (!result) {
-      pthrd_printf("Error waiting for re-attach to %d\n", pid);
-      setLastError(err_internal, "Process failed to re-attach");
-      goto error;
+   //Wait for each process to make it to the 'running' state.
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = *i;
+      pthrd_printf("Wait for attach from process %d\n", proc->pid);
+      bool result = proc->waitfor_startup();
+      if (!result) {
+         pthrd_printf("Error waiting for attach to %d\n", proc->pid);
+         procs.erase(i++);
+         had_error = true;
+      }
+      i++;
    }
 
-   result = post_attach(true);
-   if (!result) {
-      pthrd_printf("Error on post re-attach for %d\n", pid);
-      setLastError(err_internal, "Process failed post re-attach");
-      goto error;
+   //Some OSs need to do their attachThreads here.  Since the operation is supposed to be
+   //idempotent after success, then just do it again.
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
+      int_process *proc = *i;
+      bool result = proc->attachThreads();
+      if (!result) {
+         pthrd_printf("Failed to attach to threads in %d--now an error\n", proc->pid);
+         proc->setLastError(err_internal, "Could not get threads during attach\n");
+         procs.erase(i++);
+         had_error = true;
+         continue;
+      }
+
+      // Now that all the threads are created, set their running states
+      int_threadPool *tp = proc->threadPool();
+      for(int_threadPool::iterator j = tp->begin(); j != tp->end(); j++) {
+         int_thread *thr = *j;
+         pair<int_process *, LWP> key(proc, thr->getLWP());
+         map<pair<int_process *, LWP>, bool>::iterator findIter = runningStates.find(key);
+      
+         // There is a race that could be visible here where we are not
+         // guaranteed to determine the running state of all threads in a process
+         // before we attach -- if for some reason we don't know the running
+         // state, assume it was running
+         thr->setRunningWhenAttached(findIter == runningStates.end() ? true : findIter->second);
+      }
+      i++;
    }
 
-   // Resume all breakpoints
-   for(std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
-           i != mem->breakpoints.end(); ++i)
-   {
-       pthrd_printf("Resuming breakpoint at 0x%lx in process %d\n",
-               i->first, pid);
-       result_response::ptr resp = result_response::createResultResponse();
-       bool result = i->second->resume(this, resp);
-       if(!result) {
-          perr_printf("Error resuming breakpoint at %lx\n", i->first);
-          setLastError(err_internal, "Error resuming breakpoint before detach\n");
-          goto error;
-       }
-       async_responses.insert(resp);
-   }
+   pthrd_printf("Triggering post-attach for %d processes\n", (int) procs.size());
+   std::set<int_process *> pa_procs = procs;
+   while (!pa_procs.empty()) {
+      async_responses.clear();
+      bool ret_async = false;
+      for (set<int_process *>::iterator i = pa_procs.begin(); i != pa_procs.end(); ) {
+         int_process *proc = *i;
 
-   waitForAsyncEvent(async_responses);
-   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
-      if ((*i)->hasError()) {
-         perr_printf("Failed to resuming breakpoints\n");
-         setLastError(err_internal, "Error resuming breakpoint before detach\n");
-         goto error;
+         async_ret_t result = proc->post_attach(false, async_responses);
+         if (result == aret_error) {
+            pthrd_printf("Error during post attach for %d\n", proc->pid);
+            had_error = true;
+            pa_procs.erase(i++);
+         }
+         else if (result == aret_success) {
+            assert(proc->getState() == running);
+            pthrd_printf("Finished post-attach for %d.  Process is ready\n", proc->pid);
+            pa_procs.erase(i++);
+         }
+         else {
+            pthrd_printf("post-attach for %d return async\n", proc->pid);
+            ret_async = true;
+            i++;
+         }
+      }
+      if (ret_async) {
+         waitForAsyncEvent(async_responses);
       }
    }
+
+   //
+   //Everything below this point is targeted at DOTF reattach--
+   //reinstalling BPs and throwing dead thread events.
+   if (!reattach)
+      return !had_error;
+   
    async_responses.clear();
+   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
+      // Resume all breakpoints
+      int_process *proc = *i;
+      for(std::map<Dyninst::Address, installed_breakpoint *>::iterator j = proc->mem->breakpoints.begin();
+          j != proc->mem->breakpoints.end(); j++)
+      {
+         pthrd_printf("Resuming breakpoint at 0x%lx in process %d\n", j->first, proc->getPid());
+         result_response::ptr resp = result_response::createResultResponse();
+         bool result = j->second->resume(proc, resp);
+         if(!result) {
+            pthrd_printf("Error resuming breakpoint at %lx\n", j->first);
+            //Drop this error.  The library containing this BP was likely unloaded.
+         }
+         async_responses.insert(resp);
+      }
+   }
+   waitForAsyncEvent(async_responses);
 
    // Report all events for observed process state changes
-   for(vector<Event::ptr>::iterator i = observedEvents.begin();
-           i != observedEvents.end(); ++i)
+   for(vector<Event::ptr>::iterator i = observedEvents.begin(); i!= observedEvents.end(); i++)
    {
        int_thread *thrd = (*i)->getThread()->llthrd();
-
        pthrd_printf("Queuing event %s for thread %d/%d\n",
-               (*i)->getEventType().name().c_str(), pid, 
-               (*i)->getThread()->getLWP());
-
+                    (*i)->getEventType().name().c_str(), (*i)->getProcess()->getPid(),
+                    (*i)->getThread()->getLWP());
+       
        // Make sure the thread is the correct state while in event handling
        thrd->getGeneratorState().setState(int_thread::detached);
        thrd->getHandlerState().setState(int_thread::detached);
@@ -417,30 +449,20 @@ bool int_process::reattach()
        mbox()->enqueue(*i, true);
    }
 
-   if( observedEvents.size()  > 0 ) {
+   if (!observedEvents.empty()) {
       // As a sanity check, don't block
-      bool proc_exited;
-      bool result = waitAndHandleForProc(false, this, proc_exited);
-      if (proc_exited || getState() == exited) {
-         pthrd_printf("Error.  Proces exited during re-attach\n");
-         goto error;
-      }
-      if (!result || getState() == errorstate) {
-         pthrd_printf("Error.  Process %d errored re-attach\n", pid);
-         goto error;
+      bool result = waitAndHandleEvents(false);
+      if (!result) {
+         perr_printf("Internal error in waitAndHandleEvents under reattach\n");
       }
    }
 
-   return true;
+   return !had_error;
+}
 
-  error:
-   if (getState() == exited) {
-      setLastError(err_exited, "Process exited unexpectedly during re-attach\n");
-      return false;
-   }
-
-   pthrd_printf("Error during process re-attach for %d\n", pid);
-   return false;
+bool int_process::reattach(int_processSet *pset)
+{
+   return attach(pset, true);
 }
 
 bool int_process::execed()
@@ -539,44 +561,33 @@ bool int_process::post_forked()
    return true;
 }
 
-bool int_process::initializeAddressSpace()
+async_ret_t int_process::initializeAddressSpace(std::set<response::ptr> &async_responses)
 {
-   bool result = initLibraryMechanism();
-   if (!result) {
-      pthrd_printf("Error initializing library mechanism\n");
-      return false;
-   }
-
    std::set<int_library*> added, rmd;
-   for (;;) {
-      std::set<response::ptr> async_responses;
-      bool have_asyncs = false;
-      result = refresh_libraries(added, rmd, have_asyncs, async_responses);
-      if (!result && have_asyncs) {
-         result = waitForAsyncEvent(async_responses);
-         if (!result) {
-            pthrd_printf("Failure waiting for async completion\n");
-            return false;
-         }
-         continue;
-      }
-      if (!result) {
-         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
-         return false;
-      }
-      pthrd_printf("Successfully initialized address space for %d\n", getPid());
-      return true;
+
+   bool have_asyncs = false;
+   bool result = refresh_libraries(added, rmd, have_asyncs, async_responses);
+   if (!result && have_asyncs) {
+      pthrd_printf("Postponing initializeAddressSpace of %d for async operations\n", getPid());
+      return aret_async;
+
    }
+   if (!result) {
+      pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+      return aret_error;
+   }
+   pthrd_printf("Successfully initialized address space for %d\n", getPid());
+   return aret_success;
 }
 
-bool int_process::post_attach(bool)
+async_ret_t int_process::post_attach(bool, std::set<response::ptr> &async_responses)
 {
-   return initializeAddressSpace();
+   return initializeAddressSpace(async_responses);
 }
 
-bool int_process::post_create()
+async_ret_t int_process::post_create(std::set<response::ptr> &async_responses)
 {
-   return initializeAddressSpace();
+   return initializeAddressSpace(async_responses);
 }
 
 bool int_process::plat_processGroupContinues()
@@ -889,7 +900,7 @@ bool int_process::waitAndHandleEvents(bool block)
          }
          if (should_block) {
             perr_printf("Blocking wait failed to get events\n");
-            setLastError(err_internal, "Blocking wait returned without events");
+            ProcControlAPI::globalSetLastError(err_internal, "Blocking wait returned without events");
             error = true;
             goto done;
          }
@@ -897,7 +908,7 @@ bool int_process::waitAndHandleEvents(bool block)
             pthrd_printf("Handler thread found nothing to do\n");
             goto done;
          }
-         setLastError(err_noevents, "Poll failed to find events");
+         ProcControlAPI::globalSetLastError(err_noevents, "Poll failed to find events");
          pthrd_printf("Poll failed to find events\n");
          error = true;
          goto done;
@@ -948,63 +959,36 @@ bool int_process::waitAndHandleEvents(bool block)
    return !error;
 }
 
-bool int_process::detach(int_process *proc, bool temporary)
+void int_process::throwDetachEvent(bool temporary)
 {
-   pthrd_printf("%s detaching from process %d\n", temporary ? "Temporary" : "Permanent", proc->getPid());
+   pthrd_printf("%s detaching from process %d\n", temporary ? "Temporary" : "Permanent", getPid());
    EventDetach::ptr detach_ev = EventDetach::ptr(new EventDetach());
    detach_ev->getInternal()->temporary_detach = temporary;
-   detach_ev->setProcess(proc->proc());
-   detach_ev->setThread(proc->threadPool()->initialThread()->thread());
+   detach_ev->setProcess(proc());
+   detach_ev->setThread(threadPool()->initialThread()->thread());
    detach_ev->setSyncType(Event::async);
-
-   proc->getStartupTeardownProcs().inc();
-   proc->threadPool()->initialThread()->getDetachState().desyncStateProc(int_thread::stopped);
-
-   mbox()->enqueue(detach_ev);
    
-   bool exited = false;
-   do {
-      bool result = waitAndHandleForProc(true, proc, exited);
-      if (!result) {
-         perr_printf("Error during waitAndHandleForProc while detaching from %d\n", proc->getPid());
-         return false;
-      }
-   } while (!exited && !detach_ev->getInternal()->done);
-
-   if (exited && temporary) {
-      perr_printf("Process exited during temporary detach\n");
-      setLastError(err_exited, "Process exited during temporary detach");
-      return false;
-   }
-
-   return true;
+   getStartupTeardownProcs().inc();
+   threadPool()->initialThread()->getDetachState().desyncStateProc(int_thread::stopped);
+   
+   mbox()->enqueue(detach_ev);
 }
 
 bool int_process::terminate(bool &needs_sync)
 {
+   //Should be called with the ProcPool lock held.
    pthrd_printf("Terminate requested on process %d\n", getPid());
 
-   if (!preTerminate()) {
-       perr_printf("pre-terminate hook failed\n");
-       setLastError(err_internal, "Pre-terminate hook failed\n");
-       return false;
-   }
-
-   bool had_error = true;
    getStartupTeardownProcs().inc();
-   ProcPool()->condvar()->lock();
+
    bool result = plat_terminate(needs_sync);
    if (!result) {
       pthrd_printf("plat_terminate failed on %d\n", getPid());
-      goto done;
+      return false;
    }
    forcedTermination = true;
    setForceGeneratorBlock(true);
-   had_error = false;
-  done:
-   ProcPool()->condvar()->signal();
-   ProcPool()->condvar()->unlock();
-   return !had_error;
+   return true;
 }
 
 bool int_process::preTerminate() {
@@ -1038,7 +1022,8 @@ int_process::int_process(Dyninst::PID p, std::string e,
    async_event_count(Counter::AsyncEvents),
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
-   proc_stop_manager(this)
+   proc_stop_manager(this),
+   user_data(NULL)
 {
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -1063,7 +1048,8 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    async_event_count(Counter::AsyncEvents),
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
-   proc_stop_manager(this)
+   proc_stop_manager(this),
+   user_data(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -1209,82 +1195,138 @@ SymbolReaderFactory *int_process::plat_defaultSymReader()
   return NULL;
 }
 
-Dyninst::Address int_process::infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
+bool int_process::infMalloc(int_processSet *pset, unsigned long size, bool use_addr, Dyninst::Address addr,
+                            map<int_process *, Address> &results)
 {
-   bool proc_exited = false;
+   bool had_error = false;
+   map<int_process *, int_iRPC::ptr> active_mallocs;
 
-   pthrd_printf("Process %d is allocating memory of size %lu at 0x%lx\n", getPid(), size, addr);
-   int_iRPC::ptr rpc = rpcMgr()->createInfMallocRPC(this, size, use_addr, addr);
-   assert(rpc);
-   bool result = rpcMgr()->postRPCToProc(this, rpc);
-   if (!result) {
-      pthrd_printf("Error posting RPC to thread");
-      return 0;
+   for (int_processSet::iterator i = pset->begin(); i != pset->end(); i++) {
+      Process::ptr p = *i;
+      if (!p)
+         continue;
+      int_process *proc = p->llproc();
+      if (proc->getState() == int_process::detached)
+         continue;
+      pthrd_printf("Process %d is allocating memory of size %lu at 0x%lx\n", proc->getPid(), size, addr);
+
+      int_iRPC::ptr rpc = rpcMgr()->createInfMallocRPC(proc, size, use_addr, addr);
+      assert(rpc);
+      bool result = rpcMgr()->postRPCToProc(proc, rpc);
+      if (!result) {
+         p->setLastError(err_internal, "Error posting infMalloc RPC to process\n");
+         pthrd_printf("Error posting RPC to thread");
+         had_error = true;
+         continue;
+      }
+      
+      int_thread *thr = rpc->thread();
+      assert(thr);
+      active_mallocs[proc] = rpc;
+      thr->getInternalState().desyncState(int_thread::running);
+      rpc->setRestoreInternal(true);
+      proc->throwNopEvent();
    }
 
-   int_thread *thr = rpc->thread();
-   assert(thr);
-   thr->getInternalState().desyncState(int_thread::running);
-   rpc->setRestoreInternal(true);
-
-   throwNopEvent();
-   result = waitAndHandleForProc(false, this, proc_exited);
-   if (proc_exited) {
-      perr_printf("Process exited during infMalloc\n");
-      setLastError(err_exited, "Process exited during infMalloc\n");
-      return 0;
+   if (!active_mallocs.empty()) {
+      bool result = int_process::waitAndHandleEvents(false);
+      if (!result) {
+         perr_printf("Internal error calling waitAndHandleEvents\n");
+         for_each(pset->begin(), pset->end(), 
+                  setError(err_internal, "Error while calling waitAndHandleForProc from infMalloc\n"));
+         return false;
+      }
    }
-   if (!result) {
-      pthrd_printf("Error in waitAndHandleEvents\n");
-      return 0;
-   }
-   assert(rpc->getState() == int_iRPC::Finished);
 
-   Dyninst::Address aresult = rpc->infMallocResult();
-   pthrd_printf("Inferior malloc returning %lx\n", aresult);
-   mem->inf_malloced_memory[aresult] = size;
-   return aresult;
+   for (int_processSet::iterator i = pset->begin(); i != pset->end(); i++) {
+      int_process *proc = (*i)->llproc();
+      map<int_process *, int_iRPC::ptr>::iterator j = active_mallocs.find(proc);
+      if (j == active_mallocs.end()) {
+         //An error'd process
+         continue;
+      }
+
+      int_iRPC::ptr rpc = j->second;
+      assert(rpc->getState() == int_iRPC::Finished);
+      Dyninst::Address aresult = rpc->infMallocResult();
+      pthrd_printf("Inferior malloc returning %lx on %d\n", aresult, proc->getPid());
+      proc->mem->inf_malloced_memory[aresult] = size;
+      results[proc] = aresult;
+   }
+
+   return !had_error;
 }
 
-bool int_process::infFree(Dyninst::Address addr)
+bool int_process::infFree(int_addressSet *aset)
 {
-   bool proc_exited = false;
+   bool had_error = false;
+   set<pair<Process::ptr, int_iRPC::ptr> > active_frees;
 
-   std::map<Dyninst::Address, unsigned long>::iterator i = mem->inf_malloced_memory.find(addr);
-   if (i == mem->inf_malloced_memory.end()) {
-      setLastError(err_badparam, "Unknown address passed to freeMemory");
-      perr_printf("Passed bad address, %lx, to infFree\n", addr);
-      return false;
+   for (int_addressSet::iterator i = aset->begin(); i != aset->end(); i++) {
+      Address addr = i->first;
+      Process::ptr p = i->second;
+      if (!p) {
+         had_error = true;
+         continue;
+      }
+      int_process *proc = p->llproc();
+      if (!proc || proc->getState() == int_process::detached) {
+         had_error = true;
+         continue;
+      }
+
+      std::map<Dyninst::Address, unsigned long>::iterator j = proc->mem->inf_malloced_memory.find(addr);
+      if (j == proc->mem->inf_malloced_memory.end()) {
+         proc->setLastError(err_badparam, "Unknown address passed to freeMemory");
+         perr_printf("Passed bad address, %lx, to infFree on %d\n", addr, proc->getPid());
+         had_error = true;
+         continue;
+      }
+      unsigned long size = j->second;
+
+      int_iRPC::ptr rpc = rpcMgr()->createInfFreeRPC(proc, size, addr);
+      assert(rpc);
+      pthrd_printf("Process %d is freeing memory of size %lu at 0x%lx with rpc %lu\n", proc->getPid(),
+                   size, addr, rpc->id());
+      rpcMgr()->postRPCToProc(proc, rpc);
+
+      int_thread *thr = rpc->thread();
+      assert(thr);
+      thr->getInternalState().desyncState(int_thread::running);
+      rpc->setRestoreInternal(true);
+      
+      proc->throwNopEvent();
+      active_frees.insert(make_pair(p, rpc));
    }
-   unsigned long size = i->second;
 
-   int_iRPC::ptr rpc = rpcMgr()->createInfFreeRPC(this, size, addr);
-   assert(rpc);
-   pthrd_printf("Process %d is freeing memory of size %lu at 0x%lx with rpc %lu\n", getPid(), size, addr,
-                rpc->id());
-   rpcMgr()->postRPCToProc(this, rpc);
-
-   int_thread *thr = rpc->thread();
-   assert(thr);
-   thr->getInternalState().desyncState(int_thread::running);
-   rpc->setRestoreInternal(true);
-
-   throwNopEvent();
-   bool result = waitAndHandleForProc(false, this, proc_exited);
-   if (proc_exited) {
-      perr_printf("Process exited during infFree\n");
-      setLastError(err_exited, "Process exited during infFree\n");
-      return 0;
+   if (!active_frees.empty()) {
+      bool result = int_process::waitAndHandleEvents(false);
+      if (!result) {
+         perr_printf("Internal error calling waitAndHandleEvents\n");
+         for_each(aset->begin(), aset->end(), 
+                  setError(err_internal, "Error while calling waitAndHandleForProc from infFree\n"));
+         return false;
+      }
    }
-   if (!result) {
-      pthrd_printf("Error in waitAndHandleEvents\n");
-      return 0;
+   
+   for (set<pair<Process::ptr, int_iRPC::ptr> >::iterator i = active_frees.begin(); i != active_frees.end(); i++) {
+      Process::ptr p = i->first;
+      int_iRPC::ptr rpc = i->second;
+      int_process *proc = p->llproc();
+      
+      if (!proc) {
+         perr_printf("Process %d exited during infFree\n", p->getPid());
+         p->setLastError(err_exited, "Process exited during infFree\n");
+         had_error = true;
+         continue;
+      }
+      assert(rpc->getState() == int_iRPC::Finished);
+      Address addr = rpc->getInfFreeTarget();
+      map<Dyninst::Address, unsigned long>::iterator j = proc->mem->inf_malloced_memory.find(addr);
+      proc->mem->inf_malloced_memory.erase(j);
    }
-   assert(rpc->getState() == int_iRPC::Finished);
 
-   pthrd_printf("Inferior free returning successfully\n");
-   mem->inf_malloced_memory.erase(i);
-   return true;
+   return !had_error;
 }
 
 void int_process::setForceGeneratorBlock(bool b)
@@ -1315,68 +1357,117 @@ HandlerPool *int_process::handlerPool() const
    return handlerpool;
 }
 
-bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
+bool int_process::addBreakpoint_phase1(bp_install_state *is)
 {
    if (getState() != running) {
-      perr_printf("Attempted to add breakpoint at %lx to stopped process %d\n", addr, getPid());
+      perr_printf("Attempted to add breakpoint at %lx to stopped process %d\n", is->addr, getPid());
       setLastError(err_exited, "Attempted to insert breakpoint into exited process\n");
       return false;
    }
 
-   pthrd_printf("Installing new breakpoint at %lx into %d\n", addr, getPid());
-   installed_breakpoint *ibp = NULL;
-   map<Address, installed_breakpoint *>::iterator i = mem->breakpoints.find(addr);
-   if (i == mem->breakpoints.end()) {
-      pthrd_printf("Adding new breakpoint to %d\n", getPid());
-      ibp = new installed_breakpoint(mem, addr);
-
-      mem_response::ptr mem_resp = mem_response::createMemResponse();
-      mem_resp->markSyncHandled();
-      bool result = ibp->prepBreakpoint(this, mem_resp);
-      if (!result) {
-         pthrd_printf("Failed to prep breakpoint\n");
-         delete ibp;
-         return false;
-      }
-
-      result = waitForAsyncEvent(mem_resp);
-      if (!result || mem_resp->hasError()) {
-         pthrd_printf("Error prepping breakpoint\n");
-         delete ibp;
-         return false;
-      }
-
-      result_response::ptr res_resp = result_response::createResultResponse();
-      res_resp->markSyncHandled();
-      result = ibp->insertBreakpoint(this, res_resp);
-      if (!result) {
-         pthrd_printf("Error writing new breakpoint\n");
-         delete ibp;
-         return false;
-      }
-
-      result = waitForAsyncEvent(res_resp);
-      if (!result || res_resp->hasError()) {
-         pthrd_printf("Error writing new breakpoint\n");
-         delete ibp;
-         return false;
-      }
-
-      ibp->addBreakpoint(bp);
+   pthrd_printf("Installing new breakpoint at %lx into %d\n", is->addr, getPid());
+   is->ibp = NULL;
+   map<Address, installed_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
+   is->do_install = (i == mem->breakpoints.end());
+   if (!is->do_install) {
+      is->ibp = i->second;
+      assert(is->ibp && is->ibp->isInstalled());
+      bool result = is->ibp->addBreakpoint(is->bp);
       if (!result) {
          pthrd_printf("Failed to install new breakpoint\n");
-         delete ibp;
          return false;
       }
       return true;
    }
-   ibp = i->second;
-   assert(ibp && ibp->isInstalled());
-   bool result = ibp->addBreakpoint(bp);
+
+   pthrd_printf("Adding new breakpoint to %d\n", getPid());
+   is->ibp = new installed_breakpoint(mem, is->addr);
+
+   is->mem_resp = mem_response::createMemResponse();
+   is->mem_resp->markSyncHandled();
+   bool result = is->ibp->prepBreakpoint(this, is->mem_resp);
    if (!result) {
-      pthrd_printf("Failed to install new breakpoint\n");
+      pthrd_printf("Failed to prep breakpoint\n");
+      delete is->ibp;
       return false;
    }
+   return true;
+}
+
+bool int_process::addBreakpoint_phase2(bp_install_state *is)
+{
+   if (!is->do_install)
+      return true;   
+
+   if (is->mem_resp->hasError()) {
+      pthrd_printf("Error prepping breakpoint\n");
+      delete is->ibp;
+      return false;
+   }
+
+   is->res_resp = result_response::createResultResponse();
+   is->res_resp->markSyncHandled();
+   bool result = is->ibp->insertBreakpoint(this, is->res_resp);
+   if (!result) {
+      pthrd_printf("Error writing new breakpoint\n");
+      delete is->ibp;
+      return false;
+   }
+   return true;
+}
+
+bool int_process::addBreakpoint_phase3(bp_install_state *is)
+{
+   if (!is->do_install)
+      return true;
+
+   if (is->res_resp->hasError()) {
+      pthrd_printf("Error writing new breakpoint\n");
+      delete is->ibp;
+      return false;
+   }
+   
+   bool result = is->ibp->addBreakpoint(is->bp);
+   if (!result) {
+      pthrd_printf("Failed to install new breakpoint\n");
+      delete is->ibp;
+      return false;
+   }
+   return true;
+}
+
+bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
+{
+   bool result;
+   bp_install_state is;
+   is.addr = addr;
+   is.bp = bp;
+
+   result = addBreakpoint_phase1(&is);
+   if (!result)
+      return false;
+   if (is.mem_resp && is.mem_resp->isPosted()) {
+      result = waitForAsyncEvent(is.mem_resp);
+      if (!result) {
+         perr_printf("Error waiting for result of memory response\n");
+         return false;
+      }
+   }
+
+   result = addBreakpoint_phase2(&is);
+   if (!result)
+      return false;
+   if (is.res_resp && is.res_resp->isPosted()) {
+      result = waitForAsyncEvent(is.res_resp);
+      if (!result) {
+         perr_printf("Error waiting for result of result response\n");
+         return false;
+      }
+   }
+
+   result = addBreakpoint_phase3(&is);
+   if (!result)
+      return false;
 
    return true;
 }
@@ -1445,6 +1536,24 @@ bool int_process::isInCallback()
 mem_state::ptr int_process::memory() const
 {
    return mem;
+}
+
+err_t int_process::getLastError() {
+   return last_error;
+}
+
+const char *int_process::getLastErrorMsg() {
+   return last_error_string;
+}
+void int_process::clearLastError() {
+   last_error = err_none;
+   last_error_string = "ok";
+}
+
+void int_process::setLastError(err_t err, const char *str) {
+   last_error = err;
+   last_error_string = str;
+   ProcControlAPI::globalSetLastError(err, str);
 }
 
 void int_process::setExitCode(int c)
@@ -1661,6 +1770,7 @@ int_process::~int_process()
       exitstate->exit_code = exitCode;
       exitstate->crashed = hasCrashSignal;
       exitstate->crash_signal = crashSignal;
+      exitstate->user_data = user_data;
       assert(!up_proc->exitstate_);
       up_proc->exitstate_ = exitstate;
       up_proc->llproc_ = NULL;
@@ -2008,7 +2118,8 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
-   em_singlestep(NULL)
+   em_singlestep(NULL),
+   user_data(NULL)
 {
    Thread::ptr new_thr(new Thread());
 
@@ -2026,6 +2137,7 @@ int_thread::~int_thread()
    tes->lwp = lwp;
    tes->thr_id = tid;
    tes->proc_ptr = proc();
+   tes->user_data = user_data;
    up_thread->exitstate_ = tes;
    up_thread->llthread_ = NULL;
 }
@@ -3278,6 +3390,12 @@ bool int_thread::isSuspended() const
    return suspended;
 }
 
+void int_thread::setLastError(err_t ec, const char *es) {
+   if (proc_) {
+      proc_->setLastError(ec, es);
+   }
+}
+
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 {
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
@@ -3695,8 +3813,10 @@ bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
          if ((*i)->isCtrlTransfer()) {
             perr_printf("Error.  Attempted to add two control transfer breakpoints " 
                         "at same place");
-            setLastError(err_badparam, "Attempted two control transfer breakpoints at " 
-                         "same location\n");
+            for (set<int_process *>::iterator i = memory->procs.begin(); i != memory->procs.end(); i++) {
+               (*i)->setLastError(err_badparam, "Attempted two control transfer breakpoints at " 
+                                  "same location\n");
+            }
             return false;
          }
       }
@@ -3754,7 +3874,7 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
    set<int_breakpoint *>::iterator i = bps.find(bp);
    if (i == bps.end()) {
       perr_printf("Attempted to remove a non-installed breakpoint\n");
-      setLastError(err_badparam, "Breakpoint was not installed in process\n");
+      proc->setLastError(err_badparam, "Breakpoint was not installed in process\n");
       empty = false;
       return false;
    }
@@ -3770,7 +3890,7 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
       bool result = uninstall(proc, async_resp);
       if (!result) {
          perr_printf("Failed to remove breakpoint at %lx\n", addr);
-         setLastError(err_internal, "Could not remove breakpoint\n");
+         proc->setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
    }
@@ -4297,7 +4417,7 @@ size_t LibraryPool::size() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+      proc->setLastError(err_exited, "Process is exited\n");
       return -1;
    }
    return proc->numLibs();
@@ -4308,7 +4428,7 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+      proc->setLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -4323,7 +4443,7 @@ Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+      proc->setLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -4338,7 +4458,7 @@ Library::ptr LibraryPool::getExecutable()
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+      proc->setLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;
@@ -4349,7 +4469,7 @@ Library::const_ptr LibraryPool::getExecutable() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+      proc->setLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;
@@ -4492,7 +4612,7 @@ bool Process::handleEvents(bool block)
    pthrd_printf("User triggered event handling\n");
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot handleEvents from callback\n");
+      ProcControlAPI::globalSetLastError(err_incallback, "Cannot handleEvents from callback\n");
       return false;
    }
 
@@ -4520,7 +4640,7 @@ Process::ptr Process::createProcess(std::string executable,
    pthrd_printf("User asked to launch executable %s\n", executable.c_str());
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process create while in CB, erroring.");
-      setLastError(err_incallback, "Cannot createProcess from callback\n");
+      ProcControlAPI::globalSetLastError(err_incallback, "Cannot createProcess from callback\n");
       return Process::ptr();
    }
 
@@ -4530,7 +4650,9 @@ Process::ptr Process::createProcess(std::string executable,
    int_process *llproc = int_process::createProcess(executable, argv, envp, fds);
    llproc->initializeProcess(newproc);
    
-   bool result = llproc->create(); //Releases procpool lock
+   int_processSet the_proc;
+   the_proc.insert(newproc);
+   bool result = int_process::create(&the_proc); //Releases procpool lock
    if (!result) {
       pthrd_printf("Unable to create process %s\n", executable.c_str());
       return Process::ptr();
@@ -4545,7 +4667,7 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    pthrd_printf("User asked to attach to process %d (%s)\n", pid, executable.c_str());
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process attach while in CB, erroring.\n");
-      setLastError(err_incallback, "Cannot attachProcess from callback\n");
+      ProcControlAPI::globalSetLastError(err_incallback, "Cannot attachProcess from callback\n");
       return Process::ptr();
    }
 
@@ -4555,7 +4677,9 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    int_process *llproc = int_process::createProcess(pid, executable);
    llproc->initializeProcess(newproc);
 
-   bool result = llproc->attach(); //Releases procpool lock
+   int_processSet the_proc;
+   the_proc.insert(newproc);
+   bool result = llproc->attach(&the_proc, false); //Releases procpool lock
    if (!result) {
       pthrd_printf("Unable to attach to process %d\n", pid);
       delete llproc;
@@ -4567,8 +4691,7 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
 
 Process::Process() :
    llproc_(NULL),
-   exitstate_(NULL),
-   userData_(NULL)
+   exitstate_(NULL)
 {
 }
 
@@ -4581,11 +4704,21 @@ Process::~Process()
 }
 
 void *Process::getData() const {
-    return userData_;
+   MTLock lock_this_func;
+   if (exitstate_) {
+      return exitstate_->user_data;
+   }
+   return llproc_->user_data;
 }
 
-void Process::setData(void *p) {
-    userData_ = p;
+void Process::setData(void *p) const {
+   MTLock lock_this_func;
+   if (exitstate_) {
+      exitstate_->user_data = p;
+   }
+   else {
+      llproc_->user_data = p;
+   }
 }
 
 Dyninst::PID Process::getPid() const 
@@ -4596,11 +4729,6 @@ Dyninst::PID Process::getPid() const
       return exitstate_->pid;
    }
    return llproc_->getPid();
-}
-
-int_process *Process::llproc() const
-{
-   return llproc_;
 }
 
 const ThreadPool &Process::threads() const
@@ -4671,30 +4799,8 @@ LibraryPool &Process::libraries()
 
 bool Process::continueProc()
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("coninueProc on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("continueProc on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot continueProc from callback\n");
-      return false;
-   }
-
-   pthrd_printf("User continuing entire process %d\n", getPid());
-   llproc_->threadPool()->initialThread()->getUserState().setStateProc(int_thread::running);
-   llproc_->throwNopEvent();
-
-   return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->continueProcs();
 }
 
 bool Process::isCrashed() const
@@ -4761,195 +4867,32 @@ bool Process::isDetached() const
 
 bool Process::stopProc()
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("stopProc on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-      perr_printf("stopProc on detached process\n");
-      setLastError(err_detached, "Process is detached\n");
-      return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot stopProc from callback\n");
-      return false;
-   }
-
-   pthrd_printf("User stopping entire process %d\n", getPid());
-   llproc_->threadPool()->initialThread()->getUserState().setStateProc(int_thread::stopped);
-   llproc_->throwNopEvent();
-
-   bool proc_exited = false;
-   bool result = int_process::waitAndHandleForProc(false, llproc_, proc_exited);
-   if (proc_exited) {
-      perr_printf("Process exited while waiting for user stop, erroring\n");
-      setLastError(err_exited, "Process exited while being stopped.\n");
-      return false;
-   }
-   if (!result) {
-      perr_printf("Internal error calling waitAndHandleForProc on %d\n", llproc_->getPid());
-      setLastError(err_internal, "Error while calling waitAndHandleForProc from process stop\n");
-      return false;
-   }
-   return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->stopProcs();
 }
 
 bool Process::detach()
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-
-   if (!llproc_) {
-      perr_printf("detach on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("detach on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   bool pendingRPCs = false;
-   int_threadPool *tp = llproc()->threadPool();
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-       int_thread *thr = *i;
-       if( thr->getPostedRPCs()->size() > 0 ) {
-           pendingRPCs = true;
-           break;
-       }
-   }
-
-   if( pendingRPCs ) {
-       perr_printf("detach on a process with pending RPCs\n");
-       setLastError(err_pendingirpcs, "Process has pending iRPCs, cannot detach\n");
-       return false;
-   }
-
-   bool result = int_process::detach(llproc_, false);
-   if (!result) {
-      pthrd_printf("Failed to detach from process\n");
-      return false;
-   }
-  
-   return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->detach();
 }
 
 bool Process::temporaryDetach()
 {
-    MTLock lock_this_func(MTLock::deliver_callbacks);
-    if (!llproc_) {
-        perr_printf("temporary detach on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
-    if (!llproc_->plat_supportDOTF()) {
-       perr_printf("Temporary detach not supported on this platform\n");
-       setLastError(err_unsupported, "Temporary detach not supported on this platform\n");
-       return false;
-    }
-
-    if( llproc_->getState() == int_process::detached ) {
-        perr_printf("temporary detach on already detached process\n");
-        setLastError(err_detached, "Process is already detached\n");
-        return false;
-    }
-
-    bool pendingRPCs = false;
-    int_threadPool *tp = llproc()->threadPool();
-    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-        int_thread *thr = *i;
-        if( thr->getPostedRPCs()->size() > 0 ) {
-            pendingRPCs = true;
-            break;
-        }
-    }
-
-    if( pendingRPCs ) {
-        perr_printf("temporary detach on a process with pending RPCs\n");
-        setLastError(err_pendingirpcs, "Process has pending iRPCs, cannot detach\n");
-        return false;
-    }
-
-    bool result = int_process::detach(llproc_, true);
-    if( !result ) {
-        pthrd_printf("Failed to detach from process\n");
-        return false;
-    }
-
-    return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->temporaryDetach();
 }
 
 bool Process::reAttach()
 {
-    MTLock lock_this_func(MTLock::deliver_callbacks);
-    if (!llproc_) {
-        perr_printf("reAttach on deleted process\n");
-        setLastError(err_exited, "Process is exited\n");
-        return false;
-    }
-    if (!llproc_->plat_supportDOTF()) {
-       perr_printf("reAttach not supported on this platform\n");
-       setLastError(err_unsupported, "reAttach not supported on this platform\n");
-       return false;
-    }
-
-    bool result = llproc_->reattach();
-    if( !result ) {
-        pthrd_printf("Failed to reattach to process\n");
-        return false;
-    }
-
-    return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->reAttach();
 }
 
 bool Process::terminate()
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("terminate on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("terminate on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   pthrd_printf("User terminating process %d\n", llproc_->getPid());
-
-   bool needsSync = false;
-   bool result = llproc_->terminate(needsSync);
-   if (!result) {
-      pthrd_printf("Terminating process %d failed\n", llproc_->getPid());
-      return false;
-   }
-
-   if (needsSync) {
-      bool proc_exited = false;
-      while (!proc_exited) {
-         bool result = int_process::waitAndHandleForProc(true, llproc_, proc_exited);
-         if (!result) {
-            perr_printf("Error waiting for process to terminate\n");
-            return false;
-         }
-      }
-   }
-   else {
-      HandlerPool *hp = llproc_->handlerPool();
-      delete llproc_;
-      delete hp;
-      assert(!llproc_);
-   }
-
-   return true;
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   return ps->terminate();
 }
 
 bool Process::isTerminated() const
@@ -5164,71 +5107,33 @@ bool Process::supportsExec() const
 
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("mallocMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
+   AddressSet::ptr addr_result;
+   bool result = pset->mallocMemory(size, addr, addr_result);
+   if (!result || addr_result->empty()) {
+      return 0;
    }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("mallocMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot mallocMemory from callback\n");
-      return false;
-   }
-   return llproc_->infMalloc(size, true, addr);
+   AddressSet::iterator i = addr_result->begin();
+   return i->first;
 }
 
 Dyninst::Address Process::mallocMemory(size_t size)
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("mallocMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
+   AddressSet::ptr addr_result;
+   bool result = pset->mallocMemory(size, addr_result);
+   if (!result || addr_result->empty()) {
+      return 0;
    }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("mallocMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot mallocMemory from callback\n");
-      return false;
-   }
-   return llproc_->infMalloc(size, false, 0x0);
+   return addr_result->begin()->first;
 }
 
 bool Process::freeMemory(Dyninst::Address addr)
 {
-   MTLock lock_this_func(MTLock::deliver_callbacks);
-   if (!llproc_) {
-      perr_printf("freeMemory on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   if( llproc_->getState() == int_process::detached ) {
-       perr_printf("freeMemory on detached process\n");
-       setLastError(err_detached, "Process is detached\n");
-       return false;
-   }
-
-   if (int_process::isInCB()) {
-      perr_printf("User attempted call on process while in CB, erroring.");
-      setLastError(err_incallback, "Cannot freeMemory from callback\n");
-      return false;
-   }
-   return llproc_->infFree(addr);
+   Process::ptr this_ptr = shared_from_this();
+   AddressSet::ptr addrs = AddressSet::newAddressSet(this_ptr, addr);
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(this_ptr);
+   return pset->freeMemory(addrs);
 }
 
 bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size) const
@@ -5375,10 +5280,48 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    return llproc()->plat_defaultSymReader();
 }
 
+err_t Process::getLastError() const {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      return exitstate_->last_error;
+   }
+   return llproc_->getLastError();
+}
+
+const char *Process::getLastErrorMsg() const {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      return exitstate_->last_error_msg;
+   }
+   return llproc_->getLastErrorMsg();
+}
+
+void Process::setLastError(err_t ec, const char *es) const {
+   MTLock lock_this_func;
+   if (!llproc_) {
+      exitstate_->last_error = ec;
+      exitstate_->last_error_msg = es;
+      ProcControlAPI::globalSetLastError(ec, es);
+   }
+   else {
+      llproc_->setLastError(ec, es);
+   }
+}
+
+void Process::clearLastError() const {
+  MTLock lock_this_func;
+  if (!llproc_) {
+     exitstate_->last_error = err_none;
+     exitstate_->last_error_msg = "ok";
+  }
+  else {
+     llproc_->clearLastError();
+  }
+}
+
 Thread::Thread() :
    llthread_(NULL),
-   exitstate_(NULL),
-   userData_(NULL)
+   exitstate_(NULL)
 {
 }
 
@@ -5391,11 +5334,20 @@ Thread::~Thread()
 }
 
 void *Thread::getData() const {
-    return userData_;
+   MTLock lock_this_func;
+   if (exitstate_)
+      return exitstate_->user_data;
+   return llthread_->user_data;
 }
 
-void Thread::setData(void *p) {
-    userData_ = p;
+void Thread::setData(void *p) const {
+   MTLock lock_this_func;
+   if (exitstate_) {
+      exitstate_->user_data = p;
+   }
+   else {
+      llthread_->user_data = p;
+   }
 }
 
 Process::const_ptr Thread::getProcess() const
@@ -5890,6 +5842,16 @@ IRPC::const_ptr Thread::getRunningIRPC() const
    return irpc;
 }
 
+void Thread::setLastError(err_t ec, const char *es) const {
+   if (!llthread_) {
+      assert(exitstate_);
+      exitstate_->proc_ptr->setLastError(ec, es);
+   }
+   else {
+      llthread_->setLastError(ec, es);
+   }
+}
+
 ThreadPool::ThreadPool()
 {
 }
@@ -6209,7 +6171,7 @@ void *Breakpoint::getData() const {
    return llbreakpoint_->getData();
 }
 
-void Breakpoint::setData(void *d) {
+void Breakpoint::setData(void *d) const {
    llbreakpoint_->setData(d);
 }
 
@@ -6315,7 +6277,7 @@ bool MTManager::setThreadMode(Process::thread_mode_t tm, bool init)
 {
    if (ProcPool()->numProcs()) {
       perr_printf("Attemted to setThreadMode with running processes\n");
-      setLastError(err_noproc, "Can't setThreadMode while processes are running\n");
+      ProcControlAPI::globalSetLastError(err_noproc, "Can't setThreadMode while processes are running\n");
       return false;
    }
    if (!init && tm == threadMode) {
@@ -6338,7 +6300,7 @@ bool MTManager::setThreadMode(Process::thread_mode_t tm, bool init)
          break;
       default:
          perr_printf("Bad value %d passed to setThreadMode\n", (int) tm);
-         setLastError(err_badparam, "Invalid parameter to setThreadMode\n");
+         ProcControlAPI::globalSetLastError(err_badparam, "Invalid parameter to setThreadMode\n");
          return false;
    }
 

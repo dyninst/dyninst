@@ -1148,7 +1148,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    }
    if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {
       pthrd_printf("Error setting pc register on breakpoint\n");
-      setLastError(err_internal, "Could not set pc register upon breakpoint\n");
+      ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
       return ret_error;
    }
    if (int_ebp->pc_regset && !int_ebp->pc_regset->isReady()) {
@@ -1557,7 +1557,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
             bool result = i->second->uninstall(proc, resp);
             if (!result) {
                perr_printf("Error removing breakpoint at %lx\n", i->first);
-               setLastError(err_internal, "Error removing breakpoint before detach\n");
+               ev->setLastError(err_internal, "Error removing breakpoint before detach\n");
                goto done;
             }
             async_responses.insert(resp);
@@ -1571,7 +1571,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
             bool result = i->second->suspend(proc, resp);
             if(!result) {
                perr_printf("Error suspending breakpoint at %lx\n", i->first);
-               setLastError(err_internal, "Error suspending breakpoint before detach\n");
+               ev->setLastError(err_internal, "Error suspending breakpoint before detach\n");
                goto done;
             }
             async_responses.insert(resp);
@@ -1583,7 +1583,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
       if ((*i)->hasError()) {
          perr_printf("Failed to remove breakpoints\n");
-         setLastError(err_internal, "Error removing breakpoint before detach\n");
+         ev->setLastError(err_internal, "Error removing breakpoint before detach\n");
          goto done;
       }
       if (!(*i)->isReady()) {
@@ -2001,7 +2001,7 @@ bool HandleCallbacks::registerCallback(EventType oev, Process::cb_func_t func)
    }
    if (!registered_cb) {
       pthrd_printf("Did not register any callbacks for %s\n", oev.name().c_str());
-      setLastError(err_noevents, "EventType does not exist");
+      ProcControlAPI::globalSetLastError(err_noevents, "EventType does not exist");
       return false;
    }
    return true;
@@ -2053,7 +2053,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
    if (!removed_cb) {
       perr_printf("Attempted to remove non-existant callback %s\n", 
                   oet.name().c_str());
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;
@@ -2088,7 +2088,7 @@ bool HandleCallbacks::removeCallback(EventType et)
    if (!result) {
       perr_printf("Attempted to remove non-existant callback %s\n", 
                   et.name().c_str());
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;
@@ -2106,7 +2106,7 @@ bool HandleCallbacks::removeCallback(Process::cb_func_t func)
    }
    if (!rmd_something) {
       perr_printf("Attempted to remove non-existant callback %p\n", func);
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;

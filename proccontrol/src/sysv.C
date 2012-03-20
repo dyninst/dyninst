@@ -321,7 +321,15 @@ bool sysv_process::plat_execed()
    breakpoint_addr = 0x0;
    lib_initialized = false;
 
-   return initializeAddressSpace();
+   for (;;) {
+      set<response::ptr> aresps;
+      async_ret_t result = initializeAddressSpace(aresps);
+      if (result == aret_async) {
+         //Not doing performant async handling, as BG does not have exec.
+         waitForAsyncEvent(aresps);
+      }
+      return (result == aret_success);
+   }
 }
 
 bool sysv_process::plat_isStaticBinary()

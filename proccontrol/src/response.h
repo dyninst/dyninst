@@ -247,6 +247,7 @@ class mem_response : public response
    void postResponse(char *src, unsigned src_size, Address src_addr = 0);
    void postResponse();
    void setLastBase(Address a);
+   Address lastBase();
 };
 
 

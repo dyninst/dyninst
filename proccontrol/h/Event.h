@@ -214,7 +214,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventThreadDB> getEventThreadDB();
    dyn_detail::boost::shared_ptr<const EventThreadDB> getEventThreadDB() const;
- 
+
+   //Not meant for public consumption
+   void setLastError(err_t ec, const char *es);
  protected:
    EventType etype;
    Thread::const_ptr thread;
