@@ -35,7 +35,7 @@
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
-
+#include "proccontrol/src/response.h"
 #include <stdlib.h>
 #include <map>
 #include <algorithm>
@@ -46,6 +46,17 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+
+/**
+ * AddressSet implementation follows.  This is essentially a std::multimap of Address -> Process::ptr
+ * plus some additional features:
+ *  - Ability to create addresses based on ProcControlAPI objects, such as libraries.
+ *  - Additional range features to make it easier to group addresses
+ *  - No duplicates of Address, Process:ptr pairs are allowed, though there are
+ *    duplicate Address keys.
+ *
+ * I'd recommend your to your favorite multimap documentation for most of this.
+ **/
 typedef pair<Address, Process::ptr> apair_t;
 
 AddressSet::AddressSet() :
@@ -296,8 +307,28 @@ AddressSet::ptr AddressSet::set_difference(AddressSet::const_ptr pp) const
    return newset;
 }
 
+
+/**
+ * The following bundle of hackery is a wrapper around iterators that
+ * checks processes for common errors.  Many of the functions that implement
+ * ProcessSet and ThreadSet have do an operation where they iterate over
+ * a collection, pull some Process::ptr or Thread::ptr out of that collection,
+ * check it for common errors (e.g, operating on a dead process), then do some
+ * real work. These classes/templates are an attempt to bring all that error checking
+ * and iteration into a common place.
+ *
+ * Things are complicated by the fact that we use many different types of collections
+ * We might be operating over sets of Process::ptrs, or multimaps from Thread::ptr to 
+ * register values, etc.  The common iteration and error handling code is in the iter_t
+ * template, which takes the type of collection it's iterating over as template parameters.
+ *
+ * The three big operations iter_t needs to do is extract a process from an iterator and
+ * get the begin/end iterators from a collection.  These operations are done by a set
+ * of overloaded functions: get_proc, get_begin, and get_end.  We have an instance of these
+ * for each type of collection we deal with.
+ **/
 template<class T>
-static Process::const_ptr get_proc(const T &i) {
+static Process::const_ptr get_proc(const T &i, err_t *) {
    return i->first;
 }
 
@@ -321,7 +352,7 @@ static typename T::const_iterator get_end(const T *m) {
    return m->end();
 }
 
-static Process::const_ptr get_proc(const int_addressSet::iterator &i) {
+static Process::const_ptr get_proc(const int_addressSet::iterator &i, err_t *) {
    return i->second;
 }
 
@@ -333,17 +364,56 @@ static int_addressSet::iterator get_end(AddressSet::ptr as) {
    return as->get_iaddrs()->end();
 }
 
-static Process::const_ptr get_proc(const int_processSet::iterator &i) {
+static void thread_err_check(int_thread *ithr, err_t *thread_error) {
+   if (!ithr) {
+      *thread_error = err_exited;
+   }
+   if (ithr->getUserState().getState() == int_thread::running) {
+      *thread_error = err_notrunning;
+   }
+}
+
+static Process::const_ptr get_proc(const map<Thread::const_ptr, MachRegisterVal>::const_iterator &i, err_t *thread_error)
+{
+   if (thread_error)
+      thread_err_check(i->first->llthrd(), thread_error);
+   return i->first->getProcess();
+}
+
+static Process::const_ptr get_proc(const map<Thread::const_ptr, RegisterPool>::const_iterator &i, err_t *thread_error)
+{
+   if (thread_error)
+      thread_err_check(i->first->llthrd(), thread_error);
+   return i->first->getProcess();
+}
+
+static Process::const_ptr get_proc(const multimap<Thread::const_ptr, IRPC::ptr>::const_iterator &i, err_t *thread_error = NULL) 
+{
+   if (thread_error)
+      thread_err_check(i->first->llthrd(), thread_error);
+   return i->first->getProcess();
+}
+
+static Process::const_ptr get_proc(const int_processSet::iterator &i, err_t *) {
    return *i;
 }
 
-#define ERR_CHCK_EXITED   (1<<0)
-#define ERR_CHCK_DETACHED (1<<1)
-#define CLEAR_ERRS        (1<<2)
-#define ERR_CHCK_STOPPED  (1<<3)
+static Process::const_ptr get_proc(const int_threadSet::iterator &i, err_t *thread_error = NULL) {
+   if (thread_error)
+      thread_err_check((*i)->llthrd(), thread_error);
+   return (*i)->getProcess();
+}
+
+#define ERR_CHCK_EXITED       (1<<0)
+#define ERR_CHCK_DETACHED     (1<<1)
+#define ERR_CHCK_STOPPED      (1<<2)
+#define ERR_CHCK_THRD_STOPPED (1<<3)
+#define CLEAR_ERRS            (1<<4)
+#define THREAD_CLEAR_ERRS     (1<<5)
 
 #define ERR_CHCK_NORM (ERR_CHCK_EXITED | ERR_CHCK_DETACHED | CLEAR_ERRS)
 #define ERR_CHCK_ALL  (ERR_CHCK_NORM | ERR_CHCK_STOPPED)
+#define ERR_CHCK_THRD (ERR_CHCK_EXITED | ERR_CHCK_DETACHED | THREAD_CLEAR_ERRS)
 
 template<class cont_t, class iterator_t>
 class iter_t {
@@ -356,10 +426,26 @@ private:
    bool finished_clear;
    bool did_begin;
 
-   bool proc_check(Process::const_ptr p) {
+   bool proc_check(Process::const_ptr p, err_t thr_error) {
+      if (!p) {
+         return false;
+      }
+
       int_process *proc = p->llproc();
       if ((flags & CLEAR_ERRS) && !finished_clear) {
          proc->clearLastError();
+      }
+      if ((flags & ERR_CHCK_EXITED) && thr_error == err_exited) {
+         perr_printf("%s attempted on exited thread in process %d\n", msg, p->getPid());
+         p->setLastError(err_exited, "Group operation attempted on exited thread");
+         had_error = true;
+         return false;
+      }
+      if ((flags & ERR_CHCK_THRD_STOPPED) && thr_error == err_notrunning) {
+         perr_printf("%s attempted on running thread in process %d\n", msg, p->getPid());
+         p->setLastError(err_notrunning, "Group operation attempted on running thread");
+         had_error = true;
+         return false;
       }
       if ((flags & ERR_CHCK_EXITED) && !proc) {
          perr_printf("%s attempted on exited process %d\n", msg, p->getPid());
@@ -398,13 +484,24 @@ public:
    }
 
    iterator_t begin(cont_t c) {
-      if (did_begin)
+      container = c;
+      if (!finished_clear && (flags & THREAD_CLEAR_ERRS)) {
+         for (iter = get_begin(container); iter != get_end(container); iter++) {
+            Process::const_ptr proc = get_proc(iter, NULL);
+            proc->clearLastError();
+         }
          finished_clear = true;
+      }
+      else {
+         if (did_begin)
+            finished_clear = true;
+      }
       did_begin = true;
 
-      container = c;
       iter = get_begin(container);
-      if (!proc_check(get_proc(iter)))
+      err_t thr_error = err_none;
+      Process::const_ptr proc = get_proc(iter, &thr_error);
+      if (!proc_check(proc, thr_error))
          return inc();
       return iter;
    }
@@ -418,11 +515,14 @@ public:
       if (iter == end) {
          return iter;
       }
-      for (;;) {
+      bool result = false;
+      do {
          iter++;
-         if (iter == end || proc_check(get_proc(iter)))
-            return iter;
-      }
+         err_t thr_error = err_none;
+         Process::const_ptr proc = get_proc(iter, &thr_error);
+         result = proc_check(proc, thr_error);
+      } while (iter != end && !result);
+      return iter;
    }
 };
 
@@ -431,6 +531,10 @@ typedef iter_t<int_processSet *, int_processSet::iterator> procset_iter;
 typedef iter_t<multimap<Process::const_ptr, ProcessSet::read_t> *, multimap<Process::const_ptr, ProcessSet::read_t>::iterator> readmap_iter;
 typedef iter_t<multimap<Process::const_ptr, ProcessSet::write_t> *, multimap<Process::const_ptr, ProcessSet::write_t>::iterator > writemap_iter;
 typedef iter_t<const multimap<Process::const_ptr, IRPC::ptr> *, multimap<Process::const_ptr, IRPC::ptr>::const_iterator > rpcmap_iter;
+typedef iter_t<const multimap<Thread::const_ptr, IRPC::ptr> *, multimap<Thread::const_ptr, IRPC::ptr>::const_iterator > rpcmap_thr_iter;
+typedef iter_t<int_threadSet *, int_threadSet::iterator> thrset_iter;
+typedef iter_t<const map<Thread::const_ptr, Dyninst::MachRegisterVal> *, map<Thread::const_ptr, Dyninst::MachRegisterVal>::const_iterator> setreg_iter;
+typedef iter_t<const map<Thread::const_ptr, RegisterPool> *, map<Thread::const_ptr, RegisterPool>::const_iterator> setallreg_iter;
 
 ProcessSet::ProcessSet()
 {
@@ -465,7 +569,7 @@ ProcessSet::ptr ProcessSet::newProcessSet(ProcessSet::const_ptr pp)
 ProcessSet::ptr ProcessSet::newProcessSet(const set<Process::ptr> &procs)
 {
    ProcessSet::ptr newps = newProcessSet();
-   std::copy(procs.begin(), procs.end(), std::inserter(*newps->procset, newps->procset->end()));
+   copy(procs.begin(), procs.end(), inserter(*newps->procset, newps->procset->end()));
    return newps;
 }
 
@@ -479,7 +583,7 @@ ProcessSet::ptr ProcessSet::newProcessSet(const set<Process::const_ptr> &procs)
 {
    ProcessSet::ptr newps = newProcessSet();
    int_processSet &newset = *newps->procset;
-   std::transform(procs.begin(), procs.end(), std::inserter(newset, newset.end()), proc_strip_const());
+   transform(procs.begin(), procs.end(), inserter(newset, newset.end()), proc_strip_const());
    return newps;
 }
 
@@ -511,7 +615,7 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
 
    ProcPool()->condvar()->lock();
 
-   std::map<int_process *, vector<CreateInfo>::iterator> error_map;
+   map<int_process *, vector<CreateInfo>::iterator> error_map;
    ProcessSet::ptr newps = newProcessSet();
    int_processSet &newset = *newps->procset;
 
@@ -562,7 +666,7 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
 
    ProcPool()->condvar()->lock();
 
-   std::map<int_process *, vector<AttachInfo>::iterator> error_map;
+   map<int_process *, vector<AttachInfo>::iterator> error_map;
    ProcessSet::ptr newps = newProcessSet();
    int_processSet &newset = *newps->procset;
 
@@ -603,7 +707,7 @@ ProcessSet::ptr ProcessSet::set_union(ProcessSet::ptr pp) const
    int_processSet *you = pp->procset;
    int_processSet *them = newps->procset;
 
-   std::set_union(me->begin(), me->end(), you->begin(), you->end(), std::inserter(*them, them->end()));
+   std::set_union(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
    return newps;
 }
 
@@ -615,7 +719,7 @@ ProcessSet::ptr ProcessSet::set_intersection(ProcessSet::ptr pp) const
    int_processSet *you = pp->procset;
    int_processSet *them = newps->procset;
 
-   std::set_intersection(me->begin(), me->end(), you->begin(), you->end(), std::inserter(*them, them->end()));
+   std::set_intersection(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
    return newps;
 }
 
@@ -627,7 +731,7 @@ ProcessSet::ptr ProcessSet::set_difference(ProcessSet::ptr pp) const
    int_processSet *you = pp->procset;
    int_processSet *them = newps->procset;
 
-   std::set_difference(me->begin(), me->end(), you->begin(), you->end(), std::inserter(*them, them->end()));
+   std::set_difference(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
    return newps;
 }
 
@@ -718,11 +822,8 @@ ProcessSet::ptr ProcessSet::getErrorSubset() const
    MTLock lock_this_func;
 
    ProcessSet::ptr newps = newProcessSet();
-   for (const_iterator i = begin(); i != end(); i++) {
-      int_process *llproc = (*i)->llproc();
-      if (!llproc)
-         continue;
-      ProcControlAPI::err_t err = llproc->getLastError();
+   for (ProcessSet::const_iterator i = begin(); i != end(); i++) {
+      ProcControlAPI::err_t err = (*i)->getLastError();
       if (err == err_none)
          continue;
       newps->insert(*i);
@@ -785,6 +886,17 @@ static ProcessSet::ptr create_subset(iter b, iter e, pred p) {
    return newps;
 }
 
+template<class iter, class pred>
+static ThreadSet::ptr create_thrsubset(iter b, iter e, pred p) {
+   ThreadSet::ptr newts = ThreadSet::newThreadSet();
+   for (iter i = b; i != e; i++) {
+      if (p(*i)) {
+         newts->insert(*i);
+      }
+   }
+   return newts;
+}
+
 struct test_terminate {
    bool operator()(Process::ptr p) {
       p->clearLastError();
@@ -792,6 +904,13 @@ struct test_terminate {
       if (!llproc)
          return true;
       return false;
+   }
+
+
+   bool operator()(Thread::ptr t) {
+      Process::ptr p = t->getProcess();
+      p->clearLastError();
+      return (!p->llproc() || !t->llthrd());
    }
 };
 
@@ -920,6 +1039,20 @@ struct test_thr {
          if (!match && test == all)
             return false;
       }
+      return (test == all);
+   }
+
+   bool operator()(Thread::ptr t) {
+      int_thread *llthrd = t->llthrd();
+      if (!llthrd)
+         return false;
+      int_process *llproc = llthrd->llproc();
+      llproc->clearLastError();
+      bool match = (llthrd->getUserState().getState() == ts);
+      if (match && test == any)
+         return true;
+      if (!match && test == all)
+         return false;
       return (test == all);
    }
 };
@@ -1143,7 +1276,7 @@ bool ProcessSet::terminate() const
 {
    bool had_error = false;
    bool run_sync = false;
-   std::set<int_process *> to_clean;
+   set<int_process *> to_clean;
 
    MTLock lock_this_func(MTLock::deliver_callbacks);
    if (int_process::isInCB()) {
@@ -1152,7 +1285,7 @@ bool ProcessSet::terminate() const
       return false;
    }
 
-   std::set<int_process *> procs;
+   set<int_process *> procs;
    procset_iter iter("terminate", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
@@ -1642,7 +1775,7 @@ bool ProcessSet::postIRPC(const multimap<Process::const_ptr, IRPC::ptr> &rpcs) c
    return !had_error;
 }
 
-bool ProcessSet::postIRPC(IRPC::ptr irpc, multimap<Process::const_ptr, IRPC::ptr> *result) const
+bool ProcessSet::postIRPC(IRPC::ptr irpc, multimap<Process::ptr, IRPC::ptr> *result) const
 {
    MTLock lock_this_func;
    bool had_error = false;
@@ -1666,7 +1799,7 @@ bool ProcessSet::postIRPC(IRPC::ptr irpc, multimap<Process::const_ptr, IRPC::ptr
    return !had_error;
 }
 
-bool ProcessSet::postIRPC(IRPC::ptr irpc, AddressSet::ptr addrset, multimap<Process::const_ptr, IRPC::ptr> *result) const
+bool ProcessSet::postIRPC(IRPC::ptr irpc, AddressSet::ptr addrset, multimap<Process::ptr, IRPC::ptr> *result) const
 {
    MTLock lock_this_func;
    bool had_error = false;
@@ -1721,12 +1854,12 @@ bool ProcessSet::iterator::operator!=(const ProcessSet::iterator &i) const
 
 ProcessSet::iterator ProcessSet::iterator::operator++()
 {
-   return ProcessSet::iterator(int_iter++);
+   return ProcessSet::iterator(++int_iter);
 }
 
 ProcessSet::iterator ProcessSet::iterator::operator++(int)
 {
-   return ProcessSet::iterator(++int_iter);
+   return ProcessSet::iterator(int_iter++);
 }
 
 ProcessSet::const_iterator::const_iterator(int_processSet::const_iterator i)
@@ -1759,11 +1892,821 @@ bool ProcessSet::const_iterator::operator!=(const ProcessSet::const_iterator &i)
 
 ProcessSet::const_iterator ProcessSet::const_iterator::operator++()
 {
-   return ProcessSet::const_iterator(int_iter++);
+   return ProcessSet::const_iterator(++int_iter);
 }
 
 ProcessSet::const_iterator ProcessSet::const_iterator::operator++(int)
 {
-   return ProcessSet::const_iterator(++int_iter);
+   return ProcessSet::const_iterator(int_iter++);
 }
 
+struct thread_strip_const {
+   Thread::ptr operator()(Thread::const_ptr t) const {
+      return pc_const_cast<Thread>(t);
+   }
+};
+
+
+ThreadSet::ThreadSet()
+{
+   ithrset = new int_threadSet;
+}
+
+ThreadSet::~ThreadSet()
+{
+   if (ithrset) {
+      delete ithrset;
+      ithrset = NULL;
+   }
+}
+
+ThreadSet::ptr ThreadSet::newThreadSet()
+{
+   return ThreadSet::ptr(new ThreadSet());
+}
+
+ThreadSet::ptr ThreadSet::newThreadSet(const ThreadPool &threadp)
+{
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet());
+   int_threadSet* &newset = newts->ithrset;
+   
+   transform(threadp.begin(), threadp.end(), inserter(*newset, newset->end()), thread_strip_const());
+   return newts;
+}
+
+ThreadSet::ptr ThreadSet::newThreadSet(const set<Thread::const_ptr> &threads)
+{
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet());
+   int_threadSet* &newset = newts->ithrset;
+   transform(threads.begin(), threads.end(), inserter(*newset, newset->end()), thread_strip_const());
+   return newts;
+}
+
+ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps)
+{
+   MTLock lock_this_func;
+   bool had_error;
+
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet());
+   int_threadSet* &newset = newts->ithrset;
+
+   procset_iter iter("New thread group", had_error, ERR_CHCK_NORM);
+   for (procset_iter::i_t i = iter.begin(ps->procset); i != iter.end(); i = iter.inc()) {
+      if (had_error) {
+         pthrd_printf("Failed to create new thread group\n");
+         return ThreadSet::ptr();
+      }
+      Process::ptr proc = *i;
+      ThreadPool &pool = proc->threads();
+      for (ThreadPool::iterator j = pool.begin(); j != pool.end(); j++) {
+         newset->insert(*j);
+      }
+   }
+   return newts;
+}
+
+ThreadSet::ptr ThreadSet::set_union(ThreadSet::ptr tp) const
+{
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet);
+   int_threadSet *me = ithrset;
+   int_threadSet *you = tp->ithrset;
+   int_threadSet *them = newts->ithrset;
+
+   std::set_union(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
+   return newts;
+}
+
+ThreadSet::ptr ThreadSet::set_intersection(ThreadSet::ptr tp) const
+{
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet);
+   int_threadSet *me = ithrset;
+   int_threadSet *you = tp->ithrset;
+   int_threadSet *them = newts->ithrset;
+
+   std::set_intersection(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
+   return newts;
+}
+
+ThreadSet::ptr ThreadSet::set_difference(ThreadSet::ptr tp) const
+{
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet);
+   int_threadSet *me = ithrset;
+   int_threadSet *you = tp->ithrset;
+   int_threadSet *them = newts->ithrset;
+
+   std::set_difference(me->begin(), me->end(), you->begin(), you->end(), inserter(*them, them->end()));
+   return newts;
+}
+
+ThreadSet::iterator ThreadSet::begin() {
+   return iterator(ithrset->begin());
+}
+
+ThreadSet::iterator ThreadSet::end() {
+   return iterator(ithrset->end());
+}
+
+ThreadSet::iterator ThreadSet::find(Thread::const_ptr p) {
+   return iterator(ithrset->find(pc_const_cast<Thread>(p)));
+}
+
+ThreadSet::const_iterator ThreadSet::begin() const {
+   return const_iterator(ithrset->begin());
+}
+
+ThreadSet::const_iterator ThreadSet::end() const {
+   return const_iterator(ithrset->end());
+}
+
+ThreadSet::const_iterator ThreadSet::find(Thread::const_ptr p) const {
+   return const_iterator(ithrset->find(pc_const_cast<Thread>(p)));
+}
+
+bool ThreadSet::empty() const {
+   return ithrset->empty();
+}
+
+size_t ThreadSet::size() const {
+   return ithrset->size();
+}
+
+pair<ThreadSet::iterator, bool> ThreadSet::insert(Thread::const_ptr p) {
+   pair<int_threadSet::iterator, bool> result = ithrset->insert(pc_const_cast<Thread>(p));
+   return pair<ThreadSet::iterator, bool>(ThreadSet::iterator(result.first), result.second);
+}
+
+void ThreadSet::erase(iterator pos)
+{
+   ithrset->erase(pos.int_iter);
+}
+
+size_t ThreadSet::erase(Thread::const_ptr t)
+{
+   ThreadSet::iterator i = find(t);
+   if (i == end()) return 0;
+   erase(i);
+   return 1;
+}
+
+void ThreadSet::clear()
+{
+   ithrset->clear();
+}
+
+ThreadSet::ptr ThreadSet::getErrorSubset() const
+{
+   MTLock lock_this_func;
+
+   ThreadSet::ptr errts = newThreadSet();
+   for (const_iterator i = begin(); i != end(); i++) {
+      Thread::ptr thr = *i;
+      Process::ptr proc = thr->getProcess();
+      if (!proc) {
+         errts->insert(thr);
+         continue;
+      }
+      if (proc->getLastError() == err_none) {
+         continue;
+      }
+      errts->insert(thr);
+   }
+   return errts;
+}
+
+void ThreadSet::getErrorSubsets(map<ProcControlAPI::err_t, ThreadSet::ptr> &err_sets) const
+{
+   MTLock lock_this_func;
+
+   for (const_iterator i = begin(); i != end(); i++) {
+      Thread::ptr thr = *i;
+      Process::ptr proc = thr->getProcess();
+ 
+     ProcControlAPI::err_t err = proc->getLastError();
+      if (err == err_none)
+         continue;
+      map<err_t, ThreadSet::ptr>::iterator j = err_sets.find(err);
+      ThreadSet::ptr ts;
+      if (j != err_sets.end()) {
+         ts = j->second;
+      }
+      else {
+         ts = ThreadSet::newThreadSet();
+         err_sets[err] = ts;
+      }
+      ts->insert(thr);
+   }   
+}
+
+
+bool ThreadSet::anyStopped() const
+{
+   MTLock lock_this_func;
+   return any_match(ithrset->begin(), ithrset->end(), test_thr(test_thr::any, int_thread::stopped));
+}
+
+bool ThreadSet::allStopped() const
+{
+   MTLock lock_this_func;
+   return all_match(ithrset->begin(), ithrset->end(), test_thr(test_thr::all, int_thread::stopped));
+}
+
+ThreadSet::ptr ThreadSet::getStoppedSubset() const
+{
+   MTLock lock_this_func;
+   return create_thrsubset(ithrset->begin(), ithrset->end(), test_thr(test_thr::any, int_thread::stopped));
+}
+
+bool ThreadSet::anyRunning() const
+{
+   MTLock lock_this_func;
+   return any_match(ithrset->begin(), ithrset->end(), test_thr(test_thr::any, int_thread::running));
+}
+
+bool ThreadSet::allRunning() const
+{
+   MTLock lock_this_func;
+   return all_match(ithrset->begin(), ithrset->end(), test_thr(test_thr::all, int_thread::running));
+}
+
+ThreadSet::ptr ThreadSet::getRunningSubset() const
+{
+   MTLock lock_this_func;
+   return create_thrsubset(ithrset->begin(), ithrset->end(), test_thr(test_thr::any, int_thread::running));
+}
+
+bool ThreadSet::anyTerminated() const
+{
+   MTLock lock_this_func;
+   return any_match(ithrset->begin(), ithrset->end(), test_terminate());
+}
+
+bool ThreadSet::allTerminated() const
+{
+   MTLock lock_this_func;
+   return all_match(ithrset->begin(), ithrset->end(), test_terminate());
+}
+
+ThreadSet::ptr ThreadSet::getTerminatedSubset() const
+{
+   MTLock lock_this_func;
+   return create_thrsubset(ithrset->begin(), ithrset->end(), test_terminate());
+}
+
+struct test_singlestep {
+   bool operator()(Thread::ptr t) {
+      Process::ptr p = t->getProcess();
+      p->clearLastError();
+      return t->getSingleStepMode();
+   }
+};
+
+bool ThreadSet::anySingleStepMode() const
+{
+   MTLock lock_this_func;
+   return any_match(ithrset->begin(), ithrset->end(), test_singlestep());
+}
+
+bool ThreadSet::allSingleStepMode() const
+{
+   MTLock lock_this_func;
+   return all_match(ithrset->begin(), ithrset->end(), test_singlestep());
+}
+
+ThreadSet::ptr ThreadSet::getSingleStepSubset() const
+{
+   MTLock lock_this_func;
+   return create_thrsubset(ithrset->begin(), ithrset->end(), test_singlestep());
+}
+
+struct test_userthrinfo {
+   bool operator()(Thread::ptr t) {
+      Process::ptr p = t->getProcess();
+      p->clearLastError();
+      return t->haveUserThreadInfo();
+   }
+};
+
+
+bool ThreadSet::anyHaveUserThreadInfo() const
+{
+   MTLock lock_this_func;
+   return any_match(ithrset->begin(), ithrset->end(), test_userthrinfo());
+}
+
+bool ThreadSet::allHaveUserThreadInfo() const
+{
+   MTLock lock_this_func;
+   return all_match(ithrset->begin(), ithrset->end(), test_userthrinfo());
+}
+
+ThreadSet::ptr ThreadSet::getHaveUserThreadInfoSubset() const
+{
+   MTLock lock_this_func;
+   return create_thrsubset(ithrset->begin(), ithrset->end(), test_userthrinfo());
+}
+
+bool ThreadSet::getStartFunctions(AddressSet::ptr result) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   thrset_iter iter("get start function", had_error, ERR_CHCK_THRD);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      Process::ptr p = t->getProcess();
+      Address addr;
+      bool bresult = t->llthrd()->getStartFuncAddress(addr);
+      if (bresult)
+         result->insert(addr, p);
+   }
+   return !had_error;
+}
+
+bool ThreadSet::getStackBases(AddressSet::ptr result) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   thrset_iter iter("get stack base", had_error, ERR_CHCK_THRD);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      Process::ptr p = t->getProcess();
+      Address addr;
+      bool bresult = t->llthrd()->getStackBase(addr);
+      if (bresult)
+         result->insert(addr, p);
+   }
+   return !had_error;
+}
+
+bool ThreadSet::getTLSs(AddressSet::ptr result) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   thrset_iter iter("get TLS", had_error, ERR_CHCK_THRD);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      Process::ptr p = t->getProcess();
+      Address addr;
+      bool bresult = t->llthrd()->getTLSPtr(addr);
+      if (bresult)
+         result->insert(addr, p);
+   }
+   return !had_error;
+}
+
+bool ThreadSet::stopThreads() const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   set<int_process *> all_procs;
+
+   thrset_iter iter("stop thread", had_error, ERR_CHCK_THRD);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      int_thread *thr = t->llthrd();
+      int_process *proc = thr->llproc();
+
+      thr->getUserState().setState(int_thread::stopped);
+      all_procs.insert(proc);
+   }
+
+   for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
+      int_process *proc = *i;
+      proc->throwNopEvent();
+   }
+   return !had_error;
+}
+
+bool ThreadSet::continueThreads() const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   set<int_process *> all_procs;
+
+   thrset_iter iter("continue thread", had_error, ERR_CHCK_THRD);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      int_thread *thr = t->llthrd();
+      int_process *proc = thr->llproc();
+
+      thr->getUserState().setState(int_thread::running);
+      all_procs.insert(proc);
+   }
+
+   for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
+      int_process *proc = *i;
+      proc->throwNopEvent();
+   }
+   return !had_error;
+}
+
+bool ThreadSet::setSingleStepMode(bool v) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   thrset_iter iter("set single step", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr thr = *i;
+      thr->setSingleStepMode(v);
+   }
+   return !had_error;
+}
+
+static bool getRegisterWorker(Dyninst::MachRegister reg, int_threadSet *ithrset, 
+                              set<pair<Thread::ptr, reg_response::ptr> > &thr_to_response)
+{
+   bool had_error = false;
+   
+   set<response::ptr> all_responses;
+   thrset_iter iter("getRegister", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      int_thread *thr = t->llthrd();
+      reg_response::ptr response = reg_response::createRegResponse();
+      bool result = thr->getRegister(reg, response);
+      if (!result) {
+         pthrd_printf("Error reading register response on thread %d/%d\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+         had_error = true;
+         continue;
+      }
+
+      thr_to_response.insert(make_pair(t, response));
+      all_responses.insert(response);
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for async events to complete\n");
+      thr_to_response.clear();
+      return false;
+   }
+
+   for (set<pair<Thread::ptr, reg_response::ptr > >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end();)
+   {
+      Thread::ptr thr = i->first;
+      reg_response::ptr resp = i->second;
+
+      if (resp->hasError()) {
+         thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
+         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
+                      thr->llthrd()->getLWP());
+         had_error = true;
+         thr_to_response.erase(i++);
+         continue;
+      }
+      i++;
+   }
+
+   return !had_error;
+}
+
+bool ThreadSet::getRegister(Dyninst::MachRegister reg, map<Thread::ptr, Dyninst::MachRegisterVal> &results) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   
+   set<pair<Thread::ptr, reg_response::ptr> > thr_to_response;
+   bool result = getRegisterWorker(reg, ithrset, thr_to_response);
+   if (!result) {
+      pthrd_printf("Error in getRegisterWorker\n");
+      had_error = true;
+   }
+
+   for (set<pair<Thread::ptr, reg_response::ptr > >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end(); i++) 
+   {
+      Thread::ptr thr = i->first;
+      reg_response::ptr resp = i->second;
+
+      results.insert(make_pair(thr, resp->getResult()));
+   }
+   return !had_error;
+}
+
+bool ThreadSet::getRegister(Dyninst::MachRegister reg, map<Dyninst::MachRegisterVal, ThreadSet::ptr> &results) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   
+   set<pair<Thread::ptr, reg_response::ptr> > thr_to_response;
+   bool result = getRegisterWorker(reg, ithrset, thr_to_response);
+   if (!result) {
+      pthrd_printf("Error in getRegisterWorker\n");
+      had_error = true;
+   }
+
+   for (set<pair<Thread::ptr, reg_response::ptr > >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end(); i++) 
+   {
+      Thread::ptr thr = i->first;
+      reg_response::ptr resp = i->second;
+      MachRegisterVal val = resp->getResult();
+
+      ThreadSet::ptr ts;
+      map<MachRegisterVal, ThreadSet::ptr>::iterator j = results.find(val);
+      if (j == results.end()) {
+         ts = ThreadSet::newThreadSet();
+         results.insert(make_pair(val, ts));
+      }
+      else {
+         ts = j->second;
+      }
+      ts->insert(thr);
+   }
+   return !had_error;
+}
+
+bool ThreadSet::setRegister(Dyninst::MachRegister reg, const map<Thread::const_ptr, Dyninst::MachRegisterVal> &vals) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   
+   set<response::ptr> all_responses;
+   set<pair<Thread::ptr, result_response::ptr> > thr_to_response;
+
+   setreg_iter iter("setRegister", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (setreg_iter::i_t i = iter.begin(&vals); i != iter.end(); i = iter.inc()) {
+      Thread::const_ptr t = i->first;
+      MachRegisterVal val = i->second;
+      int_thread *thr = t->llthrd();
+      result_response::ptr response = result_response::createResultResponse();
+
+      bool result = thr->setRegister(reg, val, response);
+      if (!result) {
+         pthrd_printf("Error writing register response on thread %d/%d\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+         had_error = true;
+         continue;
+      }
+
+      thr_to_response.insert(make_pair(thr->thread(), response));
+      all_responses.insert(response);
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for async events to complete\n");
+      thr_to_response.clear();
+      return false;
+   }
+
+   for (set<pair<Thread::ptr, result_response::ptr > >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end(); i++)
+   {
+      Thread::ptr thr = i->first;
+      result_response::ptr resp = i->second;
+
+      if (resp->hasError() || !resp->getResult()) {
+         thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
+         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
+                      thr->llthrd()->getLWP());
+         had_error = true;
+      }
+   }
+
+   return !had_error;
+}
+
+bool ThreadSet::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   map<Thread::const_ptr, Dyninst::MachRegisterVal> vals;
+
+   thrset_iter iter("setRegister", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      vals.insert(make_pair(*i, val));
+   }
+   return setRegister(reg, vals) && !had_error;
+}
+
+bool ThreadSet::getAllRegisters(map<Thread::ptr, RegisterPool> &results) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   set<response::ptr> all_responses;
+   set<pair<Thread::ptr, allreg_response::ptr> > thr_to_response;
+
+   thrset_iter iter("getAllRegisters", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      int_thread *thr = t->llthrd();
+      int_registerPool *newpool = new int_registerPool();
+      allreg_response::ptr response = allreg_response::createAllRegResponse(newpool);
+      bool result = thr->getAllRegisters(response);
+      if (!result) {
+         pthrd_printf("Error reading registers on thread %d/%d\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+         had_error = true;
+         delete newpool;
+         continue;
+      }
+
+      thr_to_response.insert(make_pair(t, response));
+      all_responses.insert(response);
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for async events to complete\n");
+      for (set<pair<Thread::ptr, allreg_response::ptr> >::iterator i = thr_to_response.begin(); 
+           i != thr_to_response.end(); i++) {
+         delete i->second->getRegPool();
+      }
+      return false;
+   }
+
+   for (set<pair<Thread::ptr, allreg_response::ptr> >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end(); i++)
+   {
+      Thread::ptr thr = i->first;
+      allreg_response::ptr resp = i->second;
+      int_registerPool *pool = resp->getRegPool();
+
+      if (resp->hasError()) {
+         thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
+         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
+                      thr->llthrd()->getLWP());
+         had_error = true;
+         delete pool;
+         continue;
+      }
+      
+      RegisterPool rpool;
+      rpool.llregpool = pool;
+      results.insert(make_pair(thr, rpool));
+   }
+
+   return !had_error;
+}
+
+bool ThreadSet::setAllRegisters(const map<Thread::const_ptr, RegisterPool> &reg_vals) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+   
+   set<response::ptr> all_responses;
+   set<pair<Thread::ptr, result_response::ptr> > thr_to_response;
+
+   setallreg_iter iter("setAllRegisters", had_error, ERR_CHCK_THRD | ERR_CHCK_THRD_STOPPED);
+   for (setallreg_iter::i_t i = iter.begin(&reg_vals); i != iter.end(); i = iter.inc()) {
+      Thread::const_ptr t = i->first;
+      RegisterPool pool = i->second;
+      int_thread *thr = t->llthrd();
+      result_response::ptr response = result_response::createResultResponse();
+
+      bool result = thr->setAllRegisters(*pool.llregpool, response);
+      if (!result) {
+         pthrd_printf("Error setting registers on thread %d/%d\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+         had_error = true;
+         continue;
+      }
+
+      thr_to_response.insert(make_pair(thr->thread(), response));
+      all_responses.insert(response);      
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for async events to complete\n");
+      return false;
+   }
+
+   for (set<pair<Thread::ptr, result_response::ptr > >::iterator i = thr_to_response.begin(); 
+        i != thr_to_response.end(); i++)
+   {
+      Thread::ptr thr = i->first;
+      result_response::ptr resp = i->second;
+
+      if (resp->hasError() || !resp->getResult()) {
+         thr->getProcess()->setLastError(resp->errorCode(), thr->getProcess()->getLastErrorMsg());
+         pthrd_printf("Error in response from %d/%d\n", thr->llthrd()->llproc()->getPid(),
+                      thr->llthrd()->getLWP());
+         had_error = true;
+      }
+   }
+   return !had_error;
+}
+
+bool ThreadSet::postIRPC(const multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   rpcmap_thr_iter iter("Post RPC", had_error, ERR_CHCK_NORM);
+   for (rpcmap_thr_iter::i_t i = iter.begin(&rpcs); i != iter.end(); i = iter.inc()) {
+      IRPC::ptr rpc = i->second;
+      Thread::const_ptr t = i->first;
+      int_thread *thread = t->llthrd();
+
+      bool result = rpcMgr()->postRPCToThread(thread, rpc->llrpc()->rpc);
+      if (!result) {
+         pthrd_printf("postRPCToThread failed on %d/%d\n", thread->llproc()->getPid(), thread->getLWP());
+         had_error = true;
+      }
+   }
+   return !had_error;
+}
+
+bool ThreadSet::postIRPC(IRPC::ptr irpc, multimap<Thread::ptr, IRPC::ptr> *results) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   thrset_iter iter("Post RPC", had_error, ERR_CHCK_NORM);
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      Thread::ptr t = *i;
+      int_thread *thread = t->llthrd();
+      IRPC::ptr local_rpc = IRPC::createIRPC(irpc);
+
+      bool result = rpcMgr()->postRPCToThread(thread, local_rpc->llrpc()->rpc);
+      if (!result) {
+         pthrd_printf("postRPCToThread failed on %d/%d\n", thread->llproc()->getPid(), thread->getLWP());
+         had_error = true;
+         continue;
+      }
+      if (results)
+         results->insert(make_pair(t, local_rpc));
+   }
+   return !had_error;
+}
+
+ThreadSet::iterator::iterator(int_threadSet::iterator i)
+{
+   int_iter = i;
+}
+
+ThreadSet::iterator::iterator()
+{
+}
+
+ThreadSet::iterator::~iterator()
+{
+}
+
+Thread::ptr ThreadSet::iterator::operator*()
+{
+   return *int_iter;
+}
+
+bool ThreadSet::iterator::operator==(const iterator &i)
+{
+   return int_iter == i.int_iter;
+}
+
+bool ThreadSet::iterator::operator!=(const iterator &i)
+{
+   return int_iter != i.int_iter;
+}
+
+ThreadSet::iterator ThreadSet::iterator::operator++()
+{
+   return ThreadSet::iterator(++int_iter);
+}
+
+ThreadSet::iterator ThreadSet::iterator::operator++(int)
+{
+   return ThreadSet::iterator(int_iter++);
+}
+
+ThreadSet::const_iterator::const_iterator(int_threadSet::iterator i)
+{
+   int_iter = i;
+}
+
+ThreadSet::const_iterator::const_iterator()
+{
+}
+
+ThreadSet::const_iterator::~const_iterator()
+{
+}
+
+Thread::ptr ThreadSet::const_iterator::operator*()
+{
+   return *int_iter;
+}
+
+bool ThreadSet::const_iterator::operator==(const const_iterator &i)
+{
+   return int_iter == i.int_iter;
+}
+
+bool ThreadSet::const_iterator::operator!=(const const_iterator &i)
+{
+   return int_iter != i.int_iter;
+}
+
+ThreadSet::const_iterator ThreadSet::const_iterator::operator++()
+{
+   return ThreadSet::const_iterator(++int_iter);
+}
+
+ThreadSet::const_iterator ThreadSet::const_iterator::operator++(int)
+{
+   return ThreadSet::const_iterator(int_iter++);
+}

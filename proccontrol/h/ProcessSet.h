@@ -150,6 +150,7 @@ class AddressSet
  **/
 class ProcessSet
 {
+   friend class ThreadSet;
   private:
    int_processSet *procset;
 
@@ -346,8 +347,8 @@ class ProcessSet
     *  process at the addresses provided.
     **/
    bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const;
-   bool postIRPC(IRPC::ptr irpc, std::multimap<Process::const_ptr, IRPC::ptr> *result = NULL) const;
-   bool postIRPC(IRPC::ptr irpc, AddressSet::ptr addrs, std::multimap<Process::const_ptr, IRPC::ptr> *result = NULL) const;
+   bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
+   bool postIRPC(IRPC::ptr irpc, AddressSet::ptr addrs, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
 };
 
 /**
@@ -388,8 +389,9 @@ class ThreadSet {
     **/
    class iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
-     private:
+     protected:
       std::set<Thread::ptr>::iterator int_iter;
+      iterator(int_threadSet::iterator i);
      public:
       iterator();
       ~iterator();
@@ -402,8 +404,9 @@ class ThreadSet {
 
    class const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
-     private:
+     protected:
       std::set<Thread::ptr>::iterator int_iter;
+      const_iterator(int_threadSet::iterator i);
      public:
       const_iterator();
       ~const_iterator();
@@ -435,33 +438,33 @@ class ThreadSet {
     * group them into subsets based on unique error codes.
     **/
    ThreadSet::ptr getErrorSubset() const;
-   bool getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err_sets) const;
+   void getErrorSubsets(std::map<ProcControlAPI::err_t, ThreadSet::ptr> &err_sets) const;
 
    /**
     * Query thread states
     **/
    bool allStopped() const;
    bool allRunning() const;
-   bool allLive() const;
+   bool allTerminated() const;
    bool allSingleStepMode() const;
    bool allHaveUserThreadInfo() const;
    bool anyStopped() const;
    bool anyRunning() const;
-   bool anyLive() const;
+   bool anyTerminated() const;
    bool anySingleStepMode() const;
    bool anyHaveUserThreadInfo() const;
    ThreadSet::ptr getStoppedSubset() const;
    ThreadSet::ptr getRunningSubset() const;
-   ThreadSet::ptr getLiveSubset() const;
+   ThreadSet::ptr getTerminatedSubset() const;
    ThreadSet::ptr getSingleStepSubset() const;
    ThreadSet::ptr getHaveUserThreadInfoSubset() const;
 
    /**
     * Query user thread info
     **/
-   bool getStartFunctions(AddressSet::ptr &result) const;
-   bool getStackBases(AddressSet::ptr &result) const;
-   bool getTLSs(AddressSet::ptr &result) const;
+   bool getStartFunctions(AddressSet::ptr result) const;
+   bool getStackBases(AddressSet::ptr result) const;
+   bool getTLSs(AddressSet::ptr result) const;
 
    /**
     * Move all threads to a specified state.
@@ -474,7 +477,6 @@ class ThreadSet {
     * Get and set individual registers.
     * - The getRegister form that outputs 'std::map<Dyninst::MachRegisterVal, ThreadSet::ptr>' groups 
     *   processes based on similar return values of registers.
-    * - 
     **/
    bool getRegister(Dyninst::MachRegister reg, std::map<Thread::ptr, Dyninst::MachRegisterVal> &results) const;
    bool getRegister(Dyninst::MachRegister reg, std::map<Dyninst::MachRegisterVal, ThreadSet::ptr> &results) const;
@@ -482,7 +484,7 @@ class ThreadSet {
    bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const;
 
    bool getAllRegisters(std::map<Thread::ptr, RegisterPool> &results) const;
-   bool setAllRegisters(Dyninst::MachRegister reg, const std::map<Thread::const_ptr, RegisterPool> &reg_vals) const;
+   bool setAllRegisters(const std::map<Thread::const_ptr, RegisterPool> &reg_vals) const;
 
    /**
     * IRPC
@@ -490,7 +492,7 @@ class ThreadSet {
     * The user may pass a single example IRPC, copies of which are posted to each process and returned.
     **/
    bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
-   bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> &result) const;
+   bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
 };
 
 }

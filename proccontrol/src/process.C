@@ -40,6 +40,7 @@
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
+#include "proccontrol/h/ProcessSet.h"
 
 #include <cstring>
 #include <cassert>
@@ -3169,26 +3170,36 @@ bool int_thread::haveUserThreadInfo()
 
 bool int_thread::getTID(Dyninst::THR_ID &)
 {
+   perr_printf("Unsupported attempt to getTid on %d/%d\n", llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getTid not supported on this platform\n");
    return false;
 }
 
 bool int_thread::getStartFuncAddress(Dyninst::Address &)
 {
+   perr_printf("Unsupported attempt to get start func address on %d/%d\n", llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getStartFuncAddress not supported on this platform\n");
    return false;
 }
 
 bool int_thread::getStackBase(Dyninst::Address &)
 {
+   perr_printf("Unsupported attempt to get stack base on %d/%d\n", llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getStackBase not supported on this platform\n");
    return false;
 }
 
 bool int_thread::getStackSize(unsigned long &)
 {
+   perr_printf("Unsupported attempt to get stack size on %d/%d\n", llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getStackSize not supported on this platform\n");
    return false;
 }
 
 bool int_thread::getTLSPtr(Dyninst::Address &)
 {
+   perr_printf("Unsupported attempt to get TLS on %d/%d\n", llproc()->getPid(), getLWP());
+   setLastError(err_unsupported, "getTLSPtr not supported on this platform\n");
    return false;
 }
 
@@ -5657,6 +5668,11 @@ void Thread::setSingleStepMode(bool s) const
       setLastError(err_exited, "Thread is exited\n");
       return;
    }
+   if (llthread_->getUserState().getState() != int_thread::stopped) {
+      perr_printf("setSingleStepMode called on running thread %d/%d\n",
+                  llthread_->llproc()->getPid(), llthread_->getLWP());
+      setLastError(err_notstopped, "Error, user tried to put non-stopped thread into single step");
+   }
    llthread_->setSingleStepUserMode(s);
 }
 
@@ -5730,7 +5746,7 @@ bool Thread::haveUserThreadInfo() const
 {
    MTLock lock_this_func;
    if (!llthread_) {
-      perr_printf("getStartFunction on deleted thread\n");
+      perr_printf("haveUserThreadInfo on deleted thread\n");
       setLastError(err_exited, "Thread is exited");
       return false;
    }

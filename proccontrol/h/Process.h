@@ -76,6 +76,7 @@ class Event;
 class RegisterPool;
 class Breakpoint;
 class ProcessSet;
+class ThreadSet;
 
 class Breakpoint 
 {
@@ -503,6 +504,7 @@ class ThreadPool
 class RegisterPool
 { 
    friend class Dyninst::ProcControlAPI::Thread;
+   friend class Dyninst::ProcControlAPI::ThreadSet;
  private:
    int_registerPool *llregpool;
  public:

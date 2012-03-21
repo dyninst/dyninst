@@ -35,7 +35,6 @@
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Event.h"
-#include "proccontrol/h/ProcessSet.h"
 
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/memcache.h"
@@ -52,6 +51,12 @@
 #include <queue>
 #include <stack>
 
+namespace Dyninst {
+namespace ProcControlAPI {
+class ProcessSet;
+}
+}
+
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -59,6 +64,9 @@ class int_thread;
 class int_threadPool;
 class handlerpool;
 class int_iRPC;
+
+typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
+typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
 
 typedef dyn_detail::boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
@@ -1026,7 +1034,7 @@ public:
    void operator()(Process::ptr p) {
       p->setLastError(err, err_str);
    }
-   void operator()(const AddressSet::value_type &v) {
+   void operator()(const std::pair<Address, Process::ptr> &v) {
       v.second->setLastError(err, err_str);
    }
 };
