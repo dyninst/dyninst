@@ -133,7 +133,7 @@ public:
 };
 
 extern "C" {
-	TEST_DLL_EXPORT TestMutator *TestMutator_factory();
+   TEST_DLL_EXPORT TestMutator *TestMutator_factory();
 }
 
 extern "C"  {
