@@ -2486,6 +2486,19 @@ mutatee('pc_thread', ['pc_thread_mutatee.c'], ['pcontrol_mutatee_tools.c', 'muta
 mutatee_requires_libs('pc_thread', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_thread', _, Opt) :- member(Opt, ['none']).
 
+test('pc_groups', 'pc_groups', 'pc_groups').
+test_description('pc_groups', 'Group Operations').
+test_platform('pc_groups', Platform) :- pcPlatforms(Platform).
+mutator('pc_groups', ['pc_groups.C']).
+test_runmode('pc_groups', 'dynamic').
+test_threadmode('pc_groups', 'Threading').
+test_processmode('pc_groups', 'Processes').
+test_start_state('pc_groups', 'selfattach').
+tests_module('pc_groups', 'proccontrol').
+mutatee('pc_groups', ['pc_groups_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_groups', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_groups', _, Opt) :- member(Opt, ['none']).
+
 test('pc_fork', 'pc_fork', 'pc_fork').
 test_description('pc_fork', 'Fork processes').
 % FreeBSD doesn't provide fork events

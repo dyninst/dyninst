@@ -35,6 +35,7 @@
 #include "test_lib.h"
 #include "TestMutator.h"
 #include "Process.h"
+#include "ProcessSet.h"
 #include "Event.h"
 
 #include <vector>
@@ -56,6 +57,7 @@ private:
    bool acceptConnections(int num, int *attach_sock);
    bool cleanSocket();
    Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
+   ProcessSet::ptr startMutateeSet(RunGroup *group, ParameterDict &param);
    bool startMutatees(RunGroup *group, ParameterDict &param);
 public:
    int sockfd;
@@ -70,6 +72,7 @@ public:
    std::map<Process::ptr, int> process_socks;
    std::map<Dyninst::PID, Process::ptr> process_pids;
    std::vector<Process::ptr> procs;
+   ProcessSet::ptr pset;
    std::map<EventType, std::vector<Event::const_ptr>, eventtype_cmp > eventsRecieved;
 
    ParamPtr me;
