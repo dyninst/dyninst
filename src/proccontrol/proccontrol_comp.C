@@ -1013,7 +1013,9 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
 
    unsigned int bytes_read = 0, num_retries = 10;
    do {
+     printf("[%s:%u] - mutator read(%d, msg, %u)\n", __FILE__, __LINE__, fd, msg_size);
       int result = read(fd, msg + bytes_read, msg_size - bytes_read);
+      printf("[%s:%u] - mutator read result = %d\n", __FILE__, __LINE__, result);
       if (result == -1) {
          perror("Failed to read message from mutator");
          return false;
@@ -1039,6 +1041,7 @@ bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_si
    int fd = i->second;
 
    int result = write(fd, msg, msg_size);
+   printf("[%s:%u] - mutator write(%d, msg, %u) = %d\n", __FILE__, __LINE__, fd, (unsigned) msg_size, result);
    if (result == -1) {
       perror("Failed to write message from mutator");
       return false;
@@ -1085,6 +1088,7 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
    j = name_map.find(p);
    assert(j != name_map.end());
    int fd = open(j->second.c_str(), O_NONBLOCK | (read_pipe ? O_RDONLY : O_WRONLY));
+   printf("[%s:%u] - mutator open(%s, %s) = %d\n", __FILE__, __LINE__, j->second.c_str(), read_pipe ? "O_RDONLY" : "O_WRONLY", fd);
    if (fd == -1) {
       int error = errno;
       if (error == ENXIO) {
@@ -1108,7 +1112,9 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
       uint32_t ready = 0;
       int result = 0;
       do {
+	printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
          result = read(fd, &ready, 4);
+	 printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
          if (result == -1) {
             perror("Mutator could not read from pipe\n");
             return false;
