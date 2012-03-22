@@ -3013,9 +3013,9 @@ compiler_s('iCC', 'icpc').
 compiler_s('bg_gcc', 'powerpc-bgp-linux-gcc').
 compiler_s('bg_g++', 'powerpc-bgp-linux-g++').
 compiler_s('bg_gfortran', 'powerpc-bgp-linux-gfortran').
-compiler_s('bgq_gcc', 'powerpc64-bgq-linux-gcc').
-compiler_s('bgq_g++', 'powerpc64-bgq-linux-g++').
-compiler_s('bgq_gfortran', 'powerpc64-bgq-linux-gfortran').
+compiler_s('bgq_gcc', 'mpicc').
+compiler_s('bgq_g++', 'mpic++').
+compiler_s('bgq_gfortran', 'mpif90').
 
 
 % Translation for Optimization Level

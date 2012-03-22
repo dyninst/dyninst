@@ -844,11 +844,26 @@ Counter &int_process::getStartupTeardownProcs()
    return startupteardown_procs;
 }
 
+bool int_process::plat_waitAndHandleForProc()
+{
+#warning remove this
+  pthrd_printf("In plat_waitAndHandleForProc\n");
+  return true;
+}
+
 int_process *int_process::in_waitHandleProc = NULL;
 bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited)
 {
    assert(in_waitHandleProc == NULL);
    in_waitHandleProc = proc;
+
+#warning remove this
+   pthrd_printf("Top of waitAndHandleForProc\n");
+
+   if (!proc->plat_waitAndHandleForProc()) {
+     perr_printf("Failed platform specific waitAndHandle for %d\n", proc->getPid());
+     return false;
+   }
 
    bool result = waitAndHandleEvents(block);
 
@@ -987,13 +1002,13 @@ bool int_process::waitAndHandleEvents(bool block)
     
       llproc = proc->llproc();
       if (llproc) {
-         llproc->plat_postHandleEvent();
          bool result = llproc->syncRunState();
          if (!result) {
             pthrd_printf("syncRunState failed.  Returning error from waitAndHandleEvents\n");
             error = true;
             goto done;
          }
+         llproc->plat_postHandleEvent();
       }
       else
       {

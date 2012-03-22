@@ -310,9 +310,14 @@ void resetTimeoutAlarm()
    alarm(0);
 }
 
+#if defined(os_bgq_test)
+#include <mpi.h>
+#endif
+
 static int created_named_pipes = 0;
 static void createNamedPipes()
 {
+   int id, result;
    uint32_t ready = 0x42;
    if (created_named_pipes)
       return;
@@ -326,14 +331,19 @@ static void createNamedPipes()
    char *wr_socketname = (char *) malloc(len);
    
 #if defined(os_bgq_test)
-#error TODO
-   int id = ;
+   result = MPI_Comm_rank(MPI_COMM_WORLD, &id);
+   if (result != MPI_SUCCESS) {
+     fprintf(stderr, "Failed to get MPI_Comm_rank\n");
+     return;
+   }
 #else
-   int id = getpid();
+   id = getpid();
 #endif
 
    snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
-   r_pipe = open(rd_socketname, O_RDONLY);
+   do {
+     r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
+   } while (r_pipe == -1 && errno == ENXIO);
    if (r_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
@@ -342,6 +352,7 @@ static void createNamedPipes()
 
    snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
    w_pipe = open(wr_socketname, O_WRONLY);
+   printf("[%s:%u] - mutatee open(%s, O_WRONLY) = %d\n", __FILE__, __LINE__, wr_socketname, w_pipe);
    if (w_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
@@ -354,6 +365,13 @@ static void createNamedPipes()
    free(wr_socketname);
 
    write(w_pipe, &ready, 4);
+
+   int fdflags = fcntl(r_pipe, F_GETFL);
+   if (fdflags < 0 || errno) {
+      logerror("Failed to set fcntl flags\n");
+      return;
+   }
+   fcntl(r_pipe, F_SETFL, fdflags & O_NONBLOCK);
 }
 
 int initMutatorConnection()
@@ -393,6 +411,7 @@ int send_message(unsigned char *msg, size_t msg_size)
    else if (strcmp(socket_type, "named_pipe") == 0) {
       assert(created_named_pipes);
       result = write(w_pipe, msg, msg_size);
+      printf("[%s:%u] - mutatee write(%d, msg, %u) = %d\n", __FILE__, __LINE__, w_pipe, (unsigned) msg_size, result);
    }
    if (result == -1) {
       perror("Mutatee unable to send message");
@@ -465,18 +484,26 @@ int recv_message(unsigned char *msg, size_t msg_size)
       }
    }
    else if (strcmp(socket_type, "named_pipe") == 0) {
-      unsigned int bytes_read = 0, num_retries = 10;
-      assert(created_named_pipes);
+     unsigned int bytes_read = 0;
+     unsigned int num_retries = 300; //30 seconds
+
+     assert(created_named_pipes);
       
-      do {
+     printf("[%s:%u] - Starting mutatee read\n", __FILE__, __LINE__);
+     do {
          int result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
-         if (result == -1) {
-            int error = errno;
-            fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
-            return -1;
+         int error = errno;
+         if (result == 0 || (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO))) {
+	   printf("[%s:%u] - Mutatee read loop\n", __FILE__, __LINE__);
+            usleep(100000); //.1 seconds
+            if (--num_retries == 0) {
+               fprintf(stderr, "Failed to read message from read pipe\n");
+               return -1;
+            }
+            continue;
          }
-         if (result == 0 && --num_retries == 0) {
-            fprintf(stderr, "Failed to read message from read pipe\n");
+         else if (result == -1) {
+            fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
             return -1;
          }
          bytes_read += result;

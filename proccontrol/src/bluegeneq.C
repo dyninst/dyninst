@@ -1021,6 +1021,13 @@ uint32_t bgq_process::getToolID()
    return toolid;
 }
 
+bool bgq_process::plat_waitAndHandleForProc()
+{
+  pthrd_printf("Rotating transactions at top of plat_waitAndHandleForProc\n");
+  rotateTransaction();
+  return true;
+}
+
 bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
 {
    uint16_t msg_type = getCommandMsgType(cmd_type);
@@ -2216,10 +2223,25 @@ bool GeneratorBGQ::getEvent(bool block, vector<ArchEvent *> &events)
    return true;
 }
 
-bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size)
+bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size, int timeout_s)
 {
    size_t bytes_read = 0;
    while (bytes_read < buffer_size) {
+      if (timeout_s > 0) {
+	fd_set readfds;
+	struct timeval timeout;
+	FD_ZERO(&readfds);
+	FD_SET(fd, &readfds);
+	int nfds = fd+1;
+	timeout.tv_sec = timeout_s;
+	timeout.tv_usec = 0;
+	int result = select(nfds, &readfds, NULL, NULL, &timeout);
+	if (result == 0) {
+	  pthrd_printf("Timed out in reliableRead\n");
+	  return false;
+	}
+      }
+
       int result = read(fd, ((char *) buffer) + bytes_read, buffer_size - bytes_read);
 
       if (result == -1 && errno == EINTR) {
@@ -3157,7 +3179,7 @@ void ComputeNode::emergencyShutdown()
 	for (unsigned k=0; k<2; i++) {
 	  MessageHeader *hdr = (MessageHeader *) message;
 	  pthrd_printf("Reading header ACK from KILL on %d\n", pid);
-	  result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader));
+	  result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
 	  if (!result) {
 	    pthrd_printf("Failed to read header from CN\n");
 	    break;
@@ -3170,7 +3192,7 @@ void ComputeNode::emergencyShutdown()
 	    pthrd_printf("Could not read %d bytes\n", hdr->length);
 	    break;
 	  }
-	  result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader));
+	  result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
 	  if (!result) {
 	    pthrd_printf("Failed to read body from CN\n");
 	    break;
@@ -3222,7 +3244,7 @@ void ComputeNode::emergencyShutdown()
 	
 	MessageHeader *hdr = (MessageHeader *) message;
 	pthrd_printf("Reading header ACK from KILL on %d\n", pid);
-	result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader));
+	result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
 	if (!result) {
 	  pthrd_printf("Failed to read header from CN\n");
 	  break;
@@ -3233,7 +3255,7 @@ void ComputeNode::emergencyShutdown()
 	}
 	
 	pthrd_printf("Reading body on %d\n", pid);
-	result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader));
+	result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
 	if (!result) {
 	  pthrd_printf("Failed to read body from CN\n");
 	  break;

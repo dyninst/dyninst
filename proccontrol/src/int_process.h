@@ -240,6 +240,8 @@ class int_process
    static bool waitForAsyncEvent(response::ptr resp);
    static bool waitForAsyncEvent(std::set<response::ptr> resp);
 
+   virtual bool plat_waitAndHandleForProc();
+
    Counter &asyncEventCount();
    Counter &getForceGeneratorBlockCount();
    Counter &getStartupTeardownProcs();

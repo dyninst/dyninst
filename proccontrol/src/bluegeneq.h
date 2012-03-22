@@ -107,6 +107,7 @@ class bgq_process :
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual void noteNewDequeuedEvent(Event::ptr ev);
 
+   virtual bool plat_waitAndHandleForProc();
    virtual bool plat_readMem(int_thread *thr, void *local, Dyninst::Address addr, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, Dyninst::Address addr, size_t size);
    virtual bool plat_needsAsyncIO() const;
@@ -286,7 +287,7 @@ class GeneratorBGQ : public GeneratorMT
 
    bool readMessage(int fd, vector<ArchEvent *> &events);
    bool read_multiple_msgs;
-   bool reliableRead(int fd, void *buffer, size_t buffer_size);
+   bool reliableRead(int fd, void *buffer, size_t buffer_size, int timeout_s = -1);
 
  public:
    GeneratorBGQ();
