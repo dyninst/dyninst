@@ -468,7 +468,7 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
                break;
             case int_iRPC::InfFree:
                pclean_printf("\tF-%lu", cur_rpc->id());
-               break;	      
+               break;
          }
          pclean_printf("\n");
       }

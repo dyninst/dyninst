@@ -2307,7 +2307,7 @@ void LinuxPtrace::main()
       switch(ptrace_request) {
          case create_req:
             bret = proc->plat_create_int();
-	    break;
+            break;
          case ptrace_req:
             ret = ptrace(request, pid, addr, data);
             break;

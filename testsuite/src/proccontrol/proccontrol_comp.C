@@ -1112,9 +1112,9 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
       uint32_t ready = 0;
       int result = 0;
       do {
-	printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
+         printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
          result = read(fd, &ready, 4);
-	 printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
+         printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
          if (result == -1) {
             perror("Mutator could not read from pipe\n");
             return false;

@@ -224,7 +224,7 @@ pid_t ps_getpid (struct ps_prochandle *ph)
    return ph->thread_db_proc->getPid();
 }
 
-void	 ps_plog(const char *format, ...) {
+void ps_plog(const char *format, ...) {
     if( !dyninst_debug_proccontrol ) return;
     if( NULL == format ) return;
 
@@ -972,7 +972,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     objSymReader = plat_defaultSymReader()->openSymbolReader(lib->getName());
     if( NULL == objSymReader ) {
         perr_printf("Failed to open symbol reader for %s\n",
-		    lib->getName().c_str());
+                    lib->getName().c_str());
         setLastError(err_internal, "Failed to open executable for symbol reading");
         return PS_ERR;
     }
@@ -986,7 +986,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     }
 
     *symbolAddr = (psaddr_t) (lib->getAddr() + 
-			      objSymReader->getSymbolOffset(lookupSym));
+                              objSymReader->getSymbolOffset(lookupSym));
 
     pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL", 
                  symName ? symName : "NULL", *symbolAddr);

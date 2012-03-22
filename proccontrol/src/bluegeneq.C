@@ -76,155 +76,155 @@ static const char *getCommandName(uint16_t cmd_type);
 
 static void printMessage(ToolMessage *msg, const char *str)
 {
-  if (!dyninst_debug_proccontrol)
-    return;
-  MessageHeader *header = &msg->header;
+   if (!dyninst_debug_proccontrol)
+      return;
+   MessageHeader *header = &msg->header;
   
-  pthrd_printf("%s MessageHeader:\n"
-	       "\tservice = %u\t"
-	       "\tversion = %u\t"
-	       "\ttype = %u\t"
-	       "\trank = %u\n"
-	       "\tsequenceId = %u\t"
-	       "\treturnCode = %u\t"
-	       "\terrorCode = %u\t"
-	       "\tlength = %u\n"
-	       "\tjobID = %lu\t"
-	       "\ttoolId = %u\n\t",
-	       str,
-	       (unsigned) header->service,
-	       (unsigned) header->version,
-	       (unsigned) header->type,
-	       header->rank,
-	       header->sequenceId,
-	       header->returnCode,
-	       header->errorCode,
-	       header->length,
-	       (unsigned long) header->jobId,
-	       (unsigned) msg->toolId);
+   pthrd_printf("%s MessageHeader:\n"
+                "\tservice = %u\t"
+                "\tversion = %u\t"
+                "\ttype = %u\t"
+                "\trank = %u\n"
+                "\tsequenceId = %u\t"
+                "\treturnCode = %u\t"
+                "\terrorCode = %u\t"
+                "\tlength = %u\n"
+                "\tjobID = %lu\t"
+                "\ttoolId = %u\n\t",
+                str,
+                (unsigned) header->service,
+                (unsigned) header->version,
+                (unsigned) header->type,
+                header->rank,
+                header->sequenceId,
+                header->returnCode,
+                header->errorCode,
+                header->length,
+                (unsigned long) header->jobId,
+                (unsigned) msg->toolId);
   
-  switch (msg->header.type) {
-     case ControlAck: {
-       ControlAckMessage *cak = static_cast<ControlAckMessage *>(msg);
-       pclean_printf("ControlAckMessage: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
-		     (unsigned) cak->controllingToolId, cak->toolTag, (unsigned) cak->priority);
-       break;
-     }
-     case AttachAck: {
-       AttachAckMessage *aak = static_cast<AttachAckMessage *>(msg);
-       pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) aak->numProcess);
-       for (unsigned i=0; i<aak->numProcess; i++) {
-	 pclean_printf("%u,", aak->rank[i]);
-       }
-       pclean_printf("]\n");
-       break;
-     }
-     case DetachAck: {
-       DetachAckMessage *dak = static_cast<DetachAckMessage *>(msg);
-       pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) dak->numProcess);
-       for (unsigned i=0; i<dak->numProcess; i++) {
-	 pclean_printf("%u, ", dak->rank[i]);
-       }
-       pclean_printf("]\n");
-       break;
-     }
-     case QueryAck: {
-       QueryAckMessage *m = static_cast<QueryAckMessage *>(msg);
-       pclean_printf("QueryAck: numCommands = %u\n", (unsigned) m->numCommands);
-       for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-	 CommandDescriptor &c = m->cmdList[i];
-	 pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-		       i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-		       c.length, c.returnCode);
-       }
-       break;
-     }
-     case UpdateAck: {
-       UpdateAckMessage *m = static_cast<UpdateAckMessage *>(msg);
-       pclean_printf("UpdateAck: numCommands = %u\n", (unsigned) m->numCommands);
-       for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-	 CommandDescriptor &c = m->cmdList[i];
-	 pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-		       i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-		       c.length, c.returnCode);
-       }
-       break;
-     }
-     case Query: {
-       QueryMessage *m = static_cast<QueryMessage *>(msg);
-       pclean_printf("Query: numCommands = %u\n", (unsigned) m->numCommands);
-       for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-	 CommandDescriptor &c = m->cmdList[i];
-	 pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-		       i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-		       c.length, c.returnCode);
-       }
-       break;
-     }
-     case Update: {
-       UpdateMessage *m = static_cast<UpdateMessage *>(msg);
-       pclean_printf("Update: numCommands = %u\n", (unsigned) m->numCommands);
-       for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
-	 CommandDescriptor &c = m->cmdList[i];
-	 pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
-		       i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
-		       c.length, c.returnCode);
-       }
-       break;
-     }
-     case Notify: {
-       pclean_printf("Notify ");
-       NotifyMessage *no = static_cast<NotifyMessage *>(msg);
-       switch (no->notifyMessageType) {
-         case NotifyMessageType_Signal:
-	   pclean_printf("Signal: signum = %u, threadId = %u, instAddress = 0x%lx, dataAddress = %lx, reason = %u\n",
-			 no->type.signal.signum, (unsigned) no->type.signal.threadID, no->type.signal.instAddress,
-			 no->type.signal.dataAddress, (unsigned) no->type.signal.reason);
-	   break;
-         case NotifyMessageType_Termination:
-	   pclean_printf("Exit: exitStatus = %u\n", no->type.termination.exitStatus);
-	   break;
-         case NotifyMessageType_Control:
-	   pclean_printf("Control: toolid = %u, toolTag = %.8s, priority = %u, reason = %u\n",
-			 no->type.control.toolid, no->type.control.toolTag, (unsigned) no->type.control.priority,
-			 (unsigned) no->type.control.reason);
-	   break;
-       }
-       break;
-     }
-     case SetupJobAck: {
-       pclean_printf("SetupJobAck\n");
-       break;
-     }
-     case NotifyAck: {
-       pclean_printf("NotifyAck\n");
-       break;
-     }
-     case Attach: {
-       AttachMessage *am = static_cast<AttachMessage *>(msg);
-       pclean_printf("AttachMessage: toolTag = %.8s, priority = %u, procSelect = %u\n",
-		     am->toolTag, (unsigned) am->priority, (unsigned) am->procSelect);
-       break;
-     }
-     case Detach: {
-       DetachMessage *dm = static_cast<DetachMessage *>(msg);
-       pclean_printf("DetachMessage: procSelect = %u\n", (unsigned) dm->procSelect);
-       break;
-     }
-     case SetupJob: {
-       pclean_printf("SetupJobMessage\n");
-       break;
-     }
-     case Control: {
-       ControlMessage *cm = static_cast<ControlMessage *>(msg);
-       pclean_printf("ControlMessage: notifySet - %lx, sendSignal = %u, dynamicNotifyMode = %u, dacTrapMode = %u\n",
-		     cm->notifySet, cm->sndSignal, (unsigned) cm->dynamicNotifyMode, (unsigned) cm->dacTrapMode);
-       break;
-     }
-     default:
-       pclean_printf("Unknown message\n");
-       break;
-  }
+   switch (msg->header.type) {
+      case ControlAck: {
+         ControlAckMessage *cak = static_cast<ControlAckMessage *>(msg);
+         pclean_printf("ControlAckMessage: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
+                       (unsigned) cak->controllingToolId, cak->toolTag, (unsigned) cak->priority);
+         break;
+      }
+      case AttachAck: {
+         AttachAckMessage *aak = static_cast<AttachAckMessage *>(msg);
+         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) aak->numProcess);
+         for (unsigned i=0; i<aak->numProcess; i++) {
+            pclean_printf("%u,", aak->rank[i]);
+         }
+         pclean_printf("]\n");
+         break;
+      }
+      case DetachAck: {
+         DetachAckMessage *dak = static_cast<DetachAckMessage *>(msg);
+         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) dak->numProcess);
+         for (unsigned i=0; i<dak->numProcess; i++) {
+            pclean_printf("%u, ", dak->rank[i]);
+         }
+         pclean_printf("]\n");
+         break;
+      }
+      case QueryAck: {
+         QueryAckMessage *m = static_cast<QueryAckMessage *>(msg);
+         pclean_printf("QueryAck: numCommands = %u\n", (unsigned) m->numCommands);
+         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+            CommandDescriptor &c = m->cmdList[i];
+            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                          c.length, c.returnCode);
+         }
+         break;
+      }
+      case UpdateAck: {
+         UpdateAckMessage *m = static_cast<UpdateAckMessage *>(msg);
+         pclean_printf("UpdateAck: numCommands = %u\n", (unsigned) m->numCommands);
+         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+            CommandDescriptor &c = m->cmdList[i];
+            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                          c.length, c.returnCode);
+         }
+         break;
+      }
+      case Query: {
+         QueryMessage *m = static_cast<QueryMessage *>(msg);
+         pclean_printf("Query: numCommands = %u\n", (unsigned) m->numCommands);
+         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+            CommandDescriptor &c = m->cmdList[i];
+            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                          c.length, c.returnCode);
+         }
+         break;
+      }
+      case Update: {
+         UpdateMessage *m = static_cast<UpdateMessage *>(msg);
+         pclean_printf("Update: numCommands = %u\n", (unsigned) m->numCommands);
+         for (unsigned i=0; i<(unsigned) m->numCommands; i++) {
+            CommandDescriptor &c = m->cmdList[i];
+            pclean_printf("\t[%u] type = %s, reserved = %u, offset = %u, length = %u, returnCode = %u\n",
+                          i, getCommandName(c.type), (unsigned) c.reserved, c.offset,
+                          c.length, c.returnCode);
+         }
+         break;
+      }
+      case Notify: {
+         pclean_printf("Notify ");
+         NotifyMessage *no = static_cast<NotifyMessage *>(msg);
+         switch (no->notifyMessageType) {
+            case NotifyMessageType_Signal:
+               pclean_printf("Signal: signum = %u, threadId = %u, instAddress = 0x%lx, dataAddress = %lx, reason = %u\n",
+                             no->type.signal.signum, (unsigned) no->type.signal.threadID, no->type.signal.instAddress,
+                             no->type.signal.dataAddress, (unsigned) no->type.signal.reason);
+               break;
+            case NotifyMessageType_Termination:
+               pclean_printf("Exit: exitStatus = %u\n", no->type.termination.exitStatus);
+               break;
+            case NotifyMessageType_Control:
+               pclean_printf("Control: toolid = %u, toolTag = %.8s, priority = %u, reason = %u\n",
+                             no->type.control.toolid, no->type.control.toolTag, (unsigned) no->type.control.priority,
+                             (unsigned) no->type.control.reason);
+               break;
+         }
+         break;
+      }
+      case SetupJobAck: {
+         pclean_printf("SetupJobAck\n");
+         break;
+      }
+      case NotifyAck: {
+         pclean_printf("NotifyAck\n");
+         break;
+      }
+      case Attach: {
+         AttachMessage *am = static_cast<AttachMessage *>(msg);
+         pclean_printf("AttachMessage: toolTag = %.8s, priority = %u, procSelect = %u\n",
+                       am->toolTag, (unsigned) am->priority, (unsigned) am->procSelect);
+         break;
+      }
+      case Detach: {
+         DetachMessage *dm = static_cast<DetachMessage *>(msg);
+         pclean_printf("DetachMessage: procSelect = %u\n", (unsigned) dm->procSelect);
+         break;
+      }
+      case SetupJob: {
+         pclean_printf("SetupJobMessage\n");
+         break;
+      }
+      case Control: {
+         ControlMessage *cm = static_cast<ControlMessage *>(msg);
+         pclean_printf("ControlMessage: notifySet - %lx, sendSignal = %u, dynamicNotifyMode = %u, dacTrapMode = %u\n",
+                       cm->notifySet, cm->sndSignal, (unsigned) cm->dynamicNotifyMode, (unsigned) cm->dacTrapMode);
+         break;
+      }
+      default:
+         pclean_printf("Unknown message\n");
+         break;
+   }
 }
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
@@ -382,7 +382,7 @@ bool bgq_process::plat_getInterpreterBase(Address &base)
    perr_printf("Failed to find interpreter base for %d\n", getPid());
    pthrd_printf("%u auxv elements\n", len);
    for (uint32_t i = 0; i < len; i++) {
-     pthrd_printf("%lx\n", get_auxvectors_result.data[i]);
+      pthrd_printf("%lx\n", get_auxvectors_result.data[i]);
    }
    base = 0;
    return false;
@@ -442,12 +442,12 @@ bool bgq_process::plat_supportLWPPostDestroy()
 
 static SymbolReaderFactory *getElfReader()
 {
-  static SymbolReaderFactory *symreader_factory = NULL;
-  if (symreader_factory)
-    return symreader_factory;
+   static SymbolReaderFactory *symreader_factory = NULL;
+   if (symreader_factory)
+      return symreader_factory;
 
-  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-  return symreader_factory;
+   symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
+   return symreader_factory;
 }
 
 SymbolReaderFactory *bgq_process::plat_defaultSymReader()
@@ -492,29 +492,29 @@ bool bgq_process::rotateTransaction()
    bool result;
    pthrd_printf("Flushing and beginning transactions for %d\n", getPid());
    if (query_transaction->activeTransaction()) {
-     pthrd_printf("Ending query transaction\n");
-     result = query_transaction->endTransaction();
+      pthrd_printf("Ending query transaction\n");
+      result = query_transaction->endTransaction();
 
-     pthrd_printf("Beginning new query transaction\n");
-     query_transaction->beginTransaction();
+      pthrd_printf("Beginning new query transaction\n");
+      query_transaction->beginTransaction();
 
-     if (!result) {
-       perr_printf("Error flushing query transaction\n");
-       return false;
-     }
+      if (!result) {
+         perr_printf("Error flushing query transaction\n");
+         return false;
+      }
    }
 
    if (update_transaction->activeTransaction()) {
-     pthrd_printf("Ending update transaction\n");
-     result = update_transaction->endTransaction();
+      pthrd_printf("Ending update transaction\n");
+      result = update_transaction->endTransaction();
 
-     pthrd_printf("Beginning new update transaction\n");
-     update_transaction->beginTransaction();
+      pthrd_printf("Beginning new update transaction\n");
+      update_transaction->beginTransaction();
 
-     if (!result) {
-       perr_printf("Error flushing update transaction\n");
-       return false;
-     }
+      if (!result) {
+         perr_printf("Error flushing update transaction\n");
+         return false;
+      }
    }
 
    return true;
@@ -669,19 +669,19 @@ void bgq_process::plat_threadAttachDone()
    Event::SyncType new_ev_sync_state = Event::unset;
 
    if (priority != QueryPriorityLevel) {
-     new_ev_sync_state = Event::async;
-     new_state = int_thread::stopped;
+      new_ev_sync_state = Event::async;
+      new_state = int_thread::stopped;
    }
    else {
-     new_ev_sync_state = Event::async;
-     new_state = int_thread::running;
+      new_ev_sync_state = Event::async;
+      new_state = int_thread::running;
    }
 
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
-     int_thread *thr = *i;
-     thr->getGeneratorState().setState(new_state);
-     thr->getHandlerState().setState(new_state);
-     thr->getUserState().setState(new_state);
+      int_thread *thr = *i;
+      thr->getGeneratorState().setState(new_state);
+      thr->getHandlerState().setState(new_state);
+      thr->getUserState().setState(new_state);
    }
    ev->setSyncType(new_ev_sync_state);
 
@@ -878,10 +878,10 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       else if (notify_msg->type.control.reason == NotifyControl_Conflict) {
          pthrd_printf("Conflict message from control request, moving to data collection\n");
-	 pthrd_printf("Conflicting tag is %s, id = %u, priority = %u\n", 
-		      notify_msg->type.control.toolTag,
-		      notify_msg->type.control.toolid,
-		      notify_msg->type.control.priority);
+         pthrd_printf("Conflicting tag is %s, id = %u, priority = %u\n", 
+                      notify_msg->type.control.toolTag,
+                      notify_msg->type.control.toolid,
+                      notify_msg->type.control.priority);
          startup_state = skip_control_request_signal;
       }
       else
@@ -1023,9 +1023,9 @@ uint32_t bgq_process::getToolID()
 
 bool bgq_process::plat_waitAndHandleForProc()
 {
-  pthrd_printf("Rotating transactions at top of plat_waitAndHandleForProc\n");
-  rotateTransaction();
-  return true;
+   pthrd_printf("Rotating transactions at top of plat_waitAndHandleForProc\n");
+   rotateTransaction();
+   return true;
 }
 
 bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, response::ptr resp, unsigned int resp_mod)
@@ -1506,9 +1506,9 @@ void bgq_thread::regBufferToPool(BG_Reg_t *gprs, BG_Special_Regs *sregs, int_reg
    }
 }
 
-#define REG_TO_USER(R) \
-   int_registerPool::const_iter i = regs.find(ppc64:: R);               \
-   assert(i != regs.end();                                              \
+#define REG_TO_USER(R)                                      \
+   int_registerPool::const_iter i = regs.find(ppc64:: R);   \
+   assert(i != regs.end();                                  \
    
 #define NUM_REGS_IN_PT_REGS 44
 void bgq_thread::regPoolToUser(const int_registerPool &pool_regs, void *user_area)
@@ -1783,7 +1783,7 @@ bool ComputeNode::constructSocketToID()
 
    for (struct dirent *dent = readdir(dir); dent; dent = readdir(dir)) {
       if (dent->d_name[0] == '.')
-	continue;
+         continue;
       int node_id = atoi(dent->d_name);
       pthrd_printf("Parsing link %d\n", node_id);
 
@@ -1938,7 +1938,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
    printMessage(msg, "Writing");
    bool result = reliableWrite(msg, msg->header.length);
    pthrd_printf("Wrote message of size %u to FD %d, result is %s\n", msg->header.length,
-		fd, result ? "true" : "false");
+                fd, result ? "true" : "false");
    if (heap_alloced) {
       free(msg);
    }
@@ -2015,7 +2015,7 @@ Handler::handler_ret_t HandleBGQStartup::handleEvent(Event::ptr ev)
    EventIntBootstrap::ptr int_bs = ev->getEventIntBootstrap();
    void *data = NULL;
    if (int_bs)
-     data = int_bs->getData();
+      data = int_bs->getData();
 
    bool result = proc->handleStartupEvent(data);
    return result ? ret_success : ret_error;
@@ -2163,11 +2163,11 @@ bool GeneratorBGQ::getEvent(bool block, vector<ArchEvent *> &events)
       FD_SET(fd, &read_set);
       have_fd  = true;
       if (dyninst_debug_proccontrol) {
-	char buffer[32];
-	if (!fd_list_str.empty())
-	  fd_list_str += ", ";
-	snprintf(buffer, 32, "%d", fd);
-	fd_list_str += buffer;
+         char buffer[32];
+         if (!fd_list_str.empty())
+            fd_list_str += ", ";
+         snprintf(buffer, 32, "%d", fd);
+         fd_list_str += buffer;
       }
    }
    assert(have_fd);
@@ -2228,18 +2228,18 @@ bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size, int ti
    size_t bytes_read = 0;
    while (bytes_read < buffer_size) {
       if (timeout_s > 0) {
-	fd_set readfds;
-	struct timeval timeout;
-	FD_ZERO(&readfds);
-	FD_SET(fd, &readfds);
-	int nfds = fd+1;
-	timeout.tv_sec = timeout_s;
-	timeout.tv_usec = 0;
-	int result = select(nfds, &readfds, NULL, NULL, &timeout);
-	if (result == 0) {
-	  pthrd_printf("Timed out in reliableRead\n");
-	  return false;
-	}
+         fd_set readfds;
+         struct timeval timeout;
+         FD_ZERO(&readfds);
+         FD_SET(fd, &readfds);
+         int nfds = fd+1;
+         timeout.tv_sec = timeout_s;
+         timeout.tv_usec = 0;
+         int result = select(nfds, &readfds, NULL, NULL, &timeout);
+         if (result == 0) {
+            pthrd_printf("Timed out in reliableRead\n");
+            return false;
+         }
       }
 
       int result = read(fd, ((char *) buffer) + bytes_read, buffer_size - bytes_read);
@@ -2343,15 +2343,15 @@ void GeneratorBGQ::kick()
 extern void GeneratorInternalJoin(GeneratorMTInternals *);
 void GeneratorBGQ::shutdown()
 {
-  setState(Generator::exiting);
-  kick();
+   setState(Generator::exiting);
+   kick();
 
-  bool result = ProcPool()->condvar()->trylock();
-  if (result) {
-    ProcPool()->condvar()->signal();
-    ProcPool()->condvar()->unlock();
-  } 
-  sleep(1);
+   bool result = ProcPool()->condvar()->trylock();
+   if (result) {
+      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->unlock();
+   } 
+   sleep(1);
 }
 
 static GeneratorBGQ *gen = NULL;
@@ -2449,7 +2449,7 @@ bool DecoderBlueGeneQ::decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, v
    new_ev->setSyncType(stype);
    ae->dontFreeMsg();
    events.push_back(new_ev);
-  return true;
+   return true;
 }
 
 bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_process *proc,
@@ -2463,9 +2463,9 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
 
    ResponseSet *resp_set = NULL;
    if (seq_id) {
-     resp_set = ResponseSet::getResponseSetByID(seq_id);
-     if (resp_set)
-       pthrd_printf("Associated ACK with response set %d\n", seq_id);
+      resp_set = ResponseSet::getResponseSetByID(seq_id);
+      if (resp_set)
+         pthrd_printf("Associated ACK with response set %d\n", seq_id);
    }
 
    for (int i=0; i<num_commands; i++) 
@@ -2478,18 +2478,18 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
 
       response::ptr cur_resp = response::ptr();
       if (resp_set) {
-	getResponses().lock();
-	resp_lock_held = true;
-	bool found = false;
-	unsigned int id = resp_set->getIDByIndex(i, found);
-	pthrd_printf("Associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
-	if (found)
-	  cur_resp = getResponses().rmResponse(id);
-	if (!cur_resp) {
-	  resp_lock_held = false;
-	  getResponses().unlock();
-	}
-	pthrd_printf("%s response in message\n", cur_resp ? "Found" : "Did not find");
+         getResponses().lock();
+         resp_lock_held = true;
+         bool found = false;
+         unsigned int id = resp_set->getIDByIndex(i, found);
+         pthrd_printf("Associated ACK %u and index %u with internal id %u\n", seq_id, i, id);
+         if (found)
+            cur_resp = getResponses().rmResponse(id);
+         if (!cur_resp) {
+            resp_lock_held = false;
+            getResponses().unlock();
+         }
+         pthrd_printf("%s response in message\n", cur_resp ? "Found" : "Did not find");
       }
   
       switch (desc->type) {
@@ -2501,15 +2501,15 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             assert(regpool);
             if (desc->type == GetSpecialRegsAck) {
                pthrd_printf("Decoding GetSpecialRegsAck on %d/%d\n", 
-			    proc->getPid(), thr->getLWP());
+                            proc->getPid(), thr->getLWP());
                GetSpecialRegsAckCmd *cmd = static_cast<GetSpecialRegsAckCmd *>(base_cmd);
                bgq_thread::regBufferToPool(NULL, &cmd->sregs, *regpool);
             }
             else {
                pthrd_printf("Decoding GetGeneralRegsAck on %d/%d\n", 
-			    proc->getPid(), thr->getLWP());
-	       GetGeneralRegsAckCmd *cmd = static_cast<GetGeneralRegsAckCmd *>(base_cmd);
-	       bgq_thread::regBufferToPool(cmd->gpr, NULL, *regpool);
+                            proc->getPid(), thr->getLWP());
+               GetGeneralRegsAckCmd *cmd = static_cast<GetGeneralRegsAckCmd *>(base_cmd);
+               bgq_thread::regBufferToPool(cmd->gpr, NULL, *regpool);
             }
             allreg->postResponse();
             if (desc->returnCode)
@@ -2519,9 +2519,9 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (new_ev)
                events.push_back(new_ev);
 
-	    resp_lock_held = false;
-	    getResponses().signal();
-	    getResponses().unlock();
+            resp_lock_held = false;
+            getResponses().signal();
+            getResponses().unlock();
             break;
          }
          case GetFloatRegsAck:
@@ -2542,18 +2542,18 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (new_ev)
                events.push_back(new_ev);
 
-	    resp_lock_held = false;
-	    getResponses().signal();
-	    getResponses().unlock();
-	    break;
+            resp_lock_held = false;
+            getResponses().signal();
+            getResponses().unlock();
+            break;
          }
          case GetThreadListAck:
             pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
-			 proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
+                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case GetAuxVectorsAck:
             pthrd_printf("Decoded GetAuxVectorsAck on %d/%d. Dropping\n", 
-			 proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
+                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case GetProcessDataAck: {
             pthrd_printf("Decoded new event on %d to GetProcessData message\n", proc->getPid());
@@ -2588,21 +2588,21 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          case SetMemoryAck: 
             pthrd_printf("Decoding SetMemoryAck on %d\n", proc->getPid());
          HandleResResponse: {                  
-            result_response::ptr result_resp = cur_resp->getResultResponse();
-            assert(result_resp);
-            bool has_error = (desc->returnCode != 0);
-            if (has_error) 
-               result_resp->markError(desc->returnCode);
-            result_resp->postResponse(!has_error);
-            Event::ptr new_ev = decodeCompletedResponse(result_resp, async_ev_map);
-            if (new_ev)
-               events.push_back(new_ev);
+               result_response::ptr result_resp = cur_resp->getResultResponse();
+               assert(result_resp);
+               bool has_error = (desc->returnCode != 0);
+               if (has_error) 
+                  result_resp->markError(desc->returnCode);
+               result_resp->postResponse(!has_error);
+               Event::ptr new_ev = decodeCompletedResponse(result_resp, async_ev_map);
+               if (new_ev)
+                  events.push_back(new_ev);
 
-	    resp_lock_held = false;
-	    getResponses().signal();
-	    getResponses().unlock();
-	    break;
-         }
+               resp_lock_held = false;
+               getResponses().signal();
+               getResponses().unlock();
+               break;
+            }
          case SetFloatRegAck:
          case SetDebugRegAck:
             assert(0); //Currently unused
@@ -2648,7 +2648,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
    }
 
    if (resp_set)
-     delete resp_set;
+      delete resp_set;
 
    return true;
 }
@@ -2716,7 +2716,7 @@ bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *pr
 }
 
 bool DecoderBlueGeneQ::decodeStop(ArchEventBGQ *archevent, bgq_process *proc, int_thread *thr,
-                                 vector<Event::ptr> &events)
+                                  vector<Event::ptr> &events)
 {
    if ((int) proc->startup_state >= (int) bgq_process::issue_control_request &&
        (int) proc->startup_state <= (int) bgq_process::waitfor_control_request_signal)
@@ -2776,7 +2776,7 @@ bool DecoderBlueGeneQ::decodeSignal(ArchEventBGQ *archevent, bgq_process *proc,
 
    int_thread *thr = proc->threadPool()->findThreadByLWP(threadID);   
    if (!thr && proc->startup_state != bgq_process::startup_done) {
-     thr = proc->threadPool()->initialThread();
+      thr = proc->threadPool()->initialThread();
    }
    assert(thr);
    
@@ -2900,8 +2900,8 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
          assert(0);
          break;
       case QueryAck: {
-	 QueryAckMessage *qack = static_cast<QueryAckMessage *>(msg);
-	 uint16_t num_commands = qack->numCommands;
+         QueryAckMessage *qack = static_cast<QueryAckMessage *>(msg);
+         uint16_t num_commands = qack->numCommands;
          CommandDescriptor *cmd_list = qack->cmdList;
          pthrd_printf("Decoding QueryAck from %d with %d commands\n", proc->getPid(), num_commands);
          return decodeUpdateOrQueryAck(archevent, qproc, num_commands, cmd_list, events);
@@ -2953,325 +2953,325 @@ DebugThread *DebugThread::me;
 extern void setXThread(long t);
 
 DebugThread::DebugThread() :
-  shutdown(false),
-  initialized(false)
+   shutdown(false),
+   initialized(false)
 {
-  if (me && me->initialized)
-    return;
+   if (me && me->initialized)
+      return;
 
-  init_lock.lock();
-  if (!me) {
-    pfd[0] = pfd[1] = -1;
-    me = this;
-    debug_thread.spawn(mainLoopWrapper, NULL);
-    while (!initialized && !shutdown) {
-      init_lock.wait();
-    }
-  }
-  init_lock.unlock();
+   init_lock.lock();
+   if (!me) {
+      pfd[0] = pfd[1] = -1;
+      me = this;
+      debug_thread.spawn(mainLoopWrapper, NULL);
+      while (!initialized && !shutdown) {
+         init_lock.wait();
+      }
+   }
+   init_lock.unlock();
 }
 
 DebugThread::~DebugThread()
 {
-  if (initialized && !shutdown) {
-    char c = 'x';
-    shutdown = true;
-    write(pfd[1], &c, 1);
-    debug_thread.join();
-  }
-  if (pfd[0] != -1)
-    close(pfd[0]);
-  if (pfd[1] != -1)
-    close(pfd[1]);
+   if (initialized && !shutdown) {
+      char c = 'x';
+      shutdown = true;
+      write(pfd[1], &c, 1);
+      debug_thread.join();
+   }
+   if (pfd[0] != -1)
+      close(pfd[0]);
+   if (pfd[1] != -1)
+      close(pfd[1]);
 }
 
 void DebugThread::mainLoopWrapper(void *)
 {
-  me->mainLoop();
+   me->mainLoop();
 }
 
 bool DebugThread::init()
 {
-  bool ret = false;
+   bool ret = false;
 
-  init_lock.lock();
-  registerSignalHandlers(true);
+   init_lock.lock();
+   registerSignalHandlers(true);
   
-  setXThread(DThread::self());
-  int result = pipe(pfd);
-  if (result == -1) {
-    perr_printf("Error creating shutdown pipe: %s\n", strerror(errno));
-    goto done;
-  }
-  ret = true;
-  initialized = true;
- done:  
-  init_lock.broadcast();
-  init_lock.unlock();
-  return ret;
+   setXThread(DThread::self());
+   int result = pipe(pfd);
+   if (result == -1) {
+      perr_printf("Error creating shutdown pipe: %s\n", strerror(errno));
+      goto done;
+   }
+   ret = true;
+   initialized = true;
+  done:  
+   init_lock.broadcast();
+   init_lock.unlock();
+   return ret;
 }
 
 void DebugThread::mainLoop()
 {
-  if (!init()) {
-    pthrd_printf("Could not initialize debug thread\n");
-    return;
-  }
+   if (!init()) {
+      pthrd_printf("Could not initialize debug thread\n");
+      return;
+   }
 
-  while (!shutdown) {
-    fd_set readfds;
-    FD_ZERO(&readfds);
-    int nfds = 0;
-    if (pfd[0] != -1) {
-      FD_SET(pfd[0], &readfds);
-      if (pfd[0] > nfds)
-	nfds = pfd[0];
-    }
+   while (!shutdown) {
+      fd_set readfds;
+      FD_ZERO(&readfds);
+      int nfds = 0;
+      if (pfd[0] != -1) {
+         FD_SET(pfd[0], &readfds);
+         if (pfd[0] > nfds)
+            nfds = pfd[0];
+      }
 
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
+      struct timeval timeout;
+      timeout.tv_sec = 10;
+      timeout.tv_usec = 0;
 
-    int result = select(nfds+1, &readfds, NULL, NULL, &timeout);
-    if (result == -1) {
-      int error = errno;
-      if (error == EINTR)
-	continue;
-      perr_printf("Error calling select: %s\n", strerror(error));
-      shutdown = true;
-      break;
-    }
+      int result = select(nfds+1, &readfds, NULL, NULL, &timeout);
+      if (result == -1) {
+         int error = errno;
+         if (error == EINTR)
+            continue;
+         perr_printf("Error calling select: %s\n", strerror(error));
+         shutdown = true;
+         break;
+      }
     
-    struct stat buf;
-    int sresult = stat("./pc_force_shutdown", &buf);
-    if (sresult == 0) {
-      pthrd_printf("Forcing shutdown\n");
-      abort();
-    }
-  }
+      struct stat buf;
+      int sresult = stat("./pc_force_shutdown", &buf);
+      if (sresult == 0) {
+         pthrd_printf("Forcing shutdown\n");
+         abort();
+      }
+   }
 }
 
 DebugThread *DebugThread::getDebugThread()
 {
-  if (me)
-    return me;
-  DebugThread *debugthrd = new DebugThread();
-  if (debugthrd != me) {
-    delete debugthrd;
-  }
-  return me;
+   if (me)
+      return me;
+   DebugThread *debugthrd = new DebugThread();
+   if (debugthrd != me) {
+      delete debugthrd;
+   }
+   return me;
 }
 
 static void on_crash(int sig)
 {
-  registerSignalHandlers(false);
-  pthrd_printf("Caught signal %d, issuing emergency shutdown procedures\n", sig);
-  ComputeNode::emergencyShutdown();
-  pthrd_printf("Calling abort\n");
-  abort();
+   registerSignalHandlers(false);
+   pthrd_printf("Caught signal %d, issuing emergency shutdown procedures\n", sig);
+   ComputeNode::emergencyShutdown();
+   pthrd_printf("Calling abort\n");
+   abort();
 }
 
 static void registerSignalHandlers(bool enable)
 {
-  sighandler_t handler = enable ? on_crash : SIG_DFL;
+   sighandler_t handler = enable ? on_crash : SIG_DFL;
 
-  signal(SIGSEGV, handler);
-  signal(SIGBUS, handler);
-  signal(SIGABRT, handler);
-  signal(SIGILL, handler);
-  signal(SIGQUIT, handler);
-  signal(SIGTERM, handler);
+   signal(SIGSEGV, handler);
+   signal(SIGBUS, handler);
+   signal(SIGABRT, handler);
+   signal(SIGILL, handler);
+   signal(SIGQUIT, handler);
+   signal(SIGTERM, handler);
 }
 
 void ComputeNode::emergencyShutdown()
 {
-  char message[8192];
+   char message[8192];
 
-  pthrd_printf("Shutting down generator\n");
-  GeneratorBGQ *gen = static_cast<GeneratorBGQ *>(Generator::getDefaultGenerator());
-  gen->shutdown();
-  pthrd_printf("Done shutting down generator\n");
+   pthrd_printf("Shutting down generator\n");
+   GeneratorBGQ *gen = static_cast<GeneratorBGQ *>(Generator::getDefaultGenerator());
+   gen->shutdown();
+   pthrd_printf("Done shutting down generator\n");
 
-  pthrd_printf("all_compute_nodes.size() = %u\n", (unsigned) all_compute_nodes.size());
-  for (set<ComputeNode *>::iterator i = all_compute_nodes.begin(); i != all_compute_nodes.end(); i++) {
-    ComputeNode *cn = *i;
-    if (!cn) {
-      pthrd_printf("Skipping empty compute node\n");
-      continue;
-    }
-    pthrd_printf("cn->procs.size() = %u\n", (unsigned) cn->procs.size());
-    for (set<bgq_process *>::iterator j = cn->procs.begin(); j != cn->procs.end(); j++) {
-      again: {
-	bgq_process *proc = *j;
-	if (!proc) {
-	  pthrd_printf("Skipping NULL proc\n");
-	  continue;
-	}
-	int pid = proc->getPid();
-	pthrd_printf("Emergency shutdown of %d\n", pid);
-	
-	UpdateMessage *update = (UpdateMessage *) message;
-	MessageHeader *header = &update->header;
-	CommandDescriptor *command = update->cmdList;
-	
-	SendSignalCmd *send = (SendSignalCmd *) (update + 1);
-	SetContinuationSignalCmd *cont_sig = (SetContinuationSignalCmd *) (send + 1);
-	ReleaseThreadCmd *release = (ReleaseThreadCmd *) (cont_sig + 1);
-	ContinueProcessCmd *cont = (ContinueProcessCmd *) (release + 1);
-
-	size_t size = ((char *) (cont+1)) - message;
-      
-	header->service = ToolctlService;
-	header->version = ProtocolVersion;
-	header->type = Update;
-	header->rank = pid;
-	header->sequenceId = 0;
-	header->returnCode = 0;
-	header->length = size;
-	header->jobId = bgq_process::getJobID();
-      
-	update->toolId = bgq_process::getToolID();
-	update->numCommands = 4;
-
-	int cur_cmd = 0;
-      
-	command[cur_cmd].type = SendSignal;
-	command[cur_cmd].offset = ((char *) send) - message;
-	command[cur_cmd].length = sizeof(SendSignalCmd);
-	command[cur_cmd].returnCode = 0;
-	cur_cmd++;
-
-	command[cur_cmd].type = SetContinuationSignal;
-	command[cur_cmd].offset = ((char *) cont_sig) - message;
-	command[cur_cmd].length = sizeof(SetContinuationSignalCmd);
-	command[cur_cmd].returnCode = 0;
-	cur_cmd++;
-
-	command[cur_cmd].type = ReleaseThread;
-	command[cur_cmd].offset = ((char *) release) - message;
-	command[cur_cmd].length = sizeof(ReleaseThreadCmd);
-	command[cur_cmd].returnCode = 0;
-	cur_cmd++;
-	
-	command[cur_cmd].type = ContinueProcess;
-	command[cur_cmd].offset = ((char *) cont) - message;
-	command[cur_cmd].length = sizeof(ContinueProcessCmd);
-	command[cur_cmd].returnCode = 0;
-	cur_cmd++;
-
-	send->threadID = 0;
-	send->signum = SIGKILL;
-
-	cont_sig->threadID = 0;
-	cont_sig->signum = SIGKILL;
-
-	release->threadID = 0;
-
-	cont->threadID = 0;
-      
-	pthrd_printf("Sending emergency KILL 9 to %d\n", pid);
-	bool result = cn->reliableWrite(message, size);
-	if (!result) {
-	  pthrd_printf("Failed to write to CN\n");
-	  continue;
-	}
-      
-	for (unsigned k=0; k<2; i++) {
-	  MessageHeader *hdr = (MessageHeader *) message;
-	  pthrd_printf("Reading header ACK from KILL on %d\n", pid);
-	  result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
-	  if (!result) {
-	    pthrd_printf("Failed to read header from CN\n");
-	    break;
-	  }
-	  if (hdr->length > SmallMessageDataSize) {
-	    pthrd_printf("Read corrupted ACK from CN\n");
-	    break;
-	  }
-	  if (hdr->length > 8192) {
-	    pthrd_printf("Could not read %d bytes\n", hdr->length);
-	    break;
-	  }
-	  result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
-	  if (!result) {
-	    pthrd_printf("Failed to read body from CN\n");
-	    break;
-	  }
-	  if (header->type != UpdateAck) {
-	    pthrd_printf("Not an update on attempt %d\n", k+1);
-	    continue;
-	  }
-
-	  UpdateAckMessage *ua_message = (UpdateAckMessage *) message;
-	  for (unsigned l = 0; l < ua_message->numCommands; l++) {
-	    pthrd_printf("Returned type %u with returnCode %u\n",
-			 (unsigned) ua_message->cmdList[l].type,
-			 (unsigned) ua_message->cmdList[l].returnCode);
-	  }
-	  break;
-	}
-
-
-	pthrd_printf("Building ReleaseControlCmd\n");
-	ReleaseControlCmd *releasectrl = (ReleaseControlCmd *) (update + 1);
-	size = ((char *) (cont+1)) - message;
-       
-	header->service = ToolctlService;
-	header->version = ProtocolVersion;
-	header->type = Update;
-	header->rank = pid;
-	header->sequenceId = 0;
-	header->returnCode = 0;
-	header->length = size;
-	header->jobId = bgq_process::getJobID();
-	
-	update->toolId = bgq_process::getToolID();
-	update->numCommands = 1;
-
-	command[0].type = ReleaseControl;
-	command[0].offset = ((char *) releasectrl) - message;
-	command[0].length = sizeof(ReleaseControlCmd);
-	command[0].returnCode = 0;
-
-	releasectrl->notify = ReleaseControlNotify_Inactive;
-	
-	pthrd_printf("Sending ReleaseControlCommand to %d\n", pid);
-	result = cn->reliableWrite(message, size);
-	if (!result) {
-	  pthrd_printf("Failed to write to CN\n");
-	  continue;
-	}
-	
-	MessageHeader *hdr = (MessageHeader *) message;
-	pthrd_printf("Reading header ACK from KILL on %d\n", pid);
-	result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
-	if (!result) {
-	  pthrd_printf("Failed to read header from CN\n");
-	  break;
-	}
-	if (hdr->length > SmallMessageDataSize) {
-	  pthrd_printf("Read corrupted ACK from CN\n");
-	  break;
-	}
-	
-	pthrd_printf("Reading body on %d\n", pid);
-	result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
-	if (!result) {
-	  pthrd_printf("Failed to read body from CN\n");
-	  break;
-	}
-	
-	UpdateAckMessage *ua_message = (UpdateAckMessage *) message;
-	pthrd_printf("Reading Have %u messages on %d\n", (unsigned) ua_message->numCommands, pid);
-	for (unsigned l = 0; l < ua_message->numCommands; l++) {
-	  pthrd_printf("Returned type %u with returnCode %u\n",
-		       (unsigned) ua_message->cmdList[l].type,
-		       (unsigned) ua_message->cmdList[l].returnCode);
-	}
-	if (ua_message->numCommands && ua_message->cmdList[0].returnCode == CmdPendingNotify)
-	  goto again;
+   pthrd_printf("all_compute_nodes.size() = %u\n", (unsigned) all_compute_nodes.size());
+   for (set<ComputeNode *>::iterator i = all_compute_nodes.begin(); i != all_compute_nodes.end(); i++) {
+      ComputeNode *cn = *i;
+      if (!cn) {
+         pthrd_printf("Skipping empty compute node\n");
+         continue;
       }
-    }
-  }
-  pthrd_printf("done.\n");
+      pthrd_printf("cn->procs.size() = %u\n", (unsigned) cn->procs.size());
+      for (set<bgq_process *>::iterator j = cn->procs.begin(); j != cn->procs.end(); j++) {
+        again: {
+            bgq_process *proc = *j;
+            if (!proc) {
+               pthrd_printf("Skipping NULL proc\n");
+               continue;
+            }
+            int pid = proc->getPid();
+            pthrd_printf("Emergency shutdown of %d\n", pid);
+
+            UpdateMessage *update = (UpdateMessage *) message;
+            MessageHeader *header = &update->header;
+            CommandDescriptor *command = update->cmdList;
+
+            SendSignalCmd *send = (SendSignalCmd *) (update + 1);
+            SetContinuationSignalCmd *cont_sig = (SetContinuationSignalCmd *) (send + 1);
+            ReleaseThreadCmd *release = (ReleaseThreadCmd *) (cont_sig + 1);
+            ContinueProcessCmd *cont = (ContinueProcessCmd *) (release + 1);
+
+            size_t size = ((char *) (cont+1)) - message;
+      
+            header->service = ToolctlService;
+            header->version = ProtocolVersion;
+            header->type = Update;
+            header->rank = pid;
+            header->sequenceId = 0;
+            header->returnCode = 0;
+            header->length = size;
+            header->jobId = bgq_process::getJobID();
+      
+            update->toolId = bgq_process::getToolID();
+            update->numCommands = 4;
+
+            int cur_cmd = 0;
+      
+            command[cur_cmd].type = SendSignal;
+            command[cur_cmd].offset = ((char *) send) - message;
+            command[cur_cmd].length = sizeof(SendSignalCmd);
+            command[cur_cmd].returnCode = 0;
+            cur_cmd++;
+
+            command[cur_cmd].type = SetContinuationSignal;
+            command[cur_cmd].offset = ((char *) cont_sig) - message;
+            command[cur_cmd].length = sizeof(SetContinuationSignalCmd);
+            command[cur_cmd].returnCode = 0;
+            cur_cmd++;
+
+            command[cur_cmd].type = ReleaseThread;
+            command[cur_cmd].offset = ((char *) release) - message;
+            command[cur_cmd].length = sizeof(ReleaseThreadCmd);
+            command[cur_cmd].returnCode = 0;
+            cur_cmd++;
+
+            command[cur_cmd].type = ContinueProcess;
+            command[cur_cmd].offset = ((char *) cont) - message;
+            command[cur_cmd].length = sizeof(ContinueProcessCmd);
+            command[cur_cmd].returnCode = 0;
+            cur_cmd++;
+
+            send->threadID = 0;
+            send->signum = SIGKILL;
+
+            cont_sig->threadID = 0;
+            cont_sig->signum = SIGKILL;
+
+            release->threadID = 0;
+
+            cont->threadID = 0;
+      
+            pthrd_printf("Sending emergency KILL 9 to %d\n", pid);
+            bool result = cn->reliableWrite(message, size);
+            if (!result) {
+               pthrd_printf("Failed to write to CN\n");
+               continue;
+            }
+      
+            for (unsigned k=0; k<2; i++) {
+               MessageHeader *hdr = (MessageHeader *) message;
+               pthrd_printf("Reading header ACK from KILL on %d\n", pid);
+               result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
+               if (!result) {
+                  pthrd_printf("Failed to read header from CN\n");
+                  break;
+               }
+               if (hdr->length > SmallMessageDataSize) {
+                  pthrd_printf("Read corrupted ACK from CN\n");
+                  break;
+               }
+               if (hdr->length > 8192) {
+                  pthrd_printf("Could not read %d bytes\n", hdr->length);
+                  break;
+               }
+               result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
+               if (!result) {
+                  pthrd_printf("Failed to read body from CN\n");
+                  break;
+               }
+               if (header->type != UpdateAck) {
+                  pthrd_printf("Not an update on attempt %d\n", k+1);
+                  continue;
+               }
+
+               UpdateAckMessage *ua_message = (UpdateAckMessage *) message;
+               for (unsigned l = 0; l < ua_message->numCommands; l++) {
+                  pthrd_printf("Returned type %u with returnCode %u\n",
+                               (unsigned) ua_message->cmdList[l].type,
+                               (unsigned) ua_message->cmdList[l].returnCode);
+               }
+               break;
+            }
+
+
+            pthrd_printf("Building ReleaseControlCmd\n");
+            ReleaseControlCmd *releasectrl = (ReleaseControlCmd *) (update + 1);
+            size = ((char *) (cont+1)) - message;
+       
+            header->service = ToolctlService;
+            header->version = ProtocolVersion;
+            header->type = Update;
+            header->rank = pid;
+            header->sequenceId = 0;
+            header->returnCode = 0;
+            header->length = size;
+            header->jobId = bgq_process::getJobID();
+
+            update->toolId = bgq_process::getToolID();
+            update->numCommands = 1;
+
+            command[0].type = ReleaseControl;
+            command[0].offset = ((char *) releasectrl) - message;
+            command[0].length = sizeof(ReleaseControlCmd);
+            command[0].returnCode = 0;
+
+            releasectrl->notify = ReleaseControlNotify_Inactive;
+
+            pthrd_printf("Sending ReleaseControlCommand to %d\n", pid);
+            result = cn->reliableWrite(message, size);
+            if (!result) {
+               pthrd_printf("Failed to write to CN\n");
+               continue;
+            }
+
+            MessageHeader *hdr = (MessageHeader *) message;
+            pthrd_printf("Reading header ACK from KILL on %d\n", pid);
+            result = gen->reliableRead(cn->getFD(), message, sizeof(MessageHeader), 5);
+            if (!result) {
+               pthrd_printf("Failed to read header from CN\n");
+               break;
+            }
+            if (hdr->length > SmallMessageDataSize) {
+               pthrd_printf("Read corrupted ACK from CN\n");
+               break;
+            }
+
+            pthrd_printf("Reading body on %d\n", pid);
+            result = gen->reliableRead(cn->getFD(), message+sizeof(MessageHeader), hdr->length - sizeof(MessageHeader), 5);
+            if (!result) {
+               pthrd_printf("Failed to read body from CN\n");
+               break;
+            }
+
+            UpdateAckMessage *ua_message = (UpdateAckMessage *) message;
+            pthrd_printf("Reading Have %u messages on %d\n", (unsigned) ua_message->numCommands, pid);
+            for (unsigned l = 0; l < ua_message->numCommands; l++) {
+               pthrd_printf("Returned type %u with returnCode %u\n",
+                            (unsigned) ua_message->cmdList[l].type,
+                            (unsigned) ua_message->cmdList[l].returnCode);
+            }
+            if (ua_message->numCommands && ua_message->cmdList[0].returnCode == CmdPendingNotify)
+               goto again;
+         }
+      }
+   }
+   pthrd_printf("done.\n");
 }

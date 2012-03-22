@@ -213,7 +213,7 @@ bool int_process::attach()
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
       while (getState() == neonatal) {
-	 pthrd_printf("Handling events after attach to %d\n", getPid());
+         pthrd_printf("Handling events after attach to %d\n", getPid());
          bool result = waitAndHandleEvents(true);
          if (!result) {
             pthrd_printf("Error during waitAndHandleEvents during %d attach\n", getPid());
@@ -1370,8 +1370,8 @@ void int_process::setForceGeneratorBlock(bool b)
    else
       force_generator_block_count.dec();
    pthrd_printf("forceGeneratorBlock - Count is now %d/%d\n", 
-		force_generator_block_count.localCount(),
-		Counter::globalCount(Counter::ForceGeneratorBlock));
+                force_generator_block_count.localCount(),
+                Counter::globalCount(Counter::ForceGeneratorBlock));
 }
 
 int int_process::getAddressWidth()

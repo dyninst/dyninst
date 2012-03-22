@@ -69,10 +69,10 @@ class Transaction
       msg->header.length = packet_buffer_size;
 
       if (!attach_transaction) {
-	proc->getComputeNode()->writeToolMessage(proc, msg, true);
+         proc->getComputeNode()->writeToolMessage(proc, msg, true);
       }
       else {
-	proc->getComputeNode()->writeToolAttachMessage(proc, msg, true);
+         proc->getComputeNode()->writeToolAttachMessage(proc, msg, true);
       }
 
       resetTransactionState();
@@ -82,11 +82,11 @@ class Transaction
    void growTransactionBuffer(size_t size)
    {
       if (size <= packet_buffer_maxsize) {
-	if (!packet_buffer) {
-	  packet_buffer = (char *) malloc(packet_buffer_maxsize);
-	  size = packet_buffer_maxsize;
-	}
-	return;
+         if (!packet_buffer) {
+            packet_buffer = (char *) malloc(packet_buffer_maxsize);
+            size = packet_buffer_maxsize;
+         }
+         return;
       }
       size += 64; //little extra padding to reduce growth operations
       packet_buffer = (char *) realloc(packet_buffer, size);
@@ -150,14 +150,14 @@ class Transaction
       if (!running_transaction) {
          //If we're not in a transaction, start a temporary one for this one command.
          temporary_transaction = true;
-	 pthrd_printf("Begin temporary transaction\n");
+         pthrd_printf("Begin temporary transaction\n");
          beginTransaction();
       }
       size_t cmd_size = bgq_process::getCommandLength(cmd_type, *cmd);
       unsigned int next_start_offset;
       CmdType *msg;
       if (!transaction_index) {
-         pthrd_printf("Writing initial command to transaction\n");	          
+         pthrd_printf("Writing initial command to transaction\n");
          assert(packet_buffer_size == 0);
          growTransactionBuffer(sizeof(CmdType) + cmd_size);
          msg = (CmdType *) packet_buffer;
@@ -172,7 +172,7 @@ class Transaction
          msg->header.jobId = bgq_process::getJobID();
          msg->toolId = bgq_process::getToolID();
          packet_buffer_size = next_start_offset = sizeof(CmdType);
-	 assert(!resp_set);
+         assert(!resp_set);
       }
       else {
          pthrd_printf("Writing command %u to transaction\n", (unsigned) transaction_index);
@@ -182,11 +182,11 @@ class Transaction
       }
 
       if (resp) {
-	if (!resp_set) {
-	  resp_set = new ResponseSet();
-	  msg->header.sequenceId = resp_set->getID();
-	}
-	resp_set->addID(resp->getID() + resp_mod, transaction_index);
+         if (!resp_set) {
+            resp_set = new ResponseSet();
+            msg->header.sequenceId = resp_set->getID();
+         }
+         resp_set->addID(resp->getID() + resp_mod, transaction_index);
       }
 
       //growTransactionBuffer(next_start_offset + cmd_size);
@@ -203,18 +203,18 @@ class Transaction
 
       if (temporary_transaction) {
          //If we started a temporary transaction, then end it.
-	 pthrd_printf("Ending temporary transaction\n");
-	 return endTransaction();
+         pthrd_printf("Ending temporary transaction\n");
+         return endTransaction();
       }
       else if (bgq_process::isActionCommand(cmd_type)) {
-	pthrd_printf("Rotating transactions due to action command\n");
-	endTransaction();
-	beginTransaction();
+         pthrd_printf("Rotating transactions due to action command\n");
+         endTransaction();
+         beginTransaction();
       }
       else if (transaction_index == MaxQueryCommands) {
-	pthrd_printf("Rotating transactions due to max commands reached\n");
-	endTransaction();
-	beginTransaction();
+         pthrd_printf("Rotating transactions due to max commands reached\n");
+         endTransaction();
+         beginTransaction();
       }
 
       return true;
