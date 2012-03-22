@@ -104,7 +104,7 @@ class Generator
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
    //  Optional interface for systems that want to return multiple events
-   virtual bool getEvent(bool block, std::vector<ArchEvent *> &events);
+   virtual bool getMultiEvent(bool block, std::vector<ArchEvent *> &events);
 };
 
 class GeneratorMT : public Generator

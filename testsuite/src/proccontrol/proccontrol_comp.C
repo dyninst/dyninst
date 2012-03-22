@@ -151,6 +151,82 @@ bool ProcControlComponent::waitForSignalFD(int signal_fd)
    return true;
 }
 
+ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, ParameterDict &params)
+{
+   ProcessSet::ptr procset;
+   bool do_create = (group->createmode == CREATE);
+   bool waitfor_attach = (group->createmode == USEATTACH);
+#if defined(os_bg_test)
+   do_create = false;
+#endif
+
+   if (do_create) {
+      vector<ProcessSet::CreateInfo> cinfo;
+      for (unsigned i=0; i<num_processes; i++) {
+         ProcessSet::CreateInfo ci;
+         getMutateeParams(group, params, ci.executable, ci.argv);
+         ci.error_ret = err_none;
+         cinfo.push_back(ci);
+      }
+      procset = ProcessSet::createProcessSet(cinfo);
+      if (!procset) {
+         logerror("Failed to execute new mutatees\n");
+         return ProcessSet::ptr();
+      }
+   }
+   else if (group->createmode == USEATTACH) {
+      vector<ProcessSet::AttachInfo> ainfo;
+      for (unsigned i=0; i<num_processes; i++) {
+         ProcessSet::AttachInfo ai;
+         vector<string> argv;
+         getMutateeParams(group, params, ai.executable, argv);
+         ai.pid = getMutateePid(group);
+
+         if (ai.pid == NULL_PID) {
+            string mutateeString = launchMutatee(ai.executable, argv, group, params);
+            if (mutateeString == string("")) {
+               logerror("Error creating attach process\n");
+               return ProcessSet::ptr();
+            }
+            registerMutatee(mutateeString);
+            ai.pid = getMutateePid(group);
+         }
+         assert(ai.pid != NULL_PID);
+         ainfo.push_back(ai);
+
+         if (waitfor_attach) {
+            int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
+            if (signal_fd > 0) {
+               bool result = waitForSignalFD(signal_fd);
+               if (!result) {
+                  logerror("Timeout waiting for signalFD\n");
+                  return ProcessSet::ptr();
+               }
+            }
+         }
+      }
+      
+      procset = ProcessSet::attachProcessSet(ainfo);
+      if (!procset) {
+         logerror("Failed to attach to new mutatees\n");
+         return ProcessSet::ptr();
+      }
+   }
+   else {
+      return ProcessSet::ptr();
+   }
+
+   assert(procset);
+   for (ProcessSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr proc = *i;
+      Dyninst::PID pid = proc->getPid();
+      process_pids[pid] = proc;
+      procs.push_back(proc);
+   }
+
+   return procset;
+}
+
 #define MAX_ARGS 128
 Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &params)
 {
@@ -306,22 +382,33 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
 #endif
-   for (unsigned i=0; i<num_processes; i++) {
-      Process::ptr proc = startMutatee(group, param);
-      if (proc == NULL) {
-         logerror("Failed to start mutatee\n");
-         error = true;
-         continue;
-      }
+   Process::ptr a_proc;
+   if (num_processes > 1) {
+      pset = startMutateeSet(group, param);
+      if (pset)
+         a_proc = *(pset->begin());
+   }
+   else {
+      a_proc = startMutatee(group, param);
+      pset = ProcessSet::newProcessSet(a_proc);
+   }
+   if (!a_proc) {
+      logerror("Failed to start mutatee\n");
+      error = true;
+      return false;
+   }
+   factory = a_proc->getDefaultSymbolReader();
+   assert(factory);
+
+   for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
+      Process::ptr proc = *i;
       bool result = setupNamedPipe(proc, param);
       if (!result) {
          logerror("Failed to setup server side named pipe\n");
          return false;
       }
-
-      if (!factory) factory = proc->getDefaultSymbolReader();
-      assert(factory);
    }
+
    {
       /**
        * Set the socket name in each process
@@ -347,15 +434,13 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    EventType thread_create(EventType::None, EventType::ThreadCreate);
    registerEventCounter(thread_create);
 
-   int num_procs = 0;
-   for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
-      bool result = (*j)->continueProc();
-      num_procs++;
-      if (!result) {
-         error = true;
-         continue;
-      }
+   int num_procs = pset->size();
+   result = pset->continueProcs();
+   if (!result) {
+      logerror("Error doing initial continueProcs");
+      error = true;
    }
+
    num_threads = group->threadmode == MultiThreaded ? getNumThreads(param) : 0;
 
    result = acceptConnections(num_procs, NULL);

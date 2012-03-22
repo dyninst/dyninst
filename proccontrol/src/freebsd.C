@@ -823,10 +823,13 @@ bool freebsd_process::initKQueueEvents() {
     return true;
 }
 
-bool freebsd_process::post_create() {
-    if( !thread_db_process::post_create() ) return false;
-
-    return initKQueueEvents();
+async_ret_t freebsd_process::post_create(std::set<response::ptr> &async_responses)
+{
+   if (thread_db_process::post_create() != aret_success) 
+      return aret_error;
+   if (!initKQueueEvents()) 
+      return aret_error;
+   return aret_success;
 }
 
 bool freebsd_process::post_forked() {

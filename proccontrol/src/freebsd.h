@@ -113,7 +113,8 @@ public:
     virtual OSType getOS() const;
 
     virtual bool post_attach(bool wasDetached);
-    virtual bool post_create();
+    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
+
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();

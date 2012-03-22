@@ -110,7 +110,7 @@ void Generator::setState(Generator::state_t new_state)
    state = new_state;
 }
 
-bool Generator::getEvent(bool block, vector<ArchEvent *> &events)
+bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
 {
    //This function can be optionally overloaded by a platform
    // that may return multiple events.  Otherwise, it just 
@@ -147,7 +147,7 @@ bool Generator::getAndQueueEventInt(bool block)
    }
 
    setState(system_blocked);
-   result = getEvent(block, archEvents);
+   result = getMultiEvent(block, archEvents);
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;

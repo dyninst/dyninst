@@ -97,8 +97,8 @@ public:
      * When creating dynamic executables, initialization needs to happen
      * when the thread library is loaded.
      */
-    virtual bool post_attach(bool wasDetached);
-    virtual bool post_create();
+    virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &aresps);
+    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
     virtual bool plat_supportThreadEvents();
 
@@ -166,6 +166,7 @@ protected:
     bool hasAsyncPending;
     bool initialThreadEventCreated;
     bool setEventSet;
+    bool completed_post;
 private:
     static bool tdb_loaded;
     static bool tdb_loaded_result;

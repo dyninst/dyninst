@@ -55,6 +55,7 @@ PUBLIC_H   = Decoder.h \
 				 Mailbox.h \
 				 PCErrors.h \
 				 Process.h \
+             ProcessSet.h \
 				 EventType.h
 
 SRCS	     +=	../src/event.C \
@@ -71,7 +72,8 @@ SRCS	     +=	../src/event.C \
 		../src/sysv.C \
 		../src/x86_process.C \
 		../src/ppc_process.C \
-		../src/mmapalloc.C
+		../src/mmapalloc.C \
+		../src/procset.C
 
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)

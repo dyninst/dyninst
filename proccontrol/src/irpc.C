@@ -56,12 +56,14 @@ int_iRPC::int_iRPC(void *binary_blob_,
    binary_size(binary_size_),
    start_offset(0),
    thrd(NULL),
+   inffree_target(0),
    async(async_),
    freeBinaryBlob(false),
    needs_clean(false),
    restore_internal(false),
    counted_sync(false),
-   lock_live(0)
+   lock_live(0),
+   user_data(NULL)
 {
    my_id = next_id++;
    if (alreadyAllocated) {
@@ -307,7 +309,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    if (proc->getState() != int_process::running) {
       perr_printf("Attempt to post iRPC %lu to non-running process %d\n", 
                   rpc->id(), proc->getPid());
-      setLastError(err_exited, "Attempt to post iRPC to exited process");
+      proc->setLastError(err_exited, "Attempt to post iRPC to exited process");
       return false;
    }
    //Find the thread with the fewest number of posted/running iRPCs
@@ -350,14 +352,14 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
    {
       perr_printf("Attempt to post iRPC %lu to non-running thread %d\n", 
                   rpc->id(), thread->getLWP());
-      setLastError(err_exited, "Attempt to post iRPC to exited thread");
+      thread->setLastError(err_exited, "Attempt to post iRPC to exited thread");
       return false;
    }
 
    if( thread->isExiting() ) {
        perr_printf("Attempt to post IRPC %lu to exiting thread %d\n",
                rpc->id(), thread->getLWP());
-       setLastError(err_exited, "Attempt to post iRPC to exiting thread");
+       thread->setLastError(err_exited, "Attempt to post iRPC to exiting thread");
        return false;
    }
 
@@ -485,6 +487,11 @@ Dyninst::Address int_iRPC::infMallocResult()
 void int_iRPC::setMallocResult(Dyninst::Address addr)
 {
   malloc_result = addr;
+}
+
+Address int_iRPC::getInfFreeTarget()
+{
+   return inffree_target;
 }
 
 rpc_wrapper *int_iRPC::getWrapperForDecode()
@@ -902,6 +909,7 @@ int_iRPC::ptr iRPCMgr::createInfFreeRPC(int_process *proc, unsigned long size,
    irpc->setBinarySize(binary_size);
    irpc->setStartOffset(start_offset);
    irpc->setAllocSize(binary_size);
+   irpc->inffree_target = addr;
    
    if (!result)
       return int_iRPC::ptr();
@@ -1145,8 +1153,39 @@ IRPC::ptr IRPC::createIRPC(void *binary_blob, unsigned size,
    return rpc;
 }
 
+IRPC::ptr IRPC::createIRPC(IRPC::ptr o)
+{
+   int_iRPC::ptr orig = o->llrpc()->rpc;
+   int_iRPC::ptr irpc;
+   if (orig->cur_allocation) 
+      irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                        true, orig->addr()));
+   else
+      irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                        false, 0));
+
+   rpc_wrapper *wrapper = new rpc_wrapper(irpc);
+   IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
+   irpc->setIRPC(rpc);
+   irpc->copyBinaryBlob(orig->binary_blob, orig->binary_size);
+   return rpc;
+}
+
+IRPC::ptr IRPC::createIRPC(IRPC::ptr o, Address addr)
+{
+   int_iRPC::ptr orig = o->llrpc()->rpc;
+   int_iRPC::ptr irpc;
+   irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                     true, addr));
+   rpc_wrapper *wrapper = new rpc_wrapper(irpc);
+   IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
+   irpc->setIRPC(rpc);
+   irpc->copyBinaryBlob(orig->binary_blob, orig->binary_size);
+   return rpc;
+}
+
 IRPC::IRPC(rpc_wrapper *wrapper_) :
-   wrapper(wrapper_), userData_(NULL)
+   wrapper(wrapper_)
 {
 }
 
@@ -1164,12 +1203,12 @@ rpc_wrapper *IRPC::llrpc() const
 
 void *IRPC::getData() const
 {
-    return userData_;
+   return wrapper->rpc->user_data;
 }
 
-void IRPC::setData(void *p) 
+void IRPC::setData(void *p) const
 {
-    userData_ = p;
+   wrapper->rpc->user_data = p;
 }
 
 Dyninst::Address IRPC::getAddress() const

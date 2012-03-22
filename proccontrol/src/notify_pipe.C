@@ -44,7 +44,7 @@ void int_notify::writeToPipe()
    ssize_t result = write(pipe_out, &c, 1);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Could not write to notification pipe\n");
       perr_printf("Error writing to notification pipe: %s\n", strerror(error));
       return;
    }
@@ -69,7 +69,7 @@ void int_notify::readFromPipe()
          pthrd_printf("Notification pipe had no data available\n");
          return;
       }
-      setLastError(err_internal, "Could not read from notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Could not read from notification pipe\n");
       perr_printf("Error reading from notification pipe: %s\n", strerror(error));
    }
    assert(result == 1 && c == 'e');
@@ -85,7 +85,7 @@ bool int_notify::createPipe()
    int result = pipe(fds);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Error creating notification pipe\n");
       perr_printf("Error creating notification pipe: %s\n", strerror(error));
       return false;
    }
@@ -95,7 +95,7 @@ bool int_notify::createPipe()
    result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Error setting properties of notification pipe\n");
       perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
       return false;
    }
