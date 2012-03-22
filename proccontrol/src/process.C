@@ -1196,14 +1196,14 @@ SymbolReaderFactory *int_process::plat_defaultSymReader()
   return NULL;
 }
 
-bool int_process::infMalloc(int_processSet *pset, unsigned long size, bool use_addr, Dyninst::Address addr,
-                            map<int_process *, Address> &results)
+bool int_process::infMalloc(unsigned long size, int_addressSet *aset, bool use_addr)
 {
    bool had_error = false;
-   map<int_process *, int_iRPC::ptr> active_mallocs;
+   set<pair<int_process *, int_iRPC::ptr> > active_mallocs;
 
-   for (int_processSet::iterator i = pset->begin(); i != pset->end(); i++) {
-      Process::ptr p = *i;
+   for (int_addressSet::iterator i = aset->begin(); i != aset->end(); i++) {
+      Process::ptr p = i->second;
+      Address addr = i->first;
       if (!p)
          continue;
       int_process *proc = p->llproc();
@@ -1223,7 +1223,7 @@ bool int_process::infMalloc(int_processSet *pset, unsigned long size, bool use_a
       
       int_thread *thr = rpc->thread();
       assert(thr);
-      active_mallocs[proc] = rpc;
+      active_mallocs.insert(make_pair(proc, rpc));
       thr->getInternalState().desyncState(int_thread::running);
       rpc->setRestoreInternal(true);
       proc->throwNopEvent();
@@ -1233,26 +1233,33 @@ bool int_process::infMalloc(int_processSet *pset, unsigned long size, bool use_a
       bool result = int_process::waitAndHandleEvents(false);
       if (!result) {
          perr_printf("Internal error calling waitAndHandleEvents\n");
-         for_each(pset->begin(), pset->end(), 
+         for_each(aset->begin(), aset->end(), 
                   setError(err_internal, "Error while calling waitAndHandleForProc from infMalloc\n"));
          return false;
       }
    }
 
-   for (int_processSet::iterator i = pset->begin(); i != pset->end(); i++) {
-      int_process *proc = (*i)->llproc();
-      map<int_process *, int_iRPC::ptr>::iterator j = active_mallocs.find(proc);
-      if (j == active_mallocs.end()) {
-         //An error'd process
-         continue;
-      }
+   if (!use_addr)
+      aset->clear();
 
-      int_iRPC::ptr rpc = j->second;
+   for (set<pair<int_process *, int_iRPC::ptr> >::iterator i = active_mallocs.begin(); 
+        i != active_mallocs.end(); i++)
+   {
+      int_process *proc = i->first;
+      int_iRPC::ptr rpc = i->second;
       assert(rpc->getState() == int_iRPC::Finished);
       Dyninst::Address aresult = rpc->infMallocResult();
       pthrd_printf("Inferior malloc returning %lx on %d\n", aresult, proc->getPid());
-      proc->mem->inf_malloced_memory[aresult] = size;
-      results[proc] = aresult;
+      if (aresult == (unsigned long) -1) {
+         perr_printf("infMalloc returned invalid address\n");
+         proc->setLastError(err_procread, "Unable to allocate memory at given address");
+         had_error = true;
+         continue;
+      }
+      proc->memory()->inf_malloced_memory.insert(make_pair(aresult, size));
+      if (use_addr)
+         continue;
+      aset->insert(make_pair(aresult, proc->proc()));
    }
 
    return !had_error;
@@ -5119,21 +5126,20 @@ bool Process::supportsExec() const
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
-   AddressSet::ptr addr_result;
-   bool result = pset->mallocMemory(size, addr, addr_result);
-   if (!result || addr_result->empty()) {
+   AddressSet::ptr addrset = AddressSet::newAddressSet(shared_from_this(), addr);
+   bool result = pset->mallocMemory(size, addrset);
+   if (!result) {
       return 0;
    }
-   AddressSet::iterator i = addr_result->begin();
+   AddressSet::iterator i = addrset->begin();
    return i->first;
 }
 
 Dyninst::Address Process::mallocMemory(size_t size)
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
-   AddressSet::ptr addr_result;
-   bool result = pset->mallocMemory(size, addr_result);
-   if (!result || addr_result->empty()) {
+   AddressSet::ptr addr_result = pset->mallocMemory(size);
+   if (addr_result->empty()) {
       return 0;
    }
    return addr_result->begin()->first;

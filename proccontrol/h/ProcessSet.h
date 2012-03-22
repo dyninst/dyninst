@@ -176,7 +176,7 @@ class ProcessSet
     * Create new ProcessSets by attaching/creating new Process objects
     **/
    struct CreateInfo {
-      std::string exec;
+      std::string executable;
       std::vector<std::string> argv;
       std::vector<std::string> envp;
       std::map<int, int> fds;
@@ -299,8 +299,8 @@ class ProcessSet
    /**
     * Memory management
     **/
-   bool mallocMemory(size_t size, AddressSet::ptr &result) const;
-   bool mallocMemory(size_t size, Dyninst::Address addr, AddressSet::ptr &result) const;
+   AddressSet::ptr mallocMemory(size_t size) const;
+   bool mallocMemory(size_t size, AddressSet::ptr location) const;
    bool freeMemory(AddressSet::ptr addrs) const;
 
    /**

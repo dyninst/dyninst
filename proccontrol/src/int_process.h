@@ -300,8 +300,7 @@ class int_process
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
    virtual bool plat_threadOpsNeedProcStop();
    virtual SymbolReaderFactory *plat_defaultSymReader();
-   static bool infMalloc(int_processSet *pset, unsigned long size, bool use_addr,
-                         Dyninst::Address addr, std::map<int_process *, Address> &results);
+   static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
    bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);

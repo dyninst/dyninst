@@ -512,16 +512,16 @@ public:
 
    iterator_t inc() {
       iterator_t end = this->end();
-      if (iter == end) {
-         return iter;
-      }
       bool result = false;
       do {
          iter++;
+         if (iter == end) {
+            return iter;
+         }
          err_t thr_error = err_none;
          Process::const_ptr proc = get_proc(iter, &thr_error);
          result = proc_check(proc, thr_error);
-      } while (iter != end && !result);
+      } while (!result);
       return iter;
    }
 };
@@ -622,7 +622,7 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
    pthrd_printf("Creating new process objects\n");
    for (vector<CreateInfo>::iterator i = cinfo.begin(); i != cinfo.end(); i++) {
       Process::ptr newproc(new Process());
-      int_process *llproc = int_process::createProcess(i->exec, i->argv, i->envp, i->fds);
+      int_process *llproc = int_process::createProcess(i->executable, i->argv, i->envp, i->fds);
       llproc->initializeProcess(newproc);
       error_map[llproc] = i;
       newset.insert(newproc);
@@ -1346,38 +1346,40 @@ bool ProcessSet::terminate() const
    return !had_error;
 }
 
-static bool do_mallocMemory(int_processSet *procset, size_t size, bool use_addr, Address addr, AddressSet::ptr &result)
+AddressSet::ptr ProcessSet::mallocMemory(size_t size) const
 {
-   bool had_error = false;
    MTLock lock_this_func(MTLock::deliver_callbacks);
+   bool had_error = false;
+   if (int_process::isInCB()) {
+      perr_printf("User attempted call on process while in CB, erroring.");
+      for_each(procset->begin(), procset->end(), setError(err_incallback, "Cannot mallocMemory from callback\n"));
+      return AddressSet::newAddressSet();
+   }
+
+   AddressSet::ptr aresult = AddressSet::newAddressSet();
+   procset_iter iter("mallocMemory", had_error, ERR_CHCK_NORM);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      aresult->insert(0, *i);
+   }
+   
+   int_process::infMalloc(size, aresult->get_iaddrs(), false);
+   return aresult;
+}
+
+bool ProcessSet::mallocMemory(size_t size, AddressSet::ptr location) const
+{
+   MTLock lock_this_func(MTLock::deliver_callbacks);
+   bool had_error = false;
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process while in CB, erroring.");
       for_each(procset->begin(), procset->end(), setError(err_incallback, "Cannot mallocMemory from callback\n"));
       return false;
    }
-
-   procset_iter iter("mallocMemory", had_error, ERR_CHCK_NORM);
-   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc());
-
-   map<int_process *, Address> result_addrs;
-   bool malloc_result = int_process::infMalloc(procset, size, use_addr, addr, result_addrs);
-
-   result = AddressSet::newAddressSet();
-   for (map<int_process *, Address>::iterator i = result_addrs.begin(); i != result_addrs.end(); i++) {
-      result->insert(i->second, i->first->proc());
-   }
    
-   return !had_error && malloc_result;
-}
+   addrset_iter iter("mallocMemory", had_error, ERR_CHCK_NORM);
+   for (int_addressSet::iterator i = location->iaddrs->begin(); i != location->iaddrs->end(); i++);
 
-bool ProcessSet::mallocMemory(size_t size, AddressSet::ptr &result) const
-{
-   return do_mallocMemory(procset, size, false, 0, result);
-}
-
-bool ProcessSet::mallocMemory(size_t size, Address addr, AddressSet::ptr &result) const
-{
-   return do_mallocMemory(procset, size, true, addr, result);
+   return int_process::infMalloc(size, location->iaddrs, true);
 }
 
 bool ProcessSet::freeMemory(AddressSet::ptr addrset) const
@@ -1558,7 +1560,7 @@ bool ProcessSet::writeMemory(AddressSet::ptr addrset, const void *buffer, size_t
       result_response::ptr resp = result_response::createResultResponse();
       bool result = proc->writeMem(buffer, addr, size, resp);
       if (!result) {
-         perr_printf("Failed to write memory to %d at %lx", proc->getPid(), addr);
+         perr_printf("Failed to write memory to %d at %lx\n", proc->getPid(), addr);
          had_error = true;
          continue;
       }
