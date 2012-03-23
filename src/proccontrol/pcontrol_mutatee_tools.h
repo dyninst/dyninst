@@ -42,6 +42,7 @@ extern int sockfd;
 int initProcControlTest(int (*init_func)(int, void*), void *thread_data);
 int finiProcControlTest(int expected_ret_code);
 
+void getSocketInfo();
 int MultiThreadFinish();
 int MultiThreadInit(int (*init_func)(int, void*), void *thread_data);
 int initMutatorConnection();

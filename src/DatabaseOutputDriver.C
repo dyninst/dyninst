@@ -337,3 +337,4 @@ void DatabaseOutputDriver::getMutateeArgs(std::vector<std::string> &args) {
 	args.clear();
 	args.push_back(std::string("-dboutput"));
 }
+

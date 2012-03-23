@@ -83,8 +83,8 @@ test_results_t test2_3_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_3_mutatorMAIN(ParameterDict &param)
 test_results_t test2_3_Mutator::setup(ParameterDict &param) {
-  int useAttach = param["useAttach"]->getInt();
-  bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   bool useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
+   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
   // Get log file pointers
 //   FILE * outlog = (FILE *)(param["outlog"]->getPtr());

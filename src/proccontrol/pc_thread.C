@@ -71,7 +71,7 @@ static set<pair<PID, LWP> > post_dead_lwps;
 static set<pair<PID, Address> > all_stack_addrs;
 static set<pair<PID, Address> > all_tls;
 static set<PID> all_initial_threads;
-
+static set<Process::const_ptr> exited_processes;
 
 void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
 {
@@ -81,6 +81,14 @@ void pc_threadMutator::registerCB(EventType et, Process::cb_func_t f)
       has_error = true;
    }
 }
+
+static Process::cb_ret_t proc_exit(Event::const_ptr ev)
+{
+   exited_processes.insert(ev->getProcess());
+   return Process::cbDefault;
+}
+
+
 
 static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
 {
@@ -318,10 +326,12 @@ static Process::cb_ret_t lwp_destroy(Event::const_ptr ev)
 
 static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
 {
+#if !defined(os_bg_test)
    if (tinfo.pid != proc->getPid()) {
-      logerror("Error.  Mismatched pids in checkThreadMsg\n");
+      logerror("Error.  Mismatched pids in checkThreadMsg\n", tinfo.pid, proc->getPid());
       has_error = true;
    }
+#endif
 
    ThreadPool::iterator i = proc->threads().find(tinfo.lwp);
    if (i == proc->threads().end()) {
@@ -330,18 +340,21 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
    }
    Thread::ptr thr = *i;
    
-   if (has_thr) {
+   if (has_thr && thr->getTID() != -1) {
       if (thr->getTID() != (Dyninst::THR_ID) tinfo.tid) {
          logerror("Error.  Mismatched TID, %lx != %lx\n", (unsigned long) thr->getTID(), (unsigned long) tinfo.tid);
          has_error = true;
       }
       Dyninst::Address a_stack_addr = (Dyninst::Address) tinfo.a_stack_addr;
-      if (has_stack_info && (thr->getStackBase() < a_stack_addr || thr->getStackBase() + thr->getStackSize() > a_stack_addr)) {
-         logerror("Error.  Mismatched stack addresses\n");
+      if (has_stack_info && (thr->getStackBase() < a_stack_addr || thr->getStackBase() + thr->getStackSize() > a_stack_addr)) 
+      {
+         logerror("Error.  Mismatched stack addresses, base = 0x%lx, size = %lx, loc = 0x%lx\n", 
+                  (unsigned long) thr->getStackBase(), (unsigned long) thr->getStackSize(), 
+                  (unsigned long) a_stack_addr);
          has_error = true;
       }
       if (has_initial_func_info && thr->getStartFunction() != (Dyninst::Address) tinfo.initial_func) {
-         logerror("Mismatched initial function (%lx != %lx\n", (unsigned long)thr->getStartFunction(),
+         logerror("Mismatched initial function (%lx != %lx)\n", (unsigned long)thr->getStartFunction(),
                  (unsigned long)tinfo.initial_func);
          has_error = true;
       }
@@ -371,6 +384,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    post_dead_tids.clear();
    pre_dead_lwps.clear();
    post_dead_lwps.clear();
+   exited_processes.clear();
 
 #if defined(os_linux_test)
    has_lwp = true;
@@ -381,9 +395,10 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    has_thr = true;
    has_stack_info = false;
    has_initial_func_info = false;
-#elif defined(os_bluegene_test)
+#elif defined(os_bg_test)
    has_lwp = false;
    has_thr = true;
+   has_stack_info = false;
 #else
 #error Unknown platform
 #endif
@@ -392,8 +407,9 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    registerCB(EventType::UserThreadDestroy, uthr_destroy);
    registerCB(EventType::LWPCreate, lwp_create);
    registerCB(EventType::LWPDestroy, lwp_destroy);
+   registerCB(EventType::Terminate, proc_exit);
 
-   is_attach = (create_mode_t) param["useAttach"]->getInt() == USEATTACH;
+   is_attach = (create_mode_t) param["createmode"]->getInt() == USEATTACH;
    if (has_error) return FAILED;
    return PASSED;
 }
@@ -402,6 +418,14 @@ test_results_t pc_threadMutator::executeTest()
 {
    std::vector<Process::ptr>::iterator i;
 
+   for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
+      Process::ptr proc = *i;
+      if (!proc->supportsUserThreadEvents()) {
+         logerror("System does not support user thread events\n");
+         return SKIPPED;
+      }
+   }
+   
    if (is_attach) {
       //If attaching then we missed all of the thread callbacks.  Run them.
       for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
@@ -445,14 +469,13 @@ test_results_t pc_threadMutator::executeTest()
          logerror("Failed to continue process\n");
          has_error = true;
       }
-   }
-   
+   }   
 
    int num_thrds = comp->num_processes * comp->num_threads;
    int num_noninit_thrds = comp->num_processes * (comp->num_threads - 1);
 
    for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
-      for (unsigned j=0; j < comp->num_threads; j++) {
+      for (unsigned j=0; j < comp->num_threads+1; j++) {
          threadinfo tinfo;
          bool result = comp->recv_message((unsigned char *) &tinfo, sizeof(threadinfo), *i);
          if (!result) {
@@ -475,6 +498,13 @@ test_results_t pc_threadMutator::executeTest()
    while ((has_thr && user_exit_cb_count < num_noninit_thrds) ||
           (has_lwp && lwp_exit_cb_count < num_noninit_thrds)) 
    {
+      if (exited_processes.size() >= comp->num_processes) {
+#if !defined(os_bg_test)
+         logerror("Process exited while waiting for thread termination events.\n");
+         has_error = true;
+#endif
+         break;
+      }
       bool result = comp->block_for_events();
       if (!result) {
          logerror("Failed to wait for thread terminate events\n");

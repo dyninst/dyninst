@@ -59,6 +59,7 @@ unsigned cur_index;
 std::map<Thread::const_ptr, unsigned> hit_counts;
 unsigned num_breakpoints_hit;
 bool haserror = false;
+unsigned my_num_processes;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
@@ -71,14 +72,14 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    }
 
    Dyninst::Address addr = evbp->getAddress();
-   std::vector<Breakpoint::ptr> evbps;
+   std::vector<Breakpoint::const_ptr> evbps;
    evbp->getBreakpoints(evbps);
    if (evbps.size() != 1) {
       logerror("Unexpected number of breakpoint objects\n");
       haserror = true;
       return Process::cbProcContinue;
    }
-   Breakpoint::ptr bp = evbps[0];
+   Breakpoint::const_ptr bp = evbps[0];
 
    std::pair<unsigned, unsigned> *index = (std::pair<unsigned, unsigned> *) bp->getData();
    if (!index) {
@@ -86,7 +87,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
       haserror = true;
       return Process::cbProcContinue;
    }
-   if (index->first >= NUM_PARALLEL_PROCS) {
+   if (index->first >= my_num_processes) {
       logerror("Invalid proc index\n");
       haserror = true;
       return Process::cbProcContinue;
@@ -129,7 +130,9 @@ test_results_t pc_breakpointMutator::executeTest()
    hit_counts.clear();
    memset(indexes, 0, sizeof(indexes));
    memset(bp_addrs, 0, sizeof(bp_addrs));
-   for (unsigned i=0; i<NUM_PARALLEL_PROCS; i++) {
+   my_num_processes = comp->num_processes;
+
+   for (unsigned i=0; i<my_num_processes; i++) {
       for (unsigned j=0; j<NUM_BREAKPOINTS; j++) {
          bps[i][j] = Breakpoint::ptr();
       }
@@ -222,7 +225,6 @@ test_results_t pc_breakpointMutator::executeTest()
    std::map<Thread::const_ptr, unsigned>::iterator l;
    for (l = hit_counts.begin(); l != hit_counts.end(); l++) {
       if (l->second != NUM_BREAKPOINT_SPINS * NUM_BREAKPOINTS) {
-         fprintf(stderr, "l->second = %d, NUM_BREAKPOINT_SPINS = %d\n", l->second, NUM_BREAKPOINT_SPINS);
          logerror("Unexpected number of breakpoints hit on thread\n");
          return FAILED;
       }
