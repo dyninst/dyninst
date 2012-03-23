@@ -44,6 +44,7 @@
 #include "TestMutator.h"
 #include "test_info_new.h"
 #include "comptester.h"
+#include "module.h"
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;
@@ -73,9 +74,13 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   return retval;
 }
 
-static void* openSO(const char *soname)
+extern FILE *debug_log;
+
+#include <link.h>
+
+static void* openSO(const char *soname, bool local)
 {
-   char *fullSoPath;
+   char *fullSoPath = NULL;
 #if defined(os_aix_test)
    fullSoPath = searchPath(getenv("LIBPATH"), soname);
 #else
@@ -83,15 +88,23 @@ static void* openSO(const char *soname)
 #endif
    
    if (!fullSoPath) {
-      return NULL; // Error
+      fullSoPath = strdup(soname);
    }
-   void *handle = dlopen(fullSoPath, RTLD_NOW);
+
+   unsigned int dl_options = RTLD_NOW | (local ? RTLD_LOCAL : RTLD_GLOBAL);
+   void *handle = dlopen(fullSoPath, dl_options);
    if (!handle) {
       std::string str = std::string("./") + std::string(soname);
-      handle = dlopen(str.c_str(), RTLD_NOW);
+      handle = dlopen(str.c_str(), dl_options);
    }
    ::free(fullSoPath);
    if (!handle) {
+      fprintf(stderr, "Error opening lib: %s\n", soname);
+      const char *errmsg = dlerror();
+      fprintf(stderr, "%s\n", errmsg);
+      if (debug_log) {
+         fprintf(debug_log, "Error calling dlopen: %s\n", errmsg ? errmsg : "NULL");
+      }
       return NULL; //Error
    }
    return handle;
@@ -101,12 +114,15 @@ int setupMutatorsForRunGroup(RunGroup *group)
 {
   int tests_found = 0;
   for (int i = 0; i < group->tests.size(); i++) {
-    if (group->tests[i]->disabled)
-       continue;
     TestInfo *test = group->tests[i];
+    if (test->disabled)
+       continue;
+    if (test->mutator)
+       continue;
+    
     const char *soname = test->soname;
 
-    void *handle = openSO(soname);
+    void *handle = openSO(soname, true);
     if (!handle) {
        getOutput()->log(STDERR, "Couldn't open %s\n", soname);
        return -1;
@@ -148,8 +164,7 @@ ComponentTester *Module::loadModuleLibrary()
 #else   
    snprintf(libname, 256, "libtest%s.so", name.c_str());
 #endif
-   //TODO: Open the so that goes with this group.
-   libhandle = openSO(libname);
+   libhandle = openSO(libname, false);
    if (!libhandle)
       return NULL;
 

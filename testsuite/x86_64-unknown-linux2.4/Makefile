@@ -1,7 +1,3 @@
-#
-# $Id: Makefile,v 1.1 2008/05/08 20:53:53 cooksey Exp $
-#
-
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
@@ -25,21 +21,8 @@ ifndef SKIP_BUILD_RTLIB_32
 	M_ABI = m32
 	M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
 endif
-#if M_G77 is defined, g77 mutatees will be built
-#M_G77 = g77
-
-# there is no "native" or OS-provided compiler for Linux!
-# we use the Portland Group compilers, as that's what we've currently got
-# (in future we probably also want to test with the KAI/Intel compilers)
-#ifdef PGI
-#NATIVE_CC = pgcc
-#NATIVE_CXX = pgCC
-#COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
-#COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
-#endif
 
 GNU_WARNING_FLAGS = -Wall
-#MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) -fpe
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) 
 MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
@@ -65,20 +48,17 @@ MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
 TEST1_AS = gcc -c
 TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
 CALL35_1_SRC = call35_1_x86_64_linux.s
-CALL35_1_SRC_ABI = call35_1_x86_linux.s
 
 # Definition used for test6 assembly
 TEST6_AS_GNU = as
 TEST6_ASFLAGS_GNU =
 TEST6_AS_SRC = test6LS-x86_64.s
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
-#TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
-MUTATEE_TEST9_EXTRA_LIB_ABI = 9.-L./ 9.-lInstMe_$(M_ABI)
 
 LIBS_LIBTESTSUITE = -ldl
 

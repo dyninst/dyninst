@@ -141,56 +141,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
 BPatch_process *test_thread_8_Mutator::getProcess()
 {
-  int n = 0;
-  args[n++] = filename;
-  if (logfilename != NULL) {
-    args[n++] = "-log";
-    args[n++] = logfilename;
-  }
-
-  args[n++] = "-run";
-  args[n++] = "test_thread_8";
-
-   args[n] = NULL;
-
-   BPatch_process *proc;
-   if (create_proc) {
-      proc = bpatch->processCreate(filename, (const char **) args);
-      if(proc == NULL) {
-         logerror("%s[%d]: processCreate(%s) failed\n", 
-                 __FILE__, __LINE__, filename);
-         return NULL;
-      }
-      registerPID(proc->getPid()); // Register for cleanup
-   }
-   else
-   {
-      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(), getErrorLog(), true);
-      if (pid < 0)
-      {
-         logerror("%s ", filename);
-         perror("couldn't be started");
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
-#if defined(os_windows_test)
-      P_sleep(1);
-#endif
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-                 __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
-   }
-   return proc;
+   return appProc;
 }
 
 int test_thread_8_Mutator::error_exit()
@@ -302,7 +253,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
          }
          BPatch_constExpr asyncVarExpr(tid);
          BPatch_Vector<BPatch_snippet *> args;
-	 args.push_back(&asyncVarExpr);
+         args.push_back(&asyncVarExpr);
          BPatch_funcCallExpr call_check_async(*check_async, args);
          BPatch_Vector<BPatch_snippet *> async_code;
          async_code.push_back(&call_check_async);
@@ -411,7 +362,7 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
    // Get log file pointers
    logfilename = param["logfilename"]->getString();
 
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    } else {

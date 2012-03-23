@@ -140,5 +140,19 @@ namespace Dyninst
    int ThrIDToTid(Dyninst::THR_ID id);
 }
 
+namespace Dyninst
+{
+   typedef enum {
+      OSNone,
+      Linux,
+      FreeBSD,
+      Windows,
+      VxWorks,
+      BlueGeneL,
+      BlueGeneP,
+      BlueGeneQ
+   } OSType;
+}
+
 #include "dyn_regs.h"
 #endif

@@ -55,12 +55,15 @@ int_iRPC::int_iRPC(void *binary_blob_,
    binary_blob(binary_blob_),
    binary_size(binary_size_),
    start_offset(0),
-   async(async_),
    thrd(NULL),
+   inffree_target(0),
+   async(async_),
    freeBinaryBlob(false),
-   needsDesync(false),
+   needs_clean(false),
+   restore_internal(false),
+   counted_sync(false),
    lock_live(0),
-   needs_clean(false)
+   user_data(NULL)
 {
    my_id = next_id++;
    if (alreadyAllocated) {
@@ -80,26 +83,24 @@ int_iRPC::~int_iRPC()
 
 bool int_iRPC::isRPCPrepped()
 {
-   bool needsProcStop = isProcStopRPC();
-   bool isStopped;
    if (state == Prepped)
       return true;
-   assert(state == Prepping);
-   if (needsProcStop || useHybridLWPControl(thrd) ) {
-      isStopped = thrd->llproc()->threadPool()->allStopped();
-   }else{
-      isStopped = thrd->getInternalState() == int_thread::stopped;
-   }
-   if (isStopped) {
-      pthrd_printf("Marking RPC %lu on %d/%d as prepped\n", id(), thrd->llproc()->getPid(), thrd->getLWP());
-      setState(Prepped);
-   }
-   return isStopped;
-}
 
-void int_iRPC::setNeedsDesync(bool b)
-{
-   needsDesync = b;
+   assert(state == Prepping);
+   if (isProcStopRPC()) {
+      int_threadPool *pool = thrd->llproc()->threadPool();
+      for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
+         if (!(*i)->isStopped(int_thread::IRPCSetupStateID) &&
+             (*i)->getActiveState().getID() != int_thread::IRPCStateID)
+         {
+            return false;
+         }
+      }
+      return true;
+   }
+   else {
+      return thrd->isStopped(int_thread::IRPCSetupStateID);
+   }
 }
 
 void int_iRPC::setState(int_iRPC::State s) 
@@ -245,6 +246,11 @@ bool int_iRPC::fillInAllocation()
    return true;
 }
 
+bool int_iRPC::countedSync()
+{
+   return counted_sync;
+}
+
 iRPCMgr *rpcMgr()
 {
   static iRPCMgr rpcmgr;;
@@ -303,7 +309,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    if (proc->getState() != int_process::running) {
       perr_printf("Attempt to post iRPC %lu to non-running process %d\n", 
                   rpc->id(), proc->getPid());
-      setLastError(err_exited, "Attempt to post iRPC to exited process");
+      proc->setLastError(err_exited, "Attempt to post iRPC to exited process");
       return false;
    }
    //Find the thread with the fewest number of posted/running iRPCs
@@ -313,7 +319,9 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       assert(thr);
-      if (thr->getInternalState() != int_thread::running && thr->getInternalState() != int_thread::stopped) {
+      if (thr->getGeneratorState().getState() != int_thread::running && 
+          thr->getGeneratorState().getState() != int_thread::stopped) 
+      {
          continue;
       }
 
@@ -339,24 +347,26 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
 {
    pthrd_printf("Posting iRPC %lu to thread %d\n", rpc->id(), thread->getLWP());
-   if (thread->getInternalState() != int_thread::running && 
-       thread->getInternalState() != int_thread::stopped) 
+   if (thread->getGeneratorState().getState() != int_thread::running && 
+       thread->getGeneratorState().getState() != int_thread::stopped) 
    {
       perr_printf("Attempt to post iRPC %lu to non-running thread %d\n", 
                   rpc->id(), thread->getLWP());
-      setLastError(err_exited, "Attempt to post iRPC to exited thread");
+      thread->setLastError(err_exited, "Attempt to post iRPC to exited thread");
       return false;
    }
 
    if( thread->isExiting() ) {
        perr_printf("Attempt to post IRPC %lu to exiting thread %d\n",
                rpc->id(), thread->getLWP());
-       setLastError(err_exited, "Attempt to post iRPC to exiting thread");
+       thread->setLastError(err_exited, "Attempt to post iRPC to exiting thread");
        return false;
    }
 
-   if (!rpc->isAsync())
+   if (!rpc->isAsync()) {
      thread->incSyncRPCCount();
+     rpc->counted_sync = true;
+   }
 
    rpc_list_t *cur_list = thread->getPostedRPCs();
    rpc->setThread(thread);
@@ -460,7 +470,7 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
                break;
             case int_iRPC::InfFree:
                pclean_printf("\tF-%lu", cur_rpc->id());
-               break;	      
+               break;
          }
          pclean_printf("\n");
       }
@@ -477,6 +487,11 @@ Dyninst::Address int_iRPC::infMallocResult()
 void int_iRPC::setMallocResult(Dyninst::Address addr)
 {
   malloc_result = addr;
+}
+
+Address int_iRPC::getInfFreeTarget()
+{
+   return inffree_target;
 }
 
 rpc_wrapper *int_iRPC::getWrapperForDecode()
@@ -580,10 +595,6 @@ int_iRPC::ptr int_iRPC::deletionRPC() const {
    assert(cur_allocation); 
    return cur_allocation->deletion_irpc.lock();
 }
- 
-bool int_iRPC::needsToDesync() const {
-   return needsDesync;
-}
 
 int_iRPC::ptr int_iRPC::newAllocationRPC()
 {
@@ -592,7 +603,6 @@ int_iRPC::ptr int_iRPC::newAllocationRPC()
    newrpc->setType(int_iRPC::Allocation);
    newrpc->setTargetAllocation(cur_allocation);
    newrpc->thrd = thrd;
-   thrd->incSyncRPCCount();
    cur_allocation->creation_irpc = newrpc;
    setShouldSaveData(false); //The memory will just be deallocated
    return newrpc;
@@ -605,9 +615,6 @@ int_iRPC::ptr int_iRPC::newDeallocationRPC()
    newrpc->setType(int_iRPC::Deallocation);
    newrpc->setTargetAllocation(cur_allocation);
    newrpc->thrd = thrd;
-   if (!async) {
-      thrd->incSyncRPCCount();
-   }
    cur_allocation->deletion_irpc = newrpc;
    return newrpc;
 }
@@ -705,7 +712,6 @@ bool int_iRPC::checkRPCFinishedSave()
    memsave_result = mem_response::ptr();
    regsave_result = allreg_response::ptr();
 
-   setState(Saved);
    return true;
 }
 
@@ -756,13 +762,12 @@ bool int_iRPC::checkRPCFinishedWrite()
    rpcwrite_result = result_response::ptr();
    pcset_result = result_response::ptr();
 
-   setState(Ready);
    return true;
 }
 
-bool int_iRPC::runIRPC(bool block)
+bool int_iRPC::runIRPC()
 {
-   pthrd_printf("Moving next iRPC for %d/%d to ready\n", 
+   pthrd_printf("Moving next iRPC for %d/%d to running\n", 
                 thrd->llproc()->getPid(), thrd->getLWP());
    
    //Remove rpc from thread list
@@ -774,24 +779,21 @@ bool int_iRPC::runIRPC(bool block)
    thrd->setRunningRPC(shared_from_this());
    setState(Running);
 
-   assert(thrd->getInternalState() == int_thread::stopped);
    assert(allocation());
    assert(!allocSize() || (binarySize() <= allocSize()));
    assert(binaryBlob());
 
-   if (thrd->hasPostponedContinue()) {
-      thrd->restoreInternalState(block);
-      thrd->setPostponedContinue(false);
-   }
 
-   if (needsToDesync() && !isProcStopRPC()) {
-      setNeedsDesync(false);
-      if (useHybridLWPControl(thrd)) {
-         thrd->llproc()->threadPool()->restoreInternalState(block);
-      }
-      else {
-         thrd->restoreInternalState(block);
-      }
+   if (isProcStopRPC()) {
+      thrd->getIRPCWaitState().desyncStateProc(int_thread::stopped);
+      thrd->getIRPCState().desyncState(int_thread::running);
+      thrd->getIRPCSetupState().restoreStateProc();
+   }
+   else if (thrd->llproc()->plat_threadOpsNeedProcStop()) {
+      thrd->getIRPCSetupState().restoreStateProc();
+   }
+   else {
+      thrd->getIRPCSetupState().restoreState();
    }
 
    return true;
@@ -826,97 +828,16 @@ void int_iRPC::syncAsyncResponses(bool is_sync)
    }
 }
 
-bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
+bool int_iRPC::needsToRestoreInternal() const
 {
-   user_error = false;
-   pthrd_printf("Prepping next iRPC for %d/%d, sync_prep = %s\n", thr->llproc()->getPid(), thr->getLWP(),
-                sync_prep ? "true" : "false");
-   if (thr->runningRPC()) {
-      pthrd_printf("Thread is already running iRPC %lu\n", thr->runningRPC()->id());
-      return false;
-   }
-   rpc_list_t *posted = thr->getPostedRPCs();
-   if (!posted->size()) {
-      pthrd_printf("No posted iRPCs for this thread\n");
-      return false;
-   }
-   int_iRPC::ptr rpc = posted->front();
-   if (rpc->getState() == int_iRPC::Prepping) {
-      pthrd_printf("Thread is already prepping iRPC");
-      return false;
-   }
-
-   assert(rpc->getState() == int_iRPC::Posted);   
-   rpc->setState(int_iRPC::Prepping);
-
-   pthrd_printf("Prepping iRPC %lu on %d/%d\n", rpc->id(), thr->llproc()->getPid(), 
-                  thr->getLWP());
-   bool isStopped;
-   bool needsProcStop = rpc->isProcStopRPC();
-
-   if (needsProcStop) {
-      //Need to make sure entire process is stopped.
-      pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(), 
-                   thr->llproc()->getPid());
-      isStopped = !checkIfNeedsProcStop(thr->llproc());
-      rpc->setNeedsDesync(true);
-      thr->llproc()->threadPool()->desyncInternalState();
-   }
-   else {
-      if( useHybridLWPControl(thr) ) {
-        pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(),
-                thr->llproc()->getPid());
-        isStopped = thr->llproc()->threadPool()->allStopped();
-      }else{
-        //Need to stop a single thread.
-        pthrd_printf("iRPC %lu needs a thread stop on %d/%d\n", rpc->id(),
-                       thr->llproc()->getPid(), thr->getLWP());
-        isStopped = (thr->getInternalState() == int_thread::stopped);
-      }
-   }
-      
-   if (isStopped) {
-      pthrd_printf("Already stopped, marked rpc prepped\n");
-      rpc->setState(int_iRPC::Prepped);
-      return true;
-   }
-
-   bool result;
-   if (needsProcStop) {
-      pthrd_printf("Stopping process %d for iRPC setup\n", thr->llproc()->getPid());
-      result = stopNeededThreads(thr->llproc(), sync_prep);
-   }
-   else {
-      if( useHybridLWPControl(thr) ) {
-          pthrd_printf("Stopping process %d for iRPC setup on %d/%d\n",
-                  thr->llproc()->getPid(), thr->llproc()->getPid(),
-                  thr->getLWP());
-
-          rpc->setNeedsDesync(true);
-          thr->llproc()->threadPool()->desyncInternalState();
-          result = thr->llproc()->threadPool()->intStop(sync_prep);
-      }else{
-          pthrd_printf("Stopping thread %d/%d for iRPC setup\n",
-                       thr->llproc()->getPid(), thr->getLWP());
-          rpc->setNeedsDesync(true);
-          thr->desyncInternalState();
-          result = thr->intStop(sync_prep);
-      }
-   }
-   if (!result) {
-      pthrd_printf("Failed to stop process/thread for iRPC\n");
-      user_error = true;
-      return false;
-   }
-
-   if (sync_prep && rpc->getState() == int_iRPC::Prepping) {
-      pthrd_printf("Setting iRPC to prepped--stopped process for iRPC\n");
-      rpc->setState(int_iRPC::Prepped);
-      return true;
-   }
-   return true;
+   return restore_internal;
 }
-   
+
+void int_iRPC::setRestoreInternal(bool b)
+{
+   restore_internal = b;
+}
+
 bool iRPCMgr::isRPCTrap(int_thread *thr, Dyninst::Address addr)
 {
    bool result;
@@ -950,42 +871,6 @@ bool iRPCMgr::isRPCTrap(int_thread *thr, Dyninst::Address addr)
 
  done:
    return result;
-}
-
-bool iRPCMgr::handleThreadContinue(int_thread *thr, bool user_cont, bool &completed)
-{
-   completed = true;
-   int_iRPC::ptr posted_rpc = thr->nextPostedIRPC();
-   if (!posted_rpc)
-      return true;
-
-   if (!thr->runningRPC() && !thr->isClearingBreakpoint() ) {
-      //The user may have a posted RPC on a stopped thread,
-      // ready this before the thread runs.
-      pthrd_printf("Readying an IRPC before continuing\n");
-      bool result = thr->handleNextPostedIRPC(user_cont ? int_thread::hnp_allow_stop : int_thread::hnp_no_stop,
-                                              false);
-      if (!result) {
-         perr_printf("Failed to handle IRPC\n");
-         setLastError(err_internal, "Failed to prep a ready IRPC\n");
-         return false;
-      }
-      if (posted_rpc->getState() == int_iRPC::Prepping) {
-        completed = false;         
-      }
-
-      std::set<response::ptr> pending_responses;
-      posted_rpc->getPendingResponses(pending_responses);
-      if (!pending_responses.empty()) {
-         pthrd_printf("Thread %d/%d has pending responses, postponing continue\n",
-                      thr->llproc()->getPid(), thr->getLWP());
-         completed = false;
-      }
-   }
-   if (posted_rpc->getState() == int_iRPC::Ready)
-      posted_rpc->setState(int_iRPC::Running);
-
-   return true;
 }
 
 int_iRPC::ptr iRPCMgr::createInfMallocRPC(int_process *proc, unsigned long size, 
@@ -1024,66 +909,12 @@ int_iRPC::ptr iRPCMgr::createInfFreeRPC(int_process *proc, unsigned long size,
    irpc->setBinarySize(binary_size);
    irpc->setStartOffset(start_offset);
    irpc->setAllocSize(binary_size);
+   irpc->inffree_target = addr;
    
    if (!result)
       return int_iRPC::ptr();
    irpc->allocation()->addr = proc->mallocExecMemory(binary_size);
    return irpc;
-}
-
-bool iRPCMgr::checkIfNeedsProcStop(int_process *p)
-{
-   for (int_threadPool::iterator i = p->threadPool()->begin(); i != p->threadPool()->end(); i++) {
-      int_thread *thr = *i;
-      if (thr->getInternalState() != int_thread::running)
-         continue;
-      if( !useHybridLWPControl() ) {
-          int_iRPC::ptr running = thr->runningRPC();
-          if (running && running->isProcStopRPC())
-             continue;
-      }
-      return true;
-   }
-   return false;
-}
-
-bool iRPCMgr::stopNeededThreads(int_process *p, bool sync)
-{
-   bool stopped_something = false;
-   bool error = false;
-
-   pthrd_printf("Stopping threads for a process-stop RPC\n");
-   for (int_threadPool::iterator i = p->threadPool()->begin(); i != p->threadPool()->end(); i++) {
-      int_thread *thr = *i;
-      if (thr->getInternalState() != int_thread::running)
-         continue;
-      if( !useHybridLWPControl() ) {
-          int_iRPC::ptr running = thr->runningRPC();
-          if (running && running->isProcStopRPC())
-             continue;
-      }
-      bool result = thr->intStop(false);
-      if (!result) {
-         perr_printf("Error stopping thread %d/%d\n", p->getPid(), thr->getLWP());
-         error = true;
-         continue;
-      }
-      stopped_something = true;
-   }
-
-   if (stopped_something && sync) {
-      bool proc_exited;
-      bool result = int_process::waitAndHandleForProc(true, p, proc_exited);
-      if (proc_exited) {
-         pthrd_printf("Process exited during iRPC setup\n");
-         return false;
-      }
-      if (!result) {
-         perr_printf("Error handling stop events\n");
-         error = true;
-      }
-   }
-   return !error;
 }
 
 iRPCHandler::iRPCHandler() :
@@ -1100,15 +931,11 @@ void iRPCHandler::getEventTypesHandled(std::vector<EventType> &etypes)
   etypes.push_back(EventType(EventType::None, EventType::RPC));
 }
 
-int iRPCHandler::getPriority() const
-{
-  return PostCallbackPriority;
-}
-
 Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 {
    //An RPC has completed, clean-up
    int_thread *thr = ev->getThread()->llthrd();
+   int_process *proc = ev->getProcess()->llproc();
    EventRPC *event = static_cast<EventRPC *>(ev.get());
    int_eventRPC *ievent = event->getInternal();
    int_iRPC::ptr rpc = event->getllRPC()->rpc;
@@ -1119,7 +946,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    assert(rpc->getState() == int_iRPC::Cleaning);
 
    pthrd_printf("Handling RPC %lu completion on %d/%d\n", rpc->id(), 
-                thr->llproc()->getPid(), thr->getLWP());
+                proc->getPid(), thr->getLWP());
 
    if ((rpc->getType() == int_iRPC::InfMalloc || rpc->getType() == int_iRPC::Allocation) && 
        !ievent->alloc_regresult)
@@ -1127,9 +954,9 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       //Post a request for the return value of the allocation
       pthrd_printf("Cleaning up allocation RPC\n");
       ievent->alloc_regresult = reg_response::createRegResponse();
-      bool result = thr->llproc()->plat_collectAllocationResult(thr, ievent->alloc_regresult);
+      bool result = proc->plat_collectAllocationResult(thr, ievent->alloc_regresult);
       assert(result);
-      thr->llproc()->handlerPool()->notifyOfPendingAsyncs(ievent->alloc_regresult, ev);
+      proc->handlerPool()->notifyOfPendingAsyncs(ievent->alloc_regresult, ev);
    }
 
    if (rpc->shouldSaveData() && !ievent->memrestore_response) {
@@ -1138,7 +965,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
                    rpc->addr(), rpc->allocation()->orig_data, rpc->allocSize());
       assert(rpc->allocation()->orig_data);
       ievent->memrestore_response = result_response::createResultResponse();
-      bool result = thr->llproc()->writeMem(rpc->allocation()->orig_data,
+      bool result = proc->writeMem(rpc->allocation()->orig_data,
                                             rpc->addr(),
                                             rpc->allocSize(),
                                             ievent->memrestore_response);
@@ -1158,7 +985,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    set<response::ptr> async_pending;
    ievent->getPendingAsyncs(async_pending);
    if (!async_pending.empty()) {
-      thr->llproc()->handlerPool()->notifyOfPendingAsyncs(async_pending, ev);
+      proc->handlerPool()->notifyOfPendingAsyncs(async_pending, ev);
       return ret_async;
    }
 
@@ -1176,37 +1003,129 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
       }
    }
 
-   if (rpc->isProcStopRPC() && rpc->needsToDesync()) {
-      pthrd_printf("Restoring state for threads stopped by mem management rpc\n");
-      thr->llproc()->threadPool()->restoreInternalState(false);
+   if (rpc->isProcStopRPC()) {
+      pthrd_printf("Restoring RPC state after procstop completion\n");
+      thr->getIRPCWaitState().restoreStateProc();
+      thr->getIRPCState().restoreState();
    }
 
    if (rpc->isMemManagementRPC() || rpc->isInternalRPC())
    {
       //Free memory associated with RPC for future use
       pthrd_printf("Freeing exec memory at %lx\n", rpc->addr());
-      thr->llproc()->freeExecMemory(rpc->addr());
+      proc->freeExecMemory(rpc->addr());
    }
 
    pthrd_printf("RPC %lu is moving to state finished\n", rpc->id());
    thr->clearRunningRPC();
    rpc->setState(int_iRPC::Finished);
 
-   if (!isLastRPC) {
-      /*pthrd_printf("Moving next RPC to running state\n");
-      
-      bool result = thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
-      if (!result) {
-         pthrd_printf("Failed to post next iRPC\n");
-         return ret_error;
-         }*/
-   }
-
-   if (!rpc->isAsync()) {
+   if (rpc->countedSync()) {
      thr->decSyncRPCCount();
    }
 
+   if (rpc->needsToRestoreInternal()) {
+      rpc->thread()->getInternalState().restoreState();
+   }
+
    return ret_success;
+}
+
+iRPCLaunchHandler::iRPCLaunchHandler() :
+   Handler("iRPC Launch Handler")
+{
+}
+
+iRPCLaunchHandler::~iRPCLaunchHandler()
+{
+}
+
+void iRPCLaunchHandler::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+  etypes.push_back(EventType(EventType::None, EventType::RPCLaunch));
+}
+
+Handler::handler_ret_t iRPCLaunchHandler::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thr = ev->getThread()->llthrd();
+
+   int_iRPC::ptr posted_rpc = thr->nextPostedIRPC();
+   if (!posted_rpc || thr->runningRPC())
+      return Handler::ret_success;
+   
+   assert(posted_rpc->getState() != int_iRPC::Posted);
+
+   pthrd_printf("Handling next posted irpc %lu on %d/%d of type %s in state %s\n",
+                posted_rpc->id(), proc->getPid(), thr->getLWP(), 
+                posted_rpc->getStrType(), posted_rpc->getStrState());
+      
+   /**
+    * Check if we've successfully made it to the stopped state.
+    *  (There's no longer any work to be done to move from prepping to prepped--
+    *  it all happens in the procstop logic.)
+    **/
+   if (posted_rpc->getState() == int_iRPC::Prepping) {
+      pthrd_printf("Marking RPC %lu on %d/%d as prepped\n", posted_rpc->id(), proc->getPid(), thr->getLWP());
+      assert(posted_rpc->isRPCPrepped());
+      posted_rpc->setState(int_iRPC::Prepped);
+   }
+
+   std::set<response::ptr> async_resps;
+   /**
+    * Save registers and memory
+    **/
+   if (posted_rpc->getState() == int_iRPC::Prepped) {
+      pthrd_printf("Saving RPC state on %d/%d\n", proc->getPid(), thr->getLWP());
+      bool result = posted_rpc->saveRPCState();
+      if (!result) {
+         pthrd_printf("Failed to save RPC state on %d/%d\n", proc->getPid(), thr->getLWP());
+         return Handler::ret_error;
+      }
+   }
+
+   //Wait for async
+   if (posted_rpc->getState() == int_iRPC::Saving) {
+      if (!posted_rpc->checkRPCFinishedSave()) {
+         pthrd_printf("Async, RPC has not finished save\n");
+         posted_rpc->getPendingResponses(async_resps);
+         proc->handlerPool()->notifyOfPendingAsyncs(async_resps, ev);
+         return Handler::ret_async;
+      }
+      else {
+         posted_rpc->setState(int_iRPC::Saved);
+      }
+   }
+
+   /**
+    * Write PC register and memory
+    **/
+   if (posted_rpc->getState() == int_iRPC::Saved) {
+      pthrd_printf("Writing RPC on %d\n", proc->getPid());
+      bool result = posted_rpc->writeToProc();
+      if (!result) {
+         pthrd_printf("Failed to write RPC on %d\n", proc->getPid());
+         return Handler::ret_error;
+      }         
+   }
+   //Wait for async
+   if (posted_rpc->getState() == int_iRPC::Writing) {
+      if (!posted_rpc->checkRPCFinishedWrite()) {
+         pthrd_printf("Async, RPC has not finished memory write\n");
+         posted_rpc->getPendingResponses(async_resps);
+         proc->handlerPool()->notifyOfPendingAsyncs(async_resps, ev);
+         return Handler::ret_async;
+      }
+      else {
+         posted_rpc->setState(int_iRPC::Ready);
+      }
+   }
+
+   if (posted_rpc->getState() == int_iRPC::Ready) {
+      posted_rpc->runIRPC();
+   }
+
+   return Handler::ret_success;
 }
 
 IRPC::ptr IRPC::createIRPC(void *binary_blob, unsigned size, 
@@ -1234,8 +1153,39 @@ IRPC::ptr IRPC::createIRPC(void *binary_blob, unsigned size,
    return rpc;
 }
 
+IRPC::ptr IRPC::createIRPC(IRPC::ptr o)
+{
+   int_iRPC::ptr orig = o->llrpc()->rpc;
+   int_iRPC::ptr irpc;
+   if (orig->cur_allocation) 
+      irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                        true, orig->addr()));
+   else
+      irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                        false, 0));
+
+   rpc_wrapper *wrapper = new rpc_wrapper(irpc);
+   IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
+   irpc->setIRPC(rpc);
+   irpc->copyBinaryBlob(orig->binary_blob, orig->binary_size);
+   return rpc;
+}
+
+IRPC::ptr IRPC::createIRPC(IRPC::ptr o, Address addr)
+{
+   int_iRPC::ptr orig = o->llrpc()->rpc;
+   int_iRPC::ptr irpc;
+   irpc = int_iRPC::ptr(new int_iRPC(orig->binary_blob, orig->binary_size, orig->async, 
+                                     true, addr));
+   rpc_wrapper *wrapper = new rpc_wrapper(irpc);
+   IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
+   irpc->setIRPC(rpc);
+   irpc->copyBinaryBlob(orig->binary_blob, orig->binary_size);
+   return rpc;
+}
+
 IRPC::IRPC(rpc_wrapper *wrapper_) :
-   wrapper(wrapper_), userData_(NULL)
+   wrapper(wrapper_)
 {
 }
 
@@ -1253,12 +1203,12 @@ rpc_wrapper *IRPC::llrpc() const
 
 void *IRPC::getData() const
 {
-    return userData_;
+   return wrapper->rpc->user_data;
 }
 
-void IRPC::setData(void *p) 
+void IRPC::setData(void *p) const
 {
-    userData_ = p;
+   wrapper->rpc->user_data = p;
 }
 
 Dyninst::Address IRPC::getAddress() const

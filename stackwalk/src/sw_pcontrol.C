@@ -445,9 +445,9 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
    CHECK_PROC_LIVE;
    
    LibraryPool::iterator i;
-   Library::ptr nearest_predecessor = NULL;
+   Library::ptr nearest_predecessor = Library::ptr();
    signed int pred_distance = 0;
-   Library::ptr nearest_successor = NULL;
+   Library::ptr nearest_successor = Library::ptr();
    signed int succ_distance = 0;
 
    vector<pair<LibAddrPair, unsigned int> > arch_libs;

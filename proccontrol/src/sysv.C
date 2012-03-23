@@ -30,17 +30,20 @@
  */
 #include "dynutil/h/SymReader.h"
 #include "dynutil/h/dyntypes.h"
-#include "sysv.h"
-#include "irpc.h"
 
+#include "common/h/Types.h"
 #if defined(os_linux)
 #include "common/h/linuxKludges.h"
 #elif defined(os_freebsd)
 #include "common/h/freebsdKludges.h"
 #endif
 
+#include "proccontrol/src/sysv.h"
 #include "proccontrol/src/response.h"
+#include "proccontrol/h/Handler.h"
+#include "proccontrol/src/int_handler.h"
 
+#include <algorithm>
 #include <cstring>
 #include <vector>
 #include <string>
@@ -66,13 +69,13 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
-   aout = NULL;
+   aout = sp->aout;
+   procreader = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);
+   translator = NULL;
    if (sp->translator)
-      translator = AddressTranslate::createAddressTranslator(pid_,
-                                                             procreader,
-                                                             sp->plat_defaultSymReader());
+      translator = constructTranslator(pid_);
 }
 
 sysv_process::~sysv_process()
@@ -87,103 +90,45 @@ sysv_process::~sysv_process()
    }
 }
 
+AddressTranslate *sysv_process::constructTranslator(Dyninst::PID pid_)
+{
+   Address base;   
+   bool result = plat_getInterpreterBase(base);
+   if (result) {
+      return AddressTranslate::createAddressTranslator(pid_, procreader,
+                                                       plat_defaultSymReader(),
+                                                       INVALID_HANDLE_VALUE,
+                                                       std::string(""), base);
+   }
+   else {
+      return AddressTranslate::createAddressTranslator(pid_, procreader,
+                                                       plat_defaultSymReader());
+   }
+}
+
 PCProcReader::PCProcReader(sysv_process *proc_) :
-   proc(proc_),
-   pending_addr(0)
+   proc(proc_)
 {
 }
 
 PCProcReader::~PCProcReader()
 {
-   clearBuffers();
+   proc->getMemCache()->clear();
 }
 
 bool PCProcReader::start()
 {
-   word_cache_valid = false;
    return true;
 }
 
 bool PCProcReader::done()
 {
-   word_cache_valid = true;
    return true;
 }
 
-bool PCProcReader::isAsync()
+bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
-   return (memresult != NULL);
-}
-
-bool PCProcReader::handleAsyncCompletion()
-{
-   if (!memresult->isReady()) {
-      //We still have to wait for the read to finish.
-      pthrd_printf("ProcReader waiting for async read at %lx\n", pending_addr);
-      return false;
-   }
-
-   if (memresult->hasError()) {
-      //The read failed, mark this with a NULL buffer entry at the address
-      pthrd_printf("Async read at %lx failed, marking as such\n", pending_addr);
-      free(memresult->getBuffer());
-      async_read_buffers[pending_addr] = NULL;
-   }
-   else {
-      pthrd_printf("ProcReader found completed async read at %lx\n", pending_addr);
-      async_read_buffers[pending_addr] = memresult->getBuffer();
-   }
-   memresult = mem_response::ptr();
-   pending_addr = 0;
-   
-   return true;
-}
-
-void PCProcReader::clearBuffers()
-{
-   map<Address, char *>::iterator i;
-   for (i = async_read_buffers.begin(); i != async_read_buffers.end(); i++) {
-      if (i->second)
-         free(i->second);
-   }
-   async_read_buffers.clear();
-}
-
-bool PCProcReader::postAsyncRead(Dyninst::Address addr)
-{
-   //Reading from an unknown page, post an async read and
-   // return 'false'.  isAsync() will latter return true,
-   // letting the caller know that this was an async error
-   // rather than a real one.
-   assert(!memresult);
-   char *new_buffer = (char *) malloc(async_read_align);
-   memresult = mem_response::createMemResponse(new_buffer, async_read_align);
-   pending_addr = addr;
-
-   assert(memresult);
-   bool result = proc->readMem(addr, memresult);
-
-   if (!result) {
-      pthrd_printf("Failure to async read process %d memory at %lx\n",
-                   proc->getPid(), addr);
-      memresult = mem_response::ptr();
-      return false;
-   }
-   return handleAsyncCompletion();
-}
-
-bool PCProcReader::ReadMemAsync(Address addr, void *buffer, unsigned size)
-{
-   //If we're on an Async IO platform (BlueGene) then we may do
-   // this read as multiple async reads, caching memory as we go.
-   // Once we've completed all async reads, then we'll finally 
-   // return success from this function.
-   //
-   //The page aligned caching may seem weird (and could produce
-   // unnecessary extra reads), but I' think it'll provide a better
-   // access pattern in most cases.
-   Dyninst::Address aligned_addr = addr & ~(async_read_align-1);
-   int buffer_offset = 0;
+   memCache *cache = proc->getMemCache();
 
    if (!proc->translator) {
       //Can happen if we read during initialization.  We'll fail to read,
@@ -191,78 +136,17 @@ bool PCProcReader::ReadMemAsync(Address addr, void *buffer, unsigned size)
       return false;
    }
 
-   Dyninst::Address cur_addr = aligned_addr;
-   for (; cur_addr < addr+size; cur_addr += async_read_align) {
-      map<Address, char *>::iterator i = async_read_buffers.find(cur_addr);
-      if (i == async_read_buffers.end()) {
-         bool result = postAsyncRead(cur_addr);
-         if (!result) {
-            //Need to wait for the async read to complete
-            pthrd_printf("Returning async from read\n");
-            proc->translator->setReadAbort(true);
-            return false;
-         }
-         i = async_read_buffers.find(cur_addr);
-         assert(i != async_read_buffers.end());
-      }
-      //We have a buffer cached, copy the correct parts of
-      // its contents to the target buffer.
-      char *cached_buffer = i->second;
-      if (!cached_buffer) {
-         //This read had resulted in an error.  Return as such.
-         pthrd_printf("Returning error from read\n");
-         proc->translator->setReadAbort(false);
+   proc->translator->setReadAbort(false);
+   async_ret_t ret = cache->readMemory(buffer, addr, size, memresults);
+   switch (ret) {
+      case aret_success:
+         return true;
+      case aret_async:
+         proc->translator->setReadAbort(true);
          return false;
-      }
-      int start_offset = (addr > cur_addr) ? (addr - cur_addr) : 0;
-      int end_offset = (addr+size < cur_addr+async_read_align) ? 
-         addr+size - cur_addr : async_read_align;
-      memcpy(((char *) buffer) + buffer_offset, 
-             cached_buffer + start_offset, 
-             end_offset - start_offset);
-   }
-   //All reads completed succfully.  Phew.
-   pthrd_printf("Returning success from read\n");
-   static_cast<sysv_process *>(proc)->translator->setReadAbort(false);
-   return true;
-}
-
-bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
-{
-   if (proc->plat_needsAsyncIO()) {
-      return ReadMemAsync(addr, buffer, size);
-   }
-
-   if (size != 1) {
-      mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
-      bool result = proc->readMem(addr, memresult);
-      if (!result) {
-         pthrd_printf("Failed to read memory for proc reader\n");
+      case aret_error:
          return false;
-      }
-      result = memresult->isReady();
-      assert(result);
-      return true;
    }
-
-   //Try to optimially handle a case where the calling code
-   // reads a string one char at a time.  This is mostly for
-   // ptrace platforms, but won't harm any others.
-   assert(size == 1);
-   Address aligned_addr = addr - (addr % sizeof(word_cache));
-   if (!word_cache_valid || aligned_addr != word_cache_addr) {
-      mem_response::ptr memresult = mem_response::createMemResponse((char *) &word_cache, sizeof(word_cache));
-      bool result = proc->readMem(aligned_addr, memresult);
-      if (!result) {
-         pthrd_printf("Failed to read memory for proc reader\n");
-         return false;
-      }
-      result = memresult->isReady();
-      assert(result);
-      word_cache_addr = aligned_addr;
-      word_cache_valid = true;
-   }
-   *((char *) buffer) = ((char *) &word_cache)[addr - aligned_addr];
    return true;
 }
 
@@ -272,21 +156,32 @@ bool PCProcReader::GetReg(MachRegister /*reg*/, MachRegisterVal & /*val*/)
    return true;
 }
 
+bool PCProcReader::hasPendingAsync()
+{
+   return proc->getMemCache()->hasPendingAsync();
+}
+
+bool PCProcReader::getNewAsyncs(set<response::ptr> &resps)
+{
+   for (set<mem_response::ptr>::iterator i = memresults.begin(); i != memresults.end(); i++)
+      resps.insert(*i);
+   memresults.clear();
+   return true;
+}
+
 bool sysv_process::initLibraryMechanism()
 {
    if (lib_initialized) {
       if( translator == NULL ) {
-          translator = AddressTranslate::createAddressTranslator(getPid(),
-                                                                 procreader,
-                                                                 plat_defaultSymReader());
-          if (!translator && procreader->isAsync()) {
-              pthrd_printf("Waiting for async read to finish initializing\n");
-              return false;
-          }
-          if (!translator) {
-              perr_printf("Error creating address translator object\n");
-              return false;
-          }
+         translator = constructTranslator(getPid());
+         if (!translator && procreader->isAsync()) {
+            pthrd_printf("Waiting for async read to finish initializing\n");
+            return false;
+         }
+         if (!translator) {
+            perr_printf("Error creating address translator object\n");
+            return false;
+         }
       }
 
       return true;
@@ -300,9 +195,8 @@ bool sysv_process::initLibraryMechanism()
    assert(procreader);
 
    assert(!translator);
-   translator = AddressTranslate::createAddressTranslator(getPid(), 
-                                                          procreader,
-                                                          plat_defaultSymReader());
+
+   translator = constructTranslator(getPid());
    if (!translator && procreader->isAsync()) {
       pthrd_printf("Waiting for async read to finish initializing\n");
       return false;
@@ -314,6 +208,7 @@ bool sysv_process::initLibraryMechanism()
 
    if (!lib_trap) {
       lib_trap = new int_breakpoint(Breakpoint::ptr());
+      lib_trap->setProcessStopper(true);
    }
 
    breakpoint_addr = translator->getLibraryTrapAddrSysV();
@@ -328,22 +223,16 @@ bool sysv_process::initLibraryMechanism()
 
 bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                                      set<int_library *> &rmd_libs,
+                                     bool &waiting_for_async,
                                      set<response::ptr> &async_responses)
 {
    pthrd_printf("Refreshing list of loaded libraries\n");
-
-   if (procreader && procreader->isAsync()) {
-      //We (may) have a posted async completion.  Handle it.
-      bool result = procreader->handleAsyncCompletion();
-      if (!result) {
-         return false;
-      }
-   }
-   assert(!procreader || !procreader->isAsync());
+   waiting_for_async = false;
 
    bool result = initLibraryMechanism();
-   if (!result && procreader && procreader->isAsync()) {
-      async_responses.insert(procreader->memresult);
+   if (!result && procreader && procreader->hasPendingAsync()) {
+      procreader->getNewAsyncs(async_responses);
+      waiting_for_async = true;
       pthrd_printf("Waiting for async result to init libraries\n");
       return false;
    }
@@ -352,22 +241,22 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       return false;
    }
 
+   assert(translator);
    result = translator->refresh();
-   if (!result && procreader->isAsync()) {
-      async_responses.insert(procreader->memresult);
+   if (!result && procreader->hasPendingAsync()) {
+      procreader->getNewAsyncs(async_responses);
+      waiting_for_async = true;
       pthrd_printf("Waiting for async result to read libraries\n");
       return false;
    }
    if (!result) {
       pthrd_printf("Failed to refresh library list for %d\n", getPid());
    }
-
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); i++) 
    {
       (*i)->setMark(false);
    }
-
    vector<LoadedLib *> ll_libs;
    translator->getLibs(ll_libs);
    for (vector<LoadedLib *>::iterator i = ll_libs.begin(); i != ll_libs.end(); i++)
@@ -400,7 +289,11 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       mem->libs.erase(i++);
    }
 
-   procreader->clearBuffers();
+   if (!aout) {
+      LoadedLib *ll_aout = translator->getExecutable();
+      aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
+   }
+
    return true;
 }
 
@@ -427,29 +320,14 @@ bool sysv_process::plat_execed()
    breakpoint_addr = 0x0;
    lib_initialized = false;
 
-   bool result = initLibraryMechanism();
-   if (!result) {
-      pthrd_printf("Error initializing library mechanism\n");
-      return false;
-   }
-
-   std::set<int_library*> added, rmd;
    for (;;) {
-      std::set<response::ptr> async_responses;
-      bool result = refresh_libraries(added, rmd, async_responses);
-      if (!result && !async_responses.empty()) {
-         result = waitForAsyncEvent(async_responses);
-         if (!result) {
-            pthrd_printf("Failure waiting for async completion\n");
-            return false;
-         }
-         continue;
+      set<response::ptr> aresps;
+      async_ret_t result = initializeAddressSpace(aresps);
+      if (result == aret_async) {
+         //Not doing performant async handling, as BG does not have exec.
+         waitForAsyncEvent(aresps);
       }
-      if (!result) {
-         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
-         return false;
-      }
-      return true;
+      return (result == aret_success);
    }
 }
 
@@ -458,18 +336,19 @@ bool sysv_process::plat_isStaticBinary()
   return (breakpoint_addr == 0);
 }
 
-int_library *sysv_process::getExecutableLib()
+int_library *sysv_process::plat_getExecutable()
 {
-   if (aout)
-      return aout;
-
-   LoadedLib *ll = translator->getExecutable();
-   aout = (int_library *) ll->getUpPtr();
-   if (aout)
-      return aout;
-
-   aout = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
-   ll->setUpPtr((void *) aout);
-
    return aout;
+}
+
+bool sysv_process::addSysVHandlers(HandlerPool *) {
+   //Matt: I deleted the SysV handler that was here, but
+   // am leaving the hook in place if new ones ever come
+   // along.
+   return true;
+}
+
+bool sysv_process::plat_getInterpreterBase(Address &)
+{
+   return false;
 }

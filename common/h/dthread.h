@@ -33,6 +33,7 @@
 #define DTHREAD_H_
 
 #include <stdlib.h>
+#include <cassert>
 
 #if !defined(os_windows)
 #define cap_pthreads
@@ -64,6 +65,7 @@ class Mutex {
    Mutex(bool recursive=false);
    ~Mutex();
 
+   bool trylock();
    bool lock();
    bool unlock();
 };
@@ -79,10 +81,57 @@ class CondVar {
    ~CondVar();
 
    bool unlock();
+   bool trylock();
    bool lock();
    bool signal();
    bool broadcast();
    bool wait();
+};
+
+/**
+ * Construct a version of this class as a local variable, and it will hold
+ * its lock as long as it's in scope.  Thus you can get auto-unlock upon 
+ * return.
+ **/
+class ScopeLock {
+  private:
+   Mutex *m;
+   CondVar *c;
+  public:
+   ScopeLock(Mutex &m_) :
+     m(&m_),
+     c(NULL)
+   {
+      bool result = m->lock();
+      assert(result);
+   }
+      
+   ScopeLock(CondVar &c_) :
+     m(NULL),
+     c(&c_)
+   {
+      bool result = c->lock();
+      assert(result);
+   }
+
+   void unlock() {
+      if (m) {
+         m->unlock();
+         m = NULL;
+      }
+      else if (c) {
+         c->unlock();
+         c = NULL;
+      }
+   }
+
+   bool isLocked() {
+      return m || c;
+   }
+
+   ~ScopeLock() {
+      unlock();
+   }
 };
 
 #endif

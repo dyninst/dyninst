@@ -48,57 +48,82 @@ extern "C" DLLEXPORT TestMutator* pc_thread_cont_factory()
   return new pc_thread_contMutator();
 }
 
-static std::set<Thread::const_ptr> expected_exits;
-static std::set<Thread::const_ptr> expected_pre_exits;
+bool have_pre_thread = false;
+bool have_pre_lwp = false;
+bool have_post_thread = false;
+bool have_post_lwp = false;
+
+static std::set<Thread::const_ptr> expected_pre_thread_exits;
 static std::set<Thread::const_ptr> expected_pre_lwp_exits;
+static std::set<Thread::const_ptr> expected_post_thread_exits;
+static std::set<Thread::const_ptr> expected_post_lwp_exits;
 
 static bool cb_error = false;
 
 Process::cb_ret_t on_thread_exit(Event::const_ptr ev)
 {
-   if (   ev->getEventType().code() != EventType::ThreadDestroy
-       && ev->getEventType().code() != EventType::UserThreadDestroy
-       && ev->getEventType().code() != EventType::LWPDestroy ) {
-      logerror("Got unexpected event type\n");
-      cb_error = true;
-      return Process::cbDefault;
-   }
+   if (ev->getEventType().code() == EventType::UserThreadDestroy && ev->getEventType().time() == EventType::Pre) {
+      if (!have_pre_thread) {
+         logerror("Got unexpected Pre/Thread CB\n");
+         cb_error = true;
+      }
 
-   if (ev->getEventType().time() == EventType::Pre) {
-      set<Thread::const_ptr>::iterator i = expected_pre_exits.find(ev->getThread());
-      if (i == expected_pre_exits.end()) {
-         set<Thread::const_ptr>::iterator j = expected_pre_lwp_exits.find(ev->getThread());
-         if( j == expected_pre_lwp_exits.end() ) {
-            logerror("Got pre-exit for unknown thread\n");
-            cb_error = true;
-            return Process::cbDefault;
-         }
-         expected_pre_lwp_exits.erase(j);
-      }else{
-        expected_pre_exits.erase(i);
+      set<Thread::const_ptr>::iterator i = expected_pre_thread_exits.find(ev->getThread());
+      if (i == expected_pre_thread_exits.end()) {
+         logerror("Got incorrect Pre/Thread CB thread\n");
+         cb_error = true;
       }
-      return Process::cbDefault;
+      else
+         expected_pre_thread_exits.erase(i);
    }
-   else if (ev->getEventType().time() == EventType::Post) {
-      set<Thread::const_ptr>::iterator i = expected_pre_exits.find(ev->getThread());
-      if (i != expected_pre_exits.end()) {
-         logerror("Got exit without pre-exit\n");
+   else if (ev->getEventType().code() == EventType::UserThreadDestroy && ev->getEventType().time() == EventType::Post) {
+      if (!have_post_thread) {
+         logerror("Got unexpected Post/Thread CB\n");
          cb_error = true;
       }
-      set<Thread::const_ptr>::iterator j = expected_exits.find(ev->getThread());
-      if (j == expected_exits.end()) {
-         logerror("Got exit for unknown thread\n");
+
+      set<Thread::const_ptr>::iterator i = expected_post_thread_exits.find(ev->getThread());
+      if (i == expected_post_thread_exits.end()) {
+         logerror("Got incorrect Post/Thread CB thread\n");
          cb_error = true;
-         return Process::cbDefault;
       }
-      expected_exits.erase(j);
-      return Process::cbDefault;
+      else
+         expected_post_thread_exits.erase(i);
+   }
+   else if (ev->getEventType().code() == EventType::LWPDestroy && ev->getEventType().time() == EventType::Pre) {
+      if (!have_pre_lwp) {
+         logerror("Got unexpected Pre/LWP CB\n");
+         cb_error = true;
+      }
+
+      set<Thread::const_ptr>::iterator i = expected_pre_lwp_exits.find(ev->getThread());
+      if (i == expected_pre_lwp_exits.end()) {
+         logerror("Got incorrect Pre/LWP CB thread\n");
+         cb_error = true;
+      }
+      else
+         expected_pre_lwp_exits.erase(i);
+   }
+   else if (ev->getEventType().code() == EventType::LWPDestroy && ev->getEventType().time() == EventType::Post) {
+      if (!have_post_lwp) {
+         logerror("Got unexpected Post/LWP CB\n");
+         cb_error = true;
+      }
+
+      set<Thread::const_ptr>::iterator i = expected_post_lwp_exits.find(ev->getThread());
+      if (i == expected_post_lwp_exits.end()) {
+         logerror("Got incorrect Post/LWP CB thread\n");
+         cb_error = true;
+      }
+      else
+         expected_post_lwp_exits.erase(i);
    }
    else {
-      logerror("Got unexpected event time\n");
+      logerror("Got unexpected event\n");
       cb_error = true;
-      return Process::cbDefault;
    }
+
+   return Process::cbDefault;
 }
 
 /**
@@ -113,6 +138,25 @@ test_results_t pc_thread_contMutator::executeTest()
 
    EventType et(EventType::ThreadDestroy);
    Process::registerEventCallback(et, on_thread_exit);
+
+   expected_pre_thread_exits.clear();
+   expected_post_thread_exits.clear();
+   expected_pre_lwp_exits.clear();
+   expected_post_lwp_exits.clear();
+
+#if defined(os_bg_test) || defined(os_freebsd_test)
+   have_pre_thread = true;
+   have_pre_lwp = false;
+   have_post_thread = false;
+   have_post_lwp = false;
+#elif defined(os_linux_test)
+   have_pre_thread = true;
+   have_pre_lwp = true;
+   have_post_thread = false;
+   have_post_lwp = true;
+#else
+#error Unkown platform in pc_thread test
+#endif
 
    if( comp->num_threads > 0 ) {
        // Continue the whole process
@@ -171,7 +215,6 @@ test_results_t pc_thread_contMutator::executeTest()
 
        // Continue a single thread and wait for it to exit
        for (unsigned j=0; j < comp->num_threads; j++) {
-          expected_exits.clear();
 
           for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
              Process::ptr proc = *i;
@@ -197,9 +240,15 @@ test_results_t pc_thread_contMutator::executeTest()
                 error = true;
              }
              
-             expected_exits.insert(thrd);
-             expected_pre_exits.insert(thrd);
-             expected_pre_lwp_exits.insert(thrd);
+             if (have_pre_thread)
+                expected_pre_thread_exits.insert(thrd);
+             if (have_post_thread)
+                expected_post_thread_exits.insert(thrd);
+             if (have_pre_lwp)
+                expected_pre_lwp_exits.insert(thrd);
+             if (have_post_lwp)
+                expected_post_lwp_exits.insert(thrd);
+             
              bool result = thrd->continueThread();
              if (!result) {
                 logerror("Failed to continue thread\n");
@@ -207,8 +256,17 @@ test_results_t pc_thread_contMutator::executeTest()
              }
           }
           
-          while (!expected_exits.empty())
-             comp->block_for_events();
+          while (!expected_pre_thread_exits.empty() ||
+                 !expected_post_thread_exits.empty() ||
+                 !expected_pre_lwp_exits.empty() ||
+                 !expected_post_lwp_exits.empty())
+          {
+             bool result = comp->block_for_events();
+             if (!result) {
+                logerror("Failed to block for events\n");
+                error = true;
+             }
+          }
        }
    }else{
        for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {

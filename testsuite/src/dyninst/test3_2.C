@@ -35,7 +35,6 @@
  * #Desc: simultaneous multiple-process management - exit
  * #Dep: 
  * #Arch: all
- * #Notes: useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -100,8 +99,6 @@ test_results_t test3_2_Mutator::executeTest() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appProc[n]->getPid());
-	// Register for mutatee cleanup
-        registerPID(appProc[n]->getPid());
     }
     dprintf("Letting %d mutatee processes run.\n", Mutatees);
     for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();

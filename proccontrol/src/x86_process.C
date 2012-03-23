@@ -29,34 +29,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* implementation of arch_process class for x86 (both 32-bit and 64-bit) */
+#include "x86_process.h"
 
-#include "arch_process.h"
-
-arch_process::arch_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+x86_process::x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
         std::map<int, int> f) :
   int_process(p, e, a, envp, f)
 {
 }
 
-arch_process::arch_process(Dyninst::PID pid_, int_process *p) :
+x86_process::x86_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p)
 {
 }
 
-arch_process::~arch_process()
+x86_process::~x86_process()
 {
 }
 
-unsigned arch_process::plat_breakpointSize()
+unsigned x86_process::plat_breakpointSize()
 {
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
   return 1;
 }
 
-void arch_process::plat_breakpointBytes(char *buffer)
+void x86_process::plat_breakpointBytes(char *buffer)
 {
-  assert(getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86);
   buffer[0] = 0xcc;
+}
+
+bool x86_process::plat_breakpointAdvancesPC() const
+{
+   return true;
 }
 

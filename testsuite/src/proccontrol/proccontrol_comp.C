@@ -31,10 +31,31 @@
 #include "ParameterDict.h"
 #include "proccontrol_comp.h"
 #include "communication.h"
-
+#include "MutateeStart.h"
+#include "SymReader.h"
+#include "PCErrors.h"
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <set>
+#include <vector>
+#include <map>
+
+using namespace std;
+
+#if defined(os_bgq_test)
+mutatee_connection_t connectt = named_pipe;
+#else
+mutatee_connection_t connectt = un_socket;
+#endif
 
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
@@ -76,6 +97,8 @@ static Process::cb_ret_t eventCounterFunction(Event::const_ptr ev)
    return Process::cbDefault;
 }
 
+static int signaled_received = 0;
+
 bool ProcControlComponent::registerEventCounter(EventType et)
 {
    pccomp = this;
@@ -87,97 +110,175 @@ bool ProcControlComponent::checkThread(const Thread &thread)
    return true;
 }
 
-#define MAX_ARGS 128
-Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict &params)
+Process::cb_ret_t setSocketOnLibLoad(Event::const_ptr ev)
 {
-   char *logfilename = params["logfilename"]->getString();
-   char *humanlogname = params["humanlogname"]->getString();
-   bool verboseFormat = (bool) params["verbose"]->getInt();
-   char thread_num_str[128];
+   EventLibrary::const_ptr lib_ev = ev->getEventLibrary();
+   bool have_libc = false;
+   for (set<Library::ptr>::const_iterator i = lib_ev->libsAdded().begin(); i != lib_ev->libsAdded().end(); i++) {
+      Library::ptr lib = *i;
+      if (lib->getName().find("libc-") != string::npos || lib->getName().find("libc.") != string::npos) {
+         have_libc = true;
+         break;
+      }
+   }
+   if (have_libc) {
+      ProcControlComponent::initializeConnectionInfo(ev->getProcess());
+   }
+   return Process::cbDefault;
+}
 
-   const char *args[MAX_ARGS];
-   unsigned n=0;
-   args[n++] = group->mutatee;
-   if (logfilename) {
-      args[n++] = "-log";
-      args[n++] = logfilename;
-   }
-   if (humanlogname) {
-      args[n++] = "-humanlog";
-      args[n++] = humanlogname;
-   }
-   if (!verboseFormat) {
-      args[n++] = "-q";
-   }
-   args[n++] = "-un_socket";
-   args[n++] = sockname;
+bool ProcControlComponent::waitForSignalFD(int signal_fd)
+{
+   fd_set rd;
+   FD_ZERO(&rd);
+   FD_SET(signal_fd, &rd);
+   struct timeval timeout;
+   timeout.tv_sec = RECV_TIMEOUT;
+   timeout.tv_usec = 0;
 
-   if (group->threadmode == SingleThreaded) {
-      args[n++] = "-st";
+   int result = select(signal_fd+1, &rd, NULL, NULL, &timeout);
+   if (result == -1) {
+      perror("Error during signal_fd select");
+      return false;
    }
-   else if (group->threadmode == MultiThreaded) {
-      args[n++] = "-mt";
-      snprintf(thread_num_str, 128, "%d", DEFAULT_NUM_THREADS);
-      args[n++] = thread_num_str;
-   }
-   if (group->procmode == SingleProcess) {
-      args[n++] = "-sp";
-   }
-   else if (group->procmode == MultiProcess) {
-      args[n++] = "-mp";
+   if (result == 0) {
+      logerror("Timeout while waiting for signal_fd\n");
+      return false;
    }
 
-   bool printed_run = false;
-   for (std::vector<TestInfo *>::iterator i = group->tests.begin(); i != group->tests.end(); i++)
-   {
-      if (shouldRunTest(group, *i)) {
-         if (!printed_run) {
-            args[n++] = "-run";
-            printed_run = true;
+   char c;
+   read(signal_fd, &c, sizeof(char));
+   return true;
+}
+
+ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, ParameterDict &params)
+{
+   ProcessSet::ptr procset;
+   bool do_create = (group->createmode == CREATE);
+   bool waitfor_attach = (group->createmode == USEATTACH);
+#if defined(os_bg_test)
+   do_create = false;
+#endif
+
+   if (do_create) {
+      vector<ProcessSet::CreateInfo> cinfo;
+      for (unsigned i=0; i<num_processes; i++) {
+         ProcessSet::CreateInfo ci;
+         getMutateeParams(group, params, ci.executable, ci.argv);
+         ci.error_ret = err_none;
+         cinfo.push_back(ci);
+      }
+      procset = ProcessSet::createProcessSet(cinfo);
+      if (!procset) {
+         logerror("Failed to execute new mutatees\n");
+         return ProcessSet::ptr();
+      }
+   }
+   else if (group->createmode == USEATTACH) {
+      vector<ProcessSet::AttachInfo> ainfo;
+      for (unsigned i=0; i<num_processes; i++) {
+         ProcessSet::AttachInfo ai;
+         vector<string> argv;
+         getMutateeParams(group, params, ai.executable, argv);
+         ai.pid = getMutateePid(group);
+
+         if (ai.pid == NULL_PID) {
+            string mutateeString = launchMutatee(ai.executable, argv, group, params);
+            if (mutateeString == string("")) {
+               logerror("Error creating attach process\n");
+               return ProcessSet::ptr();
+            }
+            registerMutatee(mutateeString);
+            ai.pid = getMutateePid(group);
          }
-         args[n++] = (*i)->name;
-      }
-   }
-   args[n] = NULL;
-   assert(n < MAX_ARGS-1);
+         assert(ai.pid != NULL_PID);
+         ainfo.push_back(ai);
 
-   Process::ptr proc = Process::ptr();
-   if (group->useAttach == CREATE) {
-      std::vector<std::string> vargs;
-      for (unsigned i=0; i<n; i++) {
-         vargs.push_back(std::string(args[i]));
-      }
-      proc = Process::createProcess(std::string(group->mutatee), vargs);
-      if (!proc) {
-         logerror("Failed to execute new mutatee\n");
-         return Process::ptr();
-      }
-   }
-   else if (group->useAttach == USEATTACH) {
-      Dyninst::PID pid = fork_mutatee();
-      if (!pid) {
-         //Child
-         execv(group->mutatee, (char * const *)args);
-         char buffer[2048];
-         snprintf(buffer, 2048, "execv for attach failed on %s: %s\n", 
-                  group->mutatee, 
-                  strerror(errno));
-         logerror(buffer);
-         exit(-1);
-      }
-      int sockfd;
-      bool result = acceptConnections(1, &sockfd);
-      if (!result) {
-         logerror("Unable to accept attach connection\n");
-         return Process::ptr();
+         if (waitfor_attach) {
+            int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
+            if (signal_fd > 0) {
+               bool result = waitForSignalFD(signal_fd);
+               if (!result) {
+                  logerror("Timeout waiting for signalFD\n");
+                  return ProcessSet::ptr();
+               }
+            }
+         }
       }
       
+      procset = ProcessSet::attachProcessSet(ainfo);
+      if (!procset) {
+         logerror("Failed to attach to new mutatees\n");
+         return ProcessSet::ptr();
+      }
+   }
+   else {
+      return ProcessSet::ptr();
+   }
+
+   assert(procset);
+   for (ProcessSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr proc = *i;
+      Dyninst::PID pid = proc->getPid();
+      process_pids[pid] = proc;
+      procs.push_back(proc);
+   }
+
+   return procset;
+}
+
+#define MAX_ARGS 128
+Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &params)
+{
+   vector<string> vargs;
+   string exec_name;   
+   getMutateeParams(group, params, exec_name, vargs);
+
+   Process::ptr proc = Process::ptr();
+   if (group->createmode == CREATE) {
+#if defined(os_bg_test)
+      Dyninst::PID pid = getMutateePid(group);
       proc = Process::attachProcess(pid, group->mutatee);
       if (!proc) {
          logerror("Failed to attach to new mutatee\n");
          return Process::ptr();
       }
-      process_socks[proc] = sockfd;
+#else
+      proc = Process::createProcess(exec_name, vargs);
+      if (!proc) {
+         logerror("Failed to execute new mutatee\n");
+         return Process::ptr();
+      }
+#endif
+   }
+   else if (group->createmode == USEATTACH) {
+      Dyninst::PID pid = getMutateePid(group);
+      if (pid == NULL_PID) {
+         string mutateeString = launchMutatee(exec_name, vargs, group, params);
+         if (mutateeString == string("")) {
+            logerror("Error creating attach process\n");
+            return Process::ptr();
+         }
+         registerMutatee(mutateeString);
+         pid = getMutateePid(group);
+      }
+      assert(pid != NULL_PID);
+
+      int signal_fd = params.find("signal_fd_in") != params.end() ? params["signal_fd_in"]->getInt() : -1;
+      if (signal_fd > 0) {
+         bool result = waitForSignalFD(signal_fd);
+         if (!result) {
+            logerror("Timeout waiting for signalFD\n");
+            return Process::ptr();
+         }
+      }
+
+      proc = Process::attachProcess(pid, group->mutatee);
+      if (!proc) {
+         logerror("Failed to attach to new mutatee\n");
+         return Process::ptr();
+      }
+
    }
    else {
       return Process::ptr();
@@ -190,57 +291,172 @@ Process::ptr ProcControlComponent::launchMutatee(RunGroup *group, ParameterDict 
    return proc;
 }
 
-bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
+void setupSignalFD(ParameterDict &param)
 {
-   bool error = false;
-   bool result = setupServerSocket();
-   if (!result) {
-      logerror("Failed to setup server side socket\n");
-      return FAILED;
+   int fds[2];
+   int result = pipe(fds);
+   if (result == -1) {
+      perror("Pipe error");
+      exit(-1);
+   }
+   param["signal_fd_in"] = new ParamInt(fds[0]);
+   param["signal_fd_out"] = new ParamInt(fds[1]);
+}
+
+void resetSignalFD(ParameterDict &param)
+{
+   if (param.find("signal_fd_in") != param.end()) {
+      close(param["signal_fd_in"]->getInt());
+   }
+   if (param.find("signal_fd_out") != param.end()) {
+      close(param["signal_fd_out"]->getInt());
+   }
+}
+
+static char socket_buffer[4096];
+static RunGroup *cur_group = NULL;
+static SymbolReaderFactory *factory = NULL;
+
+bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
+{
+   static map<string, Offset> cached_ms_addrs;
+
+   SymReader *reader = NULL;
+   Dyninst::Offset sym_offset = 0;
+   Dyninst::Offset exec_addr = 0;
+   std::string exec_name;
+
+   Library::const_ptr lib = proc->libraries().getExecutable();
+   if (lib == Library::const_ptr()) {
+      exec_name = cur_group->mutatee;
+      exec_addr = 0;
+   }
+   else {
+      exec_name = lib->getName();
+      exec_addr = lib->getLoadAddress();
    }
    
+   map<string, Offset>::iterator i = cached_ms_addrs.find(exec_name);
+   if (i != cached_ms_addrs.end()) {
+      sym_offset = i->second;
+   }
+   else {
+      reader = factory->openSymbolReader(exec_name);
+      if (!reader) {
+         logerror("Could not open executable\n");
+         return false;
+      }
+      Symbol_t sym = reader->getSymbolByName(string("MutatorSocket"));
+      if (!reader->isValidSymbol(sym))
+      {
+         logerror("Could not find MutatorSocket symbol in executable\n");
+         return false;
+      }
+      sym_offset = reader->getSymbolOffset(sym);
+      cached_ms_addrs[exec_name] = sym_offset;
+   }
+
+   Dyninst::Address addr = exec_addr + sym_offset;
+   bool result = proc->writeMemory(addr, socket_buffer, strlen(socket_buffer)+1);
+   if (!result) {
+      logerror("Could not write connection information\n");
+      return false;
+   }
+   return true;
+}
+
+bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
+{
+   bool error = false;
+
    num_processes = 0;
    if (group->procmode == MultiProcess)
-      num_processes = NUM_PARALLEL_PROCS;
+      num_processes = getNumProcs(param);
    else
       num_processes = 1;
-   
-   for (unsigned i=0; i<num_processes; i++) {
-      Process::ptr proc = launchMutatee(group, param);
-      if (proc == NULL) {
-         error = true;
-         continue;
+   bool result = setupServerSocket(param);
+   if (!result) {
+      logerror("Failed to setup server side socket");
+      return false;
+   }
+#if !defined(os_bg_test) && !defined(os_windows_test)
+   setupSignalFD(param);
+#endif
+   Process::ptr a_proc;
+   if (num_processes > 1) {
+      pset = startMutateeSet(group, param);
+      if (pset)
+         a_proc = *(pset->begin());
+   }
+   else {
+      a_proc = startMutatee(group, param);
+      pset = ProcessSet::newProcessSet(a_proc);
+   }
+   if (!a_proc) {
+      logerror("Failed to start mutatee\n");
+      error = true;
+      return false;
+   }
+   factory = a_proc->getDefaultSymbolReader();
+   assert(factory);
+
+   for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
+      Process::ptr proc = *i;
+      bool result = setupNamedPipe(proc, param);
+      if (!result) {
+         logerror("Failed to setup server side named pipe\n");
+         return false;
       }
+   }
+
+   {
+      /**
+       * Set the socket name in each process
+       **/
+      assert(num_processes);
+      assert(factory);
+      memset(socket_buffer, 0, 4096);
+      if (param.find("socket_type") != param.end() && param.find("socket_name") != param.end()) {
+         snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
+                  param["socket_name"]->getString());
+      }
+      cur_group = group;
+      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+         bool result = initializeConnectionInfo(*j);
+         if (!result) 
+            error = true;
+      }
+#if defined(os_bg_test)
+      Process::registerEventCallback(EventType::Library, setSocketOnLibLoad);
+#endif
    }
 
    EventType thread_create(EventType::None, EventType::ThreadCreate);
    registerEventCounter(thread_create);
 
-   num_threads = group->threadmode == MultiThreaded ? DEFAULT_NUM_THREADS : 0;
-   if (group->useAttach == CREATE)
-   {
-      int num_procs = 0;
-      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
-         bool result = (*j)->continueProc();
-         num_procs++;
-         if (!result) {
-            error = true;
-            continue;
-         }
-      }
-   
-      bool support_user_threads = false;
-      bool support_lwps = false;
-#if defined(os_linux_test)
-      support_user_threads = true;
-      support_lwps = true;
-#elif defined(os_bg_test)
-      support_user_threads = true;
-      support_lwps = false;
-#elif defined(os_freebsd_test)
-      support_user_threads = true;
-      support_lwps = false;
+   int num_procs = pset->size();
+   result = pset->continueProcs();
+   if (!result) {
+      logerror("Error doing initial continueProcs");
+      error = true;
+   }
+
+   num_threads = group->threadmode == MultiThreaded ? getNumThreads(param) : 0;
+
+   result = acceptConnections(num_procs, NULL);
+   if (!result) {
+      logerror("Failed to accept connections from new mutatees\n");
+      error = true;
+   }
+#if defined(os_bg_test)
+   Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
+   
+   if (group->createmode == CREATE) {
+      Process::ptr a_proc = *procs.begin();
+      bool support_user_threads = a_proc->supportsUserThreadEvents();
+      bool support_lwps = a_proc->supportsLWPEvents();
+
       assert(support_user_threads || support_lwps);
 
       if (support_lwps)
@@ -250,6 +466,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
             if (!result) {
                logerror("Failed to handle events during thread create\n");
                error = true;
+               break;
             }
          }
       }
@@ -259,51 +476,52 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
          while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
             if (!result) {
-               logerror("Failed to handle events during thread create\n");
+               logerror("Failed to handle events during user thread create\n");
                error = true;
-            }
-         }
-      }
-
-      result = acceptConnections(num_procs, NULL);
-      if (!result) {
-         logerror("Failed to accept connections from new mutatees\n");
-         error = true;
-      }
-
-      if (group->state == STOPPED) {
-         std::map<Process::ptr, int>::iterator i;
-         for (i = process_socks.begin(); i != process_socks.end(); i++) {
-            bool result = i->first->stopProc();
-            if (!result) {
-               logerror("Failed to stop process\n");
-               error = true;
+               break;
             }
          }
       }
    }
-   else if (group->useAttach == USEATTACH)
+   else if (group->createmode == USEATTACH)
    {
-      for (std::vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+      for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
          Process::ptr proc = *j;
+#if !defined(os_bg_test)
          if (proc->threads().size() != num_threads+1) {
             logerror("Process has incorrect number of threads");
             error = true;
          }
+#else
+         //BlueGene OS spawns extra threads
+         if (proc->threads().size() < num_threads+1) {
+            logerror("Process has incorrect number of threads");
+            error = true;
+         }
+#endif
       }
-      if (eventsRecieved[thread_create].size()) {
-         logerror("Recieved unexpected thread creation events on process\n");
+   }
+
+   for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
+      result = create_pipes(*j, false);
+      if (!result) {
+         logerror("Failed to create write pipes\n");
          error = true;
       }
+      result = create_pipes(*j, true);
+      if (!result) {
+         logerror("Failed to create read pipes\n");
+         error = true;
+      }
+      init_pipes(*j);
+   }   
 
-      if (group->state == RUNNING) {
-         std::map<Process::ptr, int>::iterator i;
-         for (i = process_socks.begin(); i != process_socks.end(); i++) {
-            bool result = i->first->continueProc();
-            if (!result) {
-               logerror("Failed to continue process");
-               error = true;
-            }
+   if (group->state != RUNNING) {
+      for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+         bool result = (*i)->stopProc();
+         if (!result) {
+            logerror("Failed to stop process\n");
+            error = true;
          }
       }
    }
@@ -322,12 +540,12 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       error = true;
    }
 
-
    return !error;
 }
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
+   //Dyninst::ProcControlAPI::setDebug(true);
    return PASSED;
 }
 
@@ -342,6 +560,11 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    process_pids.clear();
    procs.clear();
    eventsRecieved.clear();
+   w_pipe.clear();
+   r_pipe.clear();
+   pipe_read_names.clear();
+   pipe_write_names.clear();
+
    sockfd = 0;
    sockname = NULL;
    curgroup_self_cleaning = false;
@@ -357,7 +580,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
          return FAILED;
    }
 
-   bool result = launchMutatees(group, params);
+   bool result = startMutatees(group, params);
    if (!result) {
       logerror("Failed to launch mutatees\n");
       return FAILED;
@@ -366,7 +589,7 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    return PASSED;
 }
 
-Process::cb_ret_t on_exit(Event::const_ptr ev)
+Process::cb_ret_t pc_on_exit(Event::const_ptr ev)
 {
    return Process::cbDefault;
 }
@@ -376,13 +599,15 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    bool error = false;
    bool hasRunningProcs;
 
+   resetSignalFD(params);
+
    if (curgroup_self_cleaning)
       return PASSED;
 
-   Process::registerEventCallback(EventType(EventType::Exit), on_exit);
+   Process::registerEventCallback(EventType(EventType::Exit), pc_on_exit);
    do {
       hasRunningProcs = false;
-      for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+      for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          Process::ptr p = *i;
          if (!p->isTerminated()) {
             bool result = block_for_events();
@@ -397,7 +622,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    } while(hasRunningProcs);
 
-   for (std::vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
       Process::ptr p = *i;
       if (!p->isTerminated()) {
          logerror("Process did not terminate\n");
@@ -423,11 +648,22 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    procs.clear();
 
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
-       if( close(i->second) == -1 ) {
-           logerror("Could not close connected socket\n");
-           error = true;
-       }
+      if ((i->second) == -1)
+         continue;
+      if( close(i->second) == -1 ) {
+         logerror("Could not close connected socket\n");
+         error = true;
+      }
    }
+   for (unsigned i=0; i<2; i++) {
+      map<Process::ptr, int> &to_clean = (i == 0) ? w_pipe : r_pipe;
+      for (map<Process::ptr, int>::iterator j = to_clean.begin(); j != to_clean.end(); j++) {
+         close(j->second);
+      }
+      to_clean.clear();
+   }
+   pipe_read_names.clear();
+   pipe_write_names.clear();
 
    return error ? FAILED : PASSED;
 }
@@ -442,126 +678,186 @@ test_results_t ProcControlComponent::test_teardown(TestInfo *test, ParameterDict
    return PASSED;
 }
 
-std::string ProcControlComponent::getLastErrorMsg()
+string ProcControlComponent::getLastErrorMsg()
 {
-   return std::string("");
+   return string("");
 }
 
 ProcControlComponent::~ProcControlComponent()
 {
 }
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-bool ProcControlComponent::setupServerSocket()
+bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 {
-   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-   if (fd == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to create socket: %s\n", strerror(errno));
-      logerror(error_str);
+   if (connectt != un_socket)
+      return true;
+
+   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+   if (sockfd == -1) {
+      fprintf(stderr, "Unable to create socket: %s\n", strerror(errno));
       return false;
    }
    struct sockaddr_un addr;
    memset(&addr, 0, sizeof(struct sockaddr_un));
    addr.sun_family = AF_UNIX;
-   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/pct%d", getpid());
+   snprintf(addr.sun_path, sizeof(addr.sun_path)-1, "/tmp/tsc%d", getpid());
    
-   int result = bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
-   if (result != 0){
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to bind socket: %s\n", strerror(errno));
-      logerror(error_str);
+   int timeout = RECV_TIMEOUT * 100;
+   int result;
+   for (;;) {
+      result = bind(sockfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+      if (result == 0) {
+         break;
+      }
+      int error = errno;
+      if (error == EADDRINUSE && timeout) {
+         timeout--;
+         usleep(10000);
+         continue;
+      }
+      if (result != 0){
+         fprintf(stderr, "Unable to bind socket: %s\n", strerror(error));
+         return false;
+      }
    }
-
-   result = listen(fd, 512);
+   result = listen(sockfd, 512);
    if (result == -1) {
-      char error_str[1024];
-      snprintf(error_str, 1024, "Unable to listen on socket: %s\n", strerror(errno));
-      logerror(error_str);
+      fprintf(stderr, "Unable to listen on socket: %s\n", strerror(errno));
       return false;
    }
-
-   sockfd = fd;   
+   char *socket_type_str = "un_socket";
    sockname = strdup(addr.sun_path);
 
+   ParamString *socket_type = new ParamString(socket_type_str);
+   ParamString *socket_name = new ParamString(sockname);
+   ParamInt *socket_num = new ParamInt(sockfd);
+   param["socket_type"] = socket_type;
+   param["socket_name"] = socket_name;
+   param["socketfd"] = socket_num;
+
+   return true;
+}
+
+bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &param)
+{
+   if (connectt != named_pipe)
+      return true;
+
+   char pid_cstr[64];
+   snprintf(pid_cstr, 64, "%u", proc->getPid());
+   string pid_str(pid_cstr);
+
+   string basename_r = "/tmp/dynpcpipe_r." + pid_str;
+   int result = mkfifo(basename_r.c_str(), 0600);
+   if (result == -1) {
+      int error = errno;
+      logerror("Failed to create fifo %s: %s\n", basename_r.c_str(), strerror(error));
+      return false;
+   }
+   pipe_read_names.insert(make_pair(proc, basename_r));
+
+   string basename_w = "/tmp/dynpcpipe_w." + pid_str;
+   result = mkfifo(basename_w.c_str(), 0600);
+   if (result == -1) {
+      int error = errno;
+      logerror("Failed to create fifo %s: %s\n", basename_w.c_str(), strerror(error));
+      return false;
+   }
+   pipe_write_names.insert(make_pair(proc, basename_w));
+
+   if (param.find("socket_type") == param.end()) {
+      param["socket_type"] = new ParamString("named_pipe");
+      param["socket_name"] = new ParamString("/tmp/dynpcpipe");
+   }
    return true;
 }
 
 bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
-   std::vector<int> socks;
-   assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
-
-   while (socks.size() < num) {
-      fd_set readset; FD_ZERO(&readset);
-      fd_set writeset; FD_ZERO(&writeset);
-      fd_set exceptset; FD_ZERO(&exceptset);
-
-      FD_SET(sockfd, &readset);
-      FD_SET(notification_fd, &readset);
-      int nfds = (sockfd > notification_fd ? sockfd : notification_fd)+1;
+   if (connectt == un_socket) {
+      vector<int> socks;
+      assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
       
-      struct timeval timeout;
-      timeout.tv_sec = 30;
-      timeout.tv_usec = 0;
-      int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
-      if (result == 0) {
-         logerror("Timeout while waiting for socket connect");
-         return false;
-      }
-      if (result == -1) {
-         perror("Error in select");
-         return false;
-      }
-
-      if (FD_ISSET(sockfd, &readset))
-      {
-         struct sockaddr_un addr;
-         socklen_t addr_size = sizeof(struct sockaddr_un);
-         int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
-         if (newsock == -1) {
-            char error_str[1024];
-            snprintf(error_str, 1024, "Unable to accept socket: %s\n", strerror(errno));
-            logerror(error_str);
+      while (socks.size() < num) {
+         fd_set readset; FD_ZERO(&readset);
+         fd_set writeset; FD_ZERO(&writeset);
+         fd_set exceptset; FD_ZERO(&exceptset);
+         
+         FD_SET(sockfd, &readset);
+         FD_SET(notification_fd, &readset);
+         int nfds = (sockfd > notification_fd ? sockfd : notification_fd)+1;
+         
+         struct timeval timeout;
+         timeout.tv_sec = RECV_TIMEOUT;
+         timeout.tv_usec = 0;
+         int result = select(nfds, &readset, &writeset, &exceptset, &timeout);
+         if (result == 0) {
+            logerror("Timeout while waiting for socket connect");
+            fprintf(stderr, "[%s:%u] - Have recieved %d / %d socks\n", __FILE__, __LINE__, socks.size(), num);
             return false;
          }
-         socks.push_back(newsock);
-      }
-      if (FD_ISSET(notification_fd, &readset)) {
-         bool result = Process::handleEvents(true);
-         if (!result) {
-            logerror("Failed to handle process events\n");
+         if (result == -1) {
+            perror("Error in select");
             return false;
+         }
+         
+         if (FD_ISSET(sockfd, &readset))
+         {
+            struct sockaddr_un addr;
+            socklen_t addr_size = sizeof(struct sockaddr_un);
+            int newsock = accept(sockfd, (struct sockaddr *) &addr, &addr_size);
+            if (newsock == -1) {
+               char error_str[1024];
+               snprintf(error_str, 1024, "Unable to accept socket: %s\n", strerror(errno));
+               logerror(error_str);
+               return false;
+            }
+            socks.push_back(newsock);
+         }
+         if (FD_ISSET(notification_fd, &readset)) {
+            bool result = Process::handleEvents(true);
+            if (!result) {
+               logerror("Failed to handle process events\n");
+               return false;
+            }
+         }
+      }
+      
+      for (unsigned i=0; i<num; i++) {
+         send_pid msg;
+         bool result;
+         result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
+         if (!result) {
+            logerror("Could not receive handshake pid\n");
+            return false;
+         }
+         if (msg.code != SEND_PID_CODE)
+         {
+            logerror("Received bad code in handshake message\n");
+            return false;
+         }
+         int pid;
+#if defined(os_bg_test)
+         //BG pids don't always seem to be consistent.
+         pid = procs[i]->getPid();
+#else
+         pid = msg.pid;
+#endif
+         if (connectt == un_socket) {
+            map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(pid);
+            if (j == process_pids.end()) {
+               if (attach_sock) {
+                  *attach_sock = socks[i];
+                  return true;
+               }
+               logerror("Recieved unexpected PID (%d) in handshake message\n", msg.pid);
+               return false;
+            }
+            process_socks[j->second] = socks[i];
          }
       }
    }
-
-   for (unsigned i=0; i<num; i++) {
-      send_pid msg;
-      bool result = recv_message((unsigned char *) &msg, sizeof(send_pid), socks[i]);
-      if (!result) {
-         logerror("Could not receive handshake pid\n");
-         return false;
-      }
-      if (msg.code != SEND_PID_CODE)
-      {
-         logerror("Received bad code in handshake message\n");
-         return false;
-      }
-      std::map<Dyninst::PID, Process::ptr>::iterator j = process_pids.find(msg.pid);
-      if (j == process_pids.end()) {
-         if (attach_sock) {
-            *attach_sock = socks[i];
-            return true;
-         }
-         logerror("Recieved unexpected PID in handshake message\n");
-         return false;
-      }
-      process_socks[j->second] = socks[i];
+   else if (connectt == named_pipe) {
    }
 
    return true;
@@ -569,36 +865,101 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 
 bool ProcControlComponent::cleanSocket()
 {
-   if (!sockname)
-      return false;
-
-   int result = unlink(sockname);
-   if (result == -1) {
-      logerror("Could not clean socket\n");
-      return false;
+   if (connectt == un_socket) {
+      if (!sockname)
+         return false;
+      
+      int result = unlink(sockname);
+      if (result == -1) {
+         logerror("Could not clean socket\n");
+         return false;
+      }
+      free(sockname);
+      sockname = NULL;
+      result = close(sockfd);
+      if (result == -1) {
+         logerror("Could not close socket\n");
+         return false;
+      }
    }
-   free(sockname);
-   sockname = NULL;
-   result = close(sockfd);
-   if (result == -1) {
-      logerror("Could not close socket\n");
-      return false;
+   else if (connectt == named_pipe) {
+      //Do nothing
    }
    return true;
 }
 
+struct commInfo {
+   static Address recv_buffer_addr;
+   static Address send_buffer_addr;
+   static Address recv_buffer_size_addr;
+   static Address send_buffer_size_addr;
+   static string sym_exec_name;
+   Address lookupSym(string symname, SymReader *reader);
+
+   commInfo(Process::ptr p);
+
+   Process::ptr proc;
+   bool is_accessed;
+   bool is_done;
+   bool was_stopped;
+};
+
+Address commInfo::recv_buffer_addr;
+Address commInfo::send_buffer_addr;
+Address commInfo::recv_buffer_size_addr;
+Address commInfo::send_buffer_size_addr;
+string commInfo::sym_exec_name;
+
+commInfo::commInfo(Process::ptr p) :
+   proc(p),
+   is_accessed(false),
+   is_done(false),
+   was_stopped(false)
+{
+   string exec_name = proc->libraries().getExecutable()->getName();
+   if (sym_exec_name != exec_name) {
+      sym_exec_name = exec_name;
+      SymbolReaderFactory *fact = proc->getDefaultSymbolReader();
+      assert(fact);
+      SymReader *reader = fact->openSymbolReader(exec_name);
+      assert(reader);
+      recv_buffer_addr = lookupSym("recv_buffer", reader);
+      send_buffer_addr = lookupSym("send_buffer", reader);
+      send_buffer_size_addr = lookupSym("send_buffer_size", reader);
+      recv_buffer_size_addr = lookupSym("recv_buffer_size", reader);
+      fact->closeSymbolReader(reader);
+   }
+}
+
+Address commInfo::lookupSym(string symname, SymReader *reader)
+{
+   Symbol_t sym = reader->getSymbolByName(symname);
+   assert(reader->isValidSymbol(sym));
+   return (Address) reader->getSymbolOffset(sym);
+}
+
+
 bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-  return recv_message(msg, msg_size, process_socks[p]);
+   if (connectt == un_socket)
+      return recv_message(msg, msg_size, process_socks[p]);
+   else if (connectt == named_pipe)
+      return recv_message_pipe(msg, msg_size, p);
+   return false;
 }
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-  return send_message(msg, msg_size, process_socks[p]);
+   if (connectt == un_socket)
+      return send_message(msg, msg_size, process_socks[p]);
+   else if (connectt == named_pipe)
+      return send_message_pipe(msg, msg_size, p);
+   return false;
 }
 
 bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
+   assert(connectt == un_socket);
    int result;
    for (;;) {
       int nfds = sfd > notification_fd ? sfd : notification_fd;
@@ -609,7 +970,7 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, i
       FD_SET(sfd, &readset);
       FD_SET(notification_fd, &readset);
       struct timeval timeout;
-      timeout.tv_sec = 15;
+      timeout.tv_sec = RECV_TIMEOUT;
       timeout.tv_usec = 0;
       do {
          result = select(nfds, &readset, &writeset, &exceptset, &timeout);
@@ -651,8 +1012,8 @@ bool ProcControlComponent::recv_message(unsigned char *msg, unsigned msg_size, i
 bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 {
    unsigned char *cur_pos = msg;
-   for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
-      bool result = recv_message(cur_pos, msg_size, i->second);
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+      bool result = recv_message(cur_pos, msg_size, *i);
       if (!result) 
          return false;
       cur_pos += msg_size;
@@ -662,6 +1023,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
+   assert(connectt == un_socket);
    int result = send(sfd, msg, msg_size, MSG_NOSIGNAL);
    if (result == -1) {
       char error_str[1024];
@@ -675,8 +1037,8 @@ bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, i
 bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 {
    unsigned char *cur_pos = msg;
-   for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
-      bool result = send_message(msg, msg_size, i->second);
+   for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
+      bool result = send_message(msg, msg_size, *i);
       if (!result) 
          return false;
    }
@@ -692,7 +1054,7 @@ bool ProcControlComponent::block_for_events()
    FD_SET(notification_fd, &readset);
 
    struct timeval timeout;
-   timeout.tv_sec = 15;
+   timeout.tv_sec = RECV_TIMEOUT;
    timeout.tv_usec = 0;
    int result;
    do {
@@ -725,31 +1087,126 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
-Process::cb_ret_t on_breakpoint(Event::const_ptr ev) {
-    RegisterPool regs;
-    if( !ev->getThread()->getAllRegisters(regs) ) {
-        fprintf(stderr, "Failed to get registers on breakpoint\n");
-    }else{
-        fprintf(stderr, "Registers at breakpoint 0x%lx:\n", ev->getEventBreakpoint()->getAddress());
-        for(RegisterPool::iterator i = regs.begin(); i != regs.end(); i++) {
-            fprintf(stderr, "\t%s = 0x%lx\n", (*i).first.name(), (*i).second);
-        }
-    }
+bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
+{
+   if (!create_pipes(p, true))
+      return false;
 
-    return Process::cbThreadContinue;
+   map<Process::ptr, int>::iterator i = r_pipe.find(p);
+   assert(i != r_pipe.end());
+   int fd = i->second;
+
+   unsigned int bytes_read = 0, num_retries = 10;
+   do {
+     printf("[%s:%u] - mutator read(%d, msg, %u)\n", __FILE__, __LINE__, fd, msg_size);
+      int result = read(fd, msg + bytes_read, msg_size - bytes_read);
+      printf("[%s:%u] - mutator read result = %d\n", __FILE__, __LINE__, result);
+      if (result == -1) {
+         perror("Failed to read message from mutator");
+         return false;
+      }
+      if (result == 0 && --num_retries == 0) {
+         fprintf(stderr, "Failed to read message from read pipe\n");
+         return -1;
+      }
+      bytes_read += result;
+      assert(bytes_read <= msg_size);
+   } while (bytes_read < msg_size);
+
+   return true;
 }
 
-// To be called while debugging
-void insertBreakpoint(Process::ptr proc, Address addr) {
-    Breakpoint::ptr brkPt = Breakpoint::newBreakpoint();
+bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
+{
+   if (!create_pipes(p, false))
+      return false;
 
-    Process::registerEventCallback(EventType::Breakpoint, on_breakpoint);
+   map<Process::ptr, int>::iterator i = w_pipe.find(p);
+   assert(i != w_pipe.end());
+   int fd = i->second;
 
-    if( !proc->addBreakpoint(addr, brkPt) ) {
-        fprintf(stderr, "Failed to add breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }else{
-        fprintf(stderr, "Added breakpoint to process %d at addr 0x%lx\n",
-                proc->getPid(), addr);
-    }
+   int result = write(fd, msg, msg_size);
+   printf("[%s:%u] - mutator write(%d, msg, %u) = %d\n", __FILE__, __LINE__, fd, (unsigned) msg_size, result);
+   if (result == -1) {
+      perror("Failed to write message from mutator");
+      return false;
+   }
+
+   return true;
+}
+
+bool ProcControlComponent::init_pipes(Process::ptr p)
+{
+   if (connectt != named_pipe)
+      return true;
+
+   send_pid msg;
+   bool result;
+   result = recv_message((unsigned char *) &msg, sizeof(send_pid), p);
+   if (!result) {
+      logerror("Could not receive handshake pid\n");
+      return false;
+   }
+   if (msg.code != SEND_PID_CODE)
+   {
+      logerror("Received bad code in handshake message\n");
+      return false;
+   }
+   return true;
+}
+
+bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
+{
+  again:
+   if (connectt != named_pipe)
+      return true;
+   
+   map<Process::ptr, int> &pipe_map = read_pipe ? r_pipe : w_pipe;
+
+   map<Process::ptr, int>::iterator i;
+   i = pipe_map.find(p);
+   if (i != pipe_map.end())
+      return true;
+
+   map<Process::ptr, string> &name_map = read_pipe ? pipe_read_names : pipe_write_names;
+   map<Process::ptr, string>::iterator j;
+   j = name_map.find(p);
+   assert(j != name_map.end());
+   int fd = open(j->second.c_str(), O_NONBLOCK | (read_pipe ? O_RDONLY : O_WRONLY));
+   printf("[%s:%u] - mutator open(%s, %s) = %d\n", __FILE__, __LINE__, j->second.c_str(), read_pipe ? "O_RDONLY" : "O_WRONLY", fd);
+   if (fd == -1) {
+      int error = errno;
+      if (error == ENXIO) {
+         Process::handleEvents(false);
+         goto again;
+      }
+      logerror("Mutator error opening %s: %s\n", j->second.c_str(), strerror(error));
+      return false;
+   }
+   errno = 0;
+   int fdflags = fcntl(fd, F_GETFL);
+   if (fdflags < 0 || errno) {
+      logerror("Failed to set fcntl flags\n");
+      return false;
+   }
+   fcntl(fd, F_SETFL, fdflags & ~O_NONBLOCK);
+
+   pipe_map.insert(make_pair(p, fd));
+
+   if (read_pipe) {
+      uint32_t ready = 0;
+      int result = 0;
+      do {
+         printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
+         result = read(fd, &ready, 4);
+         printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
+         if (result == -1) {
+            perror("Mutator could not read from pipe\n");
+            return false;
+         }
+      } while (result == 0);
+      assert(ready == 0x42);
+   }
+
+   return true;
 }

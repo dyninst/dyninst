@@ -2747,7 +2747,7 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     // /* DEBUG
     if (symsByMangledName[name].size() != 1)
         fprintf(stderr, "*** Found %u symbols with name %s.  Expecting 1.\n",
-                symsByMangledName[name].size(), name); // */
+                (unsigned) symsByMangledName[name].size(), name); // */
     Symbol *sym = symsByMangledName[name][0];
 
     // Update symbol.

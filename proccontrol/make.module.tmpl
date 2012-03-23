@@ -21,6 +21,18 @@ TARGET = libpcontrol.so
 MYFLAGS += -fPIC
 endif
 
+ifdef HAVE_THREAD_DB
+ifdef THREAD_DB_INC
+MYFLAGS += -DTHREAD_DB_INC=\"$(THREAD_DB_INC)/thread_db.h\"
+endif
+ifdef THREAD_DB_LIB
+MYFLAGS += -DTHREAD_DB_PATH=\"$(THREAD_DB_LIB)\"
+endif
+ifdef THREAD_DB_STATIC
+MYFLAGS += -DTHREAD_DB_STATIC
+endif
+endif
+
 LDFLAGS += -L../../common/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
@@ -43,6 +55,7 @@ PUBLIC_H   = Decoder.h \
 				 Mailbox.h \
 				 PCErrors.h \
 				 Process.h \
+             ProcessSet.h \
 				 EventType.h
 
 SRCS	     +=	../src/event.C \
@@ -54,22 +67,16 @@ SRCS	     +=	../src/event.C \
 		../src/procpool.C \
 		../src/irpc.C \
 		../src/response.C \
-		../src/int_thread_db.C
+		../src/int_thread_db.C \
+		../src/memcache.C \
+		../src/sysv.C \
+		../src/x86_process.C \
+		../src/ppc_process.C \
+		../src/mmapalloc.C \
+		../src/procset.C
 
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)
-
-ifdef HAVE_THREAD_DB
-ifdef THREAD_DB_INC
-MYFLAGS += -I$(THREAD_DB_INC)
-endif
-ifdef THREAD_DB_LIB
-LDFLAGS += -L$(THREAD_DB_LIB)
-endif
-ifndef THREAD_DB_STATIC
-LDFLAGS += -lthread_db
-endif
-endif
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

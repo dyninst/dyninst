@@ -40,8 +40,10 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
-#include "proccontrol/src/arch_process.h"
+#include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/ppc_process.h"
 #include "proccontrol/src/int_thread_db.h"
+#include "proccontrol/src/mmapalloc.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -93,7 +95,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public arch_process, public thread_db_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -103,14 +105,14 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach(bool allStopped);
+   virtual bool plat_attach(bool allStopped, bool &);
    virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
-   virtual bool plat_detach();
+   virtual bool plat_detach(result_response::ptr resp);
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool preTerminate();
-
+   virtual OSType getOS() const;
 
    //The following async functions are only used if a linux debugging mode,
    // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having
@@ -128,13 +130,36 @@ class linux_process : public sysv_process, public unix_process, public arch_proc
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
-   virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
-   virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
-   virtual bool plat_supportLWPEvents() const;
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
-   virtual bool plat_convertToBreakpointAddress(psaddr_t &);
+   virtual bool plat_supportLWPCreate();
+   virtual bool plat_supportLWPPreDestroy();
+   virtual bool plat_supportLWPPostDestroy();
+  protected:
+   int computeAddrWidth(Dyninst::Architecture me);
+};
+
+class linux_x86_process : public linux_process, public x86_process
+{
+  public:
+   linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_x86_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_x86_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
+class linux_ppc_process : public linux_process, public ppc_process
+{
+  public:
+   linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_ppc_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_ppc_process();
+
+   virtual Dyninst::Architecture getTargetArch();
 };
 
 class linux_thread : public thread_db_thread
@@ -161,14 +186,8 @@ class linux_thread : public thread_db_thread
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
-   virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
+   virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
-   virtual bool plat_needsEmulatedSingleStep(vector<Dyninst::Address> &result);
-   virtual bool plat_needsPCSaveBeforeSingleStep();
-
-   // Needed by HybridLWPControl, unused on Linux
-   virtual bool plat_resume() { return true; }
-   virtual bool plat_suspend() { return true; }
 
    void setOptions();
    bool unsetOptions();
@@ -244,5 +263,7 @@ class LinuxHandleLWPDestroy : public Handler
      virtual int getPriority() const;
      void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+SymbolReaderFactory *getElfReader();
 
 #endif

@@ -38,6 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "common/h/dthread.h"
 #include <map>
+#include <vector>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -52,7 +53,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    friend void dyn_detail::boost::checked_delete<response>(response *);
    friend void dyn_detail::boost::checked_delete<const response>(const response *);
    friend class responses_pending;
-  private:
+  protected:
    Dyninst::ProcControlAPI::Event::ptr event;
 
    typedef enum {
@@ -69,6 +70,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    
    bool error;
    int errorcode;
+   int_process *proc;
 
   protected:
    response();
@@ -76,9 +78,15 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
       rt_result,
       rt_reg,
       rt_allreg,
-      rt_mem
+      rt_mem,
+      rt_set
    } resp_type_t;
    resp_type_t resp_type;
+
+   ArchEvent *decoder_event;
+
+   int multi_resp_size;
+   int multi_resp_recvd;
 
   public:
    typedef dyn_detail::boost::shared_ptr<response> ptr;
@@ -106,6 +114,17 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    void setEvent(Event::ptr ev);
    Event::ptr getEvent() const;
 
+   unsigned int markAsMultiResponse(int num_resps);
+   bool isMultiResponse();
+   unsigned int multiResponseSize();
+   bool isMultiResponseComplete();
+
+   void setDecoderEvent(ArchEvent *ae);
+   ArchEvent *getDecoderEvent();
+
+   void setProcess(int_process *p);
+   int_process *getProcess() const;
+
    std::string name() const;
 };
 
@@ -119,8 +138,10 @@ class responses_pending {
    response::ptr getResponse(unsigned int id);
    bool waitFor(response::ptr resp);
    void addResponse(response::ptr r, int_process *proc);
-   bool hasAsyncPending();
+   void noteResponse();
+   bool hasAsyncPending(bool ev_only = true);
 
+   CondVar &condvar();
    void lock();
    void unlock();
    void signal();
@@ -211,6 +232,7 @@ class mem_response : public response
    char *buffer;
    unsigned size;
    bool buffer_set;
+   Address last_base;
    mem_response();
    mem_response(char *targ, unsigned targ_size);
 
@@ -229,9 +251,25 @@ class mem_response : public response
    void setBuffer(char *targ, unsigned targ_size);
    void setResponse(char *src, unsigned src_size);
    void setResponse();
-   void postResponse(char *src, unsigned src_size);
+   void postResponse(char *src, unsigned src_size, Address src_addr = 0);
    void postResponse();
+   void setLastBase(Address a);
+   Address lastBase();
 };
 
+class ResponseSet {
+ private:
+  std::map<unsigned, unsigned> ids;
+  unsigned myid;
+  static unsigned next_id;
+  static Mutex id_lock;
+  static std::map<unsigned, ResponseSet *> all_respsets;
+ public:
+  ResponseSet();
+  void addID(unsigned resp_id, unsigned index);
+  unsigned getID() const;
+  unsigned getIDByIndex(unsigned int index, bool &found) const;
+  static ResponseSet *getResponseSetByID(unsigned);
+};
 
 #endif

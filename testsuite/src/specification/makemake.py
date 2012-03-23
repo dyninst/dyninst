@@ -357,6 +357,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('STOPPED, ')
 		elif group['start_state'] == 'running':
 			out.write('RUNNING, ')
+		elif group['start_state'] == 'selfattach':
+			out.write('SELFATTACH, ')
 		else: # Assuming 'selfstart'
 			out.write('SELFSTART, ')
 		if group['run_mode'] == 'createProcess':
@@ -379,6 +381,14 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('SingleProcess, ')
 		elif group['process_mode'] == 'MultiProcess':
 			out.write('MultiProcess, ')
+
+		out.write(group['mutatorstart'])
+		out.write(', ')
+		out.write(group['mutateestart'])
+		out.write(', ')
+		out.write(group['mutateeruntime'])
+		out.write(', ')
+
                 if group['format'] == 'staticMutatee':
                         out.write('StaticLink, ')
                 else:
@@ -401,7 +411,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			print "No module found! Test object: " 
 			print testobj[0]
 			raise
-		out.write(', "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi']))
+		out.write(', "%s", "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi'], group['platmode']))
 		out.write(');\n')
 		for test in group['tests']:
 			# Set the tuple string for this test
@@ -891,7 +901,7 @@ def accumulate_tests_by_mutatee(acc, g):
 
 def write_group_mutatee_boilerplate(filename_pre, filename_post, tuplefile):
    read_tuples(tuplefile)
-   groups = filter(lambda g: len(g['tests']) > 25, info['rungroups'])
+   groups = filter(lambda g: len(g['tests']) >= 2, info['rungroups'])
    tests_by_group = reduce(accumulate_tests_by_mutatee, groups, {})
    for mutatee, tests in tests_by_group.iteritems():
       write_group_mutatee_boilerplate_file(filename_pre + mutatee + filename_post, tests)
@@ -1088,6 +1098,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			state_init = 'STOPPED'
 		elif group['start_state'] == 'running':
 			state_init = 'RUNNING'
+		elif group['start_state'] == 'selfattach':
+			state_init = 'SELFATTACH'
 		else: # Assuming 'selfstart'
 			state_init = 'SELFSTART'
 		if group['run_mode'] == 'createProcess':

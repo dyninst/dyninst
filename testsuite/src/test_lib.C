@@ -108,16 +108,6 @@ void set_binedit_dir(char *d)
 	binedit_dir = d;
 }
 
-static char *resumelog_name = "resumelog";
-char *get_resumelog_name() {
-	return resumelog_name;
-}
-
-void set_resumelog_name(char *s) {
-	resumelog_name = s;
-}
-
-
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
 	msg__(msg),
 	file__(std::string(__file__)),
@@ -353,137 +343,9 @@ void flushErrorLog() {
 	}
 }
 
-// PID registration for mutatee cleanup
-// TODO Check if these make any sense on Windows.  I suspect I'll need to
-// change them.
-char *pidFilename = NULL;
-void setPIDFilename(char *pfn) {
-	pidFilename = pfn;
-}
-char *getPIDFilename() {
-	return pidFilename;
-}
-void registerPID(int pid) {
-	if (NULL == pidFilename) {
-		return;
-	}
-	FILE *pidFile = fopen(pidFilename, "a");
-	if (NULL == pidFile) {
-		//fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
-	} else {
-     fprintf(pidFile, "%d\n", pid);
-     fclose(pidFile);
-  }
-}
-
-void cleanPIDFile()
-{
-	if(!pidFilename)
-		return;
-   FILE *f = fopen(pidFilename, "r");
-   if (!f)
-      return;
-   for (;;)
-   {
-      int pid;
-      int res = fscanf(f, "%d\n", &pid);
-      if (res != 1)
-         break;
-#if !defined(os_windows_test)
-      kill(pid, SIGKILL);
-#else
-      HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
-      if (h == NULL) {
-         return;
-      }
-      bool dummy = TerminateProcess(h,0);
-      CloseHandle(h);
-#endif
-   }
-   fclose(f);
-   f = fopen(pidFilename, "w");
-   fclose(f);
-}
-
 void setDebugPrint(int debug) {
    debugPrint = debug;
 }
-
-#if !defined(os_windows_test)
-#if !defined(os_linux_test)
-pid_t fork_mutatee() {
-  return fork();
-}
-#else
-pid_t fork_mutatee() {
-   /**
-    * Perform a granchild fork.  This code forks off a child, that child
-    * then forks off a granchild.  The original child then exits, making
-    * the granchild's new parent init.  Both the original process and the
-    * granchild then exit from this function.
-    *
-    * This works around a linux kernel bug in kernel version 2.6.9 to
-    * 2.6.11, see https://www.dyninst.org/emails/2006/5676.html for
-    * details.
-    **/
-   int status, result;
-   pid_t gchild_pid, child_pid;
-   int filedes[2];
-
-   if( pipe(filedes) == -1 ) {
-       perror("pipe");
-       return -1;
-   }
-
-   child_pid = fork();
-   if (child_pid < 0) { // This is an error
-      close(filedes[0]);
-      close(filedes[1]);
-      return child_pid;
-   }
-
-   if (child_pid) {
-      //Read the grandchild pid from the child.
-      do {
-         result = read(filedes[0], &gchild_pid, sizeof(pid_t));
-      } while (result == -1 && errno == EINTR);
-      if (result == -1) {
-         perror("Couldn't read from pipe");
-      }
-
-      int options = 0;
-      do {
-         result = waitpid(child_pid, &status, options);
-         if (result != child_pid) {
-            perror("Couldn't join child");
-            break;
-         }
-      } while (!WIFEXITED(status));
-      close(filedes[0]);
-      close(filedes[1]);
-      return gchild_pid;
-   }
-   //Child
-   
-   gchild_pid = fork();
-   if (gchild_pid) {
-      //Child pid, send grand child pid to parent then terminate
-      result = write(filedes[1], &gchild_pid, sizeof(pid_t));
-      if (result == -1) {
-         perror("Couldn't write to parent");
-      }         
-      close(filedes[0]);
-      close(filedes[1]);
-      exit(0);
-   }   
-
-   //Granchild
-   close(filedes[0]);
-   close(filedes[1]);
-   return 0;
-}
-#endif
-#endif
 
 bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 {
@@ -501,283 +363,6 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 
    return false;
 }
-
-//
-// Create a new process and return its process id.  If process creation 
-// fails, this function returns -1.
-//
-int startNewProcessForAttach(const char *pathname, const char *argv[],
-                             FILE *outlog, FILE *errlog, bool attach) {
-#if defined(os_windows_test)
-   // TODO Fix Windows code to work with log file
-	LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
-	HANDLE mutatee_signal_pipe = CreateNamedPipe(pipeName,
-		PIPE_ACCESS_INBOUND,
-		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-		1, // num instances
-		1024, // read buffer
-		1024, // write buffer
-		5000, //timeout
-		NULL); // security descriptor
-	if(mutatee_signal_pipe == INVALID_HANDLE_VALUE)
-	{
-      fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-      return -1;
-	}
-	char child_args[1024];
-   strcpy(child_args, "");
-   if (argv[0] != NULL) {
-      strcpy(child_args, pathname);
-      for (int i = 1; argv[i] != NULL; i++) {
-         strcat(child_args, " ");
-         strcat(child_args, argv[i]);
-      }
-      strcat(child_args, " -attach");
-   }
-
-   STARTUPINFO si;
-   memset(&si, 0, sizeof(STARTUPINFO));
-   si.cb = sizeof(STARTUPINFO);
-   PROCESS_INFORMATION pi;
-   if (!CreateProcess(pathname,	// application name
-                      child_args,	// command line
-                      NULL,		// security attributes
-                      NULL,		// thread security attributes
-                      FALSE,		// inherit handles
-                      0,		// creation flags
-                      NULL,		// environment,
-                      NULL,		// current directory
-                      &si,
-                      &pi)) {
-						  LPTSTR lastErrorMsg;
-						  DWORD lastError = GetLastError();
-						  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-							  FORMAT_MESSAGE_FROM_SYSTEM |
-							  FORMAT_MESSAGE_IGNORE_INSERTS,
-							  NULL,
-							  lastError,
-							  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-							  (LPTSTR)&lastErrorMsg,
-							  0, NULL );
-						  fprintf(stderr, "CreateProcess failed: (%d) %s\n",
-							  lastError, lastErrorMsg);
-						  LocalFree(lastErrorMsg);
-
-      return -1;
-   }
-
-   registerPID(pi.dwProcessId);
-	// Keep synchronization pattern the same as on Unix...
-	BOOL conn_ok = ConnectNamedPipe(mutatee_signal_pipe, NULL) ?
-		TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
-	if(!conn_ok)
-	{
-		CloseHandle(mutatee_signal_pipe);
-		return -1;
-	}
-	char mutatee_ready = 0x0;
-	DWORD bytes_read;
-	BOOL read_ok = ReadFile(mutatee_signal_pipe,
-		&mutatee_ready, // buffer
-		1,	// size
-		&bytes_read,
-		NULL); // not overlapped I/O
-	if (!read_ok || (bytes_read != 1))
-	{
-		fprintf(stderr, "Couldn't read from mutatee pipe\n");
-		DisconnectNamedPipe(mutatee_signal_pipe);
-		CloseHandle(mutatee_signal_pipe);
-		return -1;
-	}
-	if(mutatee_ready != 'T')
-	{
-		fprintf(stderr, "Got unexpected message from mutatee, aborting\n");
-		DisconnectNamedPipe(mutatee_signal_pipe);
-		CloseHandle(mutatee_signal_pipe);
-		return -1;
-	}
-	DisconnectNamedPipe(mutatee_signal_pipe);
-	CloseHandle(mutatee_signal_pipe);
-   return pi.dwProcessId;
-#else
-   /* Make a pipe that we will use to signal that the mutatee has started. */
-   int fds[2];
-   char fdstr[32];
-   if (attach) {
-      if (pipe(fds) != 0) {
-         fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-         return -1;
-      }
-      /* Create the argv string for the child process. */
-      sprintf(fdstr, "%d", fds[1]);
-   }
-
-   int pid;
-   if (attach)
-      pid = fork_mutatee();
-   else  
-      pid = fork();
-   if (pid == 0) {
-      // child
-      if (attach) 
-         close(fds[0]); // We don't need the read side
-      if (outlog != NULL) {
-         int outlog_fd = fileno(outlog);
-         if (dup2(outlog_fd, 1) == -1) {
-            fprintf(stderr, "Error duplicating log fd(1)\n");
-         }
-      }
-      if (errlog != NULL) {
-         int errlog_fd = fileno(errlog);
-         if (dup2(errlog_fd, 2) == -1) {
-            fprintf(stderr, "Error duplicating log fd(2)\n");
-         }
-      }
-      char *ld_path = getenv("LD_LIBRARY_PATH");
-      char *new_ld_path = NULL;
-      if (ld_path) {
-         new_ld_path = (char *) malloc(strlen(ld_path) + strlen(binedit_dir) + 4);
-         strcpy(new_ld_path, "./");
-         strcat(new_ld_path, binedit_dir);
-         strcat(new_ld_path, ":");
-         strcat(new_ld_path, ld_path);
-      }
-      else {
-         new_ld_path = (char *) malloc(strlen(binedit_dir) + 4);
-         strcpy(new_ld_path, "./");
-         strcat(new_ld_path, binedit_dir);
-         strcat(new_ld_path, ":");
-      }
-      setenv("LD_LIBRARY_PATH", new_ld_path, 1);
-      ld_path = new_ld_path;
-
-      vector<string> attach_argv;
-      char *platform = getenv("PLATFORM");
-      bool bgp_test = strcmp(platform ? platform : "", "ppc32_bgp") == 0;
-      if (bgp_test) {
-         //attach_argv.push_back("mpirun");
-         char *partition = getenv("DYNINST_BGP_PARTITION");
-         //if(partition == NULL) partition = "BGB1";
-         if (partition) {
-            attach_argv.push_back("-nofree");
-            attach_argv.push_back("-partition");
-            attach_argv.push_back(string(partition));
-         }
-         attach_argv.push_back("-np");
-         attach_argv.push_back("1");
-         attach_argv.push_back("-env");
-         
-         char *cwd_cstr = (char *) malloc(PATH_MAX);
-         getcwd(cwd_cstr, PATH_MAX);
-         string cwd = cwd_cstr;
-         free(cwd_cstr);
-         
-         char *dyninst_base_cstr = realpath(string(cwd + "/../../../").c_str(), NULL);
-         string dyninst_base = dyninst_base_cstr;
-         free(dyninst_base_cstr);
-         
-         char *ld_lib_path = getenv("LD_LIBRARY_PATH");
-         string ldpath = "LD_LIBRARY_PATH=" + dyninst_base + "/dyninst/testsuite/" + 
-            platform + "/binaries:.:" + dyninst_base + "/" + platform + "/lib";
-         if (ld_lib_path)
-            ldpath += string(":") + ld_lib_path;
-         attach_argv.push_back(ldpath);
-         
-         attach_argv.push_back("-cwd");
-         attach_argv.push_back(cwd + BINEDIT_DIRNAME);
-         
-         attach_argv.push_back("-exe");
-         attach_argv.push_back(pathname);
-         attach_argv.push_back("-args");
-         
-         string args = "\"";
-         for (unsigned j=0; argv[j] != NULL; j++) {
-            args += argv[j];
-            if (argv[j+1])
-               args += " ";
-         }
-         args += "\"";
-         attach_argv.push_back(args);
-      }
-      else {
-         for (unsigned int i=0; argv[i] != NULL; i++) {
-            attach_argv.push_back(argv[i]);
-         }
-			if (attach) {
-         	attach_argv.push_back(const_cast<char *>("-attach"));
-         	attach_argv.push_back(fdstr);
-			}
-      }
-      char **attach_argv_cstr = (char **) malloc((attach_argv.size()+1) * sizeof(char *));
-      for (unsigned int i=0; i<attach_argv.size(); i++) {
-         attach_argv_cstr[i] = const_cast<char *>(attach_argv[i].c_str());
-      }
-      attach_argv_cstr[attach_argv.size()] = NULL;
-
-      if(bgp_test) {
-         
-         dprintf("running mpirun:");
-         for (int i = 0 ; i < attach_argv.size(); i++)
-            dprintf(" %s", attach_argv_cstr[i]);
-         dprintf("\n");
-         
-         execvp("mpirun", (char * const *)attach_argv_cstr);
-         logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
-         exit(-1);
-      }else{
-         execvp(pathname, (char * const *)attach_argv_cstr);
-         char *newname = (char *) malloc(strlen(pathname) + 3);
-         strcpy(newname, "./");
-         strcat(newname, pathname);
-         execvp(newname, (char * const *)attach_argv_cstr);
-         logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
-         exit(-1);
-      }
-
-   } else if (pid < 0) {
-      return -1;
-   }
-
-   registerPID(pid);
-
-   // parent
-   if (attach) {
-      close(fds[1]);  // We don't need the write side
-      
-      // Wait for the child to write to the pipe
-      char ch;
-      if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
-         perror("read");
-         fprintf(stderr, "*ERROR*: Error reading from pipe\n");
-         return -1;
-      }
-
-      if (ch != 'T') {
-         fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
-         return -1;
-      }
-       
-#if defined( os_linux_test )
-      /* Random Linux-ism: it's possible to close the pipe before the 
-         mutatee returns from the write() system call matching the above
-         read().  In this case, rather than ignore the close() because the
-         write() is on its way out the kernel, Linux sends a SIGPIPE
-         to the mutatee, which causes us no end of trouble.  read()ing
-         an EOF from the pipe seems to alleviate this problem, and seems
-         more reliable than a sleep(1).  The condition test if we somehow
-         got any /extra/ bytes on the pipe. */
-      if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
-         fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
-         return -1;
-      }
-#endif /* defined( os_linux_test ) */
-      
-      close( fds[0] ); // We're done with the pipe
-   }
-   return pid;
-#endif
-}
-
 
 // control debug printf statements
 void dprintf(const char *fmt, ...) {
@@ -997,3 +582,65 @@ int setenv(const char *envname, const char *envval, int)
 
 }
 #endif
+
+int bg_maxThreadsPerProcess(const char *runmode) {
+   if (strcmp(runmode, "SMP") == 0) {
+      return 4;
+   }
+   else if (strcmp(runmode, "DUAL") == 0) {
+      return 2;
+   }
+   else if (strcmp(runmode, "VN") == 0) {
+      return 1;
+   }
+   assert(0);
+   return -1;
+}
+
+int getNumProcs(const ParameterDict &dict)
+{
+   ParameterDict::const_iterator i = dict.find("mp");
+   assert(i != dict.end());
+   if (i->second->getInt() <= 1) {
+      return 1;
+   }
+#if defined(os_bg_test)
+   int base = 16;
+#else
+   int base = 8;
+#endif
+   char *e = getenv("DYNINST_MPTEST_WIDTH");
+   if (e) {
+      int result = atoi(e);
+      if (result)
+         base = result;
+   }
+   int mult = 1;
+#if defined(os_bg_test)
+   i = dict.find("platmode");
+   int max_threads = bg_maxThreadsPerProcess(i->second->getString());
+   mult = 4 / max_threads;
+#endif
+   return base * mult;
+}
+
+int getNumThreads(const ParameterDict &dict)
+{
+   ParameterDict::const_iterator i = dict.find("mt");
+   assert(i != dict.end());
+   if (i->second->getInt() <= 1) {
+      return 0;
+   }
+   char *e = getenv("DYNINST_MTTEST_WIDTH");
+   if (e) {
+      int result = atoi(e);
+      if (result)
+         return result;
+   }
+#if defined(os_bg_test)
+   i = dict.find("platmode");
+   return bg_maxThreadsPerProcess(i->second->getString()) - 1;
+#else
+   return 8;
+#endif
+}

@@ -35,6 +35,7 @@
 #include "test_lib.h"
 #include "TestMutator.h"
 #include "Process.h"
+#include "ProcessSet.h"
 #include "Event.h"
 
 #include <vector>
@@ -42,21 +43,40 @@
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
-#define NUM_PARALLEL_PROCS 8
+class commInfo;
+
+#define RECV_TIMEOUT 30
+
+//NUM_PARALLEL_PROCS is actually a maximum number across all platforms
+#define NUM_PARALLEL_PROCS 256
+
+typedef enum {
+   un_socket,
+   named_pipe
+} mutatee_connection_t;
 
 class ProcControlComponent : public ComponentTester
 {
 private:
-   bool setupServerSocket();
+   bool setupServerSocket(ParameterDict &param);
+   bool setupNamedPipe(Process::ptr proc, ParameterDict &param);
    bool acceptConnections(int num, int *attach_sock);
    bool cleanSocket();
-   Process::ptr launchMutatee(RunGroup *group, ParameterDict &param);
-   bool launchMutatees(RunGroup *group, ParameterDict &param);
+   Process::ptr startMutatee(RunGroup *group, ParameterDict &param);
+   ProcessSet::ptr startMutateeSet(RunGroup *group, ParameterDict &param);
+   bool startMutatees(RunGroup *group, ParameterDict &param);
 
+   bool createPipes();
+   bool cleanPipes();
 public:
    int sockfd;
    char *sockname;
    int notification_fd;
+
+   std::map<Process::ptr, int> w_pipe;
+   std::map<Process::ptr, int> r_pipe;
+   std::map<Process::ptr, std::string> pipe_read_names;
+   std::map<Process::ptr, std::string> pipe_write_names;
 
    int num_processes;
    int num_threads;
@@ -66,6 +86,7 @@ public:
    std::map<Process::ptr, int> process_socks;
    std::map<Dyninst::PID, Process::ptr> process_pids;
    std::vector<Process::ptr> procs;
+   ProcessSet::ptr pset;
    std::map<EventType, std::vector<Event::const_ptr>, eventtype_cmp > eventsRecieved;
 
    ParamPtr me;
@@ -79,6 +100,11 @@ public:
    bool recv_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool send_message(unsigned char *msg, unsigned msg_size, int sfd);
    bool send_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
+   bool create_pipes(Process::ptr p, bool read_pipe);
+   bool init_pipes(Process::ptr p);
+
    bool block_for_events();
    bool poll_for_events();
    
@@ -93,6 +119,10 @@ public:
    virtual test_results_t test_setup(TestInfo *test, ParameterDict &parms);
    virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms);
    virtual std::string getLastErrorMsg();
+
+   bool waitForSignalFD(int signal_fd);
+
+   static bool initializeConnectionInfo(Process::const_ptr proc);
 };
 
 // Base class for the mutator part of a test
@@ -106,7 +136,7 @@ public:
 };
 
 extern "C" {
-	TEST_DLL_EXPORT TestMutator *TestMutator_factory();
+   TEST_DLL_EXPORT TestMutator *TestMutator_factory();
 }
 
 extern "C"  {

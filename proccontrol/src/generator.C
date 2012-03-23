@@ -64,6 +64,7 @@ int_cleanup::~int_cleanup() {
 }
 
 Generator::Generator(std::string name_) :
+   state(none),
    name(name_)
 {
    if (!cb_lock) cb_lock = new Mutex();
@@ -72,6 +73,11 @@ Generator::Generator(std::string name_) :
 Generator::~Generator()
 {
    setState(exiting);
+}
+
+void Generator::stopDefaultGenerator() {
+   Generator *gen = Generator::getDefaultGenerator();
+   if (gen) delete gen;
 }
 
 void Generator::registerNewEventCB(void (*func)())
@@ -104,12 +110,30 @@ void Generator::setState(Generator::state_t new_state)
    state = new_state;
 }
 
+bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
+{
+   //This function can be optionally overloaded by a platform
+   // that may return multiple events.  Otherwise, it just 
+   // uses the single-event interface and always returns a 
+   // set of size 1 or 0.
+   ArchEvent *ev = getEvent(block);
+   if (!ev)
+      return false;
+   events.push_back(ev);
+   return true;
+}
+
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
-   ArchEvent *arch_event = NULL;
    vector<Event::ptr> events;
+   vector<ArchEvent *> archEvents;
 
+   if (isExitingState()) {
+      pthrd_printf("Generator exiting before processWait\n");
+      result = false;
+      goto done;
+   }
    setState(process_blocked);
    result = processWait(block);
    if (isExitingState()) {
@@ -118,17 +142,18 @@ bool Generator::getAndQueueEventInt(bool block)
       goto done;
    }
    if (!result) {
+      pthrd_printf("getAndQueueEventInt returning due to processWait call\n");
       goto done;
    }
-   
+
    setState(system_blocked);
-   arch_event = getEvent(block);
+   result = getMultiEvent(block, archEvents);
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;
       goto done;
    }
-   if (!arch_event) {
+   if (!result) {
       pthrd_printf("Error. Unable to recieve event\n");
       result = false;
       goto done;
@@ -136,16 +161,23 @@ bool Generator::getAndQueueEventInt(bool block)
 
    setState(decoding);
    ProcPool()->condvar()->lock();
-   for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); i++) {
-      Decoder *decoder = *i;
-      bool result = decoder->decode(arch_event, events);
-      if (!result)
-         break;
+
+   for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
+      ArchEvent *arch_event = *i;
+      for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
+         Decoder *decoder = *j;
+         bool result = decoder->decode(arch_event, events);
+         if (result)
+            break;
+      }
    }
+
+   setState(statesync);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
       event->getProcess()->llproc()->updateSyncState(event, true);
    }
+
    ProcPool()->condvar()->unlock();
 
    setState(queueing);
@@ -164,41 +196,36 @@ bool Generator::getAndQueueEventInt(bool block)
    return result;
 }
 
-static bool allStopped(int_process *proc, void *)
+bool Generator::plat_skipGeneratorBlock()
 {
-   bool all_exited = true;
-   int_threadPool *tp = proc->threadPool();
-   assert(tp);
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-      if ((*i)->getGeneratorState() == int_thread::running ||
-          (*i)->getGeneratorState() == int_thread::neonatal_intermediate) 
-      {
-         pthrd_printf("Found running thread: %d/%d is %s\n", 
-                      proc->getPid(), (*i)->getLWP(), 
-                      int_thread::stateStr((*i)->getGeneratorState()));
-         return false;
-      }
-      if ((*i)->getGeneratorState() != int_thread::exited) {
-         all_exited = false;
-      }
-   }
-   if (all_exited) {
-      pthrd_printf("All threads are exited for %d, treating as stopped\n",
-                   proc->getPid());
-      return true;
-   }
-   if (proc->forceGeneratorBlock()) {
-      pthrd_printf("Process %d is forcing generator input\n", proc->getPid());
-      return false;
-   }
-   pthrd_printf("Checking for running process: %d is stopped\n", proc->getPid());
-   return true;
+   //Default, do nothing.  May be over-written
+   return false;
 }
 
 bool Generator::hasLiveProc()
 {
-   ProcessPool *procpool = ProcPool();
-   return !procpool->for_each(allStopped, NULL);
+   if (plat_skipGeneratorBlock()) {
+      return true;
+   }
+
+   int num_running_threads = Counter::globalCount(Counter::GeneratorRunningThreads);
+   int num_non_exited_threads = Counter::globalCount(Counter::GeneratorNonExitedThreads);
+   int num_force_generator_blocking = Counter::globalCount(Counter::ForceGeneratorBlock);
+
+   if (num_running_threads) {
+      pthrd_printf("Generator has running threads, returning true from hasLiveProc\n");
+      return true;
+   }
+   if (!num_non_exited_threads) {
+      pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
+      return false;
+   }
+   if (num_force_generator_blocking) {
+      pthrd_printf("Generator is forced into blocking state, returning true from hasLiveProc\n");
+      return true;
+   }
+   pthrd_printf("All threads stopped, returing false from hasLiveProc\n");
+   return false;
 }
 
 struct GeneratorMTInternals
@@ -210,6 +237,10 @@ struct GeneratorMTInternals
 
    DThread thrd;
 };
+void GeneratorInternalJoin(GeneratorMTInternals *gen_int)
+{
+  gen_int->thrd.join();
+}
 
 static void start_generator(void *g)
 {
@@ -273,8 +304,10 @@ void GeneratorMT::start()
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
-   if (result)
+   if (result) {
+      pthrd_printf("Starting main loop of generator thread\n");
       main();
+   }
    pthrd_printf("Generator thread exiting\n");
 }
 
@@ -282,7 +315,7 @@ void GeneratorMT::main()
 {
    while (!isExitingState()) {
       bool result = getAndQueueEventInt(true);
-      if (!result) {
+      if (!result && !isExitingState()) {
          pthrd_printf("Error return in getAndQueueEventInt\n");
       }
    }
@@ -311,4 +344,9 @@ bool GeneratorMT::getAndQueueEvent(bool)
    // generator--part of the point is that you don't have
    // to call it.
    return true;
+}
+
+GeneratorMTInternals *GeneratorMT::getInternals()
+{
+  return sync;
 }

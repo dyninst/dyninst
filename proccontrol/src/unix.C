@@ -47,80 +47,8 @@
 #include "common/h/freebsdKludges.h"
 #endif
 
-
-void int_notify::writeToPipe()
-{
-   if (pipe_out == -1) 
-      return;
-
-   char c = 'e';
-   ssize_t result = write(pipe_out, &c, 1);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
-      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
-      return;
-   }
-   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
-}
-
-void int_notify::readFromPipe()
-{
-   if (pipe_out == -1)
-      return;
-
-   char c;
-   ssize_t result;
-   int error;
-   do {
-      result = read(pipe_in, &c, 1);
-      error = errno;
-   } while (result == -1 && error == EINTR);
-   if (result == -1) {
-      int error = errno;
-      if (error == EAGAIN) {
-         pthrd_printf("Notification pipe had no data available\n");
-         return;
-      }
-      setLastError(err_internal, "Could not read from notification pipe\n");
-      perr_printf("Error reading from notification pipe: %s\n", strerror(error));
-   }
-   assert(result == 1 && c == 'e');
-   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
-}
-
-bool int_notify::createPipe()
-{
-   if (pipe_in != -1 || pipe_out != -1)
-      return true;
-
-   int fds[2];
-   int result = pipe(fds);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
-      perr_printf("Error creating notification pipe: %s\n", strerror(error));
-      return false;
-   }
-   assert(fds[0] != -1);
-   assert(fds[1] != -1);
-
-   result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
-      perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
-      return false;
-   }
-   pipe_in = fds[0];
-   pipe_out = fds[1];
-
-
-   pthrd_printf("Created notification pipe: in = %d, out = %d\n", pipe_in, pipe_out);
-   return true;
-}
-
-unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int,int> f) :
+unix_process::unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                           std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f)
 {
 }
@@ -180,8 +108,7 @@ void unix_process::plat_execv() {
         execv(executable.c_str(), const_cast<char * const*>(new_argv));
     }
     int errnum = errno;         
-    pthrd_printf("Failed to exec %s: %s\n", 
-               executable.c_str(), strerror(errnum));
+    pthrd_printf("Failed to exec %s: %s\n", executable.c_str(), strerror(errnum));
     if (errnum == ENOENT)
         setLastError(err_nofile, "No such file");
     if (errnum == EPERM || errnum == EACCES)
@@ -194,36 +121,31 @@ void unix_process::plat_execv() {
 bool unix_process::post_forked()
 {
    ProcPool()->condvar()->lock();
+
    int_thread *thrd = threadPool()->initialThread();
    //The new process is currently stopped, but should be moved to 
    // a running state when handlers complete.
    pthrd_printf("Setting state of initial thread after fork in %d\n",
                 getPid());
-   thrd->setGeneratorState(int_thread::stopped);
-   thrd->setHandlerState(int_thread::stopped);
-   thrd->setInternalState(int_thread::running);
-   thrd->setUserState(int_thread::running);
+   thrd->getGeneratorState().setState(int_thread::stopped);
+   thrd->getHandlerState().setState(int_thread::stopped);
+   thrd->getUserState().setState(int_thread::running);
+
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
-   std::set<int_library*> added, rmd;
-   for (;;) {
-      std::set<response::ptr> async_responses;
-      bool result = refresh_libraries(added, rmd, async_responses);
-      if (!result && !async_responses.empty()) {
-         result = waitForAsyncEvent(async_responses);
-         if (!result) {
-            pthrd_printf("Failure waiting for async completion\n");
-            return false;
-         }
-         continue;
-      }
-      if (!result) {
-         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
-         return false;
-      }
+   //TODO: Remove this and make have the translate layers' fork
+   // constructors do the work.
+   std::set<response::ptr> async_responses;
+   async_ret_t result = initializeAddressSpace(async_responses);
+   if (result == aret_async) {
+      //Not going to do proper async handling here.  BG is the async platform
+      //and BG doesn't have fork.  Going to just do a sync block
+      //for testing purposes, but this shouldn't run in production.
+      waitForAsyncEvent(async_responses);
       return true;
    }
+   return (result == aret_success);
 }
 
 unsigned unix_process::getTargetPageSize() {
@@ -232,215 +154,9 @@ unsigned unix_process::getTargetPageSize() {
     return pgSize;
 }
 
-// For compatibility 
-#ifndef MAP_ANONYMOUS
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-
-bool unix_process::plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp)
-{
-   switch (getTargetArch())
-   {
-      case Arch_x86_64: {
-         bool result = thr->getRegister(x86_64::rax, resp);
-         assert(result);
-         break;
-      }
-      case Arch_x86: {
-         bool result = thr->getRegister(x86::eax, resp);
-         assert(result);
-         break;
-      }
-      case Arch_ppc32: {
-         bool result = thr->getRegister(ppc32::r3, resp);
-         assert(result);
-         break;
-      }
-      case Arch_ppc64: {
-         bool result = thr->getRegister(ppc64::r3, resp);
-         assert(result);
-         break;
-      }
-      default:
-         assert(0);
-         break;
-   }
-   return true;
-} 
-
-bool unix_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
-                                                void* &buffer, unsigned long &buffer_size, 
-                                                unsigned long &start_offset)
-{
-   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-   if (use_addr) 
-      flags |= MAP_FIXED;
-   else
-      addr = 0x0;
-
-   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86 ) {
-       const void *buf_tmp = NULL;
-       unsigned addr_size = 0;
-       unsigned addr_pos = 0;
-       unsigned flags_pos = 0;
-       unsigned size_pos = 0;
-
-       switch (getTargetArch())
-       {
-          case Arch_x86_64:
-             buf_tmp = x86_64_call_mmap;
-             buffer_size = x86_64_call_mmap_size;
-             start_offset = x86_64_mmap_start_position;
-             addr_pos = x86_64_mmap_addr_position;
-             flags_pos = x86_64_mmap_flags_position;
-             size_pos = x86_64_mmap_size_position;
-             addr_size = 8;
-             break;
-          case Arch_x86:
-             buf_tmp = x86_call_mmap;
-             buffer_size = x86_call_mmap_size;
-             start_offset = x86_mmap_start_position;
-             addr_pos = x86_mmap_addr_position;
-             flags_pos = x86_mmap_flags_position;
-             size_pos = x86_mmap_size_position;
-             addr_size = 4;
-             break;
-          default:
-             assert(0);
-       }
-       
-       buffer = malloc(buffer_size);
-       memcpy(buffer, buf_tmp, buffer_size);
-
-       //Assuming endianess of debugger and debugee match.
-       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-       *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-       if (addr_size == 8)
-          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-       else if (addr_size == 4)
-          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-       else 
-          assert(0);
-   }else if( getTargetArch() == Arch_ppc32 ) {
-       buffer = malloc(ppc32_call_mmap_size);
-       memcpy(buffer, ppc32_call_mmap, ppc32_call_mmap_size);
-
-       start_offset = ppc32_mmap_start_position;
-       buffer_size = ppc32_call_mmap_size;
-
-       // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_flags_hi_position)) = (uint16_t)(flags >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_flags_lo_position)) = (uint16_t)flags;
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc32_mmap_addr_lo_position)) = (uint16_t)addr;
-   }else if( getTargetArch() == Arch_ppc64 ) {
-       buffer = malloc(ppc64_call_mmap_size);
-       memcpy(buffer, ppc64_call_mmap, ppc64_call_mmap_size);
-
-       start_offset = ppc64_mmap_start_position;
-       buffer_size = ppc64_call_mmap_size;
-
-       // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_highest_position)) = (uint16_t)((uint64_t)flags >> 48);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_higher_position)) = (uint16_t)((uint64_t)flags >> 32);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_hi_position)) = (uint16_t)(flags >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_flags_lo_position)) = (uint16_t)flags;
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc64_mmap_addr_lo_position)) = (uint16_t)addr;
-   }else{
-       assert(0);
-   }
-
-   return true;
-}
-
-bool unix_process::plat_createDeallocationSnippet(Dyninst::Address addr, 
-                                            unsigned long size, void* &buffer, 
-                                            unsigned long &buffer_size, 
-                                            unsigned long &start_offset)
-{
-   if( getTargetArch() == Arch_x86_64 || getTargetArch() == Arch_x86 ) {
-       const void *buf_tmp = NULL;
-       unsigned addr_size = 0;
-       unsigned addr_pos = 0;
-       unsigned size_pos = 0;
-
-       switch (getTargetArch())
-       {
-          case Arch_x86_64:
-             buf_tmp = x86_64_call_munmap;
-             buffer_size = x86_64_call_munmap_size;
-             start_offset = x86_64_munmap_start_position;
-             addr_pos = x86_64_munmap_addr_position;
-             size_pos = x86_64_munmap_size_position;
-             addr_size = 8;
-             break;
-          case Arch_x86:
-             buf_tmp = x86_call_munmap;
-             buffer_size = x86_call_munmap_size;
-             start_offset = x86_munmap_start_position;
-             addr_pos = x86_munmap_addr_position;
-             size_pos = x86_munmap_size_position;
-             addr_size = 4;
-             break;
-          default:
-             assert(0);
-       }
-       
-       buffer = malloc(buffer_size);
-       memcpy(buffer, buf_tmp, buffer_size);
-
-       //Assuming endianess of debugger and debugee match.
-       *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-       if (addr_size == 8)
-          *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-       else if (addr_size == 4)
-          *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-       else 
-          assert(0);
-   }else if( getTargetArch() == Arch_ppc32 ) {
-       buffer = malloc(ppc32_call_munmap_size);
-       memcpy(buffer, ppc32_call_munmap, ppc32_call_munmap_size);
-
-       buffer_size = ppc32_call_munmap_size;
-       start_offset = ppc32_munmap_start_position;
-
-       // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+ppc32_munmap_size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc32_munmap_size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+ppc32_munmap_addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc32_munmap_addr_lo_position)) = (uint16_t)addr;
-   }else if( getTargetArch() == Arch_ppc64 ) {
-       buffer = malloc(ppc64_call_munmap_size);
-       memcpy(buffer, ppc64_call_munmap, ppc64_call_munmap_size);
-
-       buffer_size = ppc64_call_munmap_size;
-       start_offset = ppc64_munmap_start_position;
-
-       // Assuming endianess of debugger and debuggee match
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_highest_position)) = (uint16_t)((uint64_t)size >> 48);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_higher_position)) = (uint16_t)((uint64_t)size >> 32);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_hi_position)) = (uint16_t)(size >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_size_lo_position)) = (uint16_t)size;
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_highest_position)) = (uint16_t)((uint64_t)addr >> 48);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_higher_position)) = (uint16_t)((uint64_t)addr >> 32);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_hi_position)) = (uint16_t)(addr >> 16);
-       *((uint16_t *) (((char *) buffer)+ppc64_munmap_addr_lo_position)) = (uint16_t)addr;
-   }else{
-       assert(0);
-   }
-
-   return true;
-}
-
+//I'm not sure that unix_process is the proper place for this--it's really based on whether
+// /proc/PID/maps exists.  Currently, that matches our platforms that use unix_process, so
+// I'll leave it be for now.
 Dyninst::Address unix_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
     Dyninst::Address result = 0x0;
     bool found_result = false;
@@ -465,4 +181,14 @@ Dyninst::Address unix_process::plat_mallocExecMemory(Dyninst::Address min, unsig
     assert(found_result);
     free(maps);
     return result;
+}
+
+bool unix_process::plat_supportFork()
+{
+   return true;
+}
+
+bool unix_process::plat_supportExec()
+{
+   return true;
 }

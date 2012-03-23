@@ -178,6 +178,7 @@ r_debug_dyn<r_debug_X>::~r_debug_dyn()
 
 template<class r_debug_X> 
 bool r_debug_dyn<r_debug_X>::is_valid() {
+   if (!valid) return false;
    if (0 == r_map()) return false;
    else return valid;
 }
@@ -334,10 +335,11 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
                                                             ProcessReader *reader_,
                                                             SymbolReaderFactory *symfactory_,
                                                             PROC_HANDLE,
-                                                            std::string exename)
+                                                            std::string exename,
+                                                            Address interp_base)
 {
    translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
-   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename);
+   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename, interp_base);
    translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
    
    if (!at) {
@@ -351,10 +353,11 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_,
-                                                            SymbolReaderFactory *factory_,
-                                                            std::string exename)
+                                                            SymbolReaderFactory *factory_, 
+                                                            std::string exename,
+                                                            Address interp_base)
 {
-   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE, exename);
+   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE, exename, interp_base);
 }
 
 AddressTranslateSysV::AddressTranslateSysV() :
@@ -373,11 +376,11 @@ AddressTranslateSysV::AddressTranslateSysV() :
 
 AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_, 
                                            SymbolReaderFactory *reader_fact,
-                                           std::string exename) :
+                                           std::string exename, Address interp_base) :
    AddressTranslate(pid, INVALID_HANDLE_VALUE, exename),
    reader(reader_),
    interpreter_base(0),
-   set_interp_base(0),
+   set_interp_base(false),
    address_size(0),
    interpreter(NULL),
    previous_r_state(0),
@@ -386,6 +389,10 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_,
    trap_addr(0)
 {
    bool result;
+   if (interp_base != (Address) -1) {
+      interpreter_base = interp_base;
+      set_interp_base = true;
+   }
    if (!reader) {
       if (pid == getpid())
          reader = new ProcessReaderSelf();

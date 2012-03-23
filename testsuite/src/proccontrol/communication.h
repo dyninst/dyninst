@@ -32,14 +32,18 @@
 #define COMMUNICATION_H_
 
 #define MAX_POSSIBLE_THREADS 512
+
+#if defined(os_bg_test)
+#define DEFAULT_NUM_THREADS 3
+#else
 #define DEFAULT_NUM_THREADS 8
-#define DEFAULT_NUM_PROCS 8
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_bg_test) || defined(os_bgq_test)
 #include <stdint.h>
 #endif
 

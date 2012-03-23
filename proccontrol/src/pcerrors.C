@@ -42,6 +42,7 @@ static err_t last_error;
 static const char *last_error_msg;
 static signed long gen_thrd_id;
 static signed long handler_thrd_id;
+static signed long x_thrd_id;
 
 FILE *pctrl_err_out;
 bool dyninst_debug_proccontrol = false;
@@ -53,8 +54,27 @@ const char *thrdName()
       return "G";
    else if (self == handler_thrd_id) 
       return "H";
+   else if (self == x_thrd_id)
+      return "X";
    else
       return "U";
+}
+
+#include <sys/time.h>
+unsigned long gettod()
+{
+   static unsigned long long start = 0;
+   static bool start_set = false;
+   struct timeval val;
+   int result = gettimeofday(&val, NULL);
+   if (result == -1)
+      return 0;
+   unsigned long long t = (unsigned long long) ((val.tv_sec * 1000) + (val.tv_usec / 1000));
+   if (!start_set) {
+      start_set = true;
+      start = t;
+   }
+   return (unsigned long) (t - start);
 }
 
 void setGeneratorThread(long t)
@@ -67,6 +87,11 @@ void setHandlerThread(long t)
    handler_thrd_id = t;
 }
 
+void setXThread(long t)
+{
+   x_thrd_id = t;
+}
+
 bool isGeneratorThread() {
    return DThread::self() == gen_thrd_id;
 }
@@ -75,6 +100,9 @@ bool isHandlerThread() {
    return DThread::self() == handler_thrd_id;
 }
 
+bool isUserThread() {
+   return !isGeneratorThread() && !isHandlerThread();
+}
 err_t Dyninst::ProcControlAPI::getLastError()
 {
    return last_error;
@@ -90,7 +118,7 @@ const char *Dyninst::ProcControlAPI::getLastErrorMsg()
    return last_error_msg;
 }
 
-void Dyninst::ProcControlAPI::setLastError(err_t err, const char *msg)
+void Dyninst::ProcControlAPI::globalSetLastError(err_t err, const char *msg)
 {
    last_error = err;
    last_error_msg = msg;
@@ -118,3 +146,4 @@ public:
    }
 };
 static init_debug_channel idc;
+

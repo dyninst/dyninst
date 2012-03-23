@@ -34,6 +34,11 @@
 
 #include "int_process.h"
 
+/**
+ * For our purposes, a UNIX process is one that supports fork/exec.
+ * Note that means that the BlueGene family is not considered a 
+ * UNIX process.
+ **/
 class unix_process : virtual public int_process
 {
   public:
@@ -46,16 +51,10 @@ class unix_process : virtual public int_process
    virtual bool post_forked();
    virtual unsigned getTargetPageSize();
 
-
-   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
-   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
-                                             void* &buffer, unsigned long &buffer_size, 
-                                             unsigned long &start_offset);
-   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, 
-                                               unsigned long size, void* &buffer, 
-                                               unsigned long &buffer_size, 
-                                               unsigned long &start_offset);
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
+
+   virtual bool plat_supportFork();
+   virtual bool plat_supportExec();
 };
 
 #endif
