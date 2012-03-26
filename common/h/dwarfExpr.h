@@ -405,7 +405,14 @@ static bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                             "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
             long int first = opStack.top(); opStack.pop();
             long int second = opStack.top(); opStack.pop();
-            opStack.push( second / first );
+	    DWARF_FALSE_IF(((second != 0) && (first == 0)),
+			   "%s[%d]: invalid stack, div operation with %d / %d, returning false\n",
+			   __FILE__, __LINE__, second, first);
+	    
+	    if((second == 0) && (first == 0)) 
+	      opStack.push(0);
+	    else
+	      opStack.push( second / first );
          } break;
 
          case DW_OP_minus: 
@@ -423,7 +430,14 @@ static bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                             "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
             long int first = opStack.top(); opStack.pop();
             long int second = opStack.top(); opStack.pop();
-            opStack.push( second % first );
+	    DWARF_FALSE_IF(((second != 0) && (first == 0)),
+			   "%s[%d]: invalid stack, mod operation with %d mod %d, returning false\n",
+			   __FILE__, __LINE__, second, first);
+	    
+	    if((second == 0) && (first == 0)) 
+	      opStack.push(0);
+	    else
+	      opStack.push( second % first );
          } break;
 
          case DW_OP_mul: 
