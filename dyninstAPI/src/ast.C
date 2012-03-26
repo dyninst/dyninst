@@ -1215,7 +1215,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                break;
             }
             case RegOffset: {
-               cerr << "Emitting a regOffset for reg " << loperand->getOValue() << endl;
                assert(loperand);
                assert(loperand->operand());
             
@@ -1612,7 +1611,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
                                         Address &,
                                         Register &retReg) {
-  cerr << "AstMemoryNode::gCode_phase2, retReg == " << retReg << endl;
   
 	RETURN_KEPT_REG(retReg);
 	
@@ -1623,7 +1621,6 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         retReg = allocateAndKeep(gen, noCost);    
     switch(mem_) {
     case EffectiveAddr: {
-      cerr << "\t Emitting eff. addr. expr." << endl;
       
         // VG(11/05/01): get effective address
         // VG(07/31/02): take care which one
