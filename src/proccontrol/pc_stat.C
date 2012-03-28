@@ -212,11 +212,6 @@ test_results_t pc_statMutator::executeTest()
 {
    error = false;
    pset = comp->pset;
-   bool result = pset->continueProcs();
-   if (!result) {
-      logerror("Failed to continue procs\n");
-      return FAILED;
-   }
 
    spin_addrs = getAddresses(pset);
    if (error || spin_addrs->size() != comp->num_processes) {
@@ -229,7 +224,7 @@ test_results_t pc_statMutator::executeTest()
       if (error)
          return FAILED;
 
-      result = takeSample();
+      bool result = takeSample();
       if (!result) {
          logerror("Sample error\n");
          return FAILED;
