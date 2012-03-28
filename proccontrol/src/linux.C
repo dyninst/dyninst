@@ -50,6 +50,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
+#include "proccontrol/h/ProcessPlat.h"
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
@@ -1300,6 +1301,11 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     assert(found_result);
     free(maps);
     return result;
+}
+
+PlatformProcess *linux_process::plat_getPlatformProcess()
+{
+   return dynamic_cast<PlatformProcess *>(new LinuxProcess());
 }
 
 dynreg_to_user_t dynreg_to_user;

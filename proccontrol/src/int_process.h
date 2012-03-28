@@ -378,6 +378,12 @@ class int_process
 
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
+
+   //Interfaces used by the PlatformSpecific classes
+   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool sysv_isTrackingLibraries();
+   PlatformProcess *getPlatformProcess();
+   virtual PlatformProcess *plat_getPlatformProcess() = 0;
    
  protected:
    State state;
@@ -409,6 +415,7 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    void *user_data;
+   PlatformProcess *plat_process;
    err_t last_error;
    const char *last_error_string;
 };
@@ -692,7 +699,6 @@ class int_thread
    void decSyncRPCCount();
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
-
 
    //Register Management
    bool getAllRegisters(allreg_response::ptr result);

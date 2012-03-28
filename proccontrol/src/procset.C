@@ -31,6 +31,9 @@
 
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/ProcessSet.h"
+#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/Mailbox.h"
+
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_handler.h"
@@ -1399,7 +1402,7 @@ bool ProcessSet::freeMemory(AddressSet::ptr addrset) const
    return !had_error && free_result;   
 }
 
-bool ProcessSet::readMemory(AddressSet::ptr addrset, multimap<Process::const_ptr, void *> &mem_result, size_t size) const
+bool ProcessSet::readMemory(AddressSet::ptr addrset, multimap<Process::ptr, void *> &mem_result, size_t size) const
 {
    //Use the read_t form of readMemory below
    multimap<Process::const_ptr, read_t> all_reads;
@@ -1424,7 +1427,7 @@ bool ProcessSet::readMemory(AddressSet::ptr addrset, multimap<Process::const_ptr
          had_error = true;
          continue;
       }
-      mem_result.insert(make_pair(p, r.buffer));
+      mem_result.insert(make_pair(p->llproc()->proc(), r.buffer));
    }
    return !had_error;
 }
@@ -1462,11 +1465,11 @@ struct bufferCompare {
 bool ProcessSet::readMemory(AddressSet::ptr addrset, map<void *, ProcessSet::ptr> &mem_result, size_t size, 
                             bool use_checksum) const
 {
-   multimap<Process::const_ptr, void *> initial_result;
+   multimap<Process::ptr, void *> initial_result;
    bool had_error = !readMemory(addrset, initial_result, size);
 
    map<bufferCompare, ProcessSet::ptr> unique_results;
-   for (multimap<Process::const_ptr, void *>::iterator i = initial_result.begin(); i != initial_result.end(); i++) {
+   for (multimap<Process::ptr, void *>::iterator i = initial_result.begin(); i != initial_result.end(); i++) {
       Process::const_ptr proc = i->first;
       void *buffer = i->second;
 
@@ -1626,24 +1629,11 @@ bool ProcessSet::writeMemory(multimap<Process::const_ptr, write_t> &addrs) const
    return !had_error;
 }
 
-bool ProcessSet::addBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
+static bool addBreakpointWorker(set<pair<int_process *, bp_install_state *> > &bp_installs)
 {
-   MTLock lock_this_func;
-   bool had_error = false, result;
+   bool had_error = false;
+   bool result;
 
-   set<pair<int_process *, bp_install_state *> > bp_installs;
-   addrset_iter iter("Breakpoint add", had_error, ERR_CHCK_ALL);
-   for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
-      Process::ptr p = i->second;
-      int_process *proc = p->llproc();
-      Address addr = i->first;
-      
-      bp_install_state *is = new bp_install_state();
-      is->addr = addr;
-      is->bp = bp->llbp();
-      bp_installs.insert(make_pair(proc, is));
-   }
-   
    set<response::ptr> all_responses;
    for (set<pair<int_process *, bp_install_state *> >::iterator i = bp_installs.begin(); 
         i != bp_installs.end();) 
@@ -1707,6 +1697,27 @@ bool ProcessSet::addBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) cons
    }
 
    return !had_error;
+}
+
+bool ProcessSet::addBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   set<pair<int_process *, bp_install_state *> > bp_installs;
+   addrset_iter iter("Breakpoint add", had_error, ERR_CHCK_ALL);
+   for (int_addressSet::iterator i = iter.begin(addrset); i != iter.end(); i = iter.inc()) {
+      Process::ptr p = i->second;
+      int_process *proc = p->llproc();
+      Address addr = i->first;
+      
+      bp_install_state *is = new bp_install_state();
+      is->addr = addr;
+      is->bp = bp->llbp();
+      bp_installs.insert(make_pair(proc, is));
+   }
+
+   return addBreakpointWorker(bp_installs) && !had_error;
 }
 
 bool ProcessSet::rmBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
@@ -1900,6 +1911,10 @@ ProcessSet::const_iterator ProcessSet::const_iterator::operator++()
 ProcessSet::const_iterator ProcessSet::const_iterator::operator++(int)
 {
    return ProcessSet::const_iterator(int_iter++);
+}
+
+int_processSet *ProcessSet::getIntProcessSet() {
+   return procset;
 }
 
 struct thread_strip_const {
@@ -2711,4 +2726,122 @@ ThreadSet::const_iterator ThreadSet::const_iterator::operator++()
 ThreadSet::const_iterator ThreadSet::const_iterator::operator++(int)
 {
    return ThreadSet::const_iterator(int_iter++);
+}
+
+bool SysVProcess::setTrackLibraries(ProcessSet::ptr ps, bool b)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   int_processSet *procset = ps->getIntProcessSet();
+
+   set<pair<int_process *, bp_install_state *> > bps_to_install;
+   set<response::ptr> all_responses;
+
+   procset_iter iter("setTrackLibraries", had_error, ERR_CHCK_NORM);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      Process::ptr p = *i;
+      int_process *proc = p->llproc();
+
+      pthrd_printf("Changing sysv track libraries to %s for %d\n",
+                   b ? "true" : "false", proc->getPid());
+
+      bool add_bp;
+      int_breakpoint *bp;
+      Address addr;
+
+      bool result = proc->sysv_setTrackLibraries(b, bp, addr, add_bp);
+      if (!result) {
+         had_error = true;
+         continue;
+      }
+      if (add_bp) {
+         bp_install_state *is = new bp_install_state();
+         is->addr = addr;
+         is->bp = bp;
+         is->do_install = true;
+         bps_to_install.insert(make_pair(proc, is));
+      }
+      else {
+         result_response::ptr resp = result_response::createResultResponse();
+         result = proc->rmBreakpoint(addr, bp, resp);
+         if (!result) {
+            pthrd_printf("Error removing breakpoint in setTrackLibraries\n");
+            had_error = true;
+            continue;
+         }
+         all_responses.insert(resp);
+      }
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for bp removals in setTrackLibraries\n");
+      had_error = true;
+   }
+   if (bps_to_install.empty())
+      return !had_error;
+   
+   return addBreakpointWorker(bps_to_install) && !had_error;
+}
+
+bool SysVProcess::refreshLibraries(ProcessSet::ptr ps)
+{
+   MTLock lock_this_scope;
+   bool had_error = false;
+   set<int_process *> procs;
+      
+   if (int_process::isInCB()) {
+      perr_printf("User attempted refreshLibraries in CB, erroring.");
+      for_each(ps->begin(), ps->end(), setError(err_incallback, "Cannot refreshLibraries from callback\n"));
+      return false;
+   }
+      
+   procset_iter iter("refreshLibraries", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(ps->getIntProcessSet()); i != iter.end(); i = iter.inc()) {
+      procs.insert((*i)->llproc());
+   }
+      
+   while (!procs.empty()) {
+      set<response::ptr> all_responses;
+      for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
+         int_process *proc = *i;
+         std::set<int_library *> added;
+         std::set<int_library *> rmd;
+         bool wait_for_async = false;
+            
+         bool result = proc->refresh_libraries(added, rmd, wait_for_async, all_responses);
+         if (!result) {
+            pthrd_printf("Error refreshing libraries for %d\n", proc->getPid());
+            had_error = true;
+            procs.erase(i++);
+            continue;
+         }
+         if (!wait_for_async) {
+            procs.erase(i++);
+            if (added.empty() && rmd.empty()) {
+               pthrd_printf("Refresh found no new library events for process %d\n", proc->getPid());
+               continue;
+            }
+
+            pthrd_printf("Adding new library event for process %d after refresh\n", proc->getPid());
+            struct lib_converter {
+               static Library::ptr c(int_library* l) { return l->getUpPtr(); }
+            };
+            set<Library::ptr> libs_added, libs_rmd;
+            transform(added.begin(), added.end(), inserter(libs_added, libs_added.end()), lib_converter::c);
+            transform(rmd.begin(), rmd.end(), inserter(libs_rmd, libs_rmd.end()), lib_converter::c);
+            EventLibrary::ptr evlib = EventLibrary::ptr(new EventLibrary(libs_added, libs_rmd));
+            evlib->setProcess(proc->proc());
+            evlib->setThread(proc->threadPool()->initialThread()->thread());
+            evlib->setSyncType(Event::async);
+            mbox()->enqueue(evlib);
+            continue;
+         }
+         i++;
+      }
+   }
+
+   int_process::waitAndHandleEvents(false);
+   return !had_error;
 }

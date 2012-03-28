@@ -159,6 +159,8 @@ class ProcessSet
 
    friend void dyn_detail::boost::checked_delete<ProcessSet>(ProcessSet *);
  public:
+   int_processSet *getIntProcessSet(); //Not for public use
+
    typedef dyn_detail::boost::shared_ptr<ProcessSet> ptr;
    typedef dyn_detail::boost::shared_ptr<const ProcessSet> const_ptr;
 
@@ -326,7 +328,7 @@ class ProcessSet
       bool operator<(const read_t &w) { return (addr < w.addr) && (size < w.size) && (buffer < w.buffer); }
    };
 
-   bool readMemory(AddressSet::ptr addr, std::multimap<Process::const_ptr, void *> &result, size_t size) const;
+   bool readMemory(AddressSet::ptr addr, std::multimap<Process::ptr, void *> &result, size_t size) const;
    bool readMemory(AddressSet::ptr addr, std::map<void *, ProcessSet::ptr> &result, size_t size, bool use_checksum = true) const;
    bool readMemory(std::multimap<Process::const_ptr, read_t> &addrs) const;
 

@@ -41,6 +41,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/ProcessSet.h"
+#include "proccontrol/h/ProcessPlat.h"
 
 #include <cstring>
 #include <cassert>
@@ -1108,7 +1109,8 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL)
+   user_data(NULL),
+   plat_process(NULL)
 {
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -1134,7 +1136,8 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL)
+   user_data(NULL),
+   plat_process(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -1881,6 +1884,29 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
+PlatformProcess *int_process::getPlatformProcess()
+{
+   if (plat_process)
+      return plat_process;
+   plat_process = plat_getPlatformProcess();
+   plat_process->proc = proc();
+   return plat_process;
+}
+
+bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::sysv_isTrackingLibraries()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -1911,6 +1937,11 @@ int_process::~int_process()
       delete mem;
    }
    mem = NULL;
+
+   if (plat_process) {
+      delete plat_process;
+      plat_process = NULL;
+   }
 }
 
 indep_lwp_control_process::indep_lwp_control_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
@@ -5432,6 +5463,30 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    }
 
    return llproc()->plat_defaultSymReader();
+}
+
+PlatformProcess *Process::getPlatformProcess()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformProcess on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc_->getPlatformProcess();
+}
+
+const PlatformProcess *Process::getPlatformProcess() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformProcess on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc_->getPlatformProcess();
 }
 
 err_t Process::getLastError() const {

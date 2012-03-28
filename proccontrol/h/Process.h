@@ -77,6 +77,7 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
+class PlatformProcess;
 
 class Breakpoint 
 {
@@ -372,6 +373,12 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
     * Symbol access
     **/
    SymbolReaderFactory *getDefaultSymbolReader();
+
+   /**
+    * Perform platform specific operations
+    **/
+   PlatformProcess *getPlatformProcess();
+   const PlatformProcess *getPlatformProcess() const;
 
    /**
     * Errors that occured on this process

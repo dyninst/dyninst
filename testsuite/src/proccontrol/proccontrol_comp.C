@@ -34,6 +34,8 @@
 #include "MutateeStart.h"
 #include "SymReader.h"
 #include "PCErrors.h"
+#include "ProcessPlat.h"
+
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -151,6 +153,19 @@ bool ProcControlComponent::waitForSignalFD(int signal_fd)
    return true;
 }
 
+void ProcControlComponent::setupStatTest(std::string exec_name)
+{
+   //Bad hack, but would have required significant
+   //changes to testsuite otherwise
+   if (strstr(exec_name.c_str(), "pc_stat")) {
+      SysVProcess::setDefaultTrackLibraries(false);
+      check_threads_on_startup = false;
+   }
+   else {
+      SysVProcess::setDefaultTrackLibraries(true);
+   }
+}
+
 ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, ParameterDict &params)
 {
    ProcessSet::ptr procset;
@@ -167,6 +182,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          getMutateeParams(group, params, ci.executable, ci.argv);
          ci.error_ret = err_none;
          cinfo.push_back(ci);
+         setupStatTest(ci.executable);
       }
       procset = ProcessSet::createProcessSet(cinfo);
       if (!procset) {
@@ -180,6 +196,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          ProcessSet::AttachInfo ai;
          vector<string> argv;
          getMutateeParams(group, params, ai.executable, argv);
+         setupStatTest(ai.executable);
          ai.pid = getMutateePid(group);
 
          if (ai.pid == NULL_PID) {
@@ -234,6 +251,7 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    string exec_name;   
    getMutateeParams(group, params, exec_name, vargs);
 
+   setupStatTest(exec_name);
    Process::ptr proc = Process::ptr();
    if (group->createmode == CREATE) {
 #if defined(os_bg_test)
@@ -382,6 +400,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
 #endif
+   check_threads_on_startup = true;
    Process::ptr a_proc;
    if (num_processes > 1) {
       pset = startMutateeSet(group, param);
@@ -459,7 +478,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
       assert(support_user_threads || support_lwps);
 
-      if (support_lwps)
+      if (support_lwps && check_threads_on_startup)
       {
          while (eventsRecieved[EventType(EventType::None, EventType::LWPCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
@@ -471,7 +490,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          }
       }
 
-      if (support_user_threads)
+      if (support_user_threads && check_threads_on_startup)
       {
          while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
