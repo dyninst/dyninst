@@ -1,10 +1,10 @@
 # Define variables for our compilers, if they aren't already defined
 M_gnu_cc ?= gcc
+M_gnu_cxx ?= g++
 M_ibm_as ?= as
 ifdef XLC
 M_native_cxx ?= xlC
 endif
-M_gnu_cxx ?= g++
 ifdef XLC
 M_native_cc ?= xlc
 endif
