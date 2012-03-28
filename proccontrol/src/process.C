@@ -990,11 +990,22 @@ bool int_process::waitAndHandleEvents(bool block)
          pthrd_printf("Clearing event from pipe after dequeue\n");
          notify()->clearEvent();
       }
-      gotEvent = true;
 
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
+      if (!llproc) {
+         //Seen on Linux--a event comes in on an exited process because the kernel
+         // doesn't synchronize events across threads.  We thus get a thread exit
+         // event after a process exit event.  Just drop this event on the
+         // floor.
+         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
+                      ev->getEventType().name().c_str(), proc->getPid());
+         continue;
+      }
       HandlerPool *hpool = llproc->handlerpool;
+
+      gotEvent = true;
+
       
       if (!ev->handling_started) {
          llproc->updateSyncState(ev, false);
