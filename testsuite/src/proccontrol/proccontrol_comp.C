@@ -535,7 +535,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       init_pipes(*j);
    }   
 
-   if (group->state != RUNNING) {
+   if (group->state != RUNNING && check_threads_on_startup) {
       for (vector<Process::ptr>::iterator i = procs.begin(); i != procs.end(); i++) {
          bool result = (*i)->stopProc();
          if (!result) {
