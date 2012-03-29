@@ -64,6 +64,7 @@ static int globalVariable19_2 = (int)0xdeadbeef;
 int test1_19_mutatee() {
     int retval = 0;
 
+	fprintf(stderr, "Mutatee calling stop_process_() time 1\n");
     stop_process_();
 
     if (globalVariable19_1 != MAGIC19_1) {
@@ -73,6 +74,7 @@ int test1_19_mutatee() {
 	retval = -1; /* Test failed */
     }
 
+	fprintf(stderr, "Mutatee calling stop_process_() time 2\n");
     stop_process_();
 
     if (globalVariable19_2 == MAGIC19_2) {
