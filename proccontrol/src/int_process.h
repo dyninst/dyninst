@@ -669,7 +669,7 @@ public:
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
    int_iRPC_ptr hasRunningProcStopperRPC() const;
-   virtual bool needsSyscallTrapForRPC() {
+   virtual bool notAvailableForRPC() {
 		return false;
    }
 

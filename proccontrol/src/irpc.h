@@ -235,7 +235,7 @@ class iRPCMgr
    
    bool postRPCToProc(int_process *proc, int_iRPC::ptr rpc);
    bool postRPCToThread(int_thread *thread, int_iRPC::ptr rpc);
-   int_thread *createThreadForRPC(int_process* proc, bool create_running);
+   int_thread *createThreadForRPC(int_process* proc, int_thread* best_candidate);
 
    int_iRPC::ptr createInfMallocRPC(int_process *proc, unsigned long size, bool use_addr, Dyninst::Address addr);
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);

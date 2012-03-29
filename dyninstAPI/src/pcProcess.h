@@ -514,8 +514,8 @@ protected:
     void incPendingEvents();
     void decPendingEvents();
     bool hasRunningSyncRPC() const;
-    void addSyncRPCThread(PCThread *thr);
-    void removeSyncRPCThread(PCThread *thr);
+	void addSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
+    void removeSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
     bool continueSyncRPCThreads();
 
     // ProcControl doesn't keep around a process's information after it exits.
@@ -592,7 +592,7 @@ protected:
     // Misc.
     baseTramp *irpcTramp_;
     bool inEventHandling_;
-    std::set<PCThread *> syncRPCThreads_;
+	std::set<Dyninst::ProcControlAPI::Thread::ptr> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
     DynSymReaderFactory *symReaderFactory_;
     std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
@@ -610,7 +610,7 @@ public:
         isComplete(false),
         deliverCallbacks(false),
         userData(NULL),
-        thread(NULL),
+		thread(Dyninst::ProcControlAPI::Thread::ptr()),
         synchronous(false),
         memoryAllocated(false)
     {}
@@ -630,7 +630,7 @@ public:
     bool isComplete;
     bool deliverCallbacks;
     void *userData;
-    PCThread *thread;
+	Dyninst::ProcControlAPI::Thread::ptr thread;
     bool synchronous; // caller is responsible for cleaning up this object
     bool memoryAllocated;
 };

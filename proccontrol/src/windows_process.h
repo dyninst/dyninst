@@ -105,7 +105,7 @@ public:
 
 	// Hacky system thread RPC idea
    virtual int_thread *RPCThread();
-   virtual int_thread *createRPCThread(bool create_running);
+   virtual int_thread *createRPCThread(int_thread* best_candidate);
    void destroyRPCThread();
 
    virtual void* plat_getDummyThreadHandle() const;

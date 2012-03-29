@@ -107,6 +107,21 @@ class WindowsHandleLWPDestroy : public Handler
      void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class HandleThreadDestroy;
+
+class WindowsHandleProcessExit : public Handler
+{
+ public:
+     WindowsHandleProcessExit();
+     virtual ~WindowsHandleProcessExit();
+     virtual handler_ret_t handleEvent(Event::ptr ev);
+     virtual int getPriority() const;
+     void getEventTypesHandled(std::vector<EventType> &etypes);
+private:
+	HandleThreadDestroy* do_work;
+};
+
+
 class WinHandleSingleStep : public Handler
 {
  public:

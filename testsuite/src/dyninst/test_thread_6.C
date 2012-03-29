@@ -349,9 +349,10 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    upgrade_mutatee_state();
    dprintf(stderr, "%s[%d]:  Now waiting for application to exit.\n", __FILE__, __LINE__);
 
-   while (!proc->isTerminated())
+   while (!proc->isTerminated()) {
+	   proc->continueExecution();
       bpatch->waitForStatusChange();
-
+   }
    num_attempts = 0;
    while(deleted_threads != NUM_THREADS && num_attempts != TIMEOUT) {
       num_attempts++;

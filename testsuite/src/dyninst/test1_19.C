@@ -101,7 +101,7 @@ test_results_t test1_19_Mutator::executeTest()
     BPatch_funcCallExpr call19_1Expr(*call19_1_func, nullArgs);
     checkCost(call19_1Expr);
 
-    appThread->oneTimeCode(call19_1Expr);
+    appProc->oneTimeCode(call19_1Expr);
 
     // Let the mutatee run to check the result
     appProc->continueExecution();
@@ -134,7 +134,7 @@ test_results_t test1_19_Mutator::executeTest()
     BPatchOneTimeCodeCallback oldCallback = 
        BPatch::bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
 
-    appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
+    appProc->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
     while (!appProc->isTerminated() && !appProc->isStopped() )
     {

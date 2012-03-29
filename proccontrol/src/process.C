@@ -44,6 +44,7 @@
 
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
+#include "proccontrol/src/windows_thread.h"
 #endif
 
 #include <cstring>
@@ -653,6 +654,11 @@ void int_process::setState(int_process::State s)
       (*i)->getUserState().setState(new_thr_state);
       (*i)->getHandlerState().setState(new_thr_state);
       (*i)->getGeneratorState().setState(new_thr_state);
+	  if(new_thr_state == int_thread::exited)
+	  {
+		  if((*i)->getPendingStopState().getState() != int_thread::dontcare)
+			  (*i)->getPendingStopState().restoreState();
+	  }
    }
 }
 
@@ -717,8 +723,9 @@ bool int_process::syncRunState()
       int_thread::State new_state = thr->getActiveState().getState();
       if (new_state == int_thread::ditto)
          new_state = thr->getHandlerState().getState();
-      thr->setTargetState(thr->getActiveState().getState());
+      thr->setTargetState(new_state);
    }
+
    //2)
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
@@ -731,12 +738,6 @@ bool int_process::syncRunState()
       }
       thr->throwEventsBeforeContinue();
    }
-#if defined(os_windows)
-   windows_process* wproc = dynamic_cast<windows_process*>(this);
-   assert(wproc);
-   int_thread* rpcthread = wproc->RPCThread();
-   if(rpcthread) rpcthread->throwEventsBeforeContinue();
-#endif
    //3)
    pthrd_printf("Checking if any ProcStop events on %d are ready\n", getPid());
    getProcStopManager().checkEvents();
@@ -746,9 +747,8 @@ bool int_process::syncRunState()
       int_thread::State new_state = thr->getActiveState().getState();
       if (new_state == int_thread::ditto)
          new_state = thr->getHandlerState().getState();
-      thr->setTargetState(thr->getActiveState().getState());
+      thr->setTargetState(new_state);
    }
-   
    if (dyninst_debug_proccontrol) {
       pthrd_printf("Current Threading State for %d:\n", getPid());
       for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
@@ -1970,6 +1970,7 @@ bool hybrid_lwp_control_process::plat_processGroupContinues()
 void hybrid_lwp_control_process::noteNewDequeuedEvent(Event::ptr ev)
 {
    if (ev->getSyncType() == Event::sync_process) {
+	   pthrd_printf("Marking %d debugger suspended on event: %s\n", getPid(), ev->name().c_str());
       debugger_stopped = true;
    }
 }
@@ -1995,24 +1996,29 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    int_threadPool::iterator i;
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
-      if (thr->getDetachState().getState() == int_thread::detached)
+	   pthrd_printf("Checking %d/%d\n", getPid(), thr->getLWP());
+	   if (thr->getDetachState().getState() == int_thread::detached) {
+		   pthrd_printf("%d/%d detached, skipping\n", getPid(), thr->getLWP());
          continue;
+	   }
 	  if (!RUNNING_STATE(thr->getHandlerState().getState())) {
+		   pthrd_printf("%d/%d not running, any_stopped = true\n", getPid(), thr->getLWP());
          any_stopped = true;
 	  } else {
+		   pthrd_printf("%d/%d running, any_running = true\n", getPid(), thr->getLWP());
          any_running = true;
          if (!a_running_thread) a_running_thread = thr;
       }
-		// Ignore system threads in computing target states. This may lead to some problems later, but we'll
-	  // deal with them as they arise.
-	  if(!thr->isUser())
-		  continue;
-      if (RUNNING_STATE(thr->getTargetState()))
+	  if (RUNNING_STATE(thr->getTargetState())) {
+		   pthrd_printf("%d/%d target running, any_target_running = true\n", getPid(), thr->getLWP());
          any_target_running = true;
-      if (!RUNNING_STATE(thr->getTargetState()))
+	  }
+	  if (!RUNNING_STATE(thr->getTargetState())) {
+		   pthrd_printf("%d/%d target stopped, any_target_stopped = true\n", getPid(), thr->getLWP());
          any_target_stopped = true;
+	  }
    }
-   if(!a_running_thread) {
+	if(!a_running_thread) {
 	   pthrd_printf("WARNING: did not find a running thread, using initial thread\n");
 	   a_running_thread = tp->initialThread();
    }
@@ -2034,10 +2040,17 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    // since we didn't trigger the above if statement, we must have some thread we want to run
    // (any_target_running)
    assert(!any_running && any_target_running);
+   pthrd_printf("Begin suspend/resume loop\n");
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       bool result = true;
-      if (thr->getDetachState().getState() == int_thread::detached)
+	  // DEBUG HACK
+	  windows_thread* wt = dynamic_cast<windows_thread*>(thr);
+	  if(wt) {
+		  wt->plat_suspend();
+		  wt->plat_resume();
+	  }
+	  if (thr->getDetachState().getState() == int_thread::detached)
          continue;
       if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
          pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
@@ -2467,6 +2480,7 @@ int_thread::State int_thread::getTargetState() const
 
 void int_thread::setTargetState(State s)
 {
+	pthrd_printf("%d/%d: setting target state %s\n", proc_->getPid(), getLWP(), RUNNING_STATE(s) ? "R" : "S");
    target_state = s;
 }
 
@@ -4139,6 +4153,7 @@ void int_notify::noteEvent()
    my_internals.noteEvent();
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
+   fprintf(stderr, "noteEvent - %d\n", events_noted);
    set<EventNotify::notify_cb_t>::iterator i;
    for (i = cbs.begin(); i != cbs.end(); ++i) {
       pthrd_printf("Calling notification CB\n");
@@ -4157,6 +4172,7 @@ void int_notify::clearEvent()
    assert(!isHandlerThread());
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
+   fprintf(stderr, "clearEvent - %d\n", events_noted);
    assert(events_noted == 0);
    my_internals.clearEvent();
 }
@@ -5213,7 +5229,9 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return Thread::ptr();
    }
-   llproc_->throwNopEvent();
+
+   if(!rpc->isAsync()) rpc->thread()->throwEventsBeforeContinue();
+   //llproc_->throwNopEvent();
    return rpc->thread()->thread();
 }
 

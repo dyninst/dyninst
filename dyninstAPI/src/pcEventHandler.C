@@ -249,9 +249,11 @@ void PCEventHandler::main() {
 Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     // Get access to the event mailbox
     PCProcess *process = (PCProcess *)ev->getProcess()->getData();
+    proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process);
 
     // This occurs when creating/attaching to the process
     if( process == NULL ) {
+	    proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__);
         return Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
     }
 
@@ -267,12 +269,14 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
         case EventType::Exit:
             // Anything but the default doesn't make sense for a Post-Exit process
             if( ev->getEventType().time() == EventType::Post ) {
+			    proccontrol_printf("%s[%d]: post-exit case = default/default\n", FILE__, __LINE__);
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
         case EventType::Crash:
             // Anything but the default doesn't make sense for a Crash
             if( ev->getEventType().time() != EventType::Pre ) {
+		    proccontrol_printf("%s[%d]: crash case = default/default\n", FILE__, __LINE__);
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
@@ -370,6 +374,9 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             eventHandler->pendingCallbackLock_.unlock();
         }
             break;
+		case EventType::LWPCreate:
+			ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
+			break;
         default:
             break;
     }
@@ -377,6 +384,7 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
     eventHandler->pendingCallbackLock_.lock();
     if( eventHandler->pendingCallbackRPCs_.size() ) {
+	    proccontrol_printf("%s[%d]: pending callback RPCs case, thread continue\n", FILE__, __LINE__);
         ret = Process::cb_ret_t(Process::cbThreadContinue);
     }
     eventHandler->pendingCallbackLock_.unlock();
@@ -495,6 +503,7 @@ PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
 }
 
 PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
+	eventHandlingLock.lock();
     bool handledEvent = false;
 
     // Empty the mailbox before returning
@@ -509,6 +518,7 @@ PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
     }
 
     return (handledEvent ? EventsReceived : NoEvents);
+	eventHandlingLock.unlock();
 }
 
 bool PCEventHandler::eventMux(Event::const_ptr ev) const {
@@ -1420,7 +1430,7 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
     // If it is synchronous, the caller is responsible for de-allocating the object
     if( rpcInProg->synchronous ) {
         rpcInProg->isComplete = true;
-        evProc->removeSyncRPCThread(rpcInProg->thread);
+		evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
         delete rpcInProg;
     }

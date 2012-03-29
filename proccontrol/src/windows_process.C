@@ -107,7 +107,7 @@ windows_process::~windows_process()
 {
 	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 	winGen->removeProcess(this);
-	::CloseHandle(hproc);
+	// Do NOT close the process handle; that's handled by ContinueDebugEvent. Closing the file is okay.
 	::CloseHandle(hfile);
 	
 }
@@ -299,12 +299,12 @@ bool windows_process::plat_supportLWPCreate() const
 
 bool windows_process::plat_supportLWPPreDestroy() const
 {
-	return false;
+	return true;
 }
 
 bool windows_process::plat_supportLWPPostDestroy() const
 {
-	return true;
+	return false;
 }
 
 bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
@@ -478,12 +478,12 @@ bool windows_process::plat_isStaticBinary()
 	return false;
 }
 
-int_thread *iRPCMgr::createThreadForRPC(int_process* proc, bool create_running)
+int_thread *iRPCMgr::createThreadForRPC(int_process* proc, int_thread* best_candidate)
 {
 	windows_process* winProc = dynamic_cast<windows_process*>(proc);
 	assert(winProc);
 
-	return winProc->createRPCThread(create_running);
+	return winProc->createRPCThread(best_candidate);
 }
 
 bool windows_process::addrInSystemLib(Address addr) {
@@ -531,7 +531,8 @@ int_thread *windows_process::RPCThread() {
 	return dummyRPCThread_;
 }
 
-int_thread *windows_process::createRPCThread(bool) {
+int_thread *windows_process::createRPCThread(int_thread* best_candidate) {
+	if(best_candidate) return best_candidate;
 	if (!dummyRPCThread_) {
 		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createRPCThread(this));
 		pthrd_printf("Creating RPC thread: 0x%lx\n", dummyRPCThread_);
@@ -563,7 +564,7 @@ void windows_process::instantiateRPCThread() {
 
 	// 2)
 	Dyninst::LWP lwp;
-	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, CREATE_SUSPENDED, (LPDWORD)&lwp);
+	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, 0, (LPDWORD)&lwp); // not create_suspended anymore
 	pthrd_printf("*********************** Created actual thread with lwp %d, hthrd %x for dummy RPC thread, start at 0x%lx\n",
 		(int) lwp, hthrd, dummyStart);
 
@@ -576,6 +577,7 @@ void windows_process::instantiateRPCThread() {
 	dummyRPCThread_->markRPCRunning();
 
 	getStartupTeardownProcs().inc();
+	// And match whether we're actually suspended
 	dummyRPCThread_->setSuspended(true);
 
 }

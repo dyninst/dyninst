@@ -100,7 +100,15 @@ int pc_irpc_mutatee()
       output->log(STDERR, "Failed to send val addr message\n");
       return -1;
    }
-
+#if defined(os_windows_test)
+   Sleep(5000);
+#endif
+   result = recv_message((unsigned char *) &msg, sizeof(syncloc));
+   if (result == -1) {
+      output->log(STDERR, "Failed to recv sync message\n");
+      testUnlock(&init_lock);
+      return -1;
+   }
 
    if (msg.code != SYNCLOC_CODE) {
       output->log(STDERR, "Recieved unexpected sync message\n");

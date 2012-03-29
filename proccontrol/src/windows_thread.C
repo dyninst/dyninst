@@ -105,7 +105,7 @@ dummyRpcPC_(0)
 
 windows_thread::~windows_thread() 
 {
-	::CloseHandle(hthread);
+	// Do NOT close the handle here. That's handled when ContinueDebugEvent is called on the thread exit event.
 }
 
 void windows_thread::setHandle(HANDLE h)
@@ -180,7 +180,7 @@ done:
 		plat_resume();
 	}
 
-	plat_resume();
+	//plat_resume();
 
 	return ok;
 }
@@ -207,8 +207,12 @@ bool windows_thread::plat_stop()
 		if(result == -1) {
 			int err = ::GetLastError();
 			pthrd_printf("Error from DebugBreakProcess: %d\n", err);
+		} else {
+			// Don't force this thread to run. We want to force the *actual* stop thread to run.
+			wproc->setPendingDebugBreak();
+			setPendingStop(false);
+			return true;
 		}
-		wproc->setPendingDebugBreak();
 	}
 	return result != -1;
 }
@@ -342,8 +346,13 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 		c.Eip = regpool.regs[x86::eip];
 	}
 	BOOL ok = ::SetThreadContext(hthread, &c);
+	if(!ok) {
+		int error = GetLastError();
+		pthrd_printf("Couldn't set registers: error code %d\n", error);
+	}
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
-	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	fprintf(stderr, "          TF = %s\n", (c.EFlags & TF_BIT) ? "true" : "false" );
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(hthread, &verification);
@@ -386,9 +395,9 @@ bool windows_thread::haveUserThreadInfo()
 	return m_StartAddr != 0;
 }
 
-bool windows_thread::getTID(Dyninst::THR_ID& tid)
+bool windows_thread::getTID(Dyninst::THR_ID& t)
 {
-	tid = this->tid;
+	t = tid;
 	return true;
 }
 
@@ -494,9 +503,10 @@ void windows_thread::setTLSAddress( Dyninst::Address addr )
 	m_TLSAddr = addr;
 }
 
-bool windows_thread::needsSyscallTrapForRPC()
+bool windows_thread::notAvailableForRPC()
 {
 	if (isRPCpreCreate()) return false;
+	if (!isUser()) return true;
 
 	int_registerPool regs;
 	plat_getAllRegisters(regs);
@@ -505,10 +515,15 @@ bool windows_thread::needsSyscallTrapForRPC()
 	proc_->plat_readMem(this, prevInsn, prevInsnIfSysenter, 2);
 	if((prevInsn[0] == 0x0F) && (prevInsn[1] == 0x34)) // sysenter
 	{
-		pthrd_printf("%d/%d: Found sysenter at 0x%lx, need trap for RPC here\n", llproc()->getPid(), tid, prevInsnIfSysenter);
+		pthrd_printf("%d/%d: Found sysenter at 0x%lx, thread cannot run RPC\n", llproc()->getPid(), tid, prevInsnIfSysenter);
 		return true;
 	}
-	pthrd_printf("Thread at 0x%lx does not need trap for RPC\n", regs.regs[x86::eip]);
+	if((prevInsn[1] & 0xff) == 0xcc) // trap
+	{
+		pthrd_printf("%d/%d: Found trap at 0x%lx, thread cannot run RPC\n", llproc()->getPid(), tid, prevInsnIfSysenter + 1);
+		//return true;
+	}
+	pthrd_printf("Thread at 0x%lx does not need trap for RPC, prevInsn[1] = 0x%x\n", regs.regs[x86::eip], prevInsn[1]);
 	return false;
 }
 

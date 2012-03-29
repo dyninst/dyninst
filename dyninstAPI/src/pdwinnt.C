@@ -1637,12 +1637,16 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
     switch(et.code()) {
         case Dyninst::ProcControlAPI::EventType::Exit:
             switch(et.time()) {
-                case Dyninst::ProcControlAPI::EventType::Pre:
-                    // Using the RT library breakpoint allows us to determine
-                    // the exit code in a uniform way across Unices
-					return BothCallbackBreakpoint;
                 case Dyninst::ProcControlAPI::EventType::Post:
-                    return CallbackOnly;
+					return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+		case Dyninst::ProcControlAPI::EventType::LWPDestroy:
+            switch(et.time()) {
+                case Dyninst::ProcControlAPI::EventType::Pre:
+					return CallbackOnly;
                 default:
                     break;
             }
@@ -1681,7 +1685,6 @@ bool PCEventHandler::shouldStopForSignal(int signal)
 	switch(signal)
 	{
 		case EXCEPTION_BREAKPOINT:
-		case EXCEPTION_SINGLE_STEP:
 			return true;
 	}
 	return false;
@@ -1696,7 +1699,17 @@ bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal
 
             proccontrol_printf("%s[%d]: child received signal %d\n",
                     FILE__, __LINE__, EXCEPTION_BREAKPOINT);
-        }else{
+        } else if( breakpointVal == SoftRTBreakpoint ) {
+            if( status == DSE_forkExit ) {
+                if( arg1 == 0 ) return true;
+
+                proccontrol_printf("%s[%d]: parent process received SIGSTOP\n",
+                        FILE__, __LINE__);
+            }else{
+                proccontrol_printf("%s[%d]: SIGSTOP wasn't due to fork exit\n",
+                        FILE__, __LINE__);
+            }
+        } else {
             proccontrol_printf("%s[%d]: mismatch in signal for breakpoint type\n",
                     FILE__, __LINE__);
         }

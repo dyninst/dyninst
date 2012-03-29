@@ -230,7 +230,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 						pthrd_printf("Decoded unhandled exception (breakpoint) event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						// Case 3: breakpoint that's not from us, while running. Pass on exception.
 						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
-						winGen->markUnhandledException(e.dwProcessId);
 						newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
 					}
 				}
@@ -269,8 +268,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			// Thread naming exception. Ignore.
 		case EXCEPTION_DEBUGGER_IO: {
 			pthrd_printf("Debugger I/O exception: %lx\n", e.u.Exception.ExceptionRecord.ExceptionInformation[0]);
-			// 9NOV11 - wake up the generator because we're not creating an event for this.
-			GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 			newEvt = EventNop::ptr(new EventNop());
 			newEvt->setSyncType(Event::async);
 			break;
@@ -282,7 +279,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
-				assert(0);
 			}
 			break;
 		}
@@ -294,12 +290,14 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				newEvt = EventForceTerminate::ptr(new EventForceTerminate(e.u.ExitProcess.dwExitCode));
 			}
 			else {
-				newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
+				newEvt = EventExit::ptr(new EventExit(EventType::Pre, e.u.ExitProcess.dwExitCode));
 			}
 			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 			winGen->removeProcess(proc);
 			newEvt->setSyncType(Event::sync_process);
 			newEvt->setProcess(proc->proc());
+			// Since we're doing thread exit/proc exit, and this means the thread will go away first,
+			// we don't set the thread here
 			if(thread)
 				newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
@@ -308,7 +306,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				(*i)->getGeneratorState().setState(int_thread::exited);
 		 		(*i)->setExitingInGenerator(true);
 			}
-			events.push_back(newEvt);
+			Event::ptr associatedLWPDestroy = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+			associatedLWPDestroy->setProcess(proc->proc());
+			associatedLWPDestroy->setSyncType(Event::sync_process);
+			if(thread)
+				associatedLWPDestroy->setThread(thread->thread());
+			//associatedLWPDestroy->addSubservientEvent(newEvt);
+			events.push_back(associatedLWPDestroy);
 
 			return true;
 		}
@@ -318,7 +322,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		if(thread) {
 			thread->getGeneratorState().setState(int_thread::exited);
 			thread->setExitingInGenerator(true);
-			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
 		} else {
 			// If the thread is NULL, we can't give the user an event with a valid thread object anymore.
 			// So fail the decode.

@@ -156,9 +156,10 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 
 	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
 	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
-	pthrd_printf("::ContinueDebugEvent for %d/%d getting called\n", winEvt->evt.dwProcessId, winEvt->evt.dwThreadId);
+	pthrd_printf("::ContinueDebugEvent for %d/%d getting called, exception is %s\n", winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, (theWaiter->unhandled_exception ? "<NOT HANDLED>" : "<HANDLED>"));
 	//cerr << "continueDebugEvent" << endl;
 	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
+//	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, DBG_CONTINUE);
 	if (!retval) {
 		std::cerr << "ContinueDebugEvent failed, you're so screwed." << std::endl;
 	}

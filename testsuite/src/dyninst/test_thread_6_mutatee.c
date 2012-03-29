@@ -50,7 +50,9 @@ volatile int threads_running[NTHRD];
 void *init_func(void *arg)
 {
    threads_running[(int) (long) arg] = 1;
+   fprintf(stderr, "before while\n");
    while (!done);
+   fprintf(stderr, "after a while\n");
    return arg;
 }
 
@@ -64,6 +66,7 @@ int test_thread_6_mutatee() {
    initThreads();
 
    for (i=0; i<NTHRD; i++)  {
+	   fprintf(stderr, "spawning new thread\n");
        threads[i] = spawnNewThread((void *) init_func, (void *) i);
    }
 

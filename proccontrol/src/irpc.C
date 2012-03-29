@@ -331,7 +331,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       {
          continue;
       }
-	  if (!thr->isUser()) {
+	  if(thr->notAvailableForRPC()) {
 		  pthrd_printf("Skipping thread that is marked as system\n");
 		  continue;
 	  }
@@ -355,7 +355,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
          min_rpc_count = rpc_count;
       }
    }
-   selected_thread = createThreadForRPC(proc, found_user_running_thread);
+   selected_thread = createThreadForRPC(proc, selected_thread);
    pthrd_printf("Selected thread %d for iRPC %d\n", selected_thread->getLWP(), rpc->id());
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
@@ -709,6 +709,8 @@ bool int_iRPC::saveRPCState()
                    thrd->llproc()->getPid(), thrd->getLWP());
       bool result = thread()->saveRegsForRPC(regsave_result);
       assert(result);
+	  // DEBUG HACK: x86 only...
+	  pthrd_printf("Thread was at %p\n", regsave_result->getRegPool()->regs[x86::eip]);
    }
    
    if (shouldSaveData() && !allocation()->orig_data)
@@ -826,7 +828,7 @@ bool int_iRPC::runIRPC()
 
    if (isProcStopRPC()) {
       thrd->getIRPCWaitState().desyncStateProc(int_thread::stopped);
-      thrd->getIRPCState().desyncState(int_thread::running);
+	  thrd->getIRPCState().desyncState(int_thread::running);
       thrd->getIRPCSetupState().restoreStateProc();
    }
    else if (thrd->llproc()->plat_threadOpsNeedProcStop()) {
