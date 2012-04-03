@@ -95,7 +95,7 @@ class AddressSet
    /**
     * Standard iterators methods and container access
     **/
-   typedef pair<Address, Process::ptr> value_type;
+   typedef std::pair<Address, Process::ptr> value_type;
    typedef std::multimap<Dyninst::Address, Process::ptr>::iterator iterator;
    typedef std::multimap<Dyninst::Address, Process::ptr>::const_iterator const_iterator;
 
@@ -129,10 +129,10 @@ class AddressSet
     **/
    iterator lower_bound(Dyninst::Address a);
    iterator upper_bound(Dyninst::Address a);
-   pair<iterator, iterator> equal_range(Dyninst::Address a);
+   std::pair<iterator, iterator> equal_range(Dyninst::Address a);
    const_iterator lower_bound(Dyninst::Address a) const;
    const_iterator upper_bound(Dyninst::Address a) const;
-   pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
+   std::pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
 
    /**
     * Return a new set by performing these set operations with another AddressSet
@@ -370,11 +370,13 @@ class ThreadSet {
   public:
    typedef dyn_detail::boost::shared_ptr<ThreadSet> ptr;
    typedef dyn_detail::boost::shared_ptr<const ThreadSet> const_ptr;
+   int_threadSet *getIntThreadSet() const;
 
    /**
     * Create a new ThreadSet given existing threads
     **/
    static ThreadSet::ptr newThreadSet();
+   static ThreadSet::ptr newThreadSet(Thread::ptr thr);
    static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
    static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &threads);
    static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps);

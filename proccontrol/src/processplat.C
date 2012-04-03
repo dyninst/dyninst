@@ -173,7 +173,17 @@ BlueGeneQProcess::~BlueGeneQProcess()
 {
 }
 
-bool BlueGeneQProcess::walkStack(list<Address> &sw_addrs)
+bool BlueGeneQProcess::walkStack(Thread::ptr thr, CallStackCallback *stk_cb)
+{
+   ThreadSet::ptr thrset = ThreadSet::newThreadSet(thr);
+   return BlueGeneQProcess::walkStack(thrset, stk_cb);
+}
+
+CallStackCallback::CallStackCallback() :
+   top_first(top_first_default_value)
 {
 }
 
+CallStackCallback::~CallStackCallback()
+{
+}

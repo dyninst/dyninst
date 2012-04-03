@@ -81,6 +81,7 @@ class Transaction
    
    void growTransactionBuffer(size_t size)
    {
+      void *temp;
       if (size <= packet_buffer_maxsize) {
          if (!packet_buffer) {
             packet_buffer = (char *) malloc(packet_buffer_maxsize);
@@ -89,7 +90,12 @@ class Transaction
          return;
       }
       size += 64; //little extra padding to reduce growth operations
-      packet_buffer = (char *) realloc(packet_buffer, size);
+      temp = realloc(packet_buffer, size);
+#warning remove next print
+      pthrd_printf("Grew transaction buffer, from pointer %p of size %lu to pointer %p of size %lu\n", 
+                   packet_buffer, packet_buffer_maxsize,
+                   temp, size);
+      packet_buffer = (char *) temp;
       assert(packet_buffer);
       packet_buffer_maxsize = size;
    }
@@ -192,6 +198,7 @@ class Transaction
       //growTransactionBuffer(next_start_offset + cmd_size);
       //memcpy(packet_buffer + next_start_offset, &cmd, cmd_size);
       copyToTransactionBuffer(cmd, cmd_size);
+      msg = (CmdType *) packet_buffer;
 
       CommandDescriptor &this_cmd = msg->cmdList[transaction_index];
       this_cmd.type = cmd_type;
@@ -200,6 +207,7 @@ class Transaction
       this_cmd.length = cmd_size;
       this_cmd.returnCode = 0;
       msg->numCommands = ++transaction_index;
+      pthrd_printf("msg->numCommands = %lu (%p)\n", (unsigned long) msg->numCommands, msg);
 
       if (temporary_transaction) {
          //If we started a temporary transaction, then end it.

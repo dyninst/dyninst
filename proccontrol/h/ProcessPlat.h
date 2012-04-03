@@ -91,6 +91,7 @@ class ThreadDBProcess : virtual public PlatformProcess
   public:
    static void setDefaultTrackThreads(bool b);
    static bool getDefaultTrackThreads();
+
    void setTrackThreads(bool b) const;
    bool getTrackThreads() const;
    bool refreshThreads();
@@ -98,19 +99,32 @@ class ThreadDBProcess : virtual public PlatformProcess
 
 class LinuxProcess : public SysVProcess, public ThreadDBProcess
 {
-  protected:
-   virtual ~LinuxProcess();
   public:
    LinuxProcess();
+   virtual ~LinuxProcess();
+};
+
+class CallStackCallback : virtual public PlatformProcess
+{
+  private:
+   static const bool top_first_default_value = false;
+  public:
+   bool top_first;
+   CallStackCallback();
+   virtual bool beginStackWalk(Thread::ptr thr) = 0;
+   virtual bool addStackFrame(Thread::ptr thr, Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp) = 0;
+   virtual void endStackWalk(Thread::ptr thr) = 0;
+   virtual ~CallStackCallback();
 };
 
 class BlueGeneQProcess : public SysVProcess, public ThreadDBProcess
 {
-  protected:
+  public:
    BlueGeneQProcess();
    virtual ~BlueGeneQProcess();
-  public:
-   bool walkStack(std::list<Address> &sw_addrs);
+
+   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb);
+   static bool walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb);
 };
 
 }

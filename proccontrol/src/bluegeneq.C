@@ -33,6 +33,7 @@
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/h/Process.h"
+#include "proccontrol/h/ProcessPlat.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Mailbox.h"
 
@@ -69,7 +70,7 @@ const char *bgq_process::tooltag = DEFAULT_TOOL_TAG;
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
 bool bgq_process::set_ids = false;
-bool bgq_process::do_all_attach = false;
+bool bgq_process::do_all_attach = true;
 uint8_t bgq_process::priority = DEFAULT_TOOL_PRIORITY;
 
 static const char *getCommandName(uint16_t cmd_type);
@@ -266,7 +267,6 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    page_size_set(false),
    debugger_suspended(false),
    decoder_pending_stop(false),
-   have_pending_message(false),
    rank(pid),
    page_size(0),
    interp_base(0),
@@ -723,6 +723,7 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       else {
          ScopeLock lock(cn->attach_lock);
+         pthrd_printf("Doing all attach\n");
          if (cn->all_attach_error) {
             pthrd_printf("CN attach left us in an error state, failng attach to %d\n", getPid());
             setState(int_process::errorstate);
@@ -779,14 +780,18 @@ bool bgq_process::handleStartupEvent(void *data)
 
    if (startup_state == waitfor_attach) {
       AttachAckMessage *attach_ack = static_cast<AttachAckMessage *>(data);
+      bool attach_retcode = attach_ack->header.returnCode;
+      free(attach_ack);
+      attach_ack = NULL;
+      
       if (cn->issued_all_attach) {
          ScopeLock lock(cn->attach_lock);
          cn->all_attach_done = true;
          set<ToolMessage *>::iterator i;
-
-         if (attach_ack->header.returnCode != Success) {
-            perr_printf("Group attach returned error %d: %s\n", (int) attach_ack->header.returnCode,
-                        bgq_process::bgqErrorMessage(attach_ack->header.returnCode));
+         
+         if (attach_retcode != Success) {
+            perr_printf("Group attach returned error %d: %s\n", (int) attach_retcode,
+                        bgq_process::bgqErrorMessage(attach_retcode));
             setState(int_process::errorstate);
             cn->all_attach_error = true;
             for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
@@ -837,24 +842,31 @@ bool bgq_process::handleStartupEvent(void *data)
    
    if (startup_state == waitfor_control_request_ack) {
       ControlAckMessage *ctrl_ack = static_cast<ControlAckMessage *>(data);
-      if (ctrl_ack->header.returnCode != Success) {
+      uint16_t controllingToolId = ctrl_ack->controllingToolId;
+      char toolTag[ToolTagSize];
+      memcpy(toolTag, ctrl_ack->toolTag, ToolTagSize);
+      uint8_t tool_priority = ctrl_ack->priority;
+      uint32_t ctrl_retcode = ctrl_ack->header.returnCode;
+      free(ctrl_ack);
+      ctrl_ack = NULL;
+
+      if (ctrl_retcode != Success) {
          perr_printf("Error return in ControlAckMessage: %s\n",
-                     bgqErrorMessage(ctrl_ack->header.returnCode));
+                     bgqErrorMessage(ctrl_retcode));
          setLastError(err_internal, "Could not send ControlMessage\n");
          return false;                     
       }
-      
-      if (ctrl_ack->controllingToolId != bgq_process::getToolID()) {
+      if (controllingToolId != bgq_process::getToolID()) {
          pthrd_printf("Tool '%s' with ID %d has authority at priority %d\n", 
-                      ctrl_ack->toolTag, ctrl_ack->controllingToolId, ctrl_ack->priority);
-         if (ctrl_ack->priority > priority) {
+                      toolTag, controllingToolId, tool_priority);
+         if (tool_priority > priority) {
             pthrd_printf("WARNING: Tool %s has higher priority (%d > %d), running in Query-Only mode\n",
-                         ctrl_ack->toolTag, ctrl_ack->priority, priority);
+                         toolTag, tool_priority, priority);
             startup_state = issue_data_collection;
          }
          else {
             pthrd_printf("Waiting for control priority release from %s (%d < %d)\n",
-                         ctrl_ack->toolTag, ctrl_ack->priority, priority);
+                         toolTag, tool_priority, priority);
             startup_state = waitfor_control_request_notice;
             return true;
          }
@@ -886,6 +898,7 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       else
          assert(0);
+      free(notify_msg);
    }
 
    if (startup_state == waitfor_control_request_signal) {
@@ -899,6 +912,7 @@ bool bgq_process::handleStartupEvent(void *data)
       thrd->getStartupState().desyncStateProc(int_thread::stopped);
       
       startup_state = issue_data_collection;
+      free(notify_msg);
    }
    if (startup_state == skip_control_request_signal) {
       int_thread *thrd = threadPool()->initialThread();
@@ -1041,6 +1055,11 @@ bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, respons
       assert(0); //Are we trying to send an Ack?
    }
    return false;
+}
+
+PlatformProcess *bgq_process::plat_getPlatformProcess()
+{
+   return dynamic_cast<PlatformProcess *>(new BlueGeneQProcess());
 }
 
 #define CMD_RET_SIZE(X) case X: return sizeof(X ## Cmd)
@@ -1353,6 +1372,86 @@ bool bgq_process::isActionCommand(uint16_t cmd_type)
    return false;
 }
 
+bool bgq_process::plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp)
+{
+   GetThreadDataCmd thr_cmd;
+
+   thr_cmd.threadID = thr->getLWP();
+
+   bool result = sendCommand(thr_cmd, GetThreadData, stk_resp);
+   if (!result) {
+      setLastError(err_internal, "Error while asking for thread data\n");
+      perr_printf("Could not send GetThreadData to %d/%d\n", 
+                  thr->llproc()->getPid(), thr->getLWP());
+      return false;
+   }
+   
+   //Needed to track to know when to free the ArchEventBGQ objects
+   // associated with the stackwalks.
+   num_pending_stackwalks++;
+   return true;
+}
+
+bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs)
+{
+   GetThreadDataAckCmd *thrdata = static_cast<GetThreadDataAckCmd *>(stk_resp->getData());
+   int_thread *t = stk_resp->getThread();
+   assert(stk_resp);
+   assert(t);
+   Thread::ptr thr = t->thread();
+   bool had_error = false, result;
+   
+   assert(num_pending_stackwalks > 0);
+   num_pending_stackwalks--;
+
+   if (stk_resp->hasError()) {
+      perr_printf("Error getting thread data on %d/%d", t->llproc()->getPid(), thr->getLWP());
+      setLastError(err_internal, "Error receiving thread data\n");
+      had_error = true;
+      goto done;
+   }
+
+   result = cbs->beginStackWalk(thr);
+   if (!result) {
+      pthrd_printf("User choose not to receive call stack data for %d/%d\n",
+                   t->llproc()->getPid(), t->getLWP());
+      goto done;
+   }
+
+   if (cbs->top_first) {
+      for (signed int i=thrdata->numStackFrames-1; i >= 0; i--) {
+         result = cbs->addStackFrame(thr, thrdata->stackInfo[i].savedLR, thrdata->stackInfo[i].frameAddr, 0);
+         if (!result)
+            break;
+      }
+   }
+   else {
+      for (unsigned int i=0; i < thrdata->numStackFrames; i++) {
+         result = cbs->addStackFrame(thr, thrdata->stackInfo[i].savedLR, thrdata->stackInfo[i].frameAddr, 0);
+         if (!result)
+            break;
+      }
+   }
+   if (!result) {
+      pthrd_printf("User choose not to continue receive call stack data for %d/%d\n",
+                   t->llproc()->getPid(), t->getLWP());
+      goto done;
+   }
+
+   cbs->endStackWalk(thr);
+  done:
+   if (!num_pending_stackwalks) {
+      for (set<void *>::iterator i = held_msgs.begin(); i != held_msgs.end(); i++) {
+         free(*i);
+      }
+      held_msgs.clear();
+   }
+   return !had_error;
+}
+
+set<void *> bgq_process::held_msgs;
+unsigned int bgq_process::num_pending_stackwalks = 0;
+
 int_thread *int_thread::createThreadPlat(int_process *proc, 
                                          Dyninst::THR_ID thr_id, 
                                          Dyninst::LWP lwp_id,
@@ -1360,6 +1459,17 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 {
    bgq_thread *qthrd = new bgq_thread(proc, thr_id, lwp_id);
    assert(qthrd);
+
+   map<int, int> &states = proc->getProcDesyncdStates();
+   int myid = StartupStateID;
+   map<int, int>::iterator i = states.find(myid);
+   if (i != states.end()) {
+      int_thread::State ns = proc->threadPool()->initialThread()->getStartupState().getState();      
+      for (int j = 0; j < i->second; j++) {
+         qthrd->getStartupState().desyncState(ns);
+      }
+   }
+
    return static_cast<int_thread *>(qthrd);
 }
 
@@ -1841,7 +1951,12 @@ ComputeNode *ComputeNode::getComputeNodeByRank(uint32_t rank)
 }
 
 ComputeNode::ComputeNode(int cid) :
-   cn_id(cid)
+   cn_id(cid),
+   do_all_attach(bgq_process::do_all_attach),
+   issued_all_attach(false),
+   all_attach_done(false),
+   all_attach_error(false),
+   have_pending_message(false)
 {
    sockaddr_un saddr;
    int result;
@@ -1920,7 +2035,7 @@ bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 
 bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
 {
-   if (proc->have_pending_message) {
+   if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
       pair<void *, size_t> newmsg;
       newmsg.second = msg->header.length;
@@ -1931,7 +2046,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
          newmsg.first = malloc(newmsg.second);
          memcpy(newmsg.first, msg, newmsg.second);
       }
-      proc->queued_pending_msgs.push(newmsg);
+      queued_pending_msgs.push(newmsg);
       return true;
    }
 
@@ -1947,34 +2062,35 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
       return false;
    }
    
-   proc->have_pending_message = true;
+   have_pending_message = true;
    return true;
 }
 
 bool ComputeNode::flushNextMessage(bgq_process *proc)
 {
-   if (proc->queued_pending_msgs.empty()) {
-      proc->have_pending_message = false;
+   if (queued_pending_msgs.empty()) {
+      have_pending_message = false;
       return true;
    }
 
-   pair<void *, size_t> buffer = proc->queued_pending_msgs.front();
-   proc->queued_pending_msgs.pop();
+   pair<void *, size_t> buffer = queued_pending_msgs.front();
+   queued_pending_msgs.pop();
 
+   printMessage((ToolMessage *) buffer.first, "Writing");
    bool result = reliableWrite(buffer.first, buffer.second);
    free(buffer.first);
    if (!result) {
       pthrd_printf("Failed to flush message to %d\n", proc->getPid());
-      proc->have_pending_message = false;
+      have_pending_message = false;
       return false;
    }
-   proc->have_pending_message = true;
+   have_pending_message = true;
    return true;
 }
 
 bool ComputeNode::handleMessageAck(bgq_process *proc)
 {
-   assert(proc->have_pending_message);
+   assert(have_pending_message);
    return flushNextMessage(proc);
 }
 
@@ -1987,7 +2103,7 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
    ScopeLock lock(attach_lock);
 
    if (!all_attach_done) {
-      proc->have_pending_message = true;
+      have_pending_message = true;
    }
    return writeToolMessage(proc, msg, heap_alloced);
 }
@@ -2116,7 +2232,7 @@ GeneratorBGQ::GeneratorBGQ() :
    if (result == -1) {
       int error = errno;
       perr_printf("Error creating kick pipe: %s\n", strerror(error));
-      setLastError(err_internal, "Could not create internal file descriptors\n");
+      globalSetLastError(err_internal, "Could not create internal file descriptors\n");
       kick_pipe[0] = kick_pipe[1] = -1;
    }
    decoders.insert(new DecoderBlueGeneQ());
@@ -2146,7 +2262,7 @@ ArchEvent *GeneratorBGQ::getEvent(bool)
    return NULL;
 }
 
-bool GeneratorBGQ::getEvent(bool block, vector<ArchEvent *> &events)
+bool GeneratorBGQ::getMultiEvent(bool block, vector<ArchEvent *> &events)
 {
    bool have_fd = false;
    int max_fd = kick_pipe[0];
@@ -2250,7 +2366,7 @@ bool GeneratorBGQ::reliableRead(int fd, void *buffer, size_t buffer_size, int ti
       else if (result == -1) {
          int error = errno;
          perr_printf("Failed to read from FD %d: %s\n", fd, strerror(error));
-         setLastError(err_internal, "Failed to read from CDTI file descriptor");
+         globalSetLastError(err_internal, "Failed to read from CDTI file descriptor");
          return false;
       }
       else if (result == 0) {
@@ -2373,8 +2489,9 @@ ArchEventBGQ::ArchEventBGQ(ToolMessage *m) :
 
 ArchEventBGQ::~ArchEventBGQ()
 {
-   if (msg && free_msg)
+   if (msg && free_msg) {
       free(msg);
+   }
    msg = NULL;
 }
 
@@ -2385,7 +2502,7 @@ ToolMessage *ArchEventBGQ::getMsg() const
 
 void ArchEventBGQ::dontFreeMsg()
 {
-   free_msg = true;
+   free_msg = false;
 }
 
 DecoderBlueGeneQ::DecoderBlueGeneQ()
@@ -2547,6 +2664,27 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             getResponses().unlock();
             break;
          }
+         case GetThreadDataAck: {
+            pthrd_printf("Decoded new event on %d to GetThreadDataAck message\n", proc->getPid());
+            stack_response::ptr stkresp = cur_resp->getStackResponse();
+            GetThreadDataAckCmd *cmd = static_cast<GetThreadDataAckCmd *>(base_cmd);
+            assert(stkresp);
+            assert(cmd);
+            archevent->dontFreeMsg();
+            bgq_process::held_msgs.insert(msg);
+            stkresp->postResponse((void *) cmd);
+            if (desc->returnCode) 
+               stkresp->markError(desc->returnCode);
+            
+            Event::ptr new_ev = decodeCompletedResponse(stkresp, async_ev_map);
+            if (new_ev)
+               events.push_back(new_ev);
+            
+            resp_lock_held = false;
+            getResponses().signal();
+            getResponses().unlock();
+            break;
+         }
          case GetThreadListAck:
             pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
@@ -2560,7 +2698,6 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             decodeStartupEvent(archevent, proc, msg, Event::async, events);
             break;
          }
-         case GetThreadDataAck:
          case GetPreferencesAck:
          case GetFilenamesAck:
          case GetFileStatDataAck:
@@ -2646,6 +2783,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
       }
       assert(!resp_lock_held);
    }
+
+   delete archevent;
 
    if (resp_set)
       delete resp_set;

@@ -47,6 +47,7 @@ class mem_response;
 class result_response;
 class reg_response;
 class allreg_response;
+class stack_response;
 class HandlerPool;
 
 class response : public dyn_detail::boost::enable_shared_from_this<response> {
@@ -79,6 +80,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
       rt_reg,
       rt_allreg,
       rt_mem,
+      rt_stack,
       rt_set
    } resp_type_t;
    resp_type_t resp_type;
@@ -100,6 +102,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    dyn_detail::boost::shared_ptr<mem_response> getMemResponse();
    dyn_detail::boost::shared_ptr<reg_response> getRegResponse();
    dyn_detail::boost::shared_ptr<allreg_response> getAllRegResponse();
+   dyn_detail::boost::shared_ptr<stack_response> getStackResponse();
    
    bool isReady() const;
    bool isPosted() const;
@@ -255,6 +258,28 @@ class mem_response : public response
    void postResponse();
    void setLastBase(Address a);
    Address lastBase();
+};
+
+class stack_response : public response
+{
+   friend void dyn_detail::boost::checked_delete<stack_response>(stack_response *);
+   friend void dyn_detail::boost::checked_delete<const stack_response>(const stack_response *);
+  private:
+   void *data;
+   int_thread *thr;
+   stack_response(int_thread *t);
+
+  public:
+   typedef dyn_detail::boost::shared_ptr<stack_response> ptr;
+   typedef dyn_detail::boost::shared_ptr<const stack_response> const_ptr;
+
+   static stack_response::ptr createStackResponse(int_thread *t);
+
+   virtual ~stack_response();
+
+   void *getData();
+   int_thread *getThread();
+   void postResponse(void *d);
 };
 
 class ResponseSet {

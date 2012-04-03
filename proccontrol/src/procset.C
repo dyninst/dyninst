@@ -39,6 +39,9 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
+
+#include "common/h/Types.h"
+
 #include <stdlib.h>
 #include <map>
 #include <algorithm>
@@ -1959,6 +1962,12 @@ ThreadSet::ptr ThreadSet::newThreadSet(const set<Thread::const_ptr> &threads)
    return newts;
 }
 
+ThreadSet::ptr ThreadSet::newThreadSet(Thread::ptr thr) {
+   ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet());
+   newts->ithrset->insert(thr);
+   return newts;
+}
+
 ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps)
 {
    MTLock lock_this_func;
@@ -2045,6 +2054,10 @@ bool ThreadSet::empty() const {
 
 size_t ThreadSet::size() const {
    return ithrset->size();
+}
+
+int_threadSet *ThreadSet::getIntThreadSet() const {
+   return ithrset;
 }
 
 pair<ThreadSet::iterator, bool> ThreadSet::insert(Thread::const_ptr p) {
@@ -2811,7 +2824,7 @@ bool SysVProcess::refreshLibraries(ProcessSet::ptr ps)
          bool wait_for_async = false;
             
          bool result = proc->refresh_libraries(added, rmd, wait_for_async, all_responses);
-         if (!result) {
+         if (!result && !wait_for_async) {
             pthrd_printf("Error refreshing libraries for %d\n", proc->getPid());
             had_error = true;
             procs.erase(i++);
@@ -2840,8 +2853,83 @@ bool SysVProcess::refreshLibraries(ProcessSet::ptr ps)
          }
          i++;
       }
+      bool result = int_process::waitForAsyncEvent(all_responses);
+      if (!result) {
+         pthrd_printf("Error waiting for async events\n");
+         had_error = true;
+         break;
+      }
    }
 
    int_process::waitAndHandleEvents(false);
+   return !had_error;
+}
+
+bool BlueGeneQProcess::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb)
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   thrset_iter iter("walkStack", had_error, ERR_CHCK_STOPPED);
+   set<response::ptr> all_responses;
+   set<int_process *> all_procs;
+   int_threadSet *ithrset = thrset->getIntThreadSet();
+
+   pthrd_printf("Sending requests for callstack\n");
+   getResponses().lock();
+   for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
+      int_thread *thr = (*i)->llthrd();
+      int_process *proc = thr->llproc();
+      stack_response::ptr stk_resp = stack_response::createStackResponse(thr);
+      stk_resp->markSyncHandled();
+
+      bool result = proc->plat_getStackInfo(thr, stk_resp);
+      if (!result) {
+         had_error = true;
+         pthrd_printf("Could not get stackwalk from %d/%d\n", proc->getPid(), thr->getLWP());
+         continue;
+      }
+
+      getResponses().addResponse(stk_resp, proc);
+      all_procs.insert(proc);
+      all_responses.insert(stk_resp);
+   }
+   getResponses().unlock();
+   getResponses().noteResponse();
+
+   for (set<int_process *>::iterator i = all_procs.begin(); i != all_procs.end(); i++) {
+      int_process *proc = *i;
+      proc->plat_preAsyncWait();
+   }
+   all_procs.clear();
+
+
+   pthrd_printf("Processing requests for callstack\n");
+   while (!all_responses.empty()) {
+      bool did_something = false;
+      stack_response::ptr a_resp;
+      for (set<response::ptr>::iterator i = all_responses.begin(); i != all_responses.end();) {
+         stack_response::ptr stk_resp = (*i)->getStackResponse();
+         if (stk_resp->hasError() || stk_resp->isReady()) {
+            int_thread *thr = stk_resp->getThread();
+            int_process *proc = thr->llproc();
+            pthrd_printf("Handling completed stackwalk for %d/%d\n", proc->getPid(), thr->getLWP());
+            bool result = proc->plat_handleStackInfo(stk_resp, stk_cb);
+            if (!result) {
+               pthrd_printf("Error handling stack info\n");
+               had_error = true;
+            }
+            did_something = true;
+            all_responses.erase(i++);
+         }
+         else {
+            a_resp = stk_resp;
+            i++;
+         }
+      }
+      if (!did_something) 
+         int_process::waitForAsyncEvent(a_resp);
+   }
+
    return !had_error;
 }

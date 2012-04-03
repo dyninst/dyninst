@@ -56,6 +56,7 @@ namespace bgq
 class bgq_process;
 class bgq_thread;
 class ComputeNode;
+class ArchEventBGQ;
 
 template <class CmdType, class AckType> class Transaction;
 
@@ -107,6 +108,10 @@ class bgq_process :
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual void noteNewDequeuedEvent(Event::ptr ev);
 
+   void getStackInfo(bgq_thread *thr, CallStackCallback *cbs);
+   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
+   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
+
    virtual bool plat_waitAndHandleForProc();
    virtual bool plat_readMem(int_thread *thr, void *local, Dyninst::Address addr, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, Dyninst::Address addr, size_t size);
@@ -119,6 +124,8 @@ class bgq_process :
                          mem_response::ptr resp, int_thread *thr);
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr);
+
+   virtual PlatformProcess *plat_getPlatformProcess();
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
@@ -156,7 +163,6 @@ class bgq_process :
    bool page_size_set;
    bool debugger_suspended;
    bool decoder_pending_stop;
-   bool have_pending_message;
 
    uint32_t rank;
 
@@ -166,8 +172,6 @@ class bgq_process :
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *initial_thread_list;
-
-   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
 
    enum {
       issue_attach = 0,
@@ -189,6 +193,9 @@ class bgq_process :
    static bool set_ids;
    static bool do_all_attach;
    static uint8_t priority;
+
+   static set<void *> held_msgs;
+   static unsigned int num_pending_stackwalks;
 };
 
 class bgq_thread : public thread_db_thread
@@ -265,6 +272,8 @@ class ComputeNode
    bool issued_all_attach;
    bool all_attach_done;
    bool all_attach_error;
+   bool have_pending_message;
+   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
 };
 
 class HandleBGQStartup : public Handler
@@ -296,7 +305,7 @@ class GeneratorBGQ : public GeneratorMT
    virtual bool initialize();
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
-   virtual bool getEvent(bool block, vector<ArchEvent *> &events);
+   virtual bool getMultiEvent(bool block, vector<ArchEvent *> &events);
    virtual bool plat_skipGeneratorBlock();
    void kick();
    void shutdown();

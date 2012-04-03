@@ -54,6 +54,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 class ProcessSet;
+class CallStackCallback;
 }
 }
 
@@ -67,6 +68,7 @@ class int_iRPC;
 
 typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
+typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 
 typedef dyn_detail::boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
@@ -337,6 +339,9 @@ class int_process
 
    void throwNopEvent();
    void throwRPCPostEvent();
+   
+   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
+   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -1025,19 +1030,19 @@ struct clearError {
    }
 
    template <class T>
-   void operator()(const pair<T, Process::const_ptr> &v) {
+   void operator()(const std::pair<T, Process::const_ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::const_ptr, T> &v) {
+   void operator()(const std::pair<Process::const_ptr, T> &v) {
       v.first->clearLastError();
    }
    template <class T>
-   void operator()(const pair<T, Process::ptr> &v) {
+   void operator()(const std::pair<T, Process::ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::ptr, T> &v) {
+   void operator()(const std::pair<Process::ptr, T> &v) {
       v.first->clearLastError();
    }
 };

@@ -1884,6 +1884,19 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
+bool int_process::plat_getStackInfo(int_thread *, stack_response::ptr)
+{
+   setLastError(err_unsupported, "Collecting call stacks not supported\n");
+   perr_printf("Called plat_getStackInfo on unsupported platform\n");
+   return false;
+}
+
+bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
+{
+   assert(0);
+   return false;
+}
+
 PlatformProcess *int_process::getPlatformProcess()
 {
    if (plat_process)
