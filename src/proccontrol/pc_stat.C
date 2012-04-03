@@ -159,6 +159,38 @@ bool pc_statMutator::fakeStackwalk()
    return true;
 }
 
+class StackCallbackTest : public CallStackCallback
+{
+public:
+   ThreadSet::ptr begin_set;
+   ThreadSet::ptr frame_set;
+   ThreadSet::ptr end_set;
+
+   StackCallbackTest() {
+      begin_set = ThreadSet::newThreadSet();
+      frame_set = ThreadSet::newThreadSet();
+      end_set = ThreadSet::newThreadSet();
+   }
+   
+   ~StackCallbackTest() {
+   }
+
+   virtual bool beginStackWalk(Thread::ptr thr) {
+      begin_set->insert(thr);
+      return true;
+   }
+
+   virtual bool addStackFrame(Thread::ptr thr, Address ra, Address sp, Address fp) {
+      pthrd_printf("Called addStackFrame - %lx, %lx, %lx\n", ra, sp, fp);
+      frame_set->insert(thr);
+      return true;
+   }
+   
+   virtual void endStackWalk(Thread::ptr thr) {
+      end_set->insert(thr);
+   }
+};
+
 bool pc_statMutator::takeSample() 
 {
    bool result = pset->stopProcs();
@@ -180,18 +212,35 @@ bool pc_statMutator::takeSample()
       }
    }
    
-
    all_threads = ThreadSet::newThreadSet(pset);
    BlueGeneQProcess *bgqproc = a_proc->getPlatformProcess()->getBlueGeneQProcess();
    if (bgqproc) {
-      //TODO: Take stackwalk
-      return false;
+      StackCallbackTest cb_test;
+      result = BlueGeneQProcess::walkStack(all_threads, &cb_test);
+      if (!result) {
+         logerror("Failue to collect stackwalks\n");
+         return false;
+      }
+      if (!all_threads->set_difference(cb_test.begin_set)->empty() || 
+          !cb_test.begin_set->set_difference(all_threads)->empty()) {
+         logerror("Begin set does not contain all threads\n");
+         return false;
+      }
+      if (!all_threads->set_difference(cb_test.frame_set)->empty() || 
+          !cb_test.frame_set->set_difference(all_threads)->empty()) {
+         logerror("Frame set does not contain all threads\n");
+         return false;
+      }
+      if (!all_threads->set_difference(cb_test.end_set)->empty() || 
+          !cb_test.end_set->set_difference(all_threads)->empty()) {
+         logerror("End set does not contain all threads\n");
+         return false;
+      }
    }
    else {
       fakeStackwalk();
    }
 
-   
    uint32_t one = 1;
    result = pset->writeMemory(spin_addrs, &one, sizeof(one));
    if (!result) {

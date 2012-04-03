@@ -30,6 +30,9 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "pcontrol_mutatee_tools.h"
 
 static testbarrier_t barrier;
@@ -46,6 +49,40 @@ void bp_func()
    do_nothing++;
 }
 
+#if defined(os_bgq_test)
+#include <sys/mman.h>
+static void *findUnallocatedMemory() {
+   //Return something the mutator can pass to mallocMemory
+   void *result;
+   int iresult;
+   unsigned pagesize = getpagesize();
+   int fd = open("/dev/zero", O_RDONLY);
+   if (fd == -1) {
+      perror("Error opening dev zero");
+      output->log(STDERR, "Failed to open /dev/zero");
+      return NULL;
+   }
+   result = mmap(NULL, pagesize, PROT_READ|PROT_WRITE,
+                 MAP_PRIVATE, fd, 0);
+   if (result == (void *) -1) {
+      perror("mmap failure");
+      output->log(STDERR, "Failed to mmap memory\n");
+      return NULL;
+   }
+   close(fd);
+   iresult = munmap(result, pagesize);
+   if (iresult == -1) {
+      output->log(STDERR, "Failed to unmap memory\n");
+      return NULL;
+   }
+   //This memory in now guarenteed available and unmapped.
+   return result;
+}
+#elif defined(os_windows_test)
+static void *findUnallocatedMemory() {
+#error TODO: Find some page of unmapped memory
+}
+#else
 #include <sys/mman.h>
 static void *findUnallocatedMemory() {
    //Return something the mutator can pass to mallocMemory
@@ -67,6 +104,7 @@ static void *findUnallocatedMemory() {
    //This memory in now guarenteed available and unmapped.
    return result;
 }
+#endif
 
 static int waitfor_sync(int myid) {
    syncloc msg;

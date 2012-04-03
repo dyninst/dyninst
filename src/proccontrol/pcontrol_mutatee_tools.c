@@ -344,6 +344,7 @@ static void createNamedPipes()
    do {
      r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
    } while (r_pipe == -1 && errno == ENXIO);
+   printf("[%s:%u] - mutatee open(%s, O_RDONLY) = %d\n", __FILE__, __LINE__, rd_socketname, r_pipe);
    if (r_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));

@@ -767,6 +767,7 @@ bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &para
    string pid_str(pid_cstr);
 
    string basename_r = "/tmp/dynpcpipe_r." + pid_str;
+   unlink(basename_r.c_str());
    int result = mkfifo(basename_r.c_str(), 0600);
    if (result == -1) {
       int error = errno;
@@ -776,6 +777,7 @@ bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &para
    pipe_read_names.insert(make_pair(proc, basename_r));
 
    string basename_w = "/tmp/dynpcpipe_w." + pid_str;
+   unlink(basename_w.c_str());
    result = mkfifo(basename_w.c_str(), 0600);
    if (result == -1) {
       int error = errno;
@@ -1192,7 +1194,8 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
    j = name_map.find(p);
    assert(j != name_map.end());
    int fd = open(j->second.c_str(), O_NONBLOCK | (read_pipe ? O_RDONLY : O_WRONLY));
-   printf("[%s:%u] - mutator open(%s, %s) = %d\n", __FILE__, __LINE__, j->second.c_str(), read_pipe ? "O_RDONLY" : "O_WRONLY", fd);
+   printf("[%s:%u] - mutator open(%s, %s) = %d\n", __FILE__, __LINE__,
+          j->second.c_str(), read_pipe ? "O_RDONLY" : "O_WRONLY", fd);
    if (fd == -1) {
       int error = errno;
       if (error == ENXIO) {
@@ -1216,7 +1219,7 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
       uint32_t ready = 0;
       int result = 0;
       do {
-         printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
+         printf("[%s:%u] - Initial pipe read of fd %d\n", __FILE__, __LINE__, fd);
          result = read(fd, &ready, 4);
          printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
          if (result == -1) {
