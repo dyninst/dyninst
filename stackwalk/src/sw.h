@@ -35,6 +35,8 @@
 #include <set>
 #include "common/h/addrRange.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/walker.h"
+#include "stackwalk/h/frame.h"
 #include "stackwalk/src/libstate.h"
 
 namespace Dyninst {
@@ -136,6 +138,26 @@ class DyninstDynamicStepperImpl : public FrameStepper {
    virtual void registerStepperGroup(StepperGroup *group);
    virtual const char *getName() const;
    virtual ~DyninstDynamicStepperImpl();
+};
+
+class int_walkerSet {
+   friend class Dyninst::Stackwalker::WalkerSet;
+public:
+   int_walkerSet();
+   ~int_walkerSet();
+
+   pair<set<Walker *>::iterator, bool> insert(Walker *w);
+   void erase(set<Walker *>::iterator i);
+private:
+   void addToProcSet(ProcDebug *);
+   void eraseFromProcSet(ProcDebug *);
+   void clearProcSet();
+   void initProcSet();
+   bool walkStacksProcSet(CallTree &tree, bool &bad_plat);
+
+   unsigned non_pd_walkers;
+   set<Walker *> walkers;
+   void *procset; //Opaque pointer, will refer to a ProcControl::ProcessSet in some situations
 };
 
 }

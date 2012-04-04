@@ -35,12 +35,14 @@
 #include "stackwalk/h/steppergroup.h"
 
 #include "proccontrol/h/Process.h"
+#include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PCErrors.h"
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/SymReader.h"
 
 #include "stackwalk/src/libstate.h"
+#include "stackwalk/src/sw.h"
 
 #include <vector>
 
@@ -576,3 +578,41 @@ bool PCLibraryState::getAOut(LibAddrPair &ao)
    ao = LibAddrPair(lib->getName(), lib->getLoadAddress());
    return true;
 }
+
+void int_walkerSet::addToProcSet(ProcDebug *pd)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   Process::ptr proc = pd->getProc();
+   pset->insert(proc);
+}
+
+void int_walkerSet::eraseFromProcSet(ProcDebug *pd)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   Process::ptr proc = pd->getProc();
+
+   ProcessSet::iterator i = pset->find(proc);
+   assert(i != pset->end());
+   pset->erase(i);
+}
+
+void int_walkerSet::clearProcSet()
+{
+   ProcessSet::ptr *pset = (ProcessSet::ptr *) procset;
+   (*pset)->clear();
+   delete pset;
+   procset = NULL;
+}
+
+void int_walkerSet::initProcSet()
+{
+   ProcessSet::ptr *p = new ProcessSet::ptr();
+   *p = ProcessSet::newProcessSet();
+   procset = (void *) p;
+}
+
+bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+}
+
