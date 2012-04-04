@@ -35,6 +35,7 @@
 #include "basetypes.h"
 #include "Annotatable.h"
 #include <string>
+#include <set>
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -44,6 +45,7 @@ class FrameStepper;
 
 class Frame : public AnnotatableDense {
   friend class Walker;
+  friend class CallTree;
 protected:
   Dyninst::MachRegisterVal ra;
   Dyninst::MachRegisterVal fp;
@@ -113,6 +115,73 @@ protected:
   THR_ID getThread() const;
 
   ~Frame();
+};
+
+//Default FrameComparators, if none provided
+typedef bool (*frame_cmp_t)(const Frame &a, const Frame &b); //Return true if a < b, by some comparison
+bool frame_addr_cmp(const Frame &a, const Frame &b); //Default
+bool frame_lib_offset_cmp(const Frame &a, const Frame &b);
+bool frame_symname_cmp(const Frame &a, const Frame &b);
+bool frame_lineno_cmp(const Frame &a, const Frame &b);
+
+class FrameNode;
+struct frame_cmp_wrapper {
+   frame_cmp_t f;
+   bool operator()(const FrameNode *a, const FrameNode *b);
+};
+typedef std::set<FrameNode *, frame_cmp_wrapper> frame_set_t;
+
+class FrameNode {
+   friend class CallTree;
+   friend class WalkerSet;
+   friend struct frame_cmp_wrapper;
+  public:
+
+   frame_set_t children;
+   FrameNode *parent;
+   enum {
+      FTFrame,
+      FTThread,
+      FTHead
+   } frame_type;
+   Frame frame;
+   THR_ID thrd;
+
+   FrameNode(frame_cmp_wrapper f);
+  public:
+   ~FrameNode();
+
+   bool isFrame() const { return frame_type == FTFrame; }
+   bool isThread() const { return frame_type == FTThread; }
+   bool isHead() const { return frame_type == FTHead; }
+
+   const Frame *getFrame() const { return (frame_type == FTFrame) ? &frame : NULL; }
+   Frame *getFrame() { return (frame_type == FTFrame) ? &frame : NULL; }
+   THR_ID getThread() const { return (frame_type == FTThread) ? thrd : NULL_LWP; }
+
+   const frame_set_t &getChildren() const { return children; }
+   frame_set_t &getChildren() { return children; }
+
+   const FrameNode *getParent() const { return parent; }
+   FrameNode *getParent() { return parent; }
+};
+
+class CallTree {
+   friend class WalkerSet;
+  public:
+
+   CallTree(frame_cmp_t cmpf = frame_addr_cmp);
+   ~CallTree();
+
+   FrameNode *getHead() const { return head; }
+
+   FrameNode *addFrame(const Frame &f, FrameNode *parent);
+   FrameNode *addThread(THR_ID thrd, FrameNode *parent);
+
+   void addCallStack(const std::vector<Frame> &stk, THR_ID thrd);
+  private:
+   FrameNode *head;
+   frame_cmp_wrapper cmp_wrapper;
 };
 
 }

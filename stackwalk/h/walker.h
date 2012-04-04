@@ -37,6 +37,7 @@
 #include <vector>
 #include <list>
 #include <string>
+#include <utility>
 
 #define SW_MAJOR 2
 #define SW_MINOR 1
@@ -51,6 +52,8 @@ class SymbolLookup;
 class Frame;
 class FrameStepper;
 class StepperGroup;
+class CallTree;
+class int_walkerSet;
 
 class Walker {
  private:
@@ -150,6 +153,33 @@ class Walker {
    bool creation_error;
    StepperGroup *group;
    unsigned call_count;
+};
+
+class WalkerSet {
+  private:
+   int_walkerSet *iwalkerset;
+   WalkerSet();
+  public:
+   //Create an object that operates on the specified process
+   static WalkerSet *newWalkerSet();
+   ~WalkerSet();
+   
+   typedef std::set<Walker *>::iterator iterator;
+   typedef std::set<Walker *>::const_iterator const_iterator;
+   
+   iterator begin();
+   iterator end();
+   iterator find(Walker *);
+   const_iterator begin() const;
+   const_iterator end() const;
+   const_iterator find(Walker *) const;
+   
+   std::pair<iterator, bool> insert(Walker *walker);
+   void erase(iterator i);
+   bool empty() const;
+   size_t size() const;
+
+   bool walkStacks(CallTree &tree) const;
 };
 
 }
