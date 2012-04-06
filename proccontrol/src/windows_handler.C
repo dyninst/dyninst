@@ -188,7 +188,6 @@ int WindowsHandleNewThr::getPriority() const
 
 void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-   etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
    etypes.push_back(EventType(EventType::None, EventType::LWPCreate));
 }
 

@@ -99,6 +99,7 @@ public:
 
 	virtual bool plat_suspendThread(int_thread *thr);
 	virtual bool plat_resumeThread(int_thread *thr);
+	virtual bool plat_needsThreadForMemOps() const { return false; }
 
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);

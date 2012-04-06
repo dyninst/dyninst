@@ -310,7 +310,6 @@ class int_process
    static void setInCB(bool b);
 
    void throwNopEvent();
-   void throwRPCPostEvent();
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -324,6 +323,7 @@ class int_process
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
+   virtual bool plat_needsThreadForMemOps() const { return true; }
 
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
@@ -542,7 +542,7 @@ public:
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 15;
+   static const int NumStateIDs = 16;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
    static const int AsyncStateID            = 0;
@@ -557,9 +557,10 @@ public:
    static const int ExitingStateID          = 9;
    static const int StartupStateID          = 10;
    static const int DetachStateID           = 11;
-   static const int UserStateID             = 12;
-   static const int HandlerStateID          = 13;
-   static const int GeneratorStateID        = 14;
+   static const int UserRPCStateID          = 12;
+   static const int UserStateID             = 13;
+   static const int HandlerStateID          = 14;
+   static const int GeneratorStateID        = 15;
    static std::string stateIDToName(int id);
 
    class StateTracker {
@@ -597,6 +598,7 @@ public:
    StateTracker &getAsyncState();
    StateTracker &getInternalState();
    StateTracker &getDetachState();
+   StateTracker &getUserRPCState();
    StateTracker &getUserState();
    StateTracker &getHandlerState();
    StateTracker &getGeneratorState();
@@ -768,6 +770,7 @@ public:
    StateTracker async_state;
    StateTracker internal_state;
    StateTracker detach_state;
+   StateTracker user_irpc_state;
    StateTracker user_state;
    StateTracker handler_state;
    StateTracker generator_state;

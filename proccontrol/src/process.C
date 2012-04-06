@@ -1133,7 +1133,7 @@ int_thread *int_process::findStoppedThread()
 
 bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr)
 {
-   if (!thr)
+   if (!thr && plat_needsThreadForMemOps())
    {
       thr = findStoppedThread();
       if (!thr) {
@@ -1147,7 +1147,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(),
-                   getPid(), thr->getLWP());
+				   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       bresult = plat_readMem(thr, result->getBuffer(), remote, result->getSize());
 	  std::stringstream s;
@@ -1181,7 +1181,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr)
 {
-   if (!thr) 
+   if (!thr && plat_needsThreadForMemOps()) 
    {
       thr = findStoppedThread();
       if (!thr) {
@@ -1195,7 +1195,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
-                   getPid(), thr->getLWP());
+				   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 	  std::stringstream s;
 	  s << "\t";
 	  for(unsigned long byte = 0; byte < size; byte++)
@@ -1564,11 +1564,6 @@ void int_process::throwNopEvent()
    ev->setSyncType(Event::async);
    
    mbox()->enqueue(ev);
-}
-
-void int_process::throwRPCPostEvent()
-{
-   
 }
 
 bool int_process::plat_needsAsyncIO() const
@@ -2096,6 +2091,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    async_state(this, AsyncStateID, dontcare),
    internal_state(this, InternalStateID, dontcare),
    detach_state(this, DetachStateID, dontcare),
+   user_irpc_state(this, UserRPCStateID, dontcare),
    user_state(this, UserStateID, neonatal),
    handler_state(this, HandlerStateID, neonatal),
    generator_state(this, GeneratorStateID, neonatal),
@@ -2438,6 +2434,11 @@ int_thread::StateTracker &int_thread::getDetachState()
    return detach_state;
 }
 
+int_thread::StateTracker &int_thread::getUserRPCState()
+{
+	return user_irpc_state;
+}
+
 int_thread::StateTracker &int_thread::getUserState()
 {
    return user_state;
@@ -2509,6 +2510,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
       case BreakpointResumeStateID: return breakpoint_resume_state;
       case InternalStateID: return internal_state;
       case DetachStateID: return detach_state;
+      case UserRPCStateID: return user_irpc_state;
       case UserStateID: return user_state;
       case HandlerStateID: return handler_state;
       case GeneratorStateID: return generator_state;
@@ -2531,6 +2533,7 @@ std::string int_thread::stateIDToName(int id)
       case BreakpointStateID: return "breakpoint";
       case BreakpointResumeStateID: return "breakpoint resume";
       case InternalStateID: return "internal";
+      case UserRPCStateID: return "irpc user";
       case UserStateID: return "user";
       case DetachStateID: return "detach";
       case HandlerStateID: return "handler";
@@ -3243,13 +3246,13 @@ void int_thread::StateTracker::desyncState(State ns)
    }
 }
 
+
 void int_thread::StateTracker::desyncStateProc(State ns)
 {
    int_threadPool *pool = up_thr->llproc()->threadPool();
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
       (*i)->getStateByID(id).desyncState(ns);
    }
-   
    //Track the process level desyncs seperately.  This way if a 
    // new thread appears we can initialized its states to be 
    // consistent with the other threads.
@@ -3275,7 +3278,6 @@ void int_thread::StateTracker::restoreStateProc()
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
       (*i)->getStateByID(id).restoreState();
    }
-
    up_thr->llproc()->getProcDesyncdStates()[id]--;
 }
 
@@ -4153,7 +4155,6 @@ void int_notify::noteEvent()
    my_internals.noteEvent();
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
-   fprintf(stderr, "noteEvent - %d\n", events_noted);
    set<EventNotify::notify_cb_t>::iterator i;
    for (i = cbs.begin(); i != cbs.end(); ++i) {
       pthrd_printf("Calling notification CB\n");
@@ -4172,7 +4173,6 @@ void int_notify::clearEvent()
    assert(!isHandlerThread());
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
-   fprintf(stderr, "clearEvent - %d\n", events_noted);
    assert(events_noted == 0);
    my_internals.clearEvent();
 }
@@ -5206,9 +5206,44 @@ bool Process::allThreadsRunningWhenAttached() const
     return true;
 }
 
+bool Process::postSyncIRPC(IRPC::ptr irpc)
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("postIRPC on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if (llproc_->getState() == int_process::detached) {
+       perr_printf("postIRPC on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   int_process *proc = llproc();
+   int_iRPC::ptr rpc = irpc->llrpc()->rpc;
+   bool result = rpcMgr()->postRPCToProc(proc, rpc);
+   if (!result) {
+      pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
+      return false;
+   }
+   rpc->thread()->getUserRPCState().desyncState(int_thread::running);
+   rpc->thread()->throwEventsBeforeContinue();
+   assert(!rpc->isAsync());
+	while ((rpc->getState() != int_iRPC::Finished)) {
+		bool result = int_process::waitAndHandleEvents(true);
+	 if (!result) {
+		perr_printf("Error waiting for RPC to complete\n");
+		return false;
+	 }
+	}
+	return true;
+
+}
+
 Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
 {
-
    MTLock lock_this_func;
    if (!llproc_) {
       perr_printf("postIRPC on deleted process\n");
@@ -5229,10 +5264,19 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return Thread::ptr();
    }
-
-   if(!rpc->isAsync()) rpc->thread()->throwEventsBeforeContinue();
+   rpc->thread()->getUserRPCState().desyncState(int_thread::running);
+   rpc->thread()->throwEventsBeforeContinue();
+   if(rpc->isAsync()) 
+	   return rpc->thread()->thread();
+	while ((rpc->getState() != int_iRPC::Finished)) {
+		bool result = int_process::waitAndHandleEvents(true);
+	 if (!result) {
+		perr_printf("Error waiting for process to terminate\n");
+		return Thread::ptr();
+	 }
+	}
+	return rpc->thread()->thread();
    //llproc_->throwNopEvent();
-   return rpc->thread()->thread();
 }
 
 bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const
@@ -6118,7 +6162,7 @@ Thread::ptr ThreadPool::iterator::operator*() const
 {
    MTLock lock_this_func;
    assert(curp);
-   assert(curi >= 0 && curi < (signed) curp->hl_threads.size()); //Likely dereferenced bad thread iterator
+   //assert(curi >= 0 && ((curi < (signed) curp->hl_threads.size()) || !curh->llthrd()) ); //Likely dereferenced bad thread iterator
    return curh;
 }
 

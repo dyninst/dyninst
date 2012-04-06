@@ -357,7 +357,8 @@ class PC_EXPORT Process
     * IRPC
     **/
    dyn_detail::boost::shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
-   bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+	bool postSyncIRPC(IRPC::ptr irpc);
+	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**
     * Symbol access

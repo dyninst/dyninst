@@ -58,8 +58,6 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 			dummy->getGeneratorState().setState(neonatal);
 			dummy->getHandlerState().setState(neonatal);
 			dummy->getUserState().setState(running);
-			pthrd_printf("OOOOOOOOOOOOOOOOO Turning force generator block off; found new RPC thread\n");
-			proc->setForceGeneratorBlock(false);
 			return dummy;
 		}
 	}
@@ -143,7 +141,7 @@ void windows_thread::setOptions()
 bool windows_thread::attach()
 {
 	// All threads on windows are attached automatically.
-	assert(getUserState().getState() == neonatal);
+	// Don't assert here; RPC thread might be running.
 	return true;
 }
 
@@ -351,8 +349,8 @@ bool windows_thread::plat_setAllRegisters(int_registerPool &regpool)
 		pthrd_printf("Couldn't set registers: error code %d\n", error);
 	}
 	::FlushInstructionCache(dynamic_cast<windows_process*>(proc_)->plat_getHandle(), 0, 0);
-	fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
-	fprintf(stderr, "          TF = %s\n", (c.EFlags & TF_BIT) ? "true" : "false" );
+	//fprintf(stderr, "Set regs, CS:EIP = 0x%x:0x%x\n", c.SegCs, c.Eip);
+	//fprintf(stderr, "          TF = %s\n", (c.EFlags & TF_BIT) ? "true" : "false" );
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(hthread, &verification);

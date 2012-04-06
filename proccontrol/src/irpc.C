@@ -93,6 +93,9 @@ bool int_iRPC::isRPCPrepped()
       return true;
 
    assert(state == Prepping);
+	// Ephemeral thread doesn't exist, so it doesn't need to stop.
+   if(thrd->isRPCEphemeral())
+	   return true;
    if (isProcStopRPC()) {
       int_threadPool *pool = thrd->llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
@@ -815,8 +818,6 @@ bool int_iRPC::runIRPC()
 	   // Create it if necessary
 	   thrd->llproc()->instantiateRPCThread();
 	   pthrd_printf("\tInstantiated iRPC thread\n");
-	   // We really, really had better be running enough to get the CreateThread debug event.
-	   thrd->getIRPCState().desyncState(int_thread::running);
 	   // And the threadpool needs to know about us so that we will ContinueDebugEvent. Ugh.
 	   if(thrd->llproc()->threadPool()->findThreadByLWP(thrd->getLWP()) == NULL)
 	   {
@@ -1045,11 +1046,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 	   } else {
 	      pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
 			  thr->getLWP(), mgr->numActiveRPCs(thr));
-			// And we become stopped for setup of the next RPC. This *should* allow us to continue once setup occurs
-		  // (the new RPC is written and the PC is reset); we just want to make sure we don't run until we're in a valid state.
-		  thr->getIRPCSetupState().desyncState(int_thread::stopped);
+			// don't do an extra desync here, it's handled by throwEventsBeforeContinue()
 	   }
- 	   thr->getIRPCState().restoreState();
    }
    else if (!ievent->regrestore_response && 
        (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))
@@ -1106,6 +1104,11 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 
    if (rpc->needsToRestoreInternal()) {
       rpc->thread()->getInternalState().restoreState();
+   }
+   if(!ephemeral || (mgr->numActiveRPCs(thr) == 0)) {
+	   rpc->thread()->getUserRPCState().restoreState();
+   } else {
+	   thr->throwEventsBeforeContinue();
    }
 
    return ret_success;
