@@ -38,6 +38,8 @@
 
 #include <vector>
 #include <string>
+#include <stdio.h>
+
 extern FILE *debug_log;
 
 using namespace std;

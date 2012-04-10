@@ -37,6 +37,8 @@
 #include <string>
 #include <set>
 
+class StackCallback;
+
 namespace Dyninst {
 namespace Stackwalker {
 
@@ -46,6 +48,7 @@ class FrameStepper;
 class Frame : public AnnotatableDense {
   friend class Walker;
   friend class CallTree;
+  friend class ::StackCallback;
 protected:
   Dyninst::MachRegisterVal ra;
   Dyninst::MachRegisterVal fp;
@@ -135,7 +138,7 @@ class FrameNode {
    friend class CallTree;
    friend class WalkerSet;
    friend struct frame_cmp_wrapper;
-  public:
+  private:
 
    frame_set_t children;
    FrameNode *parent;
@@ -146,6 +149,7 @@ class FrameNode {
    } frame_type;
    Frame frame;
    THR_ID thrd;
+   Walker *walker;
 
    FrameNode(frame_cmp_wrapper f);
   public:
@@ -164,6 +168,8 @@ class FrameNode {
 
    const FrameNode *getParent() const { return parent; }
    FrameNode *getParent() { return parent; }
+
+   Walker *getWalker() { return walker; }
 };
 
 class CallTree {
@@ -176,9 +182,9 @@ class CallTree {
    FrameNode *getHead() const { return head; }
 
    FrameNode *addFrame(const Frame &f, FrameNode *parent);
-   FrameNode *addThread(THR_ID thrd, FrameNode *parent);
+   FrameNode *addThread(THR_ID thrd, FrameNode *parent, Walker *walker);
 
-   void addCallStack(const std::vector<Frame> &stk, THR_ID thrd);
+   void addCallStack(const std::vector<Frame> &stk, THR_ID thrd, Walker *walker);
   private:
    FrameNode *head;
    frame_cmp_wrapper cmp_wrapper;

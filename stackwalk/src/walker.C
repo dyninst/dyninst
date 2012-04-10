@@ -789,7 +789,7 @@ bool WalkerSet::walkStacks(CallTree &tree) const {
             had_error = true;
             continue;
          }
-         tree.addCallStack(swalk, thr);
+         tree.addCallStack(swalk, thr, walker);
       }
    }
    return !had_error;

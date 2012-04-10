@@ -621,7 +621,7 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
 
    ProcPool()->condvar()->lock();
 
-   map<int_process *, vector<CreateInfo>::iterator> error_map;
+   map<int_process *, vector<CreateInfo>::iterator> info_map;
    ProcessSet::ptr newps = newProcessSet();
    int_processSet &newset = *newps->procset;
 
@@ -630,27 +630,29 @@ ProcessSet::ptr ProcessSet::createProcessSet(vector<CreateInfo> &cinfo)
       Process::ptr newproc(new Process());
       int_process *llproc = int_process::createProcess(i->executable, i->argv, i->envp, i->fds);
       llproc->initializeProcess(newproc);
-      error_map[llproc] = i;
+      info_map[llproc] = i;
       newset.insert(newproc);
    }
 
    pthrd_printf("Triggering create on new process objects\n");
-   bool result = int_process::create(&newset); //Releases procpool lock
-   if (!result) {
-      //Some processes failed to create
-      for (ProcessSet::iterator i = newps->begin(); i != newps->end();) {
-         int_process *proc = (*i)->llproc();
-         err_t last_error = proc->getLastError();
-         if (last_error == err_none) {
-            i++;
-            continue;
-         }
-         map<int_process *, vector<CreateInfo>::iterator>::iterator j = error_map.find(proc);
-         assert(j != error_map.end());
-         CreateInfo &ci = *(j->second);
-         ci.error_ret = last_error;
-         newps->erase(i++);
+   int_process::create(&newset); //Releases procpool lock
+
+   for (ProcessSet::iterator i = newps->begin(); i != newps->end();) {
+      int_process *proc = (*i)->llproc();
+      map<int_process *, vector<CreateInfo>::iterator>::iterator j = info_map.find(proc);
+      assert(j != info_map.end());
+      CreateInfo &ci = *(j->second);
+
+      err_t last_error = proc->getLastError();
+      if (last_error == err_none) {
+         ci.proc = proc->proc();
+         ci.error_ret = err_none;
+         i++;
+         continue;
       }
+      ci.error_ret = last_error;
+      ci.proc = Process::ptr();
+      newps->erase(i++);
    }
 
    return newps;
@@ -672,7 +674,7 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
 
    ProcPool()->condvar()->lock();
 
-   map<int_process *, vector<AttachInfo>::iterator> error_map;
+   map<int_process *, vector<AttachInfo>::iterator> info_map;
    ProcessSet::ptr newps = newProcessSet();
    int_processSet &newset = *newps->procset;
 
@@ -680,26 +682,28 @@ ProcessSet::ptr ProcessSet::attachProcessSet(vector<AttachInfo> &ainfo)
       Process::ptr newproc(new Process());
       int_process *llproc = int_process::createProcess(i->pid, i->executable);
       llproc->initializeProcess(newproc);
-      error_map[llproc] = i;
+      info_map[llproc] = i;
       newset.insert(newproc);
    }
 
-   bool result = int_process::attach(&newset, false); //Releases procpool lock
-   if (!result) {
-      //Some processes failed to attach
-      for (ProcessSet::iterator i = newps->begin(); i != newps->end(); ) {
-         int_process *proc = (*i)->llproc();
-         err_t last_error = proc->getLastError();
-         if (last_error == err_none) {
-            i++;
-            continue;
-         }
-         map<int_process *, vector<AttachInfo>::iterator>::iterator j = error_map.find(proc);
-         assert(j != error_map.end());
-         AttachInfo &ai = *(j->second);
-         ai.error_ret = last_error;
-         newps->erase(i++);
+   int_process::attach(&newset, false); //Releases procpool lock
+
+   for (ProcessSet::iterator i = newps->begin(); i != newps->end(); ) {
+      int_process *proc = (*i)->llproc();
+      map<int_process *, vector<AttachInfo>::iterator>::iterator j = info_map.find(proc);
+      assert(j != info_map.end());
+      AttachInfo &ai = *(j->second);
+      
+      err_t last_error = proc->getLastError();
+      if (last_error == err_none) {
+         ai.proc = proc->proc();
+         ai.error_ret = err_none;
+         i++;
+         continue;
       }
+      ai.error_ret = last_error;
+      ai.proc = Process::ptr();
+      newps->erase(i++);
    }
 
    return newps;

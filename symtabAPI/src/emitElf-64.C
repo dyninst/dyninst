@@ -89,7 +89,7 @@ static void setVersion(){
      if (!strstr(maps[i].path, "libelf"))
         continue;
      std::string real_file = resolve_file_path(maps[i].path);
-     char *libelf_start = strstr(real_file.c_str(), "libelf");
+     const char *libelf_start = strstr(real_file.c_str(), "libelf");
      int num_read, major, minor;
      num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
      if (num_read == 2) {

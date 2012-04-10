@@ -112,7 +112,7 @@ const char *getLastErrorMsg();
 void globalSetLastError(err_t err, const char *msg = NULL);
 void setDebugChannel(FILE *f);
 void setDebug(bool enable);
-
+const char *getGenericErrorMsg(err_t e);
 FILE *getDebugChannel();
 
 }

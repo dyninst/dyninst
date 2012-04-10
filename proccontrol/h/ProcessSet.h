@@ -182,14 +182,16 @@ class ProcessSet
       std::vector<std::string> argv;
       std::vector<std::string> envp;
       std::map<int, int> fds;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo);
 
    struct AttachInfo {
       Dyninst::PID pid;
       std::string executable;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
 

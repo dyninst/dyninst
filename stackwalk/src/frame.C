@@ -38,7 +38,9 @@
 #include "stackwalk/src/symtab-swk.h"
 
 #include <assert.h>
+#include <string>
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -355,6 +357,17 @@ void Frame::setThread(THR_ID t)
    originating_thread = t;
 }
 
+FrameNode::FrameNode(frame_cmp_wrapper f) :
+   children(f),
+   parent(NULL),
+   walker(NULL)
+{
+}
+
+FrameNode::~FrameNode()
+{
+}
+
 inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b) { 
    if (a->frame_type == FrameNode::FTThread && b->frame_type == FrameNode::FTThread) 
       return a->thrd < b->thrd;
@@ -404,16 +417,19 @@ FrameNode *CallTree::addFrame(const Frame &f, FrameNode *parent)
    FrameNode *new_node = new FrameNode(cmp_wrapper);
    new_node->frame_type = FrameNode::FTFrame;
    new_node->frame = f;
+   new_node->walker = f.getWalker();
    parent->children.insert(is.first, new_node);
 
    return new_node;
 }
 
-FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent)
+FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent, Walker *walker)
 {
    FrameNode *new_node = new FrameNode(cmp_wrapper);
+   assert(walker);
    new_node->frame_type = FrameNode::FTThread;
    new_node->thrd = thrd;
+   new_node->walker = walker;
 
    pair<frame_set_t::iterator, bool> i = parent->children.insert(new_node);
    if (!i.second) {
@@ -425,11 +441,46 @@ FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent)
    return new_node;
 }
 
-void CallTree::addCallStack(const vector<Frame> &stk, THR_ID thrd)
+void CallTree::addCallStack(const vector<Frame> &stk, THR_ID thrd, Walker *walker)
 {
    FrameNode *cur = head;
    for (vector<Frame>::const_reverse_iterator i = stk.rbegin(); i != stk.rend(); i++) {
       cur = addFrame(*i, cur);
    }
-   addThread(thrd, cur);
+   addThread(thrd, cur, walker);
+}
+ 
+bool Dyninst::Stackwalker::frame_addr_cmp(const Frame &a, const Frame &b)
+{
+   return a.getRA() < b.getRA();
+}
+
+bool Dyninst::Stackwalker::frame_lib_offset_cmp(const Frame &a, const Frame &b)
+{
+   string a_lib, b_lib;
+   Offset a_off = 0, b_off = 0;
+   void *a_ignore, *b_ignore;
+   a.getLibOffset(a_lib, a_off, a_ignore);
+   b.getLibOffset(b_lib, b_off, b_ignore);
+   int str_cmp = a_lib.compare(b_lib);
+   if (str_cmp < 0)
+      return true;
+   else if (str_cmp > 0)
+      return false;
+   else
+      return a_off < b_off;
+}
+
+bool Dyninst::Stackwalker::frame_symname_cmp(const Frame &a, const Frame &b)
+{
+   string a_name, b_name;
+   a.getName(a_name);
+   b.getName(b_name);
+   return a_name < b_name;
+}
+
+bool Dyninst::Stackwalker::frame_lineno_cmp(const Frame &, const Frame &)
+{
+#warning TODO: Implement frame_lineno_cmp
+   assert(0 && "frame_lineno_cmp unimplemented");
 }
