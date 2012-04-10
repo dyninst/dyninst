@@ -865,6 +865,8 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
          statet.desyncState(ns);
       }
    }
+	int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
+	assert(tmp);
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();

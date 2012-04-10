@@ -414,13 +414,7 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
 	}
-	int_thread* dummy = wproc->RPCThread();
-	if(dummy)
-	{
-		THR_ID thr_id = (THR_ID) e.dwThreadId;
-		THR_ID dummytid;
-		dummy->getTID(dummytid);
-	}
+
 
 	newEvt->setProcess(proc->proc());
 	newEvt->setSyncType(Event::sync_process);

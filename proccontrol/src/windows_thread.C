@@ -42,25 +42,6 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 										 Dyninst::LWP lwp_id,
 										 bool initial_thrd)
 {
-	windows_process* wproc = dynamic_cast<windows_process*>(proc);
-	assert(wproc);
-	int_thread* dummy = wproc->RPCThread();
-	if(dummy)
-	{
-		THR_ID dummytid;
-		dummy->getTID(dummytid);
-		if(thr_id == dummytid)
-		{
-			// These are artificial reversions that break all our rules,
-			// because we're reusing a thread data structure that has had
-			// various stuff done to it before a corresponding OS thread existed.
-			// Just set things properly and move on.
-			dummy->getGeneratorState().setState(neonatal);
-			dummy->getHandlerState().setState(neonatal);
-			dummy->getUserState().setState(running);
-			return dummy;
-		}
-	}
 	windows_thread *wthrd = new windows_thread(proc, thr_id, lwp_id);
 	assert(wthrd);
 	return static_cast<int_thread *>(wthrd);

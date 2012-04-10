@@ -5228,7 +5228,6 @@ bool Process::postSyncIRPC(IRPC::ptr irpc)
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return false;
    }
-   rpc->thread()->getUserRPCState().desyncState(int_thread::running);
    rpc->thread()->throwEventsBeforeContinue();
    assert(!rpc->isAsync());
 	while ((rpc->getState() != int_iRPC::Finished)) {
@@ -5264,7 +5263,6 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return Thread::ptr();
    }
-   rpc->thread()->getUserRPCState().desyncState(int_thread::running);
    rpc->thread()->throwEventsBeforeContinue();
    if(rpc->isAsync()) 
 	   return rpc->thread()->thread();

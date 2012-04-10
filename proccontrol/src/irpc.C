@@ -809,6 +809,7 @@ bool int_iRPC::runIRPC()
    //Set in running state
    thrd->setRunningRPC(shared_from_this());
    setState(Running);
+   thrd->getUserRPCState().desyncState(int_thread::running);
 
    assert(allocation());
    assert(!allocSize() || (binarySize() <= allocSize()));

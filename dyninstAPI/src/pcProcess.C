@@ -2289,7 +2289,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         }
     }
 
-    if( synchronous ) {
+	if( synchronous ) {
+#if 0
+	// ProcControl RPCs now run when posted. This entire chunk should no longer be necessary.
         // Ensure that the process runs until the RPC is completed
         setDesiredProcessState(ps_running);
 		// This gets a bit weird due to the dedicated RPC thread mechanism on Windows.
@@ -2320,7 +2322,8 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                 return false;
 			}
 		}
-
+#endif
+		// Still need error handling and return value collection though
         while( !newRPC->isComplete ) {
             if( thread && !thread->isLive() ) {
                 proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
