@@ -625,12 +625,19 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    }
 
    EventExit *event = static_cast<EventExit *>(ev.get());
-   proc->setExitCode(event->getExitCode());
    
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
+   if(proc->wasForcedTerminated())
+   {
+	   ev->setSuppressCB(true);
+   }
+   else
+   {
+	   proc->setExitCode(event->getExitCode());
+   }
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
