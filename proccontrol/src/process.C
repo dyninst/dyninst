@@ -971,7 +971,8 @@ bool int_process::waitAndHandleEvents(bool block)
          // under this event (likely post-exit or post-crash), but was 
          // unable to clean its handlerpool (as we were using it).  
          // Clean this for the process now.
-         delete hpool;
+			pthrd_printf("Process is gone, skipping syncRunState and deleting handler pool\n");
+		  delete hpool;
       }
    }
   done:
@@ -1719,7 +1720,7 @@ int_process::~int_process()
    {
       proc_exitstate *exitstate = new proc_exitstate();
       exitstate->pid = pid;
-      exitstate->exited = hasExitCode;
+      exitstate->exited = hasExitCode && !forcedTermination;
       exitstate->exit_code = exitCode;
       exitstate->crashed = hasCrashSignal;
       exitstate->crash_signal = crashSignal;
@@ -2725,7 +2726,13 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 
    if (should_delete) {
       thrd->getExitingState().setState(int_thread::exited);
-      ProcPool()->rmThread(thrd);
+	  if(ProcPool()->findThread(thrd->getLWP()) != NULL) {
+	      ProcPool()->rmThread(thrd);
+	  }
+	  else {
+			pthrd_printf("%d/%d already gone from top level ProcPool(), not removing\n",
+				thrd->llproc()->getPid(), thrd->getLWP());
+	  }
       thrd->llproc()->threadPool()->rmThread(thrd);
       delete thrd;
    }
@@ -6486,6 +6493,7 @@ void Counter::adjust(int val)
    locks[index].lock();
    global_counts[index] += val;
    assert(global_counts[index] >= 0);
+   pthrd_printf("Adjusting counter %d by %d\n", index, val);
    locks[index].unlock();
    local_count += val;
 }
