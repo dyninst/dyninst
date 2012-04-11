@@ -675,7 +675,7 @@ void StackCallback::endStackWalk(Thread::ptr thr) {
    if (last_frame) {
       last_frame->markTopFrame();
    }
-   tree.addThread(thrd_lwp, cur, cur_walker);
+   tree.addThread(thrd_lwp, cur, cur_walker, false);
    cur = NULL;
    cur_walker = NULL;
 }

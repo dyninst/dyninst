@@ -360,7 +360,8 @@ void Frame::setThread(THR_ID t)
 FrameNode::FrameNode(frame_cmp_wrapper f) :
    children(f),
    parent(NULL),
-   walker(NULL)
+   walker(NULL),
+   had_error(false)
 {
 }
 
@@ -423,13 +424,14 @@ FrameNode *CallTree::addFrame(const Frame &f, FrameNode *parent)
    return new_node;
 }
 
-FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent, Walker *walker)
+FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent, Walker *walker, bool err_stack)
 {
    FrameNode *new_node = new FrameNode(cmp_wrapper);
    assert(walker);
    new_node->frame_type = FrameNode::FTThread;
    new_node->thrd = thrd;
    new_node->walker = walker;
+   new_node->had_error = err_stack;
 
    pair<frame_set_t::iterator, bool> i = parent->children.insert(new_node);
    if (!i.second) {
@@ -441,13 +443,13 @@ FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent, Walker *walker)
    return new_node;
 }
 
-void CallTree::addCallStack(const vector<Frame> &stk, THR_ID thrd, Walker *walker)
+void CallTree::addCallStack(const vector<Frame> &stk, THR_ID thrd, Walker *walker, bool err_stack)
 {
    FrameNode *cur = head;
    for (vector<Frame>::const_reverse_iterator i = stk.rbegin(); i != stk.rend(); i++) {
       cur = addFrame(*i, cur);
    }
-   addThread(thrd, cur, walker);
+   addThread(thrd, cur, walker, err_stack);
 }
  
 bool Dyninst::Stackwalker::frame_addr_cmp(const Frame &a, const Frame &b)

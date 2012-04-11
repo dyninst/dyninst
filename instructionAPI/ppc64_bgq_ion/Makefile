@@ -1,34 +1,34 @@
 #
-# $Id: Makefile,v 1.1 2008/06/30 19:40:57 legendre Exp $
+# $Id: Makefile,v 1.3 2008/09/04 21:06:52 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
+
+# DEBUG_FLAG = -g
+AUTO_TEMPLATES= true
+#NO_IMPLICIT_TEMPLATES = true
+USES_BOOST = true
+
+# For debugging.
+#NO_OPT_FLAG = true
+
+#STATIC_COMPS = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
 include ../../make.config 
 
-LDFLAGS     += $(LIBDIR) -lcommon
+# Now make any necessary architecture specific changes to variables:
 
-SRCS =  ../src/bluegeneq.C \
-        ../src/notify_pipe.C \
-        ../../common/src/dthread-unix.C
+SRCS = ../src/InstructionDecoder-x86.C
 
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
+CXXFLAGS        += $(MYFLAGS)
+CFLAGS          += $(MYFLAGS)
 
-MYFLAGS += -I/bgsys/drivers/ppcfloor
-CXXFLAGS += $(MYFLAGS)
-CFLAGS += $(MYFLAGS)
+LIBS    += -lgcc
 
-ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB)
-endif
-LIBS += -lelf
-
-#STATIC_COMPS = true
+AS		= /usr/bin/as
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -40,6 +40,3 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
-# Now make any necessary architecture specific changes to variables:
-
-VPATH += ../../common/src

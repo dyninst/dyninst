@@ -67,6 +67,7 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
    return Walker::getSymbolReader();
 }
 
+#if !defined(os_bgq)
 bool getDwarfDebug(std::string s, Dwarf_Debug *d)
 {
    SymReader *reader = LibraryWrapper::getLibrary(s);
@@ -95,6 +96,7 @@ bool getDwarfDebug(std::string s, Dwarf_Debug *d)
 
    return false;
 }
+#endif
 
 static void registerLibSpotterSelf(ProcSelf *pself);
 
@@ -199,6 +201,7 @@ static void lib_trap_handler(int /*sig*/)
    local_lib_state->notifyOfUpdate();
 }
 
+#if !defined(os_bgq)
 static Address lib_trap_addr_self = 0x0;
 static bool lib_trap_addr_self_err = false;
 static void registerLibSpotterSelf(ProcSelf *pself)
@@ -281,6 +284,11 @@ static void registerLibSpotterSelf(ProcSelf *pself)
    sw_printf("[%s:%u] - Successfully install lib tracker at 0x%lx\n",
             __FILE__, __LINE__, lib_trap_addr_self);
 }
+#else
+static void registerLibSpotterSelf(ProcSelf *)
+{
+}
+#endif
 
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
 {

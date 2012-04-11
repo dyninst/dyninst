@@ -18,12 +18,26 @@ CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 
 LDFLAGS += -lcommon
 
+ifndef TARGET
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libinstruction.a
+else
+TARGET = libinstruction.so
+endif
+endif
+
+ifndef STATIC_COMPS
+CFLAGS += -fPIC
+CXXFLAGS += -fPIC
+endif
+
 LDFLAGS     += -L../../common/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC -g
-CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g
+CFLAGS		+= -g
+CXXFLAGS	+= $(G_PTHREAD) -felide-constructors -g
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G

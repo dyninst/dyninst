@@ -371,7 +371,7 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 
 //SigHandlerStepper defined here
 #define OVERLOAD_NEWLIBRARY
-#if defined(os_linux) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_bgq)
 #include "stackwalk/src/linuxbsd-swk.h"
 #define PIMPL_IMPL_CLASS SigHandlerStepperImpl
 #endif

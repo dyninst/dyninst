@@ -150,6 +150,7 @@ class FrameNode {
    Frame frame;
    THR_ID thrd;
    Walker *walker;
+   bool had_error;
 
    FrameNode(frame_cmp_wrapper f);
   public:
@@ -162,6 +163,7 @@ class FrameNode {
    const Frame *getFrame() const { return (frame_type == FTFrame) ? &frame : NULL; }
    Frame *getFrame() { return (frame_type == FTFrame) ? &frame : NULL; }
    THR_ID getThread() const { return (frame_type == FTThread) ? thrd : NULL_LWP; }
+   bool hadError() const { return (frame_type == FTThread) ? had_error : false; }
 
    const frame_set_t &getChildren() const { return children; }
    frame_set_t &getChildren() { return children; }
@@ -182,9 +184,9 @@ class CallTree {
    FrameNode *getHead() const { return head; }
 
    FrameNode *addFrame(const Frame &f, FrameNode *parent);
-   FrameNode *addThread(THR_ID thrd, FrameNode *parent, Walker *walker);
+   FrameNode *addThread(THR_ID thrd, FrameNode *parent, Walker *walker, bool err_stack);
 
-   void addCallStack(const std::vector<Frame> &stk, THR_ID thrd, Walker *walker);
+   void addCallStack(const std::vector<Frame> &stk, THR_ID thrd, Walker *walker, bool err_stack);
   private:
    FrameNode *head;
    frame_cmp_wrapper cmp_wrapper;

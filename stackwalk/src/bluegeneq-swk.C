@@ -29,53 +29,51 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LINUXBSD_SWK_H
-#define LINUXBSD_SWK_H
+// ============================================================ //
+// ProcSelf -- all stubs; this is 3rd-party only
+// ============================================================ //
 
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/SymReader.h"
-
-#include "common/h/Types.h"
-
+#include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/swk_errors.h"
+#include "stackwalk/src/libstate.h"
+#include "stackwalk/src/linuxbsd-swk.h"
 
-#define MAX_TRAP_LEN 8
+using namespace Dyninst;
+using namespace Stackwalker;
 
-#if !defined(os_bgq)
-#include "libdwarf.h"
-bool getDwarfDebug(std::string s, Dwarf_Debug *d);
-#endif
-
-namespace Dyninst {
-namespace Stackwalker {
-
-class SigHandlerStepperImpl : public FrameStepper {
-private:
-   SigHandlerStepper *parent_stepper;
-   void registerStepperGroupNoSymtab(StepperGroup *group);
-   bool init_libc;
-   bool init_libthread;
-public:
-   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
-   virtual const char *getName() const;
-   virtual ~SigHandlerStepperImpl();  
-};
-
-}
+bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &) {
+    return true;
 }
 
-#if defined(os_linux)
-#include "stackwalk/src/linux-swk.h"
-#elif defined(os_freebsd)
-#include "stackwalk/src/freebsd-swk.h"
-#elif defined(os_bgq)
-#include "stackwalk/src/bluegeneq-swk.h"
-#else
-#error "Invalid OS inclusion"
-#endif
+bool Walker::createDefaultSteppers()
+{
+  FrameStepper *stepper;
+  bool result;
 
-#endif
+  stepper = new FrameFuncStepper(this);
+  result = addStepper(stepper);
+  if (!result) {
+    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
+	      stepper);
+    return false;
+  }
+
+  return true;
+}
+
+void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *)
+{
+   //TODO Fill in
+}
+
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &, Frame &)
+{
+   //TODO: Fill in
+   return gcf_not_me;
+}
+
+int P_gettid() {
+   return -1;
+}

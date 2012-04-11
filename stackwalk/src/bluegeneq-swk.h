@@ -29,53 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef LINUXBSD_SWK_H
-#define LINUXBSD_SWK_H
+#ifndef BLUEGENEQ_SWK_H_
+#define BLUEGENEQ_SWK_H_
 
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/SymReader.h"
-
-#include "common/h/Types.h"
-
-#include "stackwalk/h/framestepper.h"
-
-#define MAX_TRAP_LEN 8
-
-#if !defined(os_bgq)
-#include "libdwarf.h"
-bool getDwarfDebug(std::string s, Dwarf_Debug *d);
-#endif
-
-namespace Dyninst {
-namespace Stackwalker {
-
-class SigHandlerStepperImpl : public FrameStepper {
-private:
-   SigHandlerStepper *parent_stepper;
-   void registerStepperGroupNoSymtab(StepperGroup *group);
-   bool init_libc;
-   bool init_libthread;
-public:
-   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
-   virtual const char *getName() const;
-   virtual ~SigHandlerStepperImpl();  
-};
-
-}
-}
-
-#if defined(os_linux)
-#include "stackwalk/src/linux-swk.h"
-#elif defined(os_freebsd)
-#include "stackwalk/src/freebsd-swk.h"
-#elif defined(os_bgq)
-#include "stackwalk/src/bluegeneq-swk.h"
-#else
-#error "Invalid OS inclusion"
-#endif
+#define START_THREAD_FUNC_NAME "start_thread"
+#define CLONE_FUNC_NAME "__clone"
+#define START_FUNC_NAME "_start"
 
 #endif
