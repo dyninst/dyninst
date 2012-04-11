@@ -83,7 +83,7 @@ AC_DEF 	       = @DEFS@
 @BUILD32@
 
 prefix = @prefix@
-exec_prefix = @exec_prefix@/${PLATFORM}
+exec_prefix = @exec_prefix@
 libdir ?= @prefix@/lib
 bindir ?= @prefix@/bin
 includedir ?= @prefix@/include
