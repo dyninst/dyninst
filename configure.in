@@ -2,9 +2,9 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT([Dyninst], [7.0], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [8.0], [bugs@dyninst.org], [dyninst])
 
-AC_PREFIX_DEFAULT(`pwd`/..)
+AC_PREFIX_DEFAULT(/usr)
 
 AC_CONFIG_AUX_DIR([autodyninst])
 AC_CONFIG_MACRO_DIR([autodyninst])
@@ -20,6 +20,18 @@ AC_LANG(C++)
 
 
 dnl === configure options ==
+
+AC_ARG_WITH(traditional,
+            [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
+            [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
+             PROGRAM_DEST_VAR="PROGRAM_DEST=\${TO_CORE}/../\${PLATFORM}/bin";
+             INCLUDE_DEST_VAR="INCLUDE_DEST=\${TO_CORE}/include";],
+            [LIBRARY_DEST_VAR="";
+             PROGRAM_DEST_VAR="";
+             INCLUDE_DEST_VAR="";])
+AC_SUBST(LIBRARY_DEST_VAR)
+AC_SUBST(PROGRAM_DEST_VAR)
+AC_SUBST(INCLUDE_DEST_VAR)
 
 
 PACKAGE_BASE=""
