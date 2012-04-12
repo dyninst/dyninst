@@ -89,12 +89,12 @@ bool ProcessPool::for_each(ifunc f, void *data)
    for (i = procs.begin(); i != procs.end(); ++i) {
       bool result = f(i->second, data);
 	  if (!result) {
-			condvar()->signal();
+			condvar()->broadcast();
 			condvar()->unlock();
 		  return false;
 	  }
    }
-	condvar()->signal();
+	condvar()->broadcast();
 	condvar()->unlock();
    return true;
 }

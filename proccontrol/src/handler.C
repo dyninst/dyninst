@@ -639,7 +639,7 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    {
 	   proc->setExitCode(event->getExitCode());
    }
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -721,7 +721,7 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -758,7 +758,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    proc->getStartupTeardownProcs().dec();
@@ -876,7 +876,7 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
 	int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
 	assert(tmp);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -1711,7 +1711,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->setState(int_process::exited);
       ProcPool()->rmProcess(proc);
 
-      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
    }
 

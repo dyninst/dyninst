@@ -1035,7 +1035,7 @@ bool int_process::terminate(bool &needs_sync)
    setForceGeneratorBlock(true);
    had_error = false;
   done:
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
    return !had_error;
 }
@@ -2204,7 +2204,7 @@ bool int_thread::intCont()
       triggerContinueCBs();
    }
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    if (!result) {
@@ -2743,7 +2743,7 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
       // reaches a proper exit.
       thrd->getExitingState().setState(int_thread::running);
    }
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 }
 
