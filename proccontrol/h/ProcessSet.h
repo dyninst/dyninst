@@ -88,8 +88,12 @@ class AddressSet
     **/
    static AddressSet::ptr newAddressSet();
    static AddressSet::ptr newAddressSet(ProcessSet_const_ptr ps, Dyninst::Address addr);
-   static AddressSet::ptr newAddressSet(Process::const_ptr p, Address addr);
+   static AddressSet::ptr newAddressSet(Process::const_ptr proc, Dyninst::Address addr);
    static AddressSet::ptr newAddressSet(ProcessSet_const_ptr ps, std::string library_name, Dyninst::Offset off = 0);
+   //More redundant factories, to work around gcc 4.1 bug
+   static AddressSet::ptr newAddressSet(ProcessSet_ptr ps, Dyninst::Address addr);
+   static AddressSet::ptr newAddressSet(Process::ptr proc, Dyninst::Address addr);
+   static AddressSet::ptr newAddressSet(ProcessSet_ptr ps, std::string library_name, Dyninst::Offset off = 0);
    
    /**
     * Standard iterators methods and container access
@@ -113,6 +117,8 @@ class AddressSet
 
    std::pair<iterator, bool> insert(Dyninst::Address a, Process::const_ptr p);
    size_t insert(Dyninst::Address a, ProcessSet_const_ptr ps);
+   std::pair<iterator, bool> insert(Dyninst::Address a, Process::ptr p);
+   size_t insert(Dyninst::Address a, ProcessSet_ptr ps);
    void erase(iterator pos);
    size_t erase(Process::const_ptr p);
    size_t erase(Dyninst::Address a, Process::const_ptr p);
@@ -167,9 +173,13 @@ class ProcessSet
    static ProcessSet::ptr newProcessSet();
    static ProcessSet::ptr newProcessSet(Process::const_ptr p);
    static ProcessSet::ptr newProcessSet(ProcessSet::const_ptr pp);
-   static ProcessSet::ptr newProcessSet(const std::set<Process::ptr> &procs);
    static ProcessSet::ptr newProcessSet(const std::set<Process::const_ptr> &procs);
    static ProcessSet::ptr newProcessSet(AddressSet::const_iterator, AddressSet::const_iterator);
+
+   //These non-const factories may seem redundant, but gcc 4.1 gets confused without them
+   static ProcessSet::ptr newProcessSet(Process::ptr p); 
+   static ProcessSet::ptr newProcessSet(ProcessSet::ptr pp);
+   static ProcessSet::ptr newProcessSet(const std::set<Process::ptr> &procs);
 
    /**
     * Create new ProcessSets by attaching/creating new Process objects

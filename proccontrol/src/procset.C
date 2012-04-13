@@ -106,6 +106,42 @@ AddressSet::ptr AddressSet::newAddressSet(Process::const_ptr p, Address addr)
    return newset;
 }
 
+AddressSet::ptr AddressSet::newAddressSet(ProcessSet::ptr ps, Address addr)
+{
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
+      newset->iaddrs->insert(value_type(addr, *i));
+   }
+   return newset;
+}
+
+AddressSet::ptr AddressSet::newAddressSet(ProcessSet::ptr ps, string library_name, Offset off)
+{
+   MTLock lock_this_func;
+
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
+      int_process *p = (*i)->llproc();
+      if (!p) 
+         continue;
+      int_library *lib = p->getLibraryByName(library_name);
+      if (!lib)
+         continue;
+      newset->iaddrs->insert(value_type(lib->getAddr() + off, *i));
+   }
+   return newset;
+}
+
+AddressSet::ptr AddressSet::newAddressSet(Process::ptr p, Address addr)
+{
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   return newset;
+}
+
 AddressSet::~AddressSet()
 {
    if (iaddrs) {
@@ -198,6 +234,33 @@ size_t AddressSet::insert(Address a, ProcessSet::const_ptr ps)
 {
    size_t count_added = 0;
    for (ProcessSet::const_iterator i = ps->begin(); i != ps->end(); i++) {
+      Process::ptr proc = *i;
+      pair<AddressSet::iterator, bool> result = insert(a, *i);
+      if (result.second)
+         count_added++;
+   }
+   return count_added;
+}
+
+pair<AddressSet::iterator, bool> AddressSet::insert(Address a, Process::ptr p)
+{
+   Process::ptr ncp = pc_const_cast<Process>(p);
+   pair<iterator, bool> result;
+   for (result.first = iaddrs->find(a); result.first != iaddrs->end() && result.first->first == a; result.first++) {
+      if (result.first->second == ncp) {
+         result.second = false;
+         return result;
+      }
+   }
+   result.first = iaddrs->insert(value_type(a, ncp));
+   result.second = true;
+   return result;
+}
+
+size_t AddressSet::insert(Address a, ProcessSet::ptr ps)
+{
+   size_t count_added = 0;
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
       Process::ptr proc = *i;
       pair<AddressSet::iterator, bool> result = insert(a, *i);
       if (result.second)
@@ -571,6 +634,18 @@ ProcessSet::ptr ProcessSet::newProcessSet(const set<Process::ptr> &procs)
    ProcessSet::ptr newps = newProcessSet();
    copy(procs.begin(), procs.end(), inserter(*newps->procset, newps->procset->end()));
    return newps;
+}
+
+ProcessSet::ptr ProcessSet::newProcessSet(Process::ptr p)
+{
+   ProcessSet::ptr newps = newProcessSet();
+   newps->insert(p);
+   return newps;
+}
+
+ProcessSet::ptr ProcessSet::newProcessSet(ProcessSet::ptr pp)
+{
+   return newProcessSet(*pp->procset);
 }
 
 struct proc_strip_const {

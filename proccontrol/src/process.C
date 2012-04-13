@@ -5253,7 +5253,7 @@ bool Process::supportsExec() const
 Dyninst::Address Process::mallocMemory(size_t size, Dyninst::Address addr)
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(shared_from_this());
-   AddressSet::ptr addrset = AddressSet::newAddressSet(shared_from_this(), addr);
+   AddressSet::ptr addrset = AddressSet::newAddressSet(pset, addr);
    bool result = pset->mallocMemory(size, addrset);
    if (!result) {
       return 0;
@@ -5275,8 +5275,8 @@ Dyninst::Address Process::mallocMemory(size_t size)
 bool Process::freeMemory(Dyninst::Address addr)
 {
    Process::ptr this_ptr = shared_from_this();
-   AddressSet::ptr addrs = AddressSet::newAddressSet(this_ptr, addr);
    ProcessSet::ptr pset = ProcessSet::newProcessSet(this_ptr);
+   AddressSet::ptr addrs = AddressSet::newAddressSet(pset, addr);
    return pset->freeMemory(addrs);
 }
 
