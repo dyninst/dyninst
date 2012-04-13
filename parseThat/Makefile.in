@@ -50,22 +50,29 @@ LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwa
 # The echo will remove the quotes
 LIBS += $(shell echo $(DEMANGLER_LINK))
 
+ifneq (x,x$(strip $(ELFFLAGS)))
+ELFLINK = -L$(ELFFLAGS)
+endif
+ifneq (x,x$(strip $(DWARFFLAGS)))
+DWARFLINK = -L$(DWARFFLAGS)
+endif
+
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
-LDFLAGS += $(DWARFFLAGS)
-LDFLAGS += $(ELFFLAGS)
+LDFLAGS += $(DWARFLINK)
+LDFLAGS += $(ELFLINK)
 endif
 
 ifneq (, $(findstring linux, $(PLATFORM)))
 LIBS        += -ldwarf -lelf
-LDFLAGS += $(DWARFFLAGS)
-LDFLAGS += $(ELFFLAGS)
+LDFLAGS += $(DWARFLINK)
+LDFLAGS += $(ELFLINK)
 endif
 
 ifneq (, $(findstring vxworks, $(PLATFORM)))
 LIBS        += -ldwarf -lelf
-LDFLAGS += $(DWARFFLAGS)
-LDFLAGS += $(ELFFLAGS)
+LDFLAGS += $(DWARFLINK)
+LDFLAGS += $(ELFLINK)
 endif
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
