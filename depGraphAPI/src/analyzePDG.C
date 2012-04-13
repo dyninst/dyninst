@@ -34,7 +34,7 @@
 #include <set>
 #include <map>
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 #include "Graph.h"
 #include "analyzeDDG.h"
@@ -49,7 +49,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::DepGraphAPI;
-using namespace dyn_detail::boost;
 
 // Annotation type for storing PDGs.
 AnnotationClass<PDG::Ptr> PDGAnno(std::string("PDGAnno"));

@@ -32,8 +32,7 @@
 #if !defined(EDGE_H)
 #define EDGE_H
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/weak_ptr.hpp"
+#include "dynptr.h"
 #include <set>
 #include "Annotatable.h"
 
@@ -46,11 +45,11 @@ class COMMON_EXPORT Edge : public AnnotatableSparse {
     friend class Graph;
     friend class Creator;
  public:
-    typedef dyn_detail::boost::shared_ptr<Edge> Ptr;
+    typedef dyn_shared_ptr<Edge> Ptr;
 
  private:
-    typedef dyn_detail::boost::shared_ptr<Node> NodeSharedPtr;
-    typedef dyn_detail::boost::weak_ptr<Node> NodePtr;
+    typedef dyn_shared_ptr<Node> NodeSharedPtr;
+    typedef dyn_weak_ptr<Node> NodePtr;
     
  public:
     

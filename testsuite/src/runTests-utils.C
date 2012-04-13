@@ -403,7 +403,7 @@ void setupVars(bool useLog, string &logfile)
       base_dir = getenv("PARADYN_BASE");
    }
 
-   pdscrdir = base_dir + "/scripts";
+   pdscrdir = base_dir + "/dyninst/scripts";
    if ( ! isDir(pdscrdir) )
    {
       cerr << pdscrdir << " does not exist.  Paradyn scripts dir required." 

@@ -46,7 +46,6 @@
 using namespace Dyninst;
 // using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
-using namespace dyn_detail::boost;
 using namespace std;
 //////////////// Replace with generic version ////////////
 

@@ -52,7 +52,7 @@ class MemEmulator : public Atom {
   friend class MemEmulatorTranslator;
   typedef std::map<Register, TracePtr> TranslatorMap;
  public:
-   typedef dyn_detail::boost::shared_ptr<MemEmulator> Ptr;
+   typedef dyn_shared_ptr<MemEmulator> Ptr;
    
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,

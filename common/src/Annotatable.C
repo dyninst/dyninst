@@ -242,6 +242,8 @@ void AnnotationClassBase::dumpAnnotationClasses()
 }
 
 namespace Dyninst {
+
+#if !defined(SERIALIZATION_DISABLED)
 bool is_input(SerializerBase *sb)
 {
 	return sb->isInput();
@@ -324,6 +326,7 @@ bool add_annotations(SerializerBase *sb, AnnotatableSparse *an, std::vector<ser_
 	}
 	return (err == false);
 }
+
 bool add_annotations(SerializerBase *sb, AnnotatableDense *an, std::vector<ser_rec_t> &sers)
 {
 	serialize_printf("%s[%d]:  welcome to addAnnotations: got %lu\n", FILE__, __LINE__, sers.size());
@@ -356,6 +359,34 @@ bool add_annotations(SerializerBase *sb, AnnotatableDense *an, std::vector<ser_r
 	}
 	return (err == false);
 }
+
+#else
+bool is_input(SerializerBase *)
+{
+   return false;
+}
+
+bool is_output(SerializerBase *) {
+   return false;
+}
+
+bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, SerializerBase *, const char *) {
+   return false;
+}
+
+bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *, sparse_or_dense_anno_t, const char *) {
+   return false;
+}
+
+bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &) {
+   return false;
+}
+
+bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &) {
+   return false;
+}
+#endif
+
 }
 bool dummy_bs()
 {

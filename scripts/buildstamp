@@ -1,0 +1,128 @@
+#!/bin/sh
+# $Id: buildstamp,v 1.8 2005/03/07 21:23:49 legendre Exp $
+# create/update build version identification voucher file
+
+USAGE="usage: buildstamp [-s SUITE_NAME] [-v RELEASE_ID] [-win] TARGET"
+SUITE=Paradyn
+RELEASE=v4.2
+RUNNING_ON_WIN=0
+
+while [ ! -z "$1" ]
+do
+  case "$1" in
+    -s)
+        # set suite name
+        SUITE=$2
+        shift
+        ;;
+    -v)
+        # set release identifier
+        RELEASE=v$2
+        shift
+        ;;
+    -[0-9]*)
+        # got detached build number
+        RELEASE=$RELEASE$1
+        ;;
+    -win)
+        # We're runing on Windows
+        RUNNING_ON_WIN=1
+        ;;
+    -*)
+        echo "Unrecognized flag: $1"
+        break
+        ;;
+    *)
+        # first non-flag argument is the target (others silently ignored!)
+        TARGET=$1
+        break
+        ;;
+  esac
+  shift
+done
+
+# common bail-point for unknown flags and undefined target
+if [ -z "$TARGET" ]; then
+    echo $USAGE
+    exit 1
+fi
+
+# ensure TARGET is specified
+set ${TARGET:?}
+V_FILE=V_$TARGET.c
+
+# clean-up suite identifier
+#SUITE=`echo X$SUITE | sed -n -e 's/^X-s//p'`
+# clean-up release identifier (ensuring that it starts with a single "v")
+#RELEASE=`echo X$RELEASE | sed -n -e 's/^X-v*/v/p'`
+
+if [ -f $V_FILE ]; then
+  n=0
+  ident=`grep '\$'$SUITE $V_FILE`
+  for i in $ident
+  do
+    n=`expr $n + 1`
+    case $n in
+    2)
+      if [ "$RELEASE" != "$i" ]; then
+        #echo "Warning: change of release from $i to $RELEASE"
+        RESET=true
+      fi
+      ;;
+    3)
+      if [ "$TARGET" != "$i" ]; then
+        echo "Warning: change of target from $i to $TARGET"
+      fi
+      ;;
+    4)
+      # extract previous build number
+      # awk doesn't exist on our windows machine, also it appears that
+      # we're not currently using this option but are specifying the
+      # build number on the release variable, so I'm commenting this out
+      # BUILD=`awk '{for (i=1;i<=NF;i++) if ($i~/#[0-9]/) \
+      #             print int(substr($i,2)+1)}' $V_FILE`
+      BUILD=0
+      ;;
+    esac
+  done
+fi
+
+if [ -z "$RESET" ]; then
+    if [ -z "$BUILD" ]; then
+        BUILD=0
+        echo "$SUITE build voucher being constructed for $TARGET: BUILD#$BUILD"
+    fi
+else
+    BUILD=0
+#   echo "$SUITE build voucher being reset for $TARGET: BUILD#$BUILD"
+fi
+
+# collect additional build voucher information
+DATE=`date '+%Y/%m/%d %H:%M'`
+if [ $RUNNING_ON_WIN = "1" ]; then
+    USER=`logname`
+else
+    USER=`whoami`
+fi
+
+HOST=`hostname | tr 'A-Z' 'a-z'`
+# remap Paradyn/DynInst account addresses
+if [ "$USER" = "paradyn" ]; then
+    if [ "$SUITE" = "DynInst" ]; then
+        USER="dyninst"
+        HOST="cs.umd.edu"
+    else
+        HOST="cs.wisc.edu"
+    fi
+fi
+
+cat << EOF > $V_FILE
+/* Automated build version identification */
+extern const char V_$TARGET[];
+       const char V_$TARGET[] =
+    "\$$SUITE: $RELEASE $TARGET #$BUILD $DATE $USER@$HOST \$";
+EOF
+
+echo "     \$$SUITE: $RELEASE $TARGET #$BUILD $DATE $USER@$HOST \$"
+
+exit 0

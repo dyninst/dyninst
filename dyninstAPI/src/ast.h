@@ -49,7 +49,7 @@
 #include "BPatch_snippet.h"
 
 // The great experiment: boost shared_ptr libraries
-#include <dyn_detail/boost/shared_ptr.hpp>
+#include "dynptr.h"
 #include "BPatch_type.h"
 
 #include "arch-forward-decl.h" // instruction
@@ -96,9 +96,9 @@ class image_variable;
 // with the lowest usage count.
 
 class AstNode;
-typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
+typedef dyn_shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
-typedef dyn_detail::boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
+typedef dyn_shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 typedef enum {
    cfj_unset = 0,

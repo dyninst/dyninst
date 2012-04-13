@@ -270,7 +270,7 @@ namespace Dyninst
         }
       
       
-      typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
+      typedef dyn_shared_ptr<Instruction> Ptr;
 	public:
 	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
       void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;

@@ -89,9 +89,9 @@ class IRPC;
 
 class iRPCAllocation
 {
-   friend void dyn_detail::boost::checked_delete<iRPCAllocation>(iRPCAllocation *);
+   friend void dyn_checked_delete<iRPCAllocation>(iRPCAllocation *);
   public:
-   typedef dyn_detail::boost::shared_ptr<iRPCAllocation> ptr;
+   typedef dyn_shared_ptr<iRPCAllocation> ptr;
   iRPCAllocation() :
       addr(0),
       size(0),
@@ -117,17 +117,17 @@ class iRPCAllocation
    int ref_count;
 
    //These are NULL if the user handed us memory to run the iRPC in.
-   dyn_detail::boost::weak_ptr<int_iRPC> creation_irpc;
-   dyn_detail::boost::weak_ptr<int_iRPC> deletion_irpc;
+   dyn_weak_ptr<int_iRPC> creation_irpc;
+   dyn_weak_ptr<int_iRPC> deletion_irpc;
 };
 
-class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
+class int_iRPC : public dyn_enable_shared_from_this<int_iRPC>
 {
-   friend void dyn_detail::boost::checked_delete<int_iRPC>(int_iRPC *);   
+   friend void dyn_checked_delete<int_iRPC>(int_iRPC *);   
    friend class iRPCMgr;
    friend class Dyninst::ProcControlAPI::IRPC;
  public:
-   typedef dyn_detail::boost::shared_ptr<int_iRPC> ptr;
+   typedef dyn_shared_ptr<int_iRPC> ptr;
 
 
    typedef enum {

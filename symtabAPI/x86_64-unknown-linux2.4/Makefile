@@ -39,8 +39,7 @@ SRCS =          ../src/Object-elf.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
+MYFLAGS		+= -DUSES_DWARF_DEBUG
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -50,14 +49,6 @@ TFLAGS          += $(MYFLAGS)
 #TFLAGS		+= -g
 
 SYSLIBS		= -ldl 
-
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifndef LIBDWARF_STATIC
-LIBS += -ldwarf
-endif
-ifndef LIBELF_STATIC
-LIBS += -lelf
-endif
 
 AS		= /usr/bin/as
 

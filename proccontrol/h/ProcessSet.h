@@ -35,8 +35,7 @@
 #include <string>
 #include <map>
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/weak_ptr.hpp"
+#include "dynptr.h"
 
 #include "dyntypes.h"
 #include "Process.h"
@@ -51,10 +50,10 @@ namespace ProcControlAPI {
 
 class ProcessSet;
 class ThreadSet;
-typedef dyn_detail::boost::shared_ptr<ProcessSet> ProcessSet_ptr;
-typedef dyn_detail::boost::shared_ptr<ThreadSet> ThreadSet_ptr;
-typedef dyn_detail::boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
-typedef dyn_detail::boost::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
+typedef dyn_shared_ptr<ProcessSet> ProcessSet_ptr;
+typedef dyn_shared_ptr<ThreadSet> ThreadSet_ptr;
+typedef dyn_shared_ptr<const ProcessSet> ProcessSet_const_ptr;
+typedef dyn_shared_ptr<const ThreadSet> ThreadSet_const_ptr;
 
 /**
  * AddressSet represents a set of Process/Address pairs.  It is used to 
@@ -74,15 +73,15 @@ class AddressSet
 {
   private:
    int_addressSet *iaddrs;
-   friend void dyn_detail::boost::checked_delete<AddressSet>(AddressSet *);
+   friend void dyn_checked_delete<AddressSet>(AddressSet *);
    friend class ProcessSet;
    AddressSet();
    ~AddressSet();
   public:
    int_addressSet *get_iaddrs() { return iaddrs; }
 
-   typedef dyn_detail::boost::shared_ptr<AddressSet> ptr;
-   typedef dyn_detail::boost::shared_ptr<AddressSet> const_ptr;
+   typedef dyn_shared_ptr<AddressSet> ptr;
+   typedef dyn_shared_ptr<AddressSet> const_ptr;
    
    /**
     * Create new Address sets
@@ -157,10 +156,10 @@ class ProcessSet
    ProcessSet();
    ~ProcessSet();
 
-   friend void dyn_detail::boost::checked_delete<ProcessSet>(ProcessSet *);
+   friend void dyn_checked_delete<ProcessSet>(ProcessSet *);
  public:
-   typedef dyn_detail::boost::shared_ptr<ProcessSet> ptr;
-   typedef dyn_detail::boost::shared_ptr<const ProcessSet> const_ptr;
+   typedef dyn_shared_ptr<ProcessSet> ptr;
+   typedef dyn_shared_ptr<const ProcessSet> const_ptr;
 
    /**
     * Create new ProcessSets from existing Process objects
@@ -364,10 +363,10 @@ class ThreadSet {
    
    ThreadSet();
    ~ThreadSet();
-   friend void dyn_detail::boost::checked_delete<ThreadSet>(ThreadSet *);
+   friend void dyn_checked_delete<ThreadSet>(ThreadSet *);
   public:
-   typedef dyn_detail::boost::shared_ptr<ThreadSet> ptr;
-   typedef dyn_detail::boost::shared_ptr<const ThreadSet> const_ptr;
+   typedef dyn_shared_ptr<ThreadSet> ptr;
+   typedef dyn_shared_ptr<const ThreadSet> const_ptr;
 
    /**
     * Create a new ThreadSet given existing threads

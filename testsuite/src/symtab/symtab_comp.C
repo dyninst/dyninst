@@ -61,7 +61,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 
 	if (measure) um_group.start();  // Measure resource usage.
 
-#if defined (cap_serialization_test)
+#if defined (cap_serialization_test) && !defined(SERIALIZATION_DISABLED)
 	if (group->createmode == DESERIALIZE)
 		return SKIPPED;
 

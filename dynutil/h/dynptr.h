@@ -29,42 +29,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(OPERATION_H)
-#define OPERATION_H
+#ifndef DYNPTR_H_
+#define DYNPTR_H_
 
-#include "Absloc.h"
+#include "boost/shared_ptr.hpp"
+#include "boost/weak_ptr.hpp"
+#include "boost/enable_shared_from_this.hpp"
 
-namespace Dyninst {
+#define dyn_shared_ptr                  boost::shared_ptr
+#define dyn_weak_ptr                    boost::weak_ptr
 
-using namespace InstructionAPI;
+#define dyn_const_pointer_cast          boost::const_pointer_cast
+#define dyn_dynamic_pointer_cast        boost::dynamic_pointer_cast
+#define dyn_static_pointer_cast         boost::static_pointer_cast
 
-// NOTE: this is NOT the instructionAPI operation. This is a
-// single-definition component of an instruction.
-
-class Operation {
- public:
-    typedef dyn_shared_ptr<Operation> Ptr;
-    typedef std::set<Operation::Ptr> OperationSet;
-
-    DATAFLOW_EXPORT static decompose(Instruction::Ptr insn,
-                     Address addr,
-                     OperationSet &ops);
-
-    DATAFLOW_EXPORT std::string format() const;
-    DATAFLOW_EXPORT Address addr() const { return addr_; }
-    DATAFLOW_EXPORT Instruction::Ptr insn() const { return insn_; }
-    DATAFLOW_EXPORT Absloc::Ptr absloc() const { return absloc_; }
-
-    DATAFLOW_EXPORT Operation(Instruction::Ptr insn,
-              Address addr,
-              Absloc::Ptr absloc) :
-        insn_(insn), addr_(addr), absloc_(absloc) {};
-
- private:
-    Instruction::Ptr insn_;
-    Address addr_;
-    Absloc::Ptr absloc_;
-};
-};
+#define dyn_enable_shared_from_this     boost::enable_shared_from_this
+#define dyn_checked_delete              boost::checked_delete
 
 #endif

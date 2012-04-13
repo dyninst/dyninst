@@ -163,9 +163,6 @@ bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
    if ( ranges.size() != originalSize )
       return true;
 
-   serialize_printf("%s[%d]:  failing to getAddressRanges fr %s[%d]\n", 
-		   FILE__, __LINE__, lineSource.c_str(), lineNo);
-
    return false;
 }
 
@@ -582,6 +579,26 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
+bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
+				 NameType nameType,
+				 bool isRegex,
+				 bool checkCase) {
+  bool succ = false;
+  std::vector<Variable *> tmp;
+
+  if (!exec()->findVariablesByName(tmp, name, nameType, isRegex, checkCase)) {
+    return false;
+  }
+  for (unsigned i = 0; i < tmp.size(); i++) {
+    if (tmp[i]->getModule() == this) {
+      ret.push_back(tmp[i]);
+      succ = true;
+    }
+  }
+  return succ;
+}
+
+#if !defined(SERIALIZATION_DISABLED)
 Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
@@ -620,25 +637,6 @@ Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW
    }
    return NULL;
 }
-
-bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string& name,
-				 NameType nameType,
-				 bool isRegex,
-				 bool checkCase) {
-  bool succ = false;
-  std::vector<Variable *> tmp;
-
-  if (!exec()->findVariablesByName(tmp, name, nameType, isRegex, checkCase)) {
-    return false;
-  }
-  for (unsigned i = 0; i < tmp.size(); i++) {
-    if (tmp[i]->getModule() == this) {
-      ret.push_back(tmp[i]);
-      succ = true;
-    }
-  }
-  return succ;
-}
   
 Serializable *Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
@@ -651,3 +649,17 @@ Serializable *Statement::serialize_impl(SerializerBase *sb, const char *tag) THR
 	ifxml_end_element(sb, tag);
 	return NULL;
 }
+
+#else
+
+Serializable *Module::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+
+Serializable *Statement::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+   return NULL;
+}
+
+#endif

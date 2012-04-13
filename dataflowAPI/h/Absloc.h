@@ -272,7 +272,7 @@ class AbsRegion {
 
 class Assignment {
  public:
-  typedef dyn_detail::boost::shared_ptr<Assignment> Ptr;
+  typedef dyn_shared_ptr<Assignment> Ptr;
   typedef std::set<AbsRegion> Aliases;
 
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }

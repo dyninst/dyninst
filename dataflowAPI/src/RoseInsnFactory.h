@@ -37,7 +37,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "Visitor.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 #include "dynutil/h/util.h"
 #include <vector>
 
@@ -70,8 +70,8 @@ namespace InstructionAPI {
 namespace DataflowAPI {
   class RoseInsnFactory {
   protected:
-    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
-    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+    typedef dyn_shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+    typedef dyn_shared_ptr<InstructionAPI::Instruction> InstructionPtr;
   public:
     DATAFLOW_EXPORT RoseInsnFactory(void) {};
     DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) {};

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 #include <set>
 #include <list>
 #include <queue>
@@ -49,7 +49,6 @@
 
 using namespace Dyninst;
 using namespace DepGraphAPI;
-using namespace dyn_detail::boost;
 
 DDG::DDG(Function *func) :
     func_(func)

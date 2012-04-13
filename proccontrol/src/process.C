@@ -4943,7 +4943,8 @@ LibraryPool &Process::libraries()
 
 bool Process::continueProc()
 {
-   ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
+   Process::ptr me = shared_from_this();
+   ProcessSet::ptr ps = ProcessSet::newProcessSet(me);
    return ps->continueProcs();
 }
 

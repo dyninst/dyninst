@@ -321,6 +321,7 @@ Function::~Function()
 
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	if (!sb) SER_ERR("bad paramater sb");
@@ -358,6 +359,12 @@ Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THRO
 			sb->isInput() ? "deserialize" : "serialize");
 	return NULL;
 }
+#else
+Serializable *Function::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 bool Function::removeSymbol(Symbol *sym) 
 {

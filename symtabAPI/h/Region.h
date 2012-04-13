@@ -31,8 +31,8 @@
 
 #ifndef __REGION__H__ 
 #define __REGION__H__
-#include "symutil.h"
 #include "Serialization.h"
+#include "symutil.h"
 #include "Annotatable.h"
 
 namespace Dyninst{
@@ -43,7 +43,7 @@ class relocationEntry;
 
 
 
-class Region : public Serializable, public AnnotatableSparse {
+class Region : public AnnotatableSparse {
    friend class Object;
    friend class Symtab;
    friend class SymtabTranslatorBase;

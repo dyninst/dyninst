@@ -49,7 +49,6 @@
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
-using namespace dyn_detail::boost;
 
 void Absloc::getAbslocs(AbslocSet &locs) {
     RegisterLoc::getRegisterLocs(locs);

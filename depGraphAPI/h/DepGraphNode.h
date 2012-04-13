@@ -50,7 +50,7 @@ typedef BPatch_function Function;
 
 class OperationNode : public PhysicalNode {
  public:
-    typedef dyn_detail::boost::shared_ptr<OperationNode> Ptr;
+    typedef dyn_shared_ptr<OperationNode> Ptr;
     
     static Node::Ptr createNode(Address addr, Absloc::Ptr absloc);
     
@@ -84,7 +84,7 @@ class BlockNode : public Node {
  typedef BPatch_basicBlock Block;
 
  public:
-    typedef dyn_detail::boost::shared_ptr<BlockNode> Ptr;
+    typedef dyn_shared_ptr<BlockNode> Ptr;
     
     static Node::Ptr createNode(Block *);
     
@@ -115,7 +115,7 @@ class FormalNode : public VirtualNode {
     
     
  public:
-    typedef dyn_detail::boost::shared_ptr<FormalNode> Ptr;
+    typedef dyn_shared_ptr<FormalNode> Ptr;
     
     Absloc::Ptr absloc() const { return absloc_; }
     
@@ -136,7 +136,7 @@ class FormalNode : public VirtualNode {
 
 class FormalParamNode : public FormalNode {
  public:
-    typedef dyn_detail::boost::shared_ptr<FormalParamNode> Ptr;
+    typedef dyn_shared_ptr<FormalParamNode> Ptr;
     
     static Node::Ptr createNode(Absloc::Ptr absloc);
     
@@ -154,7 +154,7 @@ class FormalParamNode : public FormalNode {
 
 class FormalReturnNode : public FormalNode {
  public:
-    typedef dyn_detail::boost::shared_ptr<FormalReturnNode> Ptr;
+    typedef dyn_shared_ptr<FormalReturnNode> Ptr;
 
     static Node::Ptr createNode(Absloc::Ptr absloc);
     
@@ -173,7 +173,7 @@ class FormalReturnNode : public FormalNode {
 class ActualNode : public VirtualNode {
 
  public:
-    typedef dyn_detail::boost::shared_ptr<ActualNode> Ptr;
+    typedef dyn_shared_ptr<ActualNode> Ptr;
     
     Address addr() const { return addr_; }
     Absloc::Ptr absloc() const { return absloc_; }
@@ -202,7 +202,7 @@ class ActualParamNode : public ActualNode {
     
     
  public:
-    typedef dyn_detail::boost::shared_ptr<ActualParamNode> Ptr;
+    typedef dyn_shared_ptr<ActualParamNode> Ptr;
     
     static Node::Ptr createNode(Address addr, Function *func, Absloc::Ptr absloc);
     
@@ -220,7 +220,7 @@ class ActualParamNode : public ActualNode {
 class ActualReturnNode : public ActualNode {
     
  public:
-    typedef dyn_detail::boost::shared_ptr<ActualReturnNode> Ptr;
+    typedef dyn_shared_ptr<ActualReturnNode> Ptr;
     
     static Node::Ptr createNode(Address addr, Function *func, Absloc::Ptr absloc);
     
@@ -238,7 +238,7 @@ class ActualReturnNode : public ActualNode {
 
 class CallNode : public VirtualNode {
  public:
-    typedef dyn_detail::boost::shared_ptr<CallNode> Ptr;
+    typedef dyn_shared_ptr<CallNode> Ptr;
 
     static Node::Ptr createNode(Function *func);
     

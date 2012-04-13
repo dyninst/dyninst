@@ -62,6 +62,7 @@ extern "C" DLLEXPORT TestMutator* test_ser_anno_factory()
 	return new test_ser_anno_Mutator();
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 class AnnotateeBase : public Serializable
 {
 	public:
@@ -751,10 +752,12 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 
 	unlinkSerfile(scs);
 }
+#endif
+
 test_results_t test_ser_anno_Mutator::executeTest()
 {
 	return SKIPPED;
-
+#if !defined(SERIALIZATION_DISABLED)
 	//  set environment variable enabling serialization
 	errno = 0;
 
@@ -982,4 +985,5 @@ test_results_t test_ser_anno_Mutator::executeTest()
 	}
 		
 	return PASSED;
+#endif
 }

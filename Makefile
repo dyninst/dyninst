@@ -5,8 +5,7 @@
 #
 
 TO_CORE = .
-# Include additional local definitions (if available)
-include ./make.config.local
+
 # Include the make configuration specification (site configuration options)
 include ./make.config
 # Include component dependency information

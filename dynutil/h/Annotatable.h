@@ -44,30 +44,33 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "Serialization.h"
 #include "util.h"
-#include "dyn_detail/boost/type_traits/is_base_of.hpp"
-#include "dyn_detail/boost/type_traits/is_pointer.hpp"
-#include "dyn_detail/boost/type_traits/remove_pointer.hpp"
-#define serialize_printf serializer_printf
+#include "boost/type_traits/is_base_of.hpp"
+#include "boost/type_traits/is_pointer.hpp"
+#include "boost/type_traits/remove_pointer.hpp"
 
 namespace Dyninst
 {
 
 
+class SerializerBase;
+class Serializable;
+typedef Serializable * (*ser_func_t) (void *, SerializerBase *, const char *);
+
+#if !defined(SERIALIZATION_DISABLED)
+#define serialize_printf serializer_printf
 COMMON_EXPORT int serializer_printf(const char *format, ...);
-COMMON_EXPORT int annotatable_printf(const char *format, ...);
+COMMON_EXPORT Serializable * ser_func_wrapper(void *it, SerializerBase *sb,  const char *tag);
+#endif
 COMMON_EXPORT bool annotation_debug_flag();
+COMMON_EXPORT int annotatable_printf(const char *format, ...);
 
 typedef unsigned short AnnotationClassID;
 typedef bool (*anno_cmp_func_t)(void *, void*);
 
 extern int newAnnotationClass();
 extern bool void_ptr_cmp_func(void *, void *);
-
-class SerializerBase;
-class Serializable;
-typedef Serializable * (*ser_func_t) (void *, SerializerBase *, const char *);
-COMMON_EXPORT Serializable * ser_func_wrapper(void *it, SerializerBase *sb,  const char *tag);
 
 class AnnotationClassBase
 {
@@ -114,26 +117,27 @@ class AnnotationClass : public AnnotationClassBase {
 			  ser_func_t s = NULL) :
 		  AnnotationClassBase(n, cmp_func_, s)
 	  {
+#if !defined(SERIALIZATION_DISABLED)
 		if (NULL == s)
 		{
 			//  if the type is Serializable, use its serialization function
 			//  otherwise, leave it NULL so we don't accidentally dereference
 			//  a random pointer as if it were automatcally descended from
 			//  Serializable
-
-			if (dyn_detail::boost::is_base_of<Serializable, T>::value)
+			if (boost::is_base_of<Serializable, T>::value)
 			{
 				serialize_func = ser_func_wrapper;
-			}
-			else if (dyn_detail::boost::is_pointer<T>::value)
+			} else
+         if (boost::is_pointer<T>::value)
 			{
-				if (dyn_detail::boost::is_base_of<Serializable, 
-						typename dyn_detail::boost::remove_pointer<T>::type>::value)
+				if (boost::is_base_of<Serializable, 
+						typename boost::remove_pointer<T>::type>::value)
 				{
 					serialize_func = ser_func_wrapper;
 				}
 			}
 		}
+#endif
 	  }
 
 	  const char *getTypeName() { return typeid(T).name();}
@@ -142,12 +146,12 @@ class AnnotationClass : public AnnotationClassBase {
 		  //  If T is (Serializable *) need to allocate a new object, not a new pointer
 		  //  
 
-		  if (dyn_detail::boost::is_pointer<T>::value)
+		  if (boost::is_pointer<T>::value)
 		  {
-				if (dyn_detail::boost::is_base_of<Serializable, 
-						typename dyn_detail::boost::remove_pointer<T>::type>::value)
+				if (boost::is_base_of<Serializable, 
+						typename boost::remove_pointer<T>::type>::value)
 				{
-					return (void *) new (typename dyn_detail::boost::remove_pointer<T>::type)();
+					return (void *) new (typename boost::remove_pointer<T>::type)();
 				}
 		  }
 
@@ -192,9 +196,11 @@ COMMON_EXPORT unsigned short get_serializer_index(SerializerBase *sb);
 COMMON_EXPORT bool ser_operation(SerializerBase *, ser_post_op_t &, const char *);
 COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
 COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &);
+#if !defined(SERIALIZATION_DISABLED)
 COMMON_EXPORT bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, SerializerBase *sb, const char *);
 COMMON_EXPORT SerializerBase *getExistingOutputSB(unsigned short);
 COMMON_EXPORT bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *acb, sparse_or_dense_anno_t, const char *);
+#endif
 
 class AnnotatableDense
 {
@@ -301,6 +307,7 @@ class AnnotatableDense
 		 }
 
 
+#if !defined(SERIALIZATION_DISABLED)
 		 //  If serialization is not enabled, there will be no serializer specified,
 		 //  so none of the below code will be executed.
 
@@ -327,6 +334,7 @@ class AnnotatableDense
 				 serialize_post_annotation(this, aa, sb, &a_id, dense, "PostAnnotation");
 			 }
 		 }
+#endif
 
 		 return true;
 	  }
@@ -376,6 +384,7 @@ class AnnotatableDense
          return true;
       }
 
+#if !defined(SERIALIZATION_DISABLED)
 	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
 	  {
 		  serialize_printf("%s[%d]:  welcome to serializeAnotations:\n", FILE__, __LINE__);
@@ -448,7 +457,10 @@ class AnnotatableDense
 					  FILE__, __LINE__);
 		  }
 	  }
-
+#else
+	  COMMON_EXPORT void serializeAnnotations(SerializerBase *, const char *) {
+     }
+#endif
 	  COMMON_EXPORT void annotationsReport()
 	  {
 		  std::vector<AnnotationClassBase *> atypes;
@@ -725,8 +737,6 @@ class AnnotatableSparse
 
             if (!acb)
             {
-               serialize_printf("%s[%d]:  cannot find annotation class for id %d\n", 
-                     FILE__, __LINE__, i);
                return false;
             }
 
@@ -788,6 +798,7 @@ class AnnotatableSparse
 				return true;
             }
 
+#if !defined(SERIALIZATION_DISABLED)
 			dyn_hash_map<void *, unsigned short>::iterator seriter;
 			seriter = ser_ndx_map.find(this);
 			if (seriter != ser_ndx_map.end())
@@ -812,6 +823,7 @@ class AnnotatableSparse
 					}
 				}
 			}
+#endif
 				
             return true;
          }
@@ -868,7 +880,7 @@ class AnnotatableSparse
 	      return false;
 	  }
 
-	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
+	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char * /*tag*/)
 	  {
 		  annos_t &l_annos = *getAnnos();
 		  std::vector<ser_rec_t> my_sers;
@@ -902,7 +914,6 @@ class AnnotatableSparse
 
 					if (NULL == sf)
 					{
-						serialize_printf("%s[%d]:  no serialization function for this anno: type: %s, name: %s\n", FILE__, __LINE__, acb->getTypeName(), acb->getName().c_str());
 						continue;
 					}
 
@@ -914,18 +925,16 @@ class AnnotatableSparse
 					my_sers.push_back(sr);
 				}
 
-				if (my_sers.size())
-					serialize_printf("%s[%d]:  found %lu req'd serializations for obj %p\n", 
-							FILE__, __LINE__, my_sers.size(), this);
-
-				ser_ndx_map[this] = get_serializer_index(sb);
+					ser_ndx_map[this] = get_serializer_index(sb);
 			}
 
+#if !defined(SERIALIZATION_DISABLED)
 			if (!serialize_annotation_list(this, my_sers, sb, tag))
 			{
 				fprintf(stderr, "%s[%d]:  FIXME:  failed to serialize annotation list\n", 
 						FILE__, __LINE__);
 			}
+#endif
 
 			if (!add_annotations(sb, this, my_sers))
 			{
