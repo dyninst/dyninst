@@ -253,8 +253,8 @@ class ComputeNode
 
    bool writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced);
    bool writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced);
-   bool flushNextMessage(bgq_process *proc);
-   bool handleMessageAck(bgq_process *proc);
+   bool flushNextMessage();
+   bool handleMessageAck();
 
    bool reliableWrite(void *buffer, size_t buffer_size);
 
@@ -266,7 +266,6 @@ class ComputeNode
    int fd;
    int cn_id;
    Mutex send_lock;
-
    Mutex attach_lock;
    bool do_all_attach;
    bool issued_all_attach;

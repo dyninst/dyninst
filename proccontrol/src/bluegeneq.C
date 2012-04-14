@@ -107,13 +107,13 @@ static void printMessage(ToolMessage *msg, const char *str)
    switch (msg->header.type) {
       case ControlAck: {
          ControlAckMessage *cak = static_cast<ControlAckMessage *>(msg);
-         pclean_printf("ControlAckMessage: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
+         pclean_printf("ControlAck: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
                        (unsigned) cak->controllingToolId, cak->toolTag, (unsigned) cak->priority);
          break;
       }
       case AttachAck: {
          AttachAckMessage *aak = static_cast<AttachAckMessage *>(msg);
-         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) aak->numProcess);
+         pclean_printf("AttachAck: numProcess - %u, rank = [", (unsigned) aak->numProcess);
          for (unsigned i=0; i<aak->numProcess; i++) {
             pclean_printf("%u,", aak->rank[i]);
          }
@@ -122,7 +122,7 @@ static void printMessage(ToolMessage *msg, const char *str)
       }
       case DetachAck: {
          DetachAckMessage *dak = static_cast<DetachAckMessage *>(msg);
-         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) dak->numProcess);
+         pclean_printf("DetachAck: numProcess - %u, rank = [", (unsigned) dak->numProcess);
          for (unsigned i=0; i<dak->numProcess; i++) {
             pclean_printf("%u, ", dak->rank[i]);
          }
@@ -798,13 +798,6 @@ bool bgq_process::handleStartupEvent(void *data)
                (*i)->setState(int_process::errorstate);
             }
             return false;
-         }
-         for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
-            bool result = cn->flushNextMessage(*i);
-            if (!result) {
-               pthrd_printf("Error flushing startup messages after group attach\n");
-               return false;
-            }
          }
       }
       else {
@@ -2016,8 +2009,6 @@ int ComputeNode::getID() const
 
 bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 {
-   ScopeLock lock(send_lock);
-
    size_t bytes_written = 0;
    while (bytes_written < buffer_size) {
       int result = write(fd, ((char *) buffer) + bytes_written, buffer_size - bytes_written);
@@ -2035,6 +2026,8 @@ bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 
 bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
 {
+   ScopeLock lock(send_lock);
+
    if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
       pair<void *, size_t> newmsg;
@@ -2066,8 +2059,11 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
    return true;
 }
 
-bool ComputeNode::flushNextMessage(bgq_process *proc)
+bool ComputeNode::flushNextMessage()
 {
+   ScopeLock lock(send_lock);
+   assert(have_pending_message);
+
    if (queued_pending_msgs.empty()) {
       have_pending_message = false;
       return true;
@@ -2076,22 +2072,24 @@ bool ComputeNode::flushNextMessage(bgq_process *proc)
    pair<void *, size_t> buffer = queued_pending_msgs.front();
    queued_pending_msgs.pop();
 
-   printMessage((ToolMessage *) buffer.first, "Writing");
-   bool result = reliableWrite(buffer.first, buffer.second);
+   
+   ToolMessage *msg = (ToolMessage *) buffer.first;
+   printMessage(msg, "Writing");
+   bool result = reliableWrite(msg, buffer.second);
+   pthrd_printf("Flush wrote message of size %u to FD %d, result is %s\n", msg->header.length,
+                fd, result ? "true" : "false");
    free(buffer.first);
    if (!result) {
-      pthrd_printf("Failed to flush message to %d\n", proc->getPid());
+      pthrd_printf("Failed to flush message to compute-node %d\n", cn_id);
       have_pending_message = false;
       return false;
    }
-   have_pending_message = true;
    return true;
 }
 
-bool ComputeNode::handleMessageAck(bgq_process *proc)
+bool ComputeNode::handleMessageAck()
 {
-   assert(have_pending_message);
-   return flushNextMessage(proc);
+   return flushNextMessage();
 }
 
 bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
@@ -3024,7 +3022,7 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
    assert(proc);
 
    if (proc && header->type != Notify) {
-      qproc->getComputeNode()->handleMessageAck(qproc);
+      qproc->getComputeNode()->handleMessageAck();
    }
 
    switch (header->type) {
