@@ -1106,7 +1106,7 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    if (rpc->needsToRestoreInternal()) {
       rpc->thread()->getInternalState().restoreState();
    }
-   if(!ephemeral || (mgr->numActiveRPCs(thr) == 0)) {
+   if(mgr->numActiveRPCs(thr) == 0) {
 	   rpc->thread()->getUserRPCState().restoreState();
    } else {
 	   thr->throwEventsBeforeContinue();

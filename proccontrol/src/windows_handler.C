@@ -244,16 +244,6 @@ WindowsHandleProcessExit::~WindowsHandleProcessExit()
 
 Handler::handler_ret_t WindowsHandleProcessExit::handleEvent(Event::ptr ev) 
 {
-/*	pthrd_printf("Windows Exit handler entered, treating as LWP destroy\n");
-	EventLWPDestroy::ptr fakeDestroyEvent(new EventLWPDestroy(EventType::Pre));
-	fakeDestroyEvent->setProcess(ev->getProcess());
-	fakeDestroyEvent->setThread(ev->getThread());
-	fakeDestroyEvent->setSyncType(ev->getSyncType());
-	handler_ret_t ok = do_work->handleEvent(fakeDestroyEvent);	
-	if(ok != ret_success) return ok;
-	// deliver callbacks
-	HandleCallbacks::getCB()->handleEvent(fakeDestroyEvent);
-	*/
 	return ret_success;
 }
 
@@ -291,7 +281,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    hpool->addHandler(wsinglestep);
    hpool->addHandler(wbootstrap);
    hpool->addHandler(wsti);
-   hpool->addHandler(wexit);
+//   hpool->addHandler(wexit);
    return hpool;
 }
 
@@ -357,6 +347,7 @@ Handler::handler_ret_t WindowsHandleSetThreadInfo::handleEvent( Event::ptr ev )
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
 	   thr->setTID(we->getLWP());
 	   thr->setLWP(we->getLWP());
+	   we->getProcess()->llproc()->threadPool()->noteUpdatedLWP(thr);
 	   ProcPool()->addThread(thr->llproc(), thr);
    }
 

@@ -87,6 +87,7 @@ bool int_process::create()
    bool result = plat_create();
    if (!result) {
       pthrd_printf("Could not create debuggee, %s\n", executable.c_str());
+	  setLastError(err_noproc, "Could not create process");
       ProcPool()->condvar()->unlock();
       return false;
    }
@@ -215,6 +216,7 @@ bool int_process::attach()
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
       pthrd_printf("Could not attach to debuggee, %d\n", pid);
+	  setLastError(err_noproc, "Could not attach to process");
       return false;
    }
 
@@ -4158,7 +4160,7 @@ void int_notify::noteEvent()
 {
 //MATT TODO lock around event pipe write/read when using process locks
    assert(isHandlerThread());
-   assert(events_noted == 0);
+   //assert(events_noted == 0);
    my_internals.noteEvent();
    events_noted++;
    pthrd_printf("noteEvent - %d\n", events_noted);
@@ -4180,7 +4182,7 @@ void int_notify::clearEvent()
    assert(!isHandlerThread());
    events_noted--;
    pthrd_printf("clearEvent - %d\n", events_noted);
-   assert(events_noted == 0);
+   //assert(events_noted == 0);
    my_internals.clearEvent();
 }
 

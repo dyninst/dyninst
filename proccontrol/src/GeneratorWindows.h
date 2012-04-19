@@ -34,34 +34,38 @@ class GeneratorWindows : public GeneratorMT
 	   start_mode mode;
 	   int_process* proc;
    };
-   struct Waiters
+   struct processData
    {
-	   typedef dyn_detail::boost::shared_ptr<Waiters> ptr;
-	   HANDLE gen_wait, user_wait;
+	   typedef dyn_detail::boost::shared_ptr<processData> ptr;
 	   bool unhandled_exception;
-	   Waiters() {
-		   gen_wait = ::CreateEvent(NULL, FALSE, FALSE, NULL);
-		   user_wait = ::CreateEvent(NULL, TRUE, FALSE, NULL);
-		   unhandled_exception = false;
+	   int_process* proc;
+	   state_t state;
+	   processData(const processData& o) :
+		unhandled_exception(o.unhandled_exception),
+			proc(o.proc),
+			state(o.state) {}
+		processData() : unhandled_exception(false),
+			proc(NULL),
+			state(none) {}
+   };
+   class CriticalSection
+   {
+	   Mutex& myLock;
+   public:
+	   CriticalSection(Mutex m) : myLock(m) {
+		//   myLock.lock();
 	   }
-	   ~Waiters() {
-		   ::CloseHandle(gen_wait);
-		   ::CloseHandle(user_wait);
-	   }
+	   ~CriticalSection() { /*myLock.unlock();*/ }
    };
 
-   virtual long long getSequenceNum(Dyninst::PID proc);
 
-	// Wake the generator thread to do a ContinueDebugEvent
-   virtual void wake(Dyninst::PID proc, long long sequence);
-   // Wait for the ContinueDebugEvent to go through
-   void wait(Dyninst::PID);
    void markUnhandledException(Dyninst::PID p);
    void enqueue_event(start_mode m, int_process* p);
    std::deque<StartInfo> procsToStart;
-   std::map<Dyninst::PID, Waiters::ptr> waiters;
-   std::map<int, int_process*> processes;
-   std::map<int, int_process*> thread_to_proc;
+   std::map<int, processData::ptr> thread_to_proc;
+   virtual bool isExitingState();
+   virtual void setState(state_t newstate);
+   virtual state_t getState();
    virtual bool hasLiveProc();
    void removeProcess(int_process* proc);
 
@@ -69,6 +73,7 @@ class GeneratorWindows : public GeneratorMT
    virtual void setCachedEvent(ArchEvent* ae);
    std::map<int, ArchEvent*> m_Events;
    std::map<Dyninst::PID, long long> alreadyHandled;
+   //Mutex processDataLock;
 };
 
 #endif // !defined(GENERATOR_WINDOWS_H)

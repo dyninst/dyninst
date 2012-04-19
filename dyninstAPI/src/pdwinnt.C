@@ -1637,6 +1637,7 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
     switch(et.code()) {
         case Dyninst::ProcControlAPI::EventType::Exit:
             switch(et.time()) {
+                case Dyninst::ProcControlAPI::EventType::Pre:
                 case Dyninst::ProcControlAPI::EventType::Post:
 					return CallbackOnly;
                 default:

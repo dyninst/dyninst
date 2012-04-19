@@ -206,6 +206,11 @@ bool Generator::plat_skipGeneratorBlock()
    return false;
 }
 
+Generator::state_t Generator::getState()
+{
+	return state;
+}
+
 // TODO: override this in Windows generator so that we use local counters
 bool Generator::hasLiveProc()
 {
@@ -271,13 +276,13 @@ void GeneratorMT::unlock()
 void GeneratorMT::launch()
 {
    sync->init_cond.lock();
-   state = initializing;
+   setState(initializing);
    sync->thrd.spawn(start_generator, this);
-   while (state == initializing)
+   while (getState() == initializing)
       sync->init_cond.wait();
    sync->init_cond.unlock();
 
-   if (state == error) {
+   if (getState() == error) {
       pthrd_printf("Error creating generator\n");
    }
 }
@@ -288,7 +293,7 @@ GeneratorMT::~GeneratorMT()
 
    // Wake up the generator thread if it is waiting for processes
    ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->broadcast();
+   ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
    sync->thrd.join();
@@ -312,6 +317,7 @@ void GeneratorMT::start()
       setState(none);
    }
    plat_start();
+   if(getState() == error) result = false;
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
@@ -341,13 +347,13 @@ bool GeneratorMT::processWait(bool block)
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
-		 pp->condvar()->broadcast();
+		 pp->condvar()->signal();
 		 pp->condvar()->unlock();
          return false;
       }
       pp->condvar()->wait();
    }
-   pp->condvar()->broadcast();
+   pp->condvar()->signal();
    pp->condvar()->unlock();
    pthrd_printf("processWait returning true\n");
    return true;

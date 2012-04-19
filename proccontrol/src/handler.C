@@ -632,8 +632,8 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    ProcPool()->rmProcess(proc);
    if(proc->wasForcedTerminated())
    {
-	   ev->setSuppressCB(true);
 	   proc->getStartupTeardownProcs().dec();
+	   ev->setSuppressCB(true);
    }
    else
    {

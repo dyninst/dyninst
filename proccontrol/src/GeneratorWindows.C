@@ -44,12 +44,14 @@ void GeneratorWindows::plat_start()
 	case create:
 		if(!proc->plat_create_int()) { 
 			proc->setState(int_process::exited);
+			setState(error);
 			return;
 		}
 		break;
 	case attach:
 		if(!proc->plat_attach_int()) { 
 			proc->setState(int_process::exited);
+			setState(error);
 			return;
 		}
 		break;
@@ -57,50 +59,73 @@ void GeneratorWindows::plat_start()
 		assert(!"unknown mode in GeneratorWindows::plat_start, expected create or attach");
 		break;
 	}
-	waiters.insert(std::make_pair(proc->getPid(), Waiters::ptr(new Waiters)));
-	processes.insert(std::make_pair(proc->getPid(), proc));
-	thread_to_proc.insert(std::make_pair(::GetCurrentThreadId(), proc));
+	//waiters.insert(std::make_pair(proc->getPid(), Waiters::ptr(new Waiters)));
+	//processes.insert(std::make_pair(proc->getPid(), proc));
+	processData::ptr p(new processData);
+	p->proc = proc;
+	p->unhandled_exception = false;
+	p->state = none;
+	thread_to_proc.insert(std::make_pair(::GetCurrentThreadId(), p));
 }
 
 struct value_equal
 {
 	value_equal(int_process* v) : value(v) {}
-	bool operator()(std::pair<int, int_process*> element)
+	bool operator()(std::pair<int, GeneratorWindows::processData::ptr> element)
 	{
-		return element.second == value;
+		return element.second->proc == value;
 	}
 	int_process* value;
 };
 
 void GeneratorWindows::removeProcess(int_process *proc)
 {
-	processes.erase(proc->getPid());
-	//if(thread_to_proc[::GetCurrentThreadId()] == proc)
-	//{
-	std::map<int, int_process*>::iterator found = std::find_if(thread_to_proc.begin(), thread_to_proc.end(),
+	//CriticalSection c(processDataLock);
+	std::map<int, processData::ptr>::iterator found = std::find_if(thread_to_proc.begin(), thread_to_proc.end(),
 		value_equal(proc));
 	if(found != thread_to_proc.end()) {
-		found->second = NULL;
+		thread_to_proc.erase(found);
 	}
-	//}
-	//else
-	//{
-	//	assert(!"Generator deleting process on wrong thread!");
-	//}
-	waiters.erase(proc->getPid());
 }
 
-long long GeneratorWindows::getSequenceNum(Dyninst::PID p)
+bool GeneratorWindows::isExitingState()
 {
-	return alreadyHandled[p];
+	//CriticalSection c(processDataLock);
+	if(thread_to_proc.find(DThread::self()) == thread_to_proc.end()) return false;
+	return (thread_to_proc[DThread::self()]->state == error || thread_to_proc[DThread::self()]->state == exiting);
 }
 
 
+void GeneratorWindows::setState(Generator::state_t new_state)
+{
+	//CriticalSection c(processDataLock);
+	pthrd_printf("Setting generator state: %d\n", new_state);
+	if(thread_to_proc.find(DThread::self()) == thread_to_proc.end()) {
+		state = new_state;
+		return;
+	}
+   if (isExitingState())
+      return;
+   thread_to_proc[DThread::self()]->state = new_state;
+}
+
+Generator::state_t GeneratorWindows::getState()
+{
+	//CriticalSection c(processDataLock);
+	if(thread_to_proc.find(DThread::self()) == thread_to_proc.end()) return state;
+   return thread_to_proc[DThread::self()]->state;
+}
 
 bool GeneratorWindows::hasLiveProc()
 {
+	//CriticalSection c(processDataLock);
 	pthrd_printf("begin hasLiveProc()\n");
-	int_process* p = thread_to_proc[::GetCurrentThreadId()];
+	if(thread_to_proc.find(DThread::self()) == thread_to_proc.end())
+	{
+		pthrd_printf("hasLiveProc() found NULL processInfo, returning FALSE\n");
+		return false;
+	}
+	int_process* p = thread_to_proc[DThread::self()]->proc;
 	if(!p) {
 		setState(exiting);
 		pthrd_printf("hasLiveProc() found NULL process, returning FALSE\n");
@@ -143,7 +168,9 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 	// thus, do nothing if evt == NULL.
 	if(!evt) return true;
 	ArchEventWindows* winEvt = static_cast<ArchEventWindows*>(evt);
-	int_process* process_for_cur_thread = thread_to_proc[DThread::self()];
+	//CriticalSection c(processDataLock);
+	processData::ptr d = thread_to_proc[DThread::self()];
+	int_process* process_for_cur_thread = d->proc;
 	if(!process_for_cur_thread || winEvt->evt.dwProcessId != process_for_cur_thread->getPid())
 	{
 		pthrd_printf("GeneratorWindows::plat_continue() bailing, called on thread for %d, got event on %d\n", 
@@ -154,19 +181,14 @@ bool GeneratorWindows::plat_continue(ArchEvent* evt)
 
 	windows_process *winproc = dynamic_cast<windows_process *>(process_for_cur_thread);
 
-	Waiters::ptr theWaiter = waiters[winEvt->evt.dwProcessId];
-	DWORD cont_val = theWaiter->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
-	pthrd_printf("::ContinueDebugEvent for %d/%d getting called, exception is %s\n", winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, (theWaiter->unhandled_exception ? "<NOT HANDLED>" : "<HANDLED>"));
-	//cerr << "continueDebugEvent" << endl;
+	DWORD cont_val = d->unhandled_exception ? DBG_EXCEPTION_NOT_HANDLED : DBG_CONTINUE;
+	pthrd_printf("::ContinueDebugEvent for %d/%d getting called, exception is %s\n", winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, (d->unhandled_exception ? "<NOT HANDLED>" : "<HANDLED>"));
 	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, cont_val);
-//	BOOL retval = ::ContinueDebugEvent(winEvt->evt.dwProcessId, winEvt->evt.dwThreadId, DBG_CONTINUE);
 	if (!retval) {
 		std::cerr << "ContinueDebugEvent failed, you're so screwed." << std::endl;
 	}
-	theWaiter->unhandled_exception = false;
+	d->unhandled_exception = false;
 	pthrd_printf("GeneratorWindows::plat_continue() for %d done with ::ContinueDebugEvent()\n", winEvt->evt.dwProcessId);
-	::SetEvent(theWaiter->user_wait);
-	pthrd_printf("GeneratorWindows::plat_continue() for %d done with signal()\n", winEvt->evt.dwProcessId);
 	return true;
 }
 
@@ -192,34 +214,18 @@ ArchEvent *GeneratorWindows::getEvent(bool block)
 	}
 }
 
-void GeneratorWindows::wait(Dyninst::PID p)
-{
-	pthrd_printf("GeneratorWindows::wait() for %d\n", p);
-	Waiters::ptr w = waiters[p];
-	if(w) {
-		::WaitForSingleObject(w->user_wait, INFINITE);
-	}
-	pthrd_printf("GeneratorWindows::wait() done for %d\n", p);
-}
-
-void GeneratorWindows::wake(Dyninst::PID p, long long sequence)
-{
-	pthrd_printf("GeneratorWindows::wake() for %d\n", p);
-	if(sequence < alreadyHandled[p]) {
-		pthrd_printf("GeneratorWindows::wake() rejecting sequence %lld for %d (threshold %lld)\n", sequence,
-			p, alreadyHandled[p]);
-		return;
-	}
-	Waiters::ptr w = waiters[p];
-	if(w) {
-		//cerr << "Sending wake event" << endl;
-		::SetEvent(w->gen_wait);
-	}
-}
 
 void GeneratorWindows::markUnhandledException(Dyninst::PID p)
 {
-	waiters[p]->unhandled_exception = true;
+	for(std::map<int, processData::ptr>::iterator i = thread_to_proc.begin();
+		i != thread_to_proc.end();
+		++i)
+	{
+		if(i->second->proc->getPid() == p) {
+			i->second->unhandled_exception = true;
+			return;
+		}
+	}
 }
 
 

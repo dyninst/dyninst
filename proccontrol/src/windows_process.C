@@ -119,7 +119,7 @@ bool windows_process::plat_create()
 	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	gen->enqueue_event(GeneratorWindows::create, this);
 	gen->launch();
-	return true;
+	return gen->getState() != Generator::error;
 }
 
 HANDLE windows_process::plat_getHandle()
@@ -172,11 +172,11 @@ bool windows_process::plat_create_int()
 	{
 		pid = procInfo.dwProcessId;
 		hproc = procInfo.hProcess;
+		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
+			(Dyninst::LWP)procInfo.dwThreadId, true);
+		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
+		wThread->setHandle(procInfo.hThread);
 	}
-	int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
-		(Dyninst::LWP)procInfo.dwThreadId, true);
-	windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
-	wThread->setHandle(procInfo.hThread);
 	return result ? true : false;
 }
 bool windows_process::plat_attach(bool)
@@ -185,7 +185,7 @@ bool windows_process::plat_attach(bool)
 	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	gen->enqueue_event(GeneratorWindows::attach, this);
 	gen->launch();
-	return true;
+	return gen->getState() != Generator::error;
 }
 
 bool windows_process::plat_attach_int()

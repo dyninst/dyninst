@@ -1009,16 +1009,17 @@ class int_notify {
 		typedef HANDLE wait_object_t;
 		void noteEvent()
 		{
-			::SetEvent(evt);
+			::ReleaseSemaphore(evt, 1, NULL);
 		}
 		void clearEvent()
 		{
-			::ResetEvent(evt);
+			// No-op with semaphores
+			//::ResetEvent(evt);
 		}
 
 		void createInternals()
 		{
-			evt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+			evt = ::CreateSemaphore(NULL, 0, 1000, NULL);
 		}
 		bool internalsValid()
 		{

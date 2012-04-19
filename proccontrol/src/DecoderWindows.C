@@ -290,7 +290,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				newEvt = EventForceTerminate::ptr(new EventForceTerminate(e.u.ExitProcess.dwExitCode));
 			}
 			else {
-				newEvt = EventExit::ptr(new EventExit(EventType::Pre, e.u.ExitProcess.dwExitCode));
+				newEvt = EventExit::ptr(new EventExit(EventType::Post, e.u.ExitProcess.dwExitCode));
 			}
 			GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 			winGen->removeProcess(proc);
@@ -306,13 +306,14 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				(*i)->getGeneratorState().setState(int_thread::exited);
 		 		(*i)->setExitingInGenerator(true);
 			}
-			Event::ptr associatedLWPDestroy = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+/*			Event::ptr associatedLWPDestroy = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
 			associatedLWPDestroy->setProcess(proc->proc());
 			associatedLWPDestroy->setSyncType(Event::sync_process);
 			if(thread)
 				associatedLWPDestroy->setThread(thread->thread());
 			//associatedLWPDestroy->addSubservientEvent(newEvt);
-			events.push_back(associatedLWPDestroy);
+			*/
+			events.push_back(newEvt);
 
 			return true;
 		}
