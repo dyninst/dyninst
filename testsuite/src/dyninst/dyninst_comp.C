@@ -410,6 +410,9 @@ DyninstComponent::~DyninstComponent()
 // All the constructor does is set the instance fields to NULL
 DyninstMutator::DyninstMutator() :
     appThread(NULL),
+	appAddrSpace(NULL),
+	appBinEdit(NULL),
+	appProc(NULL),
     appImage(NULL)
 {
 }

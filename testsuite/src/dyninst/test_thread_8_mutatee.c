@@ -203,10 +203,9 @@ int test_thread_8_mutatee() {
               __FILE__, __LINE__, async_failure);
 
    /* TODO Check return value for this mutatee! */
-   if (sync_failure || async_failure || timeout_failure) {
-     return -1;
-   } else {
-     test_passes(testname);
-     return 0;
-   }
+   if(sync_failure) return -1;
+   if(async_failure) return -2;
+   if(timeout_failure) return -3;
+   test_passes(testname);
+   return 0;
 }

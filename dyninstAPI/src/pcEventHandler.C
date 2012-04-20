@@ -540,8 +540,13 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
 
     if( !(   ev->getEventType().code() == EventType::ForceTerminate 
           || ev->getEventType().code() == EventType::Crash
-          || (ev->getEventType().code() == EventType::Exit &&
-              ev->getEventType().time() == EventType::Pre) ) ) 
+          || (ev->getEventType().code() == EventType::Exit 
+#if !defined(os_windows)
+		  && ev->getEventType().time() == EventType::Pre)
+#else
+		  )
+#endif
+		  ) ) 
     {
         // This means we already saw the entry to exit event and we can no longer
         // operate on the process, so ignore the event
@@ -694,8 +699,17 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
     if( ev->getEventType().time() == EventType::Pre ) {
         // This is handled as an RT signal on all platforms for now
     }else{
-        // Currently don't need to do anything special for this
-    }
+		std::vector<PCThread*> thrds;
+		evProc->getThreads(thrds);
+		for(std::vector<PCThread*>::iterator i = thrds.begin();
+			i != thrds.end();
+			++i)
+		{
+			// Whether we got thread exits or not, all remaining threads are gone post-exit.
+			BPatch::bpatch->registerThreadExit(evProc, *i);
+		}
+	
+	}
 
     return true;
 }
