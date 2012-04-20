@@ -2056,7 +2056,8 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
     }
 
     if( synchronous ) {
-        // Ensure that the process runs until the RPC is completed
+#if 0
+		// Ensure that the process runs until the RPC is completed
         setDesiredProcessState(ps_running);
 		if(thread)	
 			addSyncRPCThread(thread->pcThr_);
@@ -2070,7 +2071,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
                 return false;
             }
         }
-
+#endif
         while( !newRPC->isComplete ) {
             if( !thread->isLive() ) {
                 proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",

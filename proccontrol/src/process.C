@@ -5988,8 +5988,16 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
       pthrd_printf("postRPCToThread failed on %d\n", proc->getPid());
       return false;
    }
-   proc->throwNopEvent();
-   return true;
+   thr->throwEventsBeforeContinue();
+   if(rpc->isAsync()) return true;
+	while ((rpc->getState() != int_iRPC::Finished)) {
+		bool result = int_process::waitAndHandleEvents(true);
+	 if (!result) {
+		perr_printf("Error waiting for process to terminate\n");
+		return false;
+	 }
+	}
+	return true;
 }
 
 bool Thread::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const

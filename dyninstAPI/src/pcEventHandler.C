@@ -1329,6 +1329,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
             evProc->runtime_lib.insert(newObj);
             // Don't register the runtime library with the BPatch layer
         }else{
+			assert(tmpDesc.file() != rtLibDesc.file());
             // Register the new modules with the BPatch layer
             const pdvector<mapped_module *> &modlist = newObj->getModules();
             for(unsigned i = 0; i < modlist.size(); ++i) {
