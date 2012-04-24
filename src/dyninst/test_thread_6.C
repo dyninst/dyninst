@@ -244,20 +244,24 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 {
    dprintf(stderr, "%s[%d]:  welcome to upgrade_mutatee_state\n", __FILE__, __LINE__);
    BPatch_variableExpr *var;
-   BPatch_constExpr *one;
-   BPatch_arithExpr *inc_var;
-   BPatch_arithExpr *inc_var_assign;
+//   BPatch_constExpr *one;
+//   BPatch_arithExpr *inc_var;
+//   BPatch_arithExpr *inc_var_assign;
 
-   BPatch_image *img = proc->getImage();
-   var = img->findVariable("proc_current_state");
-   one = new BPatch_constExpr(1);
-   inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
-   inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
-   dprintf(stderr, "%s[%d]: going into oneTimecode...\n", __FILE__, __LINE__);
+//   BPatch_image *img = proc->getImage();
+//   var = img->findVariable("proc_current_state");
+//   one = new BPatch_constExpr(1);
+//   inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
+//   inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
+   dprintf(stderr, "%s[%d]: upgrade_mutatee_state: stopping for read...\n", __FILE__, __LINE__);
    proc->stopExecution();
-   proc->oneTimeCode(*inc_var_assign);
+   int* val;
+   var->readValue(val);
+   *val++;
+   var->writeValue(val);
+//   proc->oneTimeCode(*inc_var_assign);
    proc->continueExecution();
-   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
+   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: continued after write, val = %d\n", __FILE__, __LINE__, *val);
 }
 
 #define MAX_ARGS 32
