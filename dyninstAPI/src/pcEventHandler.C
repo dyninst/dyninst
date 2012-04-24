@@ -708,6 +708,7 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
 			// Whether we got thread exits or not, all remaining threads are gone post-exit.
 			BPatch::bpatch->registerThreadExit(evProc, *i);
 		}
+		BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
 	
 	}
 

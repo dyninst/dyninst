@@ -72,7 +72,7 @@ test_thread_8_Mutator::test_thread_8_Mutator()
 #include <unistd.h>
 #endif
 #define NUM_THREADS 5 // one controller, four workers
-#define TIMEOUT 20
+#define TIMEOUT 40
 
 // static FILE *outlog = NULL;
 // static FILE *errlog = NULL;
@@ -339,6 +339,10 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    } else {
      // TODO Figure out what went wrong and print a relevant error message
      logerror("**Failed test_thread_8 (thread-specific one time codes)\n");
+	 if(exitCode) logerror("**Expected exit code = 0, exit code was %d\n", exitCode);
+	 if(error15) logerror("**Expected error15 = 0, error15 was %d\n", error15);
+	 if(failed_tests) logerror("**Expected failed tests = 0, failed tests was %d\n", failed_tests);
+
      return -1;
    }
 
