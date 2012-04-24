@@ -370,8 +370,13 @@ FrameNode::~FrameNode()
 }
 
 inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b) { 
-   if (a->frame_type == FrameNode::FTThread && b->frame_type == FrameNode::FTThread) 
+   if (a->frame_type == FrameNode::FTThread && b->frame_type == FrameNode::FTThread) {
+      Dyninst::PID a_pid = a->getWalker()->getProcessState()->getProcessId();
+      Dyninst::PID b_pid = b->getWalker()->getProcessState()->getProcessId();
+      if (a_pid != b_pid)
+         return a_pid < b_pid;
       return a->thrd < b->thrd;
+   }
    else if (a->frame_type == FrameNode::FTThread)
       return false;
    else if (b->frame_type == FrameNode::FTThread)
@@ -411,7 +416,8 @@ FrameNode *CallTree::addFrame(const Frame &f, FrameNode *parent)
    bool found = (is.first != is.second);
    if (found) {
       //Common case, already have this node in tree, don't create a new one.
-      return *is.first;
+      FrameNode *n = *is.first;
+      return n;
    }
 
    //Create and insert a new node at position i
