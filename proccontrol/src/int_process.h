@@ -35,6 +35,7 @@
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Event.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/memcache.h"
@@ -388,8 +389,13 @@ class int_process
    //Interfaces used by the PlatformSpecific classes
    virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
    virtual bool sysv_isTrackingLibraries();
-   PlatformProcess *getPlatformProcess();
-   virtual PlatformProcess *plat_getPlatformProcess() = 0;
+
+   virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+                                         bool &add_bp);
+   virtual bool threaddb_isTrackingThreads();
+
+   PlatformFeatures *getPlatformFeatures();
+   virtual PlatformFeatures *plat_getPlatformFeatures() = 0;
    
  protected:
    State state;
@@ -421,7 +427,7 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    void *user_data;
-   PlatformProcess *plat_process;
+   PlatformFeatures *plat_process;
    err_t last_error;
    const char *last_error_string;
 };

@@ -1303,9 +1303,9 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     return result;
 }
 
-PlatformProcess *linux_process::plat_getPlatformProcess()
+PlatformFeatures *linux_process::plat_getPlatformFeatures()
 {
-   return dynamic_cast<PlatformProcess *>(new LinuxProcess());
+   return dynamic_cast<PlatformFeatures *>(new LinuxProcess());
 }
 
 dynreg_to_user_t dynreg_to_user;

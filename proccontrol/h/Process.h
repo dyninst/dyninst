@@ -77,7 +77,7 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
-class PlatformProcess;
+class PlatformFeatures;
 
 class Breakpoint 
 {
@@ -377,8 +377,8 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
    /**
     * Perform platform specific operations
     **/
-   PlatformProcess *getPlatformProcess();
-   const PlatformProcess *getPlatformProcess() const;
+   PlatformFeatures *getPlatformFeatures();
+   const PlatformFeatures *getPlatformFeatures() const;
 
    /**
     * Errors that occured on this process

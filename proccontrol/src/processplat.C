@@ -29,84 +29,104 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/src/int_process.h"
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-PlatformProcess::~PlatformProcess()
+PlatformFeatures::~PlatformFeatures()
 {
 }
 
-SysVProcess *PlatformProcess::getSysVProcess()
+LibraryTracking *PlatformFeatures::getLibraryTracking()
 {
-   return dynamic_cast<SysVProcess *>(this);
+   return dynamic_cast<LibraryTracking *>(this);
 }
 
-const SysVProcess *PlatformProcess::getSysVProcess() const
+const LibraryTracking *PlatformFeatures::getLibraryTracking() const
 {
-   return dynamic_cast<const SysVProcess *>(this);
+   return dynamic_cast<const LibraryTracking *>(this);
 }
 
-ThreadDBProcess *PlatformProcess::getThreadDBProcess()
+ThreadTracking *PlatformFeatures::getThreadTracking()
 {
-   return dynamic_cast<ThreadDBProcess *>(this);
+   return dynamic_cast<ThreadTracking *>(this);
 }
 
-const ThreadDBProcess *PlatformProcess::getThreadDBProcess() const
+const ThreadTracking *PlatformFeatures::getThreadTracking() const
 {
-   return dynamic_cast<const ThreadDBProcess *>(this);
+   return dynamic_cast<const ThreadTracking *>(this);
 }
 
-LinuxProcess *PlatformProcess::getLinuxProcess()
+CallStackUnwinding *PlatformFeatures::getCallStackUnwinding()
 {
-   return dynamic_cast<LinuxProcess *>(this);
+   return dynamic_cast<CallStackUnwinding *>(this);
 }
 
-const LinuxProcess *PlatformProcess::getLinuxProcess() const
+const CallStackUnwinding *PlatformFeatures::getCallStackUnwinding() const
 {
-   return dynamic_cast<const LinuxProcess *>(this);
+   return dynamic_cast<const CallStackUnwinding *>(this);
 }
 
-BlueGeneQProcess *PlatformProcess::getBlueGeneQProcess()
+LinuxFeatures *PlatformFeatures::getLinuxFeatures()
 {
-   return dynamic_cast<BlueGeneQProcess *>(this);
+   return dynamic_cast<LinuxFeatures *>(this);
 }
 
-const BlueGeneQProcess *PlatformProcess::getBlueGeneQProcess() const
+const LinuxFeatures *PlatformFeatures::getLinuxFeatures() const
 {
-   return dynamic_cast<const BlueGeneQProcess *>(this);
+   return dynamic_cast<const LinuxFeatures *>(this);
 }
 
-SysVProcess::SysVProcess()
+FreeBSDFeatures *PlatformFeatures::getFreeBSDFeatures()
+{
+   return dynamic_cast<FreeBSDFeatures *>(this);
+}
+
+const FreeBSDFeatures *PlatformFeatures::getFreeBSDFeatures() const
+{
+   return dynamic_cast<const FreeBSDFeatures *>(this);
+}
+
+BlueGeneQFeatures *PlatformFeatures::getBlueGeneQFeatures()
+{
+   return dynamic_cast<BlueGeneQFeatures *>(this);
+}
+
+const BlueGeneQFeatures *PlatformFeatures::getBlueGeneQFeatures() const
+{
+   return dynamic_cast<const BlueGeneQFeatures *>(this);
+}
+
+LibraryTracking::LibraryTracking()
 {
 }
 
-SysVProcess::~SysVProcess()
+LibraryTracking::~LibraryTracking()
 {
 }
 
 static bool default_track_libs = true;
 
-void SysVProcess::setDefaultTrackLibraries(bool b)
+void LibraryTracking::setDefaultTrackLibraries(bool b)
 {
    default_track_libs = b;
 }
 
-bool SysVProcess::getDefaultTrackLibraries()
+bool LibraryTracking::getDefaultTrackLibraries()
 {
    return default_track_libs;
 }
 
-bool SysVProcess::setTrackLibraries(bool b) const
+bool LibraryTracking::setTrackLibraries(bool b) const
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return SysVProcess::setTrackLibraries(pset, b);
+   return LibraryTracking::setTrackLibraries(pset, b);
 }
 
-bool SysVProcess::getTrackLibraries() const
+bool LibraryTracking::getTrackLibraries() const
 {
    MTLock lock_this_func;
    int_process *llproc = proc->llproc();
@@ -119,64 +139,85 @@ bool SysVProcess::getTrackLibraries() const
    return llproc->sysv_isTrackingLibraries();
 }
 
-bool SysVProcess::refreshLibraries()
+bool LibraryTracking::refreshLibraries()
 {
    ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return SysVProcess::refreshLibraries(pset);
+   return LibraryTracking::refreshLibraries(pset);
 }
 
-ThreadDBProcess::ThreadDBProcess()
+ThreadTracking::ThreadTracking()
 {
 }
 
-ThreadDBProcess::~ThreadDBProcess()
+ThreadTracking::~ThreadTracking()
 {
 }
 
 static bool default_track_threads = true;
 
-void ThreadDBProcess::setDefaultTrackThreads(bool b) 
+void ThreadTracking::setDefaultTrackThreads(bool b) 
 {
    default_track_threads = b;
 }
 
-bool ThreadDBProcess::getDefaultTrackThreads()
+bool ThreadTracking::getDefaultTrackThreads()
 {
    return default_track_threads;
 }
 
-void ThreadDBProcess::setTrackThreads(bool b) const
+bool ThreadTracking::setTrackThreads(bool b) const
+{
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
+   return ThreadTracking::setTrackThreads(pset, b);
+}
+
+bool ThreadTracking::getTrackThreads() const
+{
+   return proc->llproc()->threaddb_isTrackingThreads();
+}
+
+bool ThreadTracking::refreshThreads()
+{
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
+   return ThreadTracking::refreshThreads(pset);
+}
+
+LinuxFeatures::LinuxFeatures()
 {
 }
 
-bool ThreadDBProcess::getTrackThreads() const
+LinuxFeatures::~LinuxFeatures()
 {
 }
 
-bool ThreadDBProcess::refreshThreads()
+FreeBSDFeatures::FreeBSDFeatures()
 {
 }
 
-LinuxProcess::LinuxProcess()
+FreeBSDFeatures::~FreeBSDFeatures()
 {
 }
 
-LinuxProcess::~LinuxProcess()
+BlueGeneQFeatures::BlueGeneQFeatures()
 {
 }
 
-BlueGeneQProcess::BlueGeneQProcess()
+BlueGeneQFeatures::~BlueGeneQFeatures()
 {
 }
 
-BlueGeneQProcess::~BlueGeneQProcess()
+CallStackUnwinding::CallStackUnwinding()
 {
 }
 
-bool BlueGeneQProcess::walkStack(Thread::ptr thr, CallStackCallback *stk_cb)
+CallStackUnwinding::~CallStackUnwinding()
+{
+}
+
+bool CallStackUnwinding::walkStack(Thread::ptr thr, CallStackCallback *stk_cb)
 {
    ThreadSet::ptr thrset = ThreadSet::newThreadSet(thr);
-   return BlueGeneQProcess::walkStack(thrset, stk_cb);
+   return CallStackUnwinding::walkStack(thrset, stk_cb);
 }
 
 CallStackCallback::CallStackCallback() :
@@ -187,3 +228,65 @@ CallStackCallback::CallStackCallback() :
 CallStackCallback::~CallStackCallback()
 {
 }
+
+FollowFork::FollowFork()
+{
+}
+
+FollowFork::~FollowFork()
+{
+}
+
+static bool default_should_follow_fork;
+void FollowFork::setDefaultFollowFork(bool b)
+{
+   default_should_follow_fork = b;
+}
+
+bool FollowFork::getDefaultFollowFork()
+{
+   return default_should_follow_fork;
+}
+
+void FollowFork::setFollowFork(bool b)
+{
+}
+
+bool FollowFork::getFollowFork()
+{
+}
+
+bool RemoteIO::getFileNames(std::vector<std::string> &filenames)
+{
+}
+
+bool RemoteIO::getFileNames(ProcessSet::ptr pset, std::map<Process::ptr, std::vector<std::string> > &all_filenames)
+{
+}
+
+bool RemoteIO::getFileStatData(std::string filename, stat_ret_t &stat_results)
+{
+}
+
+bool RemoteIO::getFileStatData(ProcessSet::ptr pset, std::string filename, 
+                               std::map<Process::ptr, stat_ret_t> &stat_results)
+{
+}
+
+//Results of these two calls should be 'free()'d by the user
+bool RemoteIO::readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result)
+{
+}
+   
+bool RemoteIO::readFileContents(std::vector<ReadT> &targets)
+{
+}
+
+RemoteIO::RemoteIO()
+{
+}
+
+RemoteIO::~RemoteIO()
+{
+}
+

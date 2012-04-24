@@ -41,7 +41,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include <cstring>
 #include <cassert>
@@ -1901,11 +1901,11 @@ bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
    return false;
 }
 
-PlatformProcess *int_process::getPlatformProcess()
+PlatformFeatures *int_process::getPlatformFeatures()
 {
    if (plat_process)
       return plat_process;
-   plat_process = plat_getPlatformProcess();
+   plat_process = plat_getPlatformFeatures();
    plat_process->proc = proc();
    return plat_process;
 }
@@ -1918,6 +1918,20 @@ bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, boo
 }
 
 bool int_process::sysv_isTrackingLibraries()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_isTrackingThreads()
 {
    perr_printf("Unsupported operation\n");
    setLastError(err_unsupported, "Not supported on this platform");
@@ -5492,28 +5506,28 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    return llproc()->plat_defaultSymReader();
 }
 
-PlatformProcess *Process::getPlatformProcess()
+PlatformFeatures *Process::getPlatformFeatures()
 {
    MTLock lock_this_func;
    if (!llproc_) {
-      perr_printf("getPlatformProcess on deleted process\n");
+      perr_printf("getPlatformFeatures on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
       return NULL;
    }
 
-   return llproc_->getPlatformProcess();
+   return llproc_->getPlatformFeatures();
 }
 
-const PlatformProcess *Process::getPlatformProcess() const
+const PlatformFeatures *Process::getPlatformFeatures() const
 {
    MTLock lock_this_func;
    if (!llproc_) {
-      perr_printf("getPlatformProcess on deleted process\n");
+      perr_printf("getPlatformFeatures on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
       return NULL;
    }
 
-   return llproc_->getPlatformProcess();
+   return llproc_->getPlatformFeatures();
 }
 
 err_t Process::getLastError() const {

@@ -172,6 +172,7 @@ class FrameNode {
    FrameNode *getParent() { return parent; }
 
    Walker *getWalker() { return walker; }
+   const Walker *getWalker() const { return walker; }
 };
 
 class CallTree {

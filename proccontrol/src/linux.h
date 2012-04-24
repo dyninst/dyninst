@@ -137,7 +137,7 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
 
-   virtual PlatformProcess *plat_getPlatformProcess();
+   virtual PlatformFeatures *plat_getPlatformFeatures();
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
 };

@@ -39,7 +39,7 @@
 #endif
 
 #include "proccontrol/h/Handler.h"
-#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/response.h"
@@ -63,7 +63,7 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<st
    procreader(NULL),
    aout(NULL)
 {
-   track_libraries = SysVProcess::getDefaultTrackLibraries();
+   track_libraries = LibraryTracking::getDefaultTrackLibraries();
 }
 
 sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :

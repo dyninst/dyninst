@@ -36,7 +36,7 @@
 
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 
 #include "dynutil/h/dyn_regs.h"
@@ -642,7 +642,6 @@ bool StackCallback::beginStackWalk(Thread::ptr thr)
 {
    assert(!cur);
    Process::ptr proc = thr->getProcess();
-   
    ProcessState *pstate = ProcessState::getProcessStateByPid(proc->getPid());
    if (!pstate) {
       sw_printf("[%s:%u] - Error, unknown process state for %d while starting stackwalk\n", 
@@ -685,7 +684,7 @@ bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
    ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
 
    Process::ptr a_proc = *(pset->begin());
-   if (!a_proc->getPlatformProcess()->getBlueGeneQProcess()) {
+   if (!a_proc->getPlatformFeatures()->getCallStackUnwinding()) {
       bad_plat = true;
       return false;
    }
@@ -693,5 +692,5 @@ bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
 
    StackCallback cbs(tree);
    ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset);
-   return BlueGeneQProcess::walkStack(all_threads, &cbs);
+   return CallStackUnwinding::walkStack(all_threads, &cbs);
 }

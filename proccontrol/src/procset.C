@@ -31,7 +31,7 @@
 
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/ProcessSet.h"
-#include "proccontrol/h/ProcessPlat.h"
+#include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/Mailbox.h"
 
 #include "proccontrol/src/int_process.h"
@@ -2745,7 +2745,7 @@ ThreadSet::const_iterator ThreadSet::const_iterator::operator++(int)
    return ThreadSet::const_iterator(int_iter++);
 }
 
-bool SysVProcess::setTrackLibraries(ProcessSet::ptr ps, bool b)
+bool LibraryTracking::setTrackLibraries(ProcessSet::ptr ps, bool b)
 {
    MTLock lock_this_func;
    bool had_error = false;
@@ -2802,7 +2802,7 @@ bool SysVProcess::setTrackLibraries(ProcessSet::ptr ps, bool b)
    return addBreakpointWorker(bps_to_install) && !had_error;
 }
 
-bool SysVProcess::refreshLibraries(ProcessSet::ptr ps)
+bool LibraryTracking::refreshLibraries(ProcessSet::ptr ps)
 {
    MTLock lock_this_scope;
    bool had_error = false;
@@ -2869,7 +2869,7 @@ bool SysVProcess::refreshLibraries(ProcessSet::ptr ps)
    return !had_error;
 }
 
-bool BlueGeneQProcess::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb)
+bool CallStackUnwinding::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb)
 {
    MTLock lock_this_func;
    bool had_error = false;
@@ -2936,4 +2936,15 @@ bool BlueGeneQProcess::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_c
    }
 
    return !had_error;
+}
+
+bool ThreadTracking::setTrackThreads(ProcessSet::ptr, bool )
+{
+#warning TODO: Implement thread tracking
+   return false;
+}
+
+bool ThreadTracking::refreshThreads(ProcessSet::ptr)
+{
+   return false;
 }
