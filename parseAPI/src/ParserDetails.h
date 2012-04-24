@@ -57,6 +57,9 @@ inline bool is_code(Function * f, Address addr)
 }
 
 class ParseWorkBundle;
+
+// Seems to be an edge whose target (?) needs parsing
+
 class ParseWorkElem
 {
  public:
@@ -169,6 +172,8 @@ class ParseWorkElem
     parse_work_order _order;
     bool _call_processed;
 };
+
+// ParseWorkElem container
 
 class ParseWorkBundle
 {

@@ -53,6 +53,7 @@ class Parser;
 class ParseData;
 
 /** Describes a saved frame during recursive parsing **/
+// Parsing data for a function. 
 class ParseFrame {
  public:
     enum Status {

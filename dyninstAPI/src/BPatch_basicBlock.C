@@ -453,6 +453,19 @@ BPatch_point* BPatch_basicBlock::findExitPointInt()
                                                        BPatch_locBasicBlockExit);
 }
 
+BPatch_point *BPatch_basicBlock::findPointInt(Address addr) 
+{
+   // We verify internally.
+   instPoint *p = instPoint::preInsn(ifunc(), block(), addr);
+
+   if (!p) return NULL;
+   return flowGraph->getAddSpace()->findOrCreateBPPoint(flowGraph->getFunction(),
+                                                        p,
+                                                        BPatch_locInstruction);
+}
+
+
+
 BPatch_Vector<BPatch_point*>*
 BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
 {

@@ -302,6 +302,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    API_EXPORT(Int, (filter),
               BPatch_Vector<BPatch_point*> *,findPoint,(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr)));
+   
+   API_EXPORT(Int, (addr),
+              BPatch_point *, findPoint, (Dyninst::Address addr));
+
    /** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
 

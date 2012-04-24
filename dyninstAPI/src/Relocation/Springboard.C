@@ -131,7 +131,7 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
 }
 
 template <typename BlockIter>
-bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *, int funcID) {
+bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance *f, int funcID) {
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
@@ -139,12 +139,22 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
 
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
-    Address lastRangeStart = bbl->start();
+    Address start = bbl->start();
+    Address end = bbl->end();
 
-    for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
+#if 0
+    // HACK for small, aligned functions
+    if ((f->blocks().size() == 1) &&
+        (start % 16 == 0) &&
+        ((end - start) < 16)) {
+       end = start + 16;
+    }
+#endif
+
+    for (Address lookup = start; lookup < end; ) 
     {/* there may be more than one range that overlaps with bbl, 
-      * so we update lookup and lastRangeStart to after each conflict
-      * to match UB, and loop until lookup >= bbl->end()
+      * so we update lookup and start to after each conflict
+      * to match UB, and loop until lookup >= end
       */
        if (validRanges_.find(lookup, LB, UB, id)) 
        {
@@ -155,41 +165,41 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
            * [LB UB)                     already in validRanges_, remove if it gets split
            * [LB bbl->start())
            * [bbl->start() LB)
-           * [lastRangeStart LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
+           * [start LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
            * [bbl->start() UB)           possible if LB < bbl->start()
-           * [lastRangeStart UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
-           * [LB bbl->end())             if last existing range includes bbl->end()
-           * [bbl->end() UB)             if last existing range includes bbl->end()
-           * [UB bbl->end())             don't add until after loop exits as there might be more overlapping ranges
+           * [start UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
+           * [LB end)             if last existing range includes end
+           * [end UB)             if last existing range includes end
+           * [UB end)             don't add until after loop exits as there might be more overlapping ranges
            */
-          if (LB < bbl->start()) { 
+          if (LB < start) { 
              validRanges_.remove(LB); // replace [LB UB)...
-             validRanges_.insert(LB, bbl->start(), funcID); // with  [LB bbl->start())
-             if (UB <= bbl->end()) { // [bbl->start() UB)
-                validRanges_.insert(bbl->start(), UB, funcID);
-             } else { // [bbl->start() bbl->end()) or [lastRangeStart bbl->end()) and [bbl->end() UB) 
-                validRanges_.insert(bbl->start(), bbl->end(), funcID);
-                validRanges_.insert(bbl->end(), UB, funcID);
+             validRanges_.insert(LB, start, funcID); // with  [LB start)
+             if (UB <= end) { // [start UB)
+                validRanges_.insert(start, UB, funcID);
+             } else { // [start end) or [start end) and [end UB) 
+                validRanges_.insert(start, end, funcID);
+                validRanges_.insert(end, UB, funcID);
              }
           } 
           else {
-             if (lastRangeStart < LB) { // add [bbl->start() LB) or [lastRangeStart LB)
-                validRanges_.insert(lastRangeStart, LB, funcID);
+             if (start < LB) { // add [start LB) or [start LB)
+                validRanges_.insert(start, LB, funcID);
              }
-             if (UB > bbl->end()) { // [LB bbl->end()) and [bbl->end() UB) 
-                validRanges_.insert(LB, bbl->end(), funcID);
-                validRanges_.insert(bbl->end(), UB, funcID);
+             if (UB > end) { // [LB end) and [end UB) 
+                validRanges_.insert(LB, end, funcID);
+                validRanges_.insert(end, UB, funcID);
              } // otherwise [LB UB) is already in validRanges_
           }
           lookup = UB;
-          lastRangeStart = UB;
+          start = UB;
        }
        else {
           lookup++;
        }
     }
-    if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-        validRanges_.insert(lastRangeStart, bbl->end(), funcID);
+    if (start < end) { // [start end) or [UB end)
+        validRanges_.insert(start, end, funcID);
     }
   }
   return true;
@@ -411,13 +421,14 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
    assert(!req.fromRelocatedCode);
 
    // Just the requests for now.
-   springboard_cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
+   springboard_cerr << "createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
    block_instance *bbl = req.block;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
       func_instance *func = b_iter->first;
       Address addr = b_iter->second;
+      springboard_cerr << "Looking for addr " << hex << addr << " in function " << func->name() << dec << endl;
 
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
       addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);
@@ -446,7 +457,7 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req,
                              << "a branch can fit" << dec << endl;
             curUseTrap = true;
          }
-         
+         springboard_cerr << "Adding springboard from " << hex << *a_iter << " to " << addr << dec << endl;
          input.addRaw(*a_iter, addr, 
                       newPriority, func, bbl,
                       req.checkConflicts, 

@@ -1800,7 +1800,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Kevin's stuff
   cm->extractDefensivePads(this);
 
-  if (proc() && BPatch_defensiveMode == proc()->getHybridMode()) {
+  if (proc()) {
       // adjust PC if active frame is in a modified function, this 
       // forces the instrumented version of the code to execute right 
       // away and is needed for code overwrites
@@ -1811,35 +1811,50 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       {
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
-          Address relocAddr = tframe.getPC();
-          //mal_printf("Attempting to change PC: current addr is 0x%lx\n", relocAddr);
+          Address curAddr = tframe.getPC();
 
+          Address orig = 0;
+          block_instance *block = NULL;
+          func_instance *func = NULL;
+          unsigned offset = 0;
+
+          // Fill in the above
+          // First, check in instrumentation
           RelocInfo ri;
-          if (!getRelocInfo(relocAddr, ri)) continue; // Not in instrumentation already
+          if (getRelocInfo(curAddr, ri)) {
+             orig = ri.orig;
+             block = ri.block;
+             func = ri.func;
+             // HACK: if we're in the middle of an emulation block, add that
+             // offset to where we transfer to. 
+             TrackerElement *te = NULL;
+             for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+                  iter != relocatedCode_.end(); ++iter) {
+                te = (*iter)->findByReloc(curAddr);
+                if (te) break;
+             }
+             
+             if (te && te->type() == TrackerElement::emulated) {
+                offset = curAddr - te->reloc();
+                assert(offset < te->size());
+             }
+          } else {
+             // In original code; do a slow and painful lookup. 
+             orig = curAddr;
+             mapped_object *obj = findObject(curAddr); assert(obj);
+             block = obj->findOneBlockByAddr(curAddr);
+             func = tframe.getFunc();
+             offset = 0;
+          }             
 
-          // HACK: if we're in the middle of an emulation block, add that
-          // offset to where we transfer to. 
-          TrackerElement *te = NULL;
-          for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-               iter != relocatedCode_.end(); ++iter) {
-             te = (*iter)->findByReloc(relocAddr);
-             if (te) break;
-          }
-
-          Address offset = 0;
-          if (te && te->type() == TrackerElement::emulated) {
-             offset = relocAddr - te->reloc();
-             assert(offset < te->size());
-          }
-          
           list<Address> relocPCs;
-          getRelocAddrs(ri.orig, ri.block, ri.func, relocPCs, false);
-          if (relocPCs.size()) {
+          getRelocAddrs(orig, block, func, relocPCs, true);
+          mal_printf("Found %d matches for address 0x%lx\n", relocPCs.size(), orig);
+          if (!relocPCs.empty()) {
              (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
              mal_printf("Pulling active frame PC into newest relocation "
-                        "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)] %s[%d]\n", ri.orig, 
-                        tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset,
-                        FILE__,__LINE__);
+                        "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)]\n", orig, 
+                        tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset);
              break;
           }
       }
