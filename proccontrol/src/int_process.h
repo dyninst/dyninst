@@ -210,6 +210,7 @@ class int_process
   public:
    bool execed();
    virtual bool plat_detach(result_response::ptr resp) = 0;
+   virtual bool plat_detachDone();
   protected:
    virtual bool plat_execed();
    virtual bool plat_terminate(bool &needs_sync) = 0;
@@ -618,13 +619,14 @@ class int_thread
 
       bool setState(State ns = int_thread::none);
       bool setStateProc(State ns = int_thread::none);
-
+      
       void restoreState();
       void restoreStateProc();
       State getState() const;
 
       std::string getName() const;
       int getID() const;
+      bool isDesynced() const;
    };
 
    //State management, see above comment on states

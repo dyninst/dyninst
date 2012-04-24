@@ -94,6 +94,7 @@ class bgq_process :
    virtual bool plat_attach(bool all_stopped, bool &needsSync);
    virtual bool plat_forked();
    virtual bool plat_detach(result_response::ptr resp);
+   virtual bool plat_detachDone();
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
@@ -125,7 +126,7 @@ class bgq_process :
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr);
 
-   virtual PlatformProcess *plat_getPlatformProcess();
+   virtual PlatformFeatures *plat_getPlatformFeatures();
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
@@ -163,6 +164,7 @@ class bgq_process :
    bool page_size_set;
    bool debugger_suspended;
    bool decoder_pending_stop;
+   bool is_doing_temp_detach;
 
    uint32_t rank;
 
@@ -187,6 +189,18 @@ class bgq_process :
       startup_done
    } startup_state;
 
+   enum {
+      no_detach_issued,
+      issue_control_release,
+      control_release_sent,
+      choose_detach_mechanism,
+      issued_all_detach,
+      issued_detach,
+      waitfor_all_detach,
+      detach_cleanup,
+      detach_done
+   } detach_state;
+
    static const char *tooltag;
    static uint64_t jobid;
    static uint32_t toolid;
@@ -200,6 +214,7 @@ class bgq_process :
 
 class bgq_thread : public thread_db_thread
 {
+   friend class bgq_process;
   private:
    bool last_signaled;
   public:
@@ -257,7 +272,9 @@ class ComputeNode
    bool handleMessageAck();
 
    bool reliableWrite(void *buffer, size_t buffer_size);
+   void removeNode(bgq_process *proc);
 
+   const std::set<bgq_process *> &getProcs() const { return procs; }
    ~ComputeNode();
 
    static const std::set<ComputeNode *> &allNodes();
@@ -267,6 +284,7 @@ class ComputeNode
    int cn_id;
    Mutex send_lock;
    Mutex attach_lock;
+   Mutex detach_lock;
    bool do_all_attach;
    bool issued_all_attach;
    bool all_attach_done;
@@ -348,8 +366,10 @@ class DecoderBlueGeneQ : public Decoder
                    std::vector<Event::ptr> &events);
    bool decodeExit(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeControlNotify(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
+   bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
+   bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
 
-
+   Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:
    DecoderBlueGeneQ();
    virtual ~DecoderBlueGeneQ();

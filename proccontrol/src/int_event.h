@@ -129,6 +129,7 @@ class int_eventDetach {
    bool temporary_detach;
    bool removed_bps;
    bool done;
+   bool had_error;
 };
 
 }

@@ -1060,6 +1060,10 @@ void int_process::throwDetachEvent(bool temporary)
    mbox()->enqueue(detach_ev);
 }
 
+bool int_process::plat_detachDone() {
+   return true;
+}
+
 bool int_process::terminate(bool &needs_sync)
 {
    //Should be called with the ProcPool lock held.
@@ -2154,6 +2158,9 @@ hybrid_lwp_control_process::~hybrid_lwp_control_process()
 
 bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 {
+   if (thr->isSuspended())
+      return true;
+
    bool result = plat_suspendThread(thr);
    if (!result) 
       return false;
@@ -2163,6 +2170,9 @@ bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 
 bool hybrid_lwp_control_process::resumeThread(int_thread *thr)
 {
+   if (!thr->isSuspended())
+      return true;
+
    bool result = plat_resumeThread(thr);
    if (!result) 
       return false;
@@ -3568,6 +3578,11 @@ bool int_thread::StateTracker::setStateProc(State ns)
    return !had_error;
 }
 
+bool int_thread::StateTracker::isDesynced() const 
+{
+   return sync_level != 0;
+}
+
 std::string int_thread::StateTracker::getName() const
 {
    return int_thread::stateIDToName(id);
@@ -4880,8 +4895,7 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    bool result = llproc->attach(&the_proc, false); //Releases procpool lock
    if (!result) {
       pthrd_printf("Unable to attach to process %d\n", pid);
-#warning Disabled proc delete for debugging purposes
-      //delete llproc;
+      delete llproc;
       return Process::ptr();
    }
 

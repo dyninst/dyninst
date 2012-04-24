@@ -91,10 +91,6 @@ class Transaction
       }
       size += 64; //little extra padding to reduce growth operations
       temp = realloc(packet_buffer, size);
-#warning remove next print
-      pthrd_printf("Grew transaction buffer, from pointer %p of size %lu to pointer %p of size %lu\n", 
-                   packet_buffer, packet_buffer_maxsize,
-                   temp, size);
       packet_buffer = (char *) temp;
       assert(packet_buffer);
       packet_buffer_maxsize = size;
