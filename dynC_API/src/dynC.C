@@ -86,9 +86,8 @@ namespace dynC_API{
          if(dynCparse() == 0){
             printf("parse_result is %s\n", (parse_result == NULL ? "null" : "not null"));
             if(parse_result != NULL){
-               dyn_debug_ast = 1;
-               parse_result->ast_wrapper->debugPrint();
-               dyn_debug_ast = 0;
+	      std::cerr << parse_result->ast_wrapper->format("") << std::endl;
+	      
             }
             ret_map->insert(std::pair<BPatch_point *, BPatch_snippet *>((*it), parse_result));
          }else{

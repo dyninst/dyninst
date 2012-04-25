@@ -137,8 +137,9 @@ public:
 	void increaseConditionalLevel();
 	void decreaseAndClean(codeGen &gen);
 	void cleanKeptRegisters(int level);
-
 	void debugPrint();
+	
+
 };
 
 class dataReqNode;
@@ -327,7 +328,6 @@ class AstNode {
    virtual AstNodePtr deepCopy() { return AstNodePtr(this);};
    
 
-	void debugPrint(unsigned level = 0);
 	// Occasionally, we do not call .generateCode_phase2 for the
 	// referenced node, but generate code by hand. This routine decrements
 	// its use count properly
@@ -823,7 +823,7 @@ class AstMemoryNode : public AstNode {
     AstMemoryNode(memoryType mem, unsigned which);
 	bool canBeKept() const;
 
-
+   virtual std::string format(std::string indent);
    virtual bool containsFuncCall() const;
    virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;

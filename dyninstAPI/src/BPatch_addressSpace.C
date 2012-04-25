@@ -896,7 +896,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
         fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
                 FILE__, __LINE__);
-         expr.ast_wrapper->debugPrint();
+	//expr.ast_wrapper->debugPrint();
          return false;
       }
    }
