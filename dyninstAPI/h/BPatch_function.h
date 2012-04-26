@@ -273,6 +273,14 @@ public:
 
     BPatch_Vector<BPatch_point *> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
+    //  BPatch_function::createPointAtAddr
+    //
+    //  Returns a BPatch_point that corresponds with the provided address. Returns NULL
+    //  if the address does not correspond with an instruction. 
+    API_EXPORT(Int, (addr), 
+    BPatch_point *, createPointAtAddr, (Dyninst::Address addr));
+
+
     //  BPatch_function::findLocalVar
     //  Returns a BPatch_localVar, if a match for <name> is found
 

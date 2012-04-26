@@ -218,6 +218,15 @@ public:
                                              bool incUninstrumentable=false));
 
 
+    //  BPatch_module::createPointsAtAddr
+    //
+    //  Returns a vector of BPatch_points that correspond with the provided address, one
+    //  per function that includes an instruction at that address. Will have one element
+    //  if there is not overlapping code. 
+    API_EXPORT(Int, (addr, points), 
+    bool, createPointsAtAddr, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
+
+
     // BPatch_module::dumpMangled
     // Prints all <mangled> function names in this module
     API_EXPORT(Int, (prefix),

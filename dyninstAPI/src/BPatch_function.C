@@ -643,6 +643,25 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
 }
 
 /*
+ * BPatch_function::createPointAtAddr
+ *
+ * Create a BPatch_point corresponding with the provided address.
+ */
+
+BPatch_point *BPatch_function::createPointAtAddrInt(Dyninst::Address addr) {
+   // Find the matching block and feed this into
+
+   block_instance *llb = lowlevel_func()->getBlock(addr);
+   if (!llb) return NULL;
+   
+   instPoint *p = instPoint::preInsn(lowlevel_func(), llb, addr);
+   if (!p) return NULL;
+   return getAddSpace()->findOrCreateBPPoint(this,
+                                             p,
+                                             BPatch_locInstruction);
+}
+
+/*
  * BPatch_function::addParam()
  *
  * This function adds a function parameter to the BPatch_function parameter

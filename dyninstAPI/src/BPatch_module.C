@@ -1059,3 +1059,24 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 
 }
 #endif
+
+bool BPatch_module::createPointsAtAddrInt(Dyninst::Address addr,
+                                          std::vector<BPatch_point *> &points) {
+   mapped_object *obj = mod->obj();
+   block_instance *blk = obj->findOneBlockByAddr(addr);
+   if (!blk) return false;
+
+   std::vector<func_instance *> funcs;
+   blk->getFuncs(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      // Check module ownership
+      if (funcs[i]->mod() != mod) continue;
+      BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(funcs[i], this);
+      if (!bpfunc) continue;
+      instPoint *p = instPoint::preInsn(funcs[i], blk, addr);
+      if (!p) continue;
+      BPatch_point *pbp = addSpace->findOrCreateBPPoint(bpfunc, p, BPatch_locInstruction);
+      if (pbp) points.push_back(pbp);
+   }
+   return true;
+}

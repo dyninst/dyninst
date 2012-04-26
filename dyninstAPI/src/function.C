@@ -562,6 +562,14 @@ bool func_instance::getBlocks(const Address addr, set<block_instance*> &blks) {
    return ! blks.empty();
 }
 
+block_instance *func_instance::getBlock(const Address addr) {
+   std::set<block_instance *> blks;
+   getBlocks(addr, blks);
+   for (std::set<block_instance *>::iterator iter = blks.begin(); iter != blks.end(); ++iter) {
+      if ((*iter)->getInsn(addr)) return *iter;
+   }
+   return NULL;
+}
 
 using namespace SymtabAPI;
 

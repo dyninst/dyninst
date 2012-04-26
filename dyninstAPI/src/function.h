@@ -144,9 +144,10 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
   void triggerModified();
 
   block_instance *getBlockByEntry(const Address addr);
-  // get all blocks that have an instruction starting at addr, or if 
-  // there are none, return all blocks containing addr
+  // get all blocks that contain the given address
   bool getBlocks(const Address addr, std::set<block_instance*> &blks);
+  // Get the block with an instruction that starts at addr
+  block_instance *getBlock(const Address addr);
 
   Offset addrToOffset(const Address addr) const;
 

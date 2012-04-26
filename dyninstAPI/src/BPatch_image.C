@@ -1290,3 +1290,16 @@ void BPatch_image::clearNewCodeRegions()
 Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *i) {
    return Dyninst::PatchAPI::convert(i->addSpace);
 }
+
+bool BPatch_image::createPointsAtAddrInt(Dyninst::Address addr,
+                                         std::vector<BPatch_point *> &points) {
+   BPatch_Vector<BPatch_module *> *mods = getModules();
+   
+   bool ret = false;
+
+   for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
+      if ((*mods)[i]->createPointsAtAddr(addr, points))
+         ret = true;
+   }
+   return ret;
+}
