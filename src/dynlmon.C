@@ -281,7 +281,7 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
       new_args[3+i] = args[i];
    return new_args;
 }
-#elif defined(os_bg_test)
+#elif defined(os_bgp_test)
 static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *mode)
 {   
    int count = 0;
@@ -300,6 +300,27 @@ static char **getLaunchParams(char *executable, char *args[], const char *num, c
 
    new_args[i++] = "-mode";
    new_args[i++] = const_cast<char *>(mode);
+
+   for (j=0; args[j]; j++)
+      new_args[i++] = args[j];
+   if (signal_file_name) {
+      new_args[i++] = "-signal_file";
+      new_args[i++] = signal_file_name;
+   }
+   new_args[i++] = NULL;
+
+   return new_args;
+}
+#elif defined(os_bgq_test)
+static char **getLaunchParams(char *executable, char *args[], const char *num, char *signal_file_name, const char *mode)
+{   
+   int count = 0;
+   unsigned i=0, j=0;
+   for (char **counter = args; *counter; counter++, count++);
+   char **new_args = (char **) malloc(sizeof(char *) * (count+14));
+   new_args[i++] = "srun";
+   new_args[i++] = "-n";
+   new_args[i++] = const_cast<char *>(num);
 
    for (j=0; args[j]; j++)
       new_args[i++] = args[j];

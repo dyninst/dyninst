@@ -96,120 +96,7 @@ struct thread_info_t {
 static std::map<Thread::const_ptr, thread_info_t> tinfo;
 static std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;
 
-static void createBuffer(Process::ptr proc,
-                         unsigned char* &buffer, unsigned &buffer_size,
-                         unsigned long &start_offset)
-{
-   proc_info_t &p = pinfo[proc];
-   Dyninst::Address calltarg = p.irpc_calltarg;
-   switch (proc->getArchitecture()) {
-      case Dyninst::Arch_x86_64: {
-         buffer = (unsigned char *) malloc(17);
-         //nop, nop, nop, nop
-         buffer[0] = buffer[1] = buffer[2] = buffer[3] = 0x90;
-         //mov %rax, $imm
-         buffer[4] = 0x48; buffer[5] = 0xb8;
-         memcpy(buffer+6, &calltarg, 8);
-         //call %rax
-         buffer[14] = 0xff; buffer[15] = 0xd0;
-         //Trap
-         buffer[16] = 0xcc;
-         buffer_size = 17;
-         start_offset = 4;
-         break;
-      }
-      case Dyninst::Arch_x86: {
-         buffer = (unsigned char *) malloc(12);
-         uint32_t addr32 = (uint32_t) calltarg;
-         //nop, nop, nop, nop
-         buffer[0] = buffer[1] = buffer[2] = buffer[3] = 0x90;
-         //mov %eax, $imm
-         buffer[4] = 0xb8;
-         memcpy(buffer+5, &addr32, 4);
-         //call %eax
-         buffer[9] = 0xff; buffer[10] = 0xd0;
-         //Trap
-         buffer[11] = 0xcc;
-         buffer_size = 12;
-         start_offset = 4;
-         break;
-      }
-      case Dyninst::Arch_ppc32: {
-         buffer_size = 6*4;
-         buffer = (unsigned char *)malloc(buffer_size);
-         uint32_t addr32 = (uint32_t) calltarg;
-         // nop
-         buffer[0] = 0x60; buffer[1] = 0x00; buffer[2] = 0x00; buffer[3] = 0x00;
-         // lis r0, 0
-         buffer[4] = 0x3c; buffer[5] = 0x00; buffer[6] = 0x00; buffer[7] = 0x00;
-         // ori r0, r0, 0
-         buffer[8] = 0x60; buffer[9] = 0x00; buffer[10] = 0x00; buffer[11] = 0x00;
-         // mtctr r0
-         buffer[12] = 0x7c; buffer[13] = 0x09; buffer[14] = 0x03; buffer[15] = 0xa6;
-         // bctrl
-         buffer[16] = 0x4e; buffer[17] = 0x80; buffer[18] = 0x04; buffer[19] = 0x21;
-         // trap
-         buffer[20] = 0x7d; buffer[21] = 0x82; buffer[22] = 0x10; buffer[23] = 0x08;
-         start_offset = 4;
-
-         // copy address into buffer
-         *((uint16_t *) (buffer + 6)) = (uint16_t)(addr32 >> 16);
-         *((uint16_t *) (buffer + 10)) = (uint16_t)addr32;
-         break;
-      }
-      case Dyninst::Arch_ppc64: {
-         Dyninst::Address tocval = p.irpc_tocval;
-         buffer_size = 15*4;
-         buffer = (unsigned char *)malloc(buffer_size);
-         // nop
-         buffer[0] = 0x60; buffer[1] = 0x00; buffer[2] = 0x00; buffer[3] = 0x00;
-         // lis r0, 0
-         buffer[4] = 0x3c; buffer[5] = 0x00; buffer[6] = 0x00; buffer[7] = 0x00;
-         // ori r0, r0, 0
-         buffer[8] = 0x60; buffer[9] = 0x00; buffer[10] = 0x00; buffer[11] = 0x00;
-         // rldicr r0, r0, 32, 31
-         buffer[12] = 0x78; buffer[13] = 0x00; buffer[14] = 0x07; buffer[15] = 0xc6;
-         // oris r0, r0, 0
-         buffer[16] = 0x64; buffer[17] = 0x00; buffer[18] = 0x00; buffer[19] = 0x00;
-         // ori r0, r0, 0
-         buffer[20] = 0x60; buffer[21] = 0x00; buffer[22] = 0x00; buffer[23] = 0x00;
-         // mtctr
-         buffer[24] = 0x7c; buffer[25] = 0x09; buffer[26] = 0x03; buffer[27] = 0xa6;
-         // lis r2, 0
-         buffer[28] = 0x3c; buffer[29] = 0x40; buffer[30] = 0x00; buffer[31] = 0x00;
-         // ori     r2,r2,0
-         buffer[32] = 0x60; buffer[33] = 0x42; buffer[34] = 0x00; buffer[35] = 0x00;
-         // rldicr  r2,r2,32,31
-         buffer[36] = 0x78; buffer[37] = 0x42; buffer[38] = 0x07; buffer[39] = 0xc6;
-         // oris    r2,r2,0
-         buffer[40] = 0x64; buffer[41] = 0x42; buffer[42] = 0x00; buffer[43] = 0x00;
-         // ori     r2,r2,0
-         buffer[44] = 0x60; buffer[45] = 0x42; buffer[46] = 0x00; buffer[47] = 0x00;
-         // li      r11,0
-         buffer[48] = 0x39; buffer[49] = 0x60; buffer[50] = 0x00; buffer[51] = 0x00;
-         // bctrl
-         buffer[52] = 0x4e; buffer[53] = 0x80; buffer[54] = 0x04; buffer[55] = 0x21;
-         // trap
-         buffer[56] = 0x7d; buffer[57] = 0x82; buffer[58] = 0x10; buffer[59] = 0x08;
-         start_offset = 4;
-
-         // copy address to buffer
-         *((uint16_t *) (buffer + 6)) = (uint16_t)((uint64_t)calltarg >> 48);
-         *((uint16_t *) (buffer + 10)) = (uint16_t)((uint64_t)calltarg >> 32);
-         *((uint16_t *) (buffer + 18)) = (uint16_t)(calltarg >> 16);
-         *((uint16_t *) (buffer + 22)) = (uint16_t)(calltarg);
-
-         // copy TOC value into buffer
-         *((uint16_t *) (buffer + 30)) = (uint16_t)((uint64_t)tocval >> 48);
-         *((uint16_t *) (buffer + 34)) = (uint16_t)((uint64_t)tocval >> 32);
-         *((uint16_t *) (buffer + 42)) = (uint16_t)(tocval >> 16);
-         *((uint16_t *) (buffer + 46)) = (uint16_t)(tocval);
-         break;
-      }
-      default:
-         assert(0);
-   }
-}
+#include "pc_irpc_asm.h"
 
 static bool has_pending_irpcs() 
 {
@@ -430,8 +317,7 @@ void pc_irpcMutator::runIRPCs() {
       proc_info_t &p = pinfo[proc];
       p.clear();
       unsigned long start_offset;
-      createBuffer(proc, buffer, buffer_size, start_offset);
-
+      createBuffer(proc, pinfo[proc].irpc_calltarg, pinfo[proc].irpc_tocval, buffer, buffer_size, start_offset);
       for (ThreadPool::iterator j = proc->threads().begin();
            j != proc->threads().end(); j++)
       {

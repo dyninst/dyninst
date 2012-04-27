@@ -1,6 +1,7 @@
 depends/
 runTests
 test_driver
+testdriver_wrapper
 resumelog
 mutatee_resumelog
 binaries/

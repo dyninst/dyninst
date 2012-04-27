@@ -36,6 +36,7 @@
 #include <cstring>
 #include <cassert>
 #include <string>
+#include <stdio.h>
 
 #if defined(os_freebsd_test)
 extern char **environ;

@@ -81,6 +81,7 @@ int testsRun = 0;
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *logfilename;
+FILE *debug_log = stderr;
 
 int gargc;
 char **gargv;
@@ -124,7 +125,7 @@ int runScript(const char *name, ...)
 int runScript(const char *name, ...) {
    getOutput()->log(STDERR, "runScript not implemented on Windows\n");
    assert(0);
-   return -1;
+  return -1;
 }
 #endif
 
@@ -380,10 +381,7 @@ bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
    char **c_driver_args = getCParams(driver_exec, driver_args);
    bool attach_mode = (group->createmode == USEATTACH);
 
-   fprintf(getDebugLog(), "[%s:%u] - Calling LMONInvoke\n", __FILE__, __LINE__);
    lmon_session = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode, launcher_pid);
-
-   fprintf(getDebugLog(), "[%s:%u] - Calling server accept\n", __FILE__, __LINE__);
    result = con->server_accept();
    if (!result) {
       fprintf(stderr, "Failed to accept connection from client\n");

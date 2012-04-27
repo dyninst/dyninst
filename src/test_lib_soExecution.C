@@ -91,17 +91,22 @@ static void* openSO(const char *soname, bool local)
    if (!fullSoPath) {
       fullSoPath = strdup(soname);
    }
-   void *handle = dlopen(fullSoPath, RTLD_NOW);
+   unsigned int dl_options = RTLD_NOW | (local ? RTLD_LOCAL : RTLD_GLOBAL);
+   void *handle = dlopen(fullSoPath, dl_options);
    if (!handle) {
       std::string str = std::string("./") + std::string(soname);
-      handle = dlopen(str.c_str(), RTLD_NOW);
+      handle = dlopen(str.c_str(), dl_options);
    }
    ::free(fullSoPath);
    if (!handle) {
+      fprintf(stderr, "Error opening lib: %s\n", soname);
+      const char *errmsg = dlerror();
+      fprintf(stderr, "%s\n", errmsg);
       return NULL; //Error
    }
    return handle;
 }
+
 int setupMutatorsForRunGroup(RunGroup *group)
 {
   int tests_found = 0;
