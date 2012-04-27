@@ -33,7 +33,7 @@ symtab_group_test.mutatee_solo_dynamic_mpic++_64_pic_none: symtab_group_test_gro
 # Mutatees compiled with bgq_g++ for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_mpic++_64_none_none pc_breakpoint.mutatee_solo_dynamic_mpic++_64_pic_none pc_detach.mutatee_solo_dynamic_mpic++_64_none_none pc_detach.mutatee_solo_dynamic_mpic++_64_pic_none pc_irpc.mutatee_solo_dynamic_mpic++_64_none_none pc_irpc.mutatee_solo_dynamic_mpic++_64_pic_none pc_launch.mutatee_solo_dynamic_mpic++_64_none_none pc_launch.mutatee_solo_dynamic_mpic++_64_pic_none pc_library.mutatee_solo_dynamic_mpic++_64_none_none pc_library.mutatee_solo_dynamic_mpic++_64_pic_none pc_singlestep.mutatee_solo_dynamic_mpic++_64_none_none pc_singlestep.mutatee_solo_dynamic_mpic++_64_pic_none pc_terminate.mutatee_solo_dynamic_mpic++_64_none_none pc_terminate.mutatee_solo_dynamic_mpic++_64_pic_none pc_terminate_stopped.mutatee_solo_dynamic_mpic++_64_none_none pc_terminate_stopped.mutatee_solo_dynamic_mpic++_64_pic_none pc_thread.mutatee_solo_dynamic_mpic++_64_none_none pc_thread.mutatee_solo_dynamic_mpic++_64_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_mpic++_64_none_none pc_breakpoint.mutatee_solo_dynamic_mpic++_64_pic_none pc_detach.mutatee_solo_dynamic_mpic++_64_none_none pc_detach.mutatee_solo_dynamic_mpic++_64_pic_none pc_groups.mutatee_solo_dynamic_mpic++_64_none_none pc_groups.mutatee_solo_dynamic_mpic++_64_pic_none pc_hw_breakpoint.mutatee_solo_dynamic_mpic++_64_none_none pc_hw_breakpoint.mutatee_solo_dynamic_mpic++_64_pic_none pc_irpc.mutatee_solo_dynamic_mpic++_64_none_none pc_irpc.mutatee_solo_dynamic_mpic++_64_pic_none pc_launch.mutatee_solo_dynamic_mpic++_64_none_none pc_launch.mutatee_solo_dynamic_mpic++_64_pic_none pc_library.mutatee_solo_dynamic_mpic++_64_none_none pc_library.mutatee_solo_dynamic_mpic++_64_pic_none pc_singlestep.mutatee_solo_dynamic_mpic++_64_none_none pc_singlestep.mutatee_solo_dynamic_mpic++_64_pic_none pc_terminate.mutatee_solo_dynamic_mpic++_64_none_none pc_terminate.mutatee_solo_dynamic_mpic++_64_pic_none pc_terminate_stopped.mutatee_solo_dynamic_mpic++_64_none_none pc_terminate_stopped.mutatee_solo_dynamic_mpic++_64_pic_none pc_thread.mutatee_solo_dynamic_mpic++_64_none_none pc_thread.mutatee_solo_dynamic_mpic++_64_pic_none 
 
 # Now a list of rules for compiling the mutatees with bgq_g++
 
@@ -44,6 +44,14 @@ pc_breakpoint.mutatee_solo_dynamic_mpic++_64_pic_none: pc_breakpoint_mutatee_sol
 pc_detach.mutatee_solo_dynamic_mpic++_64_none_none: pc_detach_mutatee_solo_mpic++_64_none_none.o mutatee_util_mpic++_64_none_none.o mutatee_util_mt_mpic++_64_none_none.o pcontrol_mutatee_tools_mpic++_64_none_none.o mutatee_driver_solo_mpic++_64.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_mpic++_64_pic_none: pc_detach_mutatee_solo_mpic++_64_pic_none.o mutatee_util_mpic++_64_pic_none.o mutatee_util_mt_mpic++_64_pic_none.o pcontrol_mutatee_tools_mpic++_64_pic_none.o mutatee_driver_solo_mpic++_64.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_groups.mutatee_solo_dynamic_mpic++_64_none_none: pc_groups_mutatee_solo_mpic++_64_none_none.o mutatee_util_mpic++_64_none_none.o mutatee_util_mt_mpic++_64_none_none.o pcontrol_mutatee_tools_mpic++_64_none_none.o mutatee_driver_solo_mpic++_64.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_groups.mutatee_solo_dynamic_mpic++_64_pic_none: pc_groups_mutatee_solo_mpic++_64_pic_none.o mutatee_util_mpic++_64_pic_none.o mutatee_util_mt_mpic++_64_pic_none.o pcontrol_mutatee_tools_mpic++_64_pic_none.o mutatee_driver_solo_mpic++_64.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_hw_breakpoint.mutatee_solo_dynamic_mpic++_64_none_none: pc_hw_breakpoint_mutatee_solo_mpic++_64_none_none.o mutatee_util_mpic++_64_none_none.o mutatee_util_mt_mpic++_64_none_none.o pcontrol_mutatee_tools_mpic++_64_none_none.o mutatee_driver_solo_mpic++_64.o
+	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_hw_breakpoint.mutatee_solo_dynamic_mpic++_64_pic_none: pc_hw_breakpoint_mutatee_solo_mpic++_64_pic_none.o mutatee_util_mpic++_64_pic_none.o mutatee_util_mt_mpic++_64_pic_none.o pcontrol_mutatee_tools_mpic++_64_pic_none.o mutatee_driver_solo_mpic++_64.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_mpic++_64_none_none: pc_irpc_mutatee_solo_mpic++_64_none_none.o mutatee_util_mpic++_64_none_none.o mutatee_util_mt_mpic++_64_none_none.o pcontrol_mutatee_tools_mpic++_64_none_none.o mutatee_driver_solo_mpic++_64.o
 	$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
@@ -327,8 +335,10 @@ symtab_group_test_group_mpic++_64_pic_low.o: symtab_group_test_group.c
 # Generic rules for bgq_g++'s mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -341,12 +351,16 @@ pc_thread_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c 
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -359,12 +373,16 @@ pc_thread_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -377,12 +395,16 @@ pc_thread_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -395,12 +417,16 @@ pc_thread_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -413,12 +439,16 @@ pc_thread_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c 
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -431,12 +461,16 @@ pc_thread_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -449,12 +483,16 @@ pc_thread_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -467,8 +505,10 @@ pc_thread_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpic++_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_xx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 
 %_mpic++_64_none_high.o: ../src/proccontrol/%.c
 	$(M_gnu_xx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
@@ -568,7 +608,7 @@ symtab_group_test.mutatee_solo_dynamic_mpicc_64_pic_none: symtab_group_test_grou
 # Mutatees compiled with bgq_gcc for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_mpicc_64_none_none pc_breakpoint.mutatee_solo_dynamic_mpicc_64_pic_none pc_detach.mutatee_solo_dynamic_mpicc_64_none_none pc_detach.mutatee_solo_dynamic_mpicc_64_pic_none pc_irpc.mutatee_solo_dynamic_mpicc_64_none_none pc_irpc.mutatee_solo_dynamic_mpicc_64_pic_none pc_launch.mutatee_solo_dynamic_mpicc_64_none_none pc_launch.mutatee_solo_dynamic_mpicc_64_pic_none pc_library.mutatee_solo_dynamic_mpicc_64_none_none pc_library.mutatee_solo_dynamic_mpicc_64_pic_none pc_singlestep.mutatee_solo_dynamic_mpicc_64_none_none pc_singlestep.mutatee_solo_dynamic_mpicc_64_pic_none pc_terminate.mutatee_solo_dynamic_mpicc_64_none_none pc_terminate.mutatee_solo_dynamic_mpicc_64_pic_none pc_terminate_stopped.mutatee_solo_dynamic_mpicc_64_none_none pc_terminate_stopped.mutatee_solo_dynamic_mpicc_64_pic_none pc_thread.mutatee_solo_dynamic_mpicc_64_none_none pc_thread.mutatee_solo_dynamic_mpicc_64_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_mpicc_64_none_none pc_breakpoint.mutatee_solo_dynamic_mpicc_64_pic_none pc_detach.mutatee_solo_dynamic_mpicc_64_none_none pc_detach.mutatee_solo_dynamic_mpicc_64_pic_none pc_groups.mutatee_solo_dynamic_mpicc_64_none_none pc_groups.mutatee_solo_dynamic_mpicc_64_pic_none pc_hw_breakpoint.mutatee_solo_dynamic_mpicc_64_none_none pc_hw_breakpoint.mutatee_solo_dynamic_mpicc_64_pic_none pc_irpc.mutatee_solo_dynamic_mpicc_64_none_none pc_irpc.mutatee_solo_dynamic_mpicc_64_pic_none pc_launch.mutatee_solo_dynamic_mpicc_64_none_none pc_launch.mutatee_solo_dynamic_mpicc_64_pic_none pc_library.mutatee_solo_dynamic_mpicc_64_none_none pc_library.mutatee_solo_dynamic_mpicc_64_pic_none pc_singlestep.mutatee_solo_dynamic_mpicc_64_none_none pc_singlestep.mutatee_solo_dynamic_mpicc_64_pic_none pc_terminate.mutatee_solo_dynamic_mpicc_64_none_none pc_terminate.mutatee_solo_dynamic_mpicc_64_pic_none pc_terminate_stopped.mutatee_solo_dynamic_mpicc_64_none_none pc_terminate_stopped.mutatee_solo_dynamic_mpicc_64_pic_none pc_thread.mutatee_solo_dynamic_mpicc_64_none_none pc_thread.mutatee_solo_dynamic_mpicc_64_pic_none 
 
 # Now a list of rules for compiling the mutatees with bgq_gcc
 
@@ -579,6 +619,14 @@ pc_breakpoint.mutatee_solo_dynamic_mpicc_64_pic_none: pc_breakpoint_mutatee_solo
 pc_detach.mutatee_solo_dynamic_mpicc_64_none_none: pc_detach_mutatee_solo_mpicc_64_none_none.o mutatee_util_mpicc_64_none_none.o mutatee_util_mt_mpicc_64_none_none.o pcontrol_mutatee_tools_mpicc_64_none_none.o mutatee_driver_solo_mpicc_64.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_mpicc_64_pic_none: pc_detach_mutatee_solo_mpicc_64_pic_none.o mutatee_util_mpicc_64_pic_none.o mutatee_util_mt_mpicc_64_pic_none.o pcontrol_mutatee_tools_mpicc_64_pic_none.o mutatee_driver_solo_mpicc_64.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_groups.mutatee_solo_dynamic_mpicc_64_none_none: pc_groups_mutatee_solo_mpicc_64_none_none.o mutatee_util_mpicc_64_none_none.o mutatee_util_mt_mpicc_64_none_none.o pcontrol_mutatee_tools_mpicc_64_none_none.o mutatee_driver_solo_mpicc_64.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_groups.mutatee_solo_dynamic_mpicc_64_pic_none: pc_groups_mutatee_solo_mpicc_64_pic_none.o mutatee_util_mpicc_64_pic_none.o mutatee_util_mt_mpicc_64_pic_none.o pcontrol_mutatee_tools_mpicc_64_pic_none.o mutatee_driver_solo_mpicc_64.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_hw_breakpoint.mutatee_solo_dynamic_mpicc_64_none_none: pc_hw_breakpoint_mutatee_solo_mpicc_64_none_none.o mutatee_util_mpicc_64_none_none.o mutatee_util_mt_mpicc_64_none_none.o pcontrol_mutatee_tools_mpicc_64_none_none.o mutatee_driver_solo_mpicc_64.o
+	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
+pc_hw_breakpoint.mutatee_solo_dynamic_mpicc_64_pic_none: pc_hw_breakpoint_mutatee_solo_mpicc_64_pic_none.o mutatee_util_mpicc_64_pic_none.o mutatee_util_mt_mpicc_64_pic_none.o pcontrol_mutatee_tools_mpicc_64_pic_none.o mutatee_driver_solo_mpicc_64.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_mpicc_64_none_none: pc_irpc_mutatee_solo_mpicc_64_none_none.o mutatee_util_mpicc_64_none_none.o mutatee_util_mt_mpicc_64_none_none.o pcontrol_mutatee_tools_mpicc_64_none_none.o mutatee_driver_solo_mpicc_64.o
 	$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -ldl -lpthread 
@@ -830,8 +878,10 @@ symtab_group_test_group_mpicc_64_pic_low.o: symtab_group_test_group.c
 # Generic rules for bgq_gcc's mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -844,12 +894,16 @@ pc_thread_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -862,12 +916,16 @@ pc_thread_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -880,12 +938,16 @@ pc_thread_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -898,12 +960,16 @@ pc_thread_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -916,12 +982,16 @@ pc_thread_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -934,12 +1004,16 @@ pc_thread_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -952,12 +1026,16 @@ pc_thread_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -970,8 +1048,10 @@ pc_thread_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_mpicc_64_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 
 %_mpicc_64_none_high.o: ../src/proccontrol/%.c
 	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
@@ -1089,8 +1169,10 @@ symtab_group_test_group_bgxlc_64_pic_none.o: symtab_group_test_group.c
 # Generic rules for bgxlc's mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -1103,12 +1185,16 @@ pc_thread_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c .
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_bgxlc_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -1121,8 +1207,10 @@ pc_thread_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ..
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_bgxlc_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_bg_cc) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 
 %_bgxlc_64_none_none.o: ../src/proccontrol/%.c
 	$(M_bg_cc) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CFLAGS) -c    -o $@ $<
@@ -1224,8 +1312,10 @@ symtab_group_test_group_bgxlc++_64_pic_none.o: symtab_group_test_group.c
 # Generic rules for bgxlc++'s mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -1238,12 +1328,16 @@ pc_thread_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_bgxlc++_64_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_launch_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
-	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_groups_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_groups_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_groups -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_groups_mutatee.c -o $@ $<
+pc_detach_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
 pc_library_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
 pc_terminate_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_mutatee.c
@@ -1256,8 +1350,10 @@ pc_thread_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c 
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_thread -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_mutatee.c -o $@ $<
 pc_terminate_stopped_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_terminate_stopped_mutatee.c
 	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_terminate_stopped -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_terminate_stopped_mutatee.c -o $@ $<
-pc_detach_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_detach_mutatee.c
-	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_detach -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_detach_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_hw_breakpoint_mutatee_solo_bgxlc++_64_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_hw_breakpoint_mutatee.c
+	$(M_bg_CC) $(proccontrol_SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c   -qpic -I../src/proccontrol -DTEST_NAME=pc_hw_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_hw_breakpoint_mutatee.c -o $@ $<
 
 %_bgxlc++_64_none_none.o: ../src/proccontrol/%.c
 	$(M_bg_CC) $(SOLO_MUTATEE_DEFS) -qnostaticlink $(CXXFLAGS) -c    -o $@ $<
