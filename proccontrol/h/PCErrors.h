@@ -86,7 +86,8 @@ namespace Dyninst {
 namespace ProcControlAPI {
 
 typedef unsigned err_t;
-  
+
+const err_t err_none           = 0x0;  
 const err_t err_badparam       = 0x10000;
 const err_t err_procread       = 0x10001;
 const err_t err_internal       = 0x10002;
@@ -104,16 +105,18 @@ const err_t err_noevents       = 0x10013;
 const err_t err_incallback     = 0x10014;
 const err_t err_nouserthrd     = 0x10015;
 const err_t err_detached       = 0x10016;
-const err_t err_pendingirpcs   = 0x10017;
+const err_t err_attached       = 0x10017;
+const err_t err_pendingirpcs   = 0x10018;
 
-err_t getLastError();
-void clearLastError();
+PC_EXPORT err_t getLastError();
+PC_EXPORT void clearLastError();
 PC_EXPORT const char* getLastErrorMsg();
-void setLastError(err_t err, const char *msg = NULL);
-void setDebugChannel(FILE *f);
-void setDebug(bool enable);
+PC_EXPORT void setLastError(err_t err, const char *msg = NULL);
+PC_EXPORT void globalSetLastError(err_t err, const char *msg = NULL);
+PC_EXPORT void setDebugChannel(FILE *f);
+PC_EXPORT void setDebug(bool enable);
 
-FILE *getDebugChannel();
+PC_EXPORT FILE *getDebugChannel();
 
 }
 }

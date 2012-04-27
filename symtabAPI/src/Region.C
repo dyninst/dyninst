@@ -70,7 +70,9 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
 }
 
 Region::Region(const Region &reg) :
+#if !defined(SERIALIZATION_DISABLED)
    Serializable(),
+#endif
    regNum_(reg.regNum_), name_(reg.name_),
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
    memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
@@ -184,6 +186,7 @@ const char *Region::regionType2Str(RegionType rt)
    return "bad_RegionTypeype";
 };
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable * Region::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
@@ -211,6 +214,12 @@ Serializable * Region::serialize_impl(SerializerBase *sb, const char *tag) THROW
    }
    return NULL;
 }
+#else
+Serializable *Region::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 unsigned Region::getRegionNumber() const
 {

@@ -45,7 +45,7 @@ class RelocInsn;
 // Identify PC-relative memory accesses and replace
 // them with a dedicated Widget
 class adhocMovementTransformer : public Transformer {
-  typedef dyn_detail::boost::shared_ptr<RelocInsn> RelocInsnPtr;
+  typedef dyn_shared_ptr<RelocInsn> RelocInsnPtr;
  public:
   virtual bool process(RelocBlock *, RelocGraph *);
 

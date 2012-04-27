@@ -90,12 +90,13 @@ class int_eventRPC {
 
 class int_eventAsync {
   private:
-   response::ptr resp;
+   std::set<response::ptr> resp;
   public:
    int_eventAsync(response::ptr r);
    ~int_eventAsync();
 
-   response::ptr getResponse() const;
+   std::set<response::ptr> &getResponses();
+   void addResp(response::ptr r);
 };
 
 class int_eventNewUserThread {

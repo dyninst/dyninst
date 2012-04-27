@@ -115,9 +115,9 @@ class bgp_process : public sysv_process, public thread_db_process, public ppc_pr
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size);
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
-   virtual bool needIndividualThreadAttach();
+   virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
-   virtual Dyninst::Architecture getTargetArch();
+   virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    virtual bool plat_individualRegAccess();   

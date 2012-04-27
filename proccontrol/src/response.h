@@ -32,12 +32,12 @@
 #ifndef RESPONSE_H_
 #define RESPONSE_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/weak_ptr.hpp"
+#include "dynptr.h"
 
 #include "proccontrol/h/Event.h"
 #include "common/h/dthread.h"
 #include <map>
+#include <vector>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -48,11 +48,11 @@ class reg_response;
 class allreg_response;
 class HandlerPool;
 
-class response : public dyn_detail::boost::enable_shared_from_this<response> {
-   friend void dyn_detail::boost::checked_delete<response>(response *);
-   friend void dyn_detail::boost::checked_delete<const response>(const response *);
+class response : public dyn_enable_shared_from_this<response> {
+   friend void dyn_checked_delete<response>(response *);
+   friend void dyn_checked_delete<const response>(const response *);
    friend class responses_pending;
-  private:
+  protected:
    Dyninst::ProcControlAPI::Event::ptr event;
 
    typedef enum {
@@ -69,6 +69,7 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    
    bool error;
    int errorcode;
+   int_process *proc;
 
   protected:
    response();
@@ -76,7 +77,8 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
       rt_result,
       rt_reg,
       rt_allreg,
-      rt_mem
+      rt_mem,
+      rt_set
    } resp_type_t;
    resp_type_t resp_type;
 
@@ -86,17 +88,17 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    int multi_resp_recvd;
 
   public:
-   typedef dyn_detail::boost::shared_ptr<response> ptr;
-   typedef dyn_detail::boost::shared_ptr<const response> const_ptr;
+   typedef dyn_shared_ptr<response> ptr;
+   typedef dyn_shared_ptr<const response> const_ptr;
 
    virtual ~response();
 
    unsigned int getID() const;
 
-   dyn_detail::boost::shared_ptr<result_response> getResultResponse();
-   dyn_detail::boost::shared_ptr<mem_response> getMemResponse();
-   dyn_detail::boost::shared_ptr<reg_response> getRegResponse();
-   dyn_detail::boost::shared_ptr<allreg_response> getAllRegResponse();
+   dyn_shared_ptr<result_response> getResultResponse();
+   dyn_shared_ptr<mem_response> getMemResponse();
+   dyn_shared_ptr<reg_response> getRegResponse();
+   dyn_shared_ptr<allreg_response> getAllRegResponse();
    
    bool isReady() const;
    bool isPosted() const;
@@ -119,6 +121,9 @@ class response : public dyn_detail::boost::enable_shared_from_this<response> {
    void setDecoderEvent(ArchEvent *ae);
    ArchEvent *getDecoderEvent();
 
+   void setProcess(int_process *p);
+   int_process *getProcess() const;
+
    std::string name() const;
 };
 
@@ -135,6 +140,7 @@ class responses_pending {
    void noteResponse();
    bool hasAsyncPending(bool ev_only = true);
 
+   CondVar &condvar();
    void lock();
    void unlock();
    void signal();
@@ -146,15 +152,15 @@ class result_response : public response
 {
    friend class linux_process;
    friend class linux_thread;
-   friend void dyn_detail::boost::checked_delete<result_response>(result_response *);
-   friend void dyn_detail::boost::checked_delete<const result_response>(const result_response *);
+   friend void dyn_checked_delete<result_response>(result_response *);
+   friend void dyn_checked_delete<const result_response>(const result_response *);
   private:
    bool b;
    result_response();
 
   public:
-   typedef dyn_detail::boost::shared_ptr<result_response> ptr;
-   typedef dyn_detail::boost::shared_ptr<const result_response> const_ptr;
+   typedef dyn_shared_ptr<result_response> ptr;
+   typedef dyn_shared_ptr<const result_response> const_ptr;
 
    static result_response::ptr createResultResponse();
 
@@ -169,8 +175,8 @@ class result_response : public response
 class reg_response : public response
 {
    friend class linux_thread;
-   friend void dyn_detail::boost::checked_delete<reg_response>(reg_response *);
-   friend void dyn_detail::boost::checked_delete<const reg_response>(const reg_response *);
+   friend void dyn_checked_delete<reg_response>(reg_response *);
+   friend void dyn_checked_delete<const reg_response>(const reg_response *);
   private:
    Dyninst::MachRegisterVal val;
    reg_response();
@@ -179,8 +185,8 @@ class reg_response : public response
    int_thread *thr;   
    
   public:
-   typedef dyn_detail::boost::shared_ptr<reg_response> ptr;
-   typedef dyn_detail::boost::shared_ptr<const reg_response> const_ptr;
+   typedef dyn_shared_ptr<reg_response> ptr;
+   typedef dyn_shared_ptr<const reg_response> const_ptr;
 
    static reg_response::ptr createRegResponse();
 
@@ -194,16 +200,16 @@ class reg_response : public response
 
 class allreg_response : public response
 {
-   friend void dyn_detail::boost::checked_delete<allreg_response>(allreg_response *);
-   friend void dyn_detail::boost::checked_delete<const allreg_response>(const allreg_response *);
+   friend void dyn_checked_delete<allreg_response>(allreg_response *);
+   friend void dyn_checked_delete<const allreg_response>(const allreg_response *);
   private:
    int_registerPool *regpool;
    int_thread *thr;
    allreg_response();
 
   public:
-   typedef dyn_detail::boost::shared_ptr<allreg_response> ptr;
-   typedef dyn_detail::boost::shared_ptr<const allreg_response> const_ptr;
+   typedef dyn_shared_ptr<allreg_response> ptr;
+   typedef dyn_shared_ptr<const allreg_response> const_ptr;
 
    static allreg_response::ptr createAllRegResponse(int_registerPool *regpool);
    static allreg_response::ptr createAllRegResponse();
@@ -219,8 +225,8 @@ class allreg_response : public response
 
 class mem_response : public response
 {
-   friend void dyn_detail::boost::checked_delete<mem_response>(mem_response *);
-   friend void dyn_detail::boost::checked_delete<const mem_response>(const mem_response *);
+   friend void dyn_checked_delete<mem_response>(mem_response *);
+   friend void dyn_checked_delete<const mem_response>(const mem_response *);
   private:
    char *buffer;
    unsigned size;
@@ -230,8 +236,8 @@ class mem_response : public response
    mem_response(char *targ, unsigned targ_size);
 
   public:
-   typedef dyn_detail::boost::shared_ptr<mem_response> ptr;
-   typedef dyn_detail::boost::shared_ptr<const mem_response> const_ptr;
+   typedef dyn_shared_ptr<mem_response> ptr;
+   typedef dyn_shared_ptr<const mem_response> const_ptr;
 
    static mem_response::ptr createMemResponse();
    static mem_response::ptr createMemResponse(char *targ, unsigned targ_size);
@@ -247,7 +253,22 @@ class mem_response : public response
    void postResponse(char *src, unsigned src_size, Address src_addr = 0);
    void postResponse();
    void setLastBase(Address a);
+   Address lastBase();
 };
 
+class ResponseSet {
+ private:
+  std::map<unsigned, unsigned> ids;
+  unsigned myid;
+  static unsigned next_id;
+  static Mutex id_lock;
+  static std::map<unsigned, ResponseSet *> all_respsets;
+ public:
+  ResponseSet();
+  void addID(unsigned resp_id, unsigned index);
+  unsigned getID() const;
+  unsigned getIDByIndex(unsigned int index, bool &found) const;
+  static ResponseSet *getResponseSetByID(unsigned);
+};
 
 #endif

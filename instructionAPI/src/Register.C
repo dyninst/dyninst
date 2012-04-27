@@ -40,7 +40,6 @@
 #include "dyn_regs.h"
 
 using namespace std;
-using namespace dyn_detail::boost;
 
 extern bool ia32_is_mode_64();
 
@@ -126,7 +125,7 @@ namespace Dyninst
       return false;
     }
     RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
-        const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
+        const RegisterAST::Ptr r = dyn_dynamic_pointer_cast<RegisterAST>(regPtr);
         return RegisterAST::promote(r.get());
     }
     MachRegister RegisterAST::getPromotedReg() const

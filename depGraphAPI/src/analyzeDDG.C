@@ -63,7 +63,6 @@ using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace dyn_detail::boost;
 
 AnnotationClass <DDG::Ptr> DDGAnno(std::string("DDGAnno"));
 

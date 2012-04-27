@@ -311,8 +311,6 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
 
       if (errno) {
-         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", 
-                 __FILE__, __LINE__, pid);
          return false;
       }
 
@@ -320,7 +318,6 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
          p[cnt+i] = dp[i];
       
       if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
-         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
       }
 
@@ -339,11 +336,6 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       memcpy(&w, dp, len);
       int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
       if (retval < 0) {
-         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", 
-                 __FILE__, __LINE__, pid);
-         fprintf(stderr, "%s[%d]:  tried to write %lx in address %p\n", 
-                 __FILE__, __LINE__, w, ap);
-         perror("ptrace");
          return false;
       }
 
@@ -363,7 +355,6 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
 
       if (errno) {
-         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
       }
 
@@ -372,7 +363,6 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes,
          p[i] = dp[i];
 
       if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
-         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
       }
    }

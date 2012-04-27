@@ -108,8 +108,7 @@ void unix_process::plat_execv() {
         execv(executable.c_str(), const_cast<char * const*>(new_argv));
     }
     int errnum = errno;         
-    pthrd_printf("Failed to exec %s: %s\n", 
-               executable.c_str(), strerror(errnum));
+    pthrd_printf("Failed to exec %s: %s\n", executable.c_str(), strerror(errnum));
     if (errnum == ENOENT)
         setLastError(err_nofile, "No such file");
     if (errnum == EPERM || errnum == EACCES)
@@ -137,7 +136,16 @@ bool unix_process::post_forked()
 
    //TODO: Remove this and make have the translate layers' fork
    // constructors do the work.
-   return initializeAddressSpace();
+   std::set<response::ptr> async_responses;
+   async_ret_t result = initializeAddressSpace(async_responses);
+   if (result == aret_async) {
+      //Not going to do proper async handling here.  BG is the async platform
+      //and BG doesn't have fork.  Going to just do a sync block
+      //for testing purposes, but this shouldn't run in production.
+      waitForAsyncEvent(async_responses);
+      return true;
+   }
+   return (result == aret_success);
 }
 
 unsigned unix_process::getTargetPageSize() {

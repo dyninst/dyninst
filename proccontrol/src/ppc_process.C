@@ -31,6 +31,8 @@
 
 #include "proccontrol/src/ppc_process.h"
 #include "common/h/arch-power.h"
+#include <string.h>
+
 using namespace NS_power;
 using namespace std;
 

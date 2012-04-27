@@ -49,7 +49,7 @@
 // for blockSet...
 //#include "dyninstAPI/src/image-func.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 // To define StackAST
 #include "AST.h"
@@ -89,8 +89,8 @@ namespace Dyninst {
 
  
 class StackAnalysis {
-  typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
-  typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+  typedef dyn_shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+  typedef dyn_shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
  public:
 

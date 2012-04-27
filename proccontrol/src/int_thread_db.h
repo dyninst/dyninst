@@ -86,7 +86,7 @@ public:
     async_ret_t initThreadDB();
 
     virtual void freeThreadDBAgent();
-    virtual async_ret_t getEventForThread(set<Event::ptr> &new_ev_set);
+    virtual async_ret_t getEventForThread(std::set<Event::ptr> &new_ev_set);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -97,15 +97,15 @@ public:
      * When creating dynamic executables, initialization needs to happen
      * when the thread library is loaded.
      */
-    virtual bool post_attach(bool wasDetached);
-    virtual bool post_create();
+    virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &aresps);
+    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
     virtual bool plat_supportThreadEvents();
 
     // Platform-dependent functionality (derived classes override)
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
     virtual const char *getThreadLibName(const char *symName);
-    virtual bool isSupportedThreadLib(string libName);
+    virtual bool isSupportedThreadLib(std::string libName);
     int_thread *triggerThread() const;
 
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
@@ -150,7 +150,7 @@ protected:
     bool thread_db_proc_initialized;
     static Mutex thread_db_init_lock;
 
-    map<Dyninst::Address, pair<int_breakpoint *, EventType> > addr2Event;
+    std::map<Dyninst::Address, std::pair<int_breakpoint *, EventType> > addr2Event;
     td_thragent_t *threadAgent;
     bool createdThreadAgent;
 
@@ -166,6 +166,7 @@ protected:
     bool hasAsyncPending;
     bool initialThreadEventCreated;
     bool setEventSet;
+    bool completed_post;
 private:
     static bool tdb_loaded;
     static bool tdb_loaded_result;

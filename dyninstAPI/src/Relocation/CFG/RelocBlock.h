@@ -32,7 +32,7 @@
 #if !defined(PATCHAPI_TRACE_H_)
 #define PATCHAPI_TRACE_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
+#include "dynptr.h" // shared_ptr
 #include "common/h/Types.h" // Address
 #include "dyninstAPI/src/codegen.h" // codeGen
 #include "dyninstAPI/src/function.h"
@@ -57,9 +57,9 @@ class CodeTracker;
 class CodeBuffer;
 
 class CFWidget;
-typedef dyn_detail::boost::shared_ptr<CFWidget> CFWidgetPtr;
+typedef dyn_shared_ptr<CFWidget> CFWidgetPtr;
 class Widget;
-typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
+typedef dyn_shared_ptr<Widget> WidgetPtr;
 
 struct RelocEdge;
 struct RelocEdges;

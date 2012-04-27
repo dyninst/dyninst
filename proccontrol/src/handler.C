@@ -42,6 +42,7 @@
 #include "dynutil/h/dyn_regs.h"
 
 using namespace Dyninst;
+using namespace std;
 
 #include <assert.h>
 
@@ -516,9 +517,9 @@ void HandlePreBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
 	etypes.push_back(EventType(EventType::None, EventType::PreBootstrap));
 }
 
-Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePreBootstrap::handleEvent(Event::ptr)
 {
-	int_process* p = ev->getProcess()->llproc();
+	//int_process* p = ev->getProcess()->llproc();
 	//p->setForceGeneratorBlock(true);
 	return ret_success;
 }
@@ -735,9 +736,9 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    int_process *proc = ev->getProcess()->llproc();
    Thread::const_ptr t = ev->getThread();
    int_thread* thrd = NULL;
-   if(t) {
-	   int_thread *thrd = t->llthrd();
-   }
+   if(t)
+	   thrd = t->llthrd();
+
    assert(proc);
    // assert(thrd);
    pthrd_printf("Handling force terminate for process %d on thread %d\n",
@@ -1166,7 +1167,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
 
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
-   pthrd_printf("Handling breakpoint at %p\n", ebp->getAddress());
+   pthrd_printf("Handling breakpoint at %lx\n", ebp->getAddress());
    int_eventBreakpoint *int_ebp = ebp->getInternal();
    installed_breakpoint *breakpoint = int_ebp->lookupInstalledBreakpoint();
 
@@ -1202,7 +1203,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    }
    if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {
       pthrd_printf("Error setting pc register on breakpoint\n");
-      setLastError(err_internal, "Could not set pc register upon breakpoint\n");
+      ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
       return ret_error;
    }
    if (int_ebp->pc_regset && !int_ebp->pc_regset->isReady()) {
@@ -1634,7 +1635,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
             bool result = i->second->uninstall(proc, resp);
             if (!result) {
                perr_printf("Error removing breakpoint at %lx\n", i->first);
-               setLastError(err_internal, "Error removing breakpoint before detach\n");
+               ev->setLastError(err_internal, "Error removing breakpoint before detach\n");
                goto done;
             }
             async_responses.insert(resp);
@@ -1648,7 +1649,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
             bool result = i->second->suspend(proc, resp);
             if(!result) {
                perr_printf("Error suspending breakpoint at %lx\n", i->first);
-               setLastError(err_internal, "Error suspending breakpoint before detach\n");
+               ev->setLastError(err_internal, "Error suspending breakpoint before detach\n");
                goto done;
             }
             async_responses.insert(resp);
@@ -1660,7 +1661,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
       if ((*i)->hasError()) {
          perr_printf("Failed to remove breakpoints\n");
-         setLastError(err_internal, "Error removing breakpoint before detach\n");
+         ev->setLastError(err_internal, "Error removing breakpoint before detach\n");
          goto done;
       }
       if (!(*i)->isReady()) {
@@ -1723,14 +1724,20 @@ HandleAsync::~HandleAsync()
 Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
 {
    EventAsync::ptr eAsync = ev->getEventAsync();
-   response::ptr resp = eAsync->getInternal()->getResponse();
-   pthrd_printf("Handling Async event for %s on %d/%d\n", resp->name().c_str(),
+   set<response::ptr> &resps = eAsync->getInternal()->getResponses();
+
+   pthrd_printf("Handling %lu async event(s) on %d/%d\n", 
+                (unsigned long) resps.size(),
                 eAsync->getProcess()->llproc()->getPid(),
                 eAsync->getThread()->llthrd()->getLWP());
 
    assert(eAsync->getProcess()->llproc()->plat_needsAsyncIO());
-   resp->markReady();
-   resp->setEvent(Event::ptr());
+   for (set<response::ptr>::iterator i = resps.begin(); i != resps.end(); i++) {
+      response::ptr resp = *i;
+      resp->markReady();
+      resp->setEvent(Event::ptr());
+   }
+
    return ret_success;
 }
 
@@ -2081,7 +2088,7 @@ bool HandleCallbacks::registerCallback(EventType oev, Process::cb_func_t func)
    }
    if (!registered_cb) {
       pthrd_printf("Did not register any callbacks for %s\n", oev.name().c_str());
-      setLastError(err_noevents, "EventType does not exist");
+      ProcControlAPI::globalSetLastError(err_noevents, "EventType does not exist");
       return false;
    }
    return true;
@@ -2133,7 +2140,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
    if (!removed_cb) {
       perr_printf("Attempted to remove non-existant callback %s\n", 
                   oet.name().c_str());
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;
@@ -2168,7 +2175,7 @@ bool HandleCallbacks::removeCallback(EventType et)
    if (!result) {
       perr_printf("Attempted to remove non-existant callback %s\n", 
                   et.name().c_str());
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;
@@ -2186,7 +2193,7 @@ bool HandleCallbacks::removeCallback(Process::cb_func_t func)
    }
    if (!rmd_something) {
       perr_printf("Attempted to remove non-existant callback %p\n", func);
-      setLastError(err_badparam, "Callback does not exist");
+      ProcControlAPI::globalSetLastError(err_badparam, "Callback does not exist");
       return false;
    }
    return true;

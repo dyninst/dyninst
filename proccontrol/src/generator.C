@@ -122,13 +122,32 @@ void Generator::setCachedEvent(ArchEvent* ae)
 	m_Event = ae;
 }
 
+bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
+{
+   //This function can be optionally overloaded by a platform
+   // that may return multiple events.  Otherwise, it just 
+   // uses the single-event interface and always returns a 
+   // set of size 1 or 0.
+   ArchEvent *ev = getEvent(block);
+   if (!ev)
+      return false;
+   events.push_back(ev);
+   return true;
+}
+
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
    //static ArchEvent *arch_event = NULL;
    ArchEvent* arch_event = getCachedEvent();
    vector<Event::ptr> events;
+   vector<ArchEvent *> archEvents;
 
+   if (isExitingState()) {
+      pthrd_printf("Generator exiting before processWait\n");
+      result = false;
+      goto done;
+   }
    setState(process_blocked);
    result = processWait(block);
    if (isExitingState()) {
@@ -148,14 +167,16 @@ bool Generator::getAndQueueEventInt(bool block)
 	   goto done;
    }
    setState(system_blocked);
+
    pthrd_printf("About to getEvent()\n");
-   arch_event = getEvent(block);
+   result = getMultiEvent(block, archEvents);
+
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;
       goto done;
    }
-   if (!arch_event) {
+   if (!result) {
       pthrd_printf("Error. Unable to recieve event\n");
       result = false;
       goto done;
@@ -164,18 +185,25 @@ bool Generator::getAndQueueEventInt(bool block)
    setState(decoding);
    //mbox()->lock_queue();
    ProcPool()->condvar()->lock();
-   for (decoder_set_t::iterator i = decoders.begin(); i != decoders.end(); ++i) {
-      Decoder *decoder = *i;
-      bool result = decoder->decode(arch_event, events);
-      if (!result)
-         break;
+
+   for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
+      ArchEvent *arch_event = *i;
+      for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
+         Decoder *decoder = *j;
+         bool result = decoder->decode(arch_event, events);
+         if (result)
+            break;
+      }
    }
-   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
+
+   setState(statesync);
+   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
 	  if(event) {
 	      event->getProcess()->llproc()->updateSyncState(event, true);
 	  }
    }
+
    ProcPool()->condvar()->unlock();
 
    setState(queueing);
@@ -239,6 +267,10 @@ struct GeneratorMTInternals
 
    DThread thrd;
 };
+void GeneratorInternalJoin(GeneratorMTInternals *gen_int)
+{
+  gen_int->thrd.join();
+}
 
 #if defined(os_windows)
 static unsigned long WINAPI start_generator(void *g)
@@ -364,4 +396,9 @@ bool GeneratorMT::getAndQueueEvent(bool)
    // generator--part of the point is that you don't have
    // to call it.
    return true;
+}
+
+GeneratorMTInternals *GeneratorMT::getInternals()
+{
+  return sync;
 }

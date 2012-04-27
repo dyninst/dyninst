@@ -371,7 +371,7 @@ bool windows_process::plat_createDeallocationSnippet(Dyninst::Address addr, unsi
 }
 
 // Windows lets us do this directly, so we'll just override these entirely on that platform.
-Dyninst::Address windows_process::infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
+Dyninst::Address windows_process::direct_infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
 {
 	if(!use_addr) addr = 0;
 	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
@@ -382,7 +382,7 @@ Dyninst::Address windows_process::infMalloc(unsigned long size, bool use_addr, D
 	}
 	return result;
 }
-bool windows_process::infFree(Dyninst::Address addr)
+bool windows_process::direct_infFree(Dyninst::Address addr)
 {
 	std::map<Dyninst::Address, unsigned long>::iterator i = mem->inf_malloced_memory.find(addr);
 	if (i == mem->inf_malloced_memory.end()) {

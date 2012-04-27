@@ -43,6 +43,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+using namespace std;
+
 ArchEvent::ArchEvent(std::string name_) :
    name(name_)
 {
@@ -60,7 +62,7 @@ std::string ArchEvent::getName()
 Event::Event(EventType etype_, Thread::ptr thread_) :
    etype(etype_),
    thread(thread_),
-   proc(thread ? thread->getProcess() : Process::ptr()),
+   proc(thread_ ? thread_->getProcess() : Process::ptr()),
    stype(unset),
    master_event(Event::ptr()),
    suppress_cb(false),
@@ -205,6 +207,12 @@ bool Event::procStopper() const
 
 Event::~Event()
 {
+}
+
+void Event::setLastError(err_t ec, const char *es) {
+   if (proc) {
+      proc->setLastError(ec, es);
+   }
 }
 
 EventTerminate::EventTerminate(EventType type_) :
@@ -876,18 +884,23 @@ void int_eventRPC::getPendingAsyncs(std::set<response::ptr> &pending)
    }
 }
 
-int_eventAsync::int_eventAsync(response::ptr r) :
-   resp(r)
+int_eventAsync::int_eventAsync(response::ptr r)
 {
+   resp.insert(r);
 }
 
 int_eventAsync::~int_eventAsync()
 {
 }
 
-response::ptr int_eventAsync::getResponse() const
+set<response::ptr> &int_eventAsync::getResponses()
 {
    return resp;
+}
+
+void int_eventAsync::addResp(response::ptr r)
+{
+   resp.insert(r);
 }
 
 int_eventNewUserThread::int_eventNewUserThread() :
@@ -927,31 +940,31 @@ int_eventDetach::~int_eventDetach()
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE) return NAME::const_ptr();  \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST2(NAME, TYPE, TYPE2) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::ptr(); \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::const_ptr(); \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return dyn_static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)

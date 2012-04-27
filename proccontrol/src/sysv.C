@@ -241,6 +241,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       return false;
    }
 
+   assert(translator);
    result = translator->refresh();
    if (!result && procreader->hasPendingAsync()) {
       procreader->getNewAsyncs(async_responses);
@@ -251,13 +252,11 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
    if (!result) {
       pthrd_printf("Failed to refresh library list for %d\n", getPid());
    }
-
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); i++) 
    {
       (*i)->setMark(false);
    }
-
    vector<LoadedLib *> ll_libs;
    translator->getLibs(ll_libs);
    for (vector<LoadedLib *>::iterator i = ll_libs.begin(); i != ll_libs.end(); i++)
@@ -321,7 +320,15 @@ bool sysv_process::plat_execed()
    breakpoint_addr = 0x0;
    lib_initialized = false;
 
-   return initializeAddressSpace();
+   for (;;) {
+      set<response::ptr> aresps;
+      async_ret_t result = initializeAddressSpace(aresps);
+      if (result == aret_async) {
+         //Not doing performant async handling, as BG does not have exec.
+         waitForAsyncEvent(aresps);
+      }
+      return (result == aret_success);
+   }
 }
 
 bool sysv_process::plat_isStaticBinary()

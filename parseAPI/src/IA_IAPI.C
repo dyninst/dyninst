@@ -372,7 +372,7 @@ bool IA_IAPI::isAbsoluteCall() const
     if(ci->getCategory() == c_CallInsn)
     {
         Expression::Ptr cft = ci->getControlFlowTarget();
-        if(cft && dyn_detail::boost::dynamic_pointer_cast<Immediate>(cft))
+        if(cft && dyn_dynamic_pointer_cast<Immediate>(cft))
         {
             return true;
         }

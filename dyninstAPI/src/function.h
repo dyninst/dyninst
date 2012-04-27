@@ -45,7 +45,7 @@
 
 #include "bitArray.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 #include "block.h"
 #include "instPoint.h"

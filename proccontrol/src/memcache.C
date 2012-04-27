@@ -31,6 +31,7 @@
 
 #include "proccontrol/src/memcache.h"
 #include "proccontrol/src/int_process.h"
+#include <string.h>
 
 using namespace std;
 

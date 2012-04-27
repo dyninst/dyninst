@@ -28,22 +28,13 @@ SRCS =          ../src/Object-elf.C \
 		../src/LinkMap.C \
 		../src/relocationEntry-stub.C
 
-MYFLAGS                += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) -I$(LIBELF_INC)
+MYFLAGS                += -DUSES_DWARF_DEBUG
 
 CXXFLAGS        += $(MYFLAGS) -I/bgsys/drivers/ppcfloor/arch/include
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
 
 SYSLIBS                = -ldl 
-
-ifndef LIBDWARFSTATIC
-LIBS += -ldwarf
-endif
-ifndef LIBELFSTATIC
-LIBS += -lelf
-endif
-
-LIBS     +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 
 AS             = /usr/bin/as
 

@@ -59,7 +59,7 @@ namespace Dyninst
     class Operand
     {
     public:
-        typedef dyn_detail::boost::shared_ptr<Operand> Ptr;
+        typedef dyn_shared_ptr<Operand> Ptr;
     Operand() : m_isRead(false), m_isWritten(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.

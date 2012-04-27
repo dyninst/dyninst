@@ -33,6 +33,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
+
+int_notify::unix_details::unix_details() :
+   pipe_in(-1),
+   pipe_out(-1)
+{
+}
 
 void int_notify::unix_details::writeToPipe()
 {
@@ -43,7 +50,7 @@ void int_notify::unix_details::writeToPipe()
    ssize_t result = write(pipe_out, &c, 1);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Could not write to notification pipe\n");
       perr_printf("Error writing to notification pipe: %s\n", strerror(error));
       return;
    }
@@ -68,11 +75,29 @@ void int_notify::unix_details::readFromPipe()
          pthrd_printf("Notification pipe had no data available\n");
          return;
       }
-      setLastError(err_internal, "Could not read from notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Could not read from notification pipe\n");
       perr_printf("Error reading from notification pipe: %s\n", strerror(error));
    }
    assert(result == 1 && c == 'e');
    pthrd_printf("Cleared notification pipe %d\n", pipe_in);
+}
+
+void int_notify::unix_details::clearEvent()
+{
+   readFromPipe();
+}
+
+int_notify::unix_details::wait_object_t int_notify::unix_details::getWaitObject()
+{
+   return pipe_in;
+}
+
+bool int_notify::unix_details::internalsValid() {
+   return (pipe_in != -1 && pipe_out != -1);
+}
+
+void int_notify::unix_details::noteEvent() {
+   writeToPipe();
 }
 
 bool int_notify::unix_details::createInternals()
@@ -84,7 +109,7 @@ bool int_notify::unix_details::createInternals()
    int result = pipe(fds);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Error creating notification pipe\n");
       perr_printf("Error creating notification pipe: %s\n", strerror(error));
       return false;
    }
@@ -94,7 +119,7 @@ bool int_notify::unix_details::createInternals()
    result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
    if (result == -1) {
       int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
+      ProcControlAPI::globalSetLastError(err_internal, "Error setting properties of notification pipe\n");
       perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
       return false;
    }

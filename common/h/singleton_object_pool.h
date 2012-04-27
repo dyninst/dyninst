@@ -34,7 +34,7 @@
 #include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
 
-#include <dyn_detail/boost/shared_ptr.hpp>
+#include "dynptr.h"
 
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
@@ -144,9 +144,9 @@ struct PoolDestructor
 };
 
 template <typename T> inline
-dyn_detail::boost::shared_ptr<T> make_shared(T* t)
+dyn_shared_ptr<T> make_shared(T* t)
 {
-    return dyn_detail::boost::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
+    return dyn_shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
 }
  
 

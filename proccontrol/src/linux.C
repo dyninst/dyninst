@@ -688,7 +688,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     return true;
 }
 
-bool linux_process::plat_attach(bool)
+bool linux_process::plat_attach(bool, bool &)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
 
@@ -2308,7 +2308,7 @@ void LinuxPtrace::main()
       switch(ptrace_request) {
          case create_req:
             bret = proc->plat_create_int();
-	    break;
+            break;
          case ptrace_req:
             ret = ptrace(request, pid, addr, data);
             break;

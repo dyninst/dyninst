@@ -29,8 +29,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/h/Types.h"
 #include "mmapalloc.h"
 #include <sys/mman.h>
+#include <string.h>
 
 static const unsigned int linux_x86_64_mmap_flags_position = 26;
 static const unsigned int linux_x86_64_mmap_size_position = 43;

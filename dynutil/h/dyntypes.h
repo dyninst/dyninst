@@ -151,7 +151,8 @@ namespace Dyninst
       Windows,
       VxWorks,
       BlueGeneL,
-      BlueGeneP
+      BlueGeneP,
+      BlueGeneQ
    } OSType;
 }
 

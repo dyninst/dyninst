@@ -189,93 +189,6 @@ const char *visibility2Str(visibility_t v)
 }
 }
 
-Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
-{
-	Type *newt = this;
-	ifxml_start_element(s, tag);
-	gtranslate(s, (int &) ID_, "typeid");
-	gtranslate(s, type_, dataClass2Str, "dataClass");
-	gtranslate(s, name_, "name");
-	gtranslate(s, size_, "size");
-
-	if (!(name_.length())) 
-		serialize_printf("%s[%d]:  WARNING:  %sserializing type %s w/out name\n", 
-				FILE__, __LINE__, s->isInput() ? "de" : "", dataClass2Str(type_));
-
-	if (s->isInput())
-	{
-		newt->incrRefCount();
-		switch(type_) 
-		{
-			case dataEnum:
-				newt = new typeEnum(ID_, name_);
-				assert(newt);
-				break;
-			case dataPointer:
-				newt = new typePointer(ID_, NULL, name_);
-				assert(newt);
-				break;
-			case dataFunction:
-				newt = new typeFunction(ID_, NULL, name_);
-				assert(newt);
-				break;
-			case dataSubrange:
-				newt = new typeSubrange(ID_, size_, 0L, 0L, name_);
-				assert(newt);
-				break;
-			case dataArray:
-				newt = new typeArray(ID_, NULL, 0L, 0L, name_);
-				assert(newt);
-				break;
-			case dataStructure:
-				newt = new typeStruct(ID_, name_);
-				assert(newt);
-				break;
-			case dataUnion:
-				newt = new typeUnion(ID_, name_);
-				assert(newt);
-				break;
-			case dataCommon:
-				newt = new typeCommon(ID_, name_);
-				assert(newt);
-				break;
-			case dataScalar:
-				newt = new typeScalar(ID_, size_, name_);
-				assert(newt);
-				break;
-			case dataTypedef:
-				newt = new typeTypedef(ID_, NULL, name_);
-				assert(newt);
-				break;
-			case dataReference:
-				newt = new typeRef(ID_, NULL, name_);
-				assert(newt);
-				break;
-			case dataUnknownType:
-			case dataNullType:
-			default:
-				serialize_printf("%s[%d]:  WARN:  nonspecific %s type: '%s'\n", 
-						FILE__, __LINE__, dataClass2Str(type_), newt->getName().c_str());
-				break;
-		};
-	}
-	newt->serialize_specific(s);
-	ifxml_end_element(s, tag);
-
-	if (s->isInput())
-	{
-		updatingSize = false;
-		refCount = 0;
-		if ((ID_ < 0) && (Type::USER_TYPE_ID >= ID_))
-		{
-			//  USER_TYPE_ID is the next available (increasingly negative)
-			//  type ID available for user defined types.
-			Type::USER_TYPE_ID = ID_ -1;
-		}
-	}
-	return newt;
-}
-
 bool Type::operator==(const Type &otype) const 
 {
 	return (ID_ == otype.ID_ && name_ == otype.name_ && size_== otype.size_ && type_ == otype.type_);
@@ -493,13 +406,6 @@ bool typeEnum::isCompatible(Type *otype)
    return true;
 }
 
-void typeEnum::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, "typeEnum");
-	gtranslate(sb, consts, "EnumElements", "EnumElement");
-	ifxml_end_element(sb, "typeEnum");
-}
-
 /* 
  * POINTER
  */
@@ -588,14 +494,6 @@ void typePointer::fixupUnknowns(Module *module)
    }
 }
 
-void typePointer::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	derivedType *dt = this;
-
-	ifxml_start_element(sb, "typePointer");
-	dt->serialize_derived(sb);
-	ifxml_end_element(sb, "typePointer");
-}
 /*
  * FUNCTION
  */
@@ -717,33 +615,6 @@ typeFunction::~typeFunction()
 	retType_->decrRefCount(); 
 }
 
-void typeFunction::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	int t_id = retType_ ? retType_->getID() : 0xdeadbeef;
-	int t_dc = (int) (retType_ ? retType_->getDataClass() : dataUnknownType);
-
-	std::vector<std::pair<int, int> > ptypes;
-	for (unsigned int i = 0; i < params_.size(); ++i)
-		ptypes.push_back(std::pair<int, int>(params_[i]->getID(), params_[i]->getDataClass()));
-
-	ifxml_start_element(sb, "typeFunction");
-	gtranslate(sb, t_id, "retTypeID");
-	gtranslate(sb, t_dc, "retTypeDataClass");
-	gtranslate(sb, ptypes, "ParameterTypes", "ParameterTypeID");
-	ifxml_end_element(sb, "typeFunction");
-	if (sb->isInput()) 
-	{
-		retType_ = NULL; //Symtab::type_Error;
-		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &retType_);
-		params_.resize(ptypes.size());
-		for (unsigned int i = 0; i < ptypes.size(); ++i)
-		{
-			params_[i] = NULL; // Symtab::type_Error;
-			typeCollection::addDeferredLookup(ptypes[i].first, (dataClass) ptypes[i].second, &params_[i]);
-		}
-	}
-}
-
 /*
  * RANGE
  */
@@ -784,13 +655,6 @@ bool typeSubrange::isCompatible(Type *otype) {
       return false;
 
    return getSize() == oRangetype->getSize();
-}
-
-void typeSubrange::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, "typeSubrange");
-	serialize_ranged(sb);
-	ifxml_end_element(sb, "typeSubrange");
 }
 
 /*
@@ -952,25 +816,6 @@ void typeArray::fixupUnknowns(Module *module)
    }
 }
 
-void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	unsigned int t_id = arrayElem ? arrayElem->getID() : 0xdeadbeef;
-	int t_dc = (int)(arrayElem ? arrayElem->getDataClass() : dataUnknownType);
-
-	ifxml_start_element(sb, "typeArray");
-	serialize_ranged(sb);
-	gtranslate(sb, sizeHint_, "sizeHint");
-	gtranslate(sb, t_id, "elemTypeID");
-	gtranslate(sb, t_dc, "elemTypeID");
-	ifxml_end_element(sb, "typeArray");
-
-	if (sb->isInput())
-	{
-		//arrayElem = Symtab::type_Error;
-		arrayElem = NULL;
-		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &arrayElem);
-	}
-}
 /*
  * STRUCT
  */
@@ -1112,13 +957,6 @@ void typeStruct::fixupUnknowns(Module *module)
       fieldList[i]->fixupUnknown(module);
 }
 
-void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, "typeStruct");
-	serialize_fieldlist(sb, "structFieldList");
-	ifxml_end_element(sb, "typeStruct");
-}
-
 /*
  * UNION
  */
@@ -1253,13 +1091,6 @@ void typeUnion::fixupUnknowns(Module *module) {
       fieldList[i]->fixupUnknown(module);
 }
 
-void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, "typeUnion");
-	serialize_fieldlist(sb, "unionFieldList");
-	ifxml_end_element(sb, "typeUnion");
-}
-
 /*
  * SCALAR
  */
@@ -1335,14 +1166,6 @@ bool typeScalar::isCompatible(Type *otype) {
       }
    }
    return false;
-}
-
-void typeScalar::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-
-	ifxml_start_element(sb, "typeScalar");
-	gtranslate(sb, isSigned_, "isSigned");
-	ifxml_end_element(sb, "typeScalar");
 }
 
 /* 
@@ -1428,14 +1251,6 @@ std::vector<CBlock *> *typeCommon::getCblocks() const
 	return const_cast<std::vector<CBlock*>*>(&cblocks); 
 }
 
-void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-
-	ifxml_start_element(sb, "typeCommon");
-	serialize_fieldlist(sb, "commonBlockFieldList");
-	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
-	ifxml_end_element(sb, "typeCommon");
-}
 /*
  * TYPEDEF
  */
@@ -1523,15 +1338,6 @@ void typeTypedef::fixupUnknowns(Module *module)
    }
 }
 
-void typeTypedef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	derivedType *dt = this;
-
-	ifxml_start_element(sb, "typeTypedef");
-	dt->serialize_derived(sb);
-	gtranslate(sb, sizeHint_, "sizeHint");
-	ifxml_end_element(sb, "typeTypedef");
-}
 /*
  * REFERENCE
  */
@@ -1599,14 +1405,6 @@ void typeRef::fixupUnknowns(Module *module)
    }
 }
 		      
-void typeRef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
-{
-	derivedType *dt = this;
-
-	ifxml_start_element(sb, "typeRef");
-	dt->serialize_derived(sb);
-	ifxml_end_element(sb, "typeRef");
-}
 /* 
  * Subclasses of class Type, with interfaces
  */
@@ -1761,23 +1559,6 @@ void fieldListType::addField(unsigned num, Field *fld)
   postFieldInsert(newField->getSize());
 }
 
-void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
-{
-	bool have_derived_field_list = (NULL != derivedFieldList);
-   ifxml_start_element(sb, tag);
-   gtranslate(sb, fieldList, "fieldList", "field");
-   gtranslate(sb, have_derived_field_list, "haveDerivedFieldList");
-   if (have_derived_field_list)
-   {
-	   //  TODO:  this dereference should work transparently
-	   // without requiring a manual realloc here
-	   if (sb->isInput())
-		   derivedFieldList = new std::vector<Field *>();
-	   gtranslate(sb, *derivedFieldList, "derivedFieldList");
-   }
-   ifxml_end_element(sb, tag);
-}
-
 //void fieldListType::fixupUnknown(Module *m)
 //{
 //  type *t = dynamic_cast<Type *>(this);
@@ -1825,23 +1606,6 @@ derivedType::~derivedType()
    	baseType_->decrRefCount();
 }
 
-void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	int t_id = baseType_ ? baseType_->getID() : 0xdeadbeef;
-	int t_dc = (int) (baseType_ ? baseType_->getDataClass() : dataUnknownType);
-
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, t_id, "baseTypeID");
-	gtranslate(sb, t_dc, "baseTypeDC");
-	ifxml_end_element(sb, tag);
-	if (sb->isInput())
-	{
-		//  save the type lookup for later in case the target type has not yet been
-		//  deserialized
-		baseType_ = NULL; // Symtab::type_Error;
-		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &baseType_);
-	}
-}
 /*
  * RANGED
  */
@@ -1888,14 +1652,6 @@ bool rangedType::operator==(const Type &otype) const
    {
       return false;
    }
-}
-
-void rangedType::serialize_ranged(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
-{
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, low_, "low");
-	gtranslate(sb, hi_, "high");
-	ifxml_end_element(sb, tag);
 }
 
 //
@@ -2025,27 +1781,6 @@ bool Field::operator==(const Field &f) const
 	return true;
 }
 
-Serializable *Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
-{
-	unsigned int t_id = type_ ? type_->getID() : 0xdeadbeef;
-	int t_dc = (int) (type_ ? type_->getDataClass() : dataUnknownType);
-
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, fieldName_, "fieldName");
-	gtranslate(sb, t_id, "fieldTypeID");
-	gtranslate(sb, t_dc, "fieldTypeID");
-	gtranslate(sb, vis_, visibility2Str, "visibility");
-	gtranslate(sb, offset_, "offset");
-	ifxml_end_element(sb, tag);
-
-	if (sb->isInput())
-	{
-		type_ = NULL; //Symtab::type_Error;
-		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &type_);
-	}
-	return NULL;
-}
-
 /**************************************************************************
  * CBlock
  *************************************************************************/
@@ -2068,6 +1803,294 @@ std::vector<Symbol *> *CBlock::getFunctions()
   return &functions;
 }
 
+Type::Type() : name_(std::string("unnamedType")), size_(0), type_(dataUnknownType) {}
+fieldListType::fieldListType() : derivedFieldList(NULL) {}
+rangedType::rangedType() {}
+derivedType::derivedType() {}
+typeEnum::typeEnum() {}
+typeFunction::typeFunction() {}
+typeScalar::typeScalar() {}
+typeCommon::typeCommon() {}
+typeStruct::typeStruct() {}
+typeUnion::typeUnion() {}
+typePointer::typePointer() {}
+typeTypedef::typeTypedef() {}
+typeRef::typeRef() {}
+typeSubrange::typeSubrange() {}
+typeArray::typeArray() {}
+
+#if !defined(SERIALIZATION_DISABLED)
+Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+{
+	Type *newt = this;
+	ifxml_start_element(s, tag);
+	gtranslate(s, (int &) ID_, "typeid");
+	gtranslate(s, type_, dataClass2Str, "dataClass");
+	gtranslate(s, name_, "name");
+	gtranslate(s, size_, "size");
+
+	if (!(name_.length())) 
+		serialize_printf("%s[%d]:  WARNING:  %sserializing type %s w/out name\n", 
+				FILE__, __LINE__, s->isInput() ? "de" : "", dataClass2Str(type_));
+
+	if (s->isInput())
+	{
+		newt->incrRefCount();
+		switch(type_) 
+		{
+			case dataEnum:
+				newt = new typeEnum(ID_, name_);
+				assert(newt);
+				break;
+			case dataPointer:
+				newt = new typePointer(ID_, NULL, name_);
+				assert(newt);
+				break;
+			case dataFunction:
+				newt = new typeFunction(ID_, NULL, name_);
+				assert(newt);
+				break;
+			case dataSubrange:
+				newt = new typeSubrange(ID_, size_, 0L, 0L, name_);
+				assert(newt);
+				break;
+			case dataArray:
+				newt = new typeArray(ID_, NULL, 0L, 0L, name_);
+				assert(newt);
+				break;
+			case dataStructure:
+				newt = new typeStruct(ID_, name_);
+				assert(newt);
+				break;
+			case dataUnion:
+				newt = new typeUnion(ID_, name_);
+				assert(newt);
+				break;
+			case dataCommon:
+				newt = new typeCommon(ID_, name_);
+				assert(newt);
+				break;
+			case dataScalar:
+				newt = new typeScalar(ID_, size_, name_);
+				assert(newt);
+				break;
+			case dataTypedef:
+				newt = new typeTypedef(ID_, NULL, name_);
+				assert(newt);
+				break;
+			case dataReference:
+				newt = new typeRef(ID_, NULL, name_);
+				assert(newt);
+				break;
+			case dataUnknownType:
+			case dataNullType:
+			default:
+				serialize_printf("%s[%d]:  WARN:  nonspecific %s type: '%s'\n", 
+						FILE__, __LINE__, dataClass2Str(type_), newt->getName().c_str());
+				break;
+		};
+	}
+	newt->serialize_specific(s);
+	ifxml_end_element(s, tag);
+
+	if (s->isInput())
+	{
+		updatingSize = false;
+		refCount = 0;
+		if ((ID_ < 0) && (Type::USER_TYPE_ID >= ID_))
+		{
+			//  USER_TYPE_ID is the next available (increasingly negative)
+			//  type ID available for user defined types.
+			Type::USER_TYPE_ID = ID_ -1;
+		}
+	}
+	return newt;
+}
+
+void typeEnum::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, "typeEnum");
+	gtranslate(sb, consts, "EnumElements", "EnumElement");
+	ifxml_end_element(sb, "typeEnum");
+}
+
+void typePointer::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	derivedType *dt = this;
+
+	ifxml_start_element(sb, "typePointer");
+	dt->serialize_derived(sb);
+	ifxml_end_element(sb, "typePointer");
+}
+
+void typeFunction::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	int t_id = retType_ ? retType_->getID() : 0xdeadbeef;
+	int t_dc = (int) (retType_ ? retType_->getDataClass() : dataUnknownType);
+
+	std::vector<std::pair<int, int> > ptypes;
+	for (unsigned int i = 0; i < params_.size(); ++i)
+		ptypes.push_back(std::pair<int, int>(params_[i]->getID(), params_[i]->getDataClass()));
+
+	ifxml_start_element(sb, "typeFunction");
+	gtranslate(sb, t_id, "retTypeID");
+	gtranslate(sb, t_dc, "retTypeDataClass");
+	gtranslate(sb, ptypes, "ParameterTypes", "ParameterTypeID");
+	ifxml_end_element(sb, "typeFunction");
+	if (sb->isInput()) 
+	{
+		retType_ = NULL; //Symtab::type_Error;
+		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &retType_);
+		params_.resize(ptypes.size());
+		for (unsigned int i = 0; i < ptypes.size(); ++i)
+		{
+			params_[i] = NULL; // Symtab::type_Error;
+			typeCollection::addDeferredLookup(ptypes[i].first, (dataClass) ptypes[i].second, &params_[i]);
+		}
+	}
+}
+
+void typeSubrange::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, "typeSubrange");
+	serialize_ranged(sb);
+	ifxml_end_element(sb, "typeSubrange");
+}
+
+void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	unsigned int t_id = arrayElem ? arrayElem->getID() : 0xdeadbeef;
+	int t_dc = (int)(arrayElem ? arrayElem->getDataClass() : dataUnknownType);
+
+	ifxml_start_element(sb, "typeArray");
+	serialize_ranged(sb);
+	gtranslate(sb, sizeHint_, "sizeHint");
+	gtranslate(sb, t_id, "elemTypeID");
+	gtranslate(sb, t_dc, "elemTypeID");
+	ifxml_end_element(sb, "typeArray");
+
+	if (sb->isInput())
+	{
+		//arrayElem = Symtab::type_Error;
+		arrayElem = NULL;
+		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &arrayElem);
+	}
+}
+
+void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, "typeStruct");
+	serialize_fieldlist(sb, "structFieldList");
+	ifxml_end_element(sb, "typeStruct");
+}
+
+void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, "typeUnion");
+	serialize_fieldlist(sb, "unionFieldList");
+	ifxml_end_element(sb, "typeUnion");
+}
+
+void typeScalar::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+
+	ifxml_start_element(sb, "typeScalar");
+	gtranslate(sb, isSigned_, "isSigned");
+	ifxml_end_element(sb, "typeScalar");
+}
+
+void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+
+	ifxml_start_element(sb, "typeCommon");
+	serialize_fieldlist(sb, "commonBlockFieldList");
+	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
+	ifxml_end_element(sb, "typeCommon");
+}
+
+void typeTypedef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	derivedType *dt = this;
+
+	ifxml_start_element(sb, "typeTypedef");
+	dt->serialize_derived(sb);
+	gtranslate(sb, sizeHint_, "sizeHint");
+	ifxml_end_element(sb, "typeTypedef");
+}
+
+void typeRef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
+{
+	derivedType *dt = this;
+
+	ifxml_start_element(sb, "typeRef");
+	dt->serialize_derived(sb);
+	ifxml_end_element(sb, "typeRef");
+}
+
+void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	bool have_derived_field_list = (NULL != derivedFieldList);
+   ifxml_start_element(sb, tag);
+   gtranslate(sb, fieldList, "fieldList", "field");
+   gtranslate(sb, have_derived_field_list, "haveDerivedFieldList");
+   if (have_derived_field_list)
+   {
+	   //  TODO:  this dereference should work transparently
+	   // without requiring a manual realloc here
+	   if (sb->isInput())
+		   derivedFieldList = new std::vector<Field *>();
+	   gtranslate(sb, *derivedFieldList, "derivedFieldList");
+   }
+   ifxml_end_element(sb, tag);
+}
+
+void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	int t_id = baseType_ ? baseType_->getID() : 0xdeadbeef;
+	int t_dc = (int) (baseType_ ? baseType_->getDataClass() : dataUnknownType);
+
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, t_id, "baseTypeID");
+	gtranslate(sb, t_dc, "baseTypeDC");
+	ifxml_end_element(sb, tag);
+	if (sb->isInput())
+	{
+		//  save the type lookup for later in case the target type has not yet been
+		//  deserialized
+		baseType_ = NULL; // Symtab::type_Error;
+		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &baseType_);
+	}
+}
+
+void rangedType::serialize_ranged(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, low_, "low");
+	gtranslate(sb, hi_, "high");
+	ifxml_end_element(sb, tag);
+}
+
+Serializable *Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	unsigned int t_id = type_ ? type_->getID() : 0xdeadbeef;
+	int t_dc = (int) (type_ ? type_->getDataClass() : dataUnknownType);
+
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, fieldName_, "fieldName");
+	gtranslate(sb, t_id, "fieldTypeID");
+	gtranslate(sb, t_dc, "fieldTypeID");
+	gtranslate(sb, vis_, visibility2Str, "visibility");
+	gtranslate(sb, offset_, "offset");
+	ifxml_end_element(sb, tag);
+
+	if (sb->isInput())
+	{
+		type_ = NULL; //Symtab::type_Error;
+		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &type_);
+	}
+	return NULL;
+}
+
 Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	std::vector<Offset> f_offsets;
@@ -2086,18 +2109,77 @@ Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW
 	return NULL;
 }
 
-Type::Type() : name_(std::string("unnamedType")), size_(0), type_(dataUnknownType) {}
-fieldListType::fieldListType() : derivedFieldList(NULL) {}
-rangedType::rangedType() {}
-derivedType::derivedType() {}
-typeEnum::typeEnum() {}
-typeFunction::typeFunction() {}
-typeScalar::typeScalar() {}
-typeCommon::typeCommon() {}
-typeStruct::typeStruct() {}
-typeUnion::typeUnion() {}
-typePointer::typePointer() {}
-typeTypedef::typeTypedef() {}
-typeRef::typeRef() {}
-typeSubrange::typeSubrange() {}
-typeArray::typeArray() {}
+#else
+
+Serializable * Type::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+
+void typeEnum::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typePointer::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeFunction::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeSubrange::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeArray::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeStruct::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeUnion::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeScalar::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeCommon::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeTypedef::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void typeRef::serialize_specific(SerializerBase *) THROW_SPEC(SerializerError)
+{
+}
+
+void fieldListType::serialize_fieldlist(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+}
+
+void derivedType::serialize_derived(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+}
+
+void rangedType::serialize_ranged(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+}
+
+Serializable *Field::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+   return NULL;
+}
+
+Serializable * CBlock::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+   return NULL;
+}
+
+#endif

@@ -51,7 +51,7 @@ class RelocBlock;
 struct RelocEdge;
 class TargetInt;
 class Widget;
-typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
+typedef dyn_shared_ptr<Widget> WidgetPtr;
 typedef std::list<WidgetPtr> WidgetList;
 
 class RelocGraph {

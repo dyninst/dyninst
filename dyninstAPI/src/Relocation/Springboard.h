@@ -179,7 +179,7 @@ class SpringboardBuilder {
     Succeeded } generateResult_t;
 
  public:
-  typedef dyn_detail::boost::shared_ptr<SpringboardBuilder> Ptr;
+  typedef dyn_shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<func_instance *> FuncSet;
 
   template <typename RelocBlockIter> 

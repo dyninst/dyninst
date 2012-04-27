@@ -94,8 +94,8 @@ public:
 	virtual void setPendingDebugBreak() { pendingDebugBreak_ = true; }
 	virtual bool pendingDebugBreak() const { return pendingDebugBreak_; }
 	// Windows lets us do this directly.
-	virtual Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
-	virtual bool infFree(Dyninst::Address addr);
+	virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
+	virtual bool direct_infFree(Dyninst::Address addr);
 
 	virtual bool plat_suspendThread(int_thread *thr);
 	virtual bool plat_resumeThread(int_thread *thr);

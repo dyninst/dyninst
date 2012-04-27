@@ -34,6 +34,7 @@
 #include "test_info_new.h"
 #include "test_lib.h"
 #include <assert.h>
+#include <stdio.h>
 
 using namespace std;
 
@@ -435,9 +436,13 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
       args.push_back(std::string(s));
    }
 
+   bool printed_run = false;
    for (unsigned i = 0; i < group->tests.size(); i++) {
       if (!group->tests[i]->disabled) {
-         args.push_back("-run");
+         if (!printed_run) {
+            args.push_back("-run");
+            printed_run = true;
+         }
          args.push_back(group->tests[i]->name);
       }
    }

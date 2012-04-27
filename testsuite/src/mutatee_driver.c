@@ -83,6 +83,10 @@ volatile int isAttached = 0;
 #include "solo_driver.h"
 #endif
 
+#if defined(os_bgq_test)
+#include <mpi.h>
+#endif
+
 /* Pointer size variable, for multiple-ABI platforms */
 int pointerSize = sizeof (void *);
 
@@ -258,6 +262,12 @@ int main(int iargc, char *argv[])
    int print_labels = FALSE;
    int has_pidfile = 0;
    FILE* f;
+
+#if defined(os_bgq_test)
+   printf("[%s:%u] - Entering MPI_Init\n", __FILE__, __LINE__);
+   MPI_Init(&iargc, &argv);
+   printf("[%s:%u] - Leaving MPI_Init\n", __FILE__, __LINE__);
+#endif
 
    gargc = argc;
    gargv = argv;

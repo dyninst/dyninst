@@ -32,7 +32,7 @@
 #if !defined(DDG_GRAPH_H)
 #define DDG_GRAPH_H
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 #include <set>
 #include <list>
 #include <queue>
@@ -60,7 +60,7 @@ namespace DepGraphAPI {
 class DDG : public Graph {
     friend class DDGAnalyzer;
  public:
-    typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
+    typedef dyn_shared_ptr<DDG> Ptr;
 
  protected:
     typedef BPatch_function Function;

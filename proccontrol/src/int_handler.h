@@ -32,11 +32,11 @@
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Process.h"
 #include <map>
+#include <vector>
 
 #if !defined(INT_HANDLER_H_)
 #define INT_HANDLER_H_
 
-using namespace std;
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -51,8 +51,8 @@ struct handler_cmp
 class HandlerPool
 {
  public:
-   typedef set<Handler *, handler_cmp> HandlerSet_t;
-   typedef map<EventType, HandlerSet_t*, eventtype_cmp> HandlerMap_t;
+   typedef std::set<Handler *, handler_cmp> HandlerSet_t;
+   typedef std::map<EventType, HandlerSet_t*, eventtype_cmp> HandlerMap_t;
 
    HandlerPool(int_process *owner_proc);
    ~HandlerPool();
@@ -79,7 +79,7 @@ class HandlerPool
    HandlerMap_t handlers;
    void addHandlerInt(EventType etype, Handler *handler);
    void clearEventAsync(Event::ptr ev);
-   void addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const;
+   void addEventToSet(Event::ptr ev, std::set<Event::ptr> &ev_set) const;
    void collectLateEvents(Event::ptr parent_ev);
    bool hasLateEvents() const;
 
@@ -117,7 +117,7 @@ class HandleBootstrap : public Handler
    HandleBootstrap();
    virtual ~HandleBootstrap();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -127,7 +127,7 @@ class HandleCrash : public Handler
   HandleCrash();
   virtual ~HandleCrash();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);  
 };
 
@@ -137,7 +137,7 @@ class HandleForceTerminate : public Handler
   HandleForceTerminate();
   virtual ~HandleForceTerminate();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);  
 };
 
@@ -147,7 +147,7 @@ class HandleSignal : public Handler
    HandleSignal();
    virtual ~HandleSignal();
    
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -157,7 +157,7 @@ class HandlePostExit : public Handler
    HandlePostExit();
    virtual ~HandlePostExit();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -167,7 +167,7 @@ class HandlePostExitCleanup : public Handler
    HandlePostExitCleanup();
    virtual ~HandlePostExitCleanup();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
 };
@@ -178,7 +178,7 @@ class HandlePreExit : public Handler
    HandlePreExit();
    virtual ~HandlePreExit();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -188,7 +188,7 @@ class HandleThreadCreate : public Handler
    HandleThreadCreate();
    virtual ~HandleThreadCreate();
    
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);   
 };
 
@@ -198,7 +198,7 @@ class HandleThreadDestroy : public Handler
    HandleThreadDestroy();
    virtual ~HandleThreadDestroy();
       
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
 };
@@ -209,7 +209,7 @@ class HandleThreadCleanup : public Handler
    HandleThreadCleanup();
    virtual ~HandleThreadCleanup();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
 };
@@ -220,7 +220,7 @@ class HandleThreadStop : public Handler
   HandleThreadStop();
   virtual ~HandleThreadStop();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -230,7 +230,7 @@ class HandlePostFork : public Handler
    HandlePostFork();
    virtual ~HandlePostFork();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -240,7 +240,7 @@ class HandlePostForkCont : public Handler
    HandlePostForkCont();
    virtual ~HandlePostForkCont();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
   virtual int getPriority() const;
 };
@@ -251,7 +251,7 @@ class HandlePostExec : public Handler
    HandlePostExec();
    virtual ~HandlePostExec();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -261,7 +261,7 @@ class HandleSingleStep : public Handler
   HandleSingleStep();
   virtual ~HandleSingleStep();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -271,7 +271,7 @@ class HandleBreakpoint : public Handler
   HandleBreakpoint();
   virtual ~HandleBreakpoint();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -281,7 +281,7 @@ class HandleBreakpointContinue : public Handler
    HandleBreakpointContinue();
    virtual ~HandleBreakpointContinue();
    
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
 };
@@ -292,7 +292,7 @@ class HandleBreakpointClear : public Handler
   HandleBreakpointClear();
   virtual ~HandleBreakpointClear();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -302,7 +302,7 @@ class HandleBreakpointRestore : public Handler
   HandleBreakpointRestore();
   virtual ~HandleBreakpointRestore();
 
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 
@@ -312,7 +312,7 @@ class HandleEmulatedSingleStep : public Handler
    HandleEmulatedSingleStep();
    ~HandleEmulatedSingleStep();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual int getPriority() const;
 };
@@ -361,9 +361,9 @@ class HandleCallbacks : public Handler
 {
   friend class HandlerPool;
  private:
-  typedef std::map<EventType, set<Process::cb_func_t>, eventtype_cmp> cbfuncs_t;
+  typedef std::map<EventType, std::set<Process::cb_func_t>, eventtype_cmp> cbfuncs_t;
   cbfuncs_t cbfuncs;
-  set<EventType, eventtype_cmp> alleventtypes;
+  std::set<EventType, eventtype_cmp> alleventtypes;
   bool registerCallback_int(EventType ev, Process::cb_func_t func);
   bool removeCallback_int(EventType et);
   bool removeCallback_int(EventType et, Process::cb_func_t func);
@@ -375,7 +375,7 @@ class HandleCallbacks : public Handler
 
   static HandleCallbacks *getCB();
   virtual int getPriority() const;
-  virtual void getEventTypesHandled(vector<EventType> &etypes);
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
   bool hasCBs(Event::const_ptr ev);
   bool hasCBs(EventType et);
@@ -385,7 +385,7 @@ class HandleCallbacks : public Handler
   bool removeCallback(EventType et);
   bool removeCallback(Process::cb_func_t func);
 
-  Handler::handler_ret_t deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset);
+  Handler::handler_ret_t deliverCallback(Event::ptr ev, const std::set<Process::cb_func_t> &cbset);
   
   bool requiresCB(Event::const_ptr ev);
 

@@ -82,22 +82,24 @@ AC_DEF 	       = @DEFS@
 @STACKPROT@
 @BUILD32@
 
+build = @build@
+host = @host@
+
 prefix = @prefix@
-exec_prefix = @exec_prefix@/${PLATFORM}
-libdir ?= @prefix@/lib
-bindir ?= @prefix@/bin
-includedir ?= @prefix@/include
+exec_prefix = @exec_prefix@
+libdir = @libdir@
+bindir = @bindir@
+includedir = @includedir@
 builddir = @builddir@
 abs_builddir = @abs_builddir@
-top_build_prefix = @top_build_prefix@
 abs_top_builddir = @abs_top_builddir@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 abs_top_srcdir = @abs_top_srcdir@
 abs_srcdir = @abs_srcdir@
 
-LIBRARY_DEST = @libdir@
-PROGRAM_DEST = @bindir@
-INCLUDE_DEST = @includedir@
+@LIBRARY_DEST_VAR@
+@PROGRAM_DEST_VAR@
+@INCLUDE_DEST_VAR@
 
 @TESTSUITE@

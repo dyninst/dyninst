@@ -54,6 +54,7 @@ using namespace std;
 ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName, 
         const char *symName, psaddr_t *symbolAddr)
 {
+    pthrd_printf("Looking up symbol %s in %s\n", symName, objName);
     return handle->thread_db_proc->getSymbolAddr(objName, symName, symbolAddr);
 }
 
@@ -223,7 +224,7 @@ pid_t ps_getpid (struct ps_prochandle *ph)
    return ph->thread_db_proc->getPid();
 }
 
-void	 ps_plog(const char *format, ...) {
+void ps_plog(const char *format, ...) {
     if( !dyninst_debug_proccontrol ) return;
     if( NULL == format ) return;
 
@@ -348,8 +349,15 @@ static void *dlopenThreadDB(char *path)
       filename = std::string("libthread_db.so");
    }
 
+#if defined(os_bgq)
+   alt_filename = filename;
+   filename = std::string("/bgsys/drivers/ppcfloor/gnu-linux/powerpc64-bgq-linux/lib/libthread_db.so.1");
+#endif
+
+   pthrd_printf("Opening thread_db with %s\n", filename.c_str());
    void *libhandle = dlopen(filename.c_str(), RTLD_LAZY);
    if (!libhandle && !alt_filename.empty()) {
+   pthrd_printf("Opening thread_db with %s\n", alt_filename.c_str());
       libhandle = dlopen(alt_filename.c_str(), RTLD_LAZY);
    }
    if (!libhandle) {
@@ -502,7 +510,8 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
   self(NULL),
   trigger_thread(NULL),
   initialThreadEventCreated(false),
-  setEventSet(false)
+  setEventSet(false),
+  completed_post(false)
 {
    if (!loadedThreadDBLibrary())
       return;
@@ -519,7 +528,8 @@ thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
   self(NULL),
   trigger_thread(NULL),
   initialThreadEventCreated(false),
-  setEventSet(false)
+  setEventSet(false),
+  completed_post(false)
 {
    if (!loadedThreadDBLibrary())
       return;
@@ -964,7 +974,7 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     objSymReader = plat_defaultSymReader()->openSymbolReader(lib->getName());
     if( NULL == objSymReader ) {
         perr_printf("Failed to open symbol reader for %s\n",
-		    lib->getName().c_str());
+                    lib->getName().c_str());
         setLastError(err_internal, "Failed to open executable for symbol reading");
         return PS_ERR;
     }
@@ -978,39 +988,61 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
     }
 
     *symbolAddr = (psaddr_t) (lib->getAddr() + 
-			      objSymReader->getSymbolOffset(lookupSym));
+                              objSymReader->getSymbolOffset(lookupSym));
 
     pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL", 
                  symName ? symName : "NULL", *symbolAddr);
     return PS_OK;
 }
 
-bool thread_db_process::post_create() {
-    if( !int_process::post_create() ) return false;
 
-    initThreadDB(); //swallow errors.  We don't bring everything down if thread_db fails
-    return true;
+async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_responses)
+{
+   async_ret_t result;
+   if (!completed_post) {
+      result = int_process::post_create(async_responses);
+      if (result != aret_success)
+         return result;
+      completed_post = true;
+   }
+
+   getMemCache()->setSyncHandling(true);
+   for (;;) {
+      result = initThreadDB();
+      if (result != aret_async)
+         break;
+      getMemCache()->getPendingAsyncs(async_responses);
+      return aret_async;
+   }
+   getMemCache()->setSyncHandling(false);
+
+   return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
-bool thread_db_process::post_attach(bool wasDetached) {
-    if( !int_process::post_attach(wasDetached) ) return false;
-    
-    async_ret_t result;
-    getMemCache()->setSyncHandling(true);
-    for (;;) {
-       result = initThreadDB();
-       if (result != aret_async)
-          break;
-       set<response::ptr> resp;
-       getMemCache()->getPendingAsyncs(resp);
-       waitForAsyncEvent(resp);
-    }
-    getMemCache()->setSyncHandling(false);
-    return result == aret_success ? true : false;
+async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> &aresps) {
+   async_ret_t result;
+   if (!completed_post) {
+      result = int_process::post_attach(wasDetached, aresps);
+      if (result != aret_success)
+         return result;
+      completed_post = true;
+   }
+   
+   getMemCache()->setSyncHandling(true);
+   for (;;) {
+      result = initThreadDB();
+      if (result != aret_async)
+         break;
+      getMemCache()->getPendingAsyncs(aresps);
+      return aret_async;
+   }
+   getMemCache()->setSyncHandling(false);
+
+   return aret_success;
 }
 
-#warning TODO fix detach part in post attach rewrite
 #if 0
+#warning TODO fix detach part in post attach rewrite
 bool thread_db_process::post_attach(bool wasDetached) {
     if( !int_process::post_attach(wasDetached) ) return false;
 

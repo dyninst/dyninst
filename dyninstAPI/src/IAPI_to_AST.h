@@ -35,7 +35,7 @@
 #include "ast.h"
 #include "Expression.h"
 #include "Visitor.h"
-#include <dyn_detail/boost/shared_ptr.hpp>
+#include "dynptr.h"
 #include <deque>
 
 namespace Dyninst

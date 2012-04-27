@@ -94,7 +94,7 @@ public:
     virtual ~freebsd_process();
 
     virtual bool plat_create();
-    virtual bool plat_attach(bool allStopped);
+    virtual bool plat_attach(bool allStopped, bool &);
     virtual bool plat_forked();
     virtual bool plat_execed();
     virtual bool plat_detach(result_response::ptr resp);
@@ -113,7 +113,8 @@ public:
     virtual OSType getOS() const;
 
     virtual bool post_attach(bool wasDetached);
-    virtual bool post_create();
+    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
+
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();

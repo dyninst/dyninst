@@ -31,6 +31,7 @@
 
 #include "remotetest.h"
 #include "test_lib.h"
+#include <stdio.h>
 
 #include <assert.h>
 #include <cstring>
@@ -497,7 +498,7 @@ bool Connection::server_setup(string &hostname_, int &port_)
      debug_printf("Unable to listen on socket: %s\n", strerror(errno));
       return false;
    }
-   debug_printf("server_setup successful listen on socket\n", __FILE__, __LINE__);
+   debug_printf("[%s:%u] - server_setup successful listen on socket\n", __FILE__, __LINE__);
 
    result = getsockname(sockfd, (sockaddr *) &addr, &socklen);
    if (result != 0) {
@@ -518,8 +519,17 @@ bool Connection::server_setup(string &hostname_, int &port_)
       }
       hostname = name_buffer;
 #if defined(os_bg_test)
-      std::string iohostname = hostname + "-io";
+      std::string iohostname;
+      size_t pos;
+      if ((pos = hostname.find('.')) == string::npos)
+	iohostname = hostname + "-io";
+      else {
+	iohostname = hostname.substr(0, pos) + "-io";
+	if (!gethostbyname2(iohostname.c_str(), AF_INET))
+	  iohostname += hostname.substr(pos, string::npos);
+      }
       struct hostent *lookup_test = gethostbyname2(iohostname.c_str(), AF_INET);
+
       if (lookup_test) {
          hostname = iohostname;
       }
@@ -532,8 +542,8 @@ bool Connection::server_setup(string &hostname_, int &port_)
    port_ = port;
    has_hostport = true;
 
-   debug_printf("server_setup returning new hostname/port %s/%d\n",
-                hostname.c_str(), port);
+   debug_printf("[%s:%u] - server_setup returning new hostname/port %s/%d\n",
+                __FILE__, __LINE__, hostname.c_str(), port);
    return true;
 }
 

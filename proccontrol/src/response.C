@@ -53,13 +53,14 @@ response::response() :
    isSyncHandled(false),
    error(false),
    errorcode(0),
+   proc(NULL),
    decoder_event(NULL),
    multi_resp_size(0),
    multi_resp_recvd(0)
 {
-   id_lock.lock();
-   id = next_id++;
-   id_lock.unlock();
+  id_lock.lock();
+  id = next_id++;
+  id_lock.unlock();
 }
 
 response::~response()
@@ -143,6 +144,8 @@ string response::name() const
          return "AllReg Response";
       case rt_mem:
          return "Mem Response";
+      case rt_set:
+         return "Set Response";
    }
    assert(0);
    return "";
@@ -187,32 +190,41 @@ ArchEvent *response::getDecoderEvent()
    return decoder_event;
 }
 
+int_process *response::getProcess() const
+{
+  return proc;
+}
+
+void response::setProcess(int_process *p)
+{
+  proc = p;
+}
 
 result_response::ptr response::getResultResponse()
 {
    return resp_type == rt_result ? 
-      dyn_detail::boost::static_pointer_cast<result_response>(shared_from_this()) :
+      dyn_static_pointer_cast<result_response>(shared_from_this()) :
       result_response::ptr();
 }
 
 mem_response::ptr response::getMemResponse()
 {
    return resp_type == rt_mem ? 
-      dyn_detail::boost::static_pointer_cast<mem_response>(shared_from_this()) :
+      dyn_static_pointer_cast<mem_response>(shared_from_this()) :
       mem_response::ptr();
 }
 
 reg_response::ptr response::getRegResponse()
 {
    return resp_type == rt_reg ? 
-      dyn_detail::boost::static_pointer_cast<reg_response>(shared_from_this()) :
+      dyn_static_pointer_cast<reg_response>(shared_from_this()) :
       reg_response::ptr();
 }
 
 allreg_response::ptr response::getAllRegResponse()
 {
    return resp_type == rt_allreg ? 
-      dyn_detail::boost::static_pointer_cast<allreg_response>(shared_from_this()) :
+      dyn_static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
 }
 
@@ -221,7 +233,7 @@ response::ptr responses_pending::rmResponse(unsigned int id)
    //cvar lock should already be held.
    std::map<unsigned int, response::ptr>::iterator i = pending.find(id);
    if (i == pending.end()) {
-      //I've seen this happen on BlueGene, it sometimes throws duplicate ACKs
+      //I've seen this happen on BlueGene/P, it sometimes throws duplicate ACKs
       pthrd_printf("Unknown response.  Recieved duplicate ACK message on BlueGene?\n");
       return response::ptr();
    }
@@ -302,12 +314,19 @@ void responses_pending::signal()
    cvar.broadcast();
 }
 
+CondVar &responses_pending::condvar()
+{
+   return cvar;
+}
+
 void responses_pending::addResponse(response::ptr r, int_process *proc)
 {
    pthrd_printf("Adding response %d of type %s to list of pending responses\n", r->getID(), r->name().c_str());
    Event::ptr ev = proc->handlerPool()->curEvent();
    if (r->isSyncHandled)
       ev = Event::ptr();
+
+   r->setProcess(proc);
 
    r->setEvent(ev);
    r->markPosted();
@@ -469,7 +488,12 @@ void allreg_response::setResponse()
 void allreg_response::postResponse()
 {
    assert(thr);
-   thr->updateRegCache(*regpool);
+   if (isMultiResponse()) {
+      multi_resp_recvd++;
+   }
+   if (isMultiResponseComplete()) {
+      thr->updateRegCache(*regpool);
+   }
 }
 
 int_registerPool *allreg_response::getRegPool() const
@@ -549,6 +573,11 @@ void mem_response::setLastBase(Address a)
    last_base = a;
 }
 
+Address mem_response::lastBase()
+{
+   return last_base;
+}
+
 void mem_response::postResponse()
 {
 }
@@ -562,3 +591,50 @@ unsigned mem_response::getSize() const
 {
    return size;
 }
+ 
+unsigned int ResponseSet::next_id = 1;
+Mutex ResponseSet::id_lock;
+std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
+
+ResponseSet::ResponseSet()
+{
+  id_lock.lock();
+  myid = next_id++;
+  if (!myid)
+    myid = next_id++;
+  all_respsets.insert(make_pair(myid, this));
+  id_lock.unlock();
+}
+
+void ResponseSet::addID(unsigned id, unsigned index)
+{
+  ids.insert(make_pair(index, id));
+}
+
+unsigned ResponseSet::getIDByIndex(unsigned int index, bool &found) const
+{
+  map<unsigned, unsigned>::const_iterator i = ids.find(index);
+  if (i == ids.end()) {
+    found = false;
+    return 0;
+  }
+  found = true;
+  return i->second;
+}
+unsigned int ResponseSet::getID() const {
+  return myid;
+}
+
+ResponseSet *ResponseSet::getResponseSetByID(unsigned int id) {
+  map<unsigned int, ResponseSet *>::iterator i;
+  ResponseSet *respset = NULL;
+  id_lock.lock();
+  i = all_respsets.find(id);
+  if (i != all_respsets.end()) {
+    respset = i->second;
+    all_respsets.erase(i);
+  }
+  id_lock.unlock();
+  return respset;
+}
+

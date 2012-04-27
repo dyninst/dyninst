@@ -79,7 +79,7 @@ char *outputlog_name;
 int outputlog_pos = -1;
 FILE *outputlog_file = NULL;
 
-#if !defined(os_linux_test)
+#if !defined(os_linux_test) && !defined(os_bgq_test)
 int getline(char **line, size_t *line_size, FILE *f)
 {
    if (*line == NULL) {

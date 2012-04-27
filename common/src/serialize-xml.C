@@ -31,6 +31,8 @@
 
 #include "common/h/serialize.h"
 
+#if !defined(SERIALIZATION_DISABLED)
+
 #if !defined(os_windows)
 #include "common/h/pathName.h"
 #include <dlfcn.h>
@@ -951,4 +953,6 @@ void SerDesXML::xml_value(const char *s, const char *tag)
         SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
     }
 }
+#endif
+
 #endif

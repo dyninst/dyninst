@@ -41,5 +41,4 @@ instructionAPI/doc/latex/index.tex
 instructionAPI/doc/latex/modules.tex
 test.sh
 autodyninst/configure
-
-
+config.log

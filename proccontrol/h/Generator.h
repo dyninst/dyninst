@@ -76,6 +76,7 @@ class PC_EXPORT Generator
       process_blocked,
       system_blocked,
       decoding,
+      statesync,
       handling,
       queueing,
       error,
@@ -112,8 +113,12 @@ class PC_EXPORT Generator
    virtual bool plat_skipGeneratorBlock();
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
-   virtual bool plat_continue(ArchEvent* evt) { return true; }
+
+   virtual bool plat_continue(ArchEvent* /*evt*/) { return true; }
    virtual void wake(Dyninst::PID/* proc */, long long /* sequence */) {}
+
+   //  Optional interface for systems that want to return multiple events
+   virtual bool getMultiEvent(bool block, std::vector<ArchEvent *> &events);
 };
 
 class PC_EXPORT GeneratorMT : public Generator
@@ -129,7 +134,9 @@ protected:
    void launch(); //Launch thread
    void start(); //Startup function for new thread
    virtual void plat_start() {}
-   virtual bool plat_continue(ArchEvent* evt) { return true;}
+   virtual bool plat_continue(ArchEvent* /*evt*/) { return true;}
+   GeneratorMTInternals *getInternals();
+
    GeneratorMT(std::string name_);
    virtual ~GeneratorMT();
    virtual bool processWait(bool block);

@@ -52,7 +52,7 @@ typedef int pid_t;
 extern "C" {
 #endif
 
-#if defined(os_linux_test) || defined(os_bg)
+#if defined(os_linux_test) || defined(os_bg_test) || defined(os_bgq_test)
 #include <stdint.h>
 #endif
 

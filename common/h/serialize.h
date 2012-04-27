@@ -32,6 +32,12 @@
 #ifndef __SERDES_H__
 #define __SERDES_H__
 
+#include "dynutil/h/util.h"
+#include "dynutil/h/Annotatable.h"
+#include "dynutil/h/Serialization.h"
+
+#if !defined(SERIALIZATION_DISABLED)
+
 #if defined(cap_have_libxml)
 //Keeps causing problems and not currently used
 #undef cap_have_libxml
@@ -56,9 +62,6 @@
 #include <libxml/xmlwriter.h>
 #endif
 
-#include "dynutil/h/util.h"
-#include "dynutil/h/Annotatable.h"
-#include "dynutil/h/Serialization.h"
 #include "common/h/Types.h"
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
@@ -729,4 +732,7 @@ class SerTest : public Serializable {
 };
 #endif
 } /*namespace Dyninst*/
+
+#endif
+
 #endif

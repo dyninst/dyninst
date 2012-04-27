@@ -46,6 +46,7 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
+#if !defined(SERIALIZATION_DISABLED)
 	std::vector<relocationEntry> relocations;
 	std::vector<ExceptionBlock *> exceptions;
 	std::vector<Type *> *stdtypes;
@@ -693,7 +694,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 				serialize_test(st, *t, report);
 			}
 		}
-
+#endif
 	public:
 
 	test_symtab_ser_funcs_Mutator() { };
@@ -705,6 +706,7 @@ extern "C" DLLEXPORT TestMutator* test_symtab_ser_funcs_factory()
 	return new test_symtab_ser_funcs_Mutator();
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 {
 	bool result = symtab->getFuncBindingTable(relocations);
@@ -854,6 +856,7 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 	type_common = NULL;
 	type_function = NULL;
 }
+#endif
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 {
@@ -861,6 +864,7 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 	return SKIPPED;
 //#endif
 
+#if !defined(SERIALIZATION_DISABLED)
 	try 
 	{
 		parse();
@@ -917,4 +921,5 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 	REPORT_EFAIL;
 
 	return PASSED;
+#endif
 }

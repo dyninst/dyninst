@@ -43,7 +43,7 @@ using namespace InstructionAPI;
 
 class Operation {
  public:
-    typedef dyn_detail::boost::shared_ptr<Operation> Ptr;
+    typedef dyn_shared_ptr<Operation> Ptr;
     typedef std::set<Operation::Ptr> OperationSet;
 
     DATAFLOW_EXPORT static decompose(Instruction::Ptr insn,

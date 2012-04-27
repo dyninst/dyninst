@@ -75,7 +75,7 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter, const Trace
   for (AtomList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
     // If we're not an instruction then skip...
-     InsnAtom::Ptr reloc = dyn_detail::boost::dynamic_pointer_cast<Relocation::InsnAtom>(*e_iter);
+     InsnAtom::Ptr reloc = dyn_dynamic_pointer_cast<Relocation::InsnAtom>(*e_iter);
      if (!reloc) continue;
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;

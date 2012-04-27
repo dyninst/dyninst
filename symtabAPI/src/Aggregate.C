@@ -302,6 +302,7 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
     return true;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
 		unsigned t_id) THROW_SPEC (SerializerError)
 {
@@ -374,11 +375,17 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 		}
 	}
 }
+#else
+void Aggregate::restore_type_by_id(SerializerBase *, Type *&, 
+                                   unsigned ) THROW_SPEC (SerializerError) 
+{
+}
+#endif
 
+#if !defined(SERIALIZATION_DISABLED)
 void Aggregate::restore_module_by_name(SerializerBase *sb,  
 		std::string &mname) THROW_SPEC (SerializerError)
 {
-
 	if (!sb)
 	{
 		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
@@ -415,10 +422,15 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module: %s\n", FILE__, __LINE__, mname.c_str());
 	}
 }
-
+#else
+void Aggregate::restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError)
+{
+}
+#endif
 
 extern Symbol * getSymForID(SerializerBase *sb, Address id);
 
+#if !defined(SERIALIZATION_DISABLED)
 void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &symids) THROW_SPEC (SerializerError)
 {
 	Offset off_accum = 0;
@@ -489,6 +501,11 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &
 		}
 	}
 }
+#else
+void Aggregate::rebuild_symbol_vector(SerializerBase *, std::vector<Address> &) THROW_SPEC (SerializerError)
+{
+}
+#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
@@ -526,6 +543,7 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
 		return os;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
 {
 	std::string modname = module_ ? module_->fullName() : std::string("");
@@ -572,7 +590,11 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	serialize_printf("%s[%d]:  %sSERIALIZE AGGREGATE, nsyms = %lu\n", FILE__, __LINE__, 
 			sb->isInput() ? "DE" : "", symbols_.size());
 }
-
+#else
+void Aggregate::serialize_aggregate(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+}
+#endif
 bool Aggregate::operator==(const Aggregate &a)
 {
 	if (mangledNames_.size() != a.mangledNames_.size()) return false;

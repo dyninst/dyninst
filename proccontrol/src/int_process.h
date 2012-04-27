@@ -51,6 +51,12 @@
 #include <queue>
 #include <stack>
 
+namespace Dyninst {
+namespace ProcControlAPI {
+class ProcessSet;
+}
+}
+
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -59,7 +65,10 @@ class int_threadPool;
 class handlerpool;
 class int_iRPC;
 
-typedef dyn_detail::boost::shared_ptr<int_iRPC> int_iRPC_ptr;
+typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
+typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
+
+typedef dyn_shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 
 typedef std::list<int_iRPC_ptr> rpc_list_t;
@@ -68,6 +77,15 @@ class installed_breakpoint;
 class int_library;
 class int_process;
 class emulated_singlestep;
+
+struct bp_install_state {
+   Dyninst::Address addr;
+   int_breakpoint *bp;
+   installed_breakpoint *ibp;
+   bool do_install;
+   mem_response::ptr mem_resp;
+   result_response::ptr res_resp;
+};
 
 class mem_state
 {
@@ -143,6 +161,7 @@ class ProcStopEventManager {
 class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
+   friend class Dyninst::ProcControlAPI::ProcessSet;
  protected:
    int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
            std::vector<std::string> envp, std::map<int,int> f);
@@ -154,17 +173,17 @@ class int_process
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
-   bool create();
+   static bool create(int_processSet *ps);
    virtual bool plat_create() = 0;
-   virtual bool post_create();
+   virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
-   bool attach();
-   bool reattach();
-   virtual bool plat_attach(bool allStopped) = 0;
+   static bool attach(int_processSet *ps, bool reattach);
+   static bool reattach(int_processSet *pset);
+   virtual bool plat_attach(bool allStopped, bool &should_sync) = 0;
+
    bool attachThreads();
-   virtual bool post_attach(bool wasDetached);
-
-   bool initializeAddressSpace();
+   virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &aresps);
+   async_ret_t initializeAddressSpace(std::set<response::ptr> &async_responses);
 
    virtual bool plat_syncRunState() = 0;
    bool syncRunState();
@@ -197,6 +216,7 @@ class int_process
    virtual bool needIndividualThreadAttach() = 0;
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
 
+   virtual void plat_threadAttachDone();
    bool waitfor_startup();
 
    void setPid(Dyninst::PID pid);
@@ -222,8 +242,12 @@ class int_process
    Process::ptr proc() const;
    mem_state::ptr memory() const;
 
-   //Detach is static because proc could be cleaned 
-   static bool detach(int_process *proc, bool temporary);
+   err_t getLastError();
+   const char *getLastErrorMsg();
+   void clearLastError();
+   void setLastError(err_t err, const char *err_str);
+
+   void throwDetachEvent(bool temporary);
 
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
@@ -239,6 +263,8 @@ class int_process
    static bool waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited);
    static bool waitForAsyncEvent(response::ptr resp);
    static bool waitForAsyncEvent(std::set<response::ptr> resp);
+
+   virtual bool plat_waitAndHandleForProc();
 
    Counter &asyncEventCount();
    Counter &getForceGeneratorBlockCount();
@@ -257,11 +283,17 @@ class int_process
    bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
+   virtual bool plat_individualRegRead();
+   virtual bool plat_individualRegSet();
 
    int getAddressWidth();
    HandlerPool *handlerPool() const;
 
    bool addBreakpoint(Dyninst::Address addr, int_breakpoint *bp);
+   bool addBreakpoint_phase1(bp_install_state *is);
+   bool addBreakpoint_phase2(bp_install_state *is);
+   bool addBreakpoint_phase3(bp_install_state *is);
+
    bool rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp, result_response::ptr async_resp);
    installed_breakpoint *getBreakpoint(Dyninst::Address addr);
 
@@ -277,9 +309,12 @@ class int_process
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
    virtual bool plat_threadOpsNeedProcStop();
    virtual SymbolReaderFactory *plat_defaultSymReader();
-   // Windows lets us do this directly, so we'll just override these entirely on that platform.
-   virtual Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
-   virtual bool infFree(Dyninst::Address addr);
+
+   virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
+   virtual bool direct_infFree(Dyninst::Address addr);
+
+   static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
+   static bool infFree(int_addressSet *aset);
 
    bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);
    bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL);
@@ -290,7 +325,7 @@ class int_process
                               Dyninst::Address remote, size_t size) = 0;
 
    //For a platform, if plat_needsAsyncIO returns true then the async
-   // set of functions need to be implemented.  Currently needsAsyncIO_plat 
+   // set of functions need to be implemented.  Currently plat_needsAsyncIO
    // only returns true for bluegene family.  By default these are otherwise
    // unimplemented.
    virtual bool plat_needsAsyncIO() const;
@@ -321,6 +356,10 @@ class int_process
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
 
+   virtual bool plat_preHandleEvent();
+   virtual bool plat_postHandleEvent();
+   virtual bool plat_preAsyncWait();
+
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
@@ -332,7 +371,6 @@ class int_process
                                   bool &waiting_for_async,
                                   std::set<response::ptr> &async_responses) = 0;
 
-   virtual bool initLibraryMechanism() = 0;
    virtual bool plat_isStaticBinary() = 0;
    virtual int_library *plat_getExecutable() = 0;
 
@@ -349,7 +387,7 @@ class int_process
    void wasCreatedViaAttach(bool val) { createdViaAttach = val; }
 
    // Platform-specific; is this address in what we consider a system lib.
-   virtual bool addrInSystemLib(Address addr) { return false; }
+   virtual bool addrInSystemLib(Address /*addr*/) { return false; }
 
    ProcStopEventManager &getProcStopManager();
 
@@ -388,6 +426,13 @@ class int_process
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
+   void *user_data;
+   err_t last_error;
+   const char *last_error_string;
+};
+
+struct ProcToIntProc {
+   int_process *operator()(const Process::ptr &p) const { return p->llproc(); }
 };
 
 class indep_lwp_control_process : virtual public int_process
@@ -458,6 +503,7 @@ class thread_exitstate
    Dyninst::LWP lwp;
    Dyninst::THR_ID thr_id;
    Process::ptr proc_ptr;
+   void *user_data;
 };
 
 class proc_exitstate
@@ -468,6 +514,11 @@ class proc_exitstate
    bool crashed;
    int crash_signal;
    int exit_code;
+   err_t last_error;
+   const char *last_error_msg;
+   void *user_data;
+
+   void setLastError(err_t e_, const char *m) { last_error = e_; last_error_msg = m; }
 };
 
 /**
@@ -507,6 +558,7 @@ class proc_exitstate
  **/
 class int_thread
 {
+   friend class Dyninst::ProcControlAPI::Thread;
    friend class int_threadPool;
    friend class ProcStopEventManager;
  protected:
@@ -526,6 +578,7 @@ public:
    int_process *llproc() const;
 
    Dyninst::LWP getLWP() const;
+   void changeLWP(Dyninst::LWP new_lwp);
 
 #define RUNNING_STATE(S) (S == int_thread::running || S == int_thread::neonatal_intermediate)
    typedef enum {
@@ -740,6 +793,8 @@ public:
 
    void setSuspended(bool b);
    bool isSuspended() const;
+
+   void setLastError(err_t ec, const char *es);
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -794,6 +849,7 @@ public:
 
    installed_breakpoint *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
+   void *user_data;
 
    static std::set<continue_cb_t> continue_cbs;
 };
@@ -801,6 +857,7 @@ public:
 class int_threadPool {
    friend class Dyninst::ProcControlAPI::ThreadPool;
    friend class Dyninst::ProcControlAPI::ThreadPool::iterator;
+   friend class int_thread;
  private:
    std::vector<int_thread *> threads;
    std::vector<Thread::ptr> hl_threads;
@@ -994,6 +1051,43 @@ class emulated_singlestep {
    std::set<response::ptr> clear_resps;
 };
 
+struct clearError {
+   void operator()(Process::ptr p) {
+      p->clearLastError();
+   }
+
+   template <class T>
+   void operator()(const pair<T, Process::const_ptr> &v) {
+      v.second->clearLastError();
+   }
+   template <class T>
+   void operator()(const pair<Process::const_ptr, T> &v) {
+      v.first->clearLastError();
+   }
+   template <class T>
+   void operator()(const pair<T, Process::ptr> &v) {
+      v.second->clearLastError();
+   }
+   template <class T>
+   void operator()(const pair<Process::ptr, T> &v) {
+      v.first->clearLastError();
+   }
+};
+
+struct setError {
+private:
+   err_t err;
+   const char *err_str;
+public:
+   setError(err_t e, const char *s) { err = e; err_str = s; }
+   void operator()(Process::ptr p) {
+      p->setLastError(err, err_str);
+   }
+   void operator()(const std::pair<Address, Process::ptr> &v) {
+      v.second->setLastError(err, err_str);
+   }
+};
+
 class int_notify {
 #if defined(os_windows)
 	class windows_details
@@ -1034,7 +1128,6 @@ class int_notify {
 		friend class int_notify;
 		int pipe_in;
 		int pipe_out;
-		int pipe_count;
 		void writeToPipe();
 		void readFromPipe();
 	public:
