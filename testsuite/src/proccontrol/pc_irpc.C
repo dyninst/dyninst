@@ -290,7 +290,7 @@ void pc_irpcMutator::runIRPCs() {
    /**
     * Stop processes
     **/
-   if (true/*thread_start == rpc_start_stopped*/)
+   if (thread_start == rpc_start_stopped)
    {
       for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
            i != comp->procs.end(); i++)
@@ -313,29 +313,28 @@ void pc_irpcMutator::runIRPCs() {
         i != comp->procs.end(); i++) 
    {
 	   Process::ptr proc = *i;
-	   logerror("Checking process %d\n", proc->getPid());	   
+	   logerror("Checking process %d with %d threads\n", proc->getPid(), proc->threads().size());
       proc_info_t &p = pinfo[proc];
       p.clear();
       unsigned long start_offset;
       createBuffer(proc, pinfo[proc].irpc_calltarg, pinfo[proc].irpc_tocval, buffer, buffer_size, start_offset);
-      for (ThreadPool::iterator j = proc->threads().begin();
-           j != proc->threads().end(); j++)
+      for (ThreadPool::iterator j = proc->threads().begin(); j != proc->threads().end(); j++)
       {
          Thread::ptr thr = *j;
          thread_info_t &t = tinfo[thr];
-		 logerror("Checking thread %d\n", thr->getLWP());	   
-		 if(!thr->isUser())
-		 {
-			 logerror("Thread is system, should NOT be in ThreadPool iteration, skipping anyway\n");
-			 continue;
-		 }
+         logerror("Checking thread %d\n", thr->getLWP());	   
+         if(!thr->isUser())
+         {
+            logerror("Thread is system, should NOT be in ThreadPool iteration, skipping anyway\n");
+            continue;
+         }
 
          for (unsigned k = 0; k < NUM_IRPCS; k++)
          {
             IRPC::ptr irpc;
             rpc_data_t *rpc_data = new rpc_data_t();
             if (allocation_mode == manual_allocate) {
-				logerror("Manually allocating memory\n");
+               logerror("Manually allocating memory\n");
                Dyninst::Address addr = proc->mallocMemory(buffer_size+1);
                assert(addr);
                irpc = IRPC::createIRPC((void *) buffer, buffer_size, addr, async);
@@ -343,15 +342,15 @@ void pc_irpcMutator::runIRPCs() {
                rpc_data->malloced_addr = addr;
             }
             else if (allocation_mode == auto_allocate) {
-				logerror("Automatically allocating memory\n");
-				irpc = IRPC::createIRPC((void *) buffer, buffer_size, async);
+               logerror("Automatically allocating memory\n");
+               irpc = IRPC::createIRPC((void *) buffer, buffer_size, async);
                irpc->setStartOffset(start_offset);
             }
             rpc_data->rpc = irpc;
             p.rpcs.push_back(rpc_data);
             rpc_to_data[irpc] = rpc_data;
-			logerror("Created iRPC %d\n", total_prepped++);
-		 }
+            logerror("Created iRPC %d\n", total_prepped++);
+         }
       }
       free(buffer);
    }
@@ -424,24 +423,24 @@ void pc_irpcMutator::runIRPCs() {
 				  if (!proc->allThreadsRunning()) {
 					  continued_something = true;
 				  }
-				  proc->continueProc();
+              proc->continueProc();
 #if 0
-                  for (ThreadPool::iterator j = proc->threads().begin();
-                       j != proc->threads().end(); j++)
-                  {
-                     Thread::ptr thr = *j;
-                     if (!thr->isStopped()) 
-                        continue;
-                     bool result = thr->continueThread();
-                     if (!result) 
-                     {
-                        logerror("Failure continuing threads\n");
-                        myerror = true;
-                     }
-                     continued_something = true;
-                  }
+              for (ThreadPool::iterator j = proc->threads().begin();
+                   j != proc->threads().end(); j++)
+              {
+                 Thread::ptr thr = *j;
+                 if (!thr->isStopped()) 
+                    continue;
+                 bool result = thr->continueThread();
+                 if (!result) 
+                 {
+                    logerror("Failure continuing threads\n");
+                    myerror = true;
+                 }
+                 continued_something = true;
+              }
 #endif
-			   }
+               }
             }
          }
          if (all_irpcs_completed() || !has_pending_irpcs()) {

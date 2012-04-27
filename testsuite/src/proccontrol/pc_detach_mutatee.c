@@ -142,7 +142,6 @@ int pc_detach_mutatee()
 #else
    am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
-   fprintf(stderr, "waiting for sync message in pc_detach_mutatee\n");
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
 	   fprintf(stderr, "Failed to receive sync message\n");
@@ -154,7 +153,6 @@ int pc_detach_mutatee()
       output->log(STDERR, "Incorrect sync code: %x\n", syncloc_msg.code);
       return -1;
    }
-   fprintf(stderr, "Mutatee calling self_signal()\n");
    self_signal();
 
    testUnlock(&init_lock);

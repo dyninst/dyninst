@@ -144,7 +144,6 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
 
    for (i = evlib->libsRemoved().begin(); i != evlib->libsRemoved().end(); i++) {
       Library::ptr lib = *i;
-	  cerr << "Got remove for " << lib->getName() << endl;
       if (lib->getName().find("libtestA") != string::npos) {
 		  pi.unloaded_libtesta = pi.order++;
       }
@@ -214,7 +213,8 @@ test_results_t pc_libraryMutator::executeTest()
 			 libc_lib = lib;
 		 }
 #endif
-		 if (lib->getName().find("pc_library_mutatee") != std::string::npos) {
+		 if (lib->getName().find("pc_library_mutatee") != std::string::npos ||
+           lib->getName().find("pc_library.mutatee") != std::string::npos) {
             pi.found_exec = true;
          }
       }

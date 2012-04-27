@@ -76,7 +76,6 @@ int pc_irpc_mutatee()
       testUnlock(&init_lock);
       return -1;
    }
-   output->log(STDERR, "Initialization OK\n");
 
    addr_msg.code = SENDADDR_CODE;
    addr_msg.addr = getFunctionPtr((unsigned long *)irpc_calltarg);
@@ -124,14 +123,12 @@ int pc_irpc_mutatee()
    }
 
    testUnlock(&init_lock);
-   output->log(STDERR, "Calling finiProcControlTest\n");
 
    result = finiProcControlTest(0);
    if (result != 0) {
       output->log(STDERR, "Finalization failed\n");
       return -1;
    }
-   output->log(STDERR, "Finalization OK\n");
 
    if (myerror == 0) {
       test_passes(testname);

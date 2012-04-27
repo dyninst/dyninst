@@ -283,9 +283,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    }
 
    //Create the int_thread objects via attach_threads
-   for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
-      int_process *proc = *i;
-      if (!reattach) {
+   if (!reattach) {
+      for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
+         int_process *proc = *i;
          ProcPool()->addProcess(proc);
          int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true); //initial thread
       }
@@ -337,8 +337,6 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          //
          // Also, at the same time issue attaches to existing threads
          int_threadPool *tp = proc->threadPool();
-         tp->initialThread()->getDetachState().restoreStateProc();
-
          for(int_threadPool::iterator j = tp->begin(); j != tp->end(); j++)
          {
             int_thread *thr = *j;
@@ -6250,8 +6248,8 @@ ThreadPool::iterator ThreadPool::iterator::operator++(int)
          continue;
       if (curh->llthrd()->getUserState().getState() == int_thread::exited)
          continue;
-	  if (curh->isUser())
-		 continue;
+      if (!curh->isUser())
+         continue;
       return *this;
    }
 }
