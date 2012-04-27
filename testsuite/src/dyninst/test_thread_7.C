@@ -159,6 +159,7 @@ test_results_t test_thread_7_Mutator::executeTest() {
 
    do {
       bpatch->waitForStatusChange();
+	  Sleep(1000);
    } while (!proc->isTerminated());
    logerror("proc terminated, getting exit code...\n");
 

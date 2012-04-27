@@ -111,7 +111,7 @@ int libdyninstAPI_RT_init_maxthreads=-1;
 int libdyninstAPI_RT_init_debug_flag=0;
 
 int DYNINST_mutatorPid;
-int DYNINSTdebugPrintRT = 0;
+int DYNINSTdebugPrintRT = 1;
 int isMutatedExec = 0;
 
 // stopThread cache variables 
