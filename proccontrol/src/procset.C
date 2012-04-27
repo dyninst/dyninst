@@ -1799,15 +1799,16 @@ bool ProcessSet::rmBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
       int_process *proc = p->llproc();
       Address addr = i->first;
 
-      result_response::ptr resp = result_response::createResultResponse();
-      bool result = proc->rmBreakpoint(addr, bp->llbp(), resp);
+      set<response::ptr> resps;
+      bool result = proc->removeBreakpoint(addr, bp->llbp(), all_responses);
       if (!result) {
          pthrd_printf("Failed to rmBreakpoint on %d\n", proc->getPid());
          had_error = true;
          continue;
       }
-      all_responses.insert(resp);
-      resp_to_proc.insert(make_pair(resp, proc));
+      all_responses.insert(resps.begin(), resps.end());
+      for (set<response::ptr>::iterator i=resps.begin(); i != resps.end(); i++)
+         resp_to_proc.insert(make_pair(*i, proc));
    }
 
    bool result = int_process::waitForAsyncEvent(all_responses);

@@ -33,7 +33,8 @@
 #if !defined(x86_process_h_)
 #define x86_process_h_
 
-#include "int_process.h"
+#include "proccontrol/src/int_process.h"
+#include "dynutil/h/dyn_regs.h"
 
 class x86_process : virtual public int_process
 {
@@ -48,5 +49,34 @@ class x86_process : virtual public int_process
   virtual bool plat_breakpointAdvancesPC() const;
 };
 
+class x86_thread : virtual public int_thread
+{
+  private:
+   static const int max_dr_regs = 4;
+   Dyninst::MachRegisterVal dr7_val;
+   hw_breakpoint *active[max_dr_regs];
+   unsigned int spaceNeeded(unsigned int perms);
+   unsigned int spaceAvail();
+   int getAvailDR();
+   int getSlotForHBP(hw_breakpoint *, int last_slot);
+   
+  public:
+   x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~x86_thread();
+   virtual bool rmHWBreakpoint(hw_breakpoint *bp,
+                               bool suspend,
+                               std::set<response::ptr> &resps,
+                               bool &done);
+   virtual bool addHWBreakpoint(hw_breakpoint *bp,
+                                bool resume,
+                                std::set<response::ptr> &resps,
+                                bool &done);
+   virtual unsigned hwBPAvail(unsigned mode);
+
+   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+                                                   bool have_reg = false,
+                                                   Dyninst::MachRegisterVal regval = 0);
+   virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+};
 #endif
 

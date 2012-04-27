@@ -40,10 +40,8 @@
 
 #include "dynptr.h"
 
-class installed_breakpoint;
 class HandlerPool;
 class HandleCallbacks;
-class emulated_singlestep;
 
 namespace Dyninst {
 namespace ProcControlAPI {

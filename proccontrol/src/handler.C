@@ -1169,13 +1169,14 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    EventBreakpoint *ebp = static_cast<EventBreakpoint *>(ev.get());
    pthrd_printf("Handling breakpoint at %lx\n", ebp->getAddress());
    int_eventBreakpoint *int_ebp = ebp->getInternal();
-   installed_breakpoint *breakpoint = int_ebp->lookupInstalledBreakpoint();
+   bp_instance *breakpoint = int_ebp->lookupInstalledBreakpoint();
 
    if (!breakpoint) {
       //Likely someone cleaned the breakpoint.
       pthrd_printf("No breakpoint installed at location of BP hit.\n");
       return ret_success;
    }
+   sw_breakpoint *swbp = breakpoint->swBP();
 
    /**
     * Move the PC if it's a control transfer breakpoint, or if the
@@ -1190,7 +1191,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
       changePCTo = transferbp->toAddr();
       pthrd_printf("Breakpoint has control transfer.  Moving PC to %lx\n", changePCTo);
    }
-   else if (proc->plat_breakpointAdvancesPC()) {
+   else if (swbp && proc->plat_breakpointAdvancesPC()) {
       changePC = true;
       changePCTo = breakpoint->getAddr();
       pthrd_printf("Breakpoint shifted PC.  Moving PC to %lx\n", changePCTo);
@@ -1237,7 +1238,7 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
     * the first time they're hit.  onetime breakpoints that are thread
     * specific are only auto-deleted if they are hit by their thread.
     **/
-   for (installed_breakpoint::iterator i = breakpoint->begin(); i != breakpoint->end(); i++) {
+   for (bp_instance::iterator i = breakpoint->begin(); i != breakpoint->end(); i++) {
       int_breakpoint *bp = *i;
       if (!bp->isOneTimeBreakpoint())
          continue;
@@ -1281,8 +1282,12 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
     * Mark the thread as being stopped on this breakpoint.  Control transfer
     * bps don't leave their thread stopped at the BP, so don't do them.
     **/
-   if (!transferbp) {
+   if (!transferbp && breakpoint->needsClear()) {
+      pthrd_printf("Breakpoint handler decided BP needs clearing\n");
       thrd->markStoppedOnBP(breakpoint);
+   }
+   else {
+      pthrd_printf("Breakpoint handler decided BP does not need clearing\n");
    }
 
    return ret_success;
@@ -1348,7 +1353,8 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 
    EventBreakpointClear *evbpc = static_cast<EventBreakpointClear *>(ev.get());
    int_eventBreakpointClear *int_bpc = evbpc->getInternal();
-   installed_breakpoint *ibp = thrd->isStoppedOnBP();
+   bp_instance *ibp = thrd->isStoppedOnBP();
+   hw_breakpoint *hwbp = dynamic_cast<hw_breakpoint *>(ibp);
 
    if (!ibp || !ibp->isInstalled()) {
       pthrd_printf("HandleBreakpointClear on thread without breakpoint.  BP must have been deleted\n");
@@ -1356,16 +1362,17 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
       thrd->markStoppedOnBP(NULL);
       return Handler::ret_success;
    }
-   assert(proc->threadPool()->allStopped(int_thread::BreakpointStateID) ||
+   assert(!int_bpc->stopped_proc ||
+          proc->threadPool()->allStopped(int_thread::BreakpointStateID) ||
           proc->threadPool()->allStopped(int_thread::AsyncStateID));
 
    /**
     * Suspend breakpoint
     **/
-   if (!int_bpc->memwrite_bp_suspend) {
+   if (!int_bpc->started_bp_suspends) {
       pthrd_printf("Removing breakpoint from memory under HandleBreakpointClear\n");
-      int_bpc->memwrite_bp_suspend = result_response::createResultResponse();
-      bool result = ibp->suspend(proc, int_bpc->memwrite_bp_suspend);
+      int_bpc->started_bp_suspends = true;
+      bool result = ibp->suspend(proc, int_bpc->bp_suspend);
       if (!result) {
          pthrd_printf("Error suspending breakpoint in HandleBreakpointClear\n");
          return Handler::ret_error;
@@ -1375,9 +1382,16 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
    /**
     * Handle cases where breakpoint suspends are async and not completed.
     **/
-   if (int_bpc->memwrite_bp_suspend->isPosted() && !int_bpc->memwrite_bp_suspend->isReady()) {
+   for (set<response::ptr>::iterator i = int_bpc->bp_suspend.begin(); i != int_bpc->bp_suspend.end();) {
+      response::ptr resp = *i;
+      if (!resp || !resp->isPosted() || resp->isReady())
+         int_bpc->bp_suspend.erase(i++);
+      else
+         i++;
+   }
+   if (!int_bpc->bp_suspend.empty()) {
       pthrd_printf("Breakpoint clear is pending in HandleBreakpointClear.  Returning async\n");
-      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_suspend, ev);
+      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->bp_suspend, ev);
       return Handler::ret_async;
    }
 
@@ -1385,10 +1399,9 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
     * Check if any of the int_breakpoints are going to be restored
     **/
    bool restore_bp = false;
-   for (installed_breakpoint::iterator i = ibp->begin(); i != ibp->end(); i++) {
-      if ((*i)->isOneTimeBreakpoint() && (*i)->isOneTimeBreakpointHit()) {
+   for (sw_breakpoint::iterator i = ibp->begin(); i != ibp->end(); i++) {
+      if ((*i)->isOneTimeBreakpoint() && (*i)->isOneTimeBreakpointHit())
          continue;
-      }
       restore_bp = true;
       break;
    }
@@ -1402,17 +1415,25 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
       //Threads without breakpoint restores get set to stopped.  Threads resuming breakpoints
       // are set-to/left-at running.
       for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+         if (hwbp && *i != hwbp->getThread()) {
+            //Hardware breakpoints don't desync the whole process
+            continue;
+         }
          int_thread::StateTracker &st = (*i)->getBreakpointResumeState();
          if (st.getState() == int_thread::running || *i == thrd)
             st.desyncState(int_thread::running); //This thread is resuming, desync
-         else
+         else if (int_bpc->stopped_proc)
             st.desyncState(int_thread::stopped); //Mark this as stopped as we restore the BP
       }
    }
    else {
       pthrd_printf("HandleBreakpointClear will not restore BP.  Restoring process state.\n");
    }
-   thrd->getBreakpointState().restoreStateProc();
+   
+   if (int_bpc->stopped_proc)
+      thrd->getBreakpointState().restoreStateProc();
+   else
+      thrd->getBreakpointState().restoreState();
 
    return Handler::ret_success;
 }
@@ -1438,7 +1459,8 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    int_thread *thrd = ev->getThread()->llthrd();
    EventBreakpointRestore *bpc = static_cast<EventBreakpointRestore *>(ev.get());
    int_eventBreakpointRestore *int_bpc = bpc->getInternal();
-   installed_breakpoint *bp = int_bpc->bp;
+   bp_instance *bp = int_bpc->bp;
+   sw_breakpoint *swbp = bp->swBP();
    bool result;   
    
    if (!int_bpc->set_states) {
@@ -1451,27 +1473,32 @@ Handler::handler_ret_t HandleBreakpointRestore::handleEvent(Event::ptr ev)
    
    //Time to restore this bp (maybe, the BP will actually resume when it's last thread is done restoring)
    pthrd_printf("Restoring breakpoint to process\n");
-   if (!int_bpc->memwrite_bp_resume) {
-      int_bpc->memwrite_bp_resume = result_response::createResultResponse();
-      result = bp->resume(proc, int_bpc->memwrite_bp_resume);
+   if (!int_bpc->bp_resume_started) {
+      int_bpc->bp_resume_started = true;
+      result = bp->resume(proc, int_bpc->bp_resume);
       if (!result) {
          pthrd_printf("Error resuming breakpoint in handler\n");
          return ret_error;
       }
    }
-   assert(int_bpc->memwrite_bp_resume);
-   if (int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady()) {
-      pthrd_printf("Postponing breakpoint clear while waiting for memwrite\n");
-      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
-      return ret_async;
+   for (set<response::ptr>::iterator i = int_bpc->bp_resume.begin(); i != int_bpc->bp_resume.end();) {
+      response::ptr resp = *i;
+      if (!resp || !resp->isPosted() || resp->isReady())
+         int_bpc->bp_resume.erase(i++);
+      else
+         i++;
    }
-   if (int_bpc->memwrite_bp_resume->hasError()) {
-      pthrd_printf("Error resuming breakpoint\n");
-      return ret_error;
+   if (!int_bpc->bp_resume.empty()) {
+      pthrd_printf("Postponing breakpoint clear while waiting for memwrite\n");
+      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->bp_resume, ev);
+      return ret_async;
    }
 
    pthrd_printf("Restoring thread state after breakpoint restore\n");
-   thrd->getBreakpointResumeState().restoreStateProc();
+   if (swbp)
+      thrd->getBreakpointResumeState().restoreStateProc();
+   else
+      thrd->getBreakpointResumeState().restoreState();
 
    return ret_success;
 }
@@ -1630,29 +1657,25 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
-            std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
-            result_response::ptr resp = result_response::createResultResponse();
-            bool result = i->second->uninstall(proc, resp);
+            std::map<Dyninst::Address, sw_breakpoint *>::iterator i = mem->breakpoints.begin();
+            bool result = i->second->uninstall(proc, async_responses);
             if (!result) {
                perr_printf("Error removing breakpoint at %lx\n", i->first);
                ev->setLastError(err_internal, "Error removing breakpoint before detach\n");
                goto done;
             }
-            async_responses.insert(resp);
          }
       }
       else {
-         for(std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
+         for(std::map<Dyninst::Address, sw_breakpoint *>::iterator i = mem->breakpoints.begin();
              i != mem->breakpoints.end(); ++i)
          {
-            result_response::ptr resp = result_response::createResultResponse();
-            bool result = i->second->suspend(proc, resp);
+            bool result = i->second->suspend(proc, async_responses);
             if(!result) {
                perr_printf("Error suspending breakpoint at %lx\n", i->first);
                ev->setLastError(err_internal, "Error suspending breakpoint before detach\n");
                goto done;
             }
-            async_responses.insert(resp);
          }
       }
       removed_bps = true;

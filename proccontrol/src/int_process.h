@@ -73,7 +73,11 @@ typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > 
 
 typedef std::list<int_iRPC_ptr> rpc_list_t;
 
-class installed_breakpoint;
+typedef void* hwbp_key_t;
+
+class bp_instance;
+class sw_breakpoint;
+class hw_breakpoint;
 class int_library;
 class int_process;
 class emulated_singlestep;
@@ -81,7 +85,7 @@ class emulated_singlestep;
 struct bp_install_state {
    Dyninst::Address addr;
    int_breakpoint *bp;
-   installed_breakpoint *ibp;
+   sw_breakpoint *ibp;
    bool do_install;
    mem_response::ptr mem_resp;
    result_response::ptr res_resp;
@@ -100,7 +104,7 @@ class mem_state
 
    std::set<int_process *> procs;
    std::set<int_library *> libs;
-   std::map<Dyninst::Address, installed_breakpoint *> breakpoints;
+   std::map<Dyninst::Address, sw_breakpoint *> breakpoints;
    std::map<Dyninst::Address, unsigned long> inf_malloced_memory;
 };
 
@@ -294,8 +298,8 @@ class int_process
    bool addBreakpoint_phase2(bp_install_state *is);
    bool addBreakpoint_phase3(bp_install_state *is);
 
-   bool rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp, result_response::ptr async_resp);
-   installed_breakpoint *getBreakpoint(Dyninst::Address addr);
+   bool removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, std::set<response::ptr> &resps);
+   sw_breakpoint *getBreakpoint(Dyninst::Address addr);
 
    virtual unsigned plat_breakpointSize() = 0;
    virtual void plat_breakpointBytes(unsigned char *buffer) = 0;
@@ -359,6 +363,7 @@ class int_process
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
    virtual bool plat_preAsyncWait();
+   virtual bool plat_supportHWBreakpoint();
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
@@ -561,6 +566,7 @@ class int_thread
    friend class Dyninst::ProcControlAPI::Thread;
    friend class int_threadPool;
    friend class ProcStopEventManager;
+   friend class hw_breakpoint;
  protected:
    int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    static int_thread *createThreadPlat(int_process *proc, 
@@ -697,10 +703,10 @@ public:
    bool singleStepUserMode() const;
    void setSingleStepUserMode(bool s);
    bool singleStep() const;
-   void markClearingBreakpoint(installed_breakpoint *bp);
-   installed_breakpoint *isClearingBreakpoint();
-   void markStoppedOnBP(installed_breakpoint *bp);
-   installed_breakpoint *isStoppedOnBP();
+   void markClearingBreakpoint(bp_instance *bp);
+   bp_instance *isClearingBreakpoint();
+   void markStoppedOnBP(bp_instance *bp);
+   bp_instance *isStoppedOnBP();
 
    // Emulating single steps with breakpoints
    void addEmulatedSingleStep(emulated_singlestep *es);
@@ -785,6 +791,20 @@ public:
    // Windows-only; default implementation is "yes, we're a user thread"
    virtual bool isUser() const { return true; }
 
+   virtual unsigned hwBPAvail(unsigned mode);
+   virtual bool rmHWBreakpoint(hw_breakpoint *bp,
+                               bool suspend,
+                               std::set<response::ptr> &resps,
+                               bool &done);
+   virtual bool addHWBreakpoint(hw_breakpoint *bp,
+                                bool resume,
+                                std::set<response::ptr> &resps,
+                                bool &done);
+   virtual EventBreakpoint::ptr decodeHWBreakpoint(response::ptr &resp,
+                                                   bool have_reg = false,
+                                                   Dyninst::MachRegisterVal regval = 0);
+   virtual bool bpNeedsClear(hw_breakpoint *hwbp);
+
    virtual ~int_thread();
    static const char *stateStr(int_thread::State s);
 
@@ -793,8 +813,9 @@ public:
 
    void setSuspended(bool b);
    bool isSuspended() const;
-
    void setLastError(err_t ec, const char *es);
+
+   hw_breakpoint *getHWBreakpoint(Address addr);
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -847,10 +868,11 @@ public:
 
    Address stopped_on_breakpoint_addr;
 
-   installed_breakpoint *clearing_breakpoint;
+   bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
    void *user_data;
 
+   std::set<hw_breakpoint *> hw_breakpoints;
    static std::set<continue_cb_t> continue_cbs;
 };
 
@@ -937,13 +959,17 @@ class int_library
 
 class int_breakpoint
 {
-   friend class installed_breakpoint;
+   friend class sw_breakpoint;
+   friend class hw_breakpoint;
  private:
    Breakpoint::weak_ptr up_bp;
    Dyninst::Address to;
    bool isCtrlTransfer_;
    void *data;
 
+   bool hw;
+   unsigned int hw_perms;
+   unsigned int hw_size;
    bool onetime_bp;
    bool onetime_bp_hit;
    bool procstopper;
@@ -951,6 +977,7 @@ class int_breakpoint
  public:
    int_breakpoint(Breakpoint::ptr up);
    int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
+   int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Breakpoint::ptr up);
    ~int_breakpoint();
 
    bool isCtrlTransfer() const;
@@ -970,30 +997,74 @@ class int_breakpoint
 
    void setProcessStopper(bool b);
    bool isProcessStopper() const;
+
+   bool isHW() const;
+   unsigned getHWSize() const;
+   unsigned getHWPerms() const;
    
    Breakpoint::weak_ptr upBreakpoint() const;
 };
+
+class bp_instance
+{
+   friend class Dyninst::ProcControlAPI::EventBreakpoint;
+  protected:
+   std::set<int_breakpoint *> bps;
+   std::set<Breakpoint::ptr> hl_bps;
+   Dyninst::Address addr;
+   bool installed;
+   int suspend_count;
+   
+   sw_breakpoint *swbp;
+   hw_breakpoint *hwbp;
+
+   bool suspend_common();
+   bool resume_common();
+  public:
+   virtual bool checkBreakpoint(int_breakpoint *bp, int_process *proc);
+   virtual bool rmBreakpoint(int_process *proc, int_breakpoint *bp,
+                             bool &empty, std::set<response::ptr> &resps);
+   virtual async_ret_t uninstall(int_process *proc, std::set<response::ptr> &resps) = 0;
+
+   Address getAddr() const;
+
+   bp_instance(Address addr);
+   bp_instance(const bp_instance *ip);
+
+   typedef std::set<int_breakpoint *>::iterator iterator;
+   iterator begin();
+   iterator end();
+
+   bool containsIntBreakpoint(int_breakpoint *bp);
+   int_breakpoint *getCtrlTransferBP(int_thread *thread);
+
+   bool isInstalled() const;
+   virtual bool needsClear() = 0;
+
+   virtual async_ret_t suspend(int_process *proc, std::set<response::ptr> &resps) = 0;
+   virtual async_ret_t resume(int_process *proc, std::set<response::ptr> &resps) = 0;
+
+   sw_breakpoint *swBP();
+   hw_breakpoint *hwBP();
+   virtual ~bp_instance();
+};
+ 
 
 //At least as large as any arch's trap instruction
 #define BP_BUFFER_SIZE 8
 //Long breakpoints can be used to artifically increase the size of the BP write,
 // which fools the BG breakpoint interception code that looks for 4 byte writes.
 #define BP_LONG_SIZE 4
-class installed_breakpoint
+class sw_breakpoint : public bp_instance
 {
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
  private:
    mem_state::ptr memory;
-   std::set<int_breakpoint *> bps;
-   std::set<Breakpoint::ptr> hl_bps;
 
    char buffer[BP_BUFFER_SIZE];
    int buffer_size;
    bool prepped;
-   bool installed;
    bool long_breakpoint;
-   int suspend_count;
-   Dyninst::Address addr;
 
    result_response::ptr write_response;
    mem_response::ptr read_response;
@@ -1002,31 +1073,52 @@ class installed_breakpoint
    bool saveBreakpointData(int_process *proc, mem_response::ptr read_response);
    bool restoreBreakpointData(int_process *proc, result_response::ptr res_resp);
 
+   sw_breakpoint(mem_state::ptr memory_, Dyninst::Address addr_);
  public:
-   installed_breakpoint(mem_state::ptr memory_, Dyninst::Address addr_);
-   installed_breakpoint(mem_state::ptr memory_, const installed_breakpoint *ip);
-   ~installed_breakpoint();
+   sw_breakpoint(mem_state::ptr memory_, const sw_breakpoint *ip);
+   ~sw_breakpoint();
 
+   static sw_breakpoint *create(int_process *proc, int_breakpoint *bp, Dyninst::Address addr_);
    //Use these three functions to add a breakpoint
    bool prepBreakpoint(int_process *proc, mem_response::ptr mem_resp);
    bool insertBreakpoint(int_process *proc, result_response::ptr res_resp);
-   bool addBreakpoint(int_breakpoint *bp);
-   bool containsIntBreakpoint(int_breakpoint *bp);
-   int_breakpoint *getCtrlTransferBP(int_thread *thread);
-   
-   bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, result_response::ptr async_resp);
-   bool uninstall(int_process *proc, result_response::ptr async_resp);
-   bool suspend(int_process *proc, result_response::ptr result_resp);
-   bool resume(int_process *proc, result_response::ptr async_resp);
+   bool addToIntBreakpoint(int_breakpoint *bp, int_process *proc);
 
-   bool isInstalled() const;
-   Dyninst::Address getAddr() const;
-
-   typedef std::set<int_breakpoint *>::iterator iterator;
-   iterator begin();
-   iterator end();
+   virtual async_ret_t uninstall(int_process *proc, std::set<response::ptr> &resps);
+   virtual async_ret_t suspend(int_process *proc, std::set<response::ptr> &resps);
+   virtual async_ret_t resume(int_process *proc, std::set<response::ptr> &resps);
 
    unsigned getNumIntBreakpoints() const;
+   virtual bool needsClear();
+};
+
+class hw_breakpoint : public bp_instance {
+  friend class Dyninst::ProcControlAPI::EventBreakpoint;
+private:
+  unsigned int hw_perms;
+  unsigned int hw_size;
+  bool proc_wide;
+  int_thread *thr;
+  bool error;
+
+  hw_breakpoint(int_thread *thr, unsigned mode, unsigned size,
+                bool pwide, Dyninst::Address addr);
+public:
+  virtual async_ret_t uninstall(int_process *proc, std::set<response::ptr> &resps);
+
+
+  static hw_breakpoint *create(int_process *proc, int_breakpoint *bp, Dyninst::Address addr_);
+  ~hw_breakpoint();
+  
+  bool install(bool &done, std::set<response::ptr> &resps);
+  unsigned int getPerms() const;
+  unsigned int getSize() const;
+  bool procWide() const;
+  int_thread *getThread() const;
+  virtual bool needsClear();
+
+  virtual async_ret_t suspend(int_process *proc, std::set<response::ptr> &resps);
+  virtual async_ret_t resume(int_process *proc, std::set<response::ptr> &resps);
 };
 
 class emulated_singlestep {

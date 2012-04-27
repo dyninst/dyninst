@@ -431,7 +431,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 }
 
                 // Check if it is a breakpoint
-                installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+                sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);

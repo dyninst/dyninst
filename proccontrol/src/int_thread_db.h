@@ -181,7 +181,7 @@ struct ps_prochandle {
     thread_db_process *thread_db_proc;
 };
 
-class thread_db_thread : public int_thread
+class thread_db_thread : virtual public int_thread
 {
     friend class ThreadDBCreateHandler;
     friend class ThreadDBDispatchHandler;

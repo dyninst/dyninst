@@ -46,6 +46,7 @@
 #include "proccontrol/src/windows_process.h"
 #endif
 
+#include <climits>
 #include <cstring>
 #include <cassert>
 #include <map>
@@ -473,17 +474,15 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
       // Resume all breakpoints
       int_process *proc = *i;
-      for(std::map<Dyninst::Address, installed_breakpoint *>::iterator j = proc->mem->breakpoints.begin();
+      for(std::map<Dyninst::Address, sw_breakpoint *>::iterator j = proc->mem->breakpoints.begin();
           j != proc->mem->breakpoints.end(); j++)
       {
          pthrd_printf("Resuming breakpoint at 0x%lx in process %d\n", j->first, proc->getPid());
-         result_response::ptr resp = result_response::createResultResponse();
-         bool result = j->second->resume(proc, resp);
+         bool result = j->second->resume(proc, async_responses);
          if(!result) {
             pthrd_printf("Error resuming breakpoint at %lx\n", j->first);
             //Drop this error.  The library containing this BP was likely unloaded.
          }
-         async_responses.insert(resp);
       }
    }
    waitForAsyncEvent(async_responses);
@@ -1505,20 +1504,14 @@ HandlerPool *int_process::handlerPool() const
 
 bool int_process::addBreakpoint_phase1(bp_install_state *is)
 {
-   if (getState() != running) {
-      perr_printf("Attempted to add breakpoint at %lx to stopped process %d\n", is->addr, getPid());
-      setLastError(err_exited, "Attempted to insert breakpoint into exited process\n");
-      return false;
-   }
-
    pthrd_printf("Installing new breakpoint at %lx into %d\n", is->addr, getPid());
    is->ibp = NULL;
-   map<Address, installed_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
+   map<Address, sw_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
    is->do_install = (i == mem->breakpoints.end());
    if (!is->do_install) {
       is->ibp = i->second;
       assert(is->ibp && is->ibp->isInstalled());
-      bool result = is->ibp->addBreakpoint(is->bp);
+      bool result = is->ibp->addToIntBreakpoint(is->bp, this);
       if (!result) {
          pthrd_printf("Failed to install new breakpoint\n");
          return false;
@@ -1527,7 +1520,7 @@ bool int_process::addBreakpoint_phase1(bp_install_state *is)
    }
 
    pthrd_printf("Adding new breakpoint to %d\n", getPid());
-   is->ibp = new installed_breakpoint(mem, is->addr);
+   is->ibp = sw_breakpoint::create(this, is->bp, is->addr);
 
    is->mem_resp = mem_response::createMemResponse();
    is->mem_resp->markSyncHandled();
@@ -1573,77 +1566,72 @@ bool int_process::addBreakpoint_phase3(bp_install_state *is)
       return false;
    }
    
-   bool result = is->ibp->addBreakpoint(is->bp);
-   if (!result) {
-      pthrd_printf("Failed to install new breakpoint\n");
-      delete is->ibp;
-      return false;
-   }
    return true;
 }
 
 bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
 {
-   bool result;
-   bp_install_state is;
-   is.addr = addr;
-   is.bp = bp;
-
-   result = addBreakpoint_phase1(&is);
-   if (!result)
+   if (getState() != running) {
+      perr_printf("Attempted to add breakpoint at %lx to exited process %d\n", addr, getPid());
+      setLastError(err_exited, "Attempted to insert breakpoint into exited process\n");
       return false;
-   if (is.mem_resp && is.mem_resp->isPosted()) {
-      result = waitForAsyncEvent(is.mem_resp);
-      if (!result) {
-         perr_printf("Error waiting for result of memory response\n");
-         return false;
-      }
    }
 
-   result = addBreakpoint_phase2(&is);
-   if (!result)
-      return false;
-   if (is.res_resp && is.res_resp->isPosted()) {
-      result = waitForAsyncEvent(is.res_resp);
-      if (!result) {
-         perr_printf("Error waiting for result of result response\n");
-         return false;
-      }
+   bp_instance *instance = NULL;
+   if (bp->isHW()) {
+      instance = hw_breakpoint::create(this, bp, addr);
    }
-
-   result = addBreakpoint_phase3(&is);
-   if (!result)
-      return false;
-
-   return true;
+   else {
+      instance = sw_breakpoint::create(this, bp, addr);
+   }
+   return (instance != NULL);
 }
 
-bool int_process::rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp, result_response::ptr async_resp)
+bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, set<response::ptr> &resps)
 {
-   map<Address, installed_breakpoint *>::iterator i = mem->breakpoints.find(addr);
-   if (i == mem->breakpoints.end()) {
+   pthrd_printf("Removing breakpoint at %lx in %d\n", addr, getPid());
+   set<bp_instance *> bps_to_remove;
+   map<Address, sw_breakpoint *>::iterator i = mem->breakpoints.find(addr);
+   if (i != mem->breakpoints.end()) {
+      sw_breakpoint *swbp = i->second;
+      assert(swbp && swbp->isInstalled());
+      if (swbp->containsIntBreakpoint(bp))
+          bps_to_remove.insert(static_cast<bp_instance *>(swbp));
+   }
+   
+   for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thr = *i;
+      hw_breakpoint *hwbp = thr->getHWBreakpoint(addr);
+      if (hwbp && hwbp->containsIntBreakpoint(bp)) {
+         bps_to_remove.insert(static_cast<bp_instance *>(hwbp));
+      }
+   }
+
+   if (bps_to_remove.empty()) {
       perr_printf("Attempted to removed breakpoint that isn't installed\n");
+      setLastError(err_notfound, "Tried to uninstall breakpoint that isn't installed.\n");
       return false;
    }
-   installed_breakpoint *ibp = i->second;
-   assert(ibp && ibp->isInstalled());
 
-   bool empty;
-   bool result = ibp->rmBreakpoint(this, bp, empty, async_resp);
-   if (!result) {
-      pthrd_printf("rmBreakpoint failed on breakpoint at %lx in %d\n", addr, getPid());
-      return false;
-   }
-   if (empty) {
-      delete ibp;
+   for (set<bp_instance *>::iterator i = bps_to_remove.begin(); i != bps_to_remove.end(); i++) {
+      bool empty;
+      bp_instance *ibp = *i;
+      bool result = ibp->rmBreakpoint(this, bp, empty, resps);
+      if (!result) {
+         pthrd_printf("rmBreakpoint failed on breakpoint at %lx in %d\n", addr, getPid());
+         return false;
+      }
+      if (empty) {
+         delete ibp;
+      }
    }
 
    return true;
 }
 
-installed_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
+sw_breakpoint *int_process::getBreakpoint(Dyninst::Address addr)
 {
-   std::map<Dyninst::Address, installed_breakpoint *>::iterator  i = mem->breakpoints.find(addr);
+   std::map<Dyninst::Address, sw_breakpoint *>::iterator  i = mem->breakpoints.find(addr);
    if (i == mem->breakpoints.end())
       return NULL;
    return i->second;
@@ -1881,6 +1869,11 @@ bool int_process::plat_supportLWPPreDestroy()
 }
 
 bool int_process::plat_supportLWPPostDestroy()
+{
+   return false;
+}
+
+bool int_process::plat_supportHWBreakpoint()
 {
    return false;
 }
@@ -2914,10 +2907,26 @@ void int_thread::throwEventsBeforeContinue()
       rpc->setState(int_iRPC::Prepping);
       new_ev = EventRPCLaunch::ptr(new EventRPCLaunch());
    }
-   else if (isStoppedOnBP()) {
-      pthrd_printf("Found thread %d/%d to be stopped on a BP, not continuing\n", llproc()->getPid(), getLWP());
-      getBreakpointState().desyncStateProc(int_thread::stopped);
-      new_ev = EventBreakpointClear::ptr(new EventBreakpointClear());
+   else {
+      bp_instance *bpi = isStoppedOnBP();
+      if (bpi) {
+         if (bpi->swBP()) {
+            //Stop the process to clear a software breakpoint
+            pthrd_printf("Found thread %d/%d to be stopped on a software BP, not continuing\n",
+                         llproc()->getPid(), getLWP());
+            getBreakpointState().desyncStateProc(int_thread::stopped);
+            EventBreakpointClear::ptr evclear =  EventBreakpointClear::ptr(new EventBreakpointClear());
+            evclear->getInternal()->stopped_proc = true;
+            new_ev = evclear;
+         }
+         else {
+            //No process stop needed for a hardware breakpoint
+            pthrd_printf("Found thread %d/%d to be stopped on a hardware BP, not continuing\n",
+                         llproc()->getPid(), getLWP());
+            getBreakpointState().desyncState(int_thread::stopped);
+            new_ev = EventBreakpointClear::ptr(new EventBreakpointClear());
+         }
+      }
    }
 
    if (new_ev) {
@@ -3144,9 +3153,12 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
 bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val,
                              result_response::ptr response)
 {
-   assert(getHandlerState().getState() == int_thread::stopped);
-   assert(getGeneratorState().getState() == int_thread::stopped);
+   if (!isGeneratorThread()) {
+      assert(getHandlerState().getState() == int_thread::stopped);
+      assert(getGeneratorState().getState() == int_thread::stopped);
+   }
    response->setProcess(llproc());
+
    bool ret_result = false;
    pthrd_printf("%d/%d: Setting %s to 0x%lx...\n", proc()->getPid(), lwp, reg.name().c_str(), val);
    
@@ -3182,6 +3194,7 @@ bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
       bool result = plat_setRegister(base_register, val);
       response->setResponse(result);
       if (!result) {
+         response->markError(getLastError());
          pthrd_printf("Error setting register %s\n", base_register.name().c_str());
          goto done;
       }
@@ -3371,7 +3384,7 @@ bool int_thread::singleStep() const
    return single_step || user_single_step;
 }
 
-void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
+void int_thread::markClearingBreakpoint(bp_instance *bp)
 {
    assert(!clearing_breakpoint || bp == NULL);
    pthrd_printf("%d/%d marking clearing bp %p (at 0x%lx)\n",
@@ -3385,14 +3398,21 @@ void int_thread::markClearingBreakpoint(installed_breakpoint *bp)
    }
 }
 
-void int_thread::markStoppedOnBP(installed_breakpoint *bp)
+void int_thread::markStoppedOnBP(bp_instance *bp)
 {
    stopped_on_breakpoint_addr = bp ? bp->getAddr() : 0x0;
 }
 
-installed_breakpoint *int_thread::isStoppedOnBP()
+bp_instance *int_thread::isStoppedOnBP()
 {
-   return stopped_on_breakpoint_addr ? llproc()->getBreakpoint(stopped_on_breakpoint_addr) : NULL;
+   if (!stopped_on_breakpoint_addr) {
+      return NULL;
+   }
+   sw_breakpoint *swbp = llproc()->getBreakpoint(stopped_on_breakpoint_addr);
+   if (swbp)
+      return static_cast<bp_instance *>(swbp);
+   hw_breakpoint *hwbp = getHWBreakpoint(stopped_on_breakpoint_addr);
+   return static_cast<bp_instance *>(hwbp);
 }
 
 void int_thread::setTID(Dyninst::THR_ID tid_)
@@ -3400,7 +3420,7 @@ void int_thread::setTID(Dyninst::THR_ID tid_)
    tid = tid_;
 }
 
-installed_breakpoint *int_thread::isClearingBreakpoint()
+bp_instance *int_thread::isClearingBreakpoint()
 {
    return clearing_breakpoint;
 }
@@ -3442,6 +3462,42 @@ bool int_thread::getTLSPtr(Dyninst::Address &)
 {
    perr_printf("Unsupported attempt to get TLS on %d/%d\n", llproc()->getPid(), getLWP());
    setLastError(err_unsupported, "getTLSPtr not supported on this platform\n");
+   return false;
+}
+
+unsigned int_thread::hwBPAvail(unsigned) {
+   return 0;
+}
+
+EventBreakpoint::ptr int_thread::decodeHWBreakpoint(response::ptr &,
+                                                    bool,
+                                                    Dyninst::MachRegisterVal)
+{
+   return EventBreakpoint::ptr();
+}
+
+bool int_thread::addHWBreakpoint(hw_breakpoint *,
+                                 bool,
+                                 std::set<response::ptr> &,
+                                 bool &)
+{
+   perr_printf("Tried to use hardware breakpoint on unsupported system\n");
+   setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
+   return false;
+}
+
+bool int_thread::rmHWBreakpoint(hw_breakpoint *,
+                                bool,
+                                std::set<response::ptr> &,
+                                bool &)
+{
+   perr_printf("Tried to use hardware breakpoint on unsupported system\n");
+   setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
+   return false;
+}
+
+bool int_thread::bpNeedsClear(hw_breakpoint *)
+{
    return false;
 }
 
@@ -3644,9 +3700,18 @@ bool int_thread::isSuspended() const
 }
 
 void int_thread::setLastError(err_t ec, const char *es) {
-   if (proc_) {
+   if (proc_)
       proc_->setLastError(ec, es);
+}
+
+hw_breakpoint *int_thread::getHWBreakpoint(Address a)
+{
+   std::set<hw_breakpoint *>::iterator i;
+   for (i = hw_breakpoints.begin(); i != hw_breakpoints.end(); i++) {
+      if ((*i)->getAddr() == a)
+         return *i;
    }
+   return NULL;
 }
 
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
@@ -3844,9 +3909,12 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    to(0x0),
    isCtrlTransfer_(false),
    data(false),
+   hw(false),
+   hw_perms(0),
+   hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
-   procstopper(false)
+   procstopper(false)   
 {
 }
 
@@ -3855,9 +3923,26 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    to(to_),
    isCtrlTransfer_(true),
    data(false),
+   hw(false),
+   hw_perms(0),
+   hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
    procstopper(false)
+{
+}
+
+int_breakpoint::int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Breakpoint::ptr up) :
+  up_bp(up),
+  to(0x0),
+  isCtrlTransfer_(false),
+  data(false),
+  hw(true),
+  hw_perms(hw_prems_),
+  hw_size(hw_size_),
+  onetime_bp(false),
+  onetime_bp_hit(false),
+  procstopper(false)   
 {
 }
 
@@ -3936,174 +4021,49 @@ bool int_breakpoint::isProcessStopper() const
    return procstopper;
 }
 
-installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, Address addr_) :
-   memory(memory_),
-   buffer_size(0),
-   prepped(false),
+bool int_breakpoint::isHW() const
+{
+   return hw;
+}
+
+unsigned int_breakpoint::getHWSize() const
+{
+   return hw_size;
+}
+
+unsigned int_breakpoint::getHWPerms() const
+{
+   return hw_perms;
+}
+
+bp_instance::bp_instance(Address addr_) :
+   addr(addr_),
    installed(false),
-   long_breakpoint(false),
-   suspend_count(0),
-   addr(addr_)
+   suspend_count(0)
 {
 }
 
-installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, 
-                                           const installed_breakpoint *ip) :
-   memory(memory_),
+bp_instance::bp_instance(const bp_instance *ip) :
    bps(ip->bps),
    hl_bps(ip->hl_bps),
-   buffer_size(ip->buffer_size),
-   prepped(ip->prepped),
+   addr(ip->addr),
    installed(ip->installed),
-   long_breakpoint(ip->long_breakpoint),
-   suspend_count(ip->suspend_count),
-   addr(ip->addr)
-{
-   memcpy(buffer, ip->buffer, sizeof(buffer));
-}
-
-installed_breakpoint::~installed_breakpoint()
+   suspend_count(ip->suspend_count)
 {
 }
 
-bool installed_breakpoint::isInstalled() const
+bp_instance::~bp_instance()
 {
-   return installed;
 }
 
-bool installed_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response)
-{
-   assert(buffer_size != 0);
-   unsigned char bp_insn[BP_BUFFER_SIZE];
-   proc->plat_breakpointBytes(bp_insn);
-   if (long_breakpoint) {
-      unsigned bp_size = proc->plat_breakpointSize();
-      for (unsigned i=bp_size; i<bp_size+BP_LONG_SIZE; i++) {
-         bp_insn[i] = buffer[i];
-      }
-   }
-   return proc->writeMem(bp_insn, addr, buffer_size, write_response);
-}
-
-bool installed_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
-{
-   if (buffer_size != 0) {
-      return true;
-   }
-
-   buffer_size = proc->plat_breakpointSize();
-   if (long_breakpoint) {
-      buffer_size += BP_LONG_SIZE;
-   }
-   pthrd_printf("Saving original data for breakpoint insertion at %lx +%u\n", addr, (unsigned) buffer_size);
-   assert(buffer_size <= BP_BUFFER_SIZE);   
-
-   read_response->setBuffer(buffer, buffer_size);
-   return proc->readMem(addr, read_response);
-}
-
-bool installed_breakpoint::restoreBreakpointData(int_process *proc, result_response::ptr res_resp)
-{
-   assert(buffer_size != 0);
-
-   pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
-   return proc->writeMem(buffer, addr, buffer_size, res_resp);
-}
-
-bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr async_resp)
-{
-   assert(installed);
-   bool had_success = true;
-   if (proc->getState() != int_process::exited)
-   {
-      bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
-      if (!result) {
-         pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
-                      addr, proc->getPid());
-         had_success = false;
-      }
-   }
-   installed = false;
-   buffer_size = 0;
-
-   std::map<Dyninst::Address, installed_breakpoint *>::iterator i;
-   i = memory->breakpoints.find(addr);
-   if (i == memory->breakpoints.end()) {
-      perr_printf("Failed to remove breakpoint from list\n");
-      return false;
-   }
-   memory->breakpoints.erase(i);
-
-   return had_success;
-}
-
-bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
-{
-   suspend_count++;
-   if (suspend_count > 1) {
-      pthrd_printf("Breakpoint already suspended, suspend_count = %d\n", 
-                   suspend_count);
-      return true;
-   }
-
-   bool result = restoreBreakpointData(proc, result_resp);
-   if (!result) {
-      pthrd_printf("Failed to suspend breakpoint at %lx from process %d\n", 
-                   addr, proc->getPid());
-      return false;
-   }
-   return true;
-}
-
-bool installed_breakpoint::resume(int_process *proc, result_response::ptr async_resp)
-{
-   suspend_count--;
-   assert(suspend_count >= 0);
-   if (suspend_count > 0) {
-      pthrd_printf("Breakpoint remaining suspended, suspend_count = %d\n", suspend_count);
-      return true;
-   }
-   
-   bool result = writeBreakpoint(proc, async_resp);
-   if (!result) {
-      pthrd_printf("Failed to install breakpoint at %lx in process %d\n",
-                   addr, proc->getPid());
-      return false;
-   }
-
-   return true;
-}
-
-bool installed_breakpoint::containsIntBreakpoint(int_breakpoint *bp) {
-    return (bps.count(bp) > 0);
-}
-
-int_breakpoint *installed_breakpoint::getCtrlTransferBP(int_thread *thrd)
-{
-   for (iterator i = begin(); i != end(); i++) {
-      int_breakpoint *bp = *i;
-      if (!bp->isCtrlTransfer())
-         continue;
-      if (thrd && bp->isThreadSpecific() && !bp->isThreadSpecificTo(thrd->thread()))
-         continue;
-      return bp;
-   }
-   return NULL;
-}
-
-unsigned installed_breakpoint::getNumIntBreakpoints() const {
-    return bps.size();
-}
-
-bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
+bool bp_instance::checkBreakpoint(int_breakpoint *bp, int_process *p)
 {
    if (bp->isCtrlTransfer()) {
-      for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); ++i)
-      {
+      for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); i++) {
          if ((*i)->isCtrlTransfer()) {
             perr_printf("Error.  Attempted to add two control transfer breakpoints " 
                         "at same place");
-            for (set<int_process *>::iterator i = memory->procs.begin(); i != memory->procs.end(); i++) {
+            for (set<int_process *>::iterator i = p->memory()->procs.begin(); i != p->memory()->procs.end(); i++) {
                (*i)->setLastError(err_badparam, "Attempted two control transfer breakpoints at " 
                                   "same location\n");
             }
@@ -4120,12 +4080,302 @@ bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
    }
    bps.insert(bp);
 
-   memory->breakpoints[addr] = this;
-
    return true;
 }
 
-bool installed_breakpoint::prepBreakpoint(int_process *proc, mem_response::ptr mem_resp)
+bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, 
+                               set<response::ptr> &resps)
+{
+   empty = false;
+   set<int_breakpoint *>::iterator i = bps.find(bp);
+   if (i == bps.end()) {
+      perr_printf("Attempted to remove a non-installed breakpoint\n");
+      proc->setLastError(err_badparam, "Breakpoint was not installed in process\n");
+      return false;
+   }
+   bps.erase(i);
+
+   set<Breakpoint::ptr>::iterator j = hl_bps.find(bp->upBreakpoint().lock());
+   if (j != hl_bps.end()) {
+      hl_bps.erase(j);
+   }
+
+   if (bps.empty()) {
+      empty = true;
+      bool result = uninstall(proc, resps);
+      if (!result) {
+         perr_printf("Failed to remove breakpoint at %lx\n", addr);
+         proc->setLastError(err_internal, "Could not remove breakpoint\n");
+         return false;
+      }
+   }
+   else {
+      pthrd_printf("sw_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
+                   addr);
+   }
+   
+   return true;
+}
+
+Address bp_instance::getAddr() const
+{
+   return addr;
+}
+
+bp_instance::iterator bp_instance::begin()
+{
+   return bps.begin();
+}
+
+bp_instance::iterator bp_instance::end()
+{
+   return bps.end();
+}
+
+bool bp_instance::containsIntBreakpoint(int_breakpoint *bp) {
+    return (bps.count(bp) > 0);
+}
+
+int_breakpoint *bp_instance::getCtrlTransferBP(int_thread *thrd)
+{
+   for (iterator i = begin(); i != end(); i++) {
+      int_breakpoint *bp = *i;
+      if (!bp->isCtrlTransfer())
+         continue;
+      if (thrd && bp->isThreadSpecific() && !bp->isThreadSpecificTo(thrd->thread()))
+         continue;
+      return bp;
+   }
+   return NULL;
+}
+
+bool bp_instance::isInstalled() const
+{
+   return installed;
+}
+
+sw_breakpoint *bp_instance::swBP()
+{
+   return swbp;
+}
+
+hw_breakpoint *bp_instance::hwBP()
+{
+   return hwbp;
+}
+
+bool bp_instance::suspend_common()
+{
+   suspend_count++;
+   if (suspend_count > 1) {
+      pthrd_printf("Breakpoint already suspended, suspend_count = %d\n", 
+                   suspend_count);
+      return true;
+   }
+   return false;
+}
+
+bool bp_instance::resume_common()
+{
+   suspend_count--;
+   assert(suspend_count >= 0);
+   if (suspend_count > 0) {
+      pthrd_printf("Breakpoint remaining suspended, suspend_count = %d\n", suspend_count);
+      return true;
+   }
+   return false;
+}
+
+sw_breakpoint::sw_breakpoint(mem_state::ptr memory_, Address addr_) :
+   bp_instance(addr_),
+   memory(memory_),
+   buffer_size(0),
+   prepped(false),
+   long_breakpoint(false)
+{
+   swbp = this;
+   hwbp = NULL;
+}
+
+sw_breakpoint::sw_breakpoint(mem_state::ptr memory_, 
+                             const sw_breakpoint *ip) :
+   bp_instance(ip),
+   memory(memory_),
+   buffer_size(ip->buffer_size),
+   prepped(ip->prepped),
+   long_breakpoint(ip->long_breakpoint)
+{
+   memcpy(buffer, ip->buffer, sizeof(buffer));
+   swbp = this;
+   hwbp = NULL;
+}
+
+sw_breakpoint::~sw_breakpoint()
+{
+}
+
+sw_breakpoint *sw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyninst::Address addr)
+{
+   bool result;
+   bp_install_state is;
+   is.addr = addr;
+   is.bp = bp;
+
+   result = proc->addBreakpoint_phase1(&is);
+   if (!result)
+      return NULL;
+   if (is.mem_resp && is.mem_resp->isPosted()) {
+      result = int_process::waitForAsyncEvent(is.mem_resp);
+      if (!result) {
+         perr_printf("Error waiting for result of memory response\n");
+         return NULL;
+      }
+   }
+
+   result = proc->addBreakpoint_phase2(&is);
+   if (!result)
+      return NULL;
+   if (is.res_resp && is.res_resp->isPosted()) {
+      result = int_process::waitForAsyncEvent(is.res_resp);
+      if (!result) {
+         perr_printf("Error waiting for result of result response\n");
+         return NULL;
+      }
+   }
+
+   result = proc->addBreakpoint_phase3(&is);
+   if (!result)
+      return NULL;
+
+   return is.ibp;
+}
+
+bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response)
+{
+   assert(buffer_size != 0);
+   unsigned char bp_insn[BP_BUFFER_SIZE];
+   proc->plat_breakpointBytes(bp_insn);
+   if (long_breakpoint) {
+      unsigned bp_size = proc->plat_breakpointSize();
+      for (unsigned i=bp_size; i<bp_size+BP_LONG_SIZE; i++) {
+         bp_insn[i] = buffer[i];
+      }
+   }
+   return proc->writeMem(bp_insn, addr, buffer_size, write_response);
+}
+
+bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
+{
+   if (buffer_size != 0) {
+      return true;
+   }
+
+   buffer_size = proc->plat_breakpointSize();
+   if (long_breakpoint) {
+      buffer_size += BP_LONG_SIZE;
+   }
+   pthrd_printf("Saving original data for breakpoint insertion at %lx +%u\n", addr, (unsigned) buffer_size);
+   assert(buffer_size <= BP_BUFFER_SIZE);   
+
+   read_response->setBuffer(buffer, buffer_size);
+   return proc->readMem(addr, read_response);
+}
+
+bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::ptr res_resp)
+{
+   assert(buffer_size != 0);
+
+   pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
+   return proc->writeMem(buffer, addr, buffer_size, res_resp);
+}
+
+async_ret_t sw_breakpoint::uninstall(int_process *proc, set<response::ptr> &resps)
+{
+   assert(installed);
+   bool had_success = true;
+   result_response::ptr async_resp = result_response::createResultResponse();
+
+   if (proc->getState() != int_process::exited)
+   {
+      bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
+      if (!result) {
+         pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
+                      addr, proc->getPid());
+         had_success = false;
+      }
+   }
+   installed = false;
+   buffer_size = 0;
+
+   std::map<Dyninst::Address, sw_breakpoint *>::iterator i;
+   i = memory->breakpoints.find(addr);
+   if (i == memory->breakpoints.end()) {
+      perr_printf("Failed to remove breakpoint from list\n");
+      proc->setLastError(err_notfound, "Tried to uninstall breakpoint that isn't installed.\n");
+      return aret_error;
+   }
+   memory->breakpoints.erase(i);
+
+   if (async_resp->isPosted() && !async_resp->isReady()) {
+      resps.insert(async_resp);
+      return aret_async;
+   }
+
+   return had_success ? aret_success : aret_error;
+}
+
+async_ret_t sw_breakpoint::suspend(int_process *proc, set<response::ptr> &resps)
+{
+   if (suspend_common())
+      return aret_success;
+
+   result_response::ptr result_resp = result_response::createResultResponse();
+   bool result = restoreBreakpointData(proc, result_resp);
+   if (!result) {
+      pthrd_printf("Failed to suspend breakpoint at %lx from process %d\n", 
+                   addr, proc->getPid());
+      return aret_error;
+   }
+   if (result_resp->isPosted() && !result_resp->isReady()) {
+      resps.insert(result_resp);
+      return aret_async;
+   }
+   return aret_success;
+}
+
+async_ret_t sw_breakpoint::resume(int_process *proc, set<response::ptr> &resps)
+{   
+   if (resume_common())
+      return aret_success;
+   result_response::ptr result_resp = result_response::createResultResponse();
+   bool result = writeBreakpoint(proc, result_resp);
+   if (!result) {
+      pthrd_printf("Failed to install breakpoint at %lx in process %d\n",
+                   addr, proc->getPid());
+      return aret_error;
+   }
+   if (result_resp->isPosted() && !result_resp->isReady()) {
+      resps.insert(result_resp);
+      return aret_async;
+   }
+
+   return aret_success;
+}
+
+unsigned sw_breakpoint::getNumIntBreakpoints() const {
+    return bps.size();
+}
+
+bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *bp, int_process *proc)
+{
+   if (!checkBreakpoint(bp, proc))
+      return false;
+
+   memory->breakpoints[addr] = this;
+   return true;
+}
+
+bool sw_breakpoint::prepBreakpoint(int_process *proc, mem_response::ptr mem_resp)
 {
    assert(!prepped);
    assert(!installed);
@@ -4141,7 +4391,7 @@ bool installed_breakpoint::prepBreakpoint(int_process *proc, mem_response::ptr m
    return true;
 }
 
-bool installed_breakpoint::insertBreakpoint(int_process *proc, result_response::ptr res_resp)
+bool sw_breakpoint::insertBreakpoint(int_process *proc, result_response::ptr res_resp)
 {
    assert(prepped);
    assert(!installed);
@@ -4156,58 +4406,202 @@ bool installed_breakpoint::insertBreakpoint(int_process *proc, result_response::
    return true;
 }
 
-bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, 
-                                        result_response::ptr async_resp)
-{
-   pthrd_printf("Removing breakpoint at %lx\n", addr);
-   empty = false;
-   set<int_breakpoint *>::iterator i = bps.find(bp);
-   if (i == bps.end()) {
-      perr_printf("Attempted to remove a non-installed breakpoint\n");
-      proc->setLastError(err_badparam, "Breakpoint was not installed in process\n");
-      empty = false;
-      return false;
-   }
-   bps.erase(i);
-
-   set<Breakpoint::ptr>::iterator j = hl_bps.find(bp->upBreakpoint().lock());
-   if (j != hl_bps.end()) {
-      hl_bps.erase(j);
-   }
-
-   if (bps.empty()) {
-      empty = true;
-      bool result = uninstall(proc, async_resp);
-      if (!result) {
-         perr_printf("Failed to remove breakpoint at %lx\n", addr);
-         proc->setLastError(err_internal, "Could not remove breakpoint\n");
-         return false;
-      }
-   }
-   else {
-      pthrd_printf("installed_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
-                   addr);
-       async_resp->setResponse(true);
-   }
-   
+bool sw_breakpoint::needsClear() {
    return true;
 }
 
-Dyninst::Address installed_breakpoint::getAddr() const
+hw_breakpoint::hw_breakpoint(int_thread *thread, unsigned mode, unsigned size,
+                             bool pwide, Dyninst::Address addr) :
+   bp_instance(addr),
+   hw_perms(mode),
+   hw_size(size),
+   proc_wide(pwide),
+   thr(thread)
 {
-   return addr;
+   swbp = NULL;
+   hwbp = this;
 }
 
-installed_breakpoint::iterator installed_breakpoint::begin()
+hw_breakpoint::~hw_breakpoint()
 {
-   return bps.begin();
 }
 
-installed_breakpoint::iterator installed_breakpoint::end()
+bool hw_breakpoint::install(bool &done, set<response::ptr> &resps)
 {
-   return bps.end();
+   bool result = thr->addHWBreakpoint(this, false, resps, done);
+   if (!result)
+      return false;
+   if (!done)
+      return true;
+
+   thr->hw_breakpoints.insert(this);
+   return true;
 }
 
+hw_breakpoint *hw_breakpoint::create(int_process *proc, int_breakpoint *bp, Dyninst::Address addr)
+{
+   unsigned mode = bp->getHWPerms();
+   unsigned size = bp->getHWSize();
+
+   set<int_thread *> thrds;
+   bool proc_wide = bp->thread_specific.empty();
+   if (!proc_wide) {
+      for (set<Thread::const_ptr>::iterator i = bp->thread_specific.begin(); i != bp->thread_specific.end(); i++) {
+         int_thread *llthrd = (*i)->llthrd();
+         thrds.insert(llthrd);
+         pthrd_printf("Adding thread-specific hardware breakpoint to %d/%d at %lx\n",
+                      proc->getPid(), llthrd->getLWP(), addr);
+      }
+   }
+   else {
+      int_threadPool *tp = proc->threadPool();
+      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+         int_thread *llthrd = *i;
+         thrds.insert(llthrd);
+         pthrd_printf("Adding process-wide hardware breakpoint to %d/%d at %lx\n",
+                      proc->getPid(), llthrd->getLWP(), addr);
+      }
+   }
+      
+   bool no_space = false;
+   for (set<int_thread *>::iterator i = thrds.begin(); i != thrds.end(); i++) {
+      int_thread *thr = *i;
+      if (!thr->hwBPAvail(mode)) {
+         perr_printf("Do not have space for new hardware breakpoint of mode 0%u on thread %d/%d\n",
+                     mode, proc->getPid(), thr->getLWP());
+         no_space = true;
+      }
+   }
+   if (no_space) {
+      proc->setLastError(err_bpfull, "Not enough space for a new hardware breakpoint\n");
+      return NULL;
+   }
+
+   set<hw_breakpoint *> hw_bps;
+   hw_breakpoint *first_bp = NULL;
+   for (set<int_thread *>::iterator i = thrds.begin(); i != thrds.end(); i++) {
+      int_thread *thr = *i;
+      hw_breakpoint *hwbp = new hw_breakpoint(thr, mode, size, proc_wide, addr);
+      assert(hwbp);
+      if (!first_bp)
+         first_bp = hwbp;
+      hw_bps.insert(hwbp);
+      hwbp->installed = true;
+      if (!hwbp->checkBreakpoint(bp, proc))
+         return NULL;
+   }
+
+   bool had_error = false;
+   while (!hw_bps.empty()) {
+      set<response::ptr> resps;
+      for (set<hw_breakpoint *>::iterator i = hw_bps.begin(); i != hw_bps.end();) {
+         hw_breakpoint *bp = *i;
+         bool done = false;
+         bool result = bp->install(done, resps);
+         if (!result) {
+            pthrd_printf("Error installing HW breakpoint on %d/%d at %lx\n",
+                         proc->getPid(), bp->getThread()->getLWP(), addr);
+            had_error = true;
+            break;
+         }
+         if (done)
+            hw_bps.erase(i++);
+         else
+            i++;
+      }
+
+      bool result = int_process::waitForAsyncEvent(resps);
+      if (!result || had_error) {
+         pthrd_printf("Error during HW BP install\n");
+         return NULL;
+      }
+   }
+
+   return first_bp;
+}
+
+async_ret_t hw_breakpoint::suspend(int_process *, set<response::ptr> &resps)
+{
+   if (suspend_common())
+      return aret_success;
+
+   bool done = false;
+
+   bool result = thr->rmHWBreakpoint(this, true, resps, done);
+   if (!result) {
+      pthrd_printf("Error suspending HWBreakpoint\n");
+      return aret_error;
+   }
+   if (!done) {
+      assert(!resps.empty());
+      return aret_async;
+   }
+   return aret_success;
+}
+
+async_ret_t hw_breakpoint::resume(int_process *, set<response::ptr> &resps)
+{
+   if (resume_common())
+      return aret_success;
+
+   bool done = false;
+
+   bool result = thr->addHWBreakpoint(this, true, resps, done);
+   if (!result) {
+      pthrd_printf("Error resuming HWBreakpoint\n");
+      return aret_error;
+   }
+   if (!done) {
+      assert(!resps.empty());
+      return aret_error;
+   }
+   return aret_success;
+}
+
+async_ret_t hw_breakpoint::uninstall(int_process *proc, set<response::ptr> &resps)
+{
+   bool done = false;
+
+   set<hw_breakpoint *>::iterator ibp = thr->hw_breakpoints.find(this);
+   if (ibp == thr->hw_breakpoints.end()) {
+      perr_printf("Tried to uninstall non-installed hardware breakpoint on %d/%d\n",
+                  thr->llproc()->getPid(), thr->getLWP());
+      proc->setLastError(err_badparam, "Tried to uninstall non-installed hardware breakpoint\n");
+      return aret_error;
+   }
+
+   bool result = thr->rmHWBreakpoint(this, false, resps, done);
+   if (!result) {
+      pthrd_printf("Error suspending HWBreakpoint\n");
+      return aret_error;
+   }
+   thr->hw_breakpoints.erase(ibp);
+   installed = false;
+   
+   if (!done) {
+      assert(!resps.empty());
+      return aret_async;
+   }
+   return aret_success;
+}
+ 
+unsigned int hw_breakpoint::getPerms() const
+{
+   return hw_perms;
+}
+
+unsigned int hw_breakpoint::getSize() const
+{
+   return hw_size;
+}
+
+int_thread *hw_breakpoint::getThread() const {
+   return thr;
+}
+
+bool hw_breakpoint::needsClear() {
+   return thr->bpNeedsClear(this);
+}
 
 int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
    name(n),
@@ -4322,12 +4716,12 @@ mem_state::mem_state(mem_state &m, int_process *p)
    }
    */
 
-   map<Dyninst::Address, installed_breakpoint *>::iterator j;
-   for (j = m.breakpoints.begin(); j != m.breakpoints.end(); ++j)
+   map<Dyninst::Address, sw_breakpoint *>::iterator j;
+   for (j = m.breakpoints.begin(); j != m.breakpoints.end(); j++)
    {
       Address orig_addr = j->first;
-      installed_breakpoint *orig_bp = j->second;
-      installed_breakpoint *new_bp = new installed_breakpoint(this, orig_bp);
+      sw_breakpoint *orig_bp = j->second;
+      sw_breakpoint *new_bp = new sw_breakpoint(this, orig_bp);
       breakpoints[orig_addr] = new_bp;
    }
    inf_malloced_memory = m.inf_malloced_memory;
@@ -4342,10 +4736,10 @@ mem_state::~mem_state()
    }
    libs.clear();
 
-   map<Dyninst::Address, installed_breakpoint *>::iterator j;
-   for (j = breakpoints.begin(); j != breakpoints.end(); ++j)
+   map<Dyninst::Address, sw_breakpoint *>::iterator j;
+   for (j = breakpoints.begin(); j != breakpoints.end(); j++)
    {
-      installed_breakpoint *ibp = j->second;
+      sw_breakpoint *ibp = j->second;
       delete ibp;
    }   
    breakpoints.clear();
@@ -5506,6 +5900,12 @@ bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
       return false;
    }
 
+   if (bp->llbp()->isHW() && !llproc_->plat_supportHWBreakpoint()) {
+      perr_printf("User attempted to insert hardware breakpoint into unsupported process\n");
+      setLastError(err_unsupported, "Hardware breakpoints not supported on this platform\n");
+      return false;
+   }
+
    if (hasRunningThread()) {
       perr_printf("User attempted to add breakpoint to running process\n");
       setLastError(err_notstopped, "Attempted to insert breakpoint into running process\n");
@@ -5542,22 +5942,45 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
        return false;
    }
 
-   result_response::ptr resp = result_response::createResultResponse();   
-   bool result = llproc_->rmBreakpoint(addr, bp->llbp(), resp);
+   set<response::ptr> resps;
+   bool result = llproc_->removeBreakpoint(addr, bp->llbp(), resps);
    if (!result) {
-      pthrd_printf("Failed to rmBreakpoint\n");
+      pthrd_printf("Failed to removeBreakpoint\n");
       return false;
    }
 
-   int_process::waitForAsyncEvent(resp);
+   int_process::waitForAsyncEvent(resps);
 
-   if (resp->hasError() || !resp->getResult()) {
-      pthrd_printf("Error removing breakpoint\n");
-      return false;
+   for (set<response::ptr>::iterator i = resps.begin(); i != resps.end(); i++) {
+      response::ptr resp = *i;
+      if (resp->hasError()) {
+         pthrd_printf("Error removing breakpoint\n");
+         return false;
+      }
    }
    
    return true;
    
+}
+
+unsigned Process::numHardwareBreakpointsAvail(unsigned mode)
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("numHardwareBreakpointsAvail on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return 0;
+   }
+
+   unsigned min = INT_MAX;
+   int_threadPool *tp = llproc_->threadPool();
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+      int_thread *thr = *i;
+      unsigned cur = thr->hwBPAvail(mode);
+      if (cur < min)
+         min = cur;
+   }
+   return min;
 }
 
 SymbolReaderFactory *Process::getDefaultSymbolReader()
@@ -6489,6 +6912,14 @@ Breakpoint::ptr Breakpoint::newTransferBreakpoint(Dyninst::Address to)
    return newbp;
 }
 
+Breakpoint::ptr Breakpoint::newHardwareBreakpoint(unsigned int mode,
+                                                  unsigned int size)
+{
+  Breakpoint::ptr newbp = Breakpoint::ptr(new Breakpoint());
+  newbp->llbreakpoint_ = new int_breakpoint(mode, size, newbp);
+  return newbp;
+}
+
 void *Breakpoint::getData() const {
    return llbreakpoint_->getData();
 }
@@ -6904,8 +7335,7 @@ async_ret_t emulated_singlestep::clear()
    {
       for (set<Address>::iterator i = addrs.begin(); i != addrs.end(); i++) {
          result_response::ptr resp = result_response::createResultResponse();
-         proc->rmBreakpoint(*i, bp, resp);
-         clear_resps.insert(resp);
+         proc->removeBreakpoint(*i, bp, clear_resps);
       }
    }
 

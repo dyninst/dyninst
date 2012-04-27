@@ -183,7 +183,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
-      lthread = static_cast<linux_thread *>(thread);
+      lthread = dynamic_cast<linux_thread *>(thread);
    }
    if (proc) {
       lproc = dynamic_cast<linux_process *>(proc);
@@ -222,6 +222,17 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
          case SIGTRAP: {
+#if 0
+            {
+               //Debugging code
+               Dyninst::MachRegisterVal addr;
+               result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               if (!result) {
+                  fprintf(stderr, "Failed to read PC address upon crash\n");
+               }
+               fprintf(stderr, "Got SIGTRAP at %lx\n", addr);               
+            }
+#endif
             ext = status >> 16;
             if (ext) {
                switch (ext) {
@@ -301,7 +312,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
 
-            installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+            bp_instance *clearingbp = thread->isClearingBreakpoint();
             if (thread->singleStep() && clearingbp) {
                 pthrd_printf("Decoded event to breakpoint restore\n");
                 event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
@@ -320,7 +331,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             //
             // If no forward progress was made due to a single step, then a
             // breakpoint was hit
-            installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+            sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
             if (thread->singleStep() && !ibp) {
                pthrd_printf("Decoded event to single step on %d/%d\n",
                        proc->getPid(), thread->getLWP());
@@ -374,6 +385,13 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   }
                }
 
+               break;
+            }
+            response::ptr resp;
+            EventBreakpoint::ptr evhwbp = thread->decodeHWBreakpoint(resp);
+            if (evhwbp) {
+               pthrd_printf("Decoded SIGTRAP as hardware breakpoint\n");
+               event = evhwbp;
                break;
             }
 
@@ -484,8 +502,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
 #if defined(arch_power)
 #define DEFAULT_PROCESS_TYPE linux_ppc_process
+#define DEFAULT_THREAD_TYPE linux_ppc_thread
 #elif defined(arch_x86) || defined(arch_x86_64)
 #define DEFAULT_PROCESS_TYPE linux_x86_process
+#define DEFAULT_THREAD_TYPE linux_x86_thread
 #endif
 
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
@@ -812,6 +832,11 @@ Dyninst::Architecture linux_x86_process::getTargetArch()
    return arch;
 }
 
+bool linux_x86_process::plat_supportHWBreakpoint()
+{
+   return true;
+}
+
 linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
                                      std::vector<std::string> envp, std::map<int,int> f) :
    int_process(p, e, a, envp, f),
@@ -1113,12 +1138,13 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
    if (initial_thrd) {
       lwp_id = proc->getPid();
    }
-   linux_thread *lthrd = new linux_thread(proc, thr_id, lwp_id);
+   linux_thread *lthrd = new DEFAULT_THREAD_TYPE(proc, thr_id, lwp_id);
    assert(lthrd);
    return static_cast<int_thread *>(lthrd);
 }
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
    thread_db_thread(p, t, l)
 {
 }
@@ -1258,7 +1284,7 @@ bool linux_process::preTerminate() {
    int_threadPool::iterator i;
    for(i = threadPool()->begin(); i != threadPool()->end(); i++)
    {
-      linux_thread *thr = static_cast<linux_thread *>(*i);
+      linux_thread *thr = dynamic_cast<linux_thread *>(*i);
       pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
                    getPid(), thr->getLWP());
       if( !thr->unsetOptions() ) {
@@ -1302,6 +1328,10 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     free(maps);
     return result;
 }
+
+#if !defined(OFFSETOF)
+#define OFFSETOF(STR, FLD) (unsigned long) (&(((STR *) 0x0)->FLD))
+#endif
 
 dynreg_to_user_t dynreg_to_user;
 static void init_dynreg_to_user()
@@ -1351,6 +1381,17 @@ static void init_dynreg_to_user()
       dynreg_to_user[x86::es]    = make_pair(cur+=8, 4);
       dynreg_to_user[x86::fs]    = make_pair(cur+=8, 4);
       dynreg_to_user[x86::gs]    = make_pair(cur+=8, 4);
+#if defined(arch_x86) || defined(arch_x86_64)
+      cur = OFFSETOF(user, u_debugreg);
+#endif
+      dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
+      dynreg_to_user[x86::dr1]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr2]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr3]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr4]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr5]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr6]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr7]   = make_pair(cur+=8, 4);
    }
    else {
       dynreg_to_user[x86::ebx]   = make_pair(cur, 4);
@@ -1370,6 +1411,17 @@ static void init_dynreg_to_user()
       dynreg_to_user[x86::flags] = make_pair(cur+=4, 4);
       dynreg_to_user[x86::esp]   = make_pair(cur+=4, 4);
       dynreg_to_user[x86::ss]    = make_pair(cur+=4, 4);
+#if defined(arch_x86) || defined(arch_x86_64)
+      cur = OFFSETOF(user, u_debugreg);
+#endif
+      dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
+      dynreg_to_user[x86::dr1]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr2]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr3]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr4]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr5]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr6]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr7]   = make_pair(cur+=4, 4);
    }
    cur = 0;
    dynreg_to_user[x86_64::r15]    = make_pair(cur, 8);
@@ -1399,7 +1451,18 @@ static void init_dynreg_to_user()
    dynreg_to_user[x86_64::es]     = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::fs]     = make_pair(cur+=8, 8);
    dynreg_to_user[x86_64::gs]     = make_pair(cur+=8, 8);
-
+#if defined(arch_x86) || defined(arch_x86_64)
+   cur = OFFSETOF(user, u_debugreg);
+#endif
+   dynreg_to_user[x86_64::dr0]   = make_pair(cur, 8);
+   dynreg_to_user[x86_64::dr1]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr2]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr3]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr4]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr5]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr6]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr7]   = make_pair(cur+=8, 8);
+ 
    cur = 0;
    if(sizeof(void *) == 8 ) {
        dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
@@ -1874,8 +1937,8 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    if (result != 0) {
       int error = errno;
       setLastError(err_internal, "Could not set register value");
-      perr_printf("Unable to set value of register %s in thread %d: %s\n",
-                  reg.name().c_str(), lwp, strerror(error));
+      perr_printf("Unable to set value of register %s in thread %d: %s (%d)\n",
+                  reg.name().c_str(), lwp, strerror(error), error);
       return false;
    }
    
@@ -2082,6 +2145,28 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
    }
  }
 
+linux_x86_thread::linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   linux_thread(p, t, l),
+   x86_thread(p, t, l)
+{
+}
+
+linux_x86_thread::~linux_x86_thread()
+{
+}
+
+linux_ppc_thread::linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   linux_thread(p, t, l),
+   ppc_thread(p, t, l)
+{
+}
+
+linux_ppc_thread::~linux_ppc_thread()
+{
+}
+
 ArchEventLinux::ArchEventLinux(bool inter_) : 
    status(0),
    pid(NULL_PID),
@@ -2160,12 +2245,12 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
 {
    linux_thread *thr = NULL;
    if (ev->getEventType().code() == EventType::Bootstrap) {
-      thr = static_cast<linux_thread *>(ev->getThread()->llthrd());
+      thr = dynamic_cast<linux_thread *>(ev->getThread()->llthrd());
    }
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
       ProcPool()->condvar()->lock();
-      thr = static_cast<linux_thread *>(ProcPool()->findThread(lwp));
+      thr = dynamic_cast<linux_thread *>(ProcPool()->findThread(lwp));
       ProcPool()->condvar()->unlock();
    }
    assert(thr);

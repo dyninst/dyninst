@@ -783,7 +783,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
                             proc->getPid(), thread->getLWP(), pc_addr);
                new_event = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
             }
-            installed_breakpoint *ibp = proc->getBreakpoint(pc_addr);
+            sw_breakpoint *ibp = proc->getBreakpoint(pc_addr);
             if (!new_event && ibp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), pc_addr);
@@ -820,7 +820,7 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
                break;
             }
             pthrd_printf("Decoded single step signal\n");
-            installed_breakpoint *ibp = thread->isClearingBreakpoint();
+            sw_breakpoint *ibp = thread->isClearingBreakpoint();
             if (ibp) {
                pthrd_printf("Decoded event to breakpoint cleanup\n");
                new_event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(ibp)));

@@ -217,9 +217,11 @@ bool Connection::hasError()
 
 #define SOCKTYPE_UNIX
 
+#if defined(CONNECTION_DEBUG)
 #define debug_printf(str, ...) do { if (getDebugLog()) { fprintf(getDebugLog(), str, ## __VA_ARGS__); fflush(getDebugLog()); } } while (0)
-//#define debug_printf(str, args...)
-
+#else
+#define debug_printf(str, args...)
+#endif
 #include <sys/time.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -251,6 +253,7 @@ bool Connection::send_message(MessageBuffer &buffer)
      debug_printf("[%s:%u] - Error sending raw data on socket\n", __FILE__, __LINE__);
       return false;
    }
+#if defined(CONNECTION_DEBUG)
    if (getDebugLog()) {
       debug_printf("[%d] - Sent buffer ", getpid());
       char *c = buffer.get_buffer();
@@ -263,6 +266,7 @@ bool Connection::send_message(MessageBuffer &buffer)
       }
       debug_printf("\n");
    }
+#endif
    return true;
 }
 
@@ -318,6 +322,7 @@ bool Connection::recv_message(char* &buffer)
    }
 
    buffer = cur_buffer;
+#if defined(CONNECTION_DEBUG)
    if (getDebugLog()) {
       debug_printf("[%d] - Recv of buffer ", getpid());
       char *c = cur_buffer;
@@ -330,7 +335,7 @@ bool Connection::recv_message(char* &buffer)
       }
       debug_printf("\n");
    }
-
+#endif
    return true;
 }
 

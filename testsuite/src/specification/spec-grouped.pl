@@ -2448,6 +2448,19 @@ mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
+test('pc_hw_breakpoint', 'pc_hw_breakpoint', 'pc_hw_breakpoint').
+test_description('pc_hw_breakpoint', 'Test breakpoints').
+test_platform('pc_hw_breakpoint', Platform) :- pcPlatforms(Platform).
+mutator('pc_hw_breakpoint', ['pc_hw_breakpoint.C']).
+test_runmode('pc_hw_breakpoint', 'dynamic').
+test_threadmode('pc_hw_breakpoint', 'Threading').
+test_processmode('pc_hw_breakpoint', 'Processes').
+test_start_state('pc_hw_breakpoint', 'selfattach').
+tests_module('pc_hw_breakpoint', 'proccontrol').
+mutatee('pc_hw_breakpoint', ['pc_hw_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_hw_breakpoint', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_hw_breakpoint', _, Opt) :- member(Opt, ['none']).
+
 test('pc_library', 'pc_library', 'pc_library').
 test_description('pc_library', 'Library loads').
 test_platform('pc_library', Platform) :- pcPlatforms(Platform).

@@ -149,6 +149,7 @@ class linux_x86_process : public linux_process, public x86_process
    virtual ~linux_x86_process();
 
    virtual Dyninst::Architecture getTargetArch();
+   virtual bool plat_supportHWBreakpoint();
 };
 
 class linux_ppc_process : public linux_process, public ppc_process
@@ -194,6 +195,20 @@ class linux_thread : public thread_db_thread
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
    
    static void fake_async_main(void *);
+};
+
+class linux_x86_thread : public linux_thread, public x86_thread
+{
+  public:
+   linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_x86_thread();
+};
+
+class linux_ppc_thread : public linux_thread, public ppc_thread
+{
+  public:
+   linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_ppc_thread();
 };
 
 class LinuxPtrace
