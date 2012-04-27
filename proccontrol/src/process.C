@@ -1520,7 +1520,14 @@ bool int_process::addBreakpoint_phase1(bp_install_state *is)
    }
 
    pthrd_printf("Adding new breakpoint to %d\n", getPid());
-   is->ibp = sw_breakpoint::create(this, is->bp, is->addr);
+   is->ibp = new sw_breakpoint(mem, is->addr);
+
+   if (!is->ibp->checkBreakpoint(is->bp, this)) {
+      pthrd_printf("Failed check breakpoint\n");
+      delete is->ibp;
+      is->ibp = NULL;
+      return false;
+   }
 
    is->mem_resp = mem_response::createMemResponse();
    is->mem_resp->markSyncHandled();
@@ -1559,6 +1566,12 @@ bool int_process::addBreakpoint_phase3(bp_install_state *is)
 {
    if (!is->do_install)
       return true;
+
+   bool result = is->ibp->addToIntBreakpoint(is->bp, this);
+   if (!result) {
+      pthrd_printf("Failed to install new breakpoint\n");
+      return false;
+   }   
 
    if (is->res_resp->hasError()) {
       pthrd_printf("Error writing new breakpoint\n");

@@ -1058,6 +1058,7 @@ class bp_instance
 class sw_breakpoint : public bp_instance
 {
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
+   friend class int_process;
  private:
    mem_state::ptr memory;
 
