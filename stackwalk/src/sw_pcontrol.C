@@ -231,7 +231,7 @@ bool ProcDebug::postStackwalk(THR_ID tid)
    CHECK_PROC_LIVE;
    if (tid == NULL_THR_ID)
       getDefaultThread(tid);
-   sw_printf("[%s:%u] - Calling preStackwalk for thread %d\n", __FILE__, __LINE__, tid);
+   sw_printf("[%s:%u] - Calling postStackwalk for thread %d\n", __FILE__, __LINE__, tid);
    
    ThreadPool::iterator thread_iter = proc->threads().find(tid);
    if (thread_iter == proc->threads().end()) {

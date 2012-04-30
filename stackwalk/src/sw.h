@@ -35,6 +35,7 @@
 #include <set>
 #include "common/h/addrRange.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/procstate.h"
 #include "stackwalk/src/libstate.h"
 
 namespace Dyninst {
@@ -136,6 +137,15 @@ class DyninstDynamicStepperImpl : public FrameStepper {
    virtual void registerStepperGroup(StepperGroup *group);
    virtual const char *getName() const;
    virtual ~DyninstDynamicStepperImpl();
+};
+
+class CallChecker {
+    private:
+       ProcessState * proc;
+    public:
+      CallChecker(ProcessState * proc_);
+      ~CallChecker();
+      bool isPrevInstrACall(Address addr, Address & target); 
 };
 
 }

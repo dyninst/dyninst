@@ -47,10 +47,12 @@ class CodeSource;
 namespace Dyninst {
 namespace Stackwalker {
 
+class CallChecker;
 class AnalysisStepperImpl : public FrameStepper
 {
   private:
    AnalysisStepper *parent;
+   CallChecker * callchecker;
   public:
    AnalysisStepperImpl(Walker *w, AnalysisStepper *p);
    virtual ~AnalysisStepperImpl();
@@ -69,8 +71,9 @@ class AnalysisStepperImpl : public FrameStepper
    static ParseAPI::CodeObject *getCodeObject(std::string name);
    static ParseAPI::CodeSource *getCodeSource(std::string name);
 
-   height_pair_t analyzeFunction(std::string name, Offset off);
-   virtual gcframe_ret_t getCallerFrameArch(height_pair_t height, const Frame &in, Frame &out);
+   std::set<height_pair_t> analyzeFunction(std::string name, Offset off);
+   virtual bool isPrevInstrACall(Address addr, Address & target);
+   virtual gcframe_ret_t getCallerFrameArch(std::set<height_pair_t> height, const Frame &in, Frame &out);
 };
 
 }
