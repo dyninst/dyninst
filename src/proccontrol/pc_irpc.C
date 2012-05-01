@@ -243,7 +243,7 @@ static bool post_irpc(Thread::const_ptr thr)
       Thread::const_ptr result_thread;
       if (post_to == post_to_proc) {
          if(rpc_sync == rpc_use_postsync) {
-            if(!proc_nc->postSyncIRPC(rpcdata->rpc))
+            if(!proc_nc->launchIRPC(rpcdata->rpc))
             {
                logerror("Failed to post sync rpc to process\n");
                myerror = true;
@@ -254,12 +254,13 @@ static bool post_irpc(Thread::const_ptr thr)
             result_thread = proc->threads().getInitialThread();
          }
          else {
-	         result_thread = proc->postIRPC(rpcdata->rpc);
-            if (result_thread == Thread::ptr()) {
+	         bool result = proc->postIRPC(rpcdata->rpc);
+            if (!result) {
                logerror("Failed to post rpc to process\n");
                myerror = true;
                return false;
             }
+            result_thread = proc->threads().getInitialThread();
          }
       }
       else if (post_to == post_to_thread) {
