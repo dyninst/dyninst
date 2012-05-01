@@ -1224,6 +1224,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
       }
 
       td_thrinfo_t tinfo;
+      bzero(&tinfo, sizeof(td_thrinfo_t));
       async_ret_t result = proc->ll_fetchThreadInfo(main_thread->threadHandle, &tinfo);
       if (result == aret_async) {
          pthrd_printf("Async return during ll_fetchThreadInfo for main thread\n");
