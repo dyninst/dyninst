@@ -74,7 +74,7 @@ bool Module::findSymbolByType(std::vector<Symbol *> &found,
     unsigned orig_size = found.size();
     std::vector<Symbol *> obj_syms;
     
-    if (!exec()->findSymbolByType(obj_syms, name, sType, nameType, isRegex, checkCase)) {
+    if (exec()->findSymbolByType(obj_syms, name, sType, nameType == 0, isRegex, checkCase)) {
         //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
         return false;
     }

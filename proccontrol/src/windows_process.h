@@ -88,7 +88,7 @@ public:
 	virtual bool initLibraryMechanism();
 	virtual bool plat_isStaticBinary();
 	HANDLE plat_getHandle();
-	void plat_setHandle(HANDLE h);
+	void plat_setHandles(HANDLE hp, HANDLE hf, Address fb);
 	virtual bool hasPendingDetach() const { return pendingDetach; }
 	virtual void clearPendingDebugBreak() { pendingDebugBreak_ = false; }
 	virtual void setPendingDebugBreak() { pendingDebugBreak_ = true; }
@@ -99,13 +99,14 @@ public:
 
 	virtual bool plat_suspendThread(int_thread *thr);
 	virtual bool plat_resumeThread(int_thread *thr);
+	virtual bool plat_needsThreadForMemOps() const { return false; }
 
 	// Is this in ntdll or another lib we consider a system lib?
 	virtual bool addrInSystemLib(Address addr);
 
 	// Hacky system thread RPC idea
    virtual int_thread *RPCThread();
-   virtual int_thread *createRPCThread(bool create_running);
+   virtual int_thread *createRPCThread(int_thread* best_candidate);
    void destroyRPCThread();
 
    virtual void* plat_getDummyThreadHandle() const;
@@ -113,13 +114,18 @@ public:
    virtual void instantiateRPCThread();
    virtual bool plat_supportDirectAllocation() const { return true; }
    virtual Dyninst::OSType getOS() const { return Dyninst::Windows; }
+   virtual ExecFileInfo* plat_getExecutableInfo() const;
 private:
 	HANDLE hproc;
+	HANDLE hfile;
 	bool pendingDetach;
 	bool pendingDebugBreak_;
+	Address execBase;
 
 	IntervalTree<Address, bool> systemLibIntervals_;
 	void findSystemLibs();
+	void dumpMemoryMap();
+	int_library* m_executable;
 
 	windows_thread *dummyRPCThread_;
 

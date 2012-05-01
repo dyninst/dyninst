@@ -117,6 +117,10 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
         file_match_ = true;
     }
 #endif  
+
+#if defined(os_windows)
+	if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
+#endif
     bool addr_match = ((code_ == fd.code_ && data_ == fd.data_) ||
                        (dynamic_ && dynamic_ == fd.dynamic_));
     if (file_match_ &&

@@ -83,7 +83,7 @@ public:
 	void setStartFuncAddress(Dyninst::Address addr);
 	void setTLSAddress(Dyninst::Address addr);
 	Address getThreadInfoBlockAddr();
-	virtual bool needsSyscallTrapForRPC();
+	virtual bool notAvailableForRPC();
 
 	bool isUser() const;
 	void setUser(bool);

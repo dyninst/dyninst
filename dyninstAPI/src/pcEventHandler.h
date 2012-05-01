@@ -203,6 +203,8 @@ protected:
 
     int exitNotificationOutput_;
     int exitNotificationInput_;
+
+	Mutex eventHandlingLock;
 };
 
 #endif

@@ -93,6 +93,7 @@ bool PCProcess::createStackwalkerSteppers()
   }
   startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
 
+#if !defined(os_windows)
   stepper = new BottomOfStackStepper(stackwalker_);
   if (!stackwalker_->addStepper(stepper))
   {
@@ -100,6 +101,7 @@ bool PCProcess::createStackwalkerSteppers()
     return false;
   }
   startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+#endif
 
   /* Not ready for production yet
   stepper = new AnalysisStepper(stackwalker_);

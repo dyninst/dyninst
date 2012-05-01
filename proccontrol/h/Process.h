@@ -78,6 +78,7 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
+class ExecFileInfo;
 
 class PC_EXPORT Breakpoint 
 {
@@ -375,7 +376,8 @@ class PC_EXPORT Process : public dyn_enable_shared_from_this<Process>
     * IRPC
     **/
    dyn_shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
-   bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+	bool postSyncIRPC(IRPC::ptr irpc);
+	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**
     * Symbol access
@@ -387,6 +389,11 @@ class PC_EXPORT Process : public dyn_enable_shared_from_this<Process>
     **/
    ProcControlAPI::err_t getLastError() const;
    const char *getLastErrorMsg() const;
+
+   /**
+    * Executable info
+    **/
+	ExecFileInfo* getExecutableInfo() const;
 };
 
 class PC_EXPORT Thread
@@ -587,6 +594,15 @@ class PC_EXPORT EventNotify
    void removeCB(notify_cb_t cb);
 };
 PC_EXPORT EventNotify *evNotify();
+
+class PC_EXPORT ExecFileInfo
+{
+public:
+	void* fileHandle;
+	void* processHandle;
+	Address fileBase;
+};
+
 
 }
 }

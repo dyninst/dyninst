@@ -809,8 +809,36 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
    bool error = false;
    bool hasRunningProcs;
 
-   if (curgroup_self_cleaning)
+   resetSignalFD(params);
+
+#if defined(USE_SOCKETS)
+   for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
+#if defined(os_windows_test)
+	   if( socket_types::close(i->second, winsock_event) == SOCKET_ERROR ) {
+#else
+	   if( socket_types::close(i->second) == SOCKET_ERROR ) {
+#endif
+		   logerror("Could not close connected socket\n");
+           error = true;
+       }
+   }
+#endif
+#if defined(USE_PIPES)
+   for (unsigned i=0; i<2; i++) {
+      map<Process::ptr, int> &to_clean = (i == 0) ? w_pipe : r_pipe;
+      for (map<Process::ptr, int>::iterator j = to_clean.begin(); j != to_clean.end(); j++) {
+         close(j->second);
+      }
+      to_clean.clear();
+   }
+   pipe_read_names.clear();
+   pipe_write_names.clear();
+#endif
+
+   if (curgroup_self_cleaning) {
+      procs.clear();
       return PASSED;
+   }
 
    Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), default_on_exit);
    do {
@@ -855,30 +883,6 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
       }
    }
    procs.clear();
-
-#if defined(USE_SOCKETS)
-   for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
-#if defined(os_windows_test)
-	   if( socket_types::close(i->second, winsock_event) == SOCKET_ERROR ) {
-#else
-	   if( socket_types::close(i->second) == SOCKET_ERROR ) {
-#endif
-		   logerror("Could not close connected socket\n");
-           error = true;
-       }
-   }
-#endif
-#if defined(USE_PIPES)
-   for (unsigned i=0; i<2; i++) {
-      map<Process::ptr, int> &to_clean = (i == 0) ? w_pipe : r_pipe;
-      for (map<Process::ptr, int>::iterator j = to_clean.begin(); j != to_clean.end(); j++) {
-         close(j->second);
-      }
-      to_clean.clear();
-   }
-   pipe_read_names.clear();
-   pipe_write_names.clear();
-#endif
 
    return error ? FAILED : PASSED;
 }

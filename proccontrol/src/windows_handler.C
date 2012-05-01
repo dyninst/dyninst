@@ -149,6 +149,7 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	   thr->setHandle(we->getHandle());
 	   thr->setStartFuncAddress((Dyninst::Address)(we->getThreadStart()));
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
+	   thr->setTID(we->getLWP());
 	   if(we->getHandle() == thr->llproc()->plat_getDummyThreadHandle())
 	   {
 		   thr->llproc()->getStartupTeardownProcs().dec();
@@ -163,7 +164,11 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 		   thr->setUser(false);
 		   if(thr->llproc()->threadPool()->initialThread()->getPendingStopState().getState() == int_thread::running)
 		   {
+			   // Move any pending stops from the parent to the child thread.
+			   // If the parent thread had a pending stop and this is a system thread, we may have strong confidence that
+			   // the child thread is the DebugBreak remote thread.
 			   thr->setPendingStop(true);
+			   thr->llproc()->threadPool()->initialThread()->setPendingStop(false);
 		   }
 		   thr->getGeneratorState().setState(int_thread::stopped);
 		   thr->getHandlerState().setState(int_thread::stopped);
@@ -183,7 +188,6 @@ int WindowsHandleNewThr::getPriority() const
 
 void WindowsHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-   etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
    etypes.push_back(EventType(EventType::None, EventType::LWPCreate));
 }
 
@@ -200,15 +204,20 @@ WindowsHandleLWPDestroy::~WindowsHandleLWPDestroy()
 Handler::handler_ret_t WindowsHandleLWPDestroy::handleEvent(Event::ptr ev) 
 {
 	pthrd_printf("Windows LWP Destroy handler entered\n");
-	windows_thread *thr = NULL;
-	Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
-	ProcPool()->condvar()->lock();
-	int_thread* tmp = ProcPool()->findThread(lwp);
-	thr = static_cast<windows_thread*>(tmp);
 	
-	if (!thr->isUser()) {
+	if (!ev->getThread()->llthrd()->isUser()) {
 	   ev->setSuppressCB(true);
     }
+	if(ev->getProcess()->llproc()->threadPool()->size() <= 1)
+	{
+		// Last thread exiting. Do process exit.
+		EventExit::ptr exitEvt(new EventExit(EventType::Post, 0));
+		exitEvt->setProcess(ev->getProcess());
+		exitEvt->setThread(ev->getThread());
+		exitEvt->setSyncType(ev->getSyncType());
+
+		ev->getProcess()->llproc()->handlerPool()->addLateEvent(exitEvt);
+	}
 	return ret_success;
 }
 
@@ -222,6 +231,33 @@ void WindowsHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etype
     etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
 }
 
+WindowsHandleProcessExit::WindowsHandleProcessExit()
+    : Handler("Windows Exit")
+{
+	do_work = new HandleThreadDestroy();
+}
+
+WindowsHandleProcessExit::~WindowsHandleProcessExit()
+{
+	delete do_work;
+}
+
+Handler::handler_ret_t WindowsHandleProcessExit::handleEvent(Event::ptr ev) 
+{
+	return ret_success;
+}
+
+int WindowsHandleProcessExit::getPriority() const
+{
+	return PrePlatformPriority;
+}
+
+void WindowsHandleProcessExit::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+	etypes.push_back(EventType(EventType::Pre, EventType::Exit));
+}
+
+
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
@@ -230,12 +266,14 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
   static WinHandleSingleStep* wsinglestep = NULL;
    static WinHandleBootstrap* wbootstrap = NULL;
    static WindowsHandleSetThreadInfo* wsti = NULL;
+   static WindowsHandleProcessExit* wexit = NULL;
    if (!initialized) {
       wnewthread = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
 	  wsinglestep = new WinHandleSingleStep();
 	  wbootstrap = new WinHandleBootstrap();
 	  wsti = new WindowsHandleSetThreadInfo();
+	  wexit = new WindowsHandleProcessExit();
       initialized = true;
    }
    hpool->addHandler(wnewthread);
@@ -243,6 +281,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    hpool->addHandler(wsinglestep);
    hpool->addHandler(wbootstrap);
    hpool->addHandler(wsti);
+//   hpool->addHandler(wexit);
    return hpool;
 }
 
@@ -308,6 +347,7 @@ Handler::handler_ret_t WindowsHandleSetThreadInfo::handleEvent( Event::ptr ev )
 	   thr->setTLSAddress((Dyninst::Address)(we->getTLSBase()));
 	   thr->setTID(we->getLWP());
 	   thr->setLWP(we->getLWP());
+	   we->getProcess()->llproc()->threadPool()->noteUpdatedLWP(thr);
 	   ProcPool()->addThread(thr->llproc(), thr);
    }
 

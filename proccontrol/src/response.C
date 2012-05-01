@@ -353,7 +353,7 @@ void responses_pending::noteResponse()
       return;
    }
    ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 }
 

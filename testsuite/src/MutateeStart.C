@@ -283,17 +283,27 @@ static std::string launchMutatee_plat(std::string exec_name, const std::vector<s
       return std::string("");
    }
 
-   const int max_args_size = 32 * 1024;
-   char *arg_str = (char *) malloc(max_args_size);
-   *arg_str = '\0';
-   for (vector<string>::const_iterator i = args.begin(); i != args.end(); i++) {
-      strncat(arg_str, i->c_str(), max_args_size);
-      strncat(arg_str, " ", max_args_size);
+   char arg_str[1024];
+   strcpy(arg_str, args[0].c_str());
+   for (int i = 1; i < args.size(); i++) {
+	   strcat(arg_str, " ");
+	   strcat(arg_str, args[i].c_str());
    }
+   strcat(arg_str, " -attach");
    STARTUPINFO si;
+   memset(&si, 0, sizeof(STARTUPINFO));
+   si.cb = sizeof(si);
    PROCESS_INFORMATION pi;
-   BOOL result = CreateProcess(exec_name.c_str(), arg_str, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-   free(arg_str);
+   BOOL result = CreateProcess(exec_name.c_str(), // app name
+	   arg_str, // args
+	   NULL, // process SD
+	   NULL, // thread SD
+	   FALSE, // inherit handles?
+	   0, // creation flags
+	   NULL, // environment
+	   NULL, // current directory
+	   &si, // startup info
+	   &pi); // process info
    if (result == FALSE) 
       return std::string("");
 

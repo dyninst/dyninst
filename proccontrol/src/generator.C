@@ -103,10 +103,31 @@ bool Generator::isExitingState()
    return (state == error || state == exiting);
 }
 
+#if defined(STR_CASE)
+#undef STR_CASE
+#endif
+#define STR_CASE(X) case Generator::X: return #X
+
+static const char *generatorStateStr(Generator::state_t s) {
+   switch (s) {
+      STR_CASE(none);
+      STR_CASE(initializing);
+      STR_CASE(process_blocked);
+      STR_CASE(system_blocked);
+      STR_CASE(decoding);
+      STR_CASE(statesync);
+      STR_CASE(handling);
+      STR_CASE(queueing);
+      STR_CASE(error);
+      STR_CASE(exiting);
+   }
+   assert(0);
+   return NULL;
+}
 
 void Generator::setState(Generator::state_t new_state)
 {
-	pthrd_printf("Setting generator state: %d\n", new_state);
+	pthrd_printf("Setting generator state to %s\n", generatorStateStr(new_state));
    if (isExitingState())
       return;
    state = new_state;
@@ -231,6 +252,11 @@ bool Generator::plat_skipGeneratorBlock()
    return false;
 }
 
+Generator::state_t Generator::getState()
+{
+	return state;
+}
+
 // TODO: override this in Windows generator so that we use local counters
 bool Generator::hasLiveProc()
 {
@@ -308,13 +334,13 @@ void GeneratorMT::unlock()
 void GeneratorMT::launch()
 {
    sync->init_cond.lock();
-   state = initializing;
+   setState(initializing);
    sync->thrd.spawn(start_generator, this);
-   while (state == initializing)
+   while (getState() == initializing)
       sync->init_cond.wait();
    sync->init_cond.unlock();
 
-   if (state == error) {
+   if (getState() == error) {
       pthrd_printf("Error creating generator\n");
    }
 }
@@ -349,6 +375,7 @@ void GeneratorMT::start()
       setState(none);
    }
    plat_start();
+   if(getState() == error) result = false;
    sync->init_cond.signal();
    sync->init_cond.unlock();
 

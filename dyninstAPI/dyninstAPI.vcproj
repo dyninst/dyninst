@@ -335,26 +335,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_addressSpace.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\BPatch_basicBlock.C"
 				>
 				<FileConfiguration
@@ -2253,11 +2233,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File

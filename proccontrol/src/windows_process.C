@@ -37,6 +37,7 @@
 #include "irpc.h"
 #include "proccontrol/h/Mailbox.h"
 #include <iostream>
+#include <psapi.h>
 
 using namespace std;
 
@@ -81,7 +82,10 @@ hybrid_lwp_control_process(p, e, a, envp, f),
 x86_process(p, e, a, envp, f),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL)
+hproc(INVALID_HANDLE_VALUE),
+hfile(INVALID_HANDLE_VALUE),
+dummyRPCThread_(NULL),
+m_executable(NULL)
 {
 }
 
@@ -91,7 +95,10 @@ hybrid_lwp_control_process(pid_, p),
 x86_process(pid_, p),
 pendingDetach(false),
 pendingDebugBreak_(false),
-dummyRPCThread_(NULL)
+hproc(INVALID_HANDLE_VALUE),
+hfile(INVALID_HANDLE_VALUE),
+dummyRPCThread_(NULL),
+m_executable(NULL)
 {
 }
 
@@ -100,6 +107,9 @@ windows_process::~windows_process()
 {
 	GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 	winGen->removeProcess(this);
+	// Do NOT close the process handle; that's handled by ContinueDebugEvent. Closing the file is okay.
+	::CloseHandle(hfile);
+	
 }
 
 
@@ -109,7 +119,7 @@ bool windows_process::plat_create()
 	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	gen->enqueue_event(GeneratorWindows::create, this);
 	gen->launch();
-	return true;
+	return gen->getState() != Generator::error;
 }
 
 HANDLE windows_process::plat_getHandle()
@@ -117,9 +127,28 @@ HANDLE windows_process::plat_getHandle()
 	return hproc;
 }
 
-void windows_process::plat_setHandle(HANDLE h)
+void windows_process::plat_setHandles(HANDLE hp, HANDLE hf, Address eb)
 {
-	hproc = h;
+	hproc = hp;
+	hfile = hf;
+	execBase = eb;
+	std::string fileName;
+    void *pmap = NULL;
+    HANDLE fmap = CreateFileMapping(hfile, NULL, 
+                                    PAGE_READONLY, 0, 1, NULL);
+    if (fmap) {
+        pmap = MapViewOfFile(fmap, FILE_MAP_READ, 0, 0, 1);
+        if (pmap) {   
+            char filename[MAX_PATH+1];
+            int result = GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
+            if (result)
+                fileName = std::string(filename);
+            UnmapViewOfFile(pmap);
+        }
+        CloseHandle(fmap);
+    }
+	m_executable = new int_library(fileName, execBase, execBase);
+
 }
 
 bool windows_process::plat_create_int()
@@ -143,11 +172,11 @@ bool windows_process::plat_create_int()
 	{
 		pid = procInfo.dwProcessId;
 		hproc = procInfo.hProcess;
+		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
+			(Dyninst::LWP)procInfo.dwThreadId, true);
+		windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
+		wThread->setHandle(procInfo.hThread);
 	}
-	int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
-		(Dyninst::LWP)procInfo.dwThreadId, true);
-	windows_thread* wThread = dynamic_cast<windows_thread*>(initialThread);
-	wThread->setHandle(procInfo.hThread);
 	return result ? true : false;
 }
 bool windows_process::plat_attach(bool)
@@ -156,7 +185,7 @@ bool windows_process::plat_attach(bool)
 	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 	gen->enqueue_event(GeneratorWindows::attach, this);
 	gen->launch();
-	return true;
+	return gen->getState() != Generator::error;
 }
 
 bool windows_process::plat_attach_int()
@@ -224,12 +253,27 @@ bool windows_process::plat_readMem(int_thread *thr, void *local,
 	return true;
 }
 
+void windows_process::dumpMemoryMap()
+{
+	for(LibraryPool::iterator i = libpool.begin();
+		i != libpool.end();
+		++i)
+	{
+		pthrd_printf("Library %s:\t0x%lx\n",
+			(*i)->getName().c_str(), (*i)->getLoadAddress());
+	}
+}
+
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
 									Dyninst::Address remote, size_t size)
 {
+	assert(local || !size);
+	if(!local || !size) return false;
 	int lasterr = 0;
-	//fprintf(stderr, "writing %d bytes to %p, first byte %x\n", size, remote, *((unsigned char*)local));
-	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, NULL);
+	SIZE_T written = 0;
+	written = 0;
+
+	BOOL ok = ::WriteProcessMemory(hproc, (void*)remote, local, size, &written);
 	if(ok)
 	{
 		if(FlushInstructionCache(hproc, NULL, 0))
@@ -255,12 +299,12 @@ bool windows_process::plat_supportLWPCreate() const
 
 bool windows_process::plat_supportLWPPreDestroy() const
 {
-	return false;
+	return true;
 }
 
 bool windows_process::plat_supportLWPPostDestroy() const
 {
-	return true;
+	return false;
 }
 
 bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
@@ -419,8 +463,7 @@ bool windows_process::refresh_libraries(std::set<int_library *> &added_libs,
 
 int_library* windows_process::plat_getExecutable()
 {
-	assert(!"not implemented");
-	return NULL;
+	return m_executable;
 }
 
 bool windows_process::initLibraryMechanism()
@@ -435,12 +478,12 @@ bool windows_process::plat_isStaticBinary()
 	return false;
 }
 
-int_thread *iRPCMgr::createThreadForRPC(int_process* proc, bool create_running)
+int_thread *iRPCMgr::createThreadForRPC(int_process* proc, int_thread* best_candidate)
 {
 	windows_process* winProc = dynamic_cast<windows_process*>(proc);
 	assert(winProc);
 
-	return winProc->createRPCThread(create_running);
+	return winProc->createRPCThread(best_candidate);
 }
 
 bool windows_process::addrInSystemLib(Address addr) {
@@ -488,7 +531,8 @@ int_thread *windows_process::RPCThread() {
 	return dummyRPCThread_;
 }
 
-int_thread *windows_process::createRPCThread(bool) {
+int_thread *windows_process::createRPCThread(int_thread* best_candidate) {
+	if(best_candidate) return best_candidate;
 	if (!dummyRPCThread_) {
 		dummyRPCThread_ = static_cast<windows_thread *>(int_thread::createRPCThread(this));
 		pthrd_printf("Creating RPC thread: 0x%lx\n", dummyRPCThread_);
@@ -520,7 +564,7 @@ void windows_process::instantiateRPCThread() {
 
 	// 2)
 	Dyninst::LWP lwp;
-	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, CREATE_SUSPENDED, (LPDWORD)&lwp);
+	HANDLE hthrd = ::CreateRemoteThread(plat_getHandle(), NULL, 0, (LPTHREAD_START_ROUTINE)dummyStart, NULL, 0, (LPDWORD)&lwp); // not create_suspended anymore
 	pthrd_printf("*********************** Created actual thread with lwp %d, hthrd %x for dummy RPC thread, start at 0x%lx\n",
 		(int) lwp, hthrd, dummyStart);
 
@@ -533,6 +577,7 @@ void windows_process::instantiateRPCThread() {
 	dummyRPCThread_->markRPCRunning();
 
 	getStartupTeardownProcs().inc();
+	// And match whether we're actually suspended
 	dummyRPCThread_->setSuspended(true);
 
 }
@@ -561,4 +606,13 @@ bool windows_process::plat_resumeThread(int_thread *thr)
 	windows_thread* wthr = static_cast<windows_thread*>(thr);
 	assert(wthr);
 	return wthr->plat_resume();
+}
+
+ExecFileInfo* windows_process::plat_getExecutableInfo() const
+{
+	ExecFileInfo* ret = new ExecFileInfo();
+	ret->fileHandle = (void*)hfile;
+	ret->processHandle = (void*)hproc;
+	ret->fileBase = execBase;
+	return ret;
 }

@@ -65,9 +65,7 @@ class PC_EXPORT Generator
    static void registerNewEventCB(gen_cb_func_t func);
    static void removeNewEventCB(gen_cb_func_t);
    
-   virtual long long getSequenceNum(Dyninst::PID /* proc */) { return -1; }
 
- protected:
 
    //State tracking
    typedef enum {
@@ -83,9 +81,11 @@ class PC_EXPORT Generator
       exiting
    } state_t;
    state_t state;
-   bool isExitingState();
-   void setState(state_t newstate);
+   virtual bool isExitingState();
+   virtual void setState(state_t newstate);
+   virtual state_t getState();
 
+ protected:
    //Event handling
    static std::map<Dyninst::PID, Process *> procs;
    typedef std::set<Decoder *, decoder_cmp> decoder_set_t;

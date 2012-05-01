@@ -244,20 +244,17 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 {
    dprintf(stderr, "%s[%d]:  welcome to upgrade_mutatee_state\n", __FILE__, __LINE__);
    BPatch_variableExpr *var;
-   BPatch_constExpr *one;
-   BPatch_arithExpr *inc_var;
-   BPatch_arithExpr *inc_var_assign;
-
    BPatch_image *img = proc->getImage();
-   var = img->findVariable("proc_current_state");
-   one = new BPatch_constExpr(1);
-   inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
-   inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
-   dprintf(stderr, "%s[%d]: going into oneTimecode...\n", __FILE__, __LINE__);
+	var = img->findVariable("proc_current_state");
+	dprintf(stderr, "%s[%d]: upgrade_mutatee_state: stopping for read...\n", __FILE__, __LINE__);
    proc->stopExecution();
-   proc->oneTimeCode(*inc_var_assign);
+   int* val;
+   *val = 0;
+   var->readValue(val);
+   (*val)++;
+   var->writeValue(val);
    proc->continueExecution();
-   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
+   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: continued after write, val = %d\n", __FILE__, __LINE__, *val);
 }
 
 #define MAX_ARGS 32
@@ -349,9 +346,10 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    upgrade_mutatee_state();
    dprintf(stderr, "%s[%d]:  Now waiting for application to exit.\n", __FILE__, __LINE__);
 
-   while (!proc->isTerminated())
+   while (!proc->isTerminated()) {
+	   proc->continueExecution();
       bpatch->waitForStatusChange();
-
+   }
    num_attempts = 0;
    while(deleted_threads != NUM_THREADS && num_attempts != TIMEOUT) {
       num_attempts++;
@@ -388,15 +386,6 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
 }
 
 test_results_t test_thread_6_Mutator::executeTest() {
-   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
-					    newthr) ||
-       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
-					    deadthr))
-   {
-      logerror("%s[%d]:  failed to register thread callback\n",
-	      __FILE__, __LINE__);
-      return FAILED;
-   }
 
    test_results_t rv = mutatorTest(bpatch);
 
@@ -424,6 +413,15 @@ test_results_t test_thread_6_Mutator::setup(ParameterDict &param) {
    if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
+   }
+   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
+					    newthr) ||
+       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
+					    deadthr))
+   {
+      logerror("%s[%d]:  failed to register thread callback\n",
+	      __FILE__, __LINE__);
+      return FAILED;
    }
 
    

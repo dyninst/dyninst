@@ -117,7 +117,7 @@ bool CondVar::broadcast()
 	if(waitingThreads)
 	{
 		long prev_count;
-		::ReleaseSemaphore(wait_sema, 1, &prev_count);
+		::ReleaseSemaphore(wait_sema, numWaiting, &prev_count);
 //		fprintf(stderr, "[%d]: CondVar::broadcast() signaled 0x%lx, prev_count = %d\n", ::GetCurrentThreadId(), wait_sema, prev_count);
 		::LeaveCriticalSection(&numWaitingLock);
 		::WaitForSingleObject(wait_done, INFINITE);

@@ -64,7 +64,9 @@ PCThread *PCThread::createPCThread(PCProcess *parent, Thread::ptr thr)
 }
 
 dynthread_t PCThread::getTid() const {
-    if( pcThr_ == Thread::ptr() ) return savedTid_;
+	if( pcThr_ == Thread::ptr() ) {
+		return savedTid_;
+	}
     THR_ID pcTid = pcThr_->getTID();
     if( pcTid == NULL_THR_ID || pcTid == 0 ) {
         if( manuallySetTid_ == DYNINST_SINGLETHREADED ) return 0;
@@ -220,7 +222,7 @@ bool PCThread::continueThread() {
 
     if( !pcThr_->continueThread() ) {
         proccontrol_printf("%s[%d]: failed to continue thread %d/%d\n",
-                proc_->getPid(), getLWP());
+                FILE__, __LINE__, proc_->getPid(), getLWP());
         return false;
     }
 

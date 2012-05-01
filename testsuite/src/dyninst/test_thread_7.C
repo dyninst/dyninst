@@ -74,7 +74,7 @@ test_thread_7_Mutator::test_thread_7_Mutator()
 // static FILE *errlog = NULL;
 
 
-static bool debug_flag = false;
+static bool debug_flag = true;
 #define dprintf if (debug_flag) fprintf
 
 void test_thread_7_Mutator::instr_func(BPatch_function *func,
@@ -96,7 +96,29 @@ void test_thread_7_Mutator::instr_func(BPatch_function *func,
 }
 
 BPatch_process *test_thread_7_Mutator::getProcess() {
-   return appProc;
+  int n = 0;
+  args[n++] = filename;
+
+  args[n++] = "-run";
+  args[n++] = "test_thread_7";
+
+  // Set up log file!
+  args[n++] = "-log";
+  args[n++] = const_cast<char*>(getOutputLogFilename());
+
+  args[n] = NULL;
+
+   BPatch_process *proc = NULL;
+   if (create_proc) {
+      proc = bpatch->processCreate(filename, (const char **) args);
+      if(proc == NULL) {
+         logerror("%s[%d]: processCreate(%s) failed\n", 
+                 __FILE__, __LINE__, filename);
+         return NULL;
+      }
+   }
+   // Getting rid of attach here because the old code is apparently broken.
+   return proc;
 }
 
 test_results_t test_thread_7_Mutator::executeTest() {

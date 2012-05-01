@@ -238,15 +238,12 @@ class iRPCMgr
    
    bool postRPCToProc(int_process *proc, int_iRPC::ptr rpc);
    bool postRPCToThread(int_thread *thread, int_iRPC::ptr rpc);
-   int_thread *createThreadForRPC(int_process* proc, bool create_running);
+   int_thread *createThreadForRPC(int_process* proc, int_thread* best_candidate);
 
    int_iRPC::ptr createInfMallocRPC(int_process *proc, unsigned long size, bool use_addr, Dyninst::Address addr);
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);
 
    bool isRPCTrap(int_thread *thr, Dyninst::Address addr);
-   int_iRPC::ptr getRPCForTransferBreakpoint(Dyninst::Address addr);
-private:
-	std::map<Dyninst::Address, int_iRPC::ptr> transfer_breakpoints;
 };
 
 iRPCMgr *rpcMgr();
@@ -259,6 +256,7 @@ class iRPCHandler : public Handler
    virtual ~iRPCHandler();
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+   virtual int getPriority() const;
 };
 
 class iRPCLaunchHandler : public Handler

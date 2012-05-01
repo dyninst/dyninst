@@ -1630,57 +1630,121 @@ unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
 
 PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase(Dyninst::ProcControlAPI::EventType et)
 {
-	assert(0);
-	return PCEventHandler::BreakpointOnly;
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+    
+    switch(et.code()) {
+        case Dyninst::ProcControlAPI::EventType::Exit:
+            switch(et.time()) {
+                case Dyninst::ProcControlAPI::EventType::Pre:
+                case Dyninst::ProcControlAPI::EventType::Post:
+					return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+		case Dyninst::ProcControlAPI::EventType::LWPDestroy:
+            switch(et.time()) {
+                case Dyninst::ProcControlAPI::EventType::Pre:
+					return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    return NoCallbackOrBreakpoint;
 }
 
 bool PCEventHandler::isKillSignal(int signal)
 {
-	assert(0);
+	// Kill on Windows does not generate a signal
 	return false;
 }
 bool PCEventHandler::isCrashSignal(int signal)
 {
-	assert(0);
+	switch(signal)
+	{
+	case EXCEPTION_ACCESS_VIOLATION:
+	case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+	case EXCEPTION_DATATYPE_MISALIGNMENT:
+	case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+	case EXCEPTION_FLT_INVALID_OPERATION:
+	case EXCEPTION_ILLEGAL_INSTRUCTION:
+	case EXCEPTION_IN_PAGE_ERROR:
+	case EXCEPTION_INT_DIVIDE_BY_ZERO:
+	case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+	case EXCEPTION_PRIV_INSTRUCTION:
+	case EXCEPTION_STACK_OVERFLOW:
+		return true;
+	}
 	return false;
 }
 bool PCEventHandler::shouldStopForSignal(int signal)
 {
-	assert(0);
+	switch(signal)
+	{
+		case EXCEPTION_BREAKPOINT:
+			return true;
+	}
 	return false;
 }
 bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal breakpointVal,
 									 Dyninst::Address arg1, int status)
 {
-	assert(0);
+	if(signal == EXCEPTION_BREAKPOINT)
+	{
+        if( breakpointVal == NormalRTBreakpoint ) {
+            if( (status != DSE_forkExit) || (arg1 != 0) ) return true;
+
+            proccontrol_printf("%s[%d]: child received signal %d\n",
+                    FILE__, __LINE__, EXCEPTION_BREAKPOINT);
+        } else if( breakpointVal == SoftRTBreakpoint ) {
+            if( status == DSE_forkExit ) {
+                if( arg1 == 0 ) return true;
+
+                proccontrol_printf("%s[%d]: parent process received SIGSTOP\n",
+                        FILE__, __LINE__);
+            }else{
+                proccontrol_printf("%s[%d]: SIGSTOP wasn't due to fork exit\n",
+                        FILE__, __LINE__);
+            }
+        } else {
+            proccontrol_printf("%s[%d]: mismatch in signal for breakpoint type\n",
+                    FILE__, __LINE__);
+        }
+	} else {
+        proccontrol_printf("%s[%d]: signal wasn't sent by RT library\n",
+                FILE__, __LINE__);
+    }
+
 	return false;
 }
 
 bool PCProcess::usesDataLoadAddress() const
 {
-	assert(0);
 	return false;
 }
 bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileName)
 {
-	assert(0);
-	return false;
+	// We don't LD_PRELOAD on Windows
+	return true;
 }
 
 void PCProcess::redirectFds(int stdin_fd, int stdout_fd, int stderr_fd, std::map<int,int> &result)
 {
-	assert(0);
+	// Not implemented on existing dyninst-on-windows, just skip
+	return;
 }
 std::string PCProcess::createExecPath(const std::string &file, const std::string &dir)
 {
-	assert(0);
-	return "";
+	return dir + file;
 }
 
 bool PCProcess::multithread_capable(bool ignoreIfMtNotSet)
 {
-	assert(0);
-	return false;
+	return true;
 }
 
 bool PCProcess::copyDanglingMemory(PCProcess *parent)
@@ -1691,43 +1755,111 @@ bool PCProcess::copyDanglingMemory(PCProcess *parent)
 
 bool PCProcess::instrumentMTFuncs()
 {
-	assert(0);
-	return false;
+	// This is not needed on Windows, as we get thread events directly.
+	return true;
 }
 
 bool PCProcess::getExecFileDescriptor(std::string filename, bool waitForTrap, fileDescriptor &desc)
 {
-	assert(0);
-	return false;
+	Address mainFileBase = 0;
+	Dyninst::ProcControlAPI::ExecFileInfo* efi = pcProc_->getExecutableInfo();
+
+	desc = fileDescriptor(filename.c_str(),
+			(Address)(0),
+			efi->processHandle,
+			efi->fileHandle,
+			false,
+			efi->fileBase);
+	delete efi;
+	return true;
 }
 
 bool PCProcess::skipHeap(const heapDescriptor &heap)
 {
-	assert(0);
 	return false;
 }
 
 bool PCProcess::postRTLoadCleanup()
 {
-	assert(0);
-	return false;
+	return true;
 }
 
 unsigned long PCProcess::findFunctionToHijack()
 {
-	assert(0);
 	return 0;
 }
 
+bool PCProcess::postRTLoadRPC()
+{
+    Address loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
+	Address LoadLibAddr;
+    int_symbol sym;
+    
+
+    if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
+        !getSymbolInfo("_LoadLibraryA", sym) &&
+        !getSymbolInfo("LoadLibraryA", sym))
+        {
+            printf("unable to find function LoadLibrary\n");
+            assert(0);
+        }
+    LoadLibAddr = sym.getAddr();
+    assert(LoadLibAddr);
+
+    char ibuf[BYTES_TO_SAVE];
+    memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
+    char *iptr = ibuf;
+    
+    // Code overview:
+    // Dynininst library name
+    //    Executable code begins here:
+    // Push (address of dyninst lib name)
+    // Call LoadLibrary
+    // Pop (cancel push)
+    // Trap
+    
+    
+    // push nameAddr ; 5 bytes
+    *iptr++ = (char)0x68; 
+    // Argument for push
+	int* relocAddr = (int*)(iptr);
+    iptr += sizeof(int);
+    
+    int offsetFromBufferStart = (int)iptr - (int)ibuf;
+    offsetFromBufferStart += 5; // Skip next instruction as well.
+    // call LoadLibrary ; 5 bytes
+    *iptr++ = (char)0xe8;
+    
+    // Jump offset is relative
+    *(int *)iptr = LoadLibAddr - (loadDyninstLibAddr + 
+                                  offsetFromBufferStart); // End of next instruction
+    iptr += sizeof(int);
+    
+    
+    // add sp, 4 (Pop)
+    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+    
+    // int3
+    *iptr = (char)0xcc;
+    
+    int offsetToTrap = (int) iptr - (int) ibuf;
+	strcpy(iptr+1, dyninstRT_name.c_str());
+    *(int *)relocAddr = offsetToTrap + 1 + loadDyninstLibAddr; // string at end of code
+	void* result;
+	postIRPC(ibuf, BYTES_TO_SAVE, NULL, false, NULL, true, &result, false, false, loadDyninstLibAddr);
+
+   return true;
+}
+
+
 AstNodePtr PCProcess::createLoadRTAST()
 {
-	assert(0);
+	assert(!"Unused on Windows");
 	return AstNodePtr();
 }
 
 inferiorHeapType PCProcess::getDynamicHeapType() const
 {
-	assert(0);
 	return anyHeap;
 }
 

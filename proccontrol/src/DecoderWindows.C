@@ -230,9 +230,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 						pthrd_printf("Decoded unhandled exception (breakpoint) event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						// Case 3: breakpoint that's not from us, while running. Pass on exception.
 						GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
-						winGen->markUnhandledException(e.dwProcessId);
 						newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
-						assert(0);
 					}
 				}
 				else
@@ -270,8 +268,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			// Thread naming exception. Ignore.
 		case EXCEPTION_DEBUGGER_IO: {
 			pthrd_printf("Debugger I/O exception: %lx\n", e.u.Exception.ExceptionRecord.ExceptionInformation[0]);
-			// 9NOV11 - wake up the generator because we're not creating an event for this.
-			GeneratorWindows* wGen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());
 			newEvt = EventNop::ptr(new EventNop());
 			newEvt->setSyncType(Event::async);
 			break;
@@ -283,7 +279,6 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
-				assert(0);
 			}
 			break;
 		}
@@ -301,6 +296,8 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			winGen->removeProcess(proc);
 			newEvt->setSyncType(Event::sync_process);
 			newEvt->setProcess(proc->proc());
+			// Since we're doing thread exit/proc exit, and this means the thread will go away first,
+			// we don't set the thread here
 			if(thread)
 				newEvt->setThread(thread->thread());
 			// We do this here because the generator thread will exit before updateSyncState otherwise
@@ -309,6 +306,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				(*i)->getGeneratorState().setState(int_thread::exited);
 		 		(*i)->setExitingInGenerator(true);
 			}
+/*			Event::ptr associatedLWPDestroy = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+			associatedLWPDestroy->setProcess(proc->proc());
+			associatedLWPDestroy->setSyncType(Event::sync_process);
+			if(thread)
+				associatedLWPDestroy->setThread(thread->thread());
+			//associatedLWPDestroy->addSubservientEvent(newEvt);
+			*/
 			events.push_back(newEvt);
 
 			return true;
@@ -319,7 +323,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		if(thread) {
 			thread->getGeneratorState().setState(int_thread::exited);
 			thread->setExitingInGenerator(true);
-			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
 		} else {
 			// If the thread is NULL, we can't give the user an event with a valid thread object anymore.
 			// So fail the decode.
@@ -406,18 +410,12 @@ bool DecoderWindows::decodeCreateThread( DEBUG_EVENT &e, Event::ptr &newEvt, int
 		newEvt = WinEventThreadInfo::ptr(new WinEventThreadInfo((Dyninst::LWP)(e.dwThreadId), e.u.CreateProcessInfo.hThread,
 			e.u.CreateProcessInfo.lpStartAddress, e.u.CreateProcessInfo.lpThreadLocalBase));
 		newEvt->setThread(proc->threadPool()->initialThread()->thread());
-		wproc->plat_setHandle(e.u.CreateProcessInfo.hProcess);
+		wproc->plat_setHandles(e.u.CreateProcessInfo.hProcess, e.u.CreateProcessInfo.hFile, (Dyninst::Address)e.u.CreateProcessInfo.lpBaseOfImage);
 	} else {
 		newEvt = WinEventNewThread::ptr(new WinEventNewThread((Dyninst::LWP)(e.dwThreadId), e.u.CreateThread.hThread,
 			e.u.CreateThread.lpStartAddress, e.u.CreateThread.lpThreadLocalBase));
 	}
-	int_thread* dummy = wproc->RPCThread();
-	if(dummy)
-	{
-		THR_ID thr_id = (THR_ID) e.dwThreadId;
-		THR_ID dummytid;
-		dummy->getTID(dummytid);
-	}
+
 
 	newEvt->setProcess(proc->proc());
 	newEvt->setSyncType(Event::sync_process);

@@ -95,6 +95,9 @@ bool int_iRPC::isRPCPrepped()
       return true;
 
    assert(state == Prepping);
+	// Ephemeral thread doesn't exist, so it doesn't need to stop.
+   if(thrd->isRPCEphemeral())
+	   return true;
    if (isProcStopRPC()) {
       int_threadPool *pool = thrd->llproc()->threadPool();
       for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
@@ -333,7 +336,7 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       {
          continue;
       }
-	  if (!thr->isUser()) {
+	  if(thr->notAvailableForRPC()) {
 		  pthrd_printf("Skipping thread that is marked as system\n");
 		  continue;
 	  }
@@ -357,21 +360,14 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
          min_rpc_count = rpc_count;
       }
    }
-   if(!selected_thread)
-   {
-	   selected_thread = createThreadForRPC(proc, found_user_running_thread);
-   }
+
+   selected_thread = createThreadForRPC(proc, selected_thread);
    pthrd_printf("Selected thread %d for iRPC %lu\n", selected_thread->getLWP(), rpc->id());
+
    assert(selected_thread);
    return postRPCToThread(selected_thread, rpc);
 }
 
-int_iRPC::ptr iRPCMgr::getRPCForTransferBreakpoint(Dyninst::Address addr)
-{
-	std::map<Address, int_iRPC::ptr>::iterator found = transfer_breakpoints.find(addr);
-	if(found != transfer_breakpoints.end()) return found->second;
-	return int_iRPC::ptr();
-}
 
 bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
 {
@@ -780,7 +776,7 @@ bool int_iRPC::writeToProc()
 
       Dyninst::Address newpc_addr = addr() + startOffset();
       Dyninst::MachRegister pc = Dyninst::MachRegister::getPC(thr->llproc()->getTargetArch());
-	  pthrd_printf("IRPC: Setting %d/%d PC to %lx\n", thr->llproc()->getPid(),
+      pthrd_printf("IRPC: Setting %d/%d PC to %lx\n", thr->llproc()->getPid(),
                    thr->getLWP(), newpc_addr);
       bool result = thr->setRegister(pc, newpc_addr, pcset_result);
       if (!result) { 
@@ -820,17 +816,16 @@ bool int_iRPC::runIRPC()
    //Set in running state
    thrd->setRunningRPC(shared_from_this());
    setState(Running);
-
+   
    assert(allocation());
    assert(!allocSize() || (binarySize() <= allocSize()));
    assert(binaryBlob());
 
    if (thrd->isRPCEphemeral()) {
+      thrd->getUserRPCState().desyncState(int_thread::running);
 	   // Create it if necessary
 	   thrd->llproc()->instantiateRPCThread();
 	   pthrd_printf("\tInstantiated iRPC thread\n");
-	   // We really, really had better be running enough to get the CreateThread debug event.
-	   thrd->getIRPCState().desyncState(int_thread::running);
 	   // And the threadpool needs to know about us so that we will ContinueDebugEvent. Ugh.
 	   if(thrd->llproc()->threadPool()->findThreadByLWP(thrd->getLWP()) == NULL)
 	   {
@@ -987,6 +982,12 @@ void iRPCHandler::getEventTypesHandled(std::vector<EventType> &etypes)
   etypes.push_back(EventType(EventType::None, EventType::RPC));
 }
 
+int iRPCHandler::getPriority() const
+{
+	// This *must* be after callbacks, so that the user can read any return result they need...
+   return PostCallbackPriority;
+}
+
 Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 {
    //An RPC has completed, clean-up
@@ -1054,11 +1055,8 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 	   } else {
 	      pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
 			  thr->getLWP(), mgr->numActiveRPCs(thr));
-			// And we become stopped for setup of the next RPC. This *should* allow us to continue once setup occurs
-		  // (the new RPC is written and the PC is reset); we just want to make sure we don't run until we're in a valid state.
-		  thr->getIRPCSetupState().desyncState(int_thread::stopped);
+			// don't do an extra desync here, it's handled by throwEventsBeforeContinue()
 	   }
- 	   thr->getIRPCState().restoreState();
    }
    else if (!ievent->regrestore_response && 
        (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))
@@ -1115,6 +1113,12 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 
    if (rpc->needsToRestoreInternal()) {
       rpc->thread()->getInternalState().restoreState();
+   }
+   if(mgr->numActiveRPCs(thr) == 0) {
+      if (rpc->thread()->getUserRPCState().isDesynced())
+         rpc->thread()->getUserRPCState().restoreState();
+   } else {
+	   thr->throwEventsBeforeContinue();
    }
 
    return ret_success;
@@ -1332,9 +1336,8 @@ unsigned long IRPC::getStartOffset() const
 
 
 #if !defined(os_windows)
-int_thread* iRPCMgr::createThreadForRPC(int_process*, bool)
+int_thread* iRPCMgr::createThreadForRPC(int_process*, int_thread *candidate)
 {
-	assert(0);
-	return NULL;
+   return candidate;
 }
 #endif

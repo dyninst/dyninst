@@ -624,13 +624,21 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    }
 
    EventExit *event = static_cast<EventExit *>(ev.get());
-   proc->setExitCode(event->getExitCode());
    
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
-   ProcPool()->condvar()->signal();
+   if(proc->wasForcedTerminated())
+   {
+	   proc->getStartupTeardownProcs().dec();
+	   ev->setSuppressCB(true);
+   }
+   else
+   {
+	   proc->setExitCode(event->getExitCode());
+   }
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -654,11 +662,11 @@ void HandlePostExitCleanup::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
-   int_thread *thrd = ev->getThread()->llthrd();
+   int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
    assert(proc);
-   assert(thrd);
+//   assert(thrd);
    pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
-                proc->getPid(), thrd->getLWP());
+	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1));
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
@@ -712,7 +720,7 @@ Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -749,7 +757,7 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    proc->getStartupTeardownProcs().dec();
@@ -864,8 +872,10 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
          statet.desyncState(ns);
       }
    }
+	int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
+	assert(tmp);
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    return ret_success;
@@ -955,6 +965,10 @@ Handler::handler_ret_t HandleThreadCleanup::handleEvent(Event::ptr ev)
     * user callback.
     **/
    int_process *proc = ev->getProcess()->llproc();
+   if(!proc) {
+	   pthrd_printf("Process for thread cleanup event is NULL. We have no work we can do.\n");
+	   return ret_success;
+   }
    if ((ev->getEventType().code() == EventType::UserThreadDestroy) &&
        (proc->plat_supportLWPPreDestroy() || proc->plat_supportLWPPostDestroy()))
    {
@@ -1719,7 +1733,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->setState(int_process::exited);
       ProcPool()->rmProcess(proc);
 
-      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();
    }
 
@@ -1957,7 +1971,7 @@ bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr 
 Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set<Process::cb_func_t> &cbset)
 {
    //We want the thread to remain in its appropriate state while the CB is in flight.
-   int_thread *thr = ev->getThread()->llthrd();
+	int_thread *thr = ev->getThread() ? ev->getThread()->llthrd() : NULL;
    int_process *proc = ev->getProcess()->llproc();
    assert(proc);
 

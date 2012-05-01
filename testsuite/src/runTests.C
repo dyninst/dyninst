@@ -381,6 +381,7 @@ int main(int argc, char *argv[])
           for (int idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }
+		  break;
       }
       if (test_drivers[driver].last_result == -4) {
          //Exec error

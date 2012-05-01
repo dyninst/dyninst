@@ -148,6 +148,8 @@ unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index) {
 
     unsigned long retval = (unsigned long)dyn_pthread_self();
     assert(retval != 0 );
+    rtdebug_printf("%s[%d]: Begin DYNINSTregisterThread, tid %lu\n", __FILE__, __LINE__,
+            dyn_pthread_self());
 
     if( tid_val != retval ) {
         tid_val = retval;
@@ -190,6 +192,8 @@ int DYNINSTunregisterThread(dyntid_t tid) {
     unsigned tid_val = (unsigned long) tid;
 
     int retval = 1;
+    rtdebug_printf("%s[%d]: Begin DYNINSTunregisterThread, tid %lu\n", __FILE__, __LINE__,
+            dyn_pthread_self());
 
     if( tc_lock_lock(&DYNINST_index_lock) == DYNINST_DEAD_LOCK ) {
         rtdebug_printf("%s[%d]: DEADLOCK HERE tid %lu\n", __FILE__, __LINE__,

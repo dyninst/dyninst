@@ -72,7 +72,7 @@ test_thread_8_Mutator::test_thread_8_Mutator()
 #include <unistd.h>
 #endif
 #define NUM_THREADS 5 // one controller, four workers
-#define TIMEOUT 20
+#define TIMEOUT 40
 
 // static FILE *outlog = NULL;
 // static FILE *errlog = NULL;
@@ -84,7 +84,7 @@ static long pthread_ids[NUM_THREADS];
 static unsigned error15 = 0;
 static bool create_proc = true;
 
-static bool debug_flag = false;
+static bool debug_flag = true;
 #define dprintf if (debug_flag) fprintf
 
 // Globals: create_proc, dyn_tids, error15, NUM_THREADS, pthread_ids, proc,
@@ -141,7 +141,29 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
 BPatch_process *test_thread_8_Mutator::getProcess()
 {
-   return appProc;
+  int n = 0;
+  args[n++] = filename;
+  if (logfilename != NULL) {
+    args[n++] = "-log";
+    args[n++] = logfilename;
+  }
+
+  args[n++] = "-run";
+  args[n++] = "test_thread_8";
+
+   args[n] = NULL;
+
+   BPatch_process *proc;
+   if (create_proc) {
+      proc = bpatch->processCreate(filename, (const char **) args);
+      if(proc == NULL) {
+         logerror("%s[%d]: processCreate(%s) failed\n", 
+                 __FILE__, __LINE__, filename);
+         return NULL;
+      }
+   }
+   // Getting rid of attach here because the old code is apparently broken.
+   return proc;
 }
 
 int test_thread_8_Mutator::error_exit()
@@ -317,6 +339,10 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    } else {
      // TODO Figure out what went wrong and print a relevant error message
      logerror("**Failed test_thread_8 (thread-specific one time codes)\n");
+	 if(exitCode) logerror("**Expected exit code = 0, exit code was %d\n", exitCode);
+	 if(error15) logerror("**Expected error15 = 0, error15 was %d\n", error15);
+	 if(failed_tests) logerror("**Expected failed tests = 0, failed tests was %d\n", failed_tests);
+
      return -1;
    }
 
