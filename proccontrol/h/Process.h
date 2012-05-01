@@ -200,9 +200,9 @@ class PC_EXPORT IRPC
    typedef dyn_weak_ptr<IRPC> weak_ptr;
    
    static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
-                               bool async = false);
-   static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
-                               Dyninst::Address addr, bool async = false);
+                               bool non_blocking = false);
+   static IRPC::ptr createIRPC(void *binary_blob, unsigned size,
+                               Dyninst::Address addr, bool non_blocking = false);
    static IRPC::ptr createIRPC(IRPC::ptr orig);
    static IRPC::ptr createIRPC(IRPC::ptr orig, Address addr);
    
@@ -214,6 +214,7 @@ class PC_EXPORT IRPC
    unsigned long getID() const;
    void setStartOffset(unsigned long);
    unsigned long getStartOffset() const;
+   bool isBlocking() const;
 
    // user-defined data retrievable during a callback
    void *getData() const;
@@ -244,7 +245,6 @@ class PC_EXPORT Process : public dyn_enable_shared_from_this<Process>
    void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
    void clearLastError() const;
    
-
    /**
     * Threading modes control
     **/
@@ -373,11 +373,16 @@ class PC_EXPORT Process : public dyn_enable_shared_from_this<Process>
    unsigned numHardwareBreakpointsAvail(unsigned mode);
 
    /**
-    * IRPC
+    * Post IRPC.  Use continueProc/continueThread to run it,
+    * and handleEvents to wait for a blocking IRPC to complete
     **/
    dyn_shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
-	bool postSyncIRPC(IRPC::ptr irpc);
 	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+
+   /**
+    * Post, run and wait for an IRPC to complete in one call
+    **/
+	bool launchIRPC(IRPC::ptr irpc);
 
    /**
     * Symbol access

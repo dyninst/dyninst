@@ -5728,7 +5728,7 @@ bool Process::allThreadsRunningWhenAttached() const
     return true;
 }
 
-bool Process::postSyncIRPC(IRPC::ptr irpc)
+bool Process::launchIRPC(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
    if (!llproc_) {

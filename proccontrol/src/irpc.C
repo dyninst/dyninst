@@ -1222,27 +1222,27 @@ Handler::handler_ret_t iRPCLaunchHandler::handleEvent(Event::ptr ev)
 }
 
 IRPC::ptr IRPC::createIRPC(void *binary_blob, unsigned size, 
-                           bool async)
+                           bool non_blocking)
 {
-   int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(binary_blob, size, async));
+   int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(binary_blob, size, non_blocking));
    rpc_wrapper *wrapper = new rpc_wrapper(irpc);   
    IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
    irpc->setIRPC(rpc);
    irpc->copyBinaryBlob(binary_blob, size);
-   irpc->setAsync(async);
+   irpc->setAsync(non_blocking);
 
    return rpc;
 }
 
 IRPC::ptr IRPC::createIRPC(void *binary_blob, unsigned size, 
-                           Dyninst::Address addr, bool async)
+                           Dyninst::Address addr, bool non_blocking)
 {
-   int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(binary_blob, size, async, true, addr));
+   int_iRPC::ptr irpc = int_iRPC::ptr(new int_iRPC(binary_blob, size, non_blocking, true, addr));
    rpc_wrapper *wrapper = new rpc_wrapper(irpc);
    IRPC::ptr rpc = IRPC::ptr(new IRPC(wrapper));
    irpc->setIRPC(rpc);
    irpc->copyBinaryBlob(binary_blob, size);
-   irpc->setAsync(async);
+   irpc->setAsync(non_blocking);
    return rpc;
 }
 
@@ -1334,6 +1334,10 @@ unsigned long IRPC::getStartOffset() const
    return wrapper->rpc->startOffset();
 }
 
+bool IRPC::isBlocking() const
+{
+   return !wrapper->rpc->isAsync();
+}
 
 #if !defined(os_windows)
 int_thread* iRPCMgr::createThreadForRPC(int_process*, int_thread *candidate)

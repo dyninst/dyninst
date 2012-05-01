@@ -3456,6 +3456,7 @@ bool PCProcess::postRTLoadRPC()
 			__LINE__);
 		return false;
 	}
+   return true;
 }
 #endif
 StackwalkSymLookup::StackwalkSymLookup(PCProcess *p)
