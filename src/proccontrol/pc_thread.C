@@ -343,7 +343,7 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
    }
    Thread::ptr thr = *i;
    
-   if (has_thr && thr->getTID() != (Dyninst::THR_ID)(-1)) {
+   if (has_thr && thr && thr->getTID() != (Dyninst::THR_ID)(-1)) {
       if (thr->getTID() != (Dyninst::THR_ID) tinfo.tid) {
          logerror("Error.  Mismatched TID, %lx != %lx\n", (unsigned long) thr->getTID(), (unsigned long) tinfo.tid);
          has_error = true;

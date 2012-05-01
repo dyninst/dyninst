@@ -69,11 +69,7 @@ extern "C" DLLEXPORT  TestMutator *test3_1_factory() {
 }
 
 test3_1_Mutator::test3_1_Mutator() {
-#if defined(os_windows_test)
-  expectedSignal = ExitedNormally;
-#else
   expectedSignal = ExitedViaSignal;
-#endif
 
   Mutatees = 3;
 
