@@ -2014,7 +2014,7 @@ bool indep_lwp_control_process::plat_syncRunState()
          result = thr->intStop();
       }
       if (!result && getLastError() == err_exited) {
-         pthrd_printf("Suppressing error of continue on exited process");
+         pthrd_printf("Suppressing error of continue on exited process\n");
       }
       else if (!result) {
          pthrd_printf("Error changing process state from plat_syncRunState\n");
@@ -5755,6 +5755,7 @@ bool Process::launchIRPC(IRPC::ptr irpc)
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return false;
    }
+   int_thread::State old_state = rpc->thread()->getUserState().getState();
 
    result = rpc->thread()->getUserState().setState(int_thread::running);
    if (!result) {
@@ -5772,19 +5773,19 @@ bool Process::launchIRPC(IRPC::ptr irpc)
    return true;
 }
 
-Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
+bool Process::postIRPC(IRPC::ptr irpc) const
 {
    MTLock lock_this_func;
    if (!llproc_) {
       perr_printf("postIRPC on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
-      return Thread::ptr();
+      return false;
    }
 
    if (llproc_->getState() == int_process::detached) {
        perr_printf("postIRPC on detached process\n");
        setLastError(err_detached, "Process is detached\n");
-       return Thread::ptr();
+       return false;
    }
 
    int_process *proc = llproc();
@@ -5792,10 +5793,10 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
    bool result = rpcMgr()->postRPCToProc(proc, rpc);
    if (!result) {
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
-      return Thread::ptr();
+      return false;
    }
    llproc_->throwNopEvent();
-	return rpc->thread()->thread();
+	return true;
 }
 
 bool Process::getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const

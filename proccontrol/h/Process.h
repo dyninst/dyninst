@@ -376,7 +376,7 @@ class PC_EXPORT Process : public dyn_enable_shared_from_this<Process>
     * Post IRPC.  Use continueProc/continueThread to run it,
     * and handleEvents to wait for a blocking IRPC to complete
     **/
-   dyn_shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
+   bool postIRPC(IRPC::ptr irpc) const;
 	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**

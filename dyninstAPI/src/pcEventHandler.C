@@ -178,7 +178,7 @@ void PCEventHandler::main() {
                 FILE__, __LINE__);
 
 #if !defined(os_windows)
-		int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
+        int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
         fd_set readset; FD_ZERO(&readset);
         fd_set writeset; FD_ZERO(&writeset);
         fd_set exceptset; FD_ZERO(&exceptset);
@@ -504,21 +504,21 @@ PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
 
 PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
 	eventHandlingLock.lock();
-    bool handledEvent = false;
-
-    // Empty the mailbox before returning
-    Event::const_ptr newEvent;
-    while( (newEvent = eventMailbox_->dequeue(block && !handledEvent)) ) {
-        if( !eventMux(newEvent) ) {
-            proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
-                               FILE__, __LINE__, newEvent->getEventType().name().c_str());
-            return Error;
-        }
-        handledEvent = true;
-    }
-
-    return (handledEvent ? EventsReceived : NoEvents);
-	eventHandlingLock.unlock();
+   bool handledEvent = false;
+   
+   // Empty the mailbox before returning
+   Event::const_ptr newEvent;
+   while( (newEvent = eventMailbox_->dequeue(block && !handledEvent)) ) {
+      if( !eventMux(newEvent) ) {
+         proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
+                            FILE__, __LINE__, newEvent->getEventType().name().c_str());
+         eventHandlingLock.unlock();
+         return Error;
+      }
+      handledEvent = true;
+   }
+   eventHandlingLock.unlock();
+   return (handledEvent ? EventsReceived : NoEvents);
 }
 
 bool PCEventHandler::eventMux(Event::const_ptr ev) const {

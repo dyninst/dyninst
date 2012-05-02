@@ -771,6 +771,10 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    return ret_success;
 }
 
+int HandleForceTerminate::getPriority() const {
+   return PostCallbackPriority;
+}
+
 HandlePreExit::HandlePreExit() :
    Handler("Pre Exit")
 {

@@ -732,7 +732,7 @@ bool int_iRPC::saveRPCState()
                    thrd->llproc()->getPid(), thrd->getLWP());
       allocation()->orig_data = (char *) malloc(allocSize());
       memsave_result = mem_response::createMemResponse((char *) allocation()->orig_data, allocSize());
-	  bool result = thrd->llproc()->readMem(addr(), memsave_result, (thrd->isRPCEphemeral() ? thrd : NULL));
+      bool result = thrd->llproc()->readMem(addr(), memsave_result, (thrd->isRPCEphemeral() ? thrd : NULL));
       assert(result);
    }
 
