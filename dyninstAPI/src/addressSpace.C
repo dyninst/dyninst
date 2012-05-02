@@ -1688,42 +1688,34 @@ bool AddressSpace::relocate() {
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
-    assert(iter->first);
 
-    bool repeat;
-    FuncSet checkFuncs;
-    checkFuncs.insert(iter->second.begin(), iter->second.end());
-    do { // add overlapping functions in a fixpoint calculation
+     mapped_object *obj = iter->first;
+     FuncSet &modFuncs = iter->second;
+
+     bool repeat = false;
+
+     do { // add overlapping functions in a fixpoint calculation
         repeat = false;
+        unsigned int num = modFuncs.size();
         FuncSet overlappingFuncs;
-        for (FuncSet::iterator iter2 = checkFuncs.begin(); iter2 != checkFuncs.end(); ++iter2) {
-           (*iter2)->getOverlappingFuncs(overlappingFuncs);
+        for (FuncSet::iterator iter2 = modFuncs.begin(); iter2 != modFuncs.end(); ++iter2) {
+           block_instance *entry = (*iter2)->entryBlock();
+           entry->getFuncs(std::inserter(overlappingFuncs,overlappingFuncs.begin()));
         }
-        // init checkFuncs for next iteration
-        unsigned int prevSize = iter->second.size();
-        checkFuncs.clear();
-        checkFuncs.insert(overlappingFuncs.begin(), overlappingFuncs.end());
-        for (FuncSet::iterator iter2=iter->second.begin(); 
-             iter2 != iter->second.end(); 
-             iter2++) 
-        {
-            checkFuncs.erase(*iter2);
+        modFuncs.insert(overlappingFuncs.begin(), overlappingFuncs.end());
+        if (num < modFuncs.size()) {
+           repeat = true;
         }
-        // add overlapping funcs, if any
-        iter->second.insert(overlappingFuncs.begin(), overlappingFuncs.end());
-        if (prevSize < iter->second.size()) {
-            repeat = true;
-        }
-    } while (repeat);
-
-    addModifiedRegion(iter->first);
-
-    Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
-
-    if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
-      ret = false;
-    }
-
+     } while (repeat);
+     
+     addModifiedRegion(iter->first);
+     
+     Address middle = (iter->first->codeAbs() + (iter->first->imageSize() / 2));
+     
+     if (!relocateInt(iter->second.begin(), iter->second.end(), middle)) {
+        ret = false;
+     }
+     
   }
 
   updateMemEmulator();
