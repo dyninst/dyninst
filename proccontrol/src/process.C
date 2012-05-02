@@ -3863,7 +3863,6 @@ void int_threadPool::noteUpdatedLWP(int_thread *thrd)
 	}
 }
 
-
 void int_threadPool::clear()
 {
    threads.clear();
@@ -5750,12 +5749,15 @@ bool Process::launchIRPC(IRPC::ptr irpc)
    int_process *proc = llproc();
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
    rpc->setAsync(false);
+
    bool result = rpcMgr()->postRPCToProc(proc, rpc);
    if (!result) {
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return false;
    }
-   int_thread::State old_state = rpc->thread()->getUserState().getState();
+
+   int_thread::State user_state = rpc->thread()->getUserState().getState();
+   rpc->setRestoreToState(user_state);
 
    result = rpc->thread()->getUserState().setState(int_thread::running);
    if (!result) {

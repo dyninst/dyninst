@@ -195,6 +195,9 @@ class int_iRPC : public dyn_enable_shared_from_this<int_iRPC>
    void setMallocResult(Dyninst::Address addr);
    rpc_wrapper *getWrapperForDecode();
    Address getInfFreeTarget();
+
+   int_thread::State getRestoreToState() const;
+   void setRestoreToState(int_thread::State s);
  private:
    static unsigned long next_id;
    unsigned long my_id;
@@ -215,6 +218,7 @@ class int_iRPC : public dyn_enable_shared_from_this<int_iRPC>
    bool counted_sync;
    int lock_live;
    Dyninst::Address malloc_result;
+   int_thread::State restore_at_end;
 
    mem_response::ptr memsave_result;
    allreg_response::ptr regsave_result;
@@ -257,6 +261,15 @@ class iRPCHandler : public Handler
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual int getPriority() const;
+};
+
+class iRPCPreCallbackHandler : public Handler
+{
+  public:
+   iRPCPreCallbackHandler();
+   virtual ~iRPCPreCallbackHandler();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 class iRPCLaunchHandler : public Handler
