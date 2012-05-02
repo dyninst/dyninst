@@ -481,7 +481,7 @@ class Symtab : public LookupInterface,
 
    std::vector<Symbol *> everyDefinedSymbol;
    // Subset of the above
-   std::vector<Symbol *> userAddedSymbols;
+   std::set<Symbol *> userAddedSymbols;
 
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
