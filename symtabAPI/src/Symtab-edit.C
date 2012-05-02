@@ -146,7 +146,7 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
     }
 
     // userAddedSymbols
-    userAddedSymbols.erase(std::remove(userAddedSymbols.begin(), userAddedSymbols.end(), sym), userAddedSymbols.end());
+    userAddedSymbols.erase(sym);
     undefDynSymsByMangledName[sym->getMangledName()].erase(std::remove(undefDynSymsByMangledName[sym->getMangledName()].begin(),
                                                                        undefDynSymsByMangledName[sym->getMangledName()].end(), sym),
                                                            undefDynSymsByMangledName[sym->getMangledName()].end());
@@ -296,7 +296,7 @@ bool Symtab::addSymbol(Symbol *newSym)
    addSymbolToAggregates(newSym);
    
    // And to "new symbols added by user"
-   userAddedSymbols.push_back(newSym);
+   userAddedSymbols.insert(newSym);
    
    return true;
 }
