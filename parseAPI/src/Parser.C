@@ -96,6 +96,9 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) 
     // allocate a sink block -- region is arbitrary
     _sink = _cfgfact._mksink(&_obj,copy[0]);
 
+    // initialize variable for tracking delayed frames
+    num_delayedFrames = 0;
+
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
     for(unsigned i=1;i<copy.size();++i) {
@@ -391,6 +394,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 
     /* Recursive traversal parsing */ 
     while(!work.empty()) {
+        
         pf = work.back();
         work.pop_back();
 
@@ -430,11 +434,13 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                     // XXX should never get here
                     //parsing_printf("    recursive parsing disabled\n");
                 }
+
                 break;
             }
             case ParseFrame::PARSED:
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
                     FILE__,pf->func->addr(),pf->func->_rs);
+
                 if (unlikely( _obj.defensiveMode() && 
                               TAMPER_NONE != pf->func->tampersStack() &&
                               TAMPER_NONZERO != pf->func->tampersStack() ))
@@ -442,15 +448,146 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                     // or trigger parsing in a separate target CodeObject
                     tamper_post_processing(work,pf);
                 }
+                
+                /* add waiting frames back onto the worklist */
+                resumeFrames(pf->func, work);
+                
                 pf->cleanup();
                 break;
             case ParseFrame::FRAME_ERROR:
                 parsing_printf("[%s] frame %lx error at %lx\n",
                     FILE__,pf->func->addr(),pf->curAddr);
                 break;
+            case ParseFrame::FRAME_DELAYED: {
+                parsing_printf("[%s] frame %lx delayed at %lx\n",
+                        FILE__,
+                        pf->func->addr(),
+                       pf->curAddr);
+                
+                if (pf->delayedWork.size()) {
+                    // Add frame to global delayed list
+                    map<ParseWorkElem *, Function *>::iterator iter;
+                    map<Function *, set<ParseFrame *> >::iterator fIter;
+                    for (iter = pf->delayedWork.begin();
+                            iter != pf->delayedWork.end();
+                            ++iter) {
+
+                        Function * ct = iter->second;
+                        parsing_printf("[%s] waiting on %s\n",
+                                __FILE__,
+                                ct->name().c_str());
+
+                        fIter = delayedFrames.find(ct);
+                        if (fIter == delayedFrames.end()) {
+                            std::set<ParseFrame *> waiters;
+                            waiters.insert(pf);
+                            delayedFrames[ct] = waiters;
+                        } else {
+                            delayedFrames[ct].insert(pf);
+                        }
+                    }
+                } else {
+                    // We shouldn't get here
+                    assert(0 && "Delayed frame with no delayed work");
+                }
+                
+                /* if the return status of this function has been updated, add
+                 * waiting frames back onto the work list */
+                resumeFrames(pf->func, work);
+                break;
+            }
             default:
                 assert(0 && "invalid parse frame status");
         }
+    }
+
+    // Use fixed-point to ensure we parse frames whose parsing had to be delayed
+    if (delayedFrames.size() == 0) {
+        // Done!
+        parsing_printf("[%s] Fixed point reached (0 funcs with unknown return status)\n)",
+                __FILE__);
+        num_delayedFrames = 0;
+    } else if (delayedFrames.size() == num_delayedFrames) {
+        // If we've reached a fixedpoint and have remaining frames, we must
+        // have a cyclic dependency
+        parsing_printf("[%s] Fixed point reached (%d funcs with unknown return status)\n", 
+                __FILE__, 
+                delayedFrames.size());
+
+        // Mark UNSET functions in cycle as NORETURN
+        map<Function *, set<ParseFrame *> >::iterator iter;
+        vector<Function *> updated;
+        for (iter = delayedFrames.begin(); iter != delayedFrames.end(); ++iter) {
+            Function * func = iter->first;
+            if (func->retstatus() == UNSET) {
+                func->set_retstatus(NORETURN);
+                updated.push_back(func);
+            } 
+
+            set<ParseFrame *> vec = iter->second;
+            set<ParseFrame *>::iterator vIter;
+            for (vIter = vec.begin(); vIter != vec.end(); ++vIter) {
+                Function * delayed = (*vIter)->func;
+                if (delayed->retstatus() == UNSET) {
+                    delayed->set_retstatus(NORETURN);
+                    updated.push_back(func);
+                }
+            }
+        }
+
+        // We should have updated the return status of one or more frames; recurse
+        if (updated.size()) {
+            for (vector<Function *>::iterator uIter = updated.begin();
+                    uIter != updated.end();
+                    ++uIter) {
+                resumeFrames((*uIter), work);
+            }
+
+            if (work.size()) {
+                parsing_printf("[%s] Updated retstatus of delayed frames, trying again; work.size() = %d\n",
+                        __FILE__,
+                        work.size());
+                parse_frames(work, true);
+            }
+        } else {
+            // We shouldn't get here
+            parsing_printf("[%s] No more work can be done (%d funcs with unknown return status)\n",
+                    __FILE__, 
+                    delayedFrames.size());
+            assert(0);
+        }
+    } else {
+        // We haven't yet reached a fixedpoint; let's recurse
+        parsing_printf("[%s] Fixed point not yet reached (%d funcs with unknown return status)\n", 
+                __FILE__,
+                delayedFrames.size());
+
+        // Update num_delayedFrames for next iteration 
+        num_delayedFrames = delayedFrames.size();
+
+        // Check if we can resume any frames yet
+        vector<Function *> updated;
+        for (map<Function *, set<ParseFrame *> >::iterator iter = delayedFrames.begin(); 
+                iter != delayedFrames.end(); 
+                ++iter) {
+            if (iter->first->_rs != UNSET) {
+                updated.push_back(iter->first);
+            }
+        }
+
+        if (updated.size()) {
+            for (vector<Function *>::iterator uIter = updated.begin();
+                    uIter != updated.end();
+                    ++uIter) {
+                resumeFrames((*uIter), work);
+            }
+        }
+
+        // Recurse through parse_frames        
+        parsing_printf("[%s] Calling parse_frames again, work.size() = %d\n", 
+                __FILE__,
+                work.size());
+        parse_frames(work, true);
     }
 
     for(unsigned i=0;i<frames.size();++i) {
@@ -707,12 +844,30 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
+        // Pull work that can be resumed off the delayedWork list
+        std::map<ParseWorkElem *, Function *>::iterator iter;
+        
+        vector<ParseWorkElem *> updated;
+        vector<ParseWorkElem *>::iterator uIter;
+
+        for (iter = frame.delayedWork.begin();
+                iter != frame.delayedWork.end();
+                ++iter) {
+            if (iter->second->_rs != UNSET) {
+                frame.pushWork(iter->first);
+                updated.push_back(iter->first);
+            }
+        }
+        for (uIter = updated.begin(); uIter != updated.end(); ++uIter) {
+            frame.delayedWork.erase(*uIter);
+        }
     }
 
 
     frame.set_status(ParseFrame::PROGRESS);
 
     while(!worklist.empty()) {
+        
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
 
@@ -787,8 +942,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     
             continue;
         } else if(work->order() == ParseWorkElem::call_fallthrough) {
-
-			// check associated call edge's return status
+            
+            // check associated call edge's return status
             Edge * ce = bundle_call_edge(work->bundle());
             if(!ce) {
                 // odd; no call edge in this bundle
@@ -801,6 +956,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 bool is_plt = false;
                 bool is_nonret = false;
 
+                // check if associated call edge's return status is still unknown
+                if (ct && (ct->_rs == UNSET) ) {
+                    // Delay parsing until we've finished the corresponding call edge
+                    parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
+                            __FILE__,
+                            work->edge()->src()->lastInsnAddr(),
+                            ct->name().c_str());
+
+                    // Add work to ParseFrame's delayed list
+                    frame.pushDelayedWork(work, ct);
+
+                    // Continue other work for this frame
+                    continue; 
+                }
+                
                 is_plt = HASHDEF(plt_entries,target);
    
                 // CodeSource-defined tests 
@@ -1169,6 +1339,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
             ah.advance();
         }
+    }
+
+    // Check if parsing is complete
+    if (!frame.delayedWork.empty()) {
+        frame.set_status(ParseFrame::FRAME_DELAYED);
+        return; 
     }
 
     /** parsing complete **/
@@ -1671,3 +1847,41 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
                        FILE__,__LINE__,b->start(),b->end(),po->addr());
     }   
 }
+
+/* Add ParseFrames waiting on func back to the work queue */
+void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
+{
+    // If we do not know the function's return status, don't put its waiters back on the worklist
+    if (func->_rs == UNSET) { 
+        parsing_printf("[%s] %s return status unknown, cannot resume waiters\n",
+                __FILE__,
+                func->name().c_str());
+        return; 
+    }
+
+    // When a function's return status is set, all waiting frames back into the worklist
+    map<Function *, set<ParseFrame *> >::iterator iter = delayedFrames.find(func);
+    if (iter == delayedFrames.end()) {
+        // There were no frames waiting, ignore
+        parsing_printf("[%s] %s return status %d, no waiters\n",
+                __FILE__,
+                func->name().c_str(),
+                func->_rs);
+        return;
+    } else {
+        parsing_printf("[%s] %s return status %d, undelaying waiting functions\n",
+                __FILE__,
+                func->name().c_str(),
+                func->_rs);
+        // Add each waiting frame back to the worklist
+        set<ParseFrame *> vec = iter->second;
+        for (set<ParseFrame *>::iterator fIter = vec.begin(); 
+                fIter != vec.end();
+                ++fIter) {
+            work.push_back(*fIter);
+        }
+        // remove func from delayedFrames map
+        delayedFrames.erase(func);
+    }
+}
+

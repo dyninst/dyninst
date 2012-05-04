@@ -78,6 +78,10 @@ class Parser {
     // All allocated frames
     vector<ParseFrame *> frames;
 
+    // Delayed frames
+    unsigned num_delayedFrames;
+    std::map<Function *, std::set<ParseFrame *> > delayedFrames;
+
     // differentiate those provided via hints and
     // those found through RT or speculative parsing
     vector<Function *> hint_funcs;
@@ -176,6 +180,8 @@ class Parser {
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
 
+    void resumeFrames(Function * func, vector<ParseFrame *> & work);
+    
     // defensive parsing details
     void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);

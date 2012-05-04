@@ -62,7 +62,8 @@ class ParseFrame {
         CALL_BLOCKED,
         PARSED,
         FRAME_ERROR,
-        BAD_LOOKUP  // error for lookups that return Status
+        BAD_LOOKUP,  // error for lookups that return Status
+        FRAME_DELAYED // discovered cyclic dependency, delaying parse
     };
 
     /* worklist details */
@@ -94,11 +95,17 @@ class ParseFrame {
         return ret;
     }
 
+    void pushDelayedWork(ParseWorkElem * elem, Function * ct) {
+        delayedWork.insert(make_pair(elem, ct));
+    }
+
     void cleanup();
 
-    worklist_t worklist; 
+    worklist_t worklist;
+   
+    // Delayed work elements 
+    std::map<ParseWorkElem *, Function *> delayedWork;
 
-    
     dyn_hash_map<Address, Block*> leadersToBlock;  // block map
     Address curAddr;                           // current insn address
     unsigned num_insns;
