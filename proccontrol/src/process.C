@@ -273,7 +273,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
       bool local_should_sync = false;
       pthrd_printf("Calling plat_attach for process %d\n", proc->getPid());
-      bool result = proc->plat_attach(allStopped, should_sync);
+      bool result = proc->plat_attach(allStopped, local_should_sync);
       if (!result) {
          pthrd_printf("Failed to plat_attach to %d\n", proc->getPid());
          procs.erase(i++);
