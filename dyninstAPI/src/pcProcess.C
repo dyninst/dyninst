@@ -418,6 +418,8 @@ bool PCProcess::bootstrapProcess() {
         return false;
     }
 
+    bootstrapState_ = bs_loadedRTLib;
+
     pdvector<int_variable *> obsCostVec;
     if( !findVarsByAll("DYNINSTobsCostLow", obsCostVec) ) {
         startup_printf("%s[%d]: failed to find DYNINSTobsCostLow\n",
@@ -1639,10 +1641,10 @@ static const Address ADDRESS_HI = ((Address)~((Address)0));
 Address PCProcess::inferiorMalloc(unsigned size, inferiorHeapType type,
                                   Address near_, bool *err) 
 {
-	if(bootstrapState_ != bs_initialized)
-	{
-      return pcProc_->mallocMemory(size);
-	}
+   if(bootstrapState_ <= bs_readyToLoadRTLib) {
+      return 0;
+   }
+
     enum MallocAttempt {
         AsIs = 0,
         DeferredFree = 1, // compact free blocks
@@ -1751,9 +1753,9 @@ void PCProcess::inferiorFree(Dyninst::Address item) {
 }
 
 bool PCProcess::inferiorRealloc(Dyninst::Address item, unsigned int newSize) {
-	if(bootstrapState_ != bs_initialized) {
+	if(bootstrapState_ <= bs_readyToLoadRTLib) {
       return true;
-	}
+   }
    return inferiorReallocInternal(item, newSize);
 }
 
@@ -2231,7 +2233,11 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         }
         newRPC->memoryAllocated = true;
     }
-    newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr, !synchronous);
+
+    if (addr)
+       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr, !synchronous);
+    else
+       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), !synchronous);
 
     newRPC->rpc->setData(newRPC);
 
