@@ -567,6 +567,7 @@ bool ProcControlComponent::initializeConnectionInfo(Process::const_ptr proc)
 bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 {
    bool error = false;
+   bool result;
 
    if (group->procmode == MultiProcess)
       num_processes = getNumProcs(param);
@@ -574,7 +575,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       num_processes = 1;
    
 #if defined(USE_SOCKETS)
-   bool result = setupServerSocket(param);
+   result = setupServerSocket(param);
    if (!result) {
       logerror("Failed to setup server side socket\n");
       return false;
@@ -967,7 +968,7 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
    char *socket_type = "inet_socket";
 #else
    snprintf(sockname, 1023, "/tmp/pct%d", getpid());
-   char *socket_type = "un_socket";
+   const char *socket_type = "un_socket";
 #endif
    param["socket_type"] = new ParamString(socket_type);
    param["socket_name"] = new ParamString(strdup(sockname));
@@ -978,9 +979,6 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
 #if defined(USE_PIPES)
 bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &param)
 {
-   if (connectt != named_pipe)
-      return true;
-
    char pid_cstr[64];
    snprintf(pid_cstr, 64, "%u", proc->getPid());
    string pid_str(pid_cstr);
@@ -1334,7 +1332,7 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
-#if !defined(USE_PIPES)
+#if defined(USE_PIPES)
 bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
    if (!create_pipes(p, true))
