@@ -46,6 +46,11 @@ void bp_func()
    do_nothing++;
 }
 
+#if defined(os_bgq_test)
+static void *findUnallocatedMemory() {
+   return (void *) 0x4000;
+}
+#elif !defined(os_windows_test)
 #include <sys/mman.h>
 static void *findUnallocatedMemory() {
    //Return something the mutator can pass to mallocMemory
@@ -53,7 +58,7 @@ static void *findUnallocatedMemory() {
    int iresult;
    unsigned pagesize = getpagesize();
    result = mmap(NULL, pagesize, PROT_READ|PROT_WRITE,
-                 MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+                 M, 0, 0);
    if (result == (void *) -1) {
       perror("mmap failure");
       output->log(STDERR, "Failed to mmap memory\n");
@@ -67,6 +72,9 @@ static void *findUnallocatedMemory() {
    //This memory in now guarenteed available and unmapped.
    return result;
 }
+#else
+#error Fill in findUnallocatedMemory on this platform
+#endif
 
 static int waitfor_sync(int myid) {
    syncloc msg;
