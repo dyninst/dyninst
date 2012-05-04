@@ -98,7 +98,7 @@ class AddressSet
    /**
     * Standard iterators methods and container access
     **/
-   typedef pair<Address, Process::ptr> value_type;
+   typedef std::pair<Address, Process::ptr> value_type;
    typedef std::multimap<Dyninst::Address, Process::ptr>::iterator iterator;
    typedef std::multimap<Dyninst::Address, Process::ptr>::const_iterator const_iterator;
 
@@ -134,10 +134,10 @@ class AddressSet
     **/
    iterator lower_bound(Dyninst::Address a);
    iterator upper_bound(Dyninst::Address a);
-   pair<iterator, iterator> equal_range(Dyninst::Address a);
+   std::pair<iterator, iterator> equal_range(Dyninst::Address a);
    const_iterator lower_bound(Dyninst::Address a) const;
    const_iterator upper_bound(Dyninst::Address a) const;
-   pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
+   std::pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
 
    /**
     * Return a new set by performing these set operations with another AddressSet

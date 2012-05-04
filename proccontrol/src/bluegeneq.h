@@ -191,7 +191,7 @@ class bgq_process :
    static uint8_t priority;
 };
 
-class bgq_thread : public thread_db_thread
+class bgq_thread : public thread_db_thread, ppc_thread
 {
   private:
    bool last_signaled;
