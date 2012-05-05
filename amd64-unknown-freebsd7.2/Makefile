@@ -33,8 +33,6 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 # without the libdl)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
-MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -Damd64_unknown_freebsd7_0 -DF77 -fno-second-underscore -g

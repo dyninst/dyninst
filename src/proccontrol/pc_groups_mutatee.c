@@ -58,7 +58,7 @@ static void *findUnallocatedMemory() {
    int iresult;
    unsigned pagesize = getpagesize();
    result = mmap(NULL, pagesize, PROT_READ|PROT_WRITE,
-                 M, 0, 0);
+                 MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
    if (result == (void *) -1) {
       perror("mmap failure");
       output->log(STDERR, "Failed to mmap memory\n");

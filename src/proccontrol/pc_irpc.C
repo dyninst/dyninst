@@ -536,9 +536,6 @@ void pc_irpcMutator::runIRPCs() {
 
 Process::cb_ret_t on_irpc(Event::const_ptr ev) 
 {
-   bool is_stopped = ev->getThread()->isStopped();
-   printf("Thread is stopped: %s\n", is_stopped ? "true" : "false");
-
    IRPC::const_ptr irpc = ev->getEventRPC()->getIRPC();
    std::map<IRPC::const_ptr, rpc_data_t *>::iterator i = rpc_to_data.find(irpc);
    if (i == rpc_to_data.end()) {
