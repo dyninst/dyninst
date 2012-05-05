@@ -3140,10 +3140,12 @@ compiler_static_link('bg_gcc', P, '-static') :- platform(_,'bluegene', 'bluegene
 compiler_static_link('bgq_g++', P, '-static') :- platform(_, _, 'bluegeneq', P).
 compiler_static_link('bgq_gcc', P, '-static') :- platform(_, _, 'bluegeneq', P).
 
-compiler_dynamic_link('bg_g++', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bg_gcc', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bgq_g++', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
-compiler_dynamic_link('bgq_gcc', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bg_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bg_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
+compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
 
 
 % Specify the standard flags for each compiler
