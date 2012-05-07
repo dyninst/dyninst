@@ -203,28 +203,28 @@ void response::setProcess(int_process *p)
 result_response::ptr response::getResultResponse()
 {
    return resp_type == rt_result ? 
-      dyn_static_pointer_cast<result_response>(shared_from_this()) :
+      boost::static_pointer_cast<result_response>(shared_from_this()) :
       result_response::ptr();
 }
 
 mem_response::ptr response::getMemResponse()
 {
    return resp_type == rt_mem ? 
-      dyn_static_pointer_cast<mem_response>(shared_from_this()) :
+      boost::static_pointer_cast<mem_response>(shared_from_this()) :
       mem_response::ptr();
 }
 
 reg_response::ptr response::getRegResponse()
 {
    return resp_type == rt_reg ? 
-      dyn_static_pointer_cast<reg_response>(shared_from_this()) :
+      boost::static_pointer_cast<reg_response>(shared_from_this()) :
       reg_response::ptr();
 }
 
 allreg_response::ptr response::getAllRegResponse()
 {
    return resp_type == rt_allreg ? 
-      dyn_static_pointer_cast<allreg_response>(shared_from_this()) :
+      boost::static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
 }
 

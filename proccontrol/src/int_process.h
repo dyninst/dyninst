@@ -68,7 +68,7 @@ class int_iRPC;
 typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
 
-typedef dyn_shared_ptr<int_iRPC> int_iRPC_ptr;
+typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 
 typedef std::list<int_iRPC_ptr> rpc_list_t;
@@ -1155,19 +1155,19 @@ struct clearError {
    }
 
    template <class T>
-   void operator()(const pair<T, Process::const_ptr> &v) {
+   void operator()(const std::pair<T, Process::const_ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::const_ptr, T> &v) {
+   void operator()(const std::pair<Process::const_ptr, T> &v) {
       v.first->clearLastError();
    }
    template <class T>
-   void operator()(const pair<T, Process::ptr> &v) {
+   void operator()(const std::pair<T, Process::ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::ptr, T> &v) {
+   void operator()(const std::pair<Process::ptr, T> &v) {
       v.first->clearLastError();
    }
 };

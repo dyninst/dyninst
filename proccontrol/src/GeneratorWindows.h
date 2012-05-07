@@ -36,7 +36,7 @@ class GeneratorWindows : public GeneratorMT
    };
    struct processData
    {
-	   typedef dyn_detail::boost::shared_ptr<processData> ptr;
+	   typedef boost::shared_ptr<processData> ptr;
 	   bool unhandled_exception;
 	   int_process* proc;
 	   state_t state;

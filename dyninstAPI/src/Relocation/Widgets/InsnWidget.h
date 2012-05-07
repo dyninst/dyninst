@@ -42,7 +42,7 @@ namespace Relocation {
 
 class InsnWidget : public Widget {
  public:
-  typedef dyn_shared_ptr<InsnWidget> Ptr;
+  typedef boost::shared_ptr<InsnWidget> Ptr;
 
   virtual bool generate(const codeGen &,
                         const RelocBlock *,

@@ -78,7 +78,7 @@ Handler::handler_ret_t WinHandleSingleStep::handleEvent(Event::ptr ev)
 	int_thread* t = ev->getThread()->llthrd();
 	assert(t);
 	t->setSingleStepMode(false);
-	installed_breakpoint* bp = t->isClearingBreakpoint();
+	bp_instance* bp = t->isClearingBreakpoint();
 	Dyninst::THR_ID tid;
 	t->getTID(tid);
 	if(bp) {
@@ -141,7 +141,7 @@ Handler::handler_ret_t WindowsHandleNewThr::handleEvent(Event::ptr ev)
 	ProcPool()->condvar()->unlock();
 	assert(thr);
                                         
-   WinEventNewThread::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventNewThread>(ev);
+   WinEventNewThread::ptr we = boost::shared_dynamic_cast<WinEventNewThread>(ev);
    if(we)
    {
 		pthrd_printf("WinHandleCreateThread handling thread creation for thread %d, handle %x\n",
@@ -336,7 +336,7 @@ Handler::handler_ret_t WindowsHandleSetThreadInfo::handleEvent( Event::ptr ev )
 {
 	windows_thread *thr = static_cast<windows_thread*>(ev->getThread()->llthrd());
                                         
-   WinEventThreadInfo::ptr we = dyn_detail::boost::shared_dynamic_cast<WinEventThreadInfo>(ev);
+   WinEventThreadInfo::ptr we = boost::shared_dynamic_cast<WinEventThreadInfo>(ev);
    if(we)
    {
 	   ProcPool()->rmThread(thr);

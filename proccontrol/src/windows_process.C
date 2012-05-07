@@ -179,7 +179,7 @@ bool windows_process::plat_create_int()
 	}
 	return result ? true : false;
 }
-bool windows_process::plat_attach(bool)
+bool windows_process::plat_attach(bool, bool &)
 {
 	wasCreatedViaAttach(true);
 	GeneratorWindows* gen = static_cast<GeneratorWindows*>(Generator::getDefaultGenerator());

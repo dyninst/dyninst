@@ -125,7 +125,7 @@ namespace Dyninst
       return false;
     }
     RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
-        const RegisterAST::Ptr r = dyn_dynamic_pointer_cast<RegisterAST>(regPtr);
+		const RegisterAST::Ptr r = boost::dynamic_pointer_cast<RegisterAST>(regPtr);
         return RegisterAST::promote(r.get());
     }
     MachRegister RegisterAST::getPromotedReg() const

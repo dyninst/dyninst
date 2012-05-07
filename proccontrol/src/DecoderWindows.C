@@ -4,7 +4,7 @@
 #include "windows_thread.h"
 #include "ProcPool.h"
 #include <iostream>
-#include "external/boost/scoped_ptr.hpp"
+#include "boost/scoped_ptr.hpp"
 #include "irpc.h"
 #include <psapi.h>
 #include "procControl/h/Mailbox.h"
@@ -117,7 +117,7 @@ Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* pro
 	if(!thread) return evt;
 
 	assert(thread->singleStep());
-	installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+	bp_instance *clearingbp = thread->isClearingBreakpoint();
 	if(clearingbp) {
 		pthrd_printf("Decoded event to breakpoint cleanup\n");
 		evt = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
@@ -142,7 +142,7 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 		return evt;
 	}
 
-	installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+	sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
 	if (ibp) {
 	   pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 

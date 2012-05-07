@@ -157,8 +157,8 @@ namespace Dyninst
     }    
     const Result& BinaryFunction::eval() const
     {
-        Expression::Ptr arg1 = dyn_dynamic_pointer_cast<Expression>(m_arg1);
-        Expression::Ptr arg2 = dyn_dynamic_pointer_cast<Expression>(m_arg2);
+        Expression::Ptr arg1 = boost::dynamic_pointer_cast<Expression>(m_arg1);
+        Expression::Ptr arg2 = boost::dynamic_pointer_cast<Expression>(m_arg2);
         if(arg1 && arg2)
         {
             Result x = arg1->eval();

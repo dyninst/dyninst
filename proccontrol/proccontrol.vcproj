@@ -314,6 +314,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\procset.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\response.C"
 				>
 				<FileConfiguration
@@ -433,6 +445,10 @@
 			</File>
 			<File
 				RelativePath=".\h\Process.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\ProcessSet.h"
 				>
 			</File>
 			<File

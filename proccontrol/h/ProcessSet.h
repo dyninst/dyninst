@@ -50,10 +50,10 @@ namespace ProcControlAPI {
 
 class ProcessSet;
 class ThreadSet;
-typedef dyn_shared_ptr<ProcessSet> ProcessSet_ptr;
-typedef dyn_shared_ptr<ThreadSet> ThreadSet_ptr;
-typedef dyn_shared_ptr<const ProcessSet> ProcessSet_const_ptr;
-typedef dyn_shared_ptr<const ThreadSet> ThreadSet_const_ptr;
+typedef boost::shared_ptr<ProcessSet> ProcessSet_ptr;
+typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
+typedef boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
+typedef boost::shared_ptr<const ThreadSet> ThreadSet_const_ptr;
 
 /**
  * AddressSet represents a set of Process/Address pairs.  It is used to 
@@ -69,19 +69,19 @@ typedef dyn_shared_ptr<const ThreadSet> ThreadSet_const_ptr;
  * Iteration over AddressSet is sorted by the Address. So, all Processes
  * that share an Address will appear together when iterating over the set.
  **/
-class AddressSet
+class PC_EXPORT AddressSet
 {
   private:
    int_addressSet *iaddrs;
-   friend void dyn_checked_delete<AddressSet>(AddressSet *);
+   friend void boost::checked_delete<AddressSet>(AddressSet *);
    friend class ProcessSet;
    AddressSet();
    ~AddressSet();
   public:
    int_addressSet *get_iaddrs() { return iaddrs; }
 
-   typedef dyn_shared_ptr<AddressSet> ptr;
-   typedef dyn_shared_ptr<AddressSet> const_ptr;
+   typedef boost::shared_ptr<AddressSet> ptr;
+   typedef boost::shared_ptr<AddressSet> const_ptr;
    
    /**
     * Create new Address sets
@@ -98,7 +98,7 @@ class AddressSet
    /**
     * Standard iterators methods and container access
     **/
-   typedef pair<Address, Process::ptr> value_type;
+   typedef std::pair<Address, Process::ptr> value_type;
    typedef std::multimap<Dyninst::Address, Process::ptr>::iterator iterator;
    typedef std::multimap<Dyninst::Address, Process::ptr>::const_iterator const_iterator;
 
@@ -134,10 +134,10 @@ class AddressSet
     **/
    iterator lower_bound(Dyninst::Address a);
    iterator upper_bound(Dyninst::Address a);
-   pair<iterator, iterator> equal_range(Dyninst::Address a);
+   std::pair<iterator, iterator> equal_range(Dyninst::Address a);
    const_iterator lower_bound(Dyninst::Address a) const;
    const_iterator upper_bound(Dyninst::Address a) const;
-   pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
+   std::pair<const_iterator, const_iterator> equal_range(Dyninst::Address a) const;
 
    /**
     * Return a new set by performing these set operations with another AddressSet
@@ -153,7 +153,7 @@ class AddressSet
  * perform collective operations on the entire set, which may be more effecient
  * than the equivalent sequential operations.
  **/
-class ProcessSet
+class PC_EXPORT ProcessSet
 {
    friend class ThreadSet;
   private:
@@ -162,10 +162,10 @@ class ProcessSet
    ProcessSet();
    ~ProcessSet();
 
-   friend void dyn_checked_delete<ProcessSet>(ProcessSet *);
+   friend void boost::checked_delete<ProcessSet>(ProcessSet *);
  public:
-   typedef dyn_shared_ptr<ProcessSet> ptr;
-   typedef dyn_shared_ptr<const ProcessSet> const_ptr;
+   typedef boost::shared_ptr<ProcessSet> ptr;
+   typedef boost::shared_ptr<const ProcessSet> const_ptr;
 
    /**
     * Create new ProcessSets from existing Process objects
@@ -210,7 +210,7 @@ class ProcessSet
    /**
     * Iterator and standard set utilities
     **/
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
       int_processSet::iterator int_iter;
@@ -218,18 +218,18 @@ class ProcessSet
      public:
       iterator();
       ~iterator();
-      Process::ptr operator*() const;
+	  Process::ptr operator*() const;
       bool operator==(const iterator &i) const;
       bool operator!=(const iterator &i) const;
       ProcessSet::iterator operator++();
       ProcessSet::iterator operator++(int);
    };
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ProcessSet;
      private:
       int_processSet::iterator int_iter;
-      const_iterator(int_processSet::iterator i);
+	  const_iterator(int_processSet::iterator i) : int_iter(i) {};
      public:
       const_iterator();
       ~const_iterator();
@@ -373,10 +373,10 @@ class ThreadSet {
    
    ThreadSet();
    ~ThreadSet();
-   friend void dyn_checked_delete<ThreadSet>(ThreadSet *);
+   friend void boost::checked_delete<ThreadSet>(ThreadSet *);
   public:
-   typedef dyn_shared_ptr<ThreadSet> ptr;
-   typedef dyn_shared_ptr<const ThreadSet> const_ptr;
+   typedef boost::shared_ptr<ThreadSet> ptr;
+   typedef boost::shared_ptr<const ThreadSet> const_ptr;
 
    /**
     * Create a new ThreadSet given existing threads

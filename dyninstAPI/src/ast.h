@@ -96,9 +96,9 @@ class image_variable;
 // with the lowest usage count.
 
 class AstNode;
-typedef dyn_shared_ptr<AstNode> AstNodePtr;
+typedef boost::shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
-typedef dyn_shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
+typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 typedef enum {
    cfj_unset = 0,

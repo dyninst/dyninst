@@ -44,11 +44,12 @@
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
 #include "dynptr.h"
+#include "boost/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
 
-typedef dyn_shared_ptr<AstNode> AstNodePtr;
+typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode;
 class BPatch_process;

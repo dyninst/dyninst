@@ -65,7 +65,7 @@ typedef std::map<block_instance *, Priority> PriorityMap;
 
 class CodeMover {
  public:
-  typedef dyn_shared_ptr<CodeMover> Ptr;
+  typedef boost::shared_ptr<CodeMover> Ptr;
   typedef std::set<func_instance *> FuncSet;
   typedef std::set<block_instance *> BlockSet;
 

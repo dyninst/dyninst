@@ -433,7 +433,7 @@ bool PCEventHandler::start() {
     }
 
     initCond_.lock();
-    thrd_.spawn(PCEventHandler::main_wrapper, this);
+	thrd_.spawn((DThread::initial_func_t) PCEventHandler::main_wrapper, this);
 
     // Wait for the callback thread to say its ready
     initCond_.wait();
