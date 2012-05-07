@@ -920,7 +920,7 @@ Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
    }
 
    if (ev->getEventType().code() == EventType::UserThreadDestroy &&
-       proc->plat_supportLWPPostDestroy() || proc->plat_supportLWPPreDestroy()) 
+       (proc->plat_supportLWPPostDestroy() || proc->plat_supportLWPPreDestroy())) 
    {
       //This is a user thread delete, but we still have an upcoming LWP 
       // delete.  Don't actually do anything yet.
@@ -2268,6 +2268,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandleDetach *hdetach = NULL;
    static HandleEmulatedSingleStep *hemulatedsinglestep = NULL;
    static iRPCHandler *hrpc = NULL;
+   static iRPCPreCallbackHandler *hprerpc = NULL;
    static HandlePreBootstrap* hprebootstrap = NULL;
    static iRPCLaunchHandler *hrpclaunch = NULL;
    if (!initialized) {
@@ -2287,6 +2288,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hbpclear = new HandleBreakpointClear();
       hbprestore = new HandleBreakpointRestore();
       hrpc = new iRPCHandler();
+      hprerpc = new iRPCPreCallbackHandler();
       hrpclaunch = new iRPCLaunchHandler();
       hlibrary = new HandleLibrary();
       hpostfork = new HandlePostFork();
@@ -2294,7 +2296,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
       hforceterm = new HandleForceTerminate();
-	  hprebootstrap = new HandlePreBootstrap();
+      hprebootstrap = new HandlePreBootstrap();
       hnop = new HandleNop();
       hdetach = new HandleDetach();
       hemulatedsinglestep = new HandleEmulatedSingleStep();
@@ -2317,6 +2319,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hbpclear);
    hpool->addHandler(hbprestore);
    hpool->addHandler(hrpc);
+   hpool->addHandler(hprerpc);
    hpool->addHandler(hlibrary);
    hpool->addHandler(hpostfork);
    hpool->addHandler(hpostforkcont);

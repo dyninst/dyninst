@@ -293,6 +293,7 @@ protected:
     typedef enum {
         bs_attached,
         bs_readyToLoadRTLib,
+        bs_loadedRTLib,
         bs_initialized // RT library has been loaded
     } bootstrapState_t;
     

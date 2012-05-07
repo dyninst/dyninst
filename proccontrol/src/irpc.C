@@ -70,6 +70,8 @@ int_iRPC::int_iRPC(void *binary_blob_,
    restore_internal(false),
    counted_sync(false),
    lock_live(0),
+   malloc_result(0),
+   restore_at_end(int_thread::none),
    directFree_(false),
    user_data(NULL)
 {
@@ -889,6 +891,16 @@ void int_iRPC::setRestoreInternal(bool b)
    restore_internal = b;
 }
 
+int_thread::State int_iRPC::getRestoreToState() const
+{
+   return restore_at_end;
+}
+
+void int_iRPC::setRestoreToState(int_thread::State s)
+{
+   restore_at_end = s;
+}
+
 bool iRPCMgr::isRPCTrap(int_thread *thr, Dyninst::Address addr)
 {
    bool result;
@@ -1122,6 +1134,34 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
    }
 
    return ret_success;
+}
+
+iRPCPreCallbackHandler::iRPCPreCallbackHandler() :
+   Handler("iRPC PreCallback Handler")
+{
+}
+
+iRPCPreCallbackHandler::~iRPCPreCallbackHandler()
+{
+}
+
+Handler::handler_ret_t iRPCPreCallbackHandler::handleEvent(Event::ptr ev)
+{
+   EventRPC *event = static_cast<EventRPC *>(ev.get());
+   int_iRPC::ptr rpc = event->getllRPC()->rpc;
+   
+   int_thread::State newstate = rpc->getRestoreToState();
+   if (newstate == int_thread::none)
+      return ret_success;
+
+   int_thread *thr = ev->getThread()->llthrd();
+   thr->getUserState().setState(newstate);
+   return ret_success;
+}
+
+void iRPCPreCallbackHandler::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+  etypes.push_back(EventType(EventType::None, EventType::RPC));
 }
 
 iRPCLaunchHandler::iRPCLaunchHandler() :
