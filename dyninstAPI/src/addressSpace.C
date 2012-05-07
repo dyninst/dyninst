@@ -1833,7 +1833,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           } else {
              // In original code; do a slow and painful lookup. 
              orig = curAddr;
-             mapped_object *obj = findObject(curAddr); assert(obj);
+             mapped_object *obj = findObject(curAddr);
+             if (!obj) break;
              block = obj->findOneBlockByAddr(curAddr);
              func = tframe.getFunc();
              offset = 0;
