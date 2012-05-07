@@ -166,7 +166,7 @@ struct socket_types
 	   sockaddr_t addr;
 	   memset(&addr, 0, sizeof(socket_types::sockaddr_t));
 	   addr.sin_family = AF_INET;
-	   addr.sin_port = htons(_getpid()); // FIXME: this will break parallel test_drivers on Windows, but better than a poor PID->port mapping
+	   addr.sin_port = htons((int) GetCurrentProcessId()); // FIXME: this will break parallel test_drivers on Windows, but better than a poor PID->port mapping
 	   return addr;
 	}
 	static bool recv(unsigned char *msg, unsigned msg_size, int sfd, HANDLE winsock_event, HANDLE notification_event)
@@ -490,6 +490,7 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    return proc;
 }
 
+#if !defined(os_windows_test)
 void setupSignalFD(ParameterDict &param)
 {
    int fds[2];
@@ -511,6 +512,7 @@ void resetSignalFD(ParameterDict &param)
       close(param["signal_fd_out"]->getInt());
    }
 }
+#endif
 
 static char socket_buffer[4096];
 static RunGroup *cur_group = NULL;
@@ -808,8 +810,9 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 {
    bool error = false;
    bool hasRunningProcs;
-
+#if !defined(os_bg_test) && !defined(os_windows_test)
    resetSignalFD(params);
+#endif
 
 #if defined(USE_SOCKETS)
    for(std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); ++i) {
@@ -1334,7 +1337,7 @@ bool ProcControlComponent::poll_for_events()
    return bresult;
 }
 
-#if !defined(USE_PIPES)
+#if defined(USE_PIPES)
 bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
    if (!create_pipes(p, true))
