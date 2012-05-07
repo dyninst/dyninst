@@ -103,7 +103,6 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
     typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
-
     
     
     BPatch_addressSpace *addSpace;
@@ -218,13 +217,13 @@ public:
                                              bool incUninstrumentable=false));
 
 
-    //  BPatch_module::createPointsAtAddr
+    //  BPatch_module::findPoints
     //
     //  Returns a vector of BPatch_points that correspond with the provided address, one
     //  per function that includes an instruction at that address. Will have one element
     //  if there is not overlapping code. 
     API_EXPORT(Int, (addr, points), 
-    bool, createPointsAtAddr, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
+    bool, findPoints, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
 
 
     // BPatch_module::dumpMangled

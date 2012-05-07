@@ -54,6 +54,7 @@
 #include "BPatch_statement.h"
 #include "BPatch_function.h" 
 #include "BPatch_point.h"
+#include "BPatch_object.h"
 
 #include "addressSpace.h"
 #include "debug.h"
@@ -92,8 +93,11 @@ BPatch_image::BPatch_image() :
  */
 BPatch_image::~BPatch_image()
 {
-   for (unsigned int i = 0; i < modlist.size(); i++) {
-      delete modlist[i];
+   for (ModMap::iterator iter = modmap.begin(); iter != modmap.end(); ++iter) {
+      delete iter->second;
+   }
+   for (ObjMap::iterator iter = objmap.begin(); iter != objmap.end(); ++iter) {
+      delete iter->second;
    }
 
    for (unsigned j = 0; j < removed_list.size(); j++) {
@@ -300,14 +304,34 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt()
 
       // We may have created a singleton module already -- check to see that we 
       // don't double-create
-      for (unsigned i = 0; i < modules.size(); i++ ) {
-         mapped_module *map_mod = modules[i];
+      for (unsigned j = 0; j < modules.size(); j++ ) {
+         mapped_module *map_mod = modules[j];
          findOrCreateModule(map_mod);
       }
    }
 
    return &modlist;
 } 
+
+void BPatch_image::getObjectsInt(std::vector<BPatch_object *> &objs) {
+   // Make sure modules are created; we don't delay these
+   getModules();
+
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   
+   for (unsigned i=0; i<as.size(); i++) {
+      const pdvector<mapped_object *> &objs = as[i]->mappedObjects();
+
+      for (unsigned j = 0; j < objs.size(); j++) {
+         findOrCreateObject(objs[j]);
+      }
+   }
+
+   for (ObjMap::iterator iter = objmap.begin(); iter != objmap.end(); ++iter) {
+      objs.push_back(iter->second);
+   }
+}
 
 /*
  * BPatch_image::findModule
@@ -326,8 +350,8 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
 
    BPatch_module *target = NULL;
 
-   for (unsigned int i = 0; i < modlist.size(); ++i) {
-      BPatch_module *mod = modlist[i];
+   for (ModMap::iterator iter = modmap.begin(); iter != modmap.end(); ++iter) {
+      BPatch_module *mod = iter->second;
       assert(mod);
       mod->getName(buf, 512); 
       if (substring_match) { 
@@ -953,26 +977,42 @@ int  BPatch_image::lpTypeInt()
 
 BPatch_module *BPatch_image::findModule(mapped_module *base) 
 {
-   BPatch_module *bpm = NULL;
-   for (unsigned j = 0; j < modlist.size(); j++) {
-      if (modlist[j]->lowlevel_mod() == base) {
-         bpm = modlist[j];
-         break;
-      }
-   }
-   return bpm;
+   ModMap::iterator iter = modmap.find(base);
+   if (iter != modmap.end()) return iter->second;
+   return NULL;
+}
+
+BPatch_object *BPatch_image::findObject(mapped_object *base) 
+{
+   std::map<mapped_object *, BPatch_object *>::iterator iter = objmap.find(base);
+   if (iter != objmap.end()) return iter->second;
+   return NULL;
 }
 
 BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) 
 {
    BPatch_module *bpm = findModule(base);
-   
+
    if (bpm == NULL) {
       bpm = new BPatch_module( addSpace, base->proc(), base, this );
-      modlist.push_back( bpm );
+      modmap[base] = bpm;
+      modlist.push_back(bpm);
+      assert(modmap.size() == modlist.size());
    }
    assert(bpm != NULL);
    return bpm;
+}
+
+BPatch_object *BPatch_image::findOrCreateObject(mapped_object *base) 
+{
+   BPatch_object *bpo = findObject(base);
+   
+   if (bpo == NULL) {
+      bpo = new BPatch_object( base, this );
+      objmap[base] = bpo;
+   }
+   assert(bpo != NULL);
+   return bpo;
 }
 
 
@@ -1090,27 +1130,20 @@ bool BPatch_image::parseNewFunctionsInt
 
 void BPatch_image::removeAllModules()
 {
-   BPatch_Vector<BPatch_module *>::iterator i;
-   for (i = modlist.begin(); i != modlist.end(); i++)
-   {
-      (*i)->handleUnload();
+   for (ModMap::iterator iter = modmap.begin(); iter != modmap.end(); ++iter) {
+      iter->second->handleUnload();
    }
+   modmap.clear();
    modlist.clear();
 }
 
 void BPatch_image::removeModule(BPatch_module *mod) 
 {
-#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
+   modmap.erase(mod->lowlevel_mod());
    modlist.erase(std::find(modlist.begin(),
-            modlist.end(),
-            mod));
-#else
-   for (unsigned j = 0; j < modlist.size(); j++) {
-      if (modlist[j] == mod) {
-         modlist.erase(j);
-      }
-   }
-#endif
+                           modlist.end(),
+                           mod));
+   assert(modmap.size() == modlist.size());
    mod->handleUnload();
 }
 
@@ -1291,14 +1324,14 @@ Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *i)
    return Dyninst::PatchAPI::convert(i->addSpace);
 }
 
-bool BPatch_image::createPointsAtAddrInt(Dyninst::Address addr,
+bool BPatch_image::findPointsInt(Dyninst::Address addr,
                                          std::vector<BPatch_point *> &points) {
    BPatch_Vector<BPatch_module *> *mods = getModules();
    
    bool ret = false;
 
    for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
-      if ((*mods)[i]->createPointsAtAddr(addr, points))
+      if ((*mods)[i]->findPoints(addr, points))
          ret = true;
    }
    return ret;

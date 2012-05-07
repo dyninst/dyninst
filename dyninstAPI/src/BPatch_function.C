@@ -643,12 +643,12 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
 }
 
 /*
- * BPatch_function::createPointAtAddr
+ * BPatch_function::findPoint
  *
  * Create a BPatch_point corresponding with the provided address.
  */
 
-BPatch_point *BPatch_function::createPointAtAddrInt(Dyninst::Address addr) {
+BPatch_point *BPatch_function::findPointInt(Dyninst::Address addr) {
    // Find the matching block and feed this into
 
    block_instance *llb = lowlevel_func()->getBlock(addr);

@@ -1060,7 +1060,7 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 }
 #endif
 
-bool BPatch_module::createPointsAtAddrInt(Dyninst::Address addr,
+bool BPatch_module::findPointsInt(Dyninst::Address addr,
                                           std::vector<BPatch_point *> &points) {
    mapped_object *obj = mod->obj();
    block_instance *blk = obj->findOneBlockByAddr(addr);

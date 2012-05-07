@@ -51,6 +51,7 @@ class process;
 class image;
 class int_variable;
 class BPatch_point;
+class BPatch_object;
 
 #ifdef IBM_BPATCH_COMPAT
 
@@ -87,6 +88,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     friend class BPatch_addressSpace;
     friend class BPatch_binaryEdit;
     friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_image *);
+    friend class BPatch_object;
 
     BPatch_variableExpr *findOrCreateVariable(int_variable *);
  public:
@@ -97,6 +99,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     BPatch_image(BPatch_addressSpace *addSpace);
     BPatch_image();
     BPatch_module *findModule(mapped_module *base);
+    BPatch_object *findObject(mapped_object *base);
     virtual ~BPatch_image();
     void getNewCodeRegions
         (std::vector<BPatch_function*>&newFuncs, 
@@ -170,6 +173,12 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  Returns a vector of all modules in this image
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_module *> *,getModules,());
+
+    //  BPatch_image::getObjects
+    //  
+    //  Returns a vector of all objects in this image
+    API_EXPORT_V(Int, (objs),
+                 void, getObjects, (std::vector<BPatch_object *> &objs));
 
     API_EXPORT(Int, (mods),
     bool,getModules,(BPatch_Vector<BPatch_module*> &mods));
@@ -249,13 +258,13 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     BPatch_type *,findType,(const char *name));
 
-    //  BPatch_image::createPointsAtAddr
+    //  BPatch_image::findPoints
     //
     //  Returns a vector of BPatch_points that correspond with the provided address, one
     //  per function that includes an instruction at that address. Will have one element
     //  if there is not overlapping code. 
     API_EXPORT(Int, (addr, points), 
-    bool, createPointsAtAddr, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
+    bool, findPoints, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
 
     //  BPatch_image::getAddressRanges
     //  
@@ -342,6 +351,7 @@ private:
     BPatch_module *defaultModule;
 
     BPatch_module *findOrCreateModule(mapped_module *base);
+    BPatch_object *findOrCreateObject(mapped_object *base);
     void removeModule(BPatch_module *mod);
     void removeAllModules();
 
@@ -349,7 +359,15 @@ private:
 #pragma warning(push)
 #pragma warning(disable:4251) 
 #endif
-    BPatch_Vector<BPatch_module *> modlist;
+    typedef std::map<mapped_module *, BPatch_module *> ModMap;
+    typedef std::map<mapped_object *, BPatch_object *> ObjMap;
+
+    ModMap modmap;
+    ObjMap objmap;
+
+    // Annoying backwards-compatible return type
+    std::vector<BPatch_module *> modlist;
+
     BPatch_Vector<BPatch_module *> removed_list;
     BPatch_Vector<BPatch_point *> unresolvedCF;
 #if defined(_MSC_VER)
