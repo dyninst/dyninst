@@ -546,7 +546,7 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
    rpc_data_t *rpcdata = i->second;
    Process::const_ptr proc = ev->getProcess();
    Thread::const_ptr lookup_thread;
-   if (post_to == post_to_proc && rpc_sync == rpc_use_postsync) {
+   if (post_to == post_to_proc) {
       lookup_thread = proc->threads().getInitialThread();
    }
    else {
@@ -554,7 +554,7 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
    }
    thread_info_t &t = tinfo[lookup_thread];
    if (rpcdata->assigned) {
-	   if (rpcdata->thread && rpcdata->thread != ev->getThread()) {
+	   if (post_to == post_to_thread && rpcdata->thread && rpcdata->thread != ev->getThread()) {
          logerror("callback and postIRPC disagree on RPC's thread\n");
          myerror = true;
          return Process::cbDefault;
@@ -585,11 +585,9 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
 
    assert(cur < t.rpcs.size());
    if (t.rpcs[cur] != rpcdata) {
-      if (!(post_time == post_from_callback && post_to==post_to_proc && thread_start == rpc_start_running)) 
+      if (post_to != post_to_proc)
       {
-         //These three conditions can combine to form a test level (not ProcControlAPI level) 
-         // race condition where we mess up the results of the order vector.  Fixing this would
-         // be hard, so I'm going to skip this test in this combo.
+         //post_to_proc scatters the rpcs across a multithreaded process.  No guarentee on order
          logerror("RPC ran out of order\n");
          myerror = true;
       }

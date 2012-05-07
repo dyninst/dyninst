@@ -80,6 +80,7 @@ platform_module(P, 'instruction') :- platform('power64', _, _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'linux', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'freebsd', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'bluegene', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'windows', _, P).
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -2450,7 +2451,9 @@ optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
 test('pc_hw_breakpoint', 'pc_hw_breakpoint', 'pc_hw_breakpoint').
 test_description('pc_hw_breakpoint', 'Test breakpoints').
-test_platform('pc_hw_breakpoint', Platform) :- pcPlatforms(Platform).
+test_platform('pc_hw_breakpoint', Platform) :- 
+   platform(Arch, 'linux', _, Platform),
+   member(Arch, ['x86_64', 'i386']).
 mutator('pc_hw_breakpoint', ['pc_hw_breakpoint.C']).
 test_runmode('pc_hw_breakpoint', 'dynamic').
 test_threadmode('pc_hw_breakpoint', 'Threading').
@@ -3138,10 +3141,12 @@ compiler_static_link('bg_gcc', P, '-static') :- platform(_,'bluegene', 'bluegene
 compiler_static_link('bgq_g++', P, '-static') :- platform(_, _, 'bluegeneq', P).
 compiler_static_link('bgq_gcc', P, '-static') :- platform(_, _, 'bluegeneq', P).
 
-compiler_dynamic_link('bg_g++', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bg_gcc', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bgq_g++', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
-compiler_dynamic_link('bgq_gcc', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bg_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bg_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
+compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
 
 
 % Specify the standard flags for each compiler
