@@ -51,7 +51,7 @@ class commInfo;
 //NUM_PARALLEL_PROCS is actually a maximum number across all platforms
 #define NUM_PARALLEL_PROCS 256
 
-class ProcControlComponent : public ComponentTester
+class COMPLIB_DLL_EXPORT ProcControlComponent : public ComponentTester
 {
 private:
    bool setupServerSocket(ParameterDict &param);
