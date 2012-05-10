@@ -472,9 +472,8 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
             return Process::ptr();
          }
       }
-
       proc = Process::attachProcess(pid, group->mutatee);
-      if (!proc) {
+	  if (!proc) {
          logerror("Failed to attach to new mutatee\n");
          return Process::ptr();
       }
@@ -577,11 +576,13 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       num_processes = 1;
    
 #if defined(USE_SOCKETS)
+#if 0
    result = setupServerSocket(param);
    if (!result) {
       logerror("Failed to setup server side socket\n");
       return false;
    }
+#endif
 #endif
 #if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
@@ -596,7 +597,9 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       a_proc = startMutatee(group, param);
       pset = ProcessSet::newProcessSet(a_proc);
    }
+
    factory = a_proc->getDefaultSymbolReader();
+   assert(factory);
 
 #if defined(USE_PIPES)
    for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
@@ -613,7 +616,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
     * Set the socket name in each process
     **/
    assert(num_processes);
-   assert(factory);
    memset(socket_buffer, 0, 4096);
    if (param.find("socket_type") != param.end() && param.find("socket_name") != param.end()) {
       snprintf(socket_buffer, 4095, "%s %s", param["socket_type"]->getString(), 
@@ -736,11 +738,13 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
 
 #if defined(USE_SOCKETS)
+#if 0
    result = cleanSocket();
    if (!result) {
       logerror("Failed to clean up socket\n");
       error = true;
    }
+#endif
 #endif
 
    handshake shake;
@@ -757,11 +761,14 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
-   return PASSED;
+	setupServerSocket(params);
+	return PASSED;
 }
 
 test_results_t ProcControlComponent::program_teardown(ParameterDict &params)
 {
+
+	cleanSocket();
    return PASSED;
 }
 
@@ -771,8 +778,6 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    process_pids.clear();
    procs.clear();
    eventsRecieved.clear();
-   sockfd = 0;
-   sockname = NULL;
    curgroup_self_cleaning = false;
 
 #if defined(USE_PIPES)
@@ -924,6 +929,7 @@ void handleError(const char* msg)
 #else
 	strncpy(details, strerror(errno), 1024);
 #endif
+	fprintf(stderr, "handleError: %s\n", details);
 	logerror(msg, details);
 }
 
@@ -1098,9 +1104,11 @@ bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
    return true;
 }
 #else
+// Windows
 bool ProcControlComponent::acceptConnections(int num, int *attach_sock)
 {
    std::vector<int> socks;
+   assert(sockfd);
    assert(num == 1 || !attach_sock);  //If attach_sock, then num == 1
 
    while (socks.size() < num) {

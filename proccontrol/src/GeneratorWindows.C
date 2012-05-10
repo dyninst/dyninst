@@ -34,6 +34,7 @@ bool GeneratorWindows::canFastHandle()
 
 void GeneratorWindows::plat_start()
 {
+	pthrd_printf("GeneratorWindows::plat_start\n");
 	if(procsToStart.empty())
 		return;
 	StartInfo todo = procsToStart.front();
@@ -42,6 +43,7 @@ void GeneratorWindows::plat_start()
 	switch(todo.mode)
 	{
 	case create:
+		pthrd_printf("Calling plat_create_int...\n");
 		if(!proc->plat_create_int()) { 
 			proc->setState(int_process::exited);
 			setState(error);
@@ -153,6 +155,8 @@ bool GeneratorWindows::hasLiveProc()
 
 ArchEvent* GeneratorWindows::getCachedEvent()
 {
+	
+	pthrd_printf("Returning cached event %p for thread %d\n", m_Events[DThread::self()], DThread::self());
 	return m_Events[DThread::self()];
 }
 void GeneratorWindows::setCachedEvent(ArchEvent* ae)
@@ -199,7 +203,7 @@ ArchEvent *GeneratorWindows::getEvent(bool block)
 	if(::WaitForDebugEvent(&evt, INFINITE))
 	{
 		ArchEventWindows* new_evt = new ArchEventWindows(evt);
-
+		pthrd_printf("WaitForDebugEvent returned\n");
 		return new_evt;
 	}
 	else

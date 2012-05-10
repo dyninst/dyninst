@@ -554,13 +554,13 @@ void getTrapInstruction(char *buffer, unsigned buf_size,
    if (include_return)
    {
       assert(buf_size >= 2);
-      buffer[0] = 0xcc; //trap
-      buffer[1] = 0xc3; //ret
+      buffer[0] = (char) 0xcc; //trap
+      buffer[1] = (char) 0xc3; //ret
       actual_len = 2;
       return;
    }
    assert(buf_size >= 1);
-   buffer[0] = 0xcc; //trap
+   buffer[0] = (char) 0xcc; //trap
    actual_len = 1;
    return;
 }

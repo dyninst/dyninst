@@ -102,10 +102,11 @@ bool int_process::create(int_processSet *ps) {
    pthrd_printf("Creating initial threads for %d processes\n", (int) procs.size());
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
       int_process *proc = *i;
-      if (!proc->threadPool()->empty())
-         continue;
-      int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true);      
-      ProcPool()->addProcess(proc);
+	  // Because yo, windows processes have threads when they're created...
+	  if (proc->threadPool()->empty()) {
+	      int_thread::createThread(proc, NULL_THR_ID, NULL_LWP, true);      
+	  }
+	  ProcPool()->addProcess(proc);
       proc->setState(neonatal_intermediate);
       pthrd_printf("Created debugged %s on pid %d\n", proc->executable.c_str(), proc->pid);
    }
@@ -237,10 +238,12 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    transform(ps->begin(), ps->end(), inserter(procs, procs.end()), ProcToIntProc());
 
    //Should be called with procpool lock held
-   pthrd_printf("Calling plat_attach for %d processes\n", (int) procs.size());
+
+	pthrd_printf("Calling plat_attach for %d processes\n", (int) procs.size());
    map<pair<int_process *, Dyninst::LWP>, bool> runningStates;
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
-      int_process *proc = *i;
+
+	   int_process *proc = *i;
       if (!proc) {
          procs.erase(i++);
          continue;
@@ -261,6 +264,8 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          continue;
       }
 
+		// works with sleep here
+
       //Keep track of the initial running states for each thread.  We'll fill them in latter
       // after we create the int_thread objects.
       bool allStopped = true;
@@ -273,7 +278,9 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
       bool local_should_sync = false;
       pthrd_printf("Calling plat_attach for process %d\n", proc->getPid());
-      bool result = proc->plat_attach(allStopped, local_should_sync);
+	// works with sleep here
+	  bool result = proc->plat_attach(allStopped, local_should_sync);
+	// works with sleep here? 
       if (!result) {
          pthrd_printf("Failed to plat_attach to %d\n", proc->getPid());
          procs.erase(i++);
@@ -286,6 +293,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       i++;
    }
 
+// breaks if sleep here
    //Create the int_thread objects via attach_threads
    if (!reattach) {
       for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
@@ -295,6 +303,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       }
    }
 
+// Breaks if sleep here. 
    if (should_sync) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();      
@@ -324,6 +333,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          proc->setState(neonatal_intermediate);
       }
    }
+
 
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
@@ -396,8 +406,10 @@ bool int_process::attach(int_processSet *ps, bool reattach)
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); ) {
       int_process *proc = *i;
       pthrd_printf("Wait for attach from process %d\n", proc->pid);
-      bool result = proc->waitfor_startup();
-      if (!result) {
+
+	  bool result = proc->waitfor_startup();
+
+	  if (!result) {
          pthrd_printf("Error waiting for attach to %d\n", proc->pid);
          procs.erase(i++);
          had_error = true;
@@ -5405,14 +5417,15 @@ Process::ptr Process::attachProcess(Dyninst::PID pid, std::string executable)
    }
 
    ProcPool()->condvar()->lock();
-
    Process::ptr newproc(new Process());
    int_process *llproc = int_process::createProcess(pid, executable);
    llproc->initializeProcess(newproc);
 
    int_processSet the_proc;
    the_proc.insert(newproc);
+
    bool result = llproc->attach(&the_proc, false); //Releases procpool lock
+
    if (!result) {
       pthrd_printf("Unable to attach to process %d\n", pid);
       delete llproc;

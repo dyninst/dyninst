@@ -196,6 +196,7 @@ std::string EventType::name() const
 	  STR_CASE(PreBootstrap);
       STR_CASE(Nop);
       STR_CASE(ThreadDB);
+	  STR_CASE(ThreadInfo);
       default: return prefix + std::string("Unknown");
    }
 }

@@ -192,6 +192,7 @@ void handleAttach()
    HANDLE signalPipe;
 
    if (!useAttach) return;
+   fprintf(stderr, "Creating signal pipe in mutatee...\n");
    signalPipe = CreateFile(pipeName,
                            GENERIC_WRITE,
                            0,
@@ -272,11 +273,8 @@ int main(int iargc, char *argv[])
    gargc = argc;
    gargv = argv;
 
-	//fprintf(stderr, "starting mutatee main()\n");
-
    initOutputDriver();
 
-	//fprintf(stderr, "finished initOutputDriver()\n");
    /* Extract the name of the mutatee binary from argv[0] */
    /* Find the last '/' in argv[0]; we want everything after that */
    mutatee_name = strrchr(argv[0], '/');

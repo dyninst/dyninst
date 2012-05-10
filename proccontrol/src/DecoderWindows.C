@@ -183,8 +183,10 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
 	case CREATE_THREAD_DEBUG_EVENT:
+		pthrd_printf("decodeProcess/decodeThreadEvent\n");
 		return decodeCreateThread(e, newEvt, proc, events);
 	case EXCEPTION_DEBUG_EVENT:
+		pthrd_printf("decodeException\n");
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:

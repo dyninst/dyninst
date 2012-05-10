@@ -38,6 +38,7 @@
 #include "proccontrol/h/Mailbox.h"
 #include <iostream>
 #include <psapi.h>
+#include "symtabAPI/h/SymtabReader.h"
 
 using namespace std;
 
@@ -153,6 +154,7 @@ void windows_process::plat_setHandles(HANDLE hp, HANDLE hf, Address eb)
 
 bool windows_process::plat_create_int()
 {
+	pthrd_printf("windows_process::plat_create_int\n");
 	std::string args = std::accumulate(argv.begin(), argv.end(), std::string(), &concatArgs);
 	LPCH mutator_env = ::GetEnvironmentStrings();
 	static const int dir_size = 1024;
@@ -171,6 +173,7 @@ bool windows_process::plat_create_int()
 	if(result)
 	{
 		pid = procInfo.dwProcessId;
+		pthrd_printf("Created mutatee process: pid %d\n", pid);
 		hproc = procInfo.hProcess;
 		int_thread* initialThread = int_thread::createThread(this, (Dyninst::THR_ID)(procInfo.dwThreadId), 
 			(Dyninst::LWP)procInfo.dwThreadId, true);
@@ -191,7 +194,9 @@ bool windows_process::plat_attach(bool, bool &)
 bool windows_process::plat_attach_int()
 {
 	getStartupTeardownProcs().inc();
-	return (::DebugActiveProcess(pid)) ? true : false;
+	bool ret = false;
+	if (::DebugActiveProcess(pid)) ret = true;
+	return ret;
 }
 
 // For each LWP/TID, is it running at attach time?
@@ -318,11 +323,20 @@ bool windows_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
 	return true;
 }
 
+SymbolReaderFactory *getPEReader()
+{
+  static SymbolReaderFactory *symreader_factory = NULL;
+  if (symreader_factory)
+    return symreader_factory;
+
+  symreader_factory = new Dyninst::SymtabAPI::SymtabReaderFactory();
+  return symreader_factory;
+}
+
+
 SymbolReaderFactory *windows_process::plat_defaultSymReader()
 {
-	// Singleton this jive
-	assert(!"Not implemented");
-	return NULL;
+	return getPEReader();
 }
 
 bool windows_process::plat_detach(result_response::ptr did_detach)

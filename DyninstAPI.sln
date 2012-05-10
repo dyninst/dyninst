@@ -46,6 +46,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "proccontrol", "proccontrol\proccontrol.vcproj", "{E2356DA6-9C35-45F6-B9D2-21C1CAD3A6EF}"
 	ProjectSection(ProjectDependencies) = postProject
 		{197E213A-6900-4D09-B280-109A0D02DF36} = {197E213A-6900-4D09-B280-109A0D02DF36}
+		{79CC6672-5A8B-4D3B-BEEA-75024607A81B} = {79CC6672-5A8B-4D3B-BEEA-75024607A81B}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stackwalk", "stackwalk\stackwalk.vcproj", "{BF4F4A40-E4C7-4F0E-A667-0BA93B05D42A}"
