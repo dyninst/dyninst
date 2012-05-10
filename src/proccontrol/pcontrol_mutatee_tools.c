@@ -255,9 +255,8 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       return -1;
    }
    pingSignalFD(signal_fd);
-#if !defined(os_windows_test)
+
    getSocketInfo();
-#endif
 
    result = initMutatorConnection();
    if (result != 0) {
@@ -304,12 +303,6 @@ int finiProcControlTest(int expected_ret_code)
    return has_error ? -1 : 0;
 }
 
-#if !defined(os_windows_test)
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -326,11 +319,15 @@ char *socket_name = NULL;
 void getSocketInfo()
 {
    int count = 0;
-
+	char *space = NULL;
    count = 0;
    while (MutatorSocket[0] == '\0') {
-      usleep(10000); //.01 seconds
-      count++;
+#if defined(os_windows_test)
+	   Sleep(10);
+#else
+	   usleep(10000); //.01 seconds
+#endif
+	   count++;
       if (count >= MESSAGE_TIMEOUT * 100) {
          logerror("Mutatee timeout\n");
          exit(-2);
@@ -338,11 +335,17 @@ void getSocketInfo()
    }
    MutatorSocket[4095] = '\0';
    socket_type = (char *) MutatorSocket;
-   char *space = strchr((char *) MutatorSocket, ' ');
+   space = strchr((char *) MutatorSocket, ' ');
    socket_name = space+1;
    *space = '\0';
 }
 
+#if !defined(os_windows_test)
+
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 void sigalarm_handler(int sig)
 {
@@ -459,11 +462,10 @@ int initMutatorConnection()
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
-   int result;
-
-   if (strcmp(socket_type, "un_socket") == 0) {
-      result = send(sockfd, msg, msg_size, 0);
-   }
+	int result;
+	if (strcmp(socket_type, "un_socket") == 0) {
+		result = send(sockfd, msg, msg_size, 0);
+	}
    else if (strcmp(socket_type, "named_pipe") == 0) {
       assert(created_named_pipes);
       result = write(w_pipe, msg, msg_size);
@@ -574,34 +576,22 @@ int recv_message(unsigned char *msg, size_t msg_size)
 int initMutatorConnection()
 {
    int result;
-   char *un_socket = NULL;
    int i, pid;
    struct sockaddr_in server_addr;
 
-	//fprintf(stderr, "begin initMutatorConnection()\n");
-
-   for (i = 0; i < gargc; i++) {
-      if (strcmp(gargv[i], "-un_socket") == 0) {
-         un_socket = gargv[i+1];
-		 //fprintf(stderr, "found un_socket: %s\n", un_socket);
-         break;
-      }
-   }
-   if(!un_socket)
-   {
-	   fprintf(stderr, "no -un_socket argument, bailing\n");
+   if (!socket_name) {
+	   fprintf(stderr, "no socket name set, bailing\n");
 	   return 0;
    }
-   sscanf(un_socket, "/tmp/pct%d", &pid);
-   
-   if (un_socket) {
-      sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-      if (sockfd == INVALID_SOCKET) {
-		  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
-         perror("Failed to create socket");
-         return -1;
-      }
-      
+	sscanf(socket_name, "/tmp/pct%d", &pid);
+
+	sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET) {
+	  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
+      perror("Failed to create socket");
+      return -1; 
+	}
+  
       memset(&server_addr, 0, sizeof(struct sockaddr_in));
       server_addr.sin_family = AF_INET;
 	  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
@@ -614,7 +604,7 @@ int initMutatorConnection()
 //		 assert(!"connect failed");
          return -1;
       }
-   }
+  
 
    return 0;
 }
@@ -622,13 +612,11 @@ int initMutatorConnection()
 int send_message(unsigned char *msg, size_t msg_size)
 {
    int result;
-   //fprintf(stderr, "Mutatee sending %d bytes...\n", msg_size);
    result = send(sockfd, (char*)msg, msg_size, 0);
    if (result == -1) {
 	   fprintf(stderr, "Mutatee unable to send message\n");
       return -1;
    }
-   //fprintf(stderr, "mutatee send_message() OK\n");
    return 0;
 }
 
@@ -637,7 +625,6 @@ int recv_message(unsigned char *msg, size_t msg_size)
    int result = -1;
    int bytes_remaining = msg_size;
    while( (bytes_remaining > 0) && (result != 0) ) {
-	   //fprintf(stderr, "mutatee waiting for %d bytes\n", bytes_remaining);
        result = recv(sockfd, (char*)msg, bytes_remaining, 0);
 
        if (result == -1) {
@@ -647,7 +634,6 @@ int recv_message(unsigned char *msg, size_t msg_size)
        }
 	   bytes_remaining -= result;
    }
-   //fprintf(stderr, "mutatee recv_message() OK\n");
    return 0;
 }
 
