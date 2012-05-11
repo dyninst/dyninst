@@ -50,6 +50,8 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include "boost/tuple/tuple.hpp"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -273,10 +275,11 @@ bool Symtab::addSymbol(Symbol *newSym)
    if (!newSym) {
     	return false;
    }
-   if (std::find(userAddedSymbols.begin(), 
-                 userAddedSymbols.end(), 
-                 newSym) != userAddedSymbols.end()) return true;
 
+   std::set<Symbol *>::iterator iter;
+   bool alreadyThere;
+   boost::tie(iter, alreadyThere) = userAddedSymbols.insert(newSym);
+   if (alreadyThere) return true;
 
    // Expected default behavior: if there is no
    // module use the default.
@@ -295,9 +298,7 @@ bool Symtab::addSymbol(Symbol *newSym)
    // And to aggregates
    addSymbolToAggregates(newSym);
    
-   // And to "new symbols added by user"
-   userAddedSymbols.insert(newSym);
-   
+
    return true;
 }
 
