@@ -106,7 +106,7 @@ class HandlePreBootstrap : public Handler
    HandlePreBootstrap();
    virtual ~HandlePreBootstrap();
 
-   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual handler_ret_t handleEvent(Event::ptr ev);
 };
 

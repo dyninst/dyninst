@@ -1155,19 +1155,19 @@ struct clearError {
    }
 
    template <class T>
-   void operator()(const pair<T, Process::const_ptr> &v) {
+   void operator()(const std::pair<T, Process::const_ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::const_ptr, T> &v) {
+   void operator()(const std::pair<Process::const_ptr, T> &v) {
       v.first->clearLastError();
    }
    template <class T>
-   void operator()(const pair<T, Process::ptr> &v) {
+   void operator()(const std::pair<T, Process::ptr> &v) {
       v.second->clearLastError();
    }
    template <class T>
-   void operator()(const pair<Process::ptr, T> &v) {
+   void operator()(const std::pair<Process::ptr, T> &v) {
       v.first->clearLastError();
    }
 };

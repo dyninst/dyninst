@@ -30,6 +30,7 @@
  */
 
 #include <cassert>
+#include <stdio.h>
 #include "ParameterDict.h"
 #include "test_info_new.h"
 #include "test_lib.h"

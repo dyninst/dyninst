@@ -125,7 +125,7 @@ bool x86_thread::rmHWBreakpoint(hw_breakpoint *bp,
       new_dr7 &= ~((unsigned long) (1 << i*2));
 
       //Unset size and type bits
-      new_dr7 &= ~(0xfUL << 16+4*i);
+      new_dr7 &= ~(0xfUL << (16+4*i));
  
       if (!suspend)
          active[i] = NULL;
