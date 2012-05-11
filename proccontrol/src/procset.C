@@ -44,6 +44,7 @@
 #include "external/stdint-win.h"
 #include "external/inttypes-win.h"
 #include <boost/crc.hpp>
+#include <iterator>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;

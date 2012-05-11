@@ -867,11 +867,10 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    pthrd_printf("Initializing new thread states to match rest of process\n");
    map<int, int> &states = proc->getProcDesyncdStates();
    for (map<int, int>::iterator i = states.begin(); i != states.end(); i++) {
-      if (!i->second)
+	   if (!i->second)
          continue;
       int_thread::StateTracker &statet = thrd->getStateByID(i->first);
       int_thread::State ns = proc->threadPool()->initialThread()->getStateByID(i->first).getState();
-      
       for (int j = 0; j < i->second; j++) {
          statet.desyncState(ns);
       }
@@ -1432,16 +1431,27 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 
       //Threads without breakpoint restores get set to stopped.  Threads resuming breakpoints
       // are set-to/left-at running.
-      for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+	  if (!hwbp) {
+		  // Desync the entire process
+		  thrd->getBreakpointResumeState().desyncStateProc(int_thread::stopped);
+	  }
+
+	  for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
          if (hwbp && *i != hwbp->getThread()) {
             //Hardware breakpoints don't desync the whole process
             continue;
-         }
+
+		 }
          int_thread::StateTracker &st = (*i)->getBreakpointResumeState();
-         if (st.getState() == int_thread::running || *i == thrd)
-            st.desyncState(int_thread::running); //This thread is resuming, desync
-         else if (int_bpc->stopped_proc)
-            st.desyncState(int_thread::stopped); //Mark this as stopped as we restore the BP
+         if (st.getState() == int_thread::running || *i == thrd) {
+			 if (hwbp) {
+	            st.desyncState(int_thread::running); //This thread is resuming, desync
+			 }
+			 else {
+				 // We already desynced above, so don't redo that.
+				 st.setState(int_thread::running);
+			 }
+		 }
       }
    }
    else {

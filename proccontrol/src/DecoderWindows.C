@@ -124,6 +124,16 @@ Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* pro
 	} else {
 		evt = Event::ptr(new EventSingleStep());
 	}
+
+	CONTEXT verification;
+	verification.ContextFlags = CONTEXT_FULL;
+	::GetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+	if (verification.EFlags & TF_BIT) {
+		pthrd_printf("BUG ENCOUNTERED: OS handled us a thread with TF set, clearing manually\n");
+		verification.EFlags &= (~TF_BIT);
+		::SetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+	}
+
 	return evt;
 }
 
@@ -190,6 +200,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:
+			pthrd_printf("Decoding singleStep event on PID %d, TID %d\n", e.dwProcessId, e.dwThreadId);
 			newEvt = decodeSingleStepEvent(e, proc, thread);
 			break;
 			//fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);

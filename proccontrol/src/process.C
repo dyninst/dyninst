@@ -53,6 +53,7 @@
 #include <map>
 #include <sstream>
 #include <iostream>
+#include <iterator>
 
 #if defined(os_windows)
 #pragma warning(disable:4355)
