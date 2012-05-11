@@ -759,6 +759,8 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    return !error;
 }
 
+
+
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
 	setupServerSocket(params);
@@ -946,7 +948,7 @@ bool ProcControlComponent::setupServerSocket(ParameterDict &param)
    int timeout = RECV_TIMEOUT * 100;
    int result;
    for (;;) {
-      result = bind(fd, (sockaddr *) &addr, sizeof(socket_types::sockaddr_t));
+      result = ::bind(fd, (sockaddr *) &addr, sizeof(socket_types::sockaddr_t));
       if (result == 0) 
          break;
       int error = errno;
