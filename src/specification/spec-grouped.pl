@@ -2450,7 +2450,9 @@ optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
 test('pc_hw_breakpoint', 'pc_hw_breakpoint', 'pc_hw_breakpoint').
 test_description('pc_hw_breakpoint', 'Test breakpoints').
-test_platform('pc_hw_breakpoint', Platform) :- pcPlatforms(Platform).
+test_platform('pc_hw_breakpoint', Platform) :- 
+   platform(Arch, 'linux', _, Platform),
+   member(Arch, ['x86_64', 'i386']).
 mutator('pc_hw_breakpoint', ['pc_hw_breakpoint.C']).
 test_runmode('pc_hw_breakpoint', 'dynamic').
 test_threadmode('pc_hw_breakpoint', 'Threading').
