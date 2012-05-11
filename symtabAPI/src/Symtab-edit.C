@@ -277,9 +277,9 @@ bool Symtab::addSymbol(Symbol *newSym)
    }
 
    std::set<Symbol *>::iterator iter;
-   bool alreadyThere;
-   boost::tie(iter, alreadyThere) = userAddedSymbols.insert(newSym);
-   if (alreadyThere) return true;
+   bool inserted;
+   boost::tie(iter, inserted) = userAddedSymbols.insert(newSym);
+   if (!inserted) return true;
 
    // Expected default behavior: if there is no
    // module use the default.
