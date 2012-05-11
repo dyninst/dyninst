@@ -111,7 +111,7 @@ endif  # OVERRIDE_LINK
 
 ifdef PUBLIC_H
 $(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	$(CP) $^ $(INCLUDE_DEST)
+	$(INSTALL) $^ $(INCLUDE_DEST)
 
 public_includes: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
 else
@@ -132,11 +132,12 @@ distclean: clean
 	$(RM) DEPENDS
 
 $(DEST)/$(TARGET): $(TARGET)
-	-$(CP) $(TARGET) $(DEST)
+	-$(INSTALL) $(TARGET) $(DEST)/$(TARGET).$(RELEASE_NUM)
+	-$(LN) -f $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET)
 
 ifdef STATIC_TARGET
 $(DEST)/$(STATIC_TARGET): $(STATIC_TARGET)
-	-$(CP) $(STATIC_TARGET) $(DEST)
+	-$(INSTALL) $(STATIC_TARGET) $(DEST)
 
 install_generic: $(DEST)/$(TARGET) public_includes $(DEST)/$(STATIC_TARGET)
 

@@ -98,6 +98,7 @@ srcdir = @srcdir@
 abs_top_srcdir = @abs_top_srcdir@
 abs_srcdir = @abs_srcdir@
 
+INSTALL = @INSTALL@
 @LIBRARY_DEST_VAR@
 @PROGRAM_DEST_VAR@
 @INCLUDE_DEST_VAR@

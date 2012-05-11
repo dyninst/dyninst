@@ -86,4 +86,4 @@ libstackwalk_c.so: libsw.a sw_c.o
 	g++ -o $@ -shared sw_c.o -Wl,--exclude-libs -Wl,ALL libsw.a $(WRAPPER_LIBS_NOCOMMA)
 
 $(DEST)/libstackwalk_c.so: libstackwalk_c.so
-	-$(CP) libstackwalk_c.so $(DEST)
+	-$(INSTALL) libstackwalk_c.so $(DEST)

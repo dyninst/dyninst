@@ -9,6 +9,8 @@ AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_AUX_DIR([autodyninst])
 AC_CONFIG_MACRO_DIR([autodyninst])
 
+AC_PROG_INSTALL
+
 AC_PROG_CXX(g++)
 AC_PATH_PROG(_ICC_, icc)
 AC_PATH_PROG(_ICPC_, icpc)
@@ -21,11 +23,13 @@ AC_LANG(C++)
 
 dnl === configure options ==
 
+AC_SUBST(INSTALL)
+
 AC_ARG_WITH(traditional,
             [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
             [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
              PROGRAM_DEST_VAR="PROGRAM_DEST=\${TO_CORE}/../\${PLATFORM}/bin";
-             INCLUDE_DEST_VAR="INCLUDE_DEST=\${TO_CORE}/include";],
+             INCLUDE_DEST_VAR="INCLUDE_DEST=\${TO_CORE}/../include";],
             [LIBRARY_DEST_VAR="";
              PROGRAM_DEST_VAR="";
              INCLUDE_DEST_VAR="";])
@@ -51,7 +55,7 @@ AC_ARG_WITH(package-base,
            ],[
             # We fall back on these defaults if both --with-package-base and
             # specific --with-<package> arguments are not provided.
-            TCLTK_INC_DIR="/usr/include";
+             TCLTK_INC_DIR="/usr/include";
             TCLTK_LIB_DIR="/usr/lib";
             LIBELF_INC_DIR="/usr/include";
             LIBELF_LIB_DIR="/usr/lib";

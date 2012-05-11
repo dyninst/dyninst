@@ -68,10 +68,11 @@ clean::
 distclean:: clean
 	$(RM) DEPENDS
 
+.PHONY: install
 install:  $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET): $(TARGET)
-	-$(CP) $(TARGET) $(DEST)
+	-$(INSTALL) $(TARGET) $(DEST)
 
 .PHONY : depend
 depend:

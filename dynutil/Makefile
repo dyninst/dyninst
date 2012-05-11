@@ -20,9 +20,8 @@ PUBLIC_H = Annotatable.h \
 		SymReader.h \
 		AST.h \
 		ProcReader.h \
-        IBSTree.h \
-        entryIDs.h\
-		dyn_detail 
+	   IBSTree.h \
+      entryIDs.h
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
 INSTALL_TARGETS = $(addprefix $(LOCAL_INCLUDE_DEST)/, $(PUBLIC_H))
@@ -34,12 +33,6 @@ install: $(INSTALL_TARGETS)
 #	echo INSTALL_TARGETS = $(INSTALL_TARGETS);
 
 $(LOCAL_INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	mkdir -p $(LOCAL_INCLUDE_DEST)
-	$(CP) $^ $@
-
-$(LOCAL_INCLUDE_DEST)/dyn_detail: $(TO_INC)/dyn_detail
-	mkdir -p $(LOCAL_INCLUDE_DEST)
-	$(CP_DIR) $^ $@
-
+	$(INSTALL) $^ $@
 
 clean distclean:
