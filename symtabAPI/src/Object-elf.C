@@ -655,7 +655,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     if (!scnp->isFromDebugFile()) {
        allRegionHdrs.push_back( scnp );
        if(scnp->sh_flags() & SHF_ALLOC) {
-          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
+          // .bss, etc. have a disk size of 0
+          unsigned long diskSize  = (scnp->sh_type() == SHT_NOBITS) ? 0 : scnp->sh_size();
+          Region *reg = new Region(i, name, scnp->sh_addr(), diskSize, 
                                    scnp->sh_addr(), scnp->sh_size(), 
                                    (mem_image()+scnp->sh_offset()), 
                                    getRegionPerms(scnp->sh_flags()), 
