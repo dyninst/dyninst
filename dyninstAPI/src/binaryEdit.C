@@ -313,7 +313,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const
                        FILE__, __LINE__, file.c_str());
         return NULL;
     }
-
+    
     // Open the mapped object as an archive member
     if( !member.empty() ) {
         desc.setMember(member);

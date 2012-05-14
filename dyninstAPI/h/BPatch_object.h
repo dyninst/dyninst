@@ -123,7 +123,7 @@ class BPATCH_DLL_EXPORT BPatch_object: public BPatch_eventLock {
     // For binary rewriting, this is an offset that can be treated as an address.
     // Returns E_OUT_OF_BOUNDS (-1) on failure
     API_EXPORT(Int, (offset),
-               Dyninst::Address, offsetToAddr, (const Dyninst::Offset offset));
+               Dyninst::Address, fileOffsetToAddr, (const Dyninst::Offset offset));
 
     // BPatch_object::regions
     // Returns a vector of address ranges occupied by this object

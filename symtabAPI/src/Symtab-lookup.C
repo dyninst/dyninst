@@ -783,3 +783,22 @@ unsigned Function::getSize() {
    }
 }
 
+Dyninst::Offset Symtab::fileToDiskOffset(Dyninst::Offset fileOffset) const {
+   for (unsigned j = 0; j < regions_.size(); ++j) {
+      if (regions_[j]->getFileOffset() <= fileOffset &&
+          ((regions_[j]->getFileOffset() + regions_[j]->getDiskSize()) > fileOffset)) {
+         return fileOffset - regions_[j]->getFileOffset() + regions_[j]->getDiskOffset();
+      }
+   }
+   return (Dyninst::Offset) -1;
+}
+
+Dyninst::Offset Symtab::fileToMemOffset(Dyninst::Offset fileOffset) const {
+   for (unsigned j = 0; j < regions_.size(); ++j) {
+      if (regions_[j]->getFileOffset() <= fileOffset &&
+          ((regions_[j]->getFileOffset() + regions_[j]->getDiskSize()) > fileOffset)) {
+         return fileOffset - regions_[j]->getFileOffset() + regions_[j]->getMemOffset();
+      }
+   }
+   return (Dyninst::Offset) -1;
+}

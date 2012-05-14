@@ -327,6 +327,9 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getTOCoffset() const;
    SYMTAB_EXPORT Address getLoadAddress();
    SYMTAB_EXPORT bool isDefensiveBinary() const; 
+   SYMTAB_EXPORT Offset fileToDiskOffset(Dyninst::Offset) const;
+   SYMTAB_EXPORT Offset fileToMemOffset(Dyninst::Offset) const;
+
 
    SYMTAB_EXPORT std::string getDefaultNamespacePrefix() const;
 

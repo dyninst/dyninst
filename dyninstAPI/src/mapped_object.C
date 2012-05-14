@@ -104,63 +104,12 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   memEnd_(-1),
   memoryImg_(false)
 {
-   // Set occupied range (needs to be ranges)
+   
+// Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
 #if defined(os_windows)
    dataBase_ = fileDesc.loadAddr();
 #endif
-#if defined(os_aix)
-   // AIX defines "virtual" addresses for an a.out inside the file as
-   // well as when the system loads the object. As far as I can tell,
-   // this only happens for the a.out (for shobjs the file-addresses
-   // are 0).  The file-provided addresses are correct, but the
-   // OS-provided addresses are not. So if the file includes
-   // addresses, use those.  If it doesn't, all of the offsets are
-   // from a "section start" that isn't our start. Getting a headache
-   // yet? So _that_ needs to be adjusted. We've stored these values
-   // in the Object file. We could also adjust all addresses of
-   // symbols, but...
-   if (image_->imageOffset() >= codeBase_) {
-      codeBase_ = 0;
-   }
-   else if (image_->imageOffset() <= 0x1fffffff) {
-      // GCC-ism. This is a shared library with a a.out-like codeOffset.
-      // We need to make our base the difference between the two...
-      codeBase_ -= image_->imageOffset();
-      SymtabAPI::Region *sec;
-      image_->getObject()->findRegion(sec, ".text");
-      //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
-      //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
-      codeBase_ += ((Address)sec->getPtrToRawData() - image_->getObject()->getBaseOffset());
-      //      codeBase_ += image_->getObject()->text_reloc();
-   }
-   else {
-      // codeBase_ is the address that the chunk was loaded at; the actual interesting
-      // bits start within the chunk. So add in text_reloc (actually, "offset from start
-      // of file to interesting bits").
-      // Non-GCC shared libraries.
-      //codeBase_ += image_->getObject()->text_reloc();
-      SymtabAPI::Region *sec;
-      image_->getObject()->findRegion(sec, ".text");
-      //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
-      //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
-      codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseOffset());
-   }
-   if (image_->dataOffset() >= dataBase_) {
-      dataBase_ = 0;
-   }
-   else if (image_->dataOffset() <= 0x2fffffff) {
-      // More GCC-isms.
-      dataBase_ -= image_->dataOffset();
-   }
-   else {
-      // *laughs* You'd think this was the same way, right?
-      // Well, you're WRONG!
-      // For some reason we don't need to add in the data_reloc_...
-      //dataBase_ += image_->getObject()->data_reloc();
-   }
-#endif
-
 #if 0
    fprintf(stderr, "Creating new mapped_object %s/%s\n",
          fullName_.c_str(), getFileDesc().member().c_str());

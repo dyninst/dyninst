@@ -71,14 +71,23 @@ std::string BPatch_object::pathNameInt() {
    return obj->fullName();
 }
 
-Dyninst::Address BPatch_object::offsetToAddrInt(const Dyninst::Offset offset) {
-   if (offset >= obj->imageOffset() &&
-       offset < (obj->imageOffset() + obj->imageSize())) {
-      return offset + obj->codeAbs();
+Dyninst::Address BPatch_object::fileOffsetToAddrInt(const Dyninst::Offset fileOffset) {
+   // File offset, so duck into SymtabAPI to turn it into a "mem offset" 
+   // (aka ELF shifted) address
+
+   Dyninst::SymtabAPI::Symtab *sym = Dyninst::SymtabAPI::convert(this);
+   assert(sym);
+   
+   Dyninst::Offset memOffset = sym->fileToMemOffset(fileOffset);
+   if (memOffset == (Dyninst::Offset) -1) return E_OUT_OF_BOUNDS;
+
+   if (memOffset >= obj->imageOffset() &&
+       memOffset < (obj->imageOffset() + obj->imageSize())) {
+      return memOffset + obj->codeBase();
    }
-   if (offset >= obj->dataOffset() &&
-       offset < (obj->dataOffset() + obj->dataSize())) {
-      return offset + obj->dataAbs();
+   if (memOffset >= obj->dataOffset() &&
+       memOffset < (obj->dataOffset() + obj->dataSize())) {
+      return memOffset + obj->dataBase();
    }
    
    return E_OUT_OF_BOUNDS;
