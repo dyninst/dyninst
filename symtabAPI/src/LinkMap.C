@@ -235,8 +235,8 @@ void LinkMap::printRegionFromInfo(ostream &os, Region *region, Offset regionOffs
     os << "\tRegion " << region->getRegionName() 
            << " Padding: 0x" << hex << padding << dec
            << " Offset: 0x" << hex << regionOffset << dec
-           << " - 0x" << hex << (regionOffset + region->getRegionSize() - 1) << dec
-           << " Size: 0x" << hex << region->getRegionSize() << dec
+           << " - 0x" << hex << (regionOffset + region->getMemSize() - 1) << dec
+           << " Size: 0x" << hex << region->getMemSize() << dec
            << " Alignment: 0x" << hex << region->getMemAlignment() << dec
            << endl;
 }

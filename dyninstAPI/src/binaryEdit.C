@@ -527,7 +527,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
 	 assert(mt);
 	 if(mt->dirty) {
-	   oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getRegionSize());
+            oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getDiskSize());
 	 }
 	 
          //newSegs[i].data = segRange->get_local_ptr();

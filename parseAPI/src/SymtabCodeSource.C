@@ -382,7 +382,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
             parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
                 (*fsit)->getOffset(),
                 sr->getRegionAddr(),
-                sr->getRegionAddr()+sr->getRegionSize());
+                sr->getRegionAddr()+sr->getDiskSize());
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
                                cr,

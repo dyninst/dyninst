@@ -1042,7 +1042,7 @@ Region *Object::findEnclosingRegion(const Offset where)
         Region *curreg = regions_[(first + last) / 2];
         if (where >= curreg->getRegionAddr()
             && where < (curreg->getRegionAddr()
-                        + curreg->getRegionSize())) {
+                        + curreg->getMemSize())) {
             return curreg;
         }
         else if (where < curreg->getRegionAddr()) {

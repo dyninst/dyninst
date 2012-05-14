@@ -1829,7 +1829,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     // .dynstr
     sec = foundRegion->second;
     olddynStrData = (char *)(sec->getPtrToRawData());
-    olddynStrSize = sec->getRegionSize();
+    olddynStrSize = sec->getDiskSize();
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
@@ -2134,7 +2134,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           {
               if( (*newRegIter)->getRegionAddr() > lastRegionAddr ) {
                   lastRegionAddr = (*newRegIter)->getRegionAddr();
-                  lastRegionSize = (*newRegIter)->getRegionSize();
+                  lastRegionSize = (*newRegIter)->getMemSize();
               }
           }
 

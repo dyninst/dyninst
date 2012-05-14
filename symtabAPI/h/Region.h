@@ -103,7 +103,6 @@ class Region : public Serializable, public AnnotatableSparse {
 
    //  getRegionAddr returns diskOffset on unixes, memory offset on windows
    SYMTAB_EXPORT Offset getRegionAddr() const;
-   SYMTAB_EXPORT unsigned long getRegionSize() const;
 
    SYMTAB_EXPORT Offset getDiskOffset() const;
    SYMTAB_EXPORT unsigned long getDiskSize() const;
