@@ -445,12 +445,12 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize(),
+    InstructionDecoder decoder(p, initRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch()); 
 
     Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < CTOR_NUM_CALLS && curInsn && curInsn->isValid() &&
-          bytesSeen < initRegion->getRegionSize()) 
+          bytesSeen < initRegion->getDiskSize()) 
     {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {
@@ -548,14 +548,14 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize(),
+    InstructionDecoder decoder(p, finiRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch());
 
     Instruction::Ptr lastCall;
     Instruction::Ptr curInsn = decoder.decode();
 
     while(curInsn && curInsn->isValid() &&
-          bytesSeen < finiRegion->getRegionSize()) 
+          bytesSeen < finiRegion->getDiskSize()) 
     {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {

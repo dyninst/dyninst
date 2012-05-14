@@ -121,7 +121,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
         // This is true, only if other regions have already been added
         vector<Region *>::iterator newReg_it;
         for(newReg_it = newRegs.begin(); newReg_it != newRegs.end(); ++newReg_it) {
-            Offset newRegEndAddr = (*newReg_it)->getRegionSize() + (*newReg_it)->getRegionAddr();
+            Offset newRegEndAddr = (*newReg_it)->getMemSize() + (*newReg_it)->getRegionAddr();
             if( newRegEndAddr > globalOffset ) {
                 globalOffset = newRegEndAddr;
             }
@@ -470,7 +470,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         vector<Region *>::iterator reg_it;
         for(reg_it = regs.begin(); reg_it != regs.end(); ++reg_it) {
             string regionName = (*reg_it)->getRegionName();
-            if( (*reg_it)->isLoadable() && (*reg_it)->getRegionSize() > 0) {
+            if( (*reg_it)->isLoadable() && (*reg_it)->getMemSize() > 0) {
                 if( (*reg_it)->isTLS() ) {
                     switch((*reg_it)->getRegionType()) {
                         case Region::RT_DATA:
@@ -696,7 +696,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     return false;
                 }
                 dataTLS = *reg_it;
-                lmap.tlsSize += dataTLS->getRegionSize();
+                lmap.tlsSize += dataTLS->getMemSize();
                 if( dataTLS->getMemAlignment() > lmap.tlsRegionAlign ) {
                     lmap.tlsRegionAlign = dataTLS->getMemAlignment();
                 }
@@ -707,7 +707,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     return false;
                 }
                 bssTLS = *reg_it;
-                lmap.tlsSize += bssTLS->getRegionSize();
+                lmap.tlsSize += bssTLS->getMemSize();
                 if( bssTLS->getMemAlignment() > lmap.tlsRegionAlign ) {
                     lmap.tlsRegionAlign = bssTLS->getMemAlignment();
                 }
@@ -741,7 +741,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
          *  are used.
          */
         if( dataTLS != NULL ) {
-            lmap.tlsSize -= dataTLS->getRegionSize();
+            lmap.tlsSize -= dataTLS->getMemSize();
         }
 
         lmap.tlsSize += currentOffset - lmap.tlsRegionOffset;
@@ -772,7 +772,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         }
 
         cleanupTLSRegionOffsets(lmap.regionAllocs, dataTLS, bssTLS);
-        if( bssTLS != NULL ) lmap.tlsSize -= bssTLS->getRegionSize();
+        if( bssTLS != NULL ) lmap.tlsSize -= bssTLS->getMemSize();
 
         hasRewrittenTLS_ = true;
     }else{
@@ -875,6 +875,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         errMsg = "assumption failed while creating link map";
         return false;
     }
+
     lmap.bssSize = currentOffset - lmap.bssRegionOffset;
 
     // Update all relevant symbols with their offsets in the new target
@@ -939,15 +940,15 @@ bool emitElfStatic::createLinkMap(Symtab *target,
  *                      target (used for padding calculation)
  */
 Offset emitElfStatic::layoutRegions(deque<Region *> &regions, 
-        map<Region *, LinkMap::AllocPair> &regionAllocs,
-        Offset currentOffset, Offset globalOffset) 
+                                    map<Region *, LinkMap::AllocPair> &regionAllocs,
+                                    Offset currentOffset, Offset globalOffset) 
 {
     Offset retOffset = currentOffset;
 
     deque<Region *>::iterator copyReg_it;
     for(copyReg_it = regions.begin(); copyReg_it != regions.end(); ++copyReg_it) {
         // Skip empty Regions
-        if( (*copyReg_it)->getRegionSize() == 0 ) continue;
+        if( (*copyReg_it)->getMemSize() == 0 ) continue;
 
         // Make sure the Region is aligned correctly in the new aggregate Region
         Offset padding = computePadding(globalOffset + retOffset, (*copyReg_it)->getMemAlignment());
@@ -963,7 +964,7 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
             break;
         }
                        
-        retOffset += (*copyReg_it)->getRegionSize();
+        retOffset += (*copyReg_it)->getMemSize();
     }
 
     return retOffset;
@@ -1063,7 +1064,7 @@ void emitElfStatic::copyRegions(LinkMap &lmap) {
         char *rawRegionData = reinterpret_cast<char *>(depRegion->getPtrToRawData());
 
         if( !depRegion->isBSS() ) {
-            memcpy(&targetData[regionOffset], rawRegionData, depRegion->getRegionSize());
+            memcpy(&targetData[regionOffset], rawRegionData, depRegion->getMemSize());
         }
 
         // Set the padded space to a meaningful value
@@ -1281,7 +1282,7 @@ Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Re
     // the TLS data references are relative to that position
     unsigned long tlsBssSize = 0;
     if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
-    if( bssTLS != NULL ) tlsBssSize = bssTLS->getRegionSize();
+    if( bssTLS != NULL ) tlsBssSize = bssTLS->getMemSize();
     deque<Region *> tlsRegionsVar;
 
     deque<Region *>::iterator copyReg_it;
@@ -1336,7 +1337,7 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
     // the TLS data references are relative to that position
     unsigned long tlsBssSize = 0;
     if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
-    if( bssTLS != NULL ) tlsBssSize = bssTLS->getRegionSize();
+    if( bssTLS != NULL ) tlsBssSize = bssTLS->getMemSize();
 
     // Create the image, note new BSS regions are expanded
     Offset endOffset = layoutRegions(lmap.tlsRegions,

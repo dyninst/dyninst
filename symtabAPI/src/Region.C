@@ -237,15 +237,6 @@ Offset Region::getRegionAddr() const
 #endif
 }
 
-Offset Region::getRegionSize() const
-{
-#if defined(_MSC_VER) || defined(os_vxworks)
-        return memSize_;
-#else
-        return diskSize_;
-#endif
-}
-
 Offset Region::getDiskOffset() const
 {
     return diskOff_;

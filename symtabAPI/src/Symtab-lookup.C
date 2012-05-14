@@ -572,14 +572,14 @@ bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long siz
 {
    ret = NULL;
    for(unsigned index=0;index<regions_.size();index++) {
-      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getRegionSize() == size) {
+      if(regions_[index]->getRegionAddr() == addr && regions_[index]->getDiskSize() == size) {
          if (ret) {
 #if 0
             cerr << "Error: region inconsistency" << endl;
             cerr << "\t" << ret->getRegionName() << " @ "
-                 << hex << ret->getRegionAddr() << "/" << ret->getRegionSize() << endl;
+                 << hex << ret->getRegionAddr() << "/" << ret->getDiskSize() << endl;
             cerr << "\t" << regions_[index]->getRegionName() << " @ "
-                 << regions_[index]->getRegionAddr() << "/" << regions_[index]->getRegionSize() << dec << endl;
+                 << regions_[index]->getRegionAddr() << "/" << regions_[index]->getDiskSize() << dec << endl;
 #endif
             assert(addr == 0); // Two regions with the same address and size, with non-zero address,
             // is incorrect parsing of symbol table. 

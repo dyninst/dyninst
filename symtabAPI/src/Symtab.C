@@ -1733,7 +1733,7 @@ bool Symtab::isData(const Offset where)  const
       Region *curreg = dataRegions_[(first + last) / 2];
 
       if (     (where >= curreg->getRegionAddr())
-            && (where < (curreg->getRegionAddr() + curreg->getRegionSize())))
+            && (where < (curreg->getRegionAddr() + curreg->getDiskSize())))
       {
          return true;
       }
@@ -2743,7 +2743,7 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
 
     /* DEBUG
     fprintf(stderr, "Fixing region %s from 0x%x [0x%x] to 0x%x [0x%x]\n",
-            name, sec->getRegionAddr(), sec->getRegionSize(), memOffset,
+            name, sec->getRegionAddr(), sec->getDiskSize(), memOffset,
             memSize); // */
     sec->setMemOffset(memOffset);
     sec->setMemSize(memSize);
@@ -2839,7 +2839,7 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
       //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
+      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getMemSize();
       if (regions_[i]->getRegionAddr() == 0) 
          continue;
 
@@ -2850,14 +2850,12 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
       if (region_offset < (unsigned)prevSecoffset)
       {
-         //secoffset += regions_[i]->getDiskSize();
-         secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getMemSize();
       }
       else 
       {
          secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
-         //secoffset += regions_[i]->getDiskSize();
-         secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getMemSize();
       }
 
       /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",

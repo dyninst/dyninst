@@ -222,7 +222,8 @@ Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index)
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
   bool present = false;
   for(unsigned i = 0; i < regions_.size() ;i++){
-    if((regions_[i]->getRegionAddr() >= segmentStart) && ((regions_[i]->getRegionAddr()+regions_[i]->getRegionSize()) <= (segmentStart+segmentSize))){
+    if((regions_[i]->getRegionAddr() >= segmentStart) && 
+       ((regions_[i]->getRegionAddr()+regions_[i]->getDiskSize()) <= (segmentStart+segmentSize))){
       present = true;
       regions_[i]->setRegionPermissions(getSegmentPerms(segPerms));
     }
@@ -655,7 +656,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     if (!scnp->isFromDebugFile()) {
        allRegionHdrs.push_back( scnp );
        if(scnp->sh_flags() & SHF_ALLOC) {
-          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
+          // .bss, etc. have a disk size of 0
+//          unsigned long diskSize  = (false) ? 0 : scnp->sh_size();
+          unsigned long diskSize  = (scnp->sh_type() == SHT_NOBITS) ? 0 : scnp->sh_size();
+          Region *reg = new Region(i, name, scnp->sh_addr(), diskSize, 
                                    scnp->sh_addr(), scnp->sh_size(), 
                                    (mem_image()+scnp->sh_offset()), 
                                    getRegionPerms(scnp->sh_flags()), 
@@ -1154,7 +1158,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
           // Rely on .dynamic section for prelinked binaries.
           if (dynamic != NULL) {
               Elf32_Dyn *dyn = (Elf32_Dyn *)dynamic->getPtrToRawData();
-              unsigned int count = dynamic->getRegionSize() / sizeof(Elf32_Dyn);
+              unsigned int count = dynamic->getMemSize() / sizeof(Elf32_Dyn);
 
               for (unsigned int i = 0; i < count; ++i) {
                   // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
