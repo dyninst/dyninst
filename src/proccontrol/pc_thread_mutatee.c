@@ -113,7 +113,7 @@ static int sendThreadMsg(int initial_thrd)
 #else
    tinfo.pid = GetCurrentProcessId();
    tinfo.tid = GetCurrentThreadId();
-   tinfo.lwp = GetCurrentThread();
+   tinfo.lwp = (HANDLE) GetCurrentThreadId();
 #endif
    tinfo.a_stack_addr = (unsigned long) &tinfo;
    if (initial_thrd)
