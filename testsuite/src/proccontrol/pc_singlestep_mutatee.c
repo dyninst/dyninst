@@ -43,7 +43,6 @@ static int myerror = 0;
 
 int func1(int counter) {
    int i;
-   //fprintf(stderr, "mutatee entered func1: %d\n", counter);
    for (i = 0; i < global; i++) {
       counter += i;
    }
@@ -52,7 +51,6 @@ int func1(int counter) {
 
 int func2(int counter) {
    int i;
-   //fprintf(stderr, "mutatee entered func2: %d\n", counter);
    for (i = 3; i < global+3; i++) {
       counter += i;
    }
@@ -61,7 +59,6 @@ int func2(int counter) {
 
 int func3(int counter) {
    int i;
-   //fprintf(stderr, "mutatee entered func3: %d\n", counter);
    for (i = 6; i < global+6; i++) {
       counter += i;
    }
@@ -70,7 +67,6 @@ int func3(int counter) {
 
 int func4(int counter) {
    int i;
-   //fprintf(stderr, "mutatee entered func4: %d\n", counter);
    for (i = 9; i < global+9; i++) {
       counter += i;
    }
@@ -79,7 +75,6 @@ int func4(int counter) {
 
 int func5(int counter) {
    int i;
-   //fprintf(stderr, "mutatee entered func5: %d\n", counter);
    for (i = 12; i < global+12; i++) {
       counter += i;
    }
@@ -89,7 +84,6 @@ int func5(int counter) {
 void run_all_funcs()
 {
    int result = 0;
-   //fprintf(stderr, "mutatee entered run_all_funcs\n");
    result = func1(result);
    result = func2(result);
    result = func3(result);
@@ -135,7 +129,7 @@ int pc_singlestep_mutatee()
       testUnlock(&init_lock);
       return -1;
    }
-	//fprintf(stderr, "mutatee sending func addrs\n");
+
    funcs[0] = func1;
    funcs[1] = func2;
    funcs[2] = func3;
@@ -143,6 +137,15 @@ int pc_singlestep_mutatee()
    funcs[4] = func5;
 
    addr_msg.code = SENDADDR_CODE;
+
+   addr_msg.addr = getFunctionPtr((unsigned long *)run_all_funcs);
+   result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
+   if (result == -1) {
+	   output->log(STDERR, "Failed to send addr message for initial breakpoint func\n");
+	   testUnlock(&init_lock);
+	   return -1;
+   }
+
    for (i = 0; i < NUM_FUNCS; i++) {
       addr_msg.addr = getFunctionPtr((unsigned long *)funcs[i]);
       result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
@@ -152,7 +155,6 @@ int pc_singlestep_mutatee()
          return -1;
       }
    }
-   //fprintf(stderr, "mutatee waiting for sync message\n");
 
    result = recv_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
@@ -165,13 +167,9 @@ int pc_singlestep_mutatee()
       testUnlock(&init_lock);
       return -1;
    }
-   //fprintf(stderr, "mutatee unlocking init lock\n");
-
 
    testUnlock(&init_lock);
-   //fprintf(stderr, "about to run_all_funcs()\n");
    run_all_funcs();
-   //fprintf(stderr, "run_all_funcs() done\n");
 
    result = finiProcControlTest(0);
    if (result != 0) {

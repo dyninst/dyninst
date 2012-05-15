@@ -156,6 +156,22 @@ uint64_t getFunctionPtr(unsigned long *ptr) {
 #if defined(arch_power_test) && defined(arch_64bit_test)
     /* need to dereference function pointers before sending them to mutator */
     tmpAddr = *ptr;
+#elif defined (os_windows_test)
+	/* Windows function pointers may be IAT entries, which are jumps to the actual
+	   function */
+	unsigned char *opcode = (unsigned char *)ptr;
+	/* 4-byte offset branch is 0xe9 <offset>
+	   Said offset is from the end of the instruction, or start of the instruction + 5. */
+	if (*opcode == 0xe9) {
+		int *offsetPtr;
+		/* Jump byte */
+		opcode++;
+		offsetPtr = (int *)opcode;
+		tmpAddr = (unsigned long) (((unsigned long) ptr) + 5 + *offsetPtr);
+	}
+	else {
+		tmpAddr = (unsigned long)ptr;
+	}
 #else
     tmpAddr = (unsigned long)ptr;
 #endif
