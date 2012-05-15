@@ -2392,7 +2392,7 @@ bool PCProcess::getOverwrittenBlocks
 {
     const unsigned MEM_PAGE_SIZE = getMemoryPageSize();
     unsigned char * memVersion = (unsigned char *) ::malloc(MEM_PAGE_SIZE);
-    Address regionStart;
+    Address regionStart = 0;
     bool foundStart = false;
     map<Address, unsigned char*>::iterator pIter = overwrittenPages.begin();
     set<mapped_object*> owObjs;

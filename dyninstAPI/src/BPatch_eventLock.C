@@ -89,31 +89,31 @@ eventLock *BPatch_eventLock::getLock()
 	return NULL;
 }
 
-int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Lock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
 	return 0;
   //return global_mutex->_Lock(__file__, __line__);
 }
-int BPatch_eventLock::_Trylock(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Trylock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
 	return 0;
 //  return global_mutex->_Trylock(__file__, __line__);
 }
 
-int BPatch_eventLock::_Unlock(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Unlock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
 	return 0;
 //  return global_mutex->_Unlock(__file__, __line__);
 }
 
 
-int BPatch_eventLock::_Broadcast(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Broadcast(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
 	return 0;
 //  return global_mutex->_Broadcast(__file__, __line__);
 }
 
-int BPatch_eventLock::_WaitForSignal(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_WaitForSignal(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
 	return 0;
 //  return global_mutex->_WaitForSignal(__file__, __line__);

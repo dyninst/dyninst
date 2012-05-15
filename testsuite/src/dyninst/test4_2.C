@@ -103,7 +103,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     appImage = parent->getProcess()->getImage();
     assert(appImage);
 
-    char *fn = "test4_2_func3";
+    const char *fn = "test4_2_func3";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n",fn);
@@ -114,7 +114,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_funcCallExpr callExpr2(*func3_parent, nullArgs);
  
     bpfv.clear();
-    char *fn2 = "test4_2_func2";
+    const char *fn2 = "test4_2_func2";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n",fn2);
@@ -133,7 +133,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     assert(appImage);
 
     bpfv.clear();
-    char *fn3 = "test4_2_func4";
+    const char *fn3 = "test4_2_func4";
     if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n",fn3);
@@ -144,7 +144,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_funcCallExpr callExpr1(*func4_child, nullArgs);
 
     bpfv.clear();
-    char *fn4 = "test4_2_func2";
+    const char *fn4 = "test4_2_func2";
     if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n",fn4);

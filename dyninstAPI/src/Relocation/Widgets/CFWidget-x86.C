@@ -97,7 +97,7 @@ bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
                                   Register reg,
                                   Instruction::Ptr insn,
                                   const RelocBlock *trace,
-				  Address origAddr) 
+                                    Address) 
 {
    // I'm pretty sure that anything that can get translated will be
    // turned into a push/jump combo already. 

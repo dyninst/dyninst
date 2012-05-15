@@ -204,7 +204,7 @@ static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffe
    return strchr(buffer, ';')+1;
 }
 
-static void comp_header(std::string name, MessageBuffer &buffer, char *call)
+static void comp_header(std::string name, MessageBuffer &buffer, const char *call)
 {
    buffer.add("C;", 2);
    buffer.add(call, strlen(call));
@@ -213,7 +213,7 @@ static void comp_header(std::string name, MessageBuffer &buffer, char *call)
    buffer.add(";", 1);   
 }
 
-static void test_header(TestInfo *test, MessageBuffer &buffer, char *call)
+static void test_header(TestInfo *test, MessageBuffer &buffer, const char *call)
 {
    buffer.add("T;", 2);
    buffer.add(call, strlen(call));

@@ -961,7 +961,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                 evProc->launchDebugger();
 
                 // If for whatever reason this fails, fall back on sleep
-                dyn_debug_crash_debugger = "sleep";
+                dyn_debug_crash_debugger = const_cast<char *>("sleep");
             }
 
             if( string(dyn_debug_crash_debugger) == string("sleep") ) {

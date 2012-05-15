@@ -138,7 +138,6 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
-    bool useBlock = true;
     block_instance *bbl = (*begin);
 
     // Check for overlapping blocks. Lovely.
@@ -418,7 +417,7 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
   insnCodeGen::generateTrap(gen);
 }
 
-bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, bool useTrap, SpringboardMap &input) {
+bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq & /*req*/, bool /*useTrap*/, SpringboardMap &/*input*/) {
 #if TODO
    assert(!req.fromRelocatedCode);
    // Just the requests for now.

@@ -570,7 +570,7 @@ void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
     fflush(stOut);
 #endif
     if (calculation < objStart || calculation >= objEnd) {
-        flags = (void*)(((int)flags) & 0xfffffffe);
+       flags = (void*) ((long) (((int)((long)flags)) & 0xfffffffe));
     }
     DYNINST_stopThread(pointAddr, callBackID, flags, calculation);
 }

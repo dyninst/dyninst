@@ -202,7 +202,7 @@ static Process::cb_ret_t uthr_destroy(Event::const_ptr ev)
       has_error = true;
    }
 
-   char *pstr = NULL;
+   const char *pstr = NULL;
    if (ev->getEventType().time() == EventType::Pre)
    {
       if (pre_dead_tids.find(pair<PID, THR_ID>(pid, tid)) != pre_dead_tids.end()) {
@@ -296,7 +296,7 @@ static Process::cb_ret_t lwp_destroy(Event::const_ptr ev)
    PID pid = thr->getProcess()->getPid();
    LWP lwp = thr->getLWP();
 
-   char *pstr = NULL;
+   const char *pstr = NULL;
    if (ev->getEventType().time() == EventType::Pre)
    {
       if (pre_dead_lwps.find(pair<PID, LWP>(pid, lwp)) != pre_dead_lwps.end()) {

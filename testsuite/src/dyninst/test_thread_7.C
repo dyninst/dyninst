@@ -50,7 +50,7 @@ protected:
   bool create_proc;
   char *filename;
   BPatch_process *proc;
-  char *args[MAX_ARGS];
+  const char *args[MAX_ARGS];
   unsigned num_args;
 
   BPatch_process *getProcess();

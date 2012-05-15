@@ -57,7 +57,7 @@ using namespace std;
 static void clearBinEditFiles()
 {
    struct dirent **files;
-   char *binedit_dir = get_binedit_dir();
+   const char *binedit_dir = get_binedit_dir();
    int result = scandir(binedit_dir, &files, NULL, NULL);
    if (result == -1) {
       return;
@@ -85,7 +85,7 @@ static void clearBinEditFiles()
 
 static bool cdBinDir()
 {
-   char *binedit_dir = get_binedit_dir();
+   const char *binedit_dir = get_binedit_dir();
    int result = chdir(binedit_dir);
    if (result != -1) {
       return true;
@@ -208,7 +208,7 @@ bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_
 
    int unique_id = params["unique_id"]->getInt();
    
-   char *binedit_dir = get_binedit_dir();
+   const char *binedit_dir = get_binedit_dir();
    if (unique_id) {
       unsigned buffer_len = strlen(BINEDIT_BASENAME) + 32;
       char *buffer = (char *) malloc(buffer_len);

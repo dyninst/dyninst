@@ -512,7 +512,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register. 
 #if defined(arch_x86_64) || defined(arch_x86)
-bool registerSpace::checkVolatileRegisters(codeGen &gen,
+bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
 {
 	if (addr_width == 8) {

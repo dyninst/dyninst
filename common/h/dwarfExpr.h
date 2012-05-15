@@ -192,7 +192,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
       if ( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) 
       {
          dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC_W(locations[i].lr_atom - DW_OP_breg0, addr_width), locations[i].lr_number );
-         long int to_push;
+         long int to_push = 0;
          if (loc) {
             loc->stClass = storageRegOffset;
             loc->refClass = storageNoRef;

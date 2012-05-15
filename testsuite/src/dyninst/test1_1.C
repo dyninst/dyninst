@@ -91,7 +91,7 @@ test_results_t test1_1_Mutator::executeTest() {
   }
 
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "test1_1_call1_1";
+  const char *fn = "test1_1_call1_1";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #%d (%s)\n", testNo, testName);
