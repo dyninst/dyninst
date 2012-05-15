@@ -80,6 +80,7 @@ platform_module(P, 'instruction') :- platform('power64', _, _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'linux', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'freebsd', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'bluegene', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'windows', _, P).
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite

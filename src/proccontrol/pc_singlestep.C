@@ -49,9 +49,11 @@ extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()
 
 struct proc_info_ss {
    Address func[NUM_FUNCS];
+   Address start;
    proc_info_ss()
    {
-      for (unsigned i=0; i<NUM_FUNCS; i++) {
+	   start = 0x0;
+	   for (unsigned i=0; i<NUM_FUNCS; i++) {
          func[i] = 0x0;
       }
    }
@@ -76,24 +78,44 @@ struct thread_info {
 static std::map<Thread::const_ptr, thread_info> tinfo;
 static std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
+Breakpoint::ptr early_bp;
 
 static bool myerror;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
 	logerror("Begin on_breakpoint\n");
-   EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
-   std::vector<Breakpoint::const_ptr> bps;
-   ebp->getBreakpoints(bps);
-   if (bps.size() != 1 && bps[0] != bp) {
-      logerror("Got unexpected breakpoint\n");
-      myerror = true;
-   }
-   thread_info &ti = tinfo[ev->getThread()];
-   logerror("Got breakpoint on thread %d, order = %d\n", ev->getThread()->getTID(), ti.order);
-   ti.breakpoint = ti.order++;
-   logerror("ti.breakpoint = %d\n", ti.breakpoint);
-   return Process::cbProcContinue;
+
+	MachRegister pc = MachRegister::getPC(ev->getProcess()->getArchitecture());
+    MachRegisterVal loc;
+    //logerror("Begin onsinglestep()\n");
+
+    bool result = ev->getThread()->getRegister(pc, loc);
+    if (!result) {
+        logerror("Failed to read PC register\n");
+        myerror = true;
+        return Process::cbDefault;
+    }
+
+	proc_info_ss &pi = pinfo[ev->getProcess()];
+
+	if (loc == pi.start) {
+		logerror("Received Windows workaround breakpoint, ignoring\n");
+		return Process::cbProcContinue;
+	}
+
+	EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
+ 	std::vector<Breakpoint::const_ptr> bps;
+	ebp->getBreakpoints(bps);
+	if (bps.size() != 1 && bps[0] != bp) {
+		logerror("Got unexpected breakpoint\n");
+		myerror = true;
+	}
+	thread_info &ti = tinfo[ev->getThread()];
+	logerror("Got breakpoint on thread %d, order = %d\n", ev->getThread()->getTID(), ti.order);
+	ti.breakpoint = ti.order++;
+	logerror("ti.breakpoint = %d\n", ti.breakpoint);
+	return Process::cbProcContinue;
 }
 
 Process::cb_ret_t on_singlestep(Event::const_ptr ev)
@@ -109,16 +131,16 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       return Process::cbDefault;
    }
    
+//	   cerr << "Singlestep @ " << hex << loc << dec << endl;
+
    if (!ev->getThread()->getSingleStepMode())
    {
       logerror("Single step on thread not in single step mode\n");
       myerror = true;
    }
-
    proc_info_ss &pi = pinfo[ev->getProcess()];
    thread_info &ti = tinfo[ev->getThread()];
-
-   ti.steps++;
+	ti.steps++;
    for (unsigned i = 0; i<NUM_FUNCS; i++) {
       if (pi.func[i] == loc) {
          if (ti.hit_funcs[i] != -1) {
@@ -147,6 +169,7 @@ test_results_t pc_singlestepMutator::executeTest()
    tinfo.clear();
    pinfo.clear();
    bp = Breakpoint::newBreakpoint();
+   early_bp = Breakpoint::newBreakpoint();
 
    
    std::set<Thread::ptr> singlestep_threads;
@@ -162,22 +185,35 @@ test_results_t pc_singlestepMutator::executeTest()
       }
 
       proc_info_ss &pi = pinfo[proc];
+
+	  send_addr addrmsg;
+	  result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
+	  if (!result) {
+		  logerror("Failed to receive initial breakpoint address\n");
+		  myerror = true;
+	  }
+	  if (addrmsg.code != SENDADDR_CODE) {
+		  logerror("Unexpected addr code @ initial breakpoint message\n");
+		  myerror = true;
+	  }
+	  pi.start = addrmsg.addr;
+	  logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
+
       Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++)
       {
-         send_addr addr;
-         bool result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
+         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), 
                                           proc);
          if (!result) {
             logerror("Failed to receive addr message\n");
             myerror = true;
          }
-         if (addr.code != SENDADDR_CODE) {
+         if (addrmsg.code != SENDADDR_CODE) {
             logerror("Unexpected addr code\n");
             myerror = true;
          }
-         pi.func[j] = addr.addr;
-		 logerror("func %d at 0x%lx\n", j, addr.addr);
+         pi.func[j] = addrmsg.addr;
+		 logerror("func %d at 0x%lx\n", j, addrmsg.addr);
       }
       
       result = proc->stopProc();
@@ -193,7 +229,14 @@ test_results_t pc_singlestepMutator::executeTest()
          logerror("Failed to insert breakpoint\n");
          myerror = true;
       }
-      
+
+	  /* Windows has a problem where setting singlestep on a thread in a syscall is just ignored,
+	     without any sort of failure. We insert a breakpoint early in process execution to ensure
+		 that this is caught. */
+	  addr = pi.start;
+	  logerror("Inserting windows workaround breakpoint at 0x%lx\n", addr);
+	  result = proc->addBreakpoint(addr, early_bp);
+
       syncloc sync_msg;
       sync_msg.code = SYNCLOC_CODE;
 	  logerror("Mutator sending sync message\n");
@@ -218,7 +261,7 @@ test_results_t pc_singlestepMutator::executeTest()
             singlestep_threads.insert(thrd);
 			logerror("Thread %d (start %p) single-stepping\n", tid, startAddr);
             thrd->setSingleStepMode(true);
-         }
+		 }
          else {
 			 logerror("Thread %d (start %p) running normally\n", tid, startAddr);
             regular_threads.insert(thrd);

@@ -73,7 +73,18 @@ static void *findUnallocatedMemory() {
    return result;
 }
 #else
-#error Fill in findUnallocatedMemory on this platform
+static void *findUnallocatedMemory() {
+	// Do the same allocate/deallocate trick as above
+	void *result;
+	unsigned pagesize;
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	pagesize = sysinfo.dwPageSize;
+
+	result = VirtualAlloc(NULL, pagesize, MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	return result;
+}
+
 #endif
 
 static int waitfor_sync(int myid) {
