@@ -1,8 +1,6 @@
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../..
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
