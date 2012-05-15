@@ -8,15 +8,18 @@ TO_CORE = .
 
 # Include the make configuration specification (site configuration options)
 include ./make.config
-# Include component dependency information
-include ./make.components
-
-BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 # Note that the first rule listed ("all") is what gets made by default,
 # i.e., if make is given no arguments.  Don't add other targets before all!
-
 all: world
+
+# Include component dependency information
+include ./make.components
+
+.PHONY: $(Everything) $(Everything_install) $(Everything_tests) $(Everything_tests_install) install world intro comp_intro ready clean distclean depend all
+.PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI
+
+BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 $(Everything) $(Everything_tests):
 	@if [ -f $@/$(PLATFORM)/Makefile ]; then \
@@ -44,7 +47,6 @@ $(Test_targets):
 install: intro ready $(fullSystem_install) testsuite_install
 
 world: intro $(fullSystem)
-
 depend:
 	+@for subsystem in $(fullSystem); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
@@ -106,9 +108,8 @@ DynC_API: comp_intro dynC_API
 DataflowAPI: comp_intro parseAPI
 ProcControlAPI: comp_intro proccontrol proccontrol_testsuite
 
-.PHONY: $(Everything) $(Everything_install) $(Everything_tests) $(Everything_tests_install) install world intro comp_intro ready clean distclean depend
-.PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI
-
+# Testsuite dependencies
+parseThat: $(filter-out parseThat,$(parseThat))
 testsuite: $(fullSystem_notests)
 testsuite_install: $(fullSystem_install_notests)
 
