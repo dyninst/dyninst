@@ -74,7 +74,11 @@ int test3_3_mutatee() {
      FILE *fp;
      char filename[80];
 
+#if defined(os_windows_test)
      sprintf(filename, "test3.out.%d", 1);
+#else
+     sprintf(filename, "test3.out.%d", (int) getpid());
+#endif
      fp = fopen(filename, "w");
      assert(fp);
      fprintf(fp, "%d\n", test3_3_ret);
