@@ -22,7 +22,8 @@ symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module te
 symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 power_cft.so: power_cft.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/power_cft.dep $(LIBTESTSUITE) $(instruction_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -30,7 +31,8 @@ endif
 endif
 
 power_decode.so: power_decode.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/power_decode.dep $(LIBTESTSUITE) $(instruction_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -38,7 +40,8 @@ endif
 endif
 
 snip_change_shlib_var.so: snip_change_shlib_var.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/snip_change_shlib_var.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -46,7 +49,8 @@ endif
 endif
 
 snip_ref_shlib_var.so: snip_ref_shlib_var.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/snip_ref_shlib_var.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -54,7 +58,8 @@ endif
 endif
 
 test1_1.so: test1_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -62,7 +67,8 @@ endif
 endif
 
 test1_10.so: test1_10.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_10.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -70,7 +76,8 @@ endif
 endif
 
 test1_11.so: test1_11.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_11.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -78,7 +85,8 @@ endif
 endif
 
 test1_12.so: test1_12.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_12.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -86,7 +94,8 @@ endif
 endif
 
 test1_13.so: test1_13.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_13.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -94,7 +103,8 @@ endif
 endif
 
 test1_14.so: test1_14.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_14.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -102,7 +112,8 @@ endif
 endif
 
 test1_15.so: test1_15.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_15.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -110,7 +121,8 @@ endif
 endif
 
 test1_16.so: test1_16.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_16.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -118,7 +130,8 @@ endif
 endif
 
 test1_17.so: test1_17.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_17.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -126,7 +139,8 @@ endif
 endif
 
 test1_18.so: test1_18.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_18.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -134,7 +148,8 @@ endif
 endif
 
 test1_19.so: test1_19.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_19.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -142,7 +157,8 @@ endif
 endif
 
 test1_2.so: test1_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -150,7 +166,8 @@ endif
 endif
 
 test1_20.so: test1_20.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_20.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -linstructionAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -linstructionAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -158,7 +175,8 @@ endif
 endif
 
 test1_21.so: test1_21.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_21.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -166,7 +184,8 @@ endif
 endif
 
 test1_22.so: test1_22.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_22.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -174,7 +193,8 @@ endif
 endif
 
 test1_23.so: test1_23.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_23.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -182,7 +202,8 @@ endif
 endif
 
 test1_24.so: test1_24.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_24.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -190,7 +211,8 @@ endif
 endif
 
 test1_25.so: test1_25.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_25.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -198,7 +220,8 @@ endif
 endif
 
 test1_26.so: test1_26.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_26.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -206,7 +229,8 @@ endif
 endif
 
 test1_27.so: test1_27.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_27.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -214,7 +238,8 @@ endif
 endif
 
 test1_28.so: test1_28.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_28.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -222,7 +247,8 @@ endif
 endif
 
 test1_29.so: test1_29.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_29.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -230,7 +256,8 @@ endif
 endif
 
 test1_3.so: test1_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -238,7 +265,8 @@ endif
 endif
 
 test1_30.so: test1_30.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_30.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -246,7 +274,8 @@ endif
 endif
 
 test1_31.so: test1_31.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_31.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -254,7 +283,8 @@ endif
 endif
 
 test1_32.so: test1_32.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_32.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -262,7 +292,8 @@ endif
 endif
 
 test1_33.so: test1_33.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_33.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -270,7 +301,8 @@ endif
 endif
 
 test1_34.so: test1_34.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_34.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -278,7 +310,8 @@ endif
 endif
 
 test1_36.so: test1_36.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_36.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -286,7 +319,8 @@ endif
 endif
 
 test1_37.so: test1_37.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_37.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -294,7 +328,8 @@ endif
 endif
 
 test1_38.so: test1_38.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_38.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -302,7 +337,8 @@ endif
 endif
 
 test1_39.so: test1_39.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_39.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -310,7 +346,8 @@ endif
 endif
 
 test1_4.so: test1_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -318,7 +355,8 @@ endif
 endif
 
 test1_40.so: test1_40.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_40.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -326,7 +364,8 @@ endif
 endif
 
 test1_41.so: test1_41.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_41.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -334,7 +373,8 @@ endif
 endif
 
 test1_5.so: test1_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -342,7 +382,8 @@ endif
 endif
 
 test1_6.so: test1_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -350,7 +391,8 @@ endif
 endif
 
 test1_7.so: test1_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -358,7 +400,8 @@ endif
 endif
 
 test1_8.so: test1_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -366,7 +409,8 @@ endif
 endif
 
 test1_9.so: test1_9.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_9.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -374,7 +418,8 @@ endif
 endif
 
 test2_1.so: test2_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -382,7 +427,8 @@ endif
 endif
 
 test2_11.so: test2_11.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_11.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -390,7 +436,8 @@ endif
 endif
 
 test2_12.so: test2_12.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_12.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -398,7 +445,8 @@ endif
 endif
 
 test2_13.so: test2_13.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_13.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -406,7 +454,8 @@ endif
 endif
 
 test2_14.so: test2_14.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_14.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -414,7 +463,8 @@ endif
 endif
 
 test2_2.so: test2_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -422,7 +472,8 @@ endif
 endif
 
 test2_3.so: test2_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -430,7 +481,8 @@ endif
 endif
 
 test2_4.so: test2_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -438,7 +490,8 @@ endif
 endif
 
 test2_5.so: test2_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -446,7 +499,8 @@ endif
 endif
 
 test2_6.so: test2_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -454,7 +508,8 @@ endif
 endif
 
 test2_7.so: test2_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -462,7 +517,8 @@ endif
 endif
 
 test2_8.so: test2_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test2_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -470,7 +526,8 @@ endif
 endif
 
 test3_1.so: test3_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -478,7 +535,8 @@ endif
 endif
 
 test3_2.so: test3_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -486,7 +544,8 @@ endif
 endif
 
 test3_3.so: test3_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -494,7 +553,8 @@ endif
 endif
 
 test3_4.so: test3_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -502,7 +562,8 @@ endif
 endif
 
 test3_5.so: test3_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -510,7 +571,8 @@ endif
 endif
 
 test3_6.so: test3_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -518,7 +580,8 @@ endif
 endif
 
 test3_7.so: test3_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test3_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -526,7 +589,8 @@ endif
 endif
 
 test4_1.so: test4_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test4_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -534,7 +598,8 @@ endif
 endif
 
 test4_2.so: test4_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test4_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -542,7 +607,8 @@ endif
 endif
 
 test4_3.so: test4_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test4_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -550,7 +616,8 @@ endif
 endif
 
 test4_4.so: test4_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test4_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -558,7 +625,8 @@ endif
 endif
 
 test5_1.so: test5_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -566,7 +634,8 @@ endif
 endif
 
 test5_2.so: test5_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -574,7 +643,8 @@ endif
 endif
 
 test5_3.so: test5_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -582,7 +652,8 @@ endif
 endif
 
 test5_4.so: test5_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -590,7 +661,8 @@ endif
 endif
 
 test5_5.so: test5_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -598,7 +670,8 @@ endif
 endif
 
 test5_7.so: test5_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -606,7 +679,8 @@ endif
 endif
 
 test5_8.so: test5_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -614,7 +688,8 @@ endif
 endif
 
 test5_9.so: test5_9.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_9.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -622,7 +697,8 @@ endif
 endif
 
 test_anno_basic_types.so: test_anno_basic_types.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_anno_basic_types.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -630,7 +706,8 @@ endif
 endif
 
 test_callback_1.so: test_callback_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_callback_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -638,7 +715,8 @@ endif
 endif
 
 test_callback_2.so: test_callback_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_callback_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -646,7 +724,8 @@ endif
 endif
 
 test_fork_10.so: test_fork_10.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_10.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -654,7 +733,8 @@ endif
 endif
 
 test_fork_11.so: test_fork_11.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_11.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -662,7 +742,8 @@ endif
 endif
 
 test_fork_12.so: test_fork_12.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_12.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -670,7 +751,8 @@ endif
 endif
 
 test_fork_13.so: test_fork_13.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_13.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -678,7 +760,8 @@ endif
 endif
 
 test_fork_5.so: test_fork_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -686,7 +769,8 @@ endif
 endif
 
 test_fork_6.so: test_fork_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -694,7 +778,8 @@ endif
 endif
 
 test_fork_7.so: test_fork_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -702,7 +787,8 @@ endif
 endif
 
 test_fork_8.so: test_fork_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -710,7 +796,8 @@ endif
 endif
 
 test_fork_9.so: test_fork_9.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_fork_9.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -718,7 +805,8 @@ endif
 endif
 
 test_line_info.so: test_line_info.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_line_info.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -726,7 +814,8 @@ endif
 endif
 
 test_lookup_func.so: test_lookup_func.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_lookup_func.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -734,7 +823,8 @@ endif
 endif
 
 test_lookup_var.so: test_lookup_var.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_lookup_var.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -742,7 +832,8 @@ endif
 endif
 
 test_mem_1.so: test_mem_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -750,7 +841,8 @@ endif
 endif
 
 test_mem_2.so: test_mem_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -758,7 +850,8 @@ endif
 endif
 
 test_mem_3.so: test_mem_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -766,7 +859,8 @@ endif
 endif
 
 test_mem_4.so: test_mem_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -774,7 +868,8 @@ endif
 endif
 
 test_mem_5.so: test_mem_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -782,7 +877,8 @@ endif
 endif
 
 test_mem_6.so: test_mem_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -790,7 +886,8 @@ endif
 endif
 
 test_mem_7.so: test_mem_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -798,7 +895,8 @@ endif
 endif
 
 test_mem_8.so: test_mem_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_mem_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -806,7 +904,8 @@ endif
 endif
 
 test_module.so: test_module.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_module.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -814,7 +913,8 @@ endif
 endif
 
 test_pt_ls.so: test_pt_ls.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_pt_ls.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -822,7 +922,8 @@ endif
 endif
 
 test_ser_anno.so: test_ser_anno.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_ser_anno.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -830,7 +931,8 @@ endif
 endif
 
 test_snip_remove.so: test_snip_remove.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_snip_remove.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -838,7 +940,8 @@ endif
 endif
 
 test_stack_1.so: test_stack_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_stack_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -846,7 +949,8 @@ endif
 endif
 
 test_stack_2.so: test_stack_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_stack_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -854,7 +958,8 @@ endif
 endif
 
 test_stack_3.so: test_stack_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_stack_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -862,7 +967,8 @@ endif
 endif
 
 test_stack_4.so: test_stack_4.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_stack_4.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -870,7 +976,8 @@ endif
 endif
 
 test_symtab_ser_funcs.so: test_symtab_ser_funcs.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_symtab_ser_funcs.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -878,7 +985,8 @@ endif
 endif
 
 test_thread_1.so: test_thread_1.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_1.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -886,7 +994,8 @@ endif
 endif
 
 test_thread_2.so: test_thread_2.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_2.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -894,7 +1003,8 @@ endif
 endif
 
 test_thread_3.so: test_thread_3.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_3.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -902,7 +1012,8 @@ endif
 endif
 
 test_thread_5.so: test_thread_5.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_5.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -910,7 +1021,8 @@ endif
 endif
 
 test_thread_6.so: test_thread_6.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_6.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -918,7 +1030,8 @@ endif
 endif
 
 test_thread_7.so: test_thread_7.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_7.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -926,7 +1039,8 @@ endif
 endif
 
 test_thread_8.so: test_thread_8.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_thread_8.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -934,7 +1048,8 @@ endif
 endif
 
 test_type_info.so: test_type_info.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_type_info.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -942,7 +1057,8 @@ endif
 endif
 
 test_write_param.so: test_write_param.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_write_param.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+	@echo Linking mutator $@
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
