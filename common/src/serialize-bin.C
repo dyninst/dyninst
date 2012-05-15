@@ -38,7 +38,13 @@
 #include "common/h/Types.h"
 #include "common/h/headers.h"
 
-#if !defined(SERIALIZATION_DISABLED)
+#if defined(SERIALIZATION_DISABLED)
+unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *sb) {
+  return 0;
+}
+
+
+#else
 
 using namespace Dyninst;
 

@@ -30,6 +30,7 @@
  */
 #ifdef os_windows_test
 //needed for Sleep
+#include <winsock2.h>
 #include <windows.h>
 #define sleep(x) Sleep(x * 1000)
 #define unlink _unlink

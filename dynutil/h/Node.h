@@ -32,12 +32,12 @@
 #if !defined(NODE_H)
 #define NODE_H
 
-#include "dynptr.h"
 #include <set>
 #include <string>
 #include "Annotatable.h"
 
 #include "dyntypes.h"
+#include "boost/shared_ptr.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning(disable:4251)
@@ -57,12 +57,12 @@ class COMMON_EXPORT Node  {
     friend class Edge;
     friend class Graph;
     
-    typedef dyn_shared_ptr<Edge> EdgePtr;
-    typedef dyn_shared_ptr<Graph> GraphPtr;
+	typedef boost::shared_ptr<Edge> EdgePtr;
+	typedef boost::shared_ptr<Graph> GraphPtr;
     typedef std::set<EdgePtr> EdgeSet;
 
  public:
-    typedef dyn_shared_ptr<Node> Ptr;
+	 typedef boost::shared_ptr<Node> Ptr;
 
     void ins(EdgeIterator &begin, EdgeIterator &end);
     void outs(EdgeIterator &begin, EdgeIterator &end);
@@ -112,7 +112,7 @@ class COMMON_EXPORT Node  {
  
 class COMMON_EXPORT PhysicalNode : public Node {
 public:
-    typedef dyn_shared_ptr<PhysicalNode> Ptr;
+	typedef boost::shared_ptr<PhysicalNode> Ptr;
      
     static Node::Ptr createNode(Address addr);
     
@@ -137,7 +137,7 @@ class  COMMON_EXPORT VirtualNode : public Node {
     friend class Graph;
 
  public:
-    typedef dyn_shared_ptr<VirtualNode> Ptr;
+    typedef boost::shared_ptr<VirtualNode> Ptr;
     
     static Node::Ptr createNode();
     static Node::Ptr createNode(std::string name); 

@@ -41,7 +41,10 @@
 #include <map>
 #include <algorithm>
 
+#include "external/stdint-win.h"
+#include "external/inttypes-win.h"
 #include <boost/crc.hpp>
+#include <iterator>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -1916,10 +1919,12 @@ ProcessSet::iterator::~iterator()
 {
 }
 
+
 Process::ptr ProcessSet::iterator::operator*() const
 {
    return *int_iter;
 }
+
 
 bool ProcessSet::iterator::operator==(const ProcessSet::iterator &i) const
 {
@@ -1939,11 +1944,6 @@ ProcessSet::iterator ProcessSet::iterator::operator++()
 ProcessSet::iterator ProcessSet::iterator::operator++(int)
 {
    return ProcessSet::iterator(int_iter++);
-}
-
-ProcessSet::const_iterator::const_iterator(int_processSet::const_iterator i)
-{
-   int_iter = i;
 }
 
 ProcessSet::const_iterator::const_iterator()

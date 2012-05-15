@@ -74,7 +74,7 @@ class CFWidget : public Widget {
   static const Address Fallthrough;
   static const Address Taken;
 
-  typedef dyn_shared_ptr<CFWidget> Ptr;
+  typedef boost::shared_ptr<CFWidget> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
   static Ptr create(Address addr);

@@ -32,18 +32,20 @@
 #ifndef DYNPTR_H_
 #define DYNPTR_H_
 
+#if 0
 #include "boost/shared_ptr.hpp"
 #include "boost/weak_ptr.hpp"
 #include "boost/enable_shared_from_this.hpp"
 
-#define dyn_shared_ptr                  boost::shared_ptr
-#define dyn_weak_ptr                    boost::weak_ptr
+#define boost::shared_ptr                  boost::shared_ptr
+#define boost::weak_ptr                    boost::weak_ptr
 
 #define dyn_const_pointer_cast          boost::const_pointer_cast
-#define dyn_dynamic_pointer_cast        boost::dynamic_pointer_cast
-#define dyn_static_pointer_cast         boost::static_pointer_cast
+#define boost::dynamic_pointer_cast        boost::dynamic_pointer_cast
+#define boost::static_pointer_cast         boost::static_pointer_cast
 
-#define dyn_enable_shared_from_this     boost::enable_shared_from_this
-#define dyn_checked_delete              boost::checked_delete
+#define boost::enable_shared_from_this     boost::enable_shared_from_this
+#define boost::checked_delete              boost::checked_delete
+#endif
 
 #endif

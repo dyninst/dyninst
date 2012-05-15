@@ -89,8 +89,8 @@ namespace Dyninst {
 
  
 class StackAnalysis {
-  typedef dyn_shared_ptr<InstructionAPI::Instruction> InstructionPtr;
-  typedef dyn_shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+  typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+  typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
  public:
 

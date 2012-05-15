@@ -68,7 +68,7 @@ class int_iRPC;
 typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
 
-typedef dyn_shared_ptr<int_iRPC> int_iRPC_ptr;
+typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 
 typedef std::list<int_iRPC_ptr> rpc_list_t;

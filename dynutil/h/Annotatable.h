@@ -46,9 +46,6 @@
 #include <stdlib.h>
 #include "Serialization.h"
 #include "util.h"
-#include "boost/type_traits/is_base_of.hpp"
-#include "boost/type_traits/is_pointer.hpp"
-#include "boost/type_traits/remove_pointer.hpp"
 
 namespace Dyninst
 {
@@ -143,18 +140,6 @@ class AnnotationClass : public AnnotationClassBase {
 	  const char *getTypeName() { return typeid(T).name();}
 	  void *allocate() 
 	  {
-		  //  If T is (Serializable *) need to allocate a new object, not a new pointer
-		  //  
-
-		  if (boost::is_pointer<T>::value)
-		  {
-				if (boost::is_base_of<Serializable, 
-						typename boost::remove_pointer<T>::type>::value)
-				{
-					return (void *) new (typename boost::remove_pointer<T>::type)();
-				}
-		  }
-
 		  return (void *) new T();
 	  }
 
@@ -458,10 +443,10 @@ class COMMON_EXPORT AnnotatableDense
 		  }
 	  }
 #else
-	  COMMON_EXPORT void serializeAnnotations(SerializerBase *, const char *) {
+	  void serializeAnnotations(SerializerBase *, const char *) {
      }
 #endif
-	  COMMON_EXPORT void annotationsReport()
+	  void annotationsReport()
 	  {
 		  std::vector<AnnotationClassBase *> atypes;
 		  if (annotations && annotations->data)
@@ -882,7 +867,7 @@ class COMMON_EXPORT AnnotatableSparse
 	      return false;
 	  }
 
-     COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *)
+    void serializeAnnotations(SerializerBase *sb, const char *)
 	  {
 		  annos_t &l_annos = *getAnnos();
 		  std::vector<ser_rec_t> my_sers;

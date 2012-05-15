@@ -129,10 +129,11 @@ bool windows_thread::attach()
 bool windows_thread::plat_cont()
 {
 	if (isRPCpreCreate()) return true;
-
+	pthrd_printf("plat_cont for %d/%d\n", proc()->getPid(), tid);
 	bool ok = true;
 	if(singleStep())
 	{
+		pthrd_printf("Singlestepping thread on continue: %d/%d\n", proc()->getPid(), tid);
 		plat_suspend();
 		CONTEXT context;
 		int result;
@@ -212,6 +213,8 @@ bool windows_thread::plat_suspend()
 
 	pthrd_printf("Suspending %d/%d, suspend count is %d, error code %d\n", llproc()->getPid(), tid, result, ((result == -1) ? ::GetLastError() : 0));
 	//cerr << "Context at suspend: " << dumpThreadContext() << endl;
+
+
 	return result != -1;
 }
 

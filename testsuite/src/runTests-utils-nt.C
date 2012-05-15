@@ -32,6 +32,7 @@
 #include <string>
 #include <sstream>
 
+#include <winsock2.h>
 #include <windows.h>
 #include "runTests-utils.h"
 
@@ -206,7 +207,7 @@ char *setResumeEnv()
       tmp << "C:\\";
    }
 
-   tmp << "test_driver.resumelog." << getpid();
+   tmp << "test_driver.resumelog." << GetCurrentProcessId();
 
    char *r_tmp = strdup(tmp.str().c_str());
    putenv(r_tmp);

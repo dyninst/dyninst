@@ -60,7 +60,7 @@ namespace Dyninst
                 bool findTableAddrNoTOC(const IA_IAPI* blockToCheck);
                 bool parseRelativeTableIdiom();
                 
-                dyn_shared_ptr<detail::TOCandOffsetExtractor> toc_visitor;
+                boost::shared_ptr<detail::TOCandOffsetExtractor> toc_visitor;
 		std::set<int> dfgregs;
                 //std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator patternIter;
                 IA_IAPI::allInsns_t::const_iterator patternIter;

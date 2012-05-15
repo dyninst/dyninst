@@ -47,7 +47,7 @@ namespace InstructionAPI
 class InstructionDecoderImpl
 {
     public:
-        typedef dyn_shared_ptr<InstructionDecoderImpl> Ptr;
+        typedef boost::shared_ptr<InstructionDecoderImpl> Ptr;
       
         InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}

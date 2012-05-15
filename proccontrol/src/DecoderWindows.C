@@ -4,7 +4,7 @@
 #include "windows_thread.h"
 #include "ProcPool.h"
 #include <iostream>
-#include "external/boost/scoped_ptr.hpp"
+#include "boost/scoped_ptr.hpp"
 #include "irpc.h"
 #include <psapi.h>
 #include "procControl/h/Mailbox.h"
@@ -117,13 +117,23 @@ Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* pro
 	if(!thread) return evt;
 
 	assert(thread->singleStep());
-	installed_breakpoint *clearingbp = thread->isClearingBreakpoint();
+	bp_instance *clearingbp = thread->isClearingBreakpoint();
 	if(clearingbp) {
 		pthrd_printf("Decoded event to breakpoint cleanup\n");
 		evt = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
 	} else {
 		evt = Event::ptr(new EventSingleStep());
 	}
+
+	CONTEXT verification;
+	verification.ContextFlags = CONTEXT_FULL;
+	::GetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+	if (verification.EFlags & TF_BIT) {
+		pthrd_printf("BUG ENCOUNTERED: OS handled us a thread with TF set, clearing manually\n");
+		verification.EFlags &= (~TF_BIT);
+		::SetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+	}
+
 	return evt;
 }
 
@@ -142,7 +152,7 @@ Event::ptr DecoderWindows::decodeBreakpointEvent(DEBUG_EVENT e, int_process* pro
 		return evt;
 	}
 
-	installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+	sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
 
 	if (ibp) {
 	   pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
@@ -183,11 +193,14 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 	{
 	case CREATE_PROCESS_DEBUG_EVENT:
 	case CREATE_THREAD_DEBUG_EVENT:
+		pthrd_printf("decodeProcess/decodeThreadEvent\n");
 		return decodeCreateThread(e, newEvt, proc, events);
 	case EXCEPTION_DEBUG_EVENT:
+		pthrd_printf("decodeException\n");
 		switch(e.u.Exception.ExceptionRecord.ExceptionCode)
 		{
 		case EXCEPTION_SINGLE_STEP:
+			pthrd_printf("Decoding singleStep event on PID %d, TID %d\n", e.dwProcessId, e.dwThreadId);
 			newEvt = decodeSingleStepEvent(e, proc, thread);
 			break;
 			//fprintf(stderr, "Decoded Single-step event at 0x%lx, PID: %d, TID: %d\n", e.u.Exception.ExceptionRecord.ExceptionAddress, e.dwProcessId, e.dwThreadId);

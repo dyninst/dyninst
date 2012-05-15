@@ -48,7 +48,7 @@ public:
 
 	virtual bool plat_create();
 	virtual bool plat_create_int();
-	virtual bool plat_attach(bool allStopped);
+	virtual bool plat_attach(bool allStopped, bool &);
 	virtual bool plat_attach_int();
 	virtual bool plat_attachWillTriggerStop();
 	virtual bool plat_forked();

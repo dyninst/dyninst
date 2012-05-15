@@ -191,7 +191,7 @@ bool Generator::getAndQueueEventInt(bool block)
 
    pthrd_printf("About to getEvent()\n");
    result = getMultiEvent(block, archEvents);
-
+   pthrd_printf("Got event\n");
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;
@@ -208,7 +208,7 @@ bool Generator::getAndQueueEventInt(bool block)
    ProcPool()->condvar()->lock();
 
    for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
-      ArchEvent *arch_event = *i;
+	   arch_event = *i;
       for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
          Decoder *decoder = *j;
          bool result = decoder->decode(arch_event, events);

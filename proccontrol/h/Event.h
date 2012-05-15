@@ -87,17 +87,17 @@ class EventIntBootstrap;
 class EventNop;
 class EventThreadDB;
 
-class PC_EXPORT Event : public dyn_enable_shared_from_this<Event>
+class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
-   friend void dyn_checked_delete<Event>(Event *);
-   friend void dyn_checked_delete<const Event>(const Event *);
+   friend void boost::checked_delete<Event>(Event *);
+   friend void boost::checked_delete<const Event>(const Event *);
    friend class ::HandlerPool;
    friend class ::int_process;
    friend class ::HandleCallbacks;
  public:
-   typedef dyn_shared_ptr<Event> ptr;
-   typedef dyn_shared_ptr<const Event> const_ptr;
-   typedef dyn_weak_ptr<Event> weak_ptr;
+   typedef boost::shared_ptr<Event> ptr;
+   typedef boost::shared_ptr<const Event> const_ptr;
+   typedef boost::weak_ptr<Event> weak_ptr;
 
    Event(EventType etype_, Thread::ptr thread_ = Thread::ptr());
    virtual ~Event();
@@ -130,92 +130,92 @@ class PC_EXPORT Event : public dyn_enable_shared_from_this<Event>
    Event::weak_ptr subservientTo() const;
    void addSubservientEvent(Event::ptr ev);
 
-   dyn_shared_ptr<EventTerminate> getEventTerminate();
-   dyn_shared_ptr<const EventTerminate> getEventTerminate() const;
+   boost::shared_ptr<EventTerminate> getEventTerminate();
+   boost::shared_ptr<const EventTerminate> getEventTerminate() const;
 
-   dyn_shared_ptr<EventExit> getEventExit();
-   dyn_shared_ptr<const EventExit> getEventExit() const;
+   boost::shared_ptr<EventExit> getEventExit();
+   boost::shared_ptr<const EventExit> getEventExit() const;
 
-   dyn_shared_ptr<EventCrash> getEventCrash();
-   dyn_shared_ptr<const EventCrash> getEventCrash() const;
+   boost::shared_ptr<EventCrash> getEventCrash();
+   boost::shared_ptr<const EventCrash> getEventCrash() const;
 
-   dyn_shared_ptr<EventForceTerminate> getEventForceTerminate();
-   dyn_shared_ptr<const EventForceTerminate> getEventForceTerminate() const;
+   boost::shared_ptr<EventForceTerminate> getEventForceTerminate();
+   boost::shared_ptr<const EventForceTerminate> getEventForceTerminate() const;
 
-   dyn_shared_ptr<EventExec> getEventExec();
-   dyn_shared_ptr<const EventExec> getEventExec() const;
+   boost::shared_ptr<EventExec> getEventExec();
+   boost::shared_ptr<const EventExec> getEventExec() const;
 
-   dyn_shared_ptr<EventStop> getEventStop();
-   dyn_shared_ptr<const EventStop> getEventStop() const;
+   boost::shared_ptr<EventStop> getEventStop();
+   boost::shared_ptr<const EventStop> getEventStop() const;
 
-   dyn_shared_ptr<EventBreakpoint> getEventBreakpoint();
-   dyn_shared_ptr<const EventBreakpoint> getEventBreakpoint() const;
+   boost::shared_ptr<EventBreakpoint> getEventBreakpoint();
+   boost::shared_ptr<const EventBreakpoint> getEventBreakpoint() const;
 
-   dyn_shared_ptr<EventNewThread> getEventNewThread();
-   dyn_shared_ptr<const EventNewThread> getEventNewThread() const;
+   boost::shared_ptr<EventNewThread> getEventNewThread();
+   boost::shared_ptr<const EventNewThread> getEventNewThread() const;
 
-   dyn_shared_ptr<EventNewUserThread> getEventNewUserThread();
-   dyn_shared_ptr<const EventNewUserThread> getEventNewUserThread() const;
+   boost::shared_ptr<EventNewUserThread> getEventNewUserThread();
+   boost::shared_ptr<const EventNewUserThread> getEventNewUserThread() const;
 
-   dyn_shared_ptr<EventNewLWP> getEventNewLWP();
-   dyn_shared_ptr<const EventNewLWP> getEventNewLWP() const;
+   boost::shared_ptr<EventNewLWP> getEventNewLWP();
+   boost::shared_ptr<const EventNewLWP> getEventNewLWP() const;
 
-   dyn_shared_ptr<EventThreadDestroy> getEventThreadDestroy();
-   dyn_shared_ptr<const EventThreadDestroy> getEventThreadDestroy() const;
+   boost::shared_ptr<EventThreadDestroy> getEventThreadDestroy();
+   boost::shared_ptr<const EventThreadDestroy> getEventThreadDestroy() const;
 
-   dyn_shared_ptr<EventUserThreadDestroy> getEventUserThreadDestroy();
-   dyn_shared_ptr<const EventUserThreadDestroy> getEventUserThreadDestroy() const;
+   boost::shared_ptr<EventUserThreadDestroy> getEventUserThreadDestroy();
+   boost::shared_ptr<const EventUserThreadDestroy> getEventUserThreadDestroy() const;
 
-   dyn_shared_ptr<EventLWPDestroy> getEventLWPDestroy();
-   dyn_shared_ptr<const EventLWPDestroy> getEventLWPDestroy() const;
+   boost::shared_ptr<EventLWPDestroy> getEventLWPDestroy();
+   boost::shared_ptr<const EventLWPDestroy> getEventLWPDestroy() const;
 
-   dyn_shared_ptr<EventFork> getEventFork();
-   dyn_shared_ptr<const EventFork> getEventFork() const;
+   boost::shared_ptr<EventFork> getEventFork();
+   boost::shared_ptr<const EventFork> getEventFork() const;
 
-   dyn_shared_ptr<EventSignal> getEventSignal();
-   dyn_shared_ptr<const EventSignal> getEventSignal() const;
+   boost::shared_ptr<EventSignal> getEventSignal();
+   boost::shared_ptr<const EventSignal> getEventSignal() const;
 
-   dyn_shared_ptr<EventBootstrap> getEventBootstrap();
-   dyn_shared_ptr<const EventBootstrap> getEventBootstrap() const;
+   boost::shared_ptr<EventBootstrap> getEventBootstrap();
+   boost::shared_ptr<const EventBootstrap> getEventBootstrap() const;
 
-   dyn_shared_ptr<EventPreBootstrap> getEventPreBootstrap();
-   dyn_shared_ptr<const EventPreBootstrap> getEventPreBootstrap() const;
+   boost::shared_ptr<EventPreBootstrap> getEventPreBootstrap();
+   boost::shared_ptr<const EventPreBootstrap> getEventPreBootstrap() const;
 
-   dyn_shared_ptr<EventRPC> getEventRPC();
-   dyn_shared_ptr<const EventRPC> getEventRPC() const;
+   boost::shared_ptr<EventRPC> getEventRPC();
+   boost::shared_ptr<const EventRPC> getEventRPC() const;
 
-   dyn_shared_ptr<EventRPCLaunch> getEventRPCLaunch();
-   dyn_shared_ptr<const EventRPCLaunch> getEventRPCLaunch() const;
+   boost::shared_ptr<EventRPCLaunch> getEventRPCLaunch();
+   boost::shared_ptr<const EventRPCLaunch> getEventRPCLaunch() const;
 
-   dyn_shared_ptr<EventSingleStep> getEventSingleStep();
-   dyn_shared_ptr<const EventSingleStep> getEventSingleStep() const;
+   boost::shared_ptr<EventSingleStep> getEventSingleStep();
+   boost::shared_ptr<const EventSingleStep> getEventSingleStep() const;
 
-   dyn_shared_ptr<EventBreakpointClear> getEventBreakpointClear();
-   dyn_shared_ptr<const EventBreakpointClear> getEventBreakpointClear() const;
+   boost::shared_ptr<EventBreakpointClear> getEventBreakpointClear();
+   boost::shared_ptr<const EventBreakpointClear> getEventBreakpointClear() const;
 
-   dyn_shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
-   dyn_shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
+   boost::shared_ptr<EventBreakpointRestore> getEventBreakpointRestore();
+   boost::shared_ptr<const EventBreakpointRestore> getEventBreakpointRestore() const;
 
-   dyn_shared_ptr<EventLibrary> getEventLibrary();
-   dyn_shared_ptr<const EventLibrary> getEventLibrary() const;
+   boost::shared_ptr<EventLibrary> getEventLibrary();
+   boost::shared_ptr<const EventLibrary> getEventLibrary() const;
 
-   dyn_shared_ptr<EventAsync> getEventAsync();
-   dyn_shared_ptr<const EventAsync> getEventAsync() const;
+   boost::shared_ptr<EventAsync> getEventAsync();
+   boost::shared_ptr<const EventAsync> getEventAsync() const;
 
-   dyn_shared_ptr<EventChangePCStop> getEventChangePCStop();
-   dyn_shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
+   boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
+   boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
 
-   dyn_shared_ptr<EventDetach> getEventDetach();
-   dyn_shared_ptr<const EventDetach> getEventDetach() const;
+   boost::shared_ptr<EventDetach> getEventDetach();
+   boost::shared_ptr<const EventDetach> getEventDetach() const;
 
-   dyn_shared_ptr<EventIntBootstrap> getEventIntBootstrap();
-   dyn_shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
+   boost::shared_ptr<EventIntBootstrap> getEventIntBootstrap();
+   boost::shared_ptr<const EventIntBootstrap> getEventIntBootstrap() const;
 
-   dyn_shared_ptr<EventNop> getEventNop();
-   dyn_shared_ptr<const EventNop> getEventNop() const;
+   boost::shared_ptr<EventNop> getEventNop();
+   boost::shared_ptr<const EventNop> getEventNop() const;
 
-   dyn_shared_ptr<EventThreadDB> getEventThreadDB();
-   dyn_shared_ptr<const EventThreadDB> getEventThreadDB() const;
+   boost::shared_ptr<EventThreadDB> getEventThreadDB();
+   boost::shared_ptr<const EventThreadDB> getEventThreadDB() const;
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -260,24 +260,24 @@ OS& operator<<(OS& str, Event& e)
 
 class PC_EXPORT EventTerminate : public Event
 {
-   friend void dyn_checked_delete<EventTerminate>(EventTerminate *);
-   friend void dyn_checked_delete<const EventTerminate>(const EventTerminate *);
+   friend void boost::checked_delete<EventTerminate>(EventTerminate *);
+   friend void boost::checked_delete<const EventTerminate>(const EventTerminate *);
  public:
-   typedef dyn_shared_ptr<EventTerminate> ptr;
-   typedef dyn_shared_ptr<const EventTerminate> const_ptr;
+   typedef boost::shared_ptr<EventTerminate> ptr;
+   typedef boost::shared_ptr<const EventTerminate> const_ptr;
    EventTerminate(EventType type_);
    virtual ~EventTerminate();
 };
 
 class PC_EXPORT EventExit : public EventTerminate
 {
-   friend void dyn_checked_delete<EventExit>(EventExit *);
-   friend void dyn_checked_delete<const EventExit>(const EventExit *);
+   friend void boost::checked_delete<EventExit>(EventExit *);
+   friend void boost::checked_delete<const EventExit>(const EventExit *);
  private:
    int exitcode;
  public:
-   typedef dyn_shared_ptr<EventExit> ptr;
-   typedef dyn_shared_ptr<const EventExit> const_ptr;
+   typedef boost::shared_ptr<EventExit> ptr;
+   typedef boost::shared_ptr<const EventExit> const_ptr;
    int getExitCode() const;
    EventExit(EventType::Time eventtime, int exitcode_);
    virtual ~EventExit();
@@ -285,13 +285,13 @@ class PC_EXPORT EventExit : public EventTerminate
 
 class PC_EXPORT EventCrash : public EventTerminate
 {
-   friend void dyn_checked_delete<EventCrash>(EventCrash *);
-   friend void dyn_checked_delete<const EventCrash>(const EventCrash *);
+   friend void boost::checked_delete<EventCrash>(EventCrash *);
+   friend void boost::checked_delete<const EventCrash>(const EventCrash *);
  private:
    int termsig;
  public:
-   typedef dyn_shared_ptr<EventCrash> ptr;
-   typedef dyn_shared_ptr<const EventCrash> const_ptr;
+   typedef boost::shared_ptr<EventCrash> ptr;
+   typedef boost::shared_ptr<const EventCrash> const_ptr;
    int getTermSignal() const;
    EventCrash(int termsig);
    virtual ~EventCrash();
@@ -299,13 +299,13 @@ class PC_EXPORT EventCrash : public EventTerminate
 
 class PC_EXPORT EventForceTerminate : public EventTerminate
 {
-   friend void dyn_checked_delete<EventForceTerminate>(EventForceTerminate *);
-   friend void dyn_checked_delete<const EventForceTerminate>(const EventForceTerminate *);
+   friend void boost::checked_delete<EventForceTerminate>(EventForceTerminate *);
+   friend void boost::checked_delete<const EventForceTerminate>(const EventForceTerminate *);
  private:
    int termsig;
  public:
-   typedef dyn_shared_ptr<EventForceTerminate> ptr;
-   typedef dyn_shared_ptr<const EventForceTerminate> const_ptr;
+   typedef boost::shared_ptr<EventForceTerminate> ptr;
+   typedef boost::shared_ptr<const EventForceTerminate> const_ptr;
    int getTermSignal() const;
    EventForceTerminate(int termsig);
    virtual ~EventForceTerminate();
@@ -313,13 +313,13 @@ class PC_EXPORT EventForceTerminate : public EventTerminate
 
 class PC_EXPORT EventExec : public Event
 {
-   friend void dyn_checked_delete<EventExec>(EventExec *);
-   friend void dyn_checked_delete<const EventExec>(const EventExec *);
+   friend void boost::checked_delete<EventExec>(EventExec *);
+   friend void boost::checked_delete<const EventExec>(const EventExec *);
  private:
    std::string execpath;
  public:
-   typedef dyn_shared_ptr<EventExec> ptr;
-   typedef dyn_shared_ptr<const EventExec> const_ptr;
+   typedef boost::shared_ptr<EventExec> ptr;
+   typedef boost::shared_ptr<const EventExec> const_ptr;
    EventExec(EventType::Time etime_, std::string path = std::string(""));
    virtual ~EventExec();
 
@@ -329,22 +329,22 @@ class PC_EXPORT EventExec : public Event
 
 class PC_EXPORT EventStop : public Event
 {
-   friend void dyn_checked_delete<EventStop>(EventStop *);
-   friend void dyn_checked_delete<const EventStop>(const EventStop *);
+   friend void boost::checked_delete<EventStop>(EventStop *);
+   friend void boost::checked_delete<const EventStop>(const EventStop *);
  public:
-   typedef dyn_shared_ptr<EventStop> ptr;
-   typedef dyn_shared_ptr<const EventStop> const_ptr;
+   typedef boost::shared_ptr<EventStop> ptr;
+   typedef boost::shared_ptr<const EventStop> const_ptr;
    EventStop();
    virtual ~EventStop();
 };
 
 class PC_EXPORT EventNewThread : public Event
 {
-   friend void dyn_checked_delete<EventNewThread>(EventNewThread *);
-   friend void dyn_checked_delete<const EventNewThread>(const EventNewThread *);
+   friend void boost::checked_delete<EventNewThread>(EventNewThread *);
+   friend void boost::checked_delete<const EventNewThread>(const EventNewThread *);
  public:
-   typedef dyn_shared_ptr<EventNewThread> ptr;
-   typedef dyn_shared_ptr<const EventNewThread> const_ptr;
+   typedef boost::shared_ptr<EventNewThread> ptr;
+   typedef boost::shared_ptr<const EventNewThread> const_ptr;
    EventNewThread(EventType et);
    virtual ~EventNewThread();
 
@@ -355,13 +355,13 @@ class PC_EXPORT EventNewThread : public Event
 class int_eventNewUserThread;
 class PC_EXPORT EventNewUserThread : public EventNewThread
 {
-   friend void dyn_checked_delete<EventNewUserThread>(EventNewUserThread *);
-   friend void dyn_checked_delete<const EventNewUserThread>(const EventNewUserThread *);
+   friend void boost::checked_delete<EventNewUserThread>(EventNewUserThread *);
+   friend void boost::checked_delete<const EventNewUserThread>(const EventNewUserThread *);
   private:
    int_eventNewUserThread *iev;
   public:
-   typedef dyn_shared_ptr<EventNewUserThread> ptr;
-   typedef dyn_shared_ptr<const EventNewUserThread> const_ptr;   
+   typedef boost::shared_ptr<EventNewUserThread> ptr;
+   typedef boost::shared_ptr<const EventNewUserThread> const_ptr;   
 
    EventNewUserThread();
    virtual ~EventNewUserThread();
@@ -373,13 +373,13 @@ class PC_EXPORT EventNewUserThread : public EventNewThread
 
 class PC_EXPORT EventNewLWP : public EventNewThread
 {
-   friend void dyn_checked_delete<EventNewLWP>(EventNewLWP *);
-   friend void dyn_checked_delete<const EventNewLWP>(const EventNewLWP *);
+   friend void boost::checked_delete<EventNewLWP>(EventNewLWP *);
+   friend void boost::checked_delete<const EventNewLWP>(const EventNewLWP *);
   private:
    Dyninst::LWP lwp;
   public:
-   typedef dyn_shared_ptr<EventNewLWP> ptr;
-   typedef dyn_shared_ptr<const EventNewLWP> const_ptr;   
+   typedef boost::shared_ptr<EventNewLWP> ptr;
+   typedef boost::shared_ptr<const EventNewLWP> const_ptr;   
    EventNewLWP(Dyninst::LWP lwp_);
    virtual ~EventNewLWP();
 
@@ -389,46 +389,46 @@ class PC_EXPORT EventNewLWP : public EventNewThread
 
 class PC_EXPORT EventThreadDestroy : public Event
 {
-   friend void dyn_checked_delete<EventThreadDestroy>(EventThreadDestroy *);
-   friend void dyn_checked_delete<const EventThreadDestroy>(const EventThreadDestroy *);
+   friend void boost::checked_delete<EventThreadDestroy>(EventThreadDestroy *);
+   friend void boost::checked_delete<const EventThreadDestroy>(const EventThreadDestroy *);
  public:
-   typedef dyn_shared_ptr<EventThreadDestroy> ptr;
-   typedef dyn_shared_ptr<const EventThreadDestroy> const_ptr;
+   typedef boost::shared_ptr<EventThreadDestroy> ptr;
+   typedef boost::shared_ptr<const EventThreadDestroy> const_ptr;
    EventThreadDestroy(EventType et);
    virtual ~EventThreadDestroy() = 0;
 };
 
 class PC_EXPORT EventUserThreadDestroy : public EventThreadDestroy
 {
-   friend void dyn_checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *);
-   friend void dyn_checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *);
+   friend void boost::checked_delete<EventUserThreadDestroy>(EventUserThreadDestroy *);
+   friend void boost::checked_delete<const EventUserThreadDestroy>(const EventUserThreadDestroy *);
  public:
-   typedef dyn_shared_ptr<EventUserThreadDestroy> ptr;
-   typedef dyn_shared_ptr<const EventUserThreadDestroy> const_ptr;
+   typedef boost::shared_ptr<EventUserThreadDestroy> ptr;
+   typedef boost::shared_ptr<const EventUserThreadDestroy> const_ptr;
    EventUserThreadDestroy(EventType::Time time_);
    virtual ~EventUserThreadDestroy();
 };
 
 class PC_EXPORT EventLWPDestroy : public EventThreadDestroy
 {
-   friend void dyn_checked_delete<EventLWPDestroy>(EventLWPDestroy *);
-   friend void dyn_checked_delete<const EventLWPDestroy>(const EventLWPDestroy *);
+   friend void boost::checked_delete<EventLWPDestroy>(EventLWPDestroy *);
+   friend void boost::checked_delete<const EventLWPDestroy>(const EventLWPDestroy *);
  public:
-   typedef dyn_shared_ptr<EventLWPDestroy> ptr;
-   typedef dyn_shared_ptr<const EventLWPDestroy> const_ptr;
+   typedef boost::shared_ptr<EventLWPDestroy> ptr;
+   typedef boost::shared_ptr<const EventLWPDestroy> const_ptr;
    EventLWPDestroy(EventType::Time time_);
    virtual ~EventLWPDestroy();
 };
 
 class PC_EXPORT EventFork : public Event
 {
-   friend void dyn_checked_delete<EventFork>(EventFork *);
-   friend void dyn_checked_delete<const EventFork>(const EventFork *);
+   friend void boost::checked_delete<EventFork>(EventFork *);
+   friend void boost::checked_delete<const EventFork>(const EventFork *);
   private:
    Dyninst::PID pid;
   public:
-   typedef dyn_shared_ptr<EventFork> ptr;
-   typedef dyn_shared_ptr<const EventFork> const_ptr;
+   typedef boost::shared_ptr<EventFork> ptr;
+   typedef boost::shared_ptr<const EventFork> const_ptr;
    EventFork(EventType::Time time_, Dyninst::PID pid_);
    virtual ~EventFork();
    Dyninst::PID getPID() const;
@@ -437,13 +437,13 @@ class PC_EXPORT EventFork : public Event
 
 class PC_EXPORT EventSignal : public Event
 {
-   friend void dyn_checked_delete<EventSignal>(EventSignal *);
-   friend void dyn_checked_delete<const EventSignal>(const EventSignal *);
+   friend void boost::checked_delete<EventSignal>(EventSignal *);
+   friend void boost::checked_delete<const EventSignal>(const EventSignal *);
  private:
    int sig;
  public:
-   typedef dyn_shared_ptr<EventSignal> ptr;
-   typedef dyn_shared_ptr<const EventSignal> const_ptr;
+   typedef boost::shared_ptr<EventSignal> ptr;
+   typedef boost::shared_ptr<const EventSignal> const_ptr;
    EventSignal(int sig);
    virtual ~EventSignal();
 
@@ -454,22 +454,22 @@ class PC_EXPORT EventSignal : public Event
 
 class PC_EXPORT EventBootstrap : public Event
 {
-   friend void dyn_checked_delete<EventBootstrap>(EventBootstrap *);
-   friend void dyn_checked_delete<const EventBootstrap>(const EventBootstrap *);
+   friend void boost::checked_delete<EventBootstrap>(EventBootstrap *);
+   friend void boost::checked_delete<const EventBootstrap>(const EventBootstrap *);
  public:
-   typedef dyn_shared_ptr<EventBootstrap> ptr;
-   typedef dyn_shared_ptr<const EventBootstrap> const_ptr;
+   typedef boost::shared_ptr<EventBootstrap> ptr;
+   typedef boost::shared_ptr<const EventBootstrap> const_ptr;
    EventBootstrap();
    virtual ~EventBootstrap();
 };
 
 class PC_EXPORT EventPreBootstrap : public Event
 {
-   friend void dyn_checked_delete<EventPreBootstrap>(EventPreBootstrap *);
-   friend void dyn_checked_delete<const EventPreBootstrap>(const EventPreBootstrap *);
+   friend void boost::checked_delete<EventPreBootstrap>(EventPreBootstrap *);
+   friend void boost::checked_delete<const EventPreBootstrap>(const EventPreBootstrap *);
  public:
-   typedef dyn_shared_ptr<EventPreBootstrap> ptr;
-   typedef dyn_shared_ptr<const EventPreBootstrap> const_ptr;
+   typedef boost::shared_ptr<EventPreBootstrap> ptr;
+   typedef boost::shared_ptr<const EventPreBootstrap> const_ptr;
    EventPreBootstrap();
    virtual ~EventPreBootstrap();
 };
@@ -478,16 +478,16 @@ class PC_EXPORT EventPreBootstrap : public Event
 class int_eventRPC;
 class PC_EXPORT EventRPC : public Event
 {
-   friend void dyn_checked_delete<EventRPC>(EventRPC *);
-   friend void dyn_checked_delete<const EventRPC>(const EventRPC *);
+   friend void boost::checked_delete<EventRPC>(EventRPC *);
+   friend void boost::checked_delete<const EventRPC>(const EventRPC *);
  private:
    int_eventRPC *int_rpc;
    rpc_wrapper *wrapper;
  public:
    virtual bool suppressCB() const;
    rpc_wrapper *getllRPC();
-   typedef dyn_shared_ptr<EventRPC> ptr;
-   typedef dyn_shared_ptr<const EventRPC> const_ptr;
+   typedef boost::shared_ptr<EventRPC> ptr;
+   typedef boost::shared_ptr<const EventRPC> const_ptr;
    EventRPC(rpc_wrapper *wrapper_);
    virtual ~EventRPC();
 
@@ -497,11 +497,11 @@ class PC_EXPORT EventRPC : public Event
 
 class PC_EXPORT EventRPCLaunch : public Event
 {
-   friend void dyn_checked_delete<EventRPCLaunch>(EventRPCLaunch *);
-   friend void dyn_checked_delete<const EventRPCLaunch>(const EventRPCLaunch *);
+   friend void boost::checked_delete<EventRPCLaunch>(EventRPCLaunch *);
+   friend void boost::checked_delete<const EventRPCLaunch>(const EventRPCLaunch *);
  public:
-   typedef dyn_shared_ptr<EventRPCLaunch> ptr;
-   typedef dyn_shared_ptr<const EventRPCLaunch> const_ptr;
+   typedef boost::shared_ptr<EventRPCLaunch> ptr;
+   typedef boost::shared_ptr<const EventRPCLaunch> const_ptr;
    virtual bool procStopper() const;
    EventRPCLaunch();
    virtual ~EventRPCLaunch();
@@ -509,11 +509,11 @@ class PC_EXPORT EventRPCLaunch : public Event
 
 class PC_EXPORT EventSingleStep : public Event
 {
-   friend void dyn_checked_delete<EventSingleStep>(EventSingleStep *);
-   friend void dyn_checked_delete<const EventSingleStep>(const EventSingleStep *);
+   friend void boost::checked_delete<EventSingleStep>(EventSingleStep *);
+   friend void boost::checked_delete<const EventSingleStep>(const EventSingleStep *);
  public:
-   typedef dyn_shared_ptr<EventSingleStep> ptr;
-   typedef dyn_shared_ptr<const EventSingleStep> const_ptr;
+   typedef boost::shared_ptr<EventSingleStep> ptr;
+   typedef boost::shared_ptr<const EventSingleStep> const_ptr;
    EventSingleStep();
    virtual ~EventSingleStep();
 };
@@ -521,13 +521,13 @@ class PC_EXPORT EventSingleStep : public Event
 class int_eventBreakpoint;
 class PC_EXPORT EventBreakpoint : public Event
 {
-   friend void dyn_checked_delete<EventBreakpoint>(EventBreakpoint *);
-   friend void dyn_checked_delete<const EventBreakpoint>(const EventBreakpoint *);
+   friend void boost::checked_delete<EventBreakpoint>(EventBreakpoint *);
+   friend void boost::checked_delete<const EventBreakpoint>(const EventBreakpoint *);
  private:
    int_eventBreakpoint *int_bp;
  public:
-   typedef dyn_shared_ptr<EventBreakpoint> ptr;
-   typedef dyn_shared_ptr<const EventBreakpoint> const_ptr;
+   typedef boost::shared_ptr<EventBreakpoint> ptr;
+   typedef boost::shared_ptr<const EventBreakpoint> const_ptr;
    int_eventBreakpoint *getInternal() const;
 
    EventBreakpoint(int_eventBreakpoint *ibp);
@@ -544,13 +544,13 @@ class PC_EXPORT EventBreakpoint : public Event
 class int_eventBreakpointClear;
 class PC_EXPORT EventBreakpointClear : public Event
 {
-   friend void dyn_checked_delete<EventBreakpointClear>(EventBreakpointClear *);
-   friend void dyn_checked_delete<const EventBreakpointClear>(const EventBreakpointClear *);
+   friend void boost::checked_delete<EventBreakpointClear>(EventBreakpointClear *);
+   friend void boost::checked_delete<const EventBreakpointClear>(const EventBreakpointClear *);
   private:
    int_eventBreakpointClear *int_bpc;
   public:
-   typedef dyn_shared_ptr<EventBreakpointClear> ptr;
-   typedef dyn_shared_ptr<const EventBreakpointClear> const_ptr;
+   typedef boost::shared_ptr<EventBreakpointClear> ptr;
+   typedef boost::shared_ptr<const EventBreakpointClear> const_ptr;
    EventBreakpointClear();
    virtual ~EventBreakpointClear();
    
@@ -561,13 +561,13 @@ class PC_EXPORT EventBreakpointClear : public Event
 class int_eventBreakpointRestore;
 class EventBreakpointRestore : public Event
 {
-   friend void dyn_checked_delete<EventBreakpointRestore>(EventBreakpointRestore *);
-   friend void dyn_checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *);
+   friend void boost::checked_delete<EventBreakpointRestore>(EventBreakpointRestore *);
+   friend void boost::checked_delete<const EventBreakpointRestore>(const EventBreakpointRestore *);
   private:
    int_eventBreakpointRestore *int_bpr;
   public:
-   typedef dyn_shared_ptr<EventBreakpointRestore> ptr;
-   typedef dyn_shared_ptr<const EventBreakpointRestore> const_ptr;
+   typedef boost::shared_ptr<EventBreakpointRestore> ptr;
+   typedef boost::shared_ptr<const EventBreakpointRestore> const_ptr;
 
    EventBreakpointRestore(int_eventBreakpointRestore *iebpr);
    virtual ~EventBreakpointRestore();
@@ -577,14 +577,14 @@ class EventBreakpointRestore : public Event
 
 class PC_EXPORT EventLibrary : public Event
 {
-   friend void dyn_checked_delete<EventLibrary>(EventLibrary *);
-   friend void dyn_checked_delete<const EventLibrary>(const EventLibrary *);
+   friend void boost::checked_delete<EventLibrary>(EventLibrary *);
+   friend void boost::checked_delete<const EventLibrary>(const EventLibrary *);
  private:
    std::set<Library::ptr> added_libs;
    std::set<Library::ptr> rmd_libs;
  public:
-   typedef dyn_shared_ptr<EventLibrary> ptr;
-   typedef dyn_shared_ptr<const EventLibrary> const_ptr;
+   typedef boost::shared_ptr<EventLibrary> ptr;
+   typedef boost::shared_ptr<const EventLibrary> const_ptr;
    EventLibrary();
    EventLibrary(const std::set<Library::ptr> &added_libs_,
                 const std::set<Library::ptr> &rmd_libs_);
@@ -599,14 +599,14 @@ class PC_EXPORT EventLibrary : public Event
 class int_eventAsync;
 class PC_EXPORT EventAsync : public Event
 {
-   friend void dyn_checked_delete<EventAsync>(EventAsync *);
-   friend void dyn_checked_delete<const EventAsync>(const EventAsync *);
+   friend void boost::checked_delete<EventAsync>(EventAsync *);
+   friend void boost::checked_delete<const EventAsync>(const EventAsync *);
    
   private:
    int_eventAsync *internal;
   public:
-   typedef dyn_shared_ptr<EventAsync> ptr;
-   typedef dyn_shared_ptr<const EventAsync> const_ptr;
+   typedef boost::shared_ptr<EventAsync> ptr;
+   typedef boost::shared_ptr<const EventAsync> const_ptr;
 
    EventAsync(int_eventAsync *ievent);
    virtual ~EventAsync();
@@ -615,11 +615,11 @@ class PC_EXPORT EventAsync : public Event
 
 class PC_EXPORT EventChangePCStop : public Event
 {
-   friend void dyn_checked_delete<EventChangePCStop>(EventChangePCStop *);
-   friend void dyn_checked_delete<const EventChangePCStop>(const EventChangePCStop *);
+   friend void boost::checked_delete<EventChangePCStop>(EventChangePCStop *);
+   friend void boost::checked_delete<const EventChangePCStop>(const EventChangePCStop *);
  public:
-   typedef dyn_shared_ptr<EventChangePCStop> ptr;
-   typedef dyn_shared_ptr<const EventChangePCStop> const_ptr;
+   typedef boost::shared_ptr<EventChangePCStop> ptr;
+   typedef boost::shared_ptr<const EventChangePCStop> const_ptr;
    EventChangePCStop();
    virtual ~EventChangePCStop();
 };
@@ -627,12 +627,12 @@ class PC_EXPORT EventChangePCStop : public Event
 class int_eventDetach;
 class PC_EXPORT EventDetach : public Event
 {
-   friend void dyn_checked_delete<EventDetach>(EventDetach *);
-   friend void dyn_checked_delete<const EventDetach>(const EventDetach *);
+   friend void boost::checked_delete<EventDetach>(EventDetach *);
+   friend void boost::checked_delete<const EventDetach>(const EventDetach *);
    int_eventDetach *int_detach;
  public:
-   typedef dyn_shared_ptr<EventDetach> ptr;
-   typedef dyn_shared_ptr<const EventDetach> const_ptr;
+   typedef boost::shared_ptr<EventDetach> ptr;
+   typedef boost::shared_ptr<const EventDetach> const_ptr;
 
    EventDetach();
    virtual ~EventDetach();
@@ -642,13 +642,13 @@ class PC_EXPORT EventDetach : public Event
 
 class PC_EXPORT EventIntBootstrap : public Event
 {
-   friend void dyn_checked_delete<EventIntBootstrap>(EventIntBootstrap *);
-   friend void dyn_checked_delete<const EventIntBootstrap>(const EventIntBootstrap *);
+   friend void boost::checked_delete<EventIntBootstrap>(EventIntBootstrap *);
+   friend void boost::checked_delete<const EventIntBootstrap>(const EventIntBootstrap *);
    
    void *data;
  public:
-   typedef dyn_shared_ptr<EventIntBootstrap> ptr;
-   typedef dyn_shared_ptr<const EventIntBootstrap> const_ptr;
+   typedef boost::shared_ptr<EventIntBootstrap> ptr;
+   typedef boost::shared_ptr<const EventIntBootstrap> const_ptr;
    EventIntBootstrap(void *d = NULL);
    virtual ~EventIntBootstrap();
 
@@ -658,11 +658,11 @@ class PC_EXPORT EventIntBootstrap : public Event
 
 class PC_EXPORT EventNop : public Event
 {
-   friend void dyn_checked_delete<EventNop>(EventNop *);
-   friend void dyn_checked_delete<const EventNop>(const EventNop *);
+   friend void boost::checked_delete<EventNop>(EventNop *);
+   friend void boost::checked_delete<const EventNop>(const EventNop *);
  public:
-   typedef dyn_shared_ptr<EventNop> ptr;
-   typedef dyn_shared_ptr<const EventNop> const_ptr;
+   typedef boost::shared_ptr<EventNop> ptr;
+   typedef boost::shared_ptr<const EventNop> const_ptr;
    EventNop();
    virtual ~EventNop();
 };
@@ -670,12 +670,12 @@ class PC_EXPORT EventNop : public Event
 class int_eventThreadDB;
 class PC_EXPORT EventThreadDB : public Event
 {
-   friend void dyn_checked_delete<EventThreadDB>(EventThreadDB *);
-   friend void dyn_checked_delete<const EventThreadDB>(const EventThreadDB *);
+   friend void boost::checked_delete<EventThreadDB>(EventThreadDB *);
+   friend void boost::checked_delete<const EventThreadDB>(const EventThreadDB *);
    int_eventThreadDB *int_etdb;
   public:
-   typedef dyn_shared_ptr<EventThreadDB> ptr;
-   typedef dyn_shared_ptr<const EventThreadDB> const_ptr;
+   typedef boost::shared_ptr<EventThreadDB> ptr;
+   typedef boost::shared_ptr<const EventThreadDB> const_ptr;
    int_eventThreadDB *getInternal() const;
 
    EventThreadDB();

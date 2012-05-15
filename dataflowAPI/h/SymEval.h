@@ -315,8 +315,8 @@ class SymEvalPolicy;
 class  SymEval {
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
-    typedef dyn_shared_ptr<SliceNode> SliceNodePtr;
-    typedef dyn_shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
+    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 public:
   typedef enum {
      FAILED,

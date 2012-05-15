@@ -32,11 +32,11 @@ public:
 
 class PC_EXPORT WinEventNewThread : public EventNewLWP
 {
-   friend void dyn_detail::boost::checked_delete<WinEventNewThread>(WinEventNewThread *);
-   friend void dyn_detail::boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *);
+   friend void boost::checked_delete<WinEventNewThread>(WinEventNewThread *);
+   friend void boost::checked_delete<const WinEventNewThread>(const WinEventNewThread *);
  public:
-   typedef dyn_detail::boost::shared_ptr<WinEventNewThread> ptr;
-   typedef dyn_detail::boost::shared_ptr<const WinEventNewThread> const_ptr;
+   typedef boost::shared_ptr<WinEventNewThread> ptr;
+   typedef boost::shared_ptr<const WinEventNewThread> const_ptr;
 	WinEventNewThread(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts,
 		LPVOID base) : EventNewLWP(l), hthread(ht), thread_start(ts), tls_base(base)
 	{}
@@ -53,11 +53,11 @@ private:
 
 class PC_EXPORT WinEventThreadInfo : public Event
 {
-   friend void dyn_detail::boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *);
-   friend void dyn_detail::boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *);
+   friend void boost::checked_delete<WinEventThreadInfo>(WinEventThreadInfo *);
+   friend void boost::checked_delete<const WinEventThreadInfo>(const WinEventThreadInfo *);
  public:
-   typedef dyn_detail::boost::shared_ptr<WinEventThreadInfo> ptr;
-   typedef dyn_detail::boost::shared_ptr<const WinEventThreadInfo> const_ptr;
+   typedef boost::shared_ptr<WinEventThreadInfo> ptr;
+   typedef boost::shared_ptr<const WinEventThreadInfo> const_ptr;
 	WinEventThreadInfo(Dyninst::LWP l, HANDLE ht, LPTHREAD_START_ROUTINE ts,
 		LPVOID base) : Event(EventType(EventType::None, EventType::ThreadInfo)), hthread(ht), thread_start(ts), tls_base(base),
 		lwp(l)

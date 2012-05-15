@@ -57,9 +57,9 @@ class CodeTracker;
 class CodeBuffer;
 
 class CFWidget;
-typedef dyn_shared_ptr<CFWidget> CFWidgetPtr;
+typedef boost::shared_ptr<CFWidget> CFWidgetPtr;
 class Widget;
-typedef dyn_shared_ptr<Widget> WidgetPtr;
+typedef boost::shared_ptr<Widget> WidgetPtr;
 
 struct RelocEdge;
 struct RelocEdges;
