@@ -342,7 +342,7 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
       has_error = true;
    }
    Thread::ptr thr = *i;
-   
+
    if (has_thr && thr && thr->getTID() != (Dyninst::THR_ID)(-1)) {
       if (thr->getTID() != (Dyninst::THR_ID) tinfo.tid) {
          logerror("Error.  Mismatched TID, %lx != %lx\n", (unsigned long) thr->getTID(), (unsigned long) tinfo.tid);
@@ -361,12 +361,14 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
                  (unsigned long)tinfo.initial_func);
          has_error = true;
       }
+#if !defined(os_windows_test)
       Dyninst::Address tls_addr = (Dyninst::Address) tinfo.tls_addr;
 #define VALID_TLS_RANGE (1024*1024)
       if (tls_addr < thr->getTLS() - VALID_TLS_RANGE || tls_addr > thr->getTLS() + VALID_TLS_RANGE) {
          logerror("Error.  Invalid TLS address, pc: %lx\tmut: %lx\n", (unsigned long) thr->getTLS(), (unsigned long) tls_addr);
          has_error = true;
       }
+#endif
    }
 }
 
@@ -405,6 +407,7 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
 #elif defined(os_windows_test)
 	has_lwp = false;
 	has_thr = true;
+	has_initial_func_info = false;
     has_stack_info = false;
 #else
 #error Unknown platform
