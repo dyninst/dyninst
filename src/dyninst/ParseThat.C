@@ -339,7 +339,7 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 {
 	
 	struct stat statbuf;
-	char *binedit_dir = get_binedit_dir();
+	const char *binedit_dir = get_binedit_dir();
 	int result = stat(binedit_dir, &statbuf);
 	if (-1 == result)
 	{

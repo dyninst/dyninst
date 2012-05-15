@@ -258,9 +258,9 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 }
 
 #define MAX_ARGS 32
-static char *filename = "test13.mutatee_gcc";
-static char *args[MAX_ARGS];
-static char *create_arg = "-create";
+static const char *filename = "test13.mutatee_gcc";
+static const char *args[MAX_ARGS];
+static const char *create_arg = "-create";
 static unsigned num_args = 0; 
 
 // This method creates (or attaches to?) the mutatee process and returns a

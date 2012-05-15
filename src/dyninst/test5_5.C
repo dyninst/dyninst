@@ -61,7 +61,7 @@ extern "C" DLLEXPORT TestMutator *test5_5_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_5_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "namespace_test::func_cpp";
+  const char *fn = "namespace_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #5 (namespace)\n");
@@ -102,7 +102,7 @@ test_results_t test5_5_Mutator::executeTest() {
 #endif
 
    bpfv.clear();
-   char *fn2 = "main";
+   const char *fn2 = "main";
    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	 || NULL == bpfv[0]){
     logerror("**Failed** test #5 (namespace)\n");
@@ -145,7 +145,7 @@ test_results_t test5_5_Mutator::executeTest() {
       if (!strcmp("class_variable", (*fields)[index]->getName()) ) {
 
  	BPatch_Vector<BPatch_function *> bpfv4;
-	char *fn4 = "namespace_test::namespace_test";
+	const char *fn4 = "namespace_test::namespace_test";
 	if (NULL == appImage->findFunction(fn4, bpfv4) || !bpfv4.size()
 	    || NULL == bpfv4[0]){
 	  logerror("**Failed** test #5 (namespace)\n");
@@ -154,7 +154,7 @@ test_results_t test5_5_Mutator::executeTest() {
 	}
 
 	BPatch_Vector<BPatch_function *> bpfv2;
-	char *fn3 = "namespace_test::pass";
+	const char *fn3 = "namespace_test::pass";
 	if (NULL == appImage->findFunction(fn3, bpfv2) || !bpfv2.size()
 	    || NULL == bpfv2[0]){
 	  logerror("**Failed** test #5 (namespace)\n");

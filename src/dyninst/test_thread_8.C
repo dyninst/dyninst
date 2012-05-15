@@ -43,7 +43,7 @@
 class test_thread_8_Mutator : public DyninstMutator {
 protected:
   char *filename;
-  char *args[MAX_ARGS];
+  const char *args[MAX_ARGS];
   char *logfilename;
   BPatch *bpatch;
   unsigned failed_tests;

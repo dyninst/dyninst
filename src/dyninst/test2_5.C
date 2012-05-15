@@ -71,7 +71,7 @@ test_results_t test2_5_Mutator::executeTest()
     setExpectError(100); // test #5 causes error #100 (Unable to find function)
 
     BPatch_Vector<BPatch_function *> bpfv, *res;
-    char *fn = "NoSuchFunction";
+    const char *fn = "NoSuchFunction";
     // logerror("Looking for function\n");
     if (!(NULL == (res=appImage->findFunction(fn, bpfv)) || !bpfv.size()
 	|| NULL == bpfv[0]) || !getError()){

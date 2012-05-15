@@ -74,8 +74,8 @@
 #define FAIL -1
 
 #define BINEDIT_BASENAME "./binaries"
-TESTLIB_DLL_EXPORT char *get_binedit_dir();
-TESTLIB_DLL_EXPORT void set_binedit_dir(char *s);
+TESTLIB_DLL_EXPORT const char *get_binedit_dir();
+TESTLIB_DLL_EXPORT void set_binedit_dir(const char *s);
 
 // New logging system
 TESTLIB_DLL_EXPORT TestOutputDriver * getOutput();

@@ -96,14 +96,14 @@ FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
 
-static char *binedit_dir = BINEDIT_BASENAME;
+static const char *binedit_dir = BINEDIT_BASENAME;
 
-char *get_binedit_dir()
+const char *get_binedit_dir()
 {
 	return binedit_dir;
 }
 
-void set_binedit_dir(char *d)
+void set_binedit_dir(const char *d)
 {
 	binedit_dir = d;
 }

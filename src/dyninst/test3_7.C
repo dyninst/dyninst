@@ -143,7 +143,7 @@ test_results_t test3_7_Mutator::executeTest() {
         BPatch_image *appImage = appProc[i]->getImage();
       //  our oneTimeCode will just be a simple call to a function that increment
       BPatch_Vector<BPatch_function *> bpfv;
-      char *funcname = "test3_7_call1";
+      const char *funcname = "test3_7_call1";
       if (NULL == appImage->findFunction(funcname, bpfv) || !bpfv.size()
           || NULL == bpfv[0]){
         logerror("    Unable to find function %s\n", funcname);
