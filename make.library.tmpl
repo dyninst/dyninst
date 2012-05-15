@@ -102,8 +102,9 @@ $(STATIC_TARGET): ASFLAGS = $(STATIC_ASFLAGS)
 endif
 
 $(STATIC_TARGET): $(STATIC_OBJS)
+	@echo Linking $@
 	$(HIDE_COMP)$(RM) $(STATIC_TARGET)
-	$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
+	$(HIDE_COMP)$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
 
 endif # STATIC_TARGET
 
@@ -111,7 +112,8 @@ endif  # OVERRIDE_LINK
 
 ifdef PUBLIC_H
 $(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	$(INSTALL) $^ $(INCLUDE_DEST)
+	@echo Install $@
+	$(HIDE_COMP)$(INSTALL) $^ $(INCLUDE_DEST)
 
 public_includes: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
 else
@@ -132,12 +134,15 @@ distclean: clean
 	$(RM) DEPENDS
 
 $(DEST)/$(TARGET): $(TARGET)
-	-$(INSTALL) $(TARGET) $(DEST)/$(TARGET).$(RELEASE_NUM)
-	-$(LN) -f $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET)
+	@echo Installing $(TARGET) to $(DEST)/$(TARGET).$(RELEASE_NUM)
+	$(HIDE_COMP)-$(INSTALL) $(TARGET) $(DEST)/$(TARGET).$(RELEASE_NUM)
+	@echo Making symlink $(TARGET).$(RELEASE_NUM) to $(DEST)/$(TARGET)
+	$(HIDE_COMP)-$(LN) -f $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET)
 
 ifdef STATIC_TARGET
 $(DEST)/$(STATIC_TARGET): $(STATIC_TARGET)
-	-$(INSTALL) $(STATIC_TARGET) $(DEST)
+	@echo Installing $(STATIC_TARGET) to $(DEST)
+	$(HIDE_COMP)-$(INSTALL) $(STATIC_TARGET) $(DEST)
 
 install_generic: $(DEST)/$(TARGET) public_includes $(DEST)/$(STATIC_TARGET)
 

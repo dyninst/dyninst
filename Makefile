@@ -73,7 +73,7 @@ ready:
 	        true;						\
 	    else						\
 		echo "Creating installation directory $$installdir ...";\
-	        mkdir -p $$installdir;				\
+	        $(INSTALL) -d -p $$installdir;				\
 	    fi							\
 	done
 
