@@ -5,8 +5,6 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # STATIC_COMPS = true;
 
@@ -15,10 +13,6 @@ USES_LIBELF = true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
 
 CXXFLAGS        += $(MYFLAGS)
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include

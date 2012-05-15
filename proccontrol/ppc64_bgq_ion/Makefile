@@ -15,18 +15,9 @@ SRCS =  ../src/bluegeneq.C \
         ../src/notify_pipe.C \
         ../../common/src/dthread-unix.C
 
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-
 MYFLAGS += -I/bgsys/drivers/ppcfloor
 CXXFLAGS += $(MYFLAGS)
 CFLAGS += $(MYFLAGS)
-
-ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB)
-endif
-LIBS += -lelf
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

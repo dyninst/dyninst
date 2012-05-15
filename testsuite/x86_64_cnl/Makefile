@@ -6,8 +6,6 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g 
 
 CC = gcc

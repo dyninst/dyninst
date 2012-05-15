@@ -5,8 +5,6 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 STATIC_COMPS = true
 

@@ -31,13 +31,13 @@ LD		= $(NATIVE_CC)
 # OVERRIDE CFLAGS (we need to strip -O2)
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
 CFLAGS          += -Kpic -D_NATIVESO_
-LDFLAGS         = -ldl -lelf -lsocket -dy -G -z text -z initarray=libdyninstAPI_RT_init
+LDFLAGS         = -ldl -lsocket -dy -G -z text -z initarray=libdyninstAPI_RT_init
 ASFLAGS		+= -K PIC
 else
 CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          += -fpic
-LDFLAGS		= -ldl -lelf -lsocket -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
+LDFLAGS		= -ldl -lsocket -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
 ASFLAGS		+= -K PIC
 #ccw 19 nov 2001
 endif

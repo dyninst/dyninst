@@ -8,8 +8,6 @@
 #USES_PAPI = true
 DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # For debugging.
 #NO_OPT_FLAG = true

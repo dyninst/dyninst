@@ -7,7 +7,6 @@ USES_TCLTK = true
 TO_CORE =       ../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES=true
-USES_DWARF_DEBUG=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -17,7 +16,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 SYSLIBS   += -lnsl 
-LIBS = -L$(LIBDWARF_LIB) -ldwarf -linstructionAPI
+LIBS = -linstructionAPI
 
 MUTATEE_CFLAGS += -rdynamic -ldl
 

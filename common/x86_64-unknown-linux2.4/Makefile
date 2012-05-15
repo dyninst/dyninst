@@ -7,8 +7,6 @@
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # For debugging.
 #NO_OPT_FLAG = true

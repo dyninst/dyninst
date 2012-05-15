@@ -9,6 +9,8 @@
 SUITE_NAME	= symtabAPI 
 RELEASE_MAJOR = 7
 RELEASE_MINOR = 0
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEFINES		     += 
@@ -123,30 +125,6 @@ ifdef LIBXML2_INC
 IFLAGS       += -I$(LIBXML2_INC)
 else
 IFLAGS	     += -I/usr/include/libxml2
-endif
-
-ifdef USES_LIBELF
-ifneq (x,x$(strip $(LIBELF_LIB)))
-LIBS += -L$(LIBELF_LIB)
-endif
-ifndef LIBELFSTATIC
-LIBS += -lelf
-endif
-ifneq (x,x$(strip $(LIBELF_INC)))
-MYFLAGS += -I$(LIBELF_INC)
-endif
-endif
-
-ifdef USES_DWARF_DEBUG
-ifneq (x,x$(strip $(LIBDWARF_LIB)))
-LIBS += -L$(LIBDWARF_LIB)
-endif
-ifndef LIBDWARFSTATIC
-LIBS += -ldwarf
-endif
-ifneq (x,x$(strip $(LIBDWARF_INC)))
-MYFLAGS += -I$(LIBDWARF_INC)
-endif
 endif
 
 # All that, and we finally get a target...

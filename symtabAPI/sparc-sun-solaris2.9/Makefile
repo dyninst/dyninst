@@ -8,8 +8,6 @@
 #NO_OPT_FLAG = true
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

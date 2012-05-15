@@ -242,3 +242,31 @@ include $(TO_CORE)/make.platform.tmpl
 %.o : %.C
 	@echo Compiling $<
 	$(HIDE_COMP) $(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+
+ifdef LIBELF_PLATFORM
+ifdef USES_LIBELF
+ifneq (x,x$(strip $(LIBELF_LIB)))
+LIBS += -L$(LIBELF_LIB)
+endif
+ifndef LIBELFSTATIC
+LIBS += -lelf
+endif
+ifneq (x,x$(strip $(LIBELF_INC)))
+MYFLAGS += -I$(LIBELF_INC)
+endif
+endif
+endif
+
+ifdef LIBDWARF_PLATFORM
+ifdef USES_DWARF_DEBUG
+ifneq (x,x$(strip $(LIBDWARF_LIB)))
+LIBS += -L$(LIBDWARF_LIB)
+endif
+ifndef LIBDWARFSTATIC
+LIBS += -ldwarf
+endif
+ifneq (x,x$(strip $(LIBDWARF_INC)))
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+endif
+endif

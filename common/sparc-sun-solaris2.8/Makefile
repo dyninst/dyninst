@@ -37,7 +37,7 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt
+SYSLIBS = -lsocket -lnsl -ldl -lrt
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthreads

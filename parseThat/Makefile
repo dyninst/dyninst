@@ -1,7 +1,5 @@
 TO_CORE = ../
 TO_SCRIPTS = ../../scripts
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 include ../make.config
 VPATH = $(PLATFORM)
