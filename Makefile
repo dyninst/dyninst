@@ -86,7 +86,7 @@ comp_intro:
      echo "xlC"; \
 	else \
 	echo CXX = $(CXX); \
-	  $(CXX) -v; \
+	  $(CXX) --version; \
      true; \
 	fi
 

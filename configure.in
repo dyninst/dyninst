@@ -55,16 +55,16 @@ AC_ARG_WITH(package-base,
            ],[
             # We fall back on these defaults if both --with-package-base and
             # specific --with-<package> arguments are not provided.
-             TCLTK_INC_DIR="/usr/include";
-            TCLTK_LIB_DIR="/usr/lib";
-            LIBELF_INC_DIR="/usr/include";
-            LIBELF_LIB_DIR="/usr/lib";
+            #TCLTK_INC_DIR="/usr/include";
+            #TCLTK_LIB_DIR="/usr/lib";
+            #LIBELF_INC_DIR="/usr/include";
+            #LIBELF_LIB_DIR="/usr/lib";
             ARG_WRAPPER_LIBS="";
-            LIBDWARF_INC_DIR="/usr/include";
-            LIBDWARF_LIB_DIR="/usr/lib";
+            #LIBDWARF_INC_DIR="/usr/include";
+            #LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
-            LIBXML2_LIB_DIR="/usr/lib";
-            LIBFLEX_LIB_DIR="/usr/lib";
+            #LIBXML2_LIB_DIR="/usr/lib";
+            #LIBFLEX_LIB_DIR="/usr/lib";
            ])
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
 #          Why?  Putting these here for now...
@@ -127,6 +127,8 @@ if test "`echo $host_os | cut -b-5`" = "linux" ; then
    AC_MSG_NOTICE([BG/P, thread_db required...])   
   elif test "x$PLATFORM" = "xppc32_bgl_ion"; then
    AC_MSG_NOTICE([BG/L, thread_db required...])
+  elif test "x$PLATFORM" = "xppc64_bgq_ion"; then
+   AC_MSG_NOTICE([BG/Q, thread_db required...])
   else 
    AC_MSG_NOTICE([Linux, not requiring thread_db...])
    SUPPRESS_THREADDB_REQ="true"

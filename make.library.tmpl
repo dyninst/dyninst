@@ -12,11 +12,6 @@ BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
 XTARGET	= $(basename $(basename $(TARGET)))
 VOUCHER	= V_$(XTARGET)
 
-$(VOUCHER):
-	@echo Updating build voucher information: $(VOUCHER)
-	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(HIDE_COMP)$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
-
 VPATH		+= ../src
 
 ifndef NO_STD_OBJS
@@ -53,16 +48,24 @@ ifdef STATIC_COMPS
 STATIC_LIBRARY = true
 endif
 
+$(VOUCHER).c: $(OBJS)
+	@echo Updating build voucher information: $(VOUCHER)
+	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+
+$(VOUCHER).o: $(VOUCHER).c
+	@echo Compiling $@
+	$(HIDE_COMP)$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
+
 ifndef OVERRIDE_LINK
 ifndef STATIC_LIBRARY
-$(TARGET): $(OBJS) $(EXTRA_LIBS)
+$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
-	$(HIDE_COMP)$(MAKE) $(VOUCHER)
-	$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
+	@echo Linking $@
+	$(HIDE_COMP)$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
 else # build a static lib
-$(TARGET): $(OBJS) $(EXTRA_LIBS)
+$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
-	$(HIDE_COMP)$(MAKE) $(VOUCHER)
+	@echo Linking $@
 	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
 endif # STATIC_LIBRARY
 

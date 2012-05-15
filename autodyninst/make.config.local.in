@@ -1,7 +1,7 @@
 # === local definitions ===
 
 BUILD_MARK=
-BUILD_NUM=-576
+BUILD_NUM=-1
 
 #Are any alternatives to g++ available?
 
