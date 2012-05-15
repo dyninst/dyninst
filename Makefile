@@ -43,7 +43,7 @@ $(Test_targets):
 
 install: intro ready $(fullSystem_install) testsuite_install
 
-world: intro $(fullSystem) testsuite
+world: intro $(fullSystem)
 
 depend:
 	+@for subsystem in $(fullSystem); do 			\
