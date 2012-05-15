@@ -244,11 +244,11 @@ bool Function::addLocalVar(localVar *locVar)
 
       if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
       {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
          return false;
       }
    }
+   if (!lvs)
+      return false;
 
    lvs->addLocalVar(locVar);
    return true;
@@ -257,22 +257,16 @@ bool Function::addLocalVar(localVar *locVar)
 bool Function::addParam(localVar *param)
 {
 	localVarCollection *ps = NULL;
+   if (!setupParams())
+   {
+      return false;
+   }
 
 	if (!getAnnotation(ps, FunctionParametersAnno))
 	{
-                if (!setupParams())
-                {
-                        return false;
-                }
-
-                if (!getAnnotation(ps, FunctionParametersAnno))
-                {
-			fprintf(stderr, "%s[%d]:  failed to get local var collecton anno\n", 
-					FILE__, __LINE__);
-			return false;
-                }
+      return false;
 	}
-
+   
 	ps->addLocalVar(param);
 
 	return true;
@@ -294,7 +288,7 @@ bool Function::setupParams()
 		}
 	}
         
-        return true;
+   return true;
 }
 
 Function::~Function()
