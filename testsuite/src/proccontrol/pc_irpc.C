@@ -77,6 +77,7 @@ struct proc_info_t {
    Dyninst::Address val;
    Dyninst::Address irpc_calltarg;
    Dyninst::Address irpc_tocval;
+   Dyninst::Address busywait;
    std::vector<rpc_data_t *> rpcs;
    proc_info_t() : val(0), irpc_calltarg(0) {}
    void clear() {
@@ -662,6 +663,19 @@ void pc_irpcMutator::initialMessageExchange()
          myerror = true;
       }
       p.val = addr.addr;
+
+      result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
+                                  proc);
+      if (!result) {
+         logerror("Failed to recieve busywait addr message\n");
+         myerror = true;
+      }
+      if (addr.code != SENDADDR_CODE) {
+         logerror("Unexpected addr code\n");
+         myerror = true;
+      }
+      p.busywait = addr.addr;
+
       pinfo[proc] = p;
    }
 }
@@ -739,6 +753,12 @@ bool pc_irpcMutator::finalMessageExchange()
 {
    Process::removeEventCallback(EventType::RPC);
 
+	for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
+		i != comp->procs.end(); i++)
+	{
+		int done = 1;
+		(*i)->writeMemory(pinfo[*i].busywait, &done, sizeof(int));
+	}
    syncloc sync_point;
    sync_point.code = SYNCLOC_CODE;
    return comp->send_broadcast((unsigned char *) &sync_point, sizeof(syncloc));

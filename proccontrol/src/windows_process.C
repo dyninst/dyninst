@@ -630,3 +630,19 @@ ExecFileInfo* windows_process::plat_getExecutableInfo() const
 	ret->fileBase = execBase;
 	return ret;
 }
+
+bool windows_process::pendingDebugBreak() const {
+	pthrd_printf("win_proc: pending debug break %s\n",
+		pendingDebugBreak_ ? "<true>" : "<false");
+	return pendingDebugBreak_;
+}
+
+void windows_process::setPendingDebugBreak() {
+	pthrd_printf("win_proc: setting pending debug break\n");
+	pendingDebugBreak_ = true;
+}
+
+void windows_process::clearPendingDebugBreak() {
+	pthrd_printf("win_proc: clearing pending debug break\n");
+	pendingDebugBreak_ = false;
+}

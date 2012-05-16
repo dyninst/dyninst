@@ -1101,7 +1101,10 @@ bool int_process::terminate(bool &needs_sync)
       return false;
    }
    forcedTermination = true;
+#if !defined(os_windows)
+	// On windows this leads to doubling up events
    setForceGeneratorBlock(true);
+#endif
    return true;
 }
 
@@ -2584,6 +2587,7 @@ bool int_thread::isStopped(int state_id)
 
 void int_thread::setPendingStop(bool b)
 {
+	pthrd_printf("******: setting pending stop to %d, thread %p\n", b, getLWP());
    if (b) {
       pending_stop.inc();
 
@@ -2597,6 +2601,8 @@ void int_thread::setPendingStop(bool b)
       getPendingStopState().restoreState();
       pending_stop.dec();
    }
+	pthrd_printf("\t Pending stop level is %d\n", pending_stop.localCount());
+
 }
 
 bool int_thread::hasPendingStop() const

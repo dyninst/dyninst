@@ -128,6 +128,7 @@ Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* pro
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+
 	if (verification.EFlags & TF_BIT) {
 		pthrd_printf("BUG ENCOUNTERED: OS handled us a thread with TF set, clearing manually\n");
 		verification.EFlags &= (~TF_BIT);
@@ -185,7 +186,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			winEvt->evt.dwProcessId, winEvt->evt.dwThreadId);
 		return false;
 	}
-	windows_proc->clearPendingDebugBreak();
+	//windows_proc->clearPendingDebugBreak();
 
 	DEBUG_EVENT e = winEvt->evt;
 
@@ -221,6 +222,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				{
 					bool didSomething = false;
 
+#if 0
 
 					// Case 2: breakpoint from debugBreak() being used for a stop on one/all threads.
 					pthrd_printf("Possible stop, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
@@ -232,11 +234,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					  }
 				   }   
 
-					if(didSomething)
+#endif
+				   if (windows_proc->pendingDebugBreak())
 					{
 						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						newEvt = Event::ptr(new EventStop());
-						windows_proc->clearPendingDebugBreak();
+						// Handler'll get this one
+						//						windows_proc->clearPendingDebugBreak();
 					}
 					else
 					{
