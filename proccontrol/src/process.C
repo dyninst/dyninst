@@ -1101,6 +1101,7 @@ bool int_process::terminate(bool &needs_sync)
       return false;
    }
    forcedTermination = true;
+
 	// On windows this leads to doubling up events
 #if defined(os_windows)
    // If we're on windows, we want to force the generator thread into waiting for a debug
