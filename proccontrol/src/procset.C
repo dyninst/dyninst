@@ -1405,7 +1405,7 @@ bool ProcessSet::terminate() const
       i++;
    }
 
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 
    if (run_sync) {

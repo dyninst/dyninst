@@ -1101,10 +1101,29 @@ bool int_process::terminate(bool &needs_sync)
       return false;
    }
    forcedTermination = true;
-#if !defined(os_windows)
 	// On windows this leads to doubling up events
+#if defined(os_windows)
+   // If we're on windows, we want to force the generator thread into waiting for a debug
+   // event _if the process is stopped_. If the process is running then we're already
+   // waiting (or will wait) for a debug event, and forcing the generator to block may
+   // lead to doubling up. 
+   
+   // The following code is similar to GeneratorWindows::hasLiveProc. This is not a coincidence.
+	bool all_stopped = true;
+   for (int_threadPool::iterator iter = threadpool->begin(); iter != threadpool->end(); ++iter) {
+		if (RUNNING_STATE((*iter)->getActiveState().getState())) {
+			all_stopped = false;
+			break;
+		}
+   }
+   if (all_stopped) {
+	   setForceGeneratorBlock(true);
+   }
+#else
+   // Do it all the time
    setForceGeneratorBlock(true);
 #endif
+
    return true;
 }
 
