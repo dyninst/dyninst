@@ -33,6 +33,8 @@
 #include "pcontrol_mutatee_tools.h"
 
 static int myerror = 0;
+static int done = 0;
+static int busywait = 0;
 
 static testlock_t val_lock;
 volatile uint32_t val = 0;
@@ -50,6 +52,10 @@ static int threadFunc(int myid, void *data)
 {
    data = NULL;
    myid = 0;
+
+#if defined(os_windows_test)
+   while (!done) ;
+#endif
 
    testLock(&init_lock);
    testUnlock(&init_lock);
@@ -99,8 +105,16 @@ int pc_irpc_mutatee()
       output->log(STDERR, "Failed to send val addr message\n");
       return -1;
    }
+
+   addr_msg.addr = (uint64_t) &busywait;
+   result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
+   if (result == -1) {
+	   output->log(STDERR, "Failed to send busywait addr message\n");
+	   return -1;
+   }
+
 #if defined(os_windows_test)
-   Sleep(5000);
+	while (!busywait) ;
 #endif
    result = recv_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
@@ -115,6 +129,7 @@ int pc_irpc_mutatee()
       return -1;
    }
 
+   done = 1;
    testUnlock(&init_lock);
 
    result = finiProcControlTest(0);
