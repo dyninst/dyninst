@@ -244,7 +244,7 @@ static bool post_irpc(Thread::const_ptr thr)
       Thread::const_ptr result_thread;
       if (post_to == post_to_proc) {
          if(rpc_sync == rpc_use_postsync) {
-            if(!proc_nc->launchIRPC(rpcdata->rpc))
+            if(!proc_nc->runIRPCSync(rpcdata->rpc))
             {
                logerror("Failed to post sync rpc to process\n");
                myerror = true;
