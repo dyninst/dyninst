@@ -2273,7 +2273,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     Thread::ptr t;
 	if(thread == NULL) {
 		newRPC->thread = Thread::ptr();
-		bool result = pcProc_->launchIRPC(newRPC->rpc);
+		bool result = pcProc_->runIRPCSync(newRPC->rpc);
 		if(!result) {
 		    proccontrol_printf("%s[%d]: failed to post RPC to whole process\n",
 			        FILE__, __LINE__);

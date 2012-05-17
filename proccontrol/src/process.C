@@ -5766,7 +5766,7 @@ bool Process::allThreadsRunningWhenAttached() const
     return true;
 }
 
-bool Process::launchIRPC(IRPC::ptr irpc)
+bool Process::runIRPCAsync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
    if (!llproc_) {
@@ -5806,10 +5806,23 @@ bool Process::launchIRPC(IRPC::ptr irpc)
    }
 
    llproc_->throwNopEvent();
-   result = int_process::waitAndHandleEvents(false);
-   if (!result) {
-      perr_printf("Error waiting for process to finish iRPC\n");
-      return false;
+   return true;
+}
+
+
+bool Process::runIRPCSync(IRPC::ptr irpc)
+{
+   MTLock lock_this_func;
+
+   bool result = runIRPCAsync(irpc);
+   if (!result) return false;
+
+   while (!irpc->state() == IRPC::Done) {
+	   result = int_process::waitAndHandleEvents(false);
+	   if (!result) {
+		  perr_printf("Error waiting for process to finish iRPC\n");
+		  return false;
+	   }
    }
    return true;
 }

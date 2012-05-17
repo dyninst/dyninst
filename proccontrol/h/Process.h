@@ -198,6 +198,14 @@ class PC_EXPORT IRPC
    IRPC(rpc_wrapper *wrapper_);
    ~IRPC();
  public:
+	 typedef enum {
+	  Error = 0,
+	  Created = 1,
+	  Posted = 2,
+	  Running = 3,
+	  // Callback = 4,
+	  Done = 5 } State;
+
    typedef boost::shared_ptr<IRPC> ptr;
    typedef boost::shared_ptr<const IRPC> const_ptr;
    typedef boost::weak_ptr<IRPC> weak_ptr;
@@ -222,6 +230,8 @@ class PC_EXPORT IRPC
    // user-defined data retrievable during a callback
    void *getData() const;
    void setData(void *p) const;
+
+   State state() const;
 };
 
 class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
@@ -380,12 +390,17 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     * and handleEvents to wait for a blocking IRPC to complete
     **/
    bool postIRPC(IRPC::ptr irpc) const;
-	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+   bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
 
    /**
-    * Post, run and wait for an IRPC to complete in one call
+    * Post and run an IRPC; user must wait for completion. Standard 
     **/
-	bool launchIRPC(IRPC::ptr irpc);
+	bool runIRPCSync(IRPC::ptr irpc);
+
+   /**
+    * Post, run, and wait for an IRPC to complete
+	**/
+	bool runIRPCAsync(IRPC::ptr irpc);
 
    /**
     * Symbol access
