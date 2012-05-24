@@ -149,11 +149,11 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 
    // 2a)
    Block *ret = b->obj()->_fact->_mkblock(funcs[0], b->region(), a);
-   ret->_end = b->_end;
+   ret->updateEnd(b->_end);
    ret->_lastInsn = b->_lastInsn;
    ret->_parsed = true;
    
-   b->_end = a;
+   b->updateEnd(a);
    b->_lastInsn = newlast;
 
 

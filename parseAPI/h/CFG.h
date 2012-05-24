@@ -339,6 +339,7 @@ class Block : public Dyninst::interval<Address>,
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
     void removeFunc(Function *);
+    void updateEnd(Address addr);
 
  private:
     CodeObject * _obj;
@@ -480,7 +481,7 @@ class Function : public allocatable, public AnnotatableSparse {
 
     /* Parse updates and obfuscation */
     PARSER_EXPORT void setEntryBlock(Block *new_entry);
-    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
+    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs);
     PARSER_EXPORT void removeBlock( Block* );
 
     PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);

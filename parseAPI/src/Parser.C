@@ -521,6 +521,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
             Function * func = iter->first;
             if (func->retstatus() == UNSET) {
                 func->set_retstatus(NORETURN);
+                func->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
                 updated.push_back(func);
             } 
 
@@ -530,6 +531,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                 Function * delayed = (*vIter)->func;
                 if (delayed->retstatus() == UNSET) {
                     delayed->set_retstatus(NORETURN);
+                    delayed->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
                     updated.push_back(func);
                 }
             }
@@ -912,9 +914,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 //     function has to take UNKNOWN
                 if(func->_rs != RETURN) {
                     if(ct->_rs > NORETURN)
-                        func->_rs = ct->_rs;
+                      func->set_retstatus(ct->_rs);
                     else if(ct->_rs == UNSET)
-                        func->_rs = UNKNOWN;
+                      func->set_retstatus(UNKNOWN);
                 }
             }
 
@@ -1069,10 +1071,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 Function * other_func = _parse_data->findFunc(
                     func->region(), cur->start());
                 if (other_func && other_func->retstatus() > UNKNOWN) {
-                    func->_rs = other_func->retstatus();
+                  func->set_retstatus(other_func->retstatus());
                 }
                 else {
-                    func->_rs = UNKNOWN;
+                  func->set_retstatus(UNKNOWN);
                 }
             }
             continue;
@@ -1350,16 +1352,17 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** parsing complete **/
     if(HASHDEF(plt_entries,frame.func->addr())) {
        if(obj().cs()->nonReturning(frame.func->addr())) {
-          frame.func->_rs = NORETURN;
+          frame.func->set_retstatus(NORETURN);
        }
-       else
-          frame.func->_rs = UNKNOWN; 
+       else {
+          frame.func->set_retstatus(UNKNOWN); 
+       }
 
        // Convenience -- adopt PLT name
        frame.func->_name = plt_entries[frame.func->addr()];
     }
     else if(frame.func->_rs == UNSET) {
-        frame.func->_rs = NORETURN;
+        frame.func->set_retstatus(NORETURN);
     }
 
     frame.set_status(ParseFrame::PARSED);
@@ -1377,7 +1380,7 @@ void
 Parser::end_block(Block * b, InstructionAdapter_t & ah)
 {
     b->_lastInsn = ah.getAddr();
-    b->_end = ah.getNextAddr();
+    b->updateEnd(ah.getNextAddr());
 
     record_block(b);
 }
@@ -1553,7 +1556,7 @@ Parser::split_block(
        isRetBlock = true;
     }
     trgs.clear();
-    ret->_end = b->_end;
+    ret->updateEnd(b->_end);
     ret->_lastInsn = b->_lastInsn;
     ret->_parsed = true;
     link(b,ret,FALLTHROUGH,false); 
@@ -1562,7 +1565,7 @@ Parser::split_block(
 
     // b's range has changed
     rd->blocksByRange.remove(b);
-    b->_end = addr;
+    b->updateEnd(addr);
     b->_lastInsn = previnsn;
     rd->blocksByRange.insert(b); 
     // Any functions holding b that have already been finalized

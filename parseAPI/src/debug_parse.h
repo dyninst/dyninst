@@ -56,4 +56,19 @@ namespace ParseAPI {
 }
 }
 
+#define PARSE_BLOCK_COUNT "parseBlockCount"
+#define PARSE_FUNCTION_COUNT "parseFunctionCount"
+#define PARSE_BLOCK_SIZE "parseBlockSize"
+
+#define PARSE_NORETURN_COUNT "parseNoReturnCount"
+#define PARSE_RETURN_COUNT "parseReturnCount"
+#define PARSE_UNKNOWN_COUNT "parseUnknownCount"
+
+#define PARSE_NORETURN_HEURISTIC "parseNoReturnHeuristicCount"
+
+#define PARSE_JUMPTABLE_COUNT "parseJumptableCount"
+#define PARSE_JUMPTABLE_FAIL "parseJumptableFail"
+#define PARSE_TAILCALL_COUNT "isTailcallCount"
+#define PARSE_TAILCALL_FAIL "isTailcallFail"
+
 #endif

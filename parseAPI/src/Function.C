@@ -102,6 +102,9 @@ Function::Function(Address addr, string name, CodeObject * obj,
     if (obj->defensiveMode()) {
         mal_printf("new funct at %lx\n",addr);
     }
+    if (obj && obj->cs()) {
+        obj->cs()->incrementCounter(PARSE_FUNCTION_COUNT);
+    }
 }
 
 ParseAPI::Edge::~Edge() {
@@ -109,6 +112,9 @@ ParseAPI::Edge::~Edge() {
 
 Function::~Function()
 {
+    if (_obj && _obj->cs()) {
+        _obj->cs()->decrementCounter(PARSE_FUNCTION_COUNT);
+    }
     vector<FuncExtent *>::iterator eit = _extents.begin();
     for( ; eit != _extents.end(); ++eit) {
         delete *eit;
@@ -232,7 +238,7 @@ Function::blocks_int()
                        continue;
                 }
                 
-                _rs = RETURN;
+                set_retstatus(RETURN);
                 continue;
             }
 
@@ -351,6 +357,30 @@ void Function::setEntryBlock(Block *new_entry)
     _region = new_entry->region();
     _start = new_entry->start();
     _entry = new_entry;
+}
+
+void Function::set_retstatus(FuncReturnStatus rs) 
+{
+    // If we are changing the return status, update prev counter
+    if (_rs != UNSET) {
+        if (_rs == NORETURN) {
+            _obj->cs()->decrementCounter(PARSE_NORETURN_COUNT);
+        } else if (_rs == RETURN) {
+            _obj->cs()->decrementCounter(PARSE_RETURN_COUNT);
+        } else if (_rs == UNKNOWN) {
+            _obj->cs()->decrementCounter(PARSE_UNKNOWN_COUNT);
+        }
+    }
+
+    // Update counter information
+    if (rs == NORETURN) {
+        _obj->cs()->incrementCounter(PARSE_NORETURN_COUNT);
+    } else if (rs == RETURN) {
+        _obj->cs()->incrementCounter(PARSE_RETURN_COUNT);
+    } else if (rs == UNKNOWN) {
+        _obj->cs()->incrementCounter(PARSE_UNKNOWN_COUNT);
+    }
+    _rs = rs;
 }
 
 void 
@@ -477,7 +507,7 @@ Function::tampersStack(bool recalculate)
                     if (in_iter->type() != Absloc::Unknown) {
                         _tamper = TAMPER_NONZERO;
                         _tamper_addr = 0;
-                        _rs = NORETURN;
+                        set_retstatus(NORETURN);
                         mal_printf("Stack tamper analysis for ret block at "
                                "%lx found unresolved stack slot or heap "
                                "addr, marking as TAMPER_NONZERO\n", retnAddr);
@@ -545,7 +575,7 @@ Function::tampersStack(bool recalculate)
     }
 
     if ( TAMPER_NONE != _tamper && TAMPER_REL != _tamper && RETURN == _rs ) {
-        _rs = NORETURN;
+        set_retstatus(NORETURN);
     }
     return _tamper;
 }
