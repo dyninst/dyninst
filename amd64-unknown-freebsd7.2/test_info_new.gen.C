@@ -2773,11 +2773,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, DynamicLink, true, nonPIC, "instruction", "", "none", "64");
-  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_profile", "test_instruction_profile", "test_instruction_profile.so", false, "{test: test_instruction_profile, mutator: test_instruction_profile, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-  test_count = 0;
-  rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, DynamicLink, true, nonPIC, "instruction", "", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "power_decode", "power_decode", "power_decode.so", false, "{test: power_decode, mutator: power_decode, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, pic: none, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);

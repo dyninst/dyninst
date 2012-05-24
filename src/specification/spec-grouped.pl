@@ -2351,17 +2351,17 @@ test_runmode('test_instruction_bind_eval', 'createProcess').
 test_start_state('test_instruction_bind_eval', 'stopped').
 tests_module('test_instruction_bind_eval', 'instruction').
 
-test('test_instruction_profile', 'test_instruction_profile', none).
-test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
-test_platform('test_instruction_profile', Platform) :-
-        platform(Platform),
-        platform('i386', OS, _, Platform), OS \= 'windows';
-        platform('x86_64', OS, _, Platform), OS \= 'windows'.
-mutator('test_instruction_profile', ['test_instruction_profile.C']).
-test_runmode('test_instruction_profile', 'createProcess').
-test_start_state('test_instruction_profile', 'stopped').
-tests_module('test_instruction_profile', 'instruction').
-mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
+%test('test_instruction_profile', 'test_instruction_profile', none).
+%test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
+%test_platform('test_instruction_profile', Platform) :-
+%        platform(Platform),
+%        platform('i386', OS, _, Platform), OS \= 'windows';
+%        platform('x86_64', OS, _, Platform), OS \= 'windows'.
+%mutator('test_instruction_profile', ['test_instruction_profile.C']).
+%test_runmode('test_instruction_profile', 'createProcess').
+%test_start_state('test_instruction_profile', 'stopped').
+%tests_module('test_instruction_profile', 'instruction').
+%mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
 
 test('power_decode', 'power_decode', none).
 test_description('power_decode', 'Tests the read & write sets of POWER instructions.').
