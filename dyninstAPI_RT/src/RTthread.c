@@ -112,7 +112,7 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    result = tc_lock_lock(&DYNINST_trace_lock);
    if (result == DYNINST_DEAD_LOCK)
    {
-      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock in thread %lu\n",
+      rtdebug_printf("[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock in thread %lu\n",
                     __FILE__, __LINE__, (unsigned long) dyn_pthread_self() );
       return DYNINST_TRACEPIPE_ERRVAL;
    }
@@ -120,8 +120,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    result = DYNINSTwriteEvent((void *) &aev, sizeof(rtBPatch_asyncEventRecord));
    if (result == -1)
    {
-      fprintf(stderr, "%s[%d]:  write error creating thread\n",
-              __FILE__, __LINE__);
+      rtdebug_printf("%s[%d]:  write error creating thread\n",
+                     __FILE__, __LINE__);
       goto done;
    }
 

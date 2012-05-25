@@ -237,7 +237,7 @@ int DYNINSTwriteEvent(void *ev, size_t sz)
     rtdebug_printf("%s[%d]:  welcome to DYNINSTwriteEvent: %d bytes\n", __FILE__, __LINE__, sz);
   if (-1 == async_socket)
   {
-	  fprintf(stderr, "%s[%d]:  failed to DYNINSTwriteEvent, no socket\n", __FILE__, __LINE__);
+	  rtdebug_printf("%s[%d]:  failed to DYNINSTwriteEvent, no socket\n", __FILE__, __LINE__);
 	  return -1;
   }
 
