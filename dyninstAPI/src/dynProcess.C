@@ -2093,6 +2093,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
 		delete newRPC;
 		return false;
 	}
+
 	// Make sure Dyninst has worked everything out
 	PCEventMuxer::muxer().wait(false);
 
@@ -2262,6 +2263,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     Thread::ptr t;
 	if(thread == NULL) {
 		newRPC->thread = Thread::ptr();
+<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
 	}
 
 	bool res = false;
@@ -2290,6 +2292,14 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 			}
 		}
 	}
+=======
+	}
+
+	bool res = false;
+	if (synchronous) {
+		res = pcProc_->runIRPCSync(newRPC->rpc);
+	}
+>>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
 	else {
 		res = pcProc_->runIRPCAsync(newRPC->rpc);
 	}
@@ -2300,11 +2310,16 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 		return false;
 	}
 
+<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
 	proccontrol_printf("%s[%d]: Finished iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
+=======
+	proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
+>>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
 		FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread ? thread->getLWP() : 0,
             newRPC->get_address(), newRPC->rpcStartAddr,
             newRPC->rpcCompletionAddr);
 
+<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
     if( result ) {
         *result = newRPC->returnValue;
     }
@@ -2313,6 +2328,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 	PCEventMuxer::muxer().wait(false);
 
 
+=======
+
+>>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
 #if 0
     if (thread && synchronous) {
       // ProcControl RPCs now run when posted. This entire chunk should no longer be necessary.
