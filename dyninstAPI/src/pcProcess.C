@@ -2018,14 +2018,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
         eventHandler_->registerCallbackRPC(newRPC);
     }
 
-    // Post the iRPC
     newRPC->thread = thread->pcThr_;
-    if( !thread->postIRPC(newRPC) ) {
-       proccontrol_printf("%s[%d]: failed to post RPC to thread %d\n",
-                          FILE__, __LINE__, thread->getLWP());
-       delete newRPC;
-       return false;
-    }
 
     // Fill in the rest of inferiorRPCinProgress, now that the address of the RPC is known
     newRPC->rpcStartAddr = newRPC->get_address();
@@ -2060,56 +2053,45 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
         }
     }
 
-    if( synchronous ) {
-#if 0
-		// Ensure that the process runs until the RPC is completed
-        setDesiredProcessState(ps_running);
-		if(thread)	
-			addSyncRPCThread(thread->pcThr_);
-        if( !thread->isRunning() ) {
-            proccontrol_printf("%s[%d]: thread %d/%d not running, continuing thread to run RPC\n",
-                    FILE__, __LINE__, getPid(), thread->getLWP());
-            if( !thread->continueThread() ) {
-                proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
-                        FILE__, __LINE__, thread->getLWP(), getPid());
-                delete newRPC;
-                return false;
-            }
-        }
-#endif
-        while( !newRPC->isComplete ) {
-            if( !thread->isLive() ) {
-                proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
-                        FILE__, __LINE__, getPid(), thread->getLWP());
-                delete newRPC;
-                return false;
-            }
+	bool res = false;
+	if (synchronous) {
+		// We have an interesting problem here. ProcControl allows callbacks to specify whether the 
+		// process should stop or run; however, that allows us to stop a process in the middle of an
+		// inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
+		res = pcProc_->runIRPCSync(newRPC->rpc);
+		if (!res) {
+			bool done = false;
+			while (!done) {
+				if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
+					// Something went wrong
+					proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+							FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+					delete newRPC;
+					return false;
+				}
+				else {
+					thread->pcThr_->continueThread();
+					res = pcProc_->handleEvents(true);
+					if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
+						done = true;
+					}
+				}
+			}
+		}
+	}
+	else {
+		res = pcProc_->runIRPCAsync(newRPC->rpc);
+	}
+	if(!res) {
+		proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+			    FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+		delete newRPC;
+		return false;
+	}
 
-            if( !isInEventHandling() ) {
-                proccontrol_printf("%s[%d]: waiting for the RPC to complete\n",
-                        FILE__, __LINE__);
-                // This implicitly does the necessary handling for the completion of the iRPC
-                if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
-                    proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
-                            FILE__, __LINE__, thread->getLWP(), getPid());
-                    delete newRPC;
-                    return false;
-                }
-            }else{
-                proccontrol_printf("%s[%d]: waiting for the callback RPC to complete\n",
-                        FILE__, __LINE__);
-                if( eventHandler_->waitForCallbackRPC() != PCEventHandler::EventsReceived ) {
-                    proccontrol_printf("%s[%d]: failed to wait for completion of iRPC\n",
-                            FILE__, __LINE__, thread->getLWP(), getPid());
-                    delete newRPC;
-                    return false;
-                }
-            }
-        }
 
-        if( result ) {
-            *result = newRPC->returnValue;
-        }
+    if( result ) {
+        *result = newRPC->returnValue;
     }
 
     return true;
@@ -2235,9 +2217,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     }
 
     if (addr)
-       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr, !synchronous);
+       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr);
     else
-       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), !synchronous);
+       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used());
 
     newRPC->rpc->setData(newRPC);
 
@@ -2266,34 +2248,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     start_offset = proc()->getAddressWidth();
     newRPC->rpcStartAddr += start_offset;
 #endif
-    newRPC->rpc->setStartOffset(start_offset);
-    newRPC->rpcCompletionAddr = addr + breakOffset;
 
-    // Post the iRPC
-    Thread::ptr t;
-	if(thread == NULL) {
-		newRPC->thread = Thread::ptr();
-		bool result = pcProc_->runIRPCSync(newRPC->rpc);
-		if(!result) {
-		    proccontrol_printf("%s[%d]: failed to post RPC to whole process\n",
-			        FILE__, __LINE__);
-			delete newRPC;
-			return false;
-		}
-	} else {
-      newRPC->thread = thread->pcThr_;
-      if (!thread->postIRPC(newRPC)) {
-         proccontrol_printf("%s[%d]: failed to post RPC to thread %d\n",
-                            FILE__, __LINE__, thread->getLWP());
-			delete newRPC;
-			return false;
-		}
-	}
-    
-    proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
-		FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread ? thread->getLWP() : 0,
-            newRPC->get_address(), newRPC->rpcStartAddr,
-            newRPC->rpcCompletionAddr);
+	newRPC->rpc->setStartOffset(start_offset);
+    newRPC->rpcCompletionAddr = addr + breakOffset;
 
     if( tempStop ) {
        if (!continueProcess()) {
@@ -2303,6 +2260,33 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
        }
     }
 
+    // Post the iRPC
+    Thread::ptr t;
+	if(thread == NULL) {
+		newRPC->thread = Thread::ptr();
+	}
+
+	bool res = false;
+	if (synchronous) {
+		res = pcProc_->runIRPCSync(newRPC->rpc);
+	}
+	else {
+		res = pcProc_->runIRPCAsync(newRPC->rpc);
+	}
+	if(!res) {
+		proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+			    FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+		delete newRPC;
+		return false;
+	}
+
+	proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
+		FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread ? thread->getLWP() : 0,
+            newRPC->get_address(), newRPC->rpcStartAddr,
+            newRPC->rpcCompletionAddr);
+
+
+#if 0
     if (thread && synchronous) {
       // ProcControl RPCs now run when posted. This entire chunk should no longer be necessary.
       // Ensure that the process runs until the RPC is completed
@@ -2353,7 +2337,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
          *result = newRPC->returnValue;
       }
    }
-
+#endif
    return true;
 }
 

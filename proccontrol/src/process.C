@@ -5813,11 +5813,11 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
 bool Process::runIRPCSync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
-
+   pthrd_printf("Running SYNC RPC\n");
    bool result = runIRPCAsync(irpc);
    if (!result) return false;
 
-   while (!irpc->state() == IRPC::Done) {
+   while (irpc->state() != IRPC::Done) {
 	   result = int_process::waitAndHandleEvents(false);
 	   if (!result) {
 		  perr_printf("Error waiting for process to finish iRPC\n");
