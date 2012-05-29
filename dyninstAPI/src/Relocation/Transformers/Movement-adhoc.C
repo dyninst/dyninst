@@ -66,32 +66,34 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 
     relocation_cerr << "\t"
 		    << std::hex << (*iter)->addr() << std::dec << endl;
+    // Cache this so we don't re-decode...
+    InsnPtr insn = (*iter)->insn();
 
-    if (!((*iter)->insn())) continue;
+    if (!insn) continue;
 
     Address target = 0;
     Absloc aloc;
 
-    if (isPCDerefCF(*iter, target)) {
+    if (isPCDerefCF(*iter, insn, target)) {
        CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
        assert(cf);
        cf->setOrigTarget(target);
     }
-    if (isPCRelData(*iter, target)) {
+    if (isPCRelData(*iter, insn, target)) {
       relocation_cerr << "  ... isPCRelData at " 
 		      << std::hex << (*iter)->addr() << std::dec << endl;
       // Two options: a memory reference or a indirect call. The indirect call we 
       // just want to set target in the CFWidget, as it has the hardware to handle
       // control flow. Generic memory references get their own atoms. How nice. 
-      Widget::Ptr replacement = RelDataWidget::create((*iter)->insn(),
+      Widget::Ptr replacement = RelDataWidget::create(insn,
                                                      (*iter)->addr(),
                                                      target);
       (*iter).swap(replacement);
       
     }
-    else if (isGetPC(*iter, aloc, target)) {
+    else if (isGetPC(*iter, insn, aloc, target)) {
 
-      Widget::Ptr replacement = PCWidget::create((*iter)->insn(),
+      Widget::Ptr replacement = PCWidget::create(insn,
 					       (*iter)->addr(),
 					       aloc,
 					       target);
@@ -120,29 +122,30 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
 }
 
 bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
+                                           InsnPtr insn,
                                            Address &target) {
-   Expression::Ptr cf = ptr->insn()->getControlFlowTarget();
+   Expression::Ptr cf = insn->getControlFlowTarget();
    if (!cf) return false;
    
-   Architecture fixme = ptr->insn()->getArch();
+   Architecture fixme = insn->getArch();
    if (fixme == Arch_ppc32) fixme = Arch_ppc64;
    
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
    Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
    // Okay, see if we're memory
    set<Expression::Ptr> mems;
-   ptr->insn()->getMemoryReadOperands(mems);
+   insn->getMemoryReadOperands(mems);
    
    for (set<Expression::Ptr>::const_iterator iter = mems.begin();
         iter != mems.end(); ++iter) {
       Expression::Ptr exp = *iter;
-      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-          exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+      if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
+          exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
 	// Bind succeeded, eval to get target address
 	Result res = exp->eval();
 	if (!res.defined) {
-	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (ptr->insn()->getControlFlowTarget()) return false;
+	  cerr << "ERROR: failed bind/eval at " << std::hex << ptr->addr() << endl;if (insn->getControlFlowTarget()) return false;
 	}
 	assert(res.defined);
 	target = res.convert<Address>();
@@ -157,29 +160,30 @@ bool adhocMovementTransformer::isPCDerefCF(Widget::Ptr ptr,
 
 // We define this as "uses PC and is not control flow"
 bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
+                                           InsnPtr insn,
                                            Address &target) {
   target = 0;
-  if (ptr->insn()->getControlFlowTarget()) return false;
+  if (insn->getControlFlowTarget()) return false;
 
-  Architecture fixme = ptr->insn()->getArch();
+  Architecture fixme = insn->getArch();
   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
   
-  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
-  if (!ptr->insn()->isRead(thePC) &&
-      !ptr->insn()->isRead(thePCFixme))
+  if (!insn->isRead(thePC) &&
+      !insn->isRead(thePCFixme))
     return false;
 
   // Okay, see if we're memory
   set<Expression::Ptr> mems;
-  ptr->insn()->getMemoryReadOperands(mems);
-  ptr->insn()->getMemoryWriteOperands(mems);
+  insn->getMemoryReadOperands(mems);
+  insn->getMemoryWriteOperands(mems);
   for (set<Expression::Ptr>::const_iterator iter = mems.begin();
        iter != mems.end(); ++iter) {
     Expression::Ptr exp = *iter;
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       if (!res.defined) {
@@ -197,14 +201,14 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
   // all the operands. We didn't do this directly because the 
   // memory-topping deref stops eval...
   vector<Operand> operands;
-  ptr->insn()->getOperands(operands);
+  insn->getOperands(operands);
   for (vector<Operand>::iterator iter = operands.begin();
        iter != operands.end(); ++iter) {
     // If we can bind the PC, then we're in the operand
     // we want.
     Expression::Ptr exp = iter->getValue();
-    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + ptr->insn()->size())) ||
-	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + ptr->insn()->size()))) {
+    if (exp->bind(thePC.get(), Result(u64, ptr->addr() + insn->size())) ||
+	exp->bind(thePCFixme.get(), Result(u64, ptr->addr() + insn->size()))) {
       // Bind succeeded, eval to get target address
       Result res = exp->eval();
       assert(res.defined);
@@ -213,13 +217,14 @@ bool adhocMovementTransformer::isPCRelData(Widget::Ptr ptr,
     }
   }
   if (target == 0) {
-     cerr << "Error: failed to bind PC in " << ptr->insn()->format() << endl;
+     cerr << "Error: failed to bind PC in " << insn->format() << endl;
   }
   assert(target != 0);
   return true;    
 }
 
 bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
+                                       InsnPtr insn,
 				       Absloc &aloc,
 				       Address &thunk) {
   // TODO:
@@ -227,19 +232,19 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   // Check for call to thunk.
   // TODO: need a return register parameter.
 
-   if (ptr->insn()->getCategory() != InstructionAPI::c_CallInsn) return false;
+   if (insn->getCategory() != InstructionAPI::c_CallInsn) return false;
 
   // Okay: checking for call + size
-  Expression::Ptr CFT = ptr->insn()->getControlFlowTarget();
+  Expression::Ptr CFT = insn->getControlFlowTarget();
   if (!CFT) {
     relocation_cerr << "      ... no CFT, ret false from isGetPC" << endl;
     return false;
   }
    
-  Architecture fixme = ptr->insn()->getArch();
+  Architecture fixme = insn->getArch();
    if (fixme == Arch_ppc32) fixme = Arch_ppc64;
    
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(ptr->insn()->getArch())));
+   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
    Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
 
   // Bind the IP, why not...
@@ -255,7 +260,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
 
   Address target = res.convert<Address>();
 
-  if (target == (ptr->addr() + ptr->insn()->size())) {
+  if (target == (ptr->addr() + insn->size())) {
     aloc = Absloc(0, 0, NULL);
     relocation_cerr << "      ... call next insn, ret true" << endl;
     return true;
@@ -271,7 +276,7 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
     if (!buf) {
        cerr << "Error: illegal pointer to buffer!" << endl;
-       cerr << "Target of " << hex << target << " from addr " << ptr->addr() << " in insn " << ptr->insn()->format() << dec << endl;
+       cerr << "Target of " << hex << target << " from addr " << ptr->addr() << " in insn " << insn->format() << dec << endl;
        assert(0);
     }
 

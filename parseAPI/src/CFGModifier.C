@@ -182,8 +182,22 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    // 4)
    for (std::vector<Function *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
-      (*iter)->_cache_valid = false;
-      (*iter)->finalize();
+      // Don't invalidate the entire function, just update in place. 
+      // 1) Extents can't change
+      // 2) Add the block to the function list
+      (*iter)->add_block(ret);
+      // 3) Swap the old block for the new in the return blocks
+      for (unsigned i = 0; i < (*iter)->_return_blocks.size(); ++i) {
+         if ((*iter)->_return_blocks[i] == b) {
+            (*iter)->_return_blocks[i] = ret;
+         }
+      }
+      // 4) Swap the old block for the new in the exit blocks
+      for (unsigned i = 0; i < (*iter)->_exit_blocks.size(); ++i) {
+         if ((*iter)->_exit_blocks[i] == b) {
+            (*iter)->_exit_blocks[i] = ret;
+         }
+      }
       b->obj()->_pcb->addBlock(*iter, ret);
    }
 
