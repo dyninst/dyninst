@@ -1821,7 +1821,6 @@ Symtab::~Symtab()
    undefDynSymsByTypedName.clear();
 
    // TODO make annotation
-   userAddedSymbols.clear();
    symsByOffset.clear();
    symsByMangledName.clear();
    symsByPrettyName.clear();

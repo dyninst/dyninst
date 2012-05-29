@@ -147,8 +147,6 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
         if ((*iter) == sym) (*iter) = &deletedSymbol;
     }
 
-    // userAddedSymbols
-    userAddedSymbols.erase(sym);
     undefDynSymsByMangledName[sym->getMangledName()].erase(std::remove(undefDynSymsByMangledName[sym->getMangledName()].begin(),
                                                                        undefDynSymsByMangledName[sym->getMangledName()].end(), sym),
                                                            undefDynSymsByMangledName[sym->getMangledName()].end());
@@ -235,10 +233,6 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
 bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
 {
-   if (std::find(userAddedSymbols.begin(), 
-                 userAddedSymbols.end(), 
-                 newSym) != userAddedSymbols.end()) return true;
-
     if (!newSym || !referringSymbol ) return false;
 
     if( !referringSymbol->getSymtab()->isStaticBinary() ) {
@@ -276,11 +270,6 @@ bool Symtab::addSymbol(Symbol *newSym)
     	return false;
    }
 
-   std::set<Symbol *>::iterator iter;
-   bool inserted;
-   boost::tie(iter, inserted) = userAddedSymbols.insert(newSym);
-   if (!inserted) return true;
-
    // Expected default behavior: if there is no
    // module use the default.
    if (newSym->getModule() == NULL) {
@@ -297,7 +286,6 @@ bool Symtab::addSymbol(Symbol *newSym)
    
    // And to aggregates
    addSymbolToAggregates(newSym);
-   
 
    return true;
 }
