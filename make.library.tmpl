@@ -249,27 +249,33 @@ include $(TO_CORE)/make.platform.tmpl
 ifdef LIBELF_PLATFORM
 ifdef USES_LIBELF
 ifneq (x,x$(strip $(LIBELF_LIB)))
-LIBS += -L$(LIBELF_LIB)
+LIBELF_LINK_FLAGS += -L$(LIBELF_LIB)
 endif
 ifndef LIBELFSTATIC
-LIBS += -lelf
+LIBELF_LINK_FLAGS += -lelf
 endif
 ifneq (x,x$(strip $(LIBELF_INC)))
-MYFLAGS += -I$(LIBELF_INC)
+LIBELF_INC_FLAGS += -I$(LIBELF_INC)
 endif
+LIBS += $(LIBELF_LINK_FLAGS)
+MYFLAGS += $(LIBELF_INC_FLAGS)
 endif
 endif
 
 ifdef LIBDWARF_PLATFORM
 ifdef USES_DWARF_DEBUG
 ifneq (x,x$(strip $(LIBDWARF_LIB)))
-LIBS += -L$(LIBDWARF_LIB)
+LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
 endif
 ifndef LIBDWARFSTATIC
-LIBS += -ldwarf
+LIBDWARF_LINK_FLAGS += -ldwarf
 endif
 ifneq (x,x$(strip $(LIBDWARF_INC)))
-MYFLAGS += -I$(LIBDWARF_INC)
+LIBDWARF_INC_FLAGS += -I$(LIBDWARF_INC)
+endif
+LIBS += $(LIBDWARF_LINK_FLAGS)
+MYFLAGS += $(LIBDWARF_INC_FLAGS)
 endif
 endif
-endif
+
+
