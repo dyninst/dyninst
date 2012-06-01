@@ -871,10 +871,15 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
          continue;
       int_thread::StateTracker &statet = thrd->getStateByID(i->first);
       int_thread::State ns = proc->threadPool()->initialThread()->getStateByID(i->first).getState();
+      if (statet.getID() == int_thread::BreakpointResumeStateID) {
+         //Special case, new threads always go to stopped for breakpoint resume.
+         ns = int_thread::stopped;
+      }
       for (int j = 0; j < i->second; j++) {
          statet.desyncState(ns);
       }
    }
+
 	int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
 	assert(tmp);
 
@@ -1444,7 +1449,12 @@ Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
          else if (int_bpc->stopped_proc)
             st.desyncState(int_thread::stopped); //Mark this as stopped as we restore the BP
       }
-
+      if (!hwbp) {
+         //If new threads come in during a BP clear, then they should be
+         //created stopped.
+         int bpr_stateid = int_thread::BreakpointResumeStateID;
+         proc->getProcDesyncdStates()[bpr_stateid]++;
+      }
    }
    else {
       pthrd_printf("HandleBreakpointClear will not restore BP.  Restoring process state.\n");
