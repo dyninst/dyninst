@@ -219,6 +219,8 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
         return NULL;
     }
 
+    ret->setInEventHandling(true);
+
     if( !ret->bootstrapProcess() ) {
         startup_cerr << "Failed to bootstrap process " << ret->getPid()
                      << ": terminating..." << endl;
@@ -227,8 +229,6 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
         delete ret;
         return NULL;
     }
-
-    ret->setInEventHandling(true);
 
     ret->setDesiredProcessState(parent->getDesiredProcessState());
 
