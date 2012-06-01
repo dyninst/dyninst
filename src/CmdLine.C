@@ -888,6 +888,10 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
                   groups[i]->tests[j]->disabled = true;
                   groups[i]->tests[j]->limit_disabled = true;
                   limitedTests = true;
+                  if (next_resume_group == -1) {
+                     next_resume_group = i;
+                     next_resume_test = j;
+                  }
                }
                groups[i]->disabled = true;
             }
