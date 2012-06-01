@@ -4125,7 +4125,7 @@ bool bp_instance::checkBreakpoint(int_breakpoint *bp, int_process *p)
       for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); i++) {
          if ((*i)->isCtrlTransfer()) {
             perr_printf("Error.  Attempted to add two control transfer breakpoints " 
-                        "at same place");
+                        "at same place\n");
             for (set<int_process *>::iterator i = p->memory()->procs.begin(); i != p->memory()->procs.end(); i++) {
                (*i)->setLastError(err_badparam, "Attempted two control transfer breakpoints at " 
                                   "same location\n");
@@ -4431,9 +4431,6 @@ unsigned sw_breakpoint::getNumIntBreakpoints() const {
 
 bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *bp, int_process *proc)
 {
-   if (!checkBreakpoint(bp, proc))
-      return false;
-
    memory->breakpoints[addr] = this;
    return true;
 }
