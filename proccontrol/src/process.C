@@ -4429,7 +4429,7 @@ unsigned sw_breakpoint::getNumIntBreakpoints() const {
     return bps.size();
 }
 
-bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *bp, int_process *proc)
+bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *, int_process *)
 {
    memory->breakpoints[addr] = this;
    return true;
