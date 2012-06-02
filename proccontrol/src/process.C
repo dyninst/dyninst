@@ -7330,8 +7330,10 @@ void MTManager::evhandler_main()
 
     
       pending_event_lock.lock();
-      if (should_exit)
+      if (should_exit) {
+         pending_event_lock.unlock();
          return;
+      }
       if (!have_queued_events) {
          pending_event_lock.wait();
       }
