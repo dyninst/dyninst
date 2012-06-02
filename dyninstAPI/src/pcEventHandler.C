@@ -503,7 +503,6 @@ PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
 }
 
 PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
-	eventHandlingLock.lock();
    bool handledEvent = false;
    
    // Empty the mailbox before returning
@@ -512,12 +511,10 @@ PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
       if( !eventMux(newEvent) ) {
          proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
                             FILE__, __LINE__, newEvent->getEventType().name().c_str());
-         eventHandlingLock.unlock();
          return Error;
       }
       handledEvent = true;
    }
-   eventHandlingLock.unlock();
    return (handledEvent ? EventsReceived : NoEvents);
 }
 
