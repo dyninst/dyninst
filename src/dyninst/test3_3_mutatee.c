@@ -70,7 +70,6 @@ void test3_3_call1(int arg1, int arg2)
 int test3_3_mutatee() {
      FILE *fp;
      char filename[80];
-
 #if defined(os_windows_test)
      sprintf(filename, "test3.out.%d", GetCurrentProcessId());
 #else
@@ -78,6 +77,7 @@ int test3_3_mutatee() {
 #endif
 	 fp = fopen(filename, "w");
 
+VS2010.:testsuite/src/dyninst/test3_3_mutatee.c
      assert(fp);
      fprintf(fp, "%d\n", test3_3_ret);
      fclose(fp);
