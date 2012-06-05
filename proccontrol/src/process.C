@@ -5790,7 +5790,13 @@ bool Process::runIRPCAsync(IRPC::ptr irpc)
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
    rpc->setAsync(false);
 
-   bool result = rpcMgr()->postRPCToProc(proc, rpc);
+   bool result = false;
+   if (rpc->thread()) {
+	   result = rpcMgr()->postRPCToThread(rpc->thread(), rpc);
+   }
+   else {
+		result = rpcMgr()->postRPCToProc(proc, rpc);
+   }
    if (!result) {
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return false;
@@ -5826,6 +5832,24 @@ bool Process::runIRPCSync(IRPC::ptr irpc)
 	   }
    }
    return true;
+}
+
+// Apologies for the code duplication; if this works, refactor. 
+bool Thread::runIRPCAsync(IRPC::ptr irpc)
+{
+   int_iRPC::ptr rpc = irpc->llrpc()->rpc;
+   rpc->setThread(llthrd());
+
+   return getProcess()->runIRPCAsync(irpc);
+}
+
+
+bool Thread::runIRPCSync(IRPC::ptr irpc)
+{
+   int_iRPC::ptr rpc = irpc->llrpc()->rpc;
+   rpc->setThread(llthrd());
+
+	return getProcess()->runIRPCSync(irpc);   
 }
 
 bool Process::postIRPC(IRPC::ptr irpc) const

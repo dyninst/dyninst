@@ -477,6 +477,9 @@ class PC_EXPORT Thread
     * IRPC
     **/
    bool postIRPC(IRPC::ptr irpc) const;
+   bool runIRPCSync(IRPC::ptr irpc);
+   bool runIRPCAsync(IRPC::ptr irpc);
+
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
 

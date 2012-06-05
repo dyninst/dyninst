@@ -65,7 +65,7 @@ public:
     Dyninst::LWP getLWP() const;
     PCProcess *getProc() const;
     bool isLive() const;
-
+	ProcControlAPI::Thread::ptr pcThr() const { return pcThr_; }
     // Thread info
     dynthread_t getTid() const;
     func_instance *getStartFunc();

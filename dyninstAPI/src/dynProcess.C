@@ -2135,9 +2135,6 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
         }
     }
 
-    // Default to initial thread
-	if( thread == NULL ) thread = initialThread_;
-
     inferiorRPCinProgress *newRPC = new inferiorRPCinProgress;
     newRPC->runProcWhenDone = runProcessWhenDone;
     newRPC->deliverCallbacks = userRPC;
@@ -2260,6 +2257,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     // Post the iRPC
     Thread::ptr t;
+
     if(thread == NULL) {
        newRPC->thread = Thread::ptr();
     }
