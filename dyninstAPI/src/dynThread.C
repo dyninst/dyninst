@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "pcProcess.h"
-#include "pcThread.h"
+#include "dynProcess.h"
+#include "dynThread.h"
 #include "debug.h"
 #include "function.h"
 #include "mapped_module.h"

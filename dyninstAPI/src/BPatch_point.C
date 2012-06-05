@@ -54,7 +54,7 @@
 #include "miniTramp.h"
 #include "function.h"
 #include "addressSpace.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "debug.h"
 
 #include "BPatch_memoryAccessAdapter.h"

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"

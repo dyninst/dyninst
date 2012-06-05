@@ -40,7 +40,7 @@
 #include "debug.h"
 #include "BPatch.h"
 #include "mapped_object.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 
 #if defined(os_aix)
 #include "parRegion.h"

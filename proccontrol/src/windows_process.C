@@ -450,7 +450,7 @@ bool windows_process::direct_infFree(Dyninst::Address addr)
 	}
 	// HACK: short-circuit and don't deallocate.
 	return true;
-
+	cerr << "FREEING " << hex << addr << dec << endl;
 	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_RELEASE);
 	if (!result) {
 		fprintf(stderr, "VirtualFreeEx failed at 0x%lx, retval %d", addr, ::GetLastError());

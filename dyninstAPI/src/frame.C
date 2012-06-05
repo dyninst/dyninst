@@ -34,8 +34,8 @@
 #include <stdio.h>
 #include <iostream>
 #include "frame.h"
-#include "pcProcess.h"
-#include "pcThread.h"
+#include "dynProcess.h"
+#include "dynThread.h"
 #include "function.h"
 #include "instPoint.h"
 #include "baseTramp.h"

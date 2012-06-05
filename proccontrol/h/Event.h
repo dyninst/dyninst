@@ -35,7 +35,7 @@
 #include <set>
 #include "dyntypes.h"
 #include "EventType.h"
-#include "Process.h"
+#include "PCProcess.h"
 #include "util.h"
 
 #include "dynptr.h"

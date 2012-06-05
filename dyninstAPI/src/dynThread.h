@@ -34,7 +34,7 @@
 
 #include "frame.h"
 
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 
 /*
  * pcThread.h

@@ -41,7 +41,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionDecoder.h"
 #include "Parsing.h"

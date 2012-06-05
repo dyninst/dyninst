@@ -38,7 +38,7 @@
 #include "dynptr.h"
 
 #include "dyntypes.h"
-#include "Process.h"
+#include "PCProcess.h"
 #include "PCErrors.h"
 
 typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;

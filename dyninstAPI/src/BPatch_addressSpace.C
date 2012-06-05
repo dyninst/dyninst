@@ -39,7 +39,7 @@
 #include "codeRange.h"
 #include "miniTramp.h"
 #include "addressSpace.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "debug.h"
 
 #include "mapped_module.h"

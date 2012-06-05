@@ -38,7 +38,7 @@
 #include "instPoint.h"
 #include "ast.h"
 #include "addressSpace.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "debug.h"
 #include "dyninstAPI/h/BPatch.h"
 

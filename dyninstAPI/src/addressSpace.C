@@ -31,7 +31,7 @@
 
 #include "addressSpace.h"
 #include "codeRange.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "function.h"
 #include "binaryEdit.h"
 #include "miniTramp.h"
@@ -1550,7 +1550,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       }
       cerr << dec;
       cerr << endl;
-      cerr << cm->format() << endl;
+ //     cerr << cm->format() << endl;
 
   }
 
