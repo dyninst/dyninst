@@ -39,8 +39,8 @@
 #include "function.h"
 #include "BPatch_statement.h"
 
-#include "pcThread.h"
-#include "pcProcess.h"
+#include "dynThread.h"
+#include "dynProcess.h"
 #include "debug.h"
 
 #if defined(IBM_BPATCH_COMPAT)
@@ -106,7 +106,7 @@ BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, PCThread *th
    return newthr;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) {
+BPatch_thread::BPatch_thread(BPatch_process *parent, PCThread *thr) : madeExitCallback_(false) {
    proc = parent;
    llthread = thr;
 }

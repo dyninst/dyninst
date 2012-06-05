@@ -53,13 +53,13 @@
 #include "dyninstAPI/src/ast.h"
 
 #include "dyninstAPI/src/function.h"
-#include "pcprocess.h"
+#include "dynProcess.h"
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
 #include "BPatch_process.h"
 #include "nt_signal_emul.h"
-
+#include "dyninstAPI/src/PCEventMuxer.h"
 
 // prototypes of functions used in this file
 
@@ -1628,7 +1628,7 @@ unsigned long PCProcess::setAOutLoadAddress(fileDescriptor &desc)
 	return 0;
 }
 
-PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase(Dyninst::ProcControlAPI::EventType et)
+bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
 {
     // This switch statement can be derived from the EventTypes and Events
     // table in the ProcControlAPI manual -- it states what Events are
@@ -1639,7 +1639,7 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
             switch(et.time()) {
                 case Dyninst::ProcControlAPI::EventType::Pre:
                 case Dyninst::ProcControlAPI::EventType::Post:
-					return CallbackOnly;
+					return true;
                 default:
                     break;
             }
@@ -1647,14 +1647,19 @@ PCEventHandler::CallbackBreakpointCase PCEventHandler::getCallbackBreakpointCase
 		case Dyninst::ProcControlAPI::EventType::LWPDestroy:
             switch(et.time()) {
                 case Dyninst::ProcControlAPI::EventType::Pre:
-					return CallbackOnly;
+					return true;
                 default:
                     break;
             }
             break;
     }
 
-    return NoCallbackOrBreakpoint;
+    return false;
+}
+
+bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et)
+{
+	return false;
 }
 
 bool PCEventHandler::isKillSignal(int signal)
@@ -1869,3 +1874,45 @@ mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)
 	return false;
 }
 
+extern Address getVarAddr(PCProcess *proc, std::string str);
+
+bool PCProcess::registerThread(PCThread *thread) {	
+	Address tid = (Address) thread->getTid();
+	Address index = thread->getIndex();
+
+	if (tid == (Address) -1) return true;
+	if (index == (Address) -1) return true;
+
+	// Don't use an RPC to set this, since RPCs to threads in system calls are problematic
+	// on Windows. Instead, parse and set the RTlib hash table directly. 
+
+	Address tidPtr = getVarAddr(this, "DYNINST_thread_hash_tids");
+	if (!tidPtr) return false;
+	Address indexPtr = getVarAddr(this, "DYNINST_thread_hash_indices");
+	if (!indexPtr) return false;
+	Address sizePtr = getVarAddr(this, "DYNINST_thread_hash_size");
+	if (!sizePtr) return false;
+
+	Address tmp;
+	if (!readDataWord((const void *)tidPtr, sizeof(int), &tmp, false)) return false;
+	tidPtr = tmp;
+	if (!readDataWord((const void *)indexPtr, sizeof(int), &tmp, false)) return false;
+	indexPtr = tmp;
+	if (!readDataWord((const void *)sizePtr, sizeof(int), &tmp, false)) return false;
+	sizePtr = tmp;
+
+	Address working = tid % sizePtr;
+	while(1) {
+		if (!readDataWord(( void *)(indexPtr + (working * sizeof(int))), sizeof(int), &tmp, false)) return false;
+		if (tmp == (Address) -1) {
+			// Write in our data
+			writeDataWord(( void *)(indexPtr + (working * sizeof(int))), sizeof(int), &index);
+			writeDataWord(( void *)(tidPtr + (working * sizeof(void *))), sizeof(void *), &tid);
+			break;
+		}
+		working++;
+		if (working == sizePtr) working = 0;
+		if (working == tid) return false;
+	}
+	return true;
+}

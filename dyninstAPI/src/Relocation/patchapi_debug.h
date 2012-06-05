@@ -39,7 +39,7 @@ extern int patch_debug_relocation;
 extern int patch_debug_springboard;
 
 #define relocation_cerr   if (patch_debug_relocation) std::cerr
-#define springboard_cerr  if (patch_debug_relocation) std::cerr
+#define springboard_cerr  if (patch_debug_springboard) std::cerr
 
 extern int relocation_printf_int(const char *format, ...);
 extern int springboard_printf_int(const char *format, ...);

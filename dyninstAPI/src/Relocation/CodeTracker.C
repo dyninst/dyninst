@@ -185,7 +185,7 @@ void CodeTracker::createIndices() {
    }
   }
 
-  if (patch_debug_relocation) debug();
+  //if (patch_debug_relocation) debug();
 }
 
 void CodeTracker::debug() {

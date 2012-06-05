@@ -39,8 +39,8 @@
 #include "function.h" // func_instance
 #include "codeRange.h"
 #include "miniTramp.h"
-#include "pcProcess.h"
-#include "pcThread.h"
+#include "dynProcess.h"
+#include "dynThread.h"
 #include "pcEventHandler.h"
 #include "os.h"
 
@@ -175,8 +175,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    
    std::string spath(path);
    llproc = PCProcess::createProcess(spath, argv_vec, mode, envp_vec,
-                             directoryName, stdin_fd, stdout_fd, stderr_fd,
-                             BPatch::bpatch->eventHandler_);
+                             directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) {
       BPatch_reportError(BPatchFatal, 68,
            "Dyninst was unable to create the specified process");
@@ -313,7 +312,7 @@ BPatch_process::BPatch_process
     startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__, 
           path ? path : "no_path", pid);
 
-   llproc = PCProcess::attachProcess(spath, pid, mode, BPatch::bpatch->eventHandler_);
+   llproc = PCProcess::attachProcess(spath, pid, mode);
    if (!llproc) {
       BPatch_reportError(BPatchFatal, 68, 
              "Dyninst was unable to attach to the specified process");

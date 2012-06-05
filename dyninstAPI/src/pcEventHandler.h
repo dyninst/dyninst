@@ -44,67 +44,42 @@
 #include <queue>
 #include <set>
 
-class PCEventMailbox {
-public:
-    PCEventMailbox();
-    ~PCEventMailbox();
-
-    void enqueue(ProcControlAPI::Event::const_ptr ev);
-    ProcControlAPI::Event::const_ptr dequeue(bool block);
-    unsigned int size();
-
-protected:
-    std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
-    CondVar queueCond;
-};
-
 class PCProcess;
 class inferiorRPCinProgress;
+class PCEventMuxer;
 
 /*
  * pcEventHandler.h
  *
  * The entry point for event and callback handling.
+ *
+ * 1:1 class with PCProcess that encapsulates all event handling, including waiting for
+ * events and callbacks. 
  */
+
 class PCEventHandler {
-    // Why syscallNotification is a friend:
+	typedef ProcControlAPI::Event::const_ptr EventPtr;
+	// Why syscallNotification is a friend:
     //
     // It is a friend because it reaches in to determine whether to install
     // breakpoints at specific system calls. I didn't want to expose this to
     // the rest of Dyninst.
     
     friend class syscallNotification;
+	friend class PCEventMuxer;
 public:
-    typedef enum {
-        EventsReceived,
-        NoEvents,
-        Error
-    } WaitResult;
 
-    // Force heap allocation
-    static PCEventHandler *createPCEventHandler();
-
-    ~PCEventHandler();
-
-    WaitResult waitForEvents(bool block);
-    bool start();
-
-    // Special handling for sync. RPCs issued from callbacks because they result in
-    // recursive event handling -- this approach limits the events that can be
-    // handled recursively to those associated with the completion of the callback RPC
-    void registerCallbackRPC(inferiorRPCinProgress *rpc);
-    WaitResult waitForCallbackRPC();
+	static PCEventHandler &handler() { return handler_; }
+	static bool handle(EventPtr ev);
 
 protected:
     PCEventHandler();
 
-    // Event Handling
-    static ProcControlAPI::Process::cb_ret_t callbackMux(ProcControlAPI::Event::const_ptr ev);
+	bool handle_internal(EventPtr ev);
 
-    bool eventMux(ProcControlAPI::Event::const_ptr ev) const;
     bool handleExit(ProcControlAPI::EventExit::const_ptr ev, PCProcess *evProc) const;
     bool handleFork(ProcControlAPI::EventFork::const_ptr ev, PCProcess *evProc) const;
-    bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess **evProc) const;
+    bool handleExec(ProcControlAPI::EventExec::const_ptr ev, PCProcess *&evProc) const;
     bool handleCrash(ProcControlAPI::EventCrash::const_ptr ev, PCProcess *evProc) const;
     bool handleForceTerminate(ProcControlAPI::EventForceTerminate::const_ptr ev, PCProcess *evProc) const;
     bool handleThreadCreate(ProcControlAPI::EventNewThread::const_ptr ev, PCProcess *evProc) const;
@@ -186,25 +161,7 @@ protected:
     };
     static CallbackBreakpointCase getCallbackBreakpointCase(ProcControlAPI::EventType et);
 
-    PCEventMailbox *eventMailbox_;
-
-    // Callback RPCs
-    Mutex pendingCallbackLock_;
-    std::set<unsigned long> pendingCallbackRPCs_;
-    PCEventMailbox *callbackRPCMailbox_;
-
-    // Callback Thread Management
-    static DThread::dthread_ret_t WINAPI main_wrapper(void *);
-    void main(); // Callback thread main loop
-
-    DThread thrd_;
-    CondVar initCond_; //Start-up synchronization
-    bool started_;
-
-    int exitNotificationOutput_;
-    int exitNotificationInput_;
-
-	Mutex eventHandlingLock;
+	static PCEventHandler handler_;
 };
 
 #endif

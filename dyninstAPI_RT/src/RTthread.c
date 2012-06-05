@@ -50,19 +50,18 @@ void setNewthrCB(void (*cb)(int)) {
 
 #define IDX_NONE -1
 
-struct thread_hash_record {
-    dyntid_t tid;
-    int index;
-};
+/* I split these in half to make mutator-side updates easier */
+static dyntid_t *DYNINST_thread_hash_tids;
+static int *DYNINST_thread_hash_indices;
 
-static struct thread_hash_record *DYNINST_thread_hash;
 static unsigned DYNINST_thread_hash_size;
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
 static int num_free;
 
-static struct thread_hash_record default_thread_hash[THREADS_HASH_SIZE];
+static dyntid_t default_thread_hash_tids[THREADS_HASH_SIZE];
+static int default_thread_hash_indices[THREADS_HASH_SIZE];
 
 DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
 
@@ -76,17 +75,21 @@ void DYNINST_initialize_index_list()
 
   if (DYNINST_max_num_threads == MAX_THREADS) {
      DYNINST_thread_hash_size = THREADS_HASH_SIZE;
-     DYNINST_thread_hash = default_thread_hash;
+     DYNINST_thread_hash_indices = default_thread_hash_indices;
+     DYNINST_thread_hash_tids = default_thread_hash_tids;
   }
   else {
      DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
-     DYNINST_thread_hash = (struct thread_hash_record *) 
-         malloc(DYNINST_thread_hash_size * sizeof(struct thread_hash_record));
+     DYNINST_thread_hash_indices =  
+         malloc(DYNINST_thread_hash_size * sizeof(int));
+	DYNINST_thread_hash_tids = 
+		malloc(DYNINST_thread_hash_size * sizeof(dyntid_t));
   }
-  assert( DYNINST_thread_hash != NULL );
+  assert( DYNINST_thread_hash_tids != NULL );
+  assert( DYNINST_thread_hash_indices != NULL );
 
   for (i=0; i < DYNINST_thread_hash_size; i++)
-      DYNINST_thread_hash[i].index = IDX_NONE;
+      DYNINST_thread_hash_indices[i] = IDX_NONE;
 
   num_free = DYNINST_max_num_threads;
 }
@@ -122,8 +125,8 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid) {
     hash_id = tid_val % DYNINST_thread_hash_size;
     orig = hash_id;
     for (;;) {
-        index = DYNINST_thread_hash[hash_id].index;
-        if (index != IDX_NONE && DYNINST_thread_hash[hash_id].tid == tid) {
+        index = DYNINST_thread_hash_indices[hash_id];
+        if (index != IDX_NONE && DYNINST_thread_hash_tids[hash_id] == tid) {
             retval = index;
             break;
         }
@@ -163,7 +166,7 @@ unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index) {
 
     hash_id = tid_val % DYNINST_thread_hash_size;
     orig = hash_id;
-    while(DYNINST_thread_hash[hash_id].index != IDX_NONE) {
+    while(DYNINST_thread_hash_indices[hash_id] != IDX_NONE) {
         hash_id++;
         if( hash_id == DYNINST_thread_hash_size ) hash_id = 0;
         if( orig == hash_id ) {
@@ -173,8 +176,8 @@ unsigned long DYNINSTregisterThread(dyntid_t tid, unsigned index) {
     }
 
     if( retval ) {
-        DYNINST_thread_hash[hash_id].index = index;
-        DYNINST_thread_hash[hash_id].tid = tid;
+        DYNINST_thread_hash_indices[hash_id] = index;
+        DYNINST_thread_hash_tids[hash_id] = tid;
         num_free--;
         rtdebug_printf("%s[%d]: created mapping for thread (index = %lu, tid = 0x%lx)\n",
                 __FILE__, __LINE__, index, tid);
@@ -203,7 +206,7 @@ int DYNINSTunregisterThread(dyntid_t tid) {
 
     hash_id = tid_val % DYNINST_thread_hash_size;
     orig = hash_id;
-    while(DYNINST_thread_hash[hash_id].tid != tid) {
+    while(DYNINST_thread_hash_tids[hash_id] != tid) {
         hash_id++;
         if( hash_id == DYNINST_thread_hash_size ) hash_id = 0;
         if( orig == hash_id ) {
@@ -214,8 +217,8 @@ int DYNINSTunregisterThread(dyntid_t tid) {
 
     if( retval ) {
         rtdebug_printf("%s[%d]: removed mapping for thread (index = %lu, tid = 0x%lx)\n",
-                __FILE__, __LINE__, DYNINST_thread_hash[hash_id].index, tid);
-        DYNINST_thread_hash[hash_id].index = IDX_NONE;
+                __FILE__, __LINE__, DYNINST_thread_hash_indices[hash_id], tid);
+        DYNINST_thread_hash_indices[hash_id] = IDX_NONE;
         num_free++;
     }
 

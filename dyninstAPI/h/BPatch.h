@@ -181,8 +181,6 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
    bool FDneedsPolling_;
 
-   PCEventHandler *eventHandler_;
-
    // Callbacks //
    BPatchErrorCallback errorCallback;
    BPatchForkCallback preForkCallback;
