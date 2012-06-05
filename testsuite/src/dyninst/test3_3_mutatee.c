@@ -31,10 +31,7 @@
 #include <assert.h>
 
 #include "mutatee_util.h"
-
-#ifdef os_windows_test
-/* #include <process.h> */
-#endif 
+#include <windows.h>
 
 /* Externally accessed function prototypes.  These must have globally unique
  * names.  I suggest following the pattern <testname>_<function>
@@ -75,11 +72,12 @@ int test3_3_mutatee() {
      char filename[80];
 
 #if defined(os_windows_test)
-     sprintf(filename, "test3.out.%d", 1);
+     sprintf(filename, "test3.out.%d", GetCurrentProcessId());
 #else
-     sprintf(filename, "test3.out.%d", (int) getpid());
+	 sprintf(filename, "test3.out.%d", getpid());
 #endif
-     fp = fopen(filename, "w");
+	 fp = fopen(filename, "w");
+
      assert(fp);
      fprintf(fp, "%d\n", test3_3_ret);
      fclose(fp);
