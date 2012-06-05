@@ -14,7 +14,7 @@ NO_OPT_FLAG=true
 
 !include $(TO_CORE)/nmake.config
 DEFCFLAGS = $(DEFCFLAGS) -MDd # ccw 12 july 2001
-LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
+LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib /DYNAMICBASE:NO # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 
 CXXFLAGS = $(CXXFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE
