@@ -2058,52 +2058,51 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
         }
     }
 
-	bool res = false;
-	if (synchronous) {
-		// We have an interesting problem here. ProcControl allows callbacks to specify whether the 
-		// process should stop or run; however, that allows us to stop a process in the middle of an
-		// inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
-		res = pcProc_->runIRPCSync(newRPC->rpc);
-		if (!res) {
-			bool done = false;
-			while (!done) {
-				if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
-					// Something went wrong
-					proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-							FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-					delete newRPC;
-					return false;
-				}
-				else {
-					thread->pcThr_->continueThread();
-					res = pcProc_->handleEvents(true);
-					if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
-						done = true;
-					}
-				}
-			}
-		}
-	}
-	else {
-		res = pcProc_->runIRPCAsync(newRPC->rpc);
-	}
-	if(!res) {
-		proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-			    FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-		delete newRPC;
-		return false;
-	}
-
-	// Make sure Dyninst has worked everything out
-	PCEventMuxer::muxer().wait(false);
-
-    if( result ) {
-        *result = newRPC->returnValue;
+    bool res = false;
+    if (synchronous) {
+       // We have an interesting problem here. ProcControl allows callbacks to specify whether the 
+       // process should stop or run; however, that allows us to stop a process in the middle of an
+       // inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
+       res = pcProc_->runIRPCSync(newRPC->rpc);
+       if (!res) {
+          bool done = false;
+          while (!done) {
+             if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
+                // Something went wrong
+                proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+                                   FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+                delete newRPC;
+                return false;
+             }
+             else {
+                thread->pcThr_->continueThread();
+                res = pcProc_->handleEvents(true);
+                if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
+                   done = true;
+                }
+             }
+          }
+       }
     }
-
-	// Handle callbacks on our side
-	PCEventMuxer::wait(false);
-
+    else {
+       res = pcProc_->runIRPCAsync(newRPC->rpc);
+    }
+    if(!res) {
+       proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+                          FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+       delete newRPC;
+       return false;
+    }
+    // Make sure Dyninst has worked everything out
+    PCEventMuxer::muxer().wait(false);
+    
+    if( result ) {
+       *result = newRPC->returnValue;
+    }
+    
+    // Handle callbacks on our side
+    PCEventMuxer::wait(false);
+    
     return true;
 
 }
@@ -2261,128 +2260,53 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     // Post the iRPC
     Thread::ptr t;
-	if(thread == NULL) {
-		newRPC->thread = Thread::ptr();
-<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
-	}
-
-	bool res = false;
-	if (synchronous) {
-		// We have an interesting problem here. ProcControl allows callbacks to specify whether the 
-		// process should stop or run; however, that allows us to stop a process in the middle of an
-		// inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
-		res = pcProc_->runIRPCSync(newRPC->rpc);
-		if (!res) {
-			bool done = false;
-			while (!done) {
-				if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
-					// Something went wrong
-					proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-							FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-					delete newRPC;
-					return false;
-				}
-				else {
-					thread->pcThr_->continueThread();
-					res = pcProc_->handleEvents(true);
-					if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
-						done = true;
-					}
-				}
-			}
-		}
-	}
-=======
-	}
-
-	bool res = false;
-	if (synchronous) {
-		res = pcProc_->runIRPCSync(newRPC->rpc);
-	}
->>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
-	else {
-		res = pcProc_->runIRPCAsync(newRPC->rpc);
-	}
-	if(!res) {
-		proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-			    FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-		delete newRPC;
-		return false;
-	}
-
-<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
-	proccontrol_printf("%s[%d]: Finished iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
-=======
-	proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
->>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
-		FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread ? thread->getLWP() : 0,
-            newRPC->get_address(), newRPC->rpcStartAddr,
-            newRPC->rpcCompletionAddr);
-
-<<<<<<< HEAD:dyninstAPI/src/dynProcess.C
-    if( result ) {
-        *result = newRPC->returnValue;
+    if(thread == NULL) {
+       newRPC->thread = Thread::ptr();
     }
+    
+    bool res = false;
+    if (synchronous) {
+       // We have an interesting problem here. ProcControl allows callbacks to specify whether the 
+       // process should stop or run; however, that allows us to stop a process in the middle of an
+       // inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
+       res = pcProc_->runIRPCSync(newRPC->rpc);
+       if (!res) {
+          bool done = false;
+          while (!done) {
+             if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
+                // Something went wrong
+                proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+                                   FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+                delete newRPC;
+                return false;
+             }
+             else {
+                thread->pcThr_->continueThread();
+                res = pcProc_->handleEvents(true);
+                if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
+                   done = true;
+                }
+             }
+          }
+       }
+    }
+    else {
+       res = pcProc_->runIRPCAsync(newRPC->rpc);
+    }
+    if(!res) {
+       proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
+                          FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+       delete newRPC;
+       return false;
+    }
+    
+    if( result ) {
+       *result = newRPC->returnValue;
+    }
+    
+    // Make sure Dyninst has worked everything out
+    PCEventMuxer::muxer().wait(false);
 
-	// Make sure Dyninst has worked everything out
-	PCEventMuxer::muxer().wait(false);
-
-
-=======
-
->>>>>>> Move to ProcControl synchronous IRPC mechanism:dyninstAPI/src/pcProcess.C
-#if 0
-    if (thread && synchronous) {
-      // ProcControl RPCs now run when posted. This entire chunk should no longer be necessary.
-      // Ensure that the process runs until the RPC is completed
-      setDesiredProcessState(ps_running);
-      addSyncRPCThread(thread->pcThr_);
-      
-		if( thread && !thread->isRunning() ) {
-         proccontrol_printf("%s[%d]: thread %d/%d not running, continuing thread to run RPC\n",
-                            FILE__, __LINE__, getPid(), thread->getLWP());
-         if( !thread->continueThread() ) {
-            proccontrol_printf("%s[%d]: failed to continue thread %lu, process %d to run RPC\n",
-                               FILE__, __LINE__, thread->getLWP(), getPid());
-            delete newRPC;
-            return false;
-         }
-		}
-      while( !newRPC->isComplete ) {
-         if (thread && !thread->isLive()) {
-            proccontrol_printf("%s[%d]: thread %d/%d no longer exists, failed to finish RPC\n",
-                               FILE__, __LINE__, getPid(), thread->getLWP());
-            delete newRPC;
-            return false;
-         }
-         
-         if( !isInEventHandling() ) {
-            proccontrol_printf("%s[%d]: waiting for the RPC to complete\n",
-                               FILE__, __LINE__);
-            // This implicitly does the necessary handling for the completion of the iRPC
-            if( eventHandler_->waitForEvents(true) != PCEventHandler::EventsReceived ) {
-               proccontrol_printf("%s[%d]: failed to wait for completion of iRPC on %d/%d\n",
-                                  FILE__, __LINE__, thread ? thread->getLWP() : 0, getPid());
-               delete newRPC;
-               return false;
-            }
-         }else{
-            proccontrol_printf("%s[%d]: waiting for the callback RPC to complete\n",
-                               FILE__, __LINE__);
-            if( eventHandler_->waitForCallbackRPC() != PCEventHandler::EventsReceived ) {
-               proccontrol_printf("%s[%d]: failed to wait for completion of iRPC on %d/%d\n",
-                                  FILE__, __LINE__, thread ? thread->getLWP() : 0, getPid());
-               delete newRPC;
-               return false;
-            }
-         }
-      }
-      
-      if( result ) {
-         *result = newRPC->returnValue;
-      }
-   }
-#endif
    return true;
 }
 
