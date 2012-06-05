@@ -153,7 +153,7 @@ BPatch_process *test_thread_8_Mutator::getProcess()
 
    args[n] = NULL;
 
-   BPatch_process *proc;
+   BPatch_process *proc = NULL;
    if (create_proc) {
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
