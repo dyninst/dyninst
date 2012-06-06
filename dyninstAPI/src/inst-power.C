@@ -37,7 +37,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/inst-power.h"

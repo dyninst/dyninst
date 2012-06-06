@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PCPROCESS_H
-#define PCPROCESS_H
+#ifndef DYNPROCESS_H
+#define DYNPROCESS_H
 /*
  * pcProcess.h
  *

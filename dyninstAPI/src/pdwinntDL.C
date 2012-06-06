@@ -32,7 +32,7 @@
 #include "mapped_object.h"
 #include <windows.h>
 #include <string>
-#include "pcProcess.h"
+#include "dynProcess.h"
 
 // Since Windows handles library loads for us, there is nothing to do here
 // Write in stubs to make the platform-indep code happy

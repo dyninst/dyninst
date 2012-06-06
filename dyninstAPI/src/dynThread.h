@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PCTHREAD_H
-#define PCTHREAD_H
+#ifndef DYNTHREAD_H
+#define DYNTHREAD_H
 
 #include "frame.h"
 

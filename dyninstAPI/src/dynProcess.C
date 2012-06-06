@@ -32,7 +32,7 @@
 #include "dynProcess.h"
 #include "dynThread.h"
 #include "pcEventHandler.h"
-#include "PCEventMuxer.h"
+#include "pcEventMuxer.h"
 #include "function.h"
 #include "os.h"
 #include "debug.h"

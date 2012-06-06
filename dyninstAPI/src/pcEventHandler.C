@@ -41,7 +41,7 @@
 
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
-#include "PCEventMuxer.h"
+#include "pcEventMuxer.h"
 #include <set>
 #include <queue>
 #include <vector>

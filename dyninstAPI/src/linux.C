@@ -32,7 +32,7 @@
 // $Id: linux.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
 
 #include "binaryEdit.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "symtab.h"
 #include "function.h"
 #include "instPoint.h"

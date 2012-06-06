@@ -68,8 +68,8 @@
 
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/pcThread.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynThread.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "common/h/linuxKludges.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
