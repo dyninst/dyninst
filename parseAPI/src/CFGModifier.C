@@ -355,6 +355,15 @@ InsertedRegion *CFGModifier::insert(CodeObject *obj,
    obj->cs()->addRegion(newRegion);
    obj->parse(newRegion, base, true);
 
+   // Parsing starting at the base address will create a new function. 
+   // Work around this by looking up and deleting that function when 
+   // we're done parsing. 
+   Function *newFunc = obj->findFuncByEntry(newRegion, base);
+   if (newFunc) {
+      obj->parser->remove_func(newFunc);
+      obj->fact()->destroy_func(newFunc);
+   }
+
    return newRegion;
 }
 
