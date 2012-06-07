@@ -2,12 +2,14 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT([Dyninst], [7.0], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [8.0], [bugs@dyninst.org], [dyninst])
 
-AC_PREFIX_DEFAULT(`pwd`/..)
+AC_PREFIX_DEFAULT(/usr)
 
 AC_CONFIG_AUX_DIR([autodyninst])
 AC_CONFIG_MACRO_DIR([autodyninst])
+
+AC_PROG_INSTALL
 
 AC_PROG_CXX(g++)
 AC_PATH_PROG(_ICC_, icc)
@@ -20,6 +22,20 @@ AC_LANG(C++)
 
 
 dnl === configure options ==
+
+AC_SUBST(INSTALL)
+
+AC_ARG_WITH(traditional,
+            [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
+            [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
+             PROGRAM_DEST_VAR="PROGRAM_DEST=\${TO_CORE}/../\${PLATFORM}/bin";
+             INCLUDE_DEST_VAR="INCLUDE_DEST=\${TO_CORE}/../include";],
+            [LIBRARY_DEST_VAR="";
+             PROGRAM_DEST_VAR="";
+             INCLUDE_DEST_VAR="";])
+AC_SUBST(LIBRARY_DEST_VAR)
+AC_SUBST(PROGRAM_DEST_VAR)
+AC_SUBST(INCLUDE_DEST_VAR)
 
 
 PACKAGE_BASE=""
@@ -39,16 +55,16 @@ AC_ARG_WITH(package-base,
            ],[
             # We fall back on these defaults if both --with-package-base and
             # specific --with-<package> arguments are not provided.
-            TCLTK_INC_DIR="/usr/include";
-            TCLTK_LIB_DIR="/usr/lib";
-            LIBELF_INC_DIR="/usr/include";
-            LIBELF_LIB_DIR="/usr/lib";
+            #TCLTK_INC_DIR="/usr/include";
+            #TCLTK_LIB_DIR="/usr/lib";
+            #LIBELF_INC_DIR="/usr/include";
+            #LIBELF_LIB_DIR="/usr/lib";
             ARG_WRAPPER_LIBS="";
-            LIBDWARF_INC_DIR="/usr/include";
-            LIBDWARF_LIB_DIR="/usr/lib";
+            #LIBDWARF_INC_DIR="/usr/include";
+            #LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
-            LIBXML2_LIB_DIR="/usr/lib";
-            LIBFLEX_LIB_DIR="/usr/lib";
+            #LIBXML2_LIB_DIR="/usr/lib";
+            #LIBFLEX_LIB_DIR="/usr/lib";
            ])
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
 #          Why?  Putting these here for now...
@@ -111,6 +127,8 @@ if test "`echo $host_os | cut -b-5`" = "linux" ; then
    AC_MSG_NOTICE([BG/P, thread_db required...])   
   elif test "x$PLATFORM" = "xppc32_bgl_ion"; then
    AC_MSG_NOTICE([BG/L, thread_db required...])
+  elif test "x$PLATFORM" = "xppc64_bgq_ion"; then
+   AC_MSG_NOTICE([BG/Q, thread_db required...])
   else 
    AC_MSG_NOTICE([Linux, not requiring thread_db...])
    SUPPRESS_THREADDB_REQ="true"
@@ -133,19 +151,30 @@ else
             [LIBELF_LIB_DIR="${withval}";],)
   
    if test "x$SUPPRESS_LIBELF_REQ" = "x"; then
-      CXXFLAGS_HOLD=$CXXFLAGS;
-      CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
-      CPPFLAGS_HOLD=$CPPFLAGS;
-      CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
+      if test "x$LIBELF_INC_DIR" = "x"; then
+         LIBELF_INCFLAGS=""
+         LIBELF_ALT_INC_DIR=/usr/include/libelf
+      else
+         LIBELF_INCFLAGS=-I$LIBELF_INC_DIR
+         LIBELF_ALT_INC_DIR=$LIBELF_INC_DIR/libelf
+      fi
+      LIBELF_ALT_INCFLAGS=-I$LIBELF_ALT_INC_DIR
 
-      AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf.h], [AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
-           [CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR/libelf";
-            CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
-            AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf/libelf.h],
-                            [LIBELF_INC_DIR+="/libelf";AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
-                            [AC_ERROR(couldn't find libelf.h)])])
-      CXXFLAGS=$CXXFLAGS_HOLD;
-      CPPFLAGS=$CPPFLAGS_HOLD;
+      CXXFLAGS_HOLD=$CXXFLAGS
+      CPPFLAGS_HOLD=$CPPFLAGS
+      CXXFLAGS="$CXXFLAGS $LIBELF_INCFLAGS";
+      CPPFLAGS="$CPPFLAGS $LIBELF_INCFLAGS";
+
+      AC_CHECK_HEADER([libelf.h], [AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+           [CXXFLAGS="$CXXFLAGS $LIBELF_ALT_INCFLAGS"
+            CPPFLAGS="$CPPFLAGS $LIBELF_ALT_INCFLAGS"
+            $as_unset ac_cv_header_libelf_h
+            AC_CHECK_HEADER([libelf.h],
+                            [LIBELF_INC_DIR=$LIBELF_ALT_INC_DIR;AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+                            [AC_ERROR(couldn't find libelf.h: $CPPFLAGS)])])
+
+      CXXFLAGS=$CXXFLAGS_HOLD
+      CPPFLAGS=$CPPFLAGS_HOLD
       PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
       PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
    fi
@@ -247,17 +276,27 @@ else
             [AS_HELP_STRING([--with-libdwarf-libdir],[LIBDWARF library directory])],
             [LIBDWARF_LIB_DIR="${withval}";],)
    
-   if test "x$SUPPRESS_LIBDWARF_REQ" = "x"; then                        
-       CXXFLAGS_HOLD=$CXXFLAGS;
-       CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
-       CPPFLAGS_HOLD=$CPPFLAGS;
-       CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
+   if test "x$SUPPRESS_LIBDWARF_REQ" = "x"; then
+       if test "x$LIBDWARF_INC_DIR" = "x"; then
+          LIBDWARF_INCFLAGS="";
+          LIBDWARF_ALT_INC_DIR="/usr/include/libdwarf";
+       else
+          LIBDWARF_INCFLAGS="-I$LIBDWARF_INC_DIR";
+          LIBDWARF_ALT_INC_DIR="$LIBDWARF_INC_DIR/libdwarf";
+       fi
+       LIBDWARF_ALT_INCFLAGS="-I$LIBDWARF_ALT_INC_DIR";
 
-       AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf.h], [AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
-                        [CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-                         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-                         AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf/libdwarf.h],
-                              [LIBDWARF_INC_DIR+="/libdwarf";AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+       CXXFLAGS_HOLD=$CXXFLAGS;
+       CPPFLAGS_HOLD=$CPPFLAGS;
+       CXXFLAGS="$CXXFLAGS $LIBDWARF_INCFLAGS";
+       CPPFLAGS="$CPPFLAGS $LIBDWARF_INCFLAGS";
+
+       AC_CHECK_HEADER([libdwarf.h], [AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+                        [CXXFLAGS="$CXXFLAGS_HOLD $LIBDWARF_ALT_INCFLAGS"
+                         CPPFLAGS="$CPPFLAGS_HOLD $LIBDWARF_ALT_INCFLAGS"
+                         $as_unset ac_cv_header_libdwarf_h
+                         AC_CHECK_HEADER([libdwarf.h],
+                              [LIBDWARF_INC_DIR=$LIBDWARF_ALT_INC_DIR;AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
                               [AC_ERROR(couldn't find libdwarf.h)])])
        CXXFLAGS=$CXXFLAGS_HOLD;
        CPPFLAGS=$CPPFLAGS_HOLD;

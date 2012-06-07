@@ -33,22 +33,39 @@
 #define DTHREAD_H_
 
 #include <stdlib.h>
+#include "util.h"
 #include <cassert>
 
 #if !defined(os_windows)
 #define cap_pthreads
 #include <pthread.h>
+#else
+#include <common/h/ntheaders.h>
 #endif
 
-class DThread {
+#if !defined(WINAPI)
+#define WINAPI
+#endif
+
+class COMMON_EXPORT DThread {
 #if defined(cap_pthreads)
    pthread_t thrd;
+ public:
+   typedef void (*initial_func_t)(void *);
+   typedef void dthread_ret_t;
+#define DTHREAD_RET_VAL
+#else
+	HANDLE thrd;
+	DWORD tid;
+ public:
+	typedef LPTHREAD_START_ROUTINE initial_func_t;
+	typedef int dthread_ret_t;
+	#define DTHREAD_RET_VAL 0
 #endif
    bool live;   
  public:
    DThread();
    ~DThread();
-   typedef void (*initial_func_t)(void *);
 
    static long self();
    bool spawn(initial_func_t func, void *param);
@@ -56,10 +73,14 @@ class DThread {
    long id();
 };
 
-class Mutex {
+class COMMON_EXPORT Mutex {
    friend class CondVar;
 #if defined(cap_pthreads)
    pthread_mutex_t mutex;
+#else
+#if defined(os_windows)
+   HANDLE mutex;
+#endif
 #endif
  public:
    Mutex(bool recursive=false);
@@ -70,9 +91,16 @@ class Mutex {
    bool unlock();
 };
 
-class CondVar {
+class COMMON_EXPORT CondVar {
 #if defined(cap_pthreads)
    pthread_cond_t cond;
+#else
+	int numWaiting;
+	CRITICAL_SECTION numWaitingLock;
+	HANDLE wait_sema;
+	HANDLE wait_done;
+	bool was_broadcast;
+	Mutex sync_cv_ops;
 #endif
    Mutex *mutex;
    bool created_mutex;

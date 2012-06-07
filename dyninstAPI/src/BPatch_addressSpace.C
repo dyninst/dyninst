@@ -532,7 +532,6 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type, 
    return varExpr;
 }
 
-
 /*
  * BPatch_process::free
  *

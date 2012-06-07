@@ -126,7 +126,7 @@ dynthread_t BPatch_thread::getTidInt()
    return llthread->getTid();
 }
 
-int BPatch_thread::getLWPInt()
+Dyninst::LWP BPatch_thread::getLWPInt()
 {
    return llthread->getLWP();
 }

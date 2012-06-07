@@ -31,10 +31,12 @@
 #if !defined(EVENTTYPE_H_)
 #define EVENTTYPE_H_
 
+#include "util.h"
+
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class EventType
+class PC_EXPORT EventType
 {
  public:
    static const int Error               = -1;
@@ -57,6 +59,8 @@ class EventType
    static const int SingleStep          = 16;
    static const int Library             = 17;
    static const int ForceTerminate      = 18;
+   static const int PreBootstrap		= 19;
+   static const int Continue		    = 20;
 
    //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
    // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
@@ -77,6 +81,7 @@ class EventType
    static const int Nop                 = 507;
    static const int ThreadDB            = 508;
    static const int RPCLaunch           = 509;
+   static const int ThreadInfo			= 510;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

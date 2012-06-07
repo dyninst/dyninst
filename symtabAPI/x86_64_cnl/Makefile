@@ -8,8 +8,6 @@
 #USES_PAPI = true
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # For debugging.
 NO_OPT_FLAG = true
@@ -47,8 +45,7 @@ SRCS =          ../src/Object-elf.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
+MYFLAGS		+= -DUSES_DWARF_DEBUG
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -56,10 +53,6 @@ TFLAGS          += $(MYFLAGS)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
-
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-LIBS += -ldwarf
-LIBS += -lelf
 
 AS		= /usr/bin/as
 

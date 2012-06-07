@@ -7,10 +7,8 @@
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
 #DEBUG_FLAG = -g
-#AUTO_TEMPLATES= true
+AUTO_TEMPLATES= true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 USES_BOOST = true
 
 # For debugging.
@@ -50,8 +48,6 @@ SRCS =          ../src/linux.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
 MYFLAGS		+= -g
 
 CXXFLAGS        += $(MYFLAGS)
@@ -63,17 +59,6 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
 LIBS    += -lgcc
 
 AS		= /usr/bin/as

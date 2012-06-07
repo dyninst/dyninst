@@ -181,7 +181,7 @@ struct ps_prochandle {
     thread_db_process *thread_db_proc;
 };
 
-class thread_db_thread : public int_thread
+class thread_db_thread : virtual public int_thread
 {
     friend class ThreadDBCreateHandler;
     friend class ThreadDBDispatchHandler;
@@ -297,6 +297,9 @@ class thread_db_process : virtual public int_process
     thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f);
     thread_db_process(Dyninst::PID pid_, int_process *p);
     virtual ~thread_db_process();
+
+    bool decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev);
+    async_ret_t decodeTdbBreakpoint(EventBreakpoint::ptr bp);
 
     bool decodeThreadBP(EventBreakpoint::ptr bp);
     static void addThreadDBHandlers(HandlerPool *hpool);

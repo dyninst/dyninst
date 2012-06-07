@@ -40,10 +40,13 @@
 #include "dyntypes.h"
 #include "dyn_regs.h"
 #include "EventType.h"
+#include "util.h"
 #include "PCErrors.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include "dyn_detail/boost/weak_ptr.hpp"
-#include "dyn_detail/boost/enable_shared_from_this.hpp"
+#include "boost/checked_delete.hpp"
+#include "boost/shared_ptr.hpp"
+#include "boost/weak_ptr.hpp"
+#include "boost/enable_shared_from_this.hpp"
+
 
 class int_process;
 class int_breakpoint;
@@ -57,8 +60,9 @@ class rpc_wrapper;
 class int_iRPC;
 class int_notify;
 class HandlerPool;
+class MTLock;
 
-#define pc_const_cast dyn_detail::boost::const_pointer_cast
+#define pc_const_cast boost::const_pointer_cast
 
 namespace Dyninst {
 
@@ -77,25 +81,32 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
-class PlatformFeatures;
 
-class Breakpoint 
+class PlatformFeatures;
+class ExecFileInfo;
+
+class PC_EXPORT Breakpoint 
 {
    friend class ::int_breakpoint;
-   friend void dyn_detail::boost::checked_delete<Breakpoint>(Breakpoint *);
-   friend void dyn_detail::boost::checked_delete<const Breakpoint>(const Breakpoint *);
+   friend void boost::checked_delete<Breakpoint>(Breakpoint *);
+   friend void boost::checked_delete<const Breakpoint>(const Breakpoint *);
  private:
    int_breakpoint *llbreakpoint_;
    Breakpoint();
    ~Breakpoint();
  public:
+   static const int BP_X = 1;
+   static const int BP_W = 2;
+   static const int BP_R = 4;
+
    int_breakpoint *llbp() const;
-   typedef dyn_detail::boost::shared_ptr<Breakpoint> ptr;
-   typedef dyn_detail::boost::shared_ptr<const Breakpoint> const_ptr;
-   typedef dyn_detail::boost::weak_ptr<Breakpoint> weak_ptr;
+   typedef boost::shared_ptr<Breakpoint> ptr;
+   typedef boost::shared_ptr<const Breakpoint> const_ptr;
+   typedef boost::weak_ptr<Breakpoint> weak_ptr;
 
    static Breakpoint::ptr newBreakpoint();
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
+   static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 
    void *getData() const;
    void setData(void *p) const;
@@ -104,29 +115,31 @@ class Breakpoint
    Dyninst::Address getToAddress() const;
 };
 
-class Library
+class PC_EXPORT Library
 {
    friend class ::int_library;
-   friend void dyn_detail::boost::checked_delete<Library>(Library *);
-   friend void dyn_detail::boost::checked_delete<const Library>(const Library *);
+   friend void boost::checked_delete<Library>(Library *);
+   friend void boost::checked_delete<const Library>(const Library *);
  private:
    int_library *lib;
    Library();
    ~Library();
  public:
-   typedef dyn_detail::boost::shared_ptr<Library> ptr;
-   typedef dyn_detail::boost::shared_ptr<const Library> const_ptr;
+   typedef boost::shared_ptr<Library> ptr;
+   typedef boost::shared_ptr<const Library> const_ptr;
 
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
    Dyninst::Address getDynamicAddress() const;
+   int_library *debug() const { return lib; }
    
    void *getData() const;
    void setData(void *p) const;
 };
 
-class LibraryPool
+
+class PC_EXPORT LibraryPool
 {
    friend class ::int_process;
    friend class Dyninst::ProcControlAPI::Process;
@@ -135,7 +148,7 @@ class LibraryPool
    LibraryPool();
    ~LibraryPool();
  public:
-  class iterator {
+  class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::LibraryPool;
    private:
       std::set<int_library *>::iterator int_iter;
@@ -149,7 +162,7 @@ class LibraryPool
       LibraryPool::iterator operator++(int);
   };
 
-  class const_iterator {
+  class PC_EXPORT const_iterator {
      friend class Dyninst::ProcControlAPI::LibraryPool;
   private:
      std::set<int_library *>::iterator int_iter;
@@ -177,24 +190,24 @@ class LibraryPool
   Library::const_ptr getLibraryByName(std::string s) const;
 };
 
-class IRPC
+class PC_EXPORT IRPC
 {
    friend class ::int_iRPC;
-   friend void dyn_detail::boost::checked_delete<IRPC>(IRPC *);
-   friend void dyn_detail::boost::checked_delete<const IRPC>(const IRPC *);
+   friend void boost::checked_delete<IRPC>(IRPC *);
+   friend void boost::checked_delete<const IRPC>(const IRPC *);
  private:
    rpc_wrapper *wrapper;
    IRPC(rpc_wrapper *wrapper_);
    ~IRPC();
  public:
-   typedef dyn_detail::boost::shared_ptr<IRPC> ptr;
-   typedef dyn_detail::boost::shared_ptr<const IRPC> const_ptr;
-   typedef dyn_detail::boost::weak_ptr<IRPC> weak_ptr;
+   typedef boost::shared_ptr<IRPC> ptr;
+   typedef boost::shared_ptr<const IRPC> const_ptr;
+   typedef boost::weak_ptr<IRPC> weak_ptr;
    
    static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
-                               bool async = false);
-   static IRPC::ptr createIRPC(void *binary_blob, unsigned size, 
-                               Dyninst::Address addr, bool async = false);
+                               bool non_blocking = false);
+   static IRPC::ptr createIRPC(void *binary_blob, unsigned size,
+                               Dyninst::Address addr, bool non_blocking = false);
    static IRPC::ptr createIRPC(IRPC::ptr orig);
    static IRPC::ptr createIRPC(IRPC::ptr orig, Address addr);
    
@@ -206,13 +219,14 @@ class IRPC
    unsigned long getID() const;
    void setStartOffset(unsigned long);
    unsigned long getStartOffset() const;
+   bool isBlocking() const;
 
    // user-defined data retrievable during a callback
    void *getData() const;
    void setData(void *p) const;
 };
 
-class Process : public dyn_detail::boost::enable_shared_from_this<Process>
+class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
 {
  private:
    friend class ::int_process;
@@ -223,11 +237,11 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
    
    Process();
    ~Process();
-   friend void dyn_detail::boost::checked_delete<Process>(Process *);
-   friend void dyn_detail::boost::checked_delete<const Process>(const Process *);
+   friend void boost::checked_delete<Process>(Process *);
+   friend void boost::checked_delete<const Process>(const Process *);
  public:
-   typedef dyn_detail::boost::shared_ptr<Process> ptr;
-   typedef dyn_detail::boost::shared_ptr<const Process> const_ptr;
+   typedef boost::shared_ptr<Process> ptr;
+   typedef boost::shared_ptr<const Process> const_ptr;
    static void version(int& major, int& minor, int& maintenance);
 
    //These four functions are not for end-users.  
@@ -236,7 +250,6 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
    void setLastError(ProcControlAPI::err_t err_code, const char *err_str) const;
    void clearLastError() const;
    
-
    /**
     * Threading modes control
     **/
@@ -279,7 +292,7 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
    
    //cb_func_t really takes an 'Event::const_ptr' as parameter, but this declaration
    // defines the shared_ptr declaration due to Event::const_ptr not being defined yet.
-   typedef cb_ret_t(*cb_func_t)(dyn_detail::boost::shared_ptr<const Event>);
+   typedef cb_ret_t(*cb_func_t)(boost::shared_ptr<const Event>);
 
    static bool handleEvents(bool block);
    static bool registerEventCallback(EventType evt, cb_func_t cbfunc);
@@ -362,12 +375,19 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
     **/
    bool addBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
    bool rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const;
+   unsigned numHardwareBreakpointsAvail(unsigned mode);
 
    /**
-    * IRPC
+    * Post IRPC.  Use continueProc/continueThread to run it,
+    * and handleEvents to wait for a blocking IRPC to complete
     **/
-   dyn_detail::boost::shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
-   bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+   bool postIRPC(IRPC::ptr irpc) const;
+	bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+
+   /**
+    * Post, run and wait for an IRPC to complete in one call
+    **/
+	bool launchIRPC(IRPC::ptr irpc);
 
    /**
     * Symbol access
@@ -385,9 +405,14 @@ class Process : public dyn_detail::boost::enable_shared_from_this<Process>
     **/
    ProcControlAPI::err_t getLastError() const;
    const char *getLastErrorMsg() const;
+
+   /**
+    * Executable info
+    **/
+	ExecFileInfo* getExecutableInfo() const;
 };
 
-class Thread
+class PC_EXPORT Thread
 {
  protected:
    friend class ::int_thread;
@@ -396,13 +421,13 @@ class Thread
 
    Thread();
    ~Thread();
-   friend void dyn_detail::boost::checked_delete<Thread>(Thread *);
-   friend void dyn_detail::boost::checked_delete<const Thread>(const Thread *);
+   friend void boost::checked_delete<Thread>(Thread *);
+   friend void boost::checked_delete<const Thread>(const Thread *);
 
    void setLastError(err_t ec, const char *es) const;
  public:
-   typedef dyn_detail::boost::shared_ptr<Thread> ptr;
-   typedef dyn_detail::boost::shared_ptr<const Thread> const_ptr;
+   typedef boost::shared_ptr<Thread> ptr;
+   typedef boost::shared_ptr<const Thread> const_ptr;
    int_thread *llthrd() const;
 
    Dyninst::LWP getLWP() const;
@@ -414,6 +439,11 @@ class Thread
    bool isLive() const;
    bool isDetached() const;
    bool isInitialThread() const;
+
+   // Added for Windows. Windows creates internal threads which are bound to 
+   // the process but are used for OS-level work. We hide these from the user,
+   // but need to represent them in ProcControlAPI. 
+   bool isUser() const; 
 
    bool stopThread();
    bool continueThread();
@@ -447,7 +477,7 @@ class Thread
    void setData(void *p) const;
 };
 
-class ThreadPool
+class PC_EXPORT ThreadPool
 {
  private:
    friend class ::int_threadPool;
@@ -459,7 +489,7 @@ class ThreadPool
    /**
     * Iterators
     **/
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       static const int uninitialized_val = -1;
@@ -480,7 +510,7 @@ class ThreadPool
    iterator end();
    iterator find(Dyninst::LWP lwp);
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadPool;
    private:
       static const int uninitialized_val = -1;
@@ -496,6 +526,12 @@ class ThreadPool
       bool operator!=(const const_iterator &i);
       ThreadPool::const_iterator operator++();
       ThreadPool::const_iterator operator++(int);
+
+	  typedef Thread::const_ptr value_type;
+	  typedef int difference_type;
+	  typedef Thread::const_ptr *pointer;
+	  typedef Thread::const_ptr &reference;
+	  typedef std::forward_iterator_tag iterator_category;
    };
    const_iterator begin() const;
    const_iterator end() const;
@@ -508,7 +544,7 @@ class ThreadPool
    Thread::ptr getInitialThread();
 };
 
-class RegisterPool
+class PC_EXPORT RegisterPool
 { 
    friend class Dyninst::ProcControlAPI::Thread;
    friend class Dyninst::ProcControlAPI::ThreadSet;
@@ -519,7 +555,7 @@ class RegisterPool
    RegisterPool(const RegisterPool &rp);
    ~RegisterPool();
    
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::iterator int_iter; 
@@ -538,7 +574,7 @@ class RegisterPool
    iterator end();
    iterator find(Dyninst::MachRegister r);
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::RegisterPool;
    private:
       typedef std::map<Dyninst::MachRegister, Dyninst::MachRegisterVal>::const_iterator int_iter; 
@@ -565,7 +601,7 @@ class RegisterPool
    Thread::ptr getThread();
 };
 
-class EventNotify
+class PC_EXPORT EventNotify
 {
  private:
    friend class ::int_notify;
@@ -579,7 +615,16 @@ class EventNotify
    void registerCB(notify_cb_t cb);
    void removeCB(notify_cb_t cb);
 };
-EventNotify *evNotify();
+PC_EXPORT EventNotify *evNotify();
+
+class PC_EXPORT ExecFileInfo
+{
+public:
+	void* fileHandle;
+	void* processHandle;
+	Address fileBase;
+};
+
 
 }
 }

@@ -194,7 +194,7 @@ protected:
     PCEventMailbox *callbackRPCMailbox_;
 
     // Callback Thread Management
-    static void main_wrapper(void *);
+    static DThread::dthread_ret_t WINAPI main_wrapper(void *);
     void main(); // Callback thread main loop
 
     DThread thrd_;
@@ -203,6 +203,8 @@ protected:
 
     int exitNotificationOutput_;
     int exitNotificationInput_;
+
+	Mutex eventHandlingLock;
 };
 
 #endif

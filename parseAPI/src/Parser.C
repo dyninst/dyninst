@@ -745,7 +745,7 @@ namespace {
 void
 Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** Persistent intermediate state **/
-    dyn_detail::boost::shared_ptr<InstructionAdapter_t> ahPtr;
+    boost::shared_ptr<InstructionAdapter_t> ahPtr;
     ParseFrame::worklist_t & worklist = frame.worklist;
     dyn_hash_map<Address, Block *> & leadersToBlock = frame.leadersToBlock;
     Address & curAddr = frame.curAddr;

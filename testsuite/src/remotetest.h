@@ -33,7 +33,7 @@
 
 class MessageBuffer;
 
-class Connection
+class TESTLIB_DLL_EXPORT Connection
 {
   private:
    static const int accept_timeout = 60;
@@ -65,10 +65,10 @@ class Connection
    int getFD();
 };
 
-Connection *getConnection();
-void setConnection(Connection *);
+TESTLIB_DLL_EXPORT Connection *getConnection();
+TESTLIB_DLL_EXPORT void setConnection(Connection *);
 
-class RemoteComponentFE : public ComponentTester {
+class TESTLIB_DLL_EXPORT RemoteComponentFE : public ComponentTester {
   private:
    std::string name;
    Connection *connection;
@@ -89,7 +89,7 @@ class RemoteComponentFE : public ComponentTester {
 
 };
 
-class RemoteTestFE : public TestMutator {
+class TESTLIB_DLL_EXPORT RemoteTestFE : public TestMutator {
   private:
    TestInfo *test;
    Connection *connection;

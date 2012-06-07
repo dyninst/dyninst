@@ -32,14 +32,20 @@
 #define MAILBOX_H_
 
 #include "Event.h"
+#include "util.h"
 
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class Mailbox
+class PC_EXPORT Mailbox
 {
 public:
-   Mailbox();
+	typedef enum {
+		low,
+		med,
+		high} priority_t;
+
+	Mailbox();
    virtual ~Mailbox();
 
    virtual void enqueue(Event::ptr ev, bool priority = false) = 0;
@@ -48,9 +54,12 @@ public:
    virtual Event::ptr dequeue(bool block) = 0;
    virtual Event::ptr peek() = 0;
    virtual unsigned int size() = 0;
+	// These should *only* be used internally to proccontrol...
+   virtual void lock_queue() = 0;
+   virtual void unlock_queue() = 0;
 };
 
-extern Mailbox* mbox();
+extern PC_EXPORT Mailbox* mbox();
 
 }
 }

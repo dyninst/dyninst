@@ -40,6 +40,7 @@
 
 #ifdef os_windows_test
 #define MAX_USER_NAME	256
+#include <winsock2.h>
 #include <windows.h>
 #else
 #include <unistd.h>

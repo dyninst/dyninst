@@ -1263,25 +1263,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          {
             newVariable->addLocation(locs[i]);
          }
-         
-         localVarCollection *lvs = NULL; 
-         if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
-         {
-            lvs = new localVarCollection();
-            if (!currentFunction->addAnnotation(lvs, FunctionLocalVariablesAnno))
-            {
-               fprintf(stderr, "%s[%d]:  failed to add annotations here\n", 
-                       FILE__, __LINE__);
-               break;
-            }
-         }
-         if (!lvs)
-         {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", 
-                    FILE__, __LINE__);
-            break;
-         }
-         lvs->addLocalVar(newVariable);
+         currentFunction->addLocalVar(newVariable);
       } /* end if a local or static variable. */
       else if ( currentEnclosure != NULL ) {
          if (!variableName)
@@ -1289,7 +1271,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          assert( locs[0].stClass != storageRegOffset );
          currentEnclosure->addField( vName, variableType, locs[0].frameOffset);
       } /* end if this variable is not global */
-   } 
+   }
    break;
 
   case DW_TAG_formal_parameter: 
@@ -1444,29 +1426,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	  }
 
       /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
-     localVarCollection *lvs = NULL;
-     if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))
-     {
-        lvs = new localVarCollection();
-        if (!currentFunction->addAnnotation(lvs, FunctionParametersAnno)) 
-        {
-           fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-                   FILE__, __LINE__);
-           break;
-        }
-     }
-     
-     if (!lvs)
-     {
-        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-                FILE__, __LINE__);
-        break;
-     }
-         
-     lvs->addLocalVar(newParameter);
-     
-     //TODO ??NOT REQUIRED??
-     //currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
+     currentFunction->addParam(newParameter);
      
      dwarf_printf( "%s[%d]: added formal parameter '%s' of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterType, (unsigned long)parameterLineNo );
   } break;

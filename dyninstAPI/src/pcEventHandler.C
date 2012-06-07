@@ -102,9 +102,10 @@ unsigned int PCEventMailbox::size() {
 // Start Callback Thread Code
 
 // Callback thread entry point
-void PCEventHandler::main_wrapper(void *h) {
+DThread::dthread_ret_t PCEventHandler::main_wrapper(void *h) {
     PCEventHandler *handler = (PCEventHandler *) h;
     handler->main();
+	return DTHREAD_RET_VAL;
 }
 
 // Set by callbacks - ProcControlAPI guarantees only one thread will
@@ -146,7 +147,8 @@ void PCEventHandler::main() {
     // Check if callbacks should be registered for syscalls on this platform
     vector<EventType> syscallTypes;
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Exit));
-    // unused syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
+	// Used on Windows, at least...
+    syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Fork));
     syscallTypes.push_back(EventType(EventType::Post, EventType::Fork));
     syscallTypes.push_back(EventType(EventType::Pre, EventType::Exec));
@@ -175,6 +177,7 @@ void PCEventHandler::main() {
         proccontrol_printf("%s[%d]: waiting for ProcControlAPI callbacks...\n",
                 FILE__, __LINE__);
 
+#if !defined(os_windows)
         int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
         fd_set readset; FD_ZERO(&readset);
         fd_set writeset; FD_ZERO(&writeset);
@@ -186,10 +189,9 @@ void PCEventHandler::main() {
         do {
            result = P_select(nfds, &readset, &writeset, &exceptset, NULL);
         } while( result == -1 && errno == EINTR );
-
         if( result == 0 || result == -1 ) {
             // Report the error but keep trying anyway
-            proccontrol_printf("%s[%d]: select on ProcControlAPI fd failed\n");
+            proccontrol_printf("%s[%d]: select on ProcControlAPI fd failed\n", FILE__, __LINE__);
             Event::const_ptr evError = Event::const_ptr(new Event(EventType::Error));
             eventMailbox_->enqueue(evError);
         }
@@ -204,6 +206,12 @@ void PCEventHandler::main() {
             proccontrol_printf("%s[%d]: ProcControlAPI fd not set, waiting again\n");
             continue;
         }
+#else
+		HANDLE waitables[2];
+		waitables[0] = (HANDLE)pcFD;
+		waitables[1] = (HANDLE)exitNotificationOutput_;
+		DWORD result = ::WaitForMultipleObjects(2, waitables, FALSE, INFINITE);
+#endif
 
         proccontrol_printf("%s[%d]: attempting to handle events via ProcControlAPI\n",
                 FILE__, __LINE__);
@@ -241,9 +249,11 @@ void PCEventHandler::main() {
 Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     // Get access to the event mailbox
     PCProcess *process = (PCProcess *)ev->getProcess()->getData();
+    proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process);
 
     // This occurs when creating/attaching to the process
     if( process == NULL ) {
+	    proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__);
         return Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
     }
 
@@ -259,12 +269,14 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
         case EventType::Exit:
             // Anything but the default doesn't make sense for a Post-Exit process
             if( ev->getEventType().time() == EventType::Post ) {
+			    proccontrol_printf("%s[%d]: post-exit case = default/default\n", FILE__, __LINE__);
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
         case EventType::Crash:
             // Anything but the default doesn't make sense for a Crash
             if( ev->getEventType().time() != EventType::Pre ) {
+		    proccontrol_printf("%s[%d]: crash case = default/default\n", FILE__, __LINE__);
                 ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
             }
             break;
@@ -362,6 +374,9 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
             eventHandler->pendingCallbackLock_.unlock();
         }
             break;
+		case EventType::LWPCreate:
+			ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
+			break;
         default:
             break;
     }
@@ -369,6 +384,7 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
     eventHandler->pendingCallbackLock_.lock();
     if( eventHandler->pendingCallbackRPCs_.size() ) {
+	    proccontrol_printf("%s[%d]: pending callback RPCs case, thread continue\n", FILE__, __LINE__);
         ret = Process::cb_ret_t(Process::cbThreadContinue);
     }
     eventHandler->pendingCallbackLock_.unlock();
@@ -387,6 +403,16 @@ Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
     return ret;
 }
 
+int makePipe(int* fds)
+{
+#if !defined(os_windows)
+	return pipe(fds);
+#else
+	fds[0] = fds[1] = (int)::CreateEvent(NULL, false, false, NULL);
+	return fds[0] == (int)INVALID_HANDLE_VALUE;
+#endif
+}
+
 bool PCEventHandler::start() {
     if( started_ ) return true;
 
@@ -397,7 +423,7 @@ bool PCEventHandler::start() {
     // Create the pipe to signal exit
     int pipeFDs[2];
     pipeFDs[0] = pipeFDs[1] = -1;
-    if( pipe(pipeFDs) == 0 ) {
+    if( makePipe(pipeFDs) == 0 ) {
         exitNotificationOutput_ = pipeFDs[0];
         exitNotificationInput_ = pipeFDs[1];
     }else{
@@ -407,7 +433,7 @@ bool PCEventHandler::start() {
     }
 
     initCond_.lock();
-    thrd_.spawn(PCEventHandler::main_wrapper, this);
+	thrd_.spawn((DThread::initial_func_t) PCEventHandler::main_wrapper, this);
 
     // Wait for the callback thread to say its ready
     initCond_.wait();
@@ -477,27 +503,30 @@ PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
 }
 
 PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
-    bool handledEvent = false;
-
-    // Empty the mailbox before returning
-    Event::const_ptr newEvent;
-    while( (newEvent = eventMailbox_->dequeue(block && !handledEvent)) ) {
-        if( !eventMux(newEvent) ) {
-            proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
-                               FILE__, __LINE__, newEvent->getEventType().name().c_str());
-            return Error;
-        }
-        handledEvent = true;
-    }
-
-    return (handledEvent ? EventsReceived : NoEvents);
+   bool handledEvent = false;
+   
+   // Empty the mailbox before returning
+   Event::const_ptr newEvent;
+   while( (newEvent = eventMailbox_->dequeue(block && !handledEvent)) ) {
+      if( !eventMux(newEvent) ) {
+         proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
+                            FILE__, __LINE__, newEvent->getEventType().name().c_str());
+         return Error;
+      }
+      handledEvent = true;
+   }
+   return (handledEvent ? EventsReceived : NoEvents);
 }
 
 bool PCEventHandler::eventMux(Event::const_ptr ev) const {
     proccontrol_printf("%s[%d]: attempting to handle event %s on thread %d/%d\n",
             FILE__, __LINE__, ev->getEventType().name().c_str(),
-            ev->getProcess()->getPid(), ev->getThread()->getLWP());
-
+            (ev->getProcess() ? ev->getProcess()->getPid() : -1), (ev->getThread() ? ev->getThread()->getLWP() : (Dyninst::LWP)-1));
+	if(!ev->getProcess())
+	{
+		proccontrol_printf("%s[%d]: Event received w/o associated ProcControl process object, treating as handled successfully\n", FILE__, __LINE__);
+		return true;
+	}
     PCProcess *evProc = (PCProcess *)ev->getProcess()->getData();
     if( evProc == NULL ) {
         proccontrol_printf("%s[%d]: ERROR: handle to Dyninst process is invalid\n",
@@ -508,8 +537,13 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
 
     if( !(   ev->getEventType().code() == EventType::ForceTerminate 
           || ev->getEventType().code() == EventType::Crash
-          || (ev->getEventType().code() == EventType::Exit &&
-              ev->getEventType().time() == EventType::Pre) ) ) 
+          || (ev->getEventType().code() == EventType::Exit 
+#if !defined(os_windows)
+		  && ev->getEventType().time() == EventType::Pre)
+#else
+		  )
+#endif
+		  ) ) 
     {
         // This means we already saw the entry to exit event and we can no longer
         // operate on the process, so ignore the event
@@ -662,8 +696,18 @@ bool PCEventHandler::handleExit(EventExit::const_ptr ev, PCProcess *evProc) cons
     if( ev->getEventType().time() == EventType::Pre ) {
         // This is handled as an RT signal on all platforms for now
     }else{
-        // Currently don't need to do anything special for this
-    }
+		std::vector<PCThread*> thrds;
+		evProc->getThreads(thrds);
+		for(std::vector<PCThread*>::iterator i = thrds.begin();
+			i != thrds.end();
+			++i)
+		{
+			// Whether we got thread exits or not, all remaining threads are gone post-exit.
+			BPatch::bpatch->registerThreadExit(evProc, *i);
+		}
+		BPatch::bpatch->registerNormalExit(evProc, ev->getExitCode());
+	
+	}
 
     return true;
 }
@@ -914,7 +958,7 @@ bool PCEventHandler::handleSignal(EventSignal::const_ptr ev, PCProcess *evProc) 
                 evProc->launchDebugger();
 
                 // If for whatever reason this fails, fall back on sleep
-                dyn_debug_crash_debugger = "sleep";
+                dyn_debug_crash_debugger = const_cast<char *>("sleep");
             }
 
             if( string(dyn_debug_crash_debugger) == string("sleep") ) {
@@ -1285,7 +1329,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         fileDescriptor rtLibDesc(evProc->dyninstRT_name, (*i)->getLoadAddress(),
             dataAddress, true);
-        if( rtLibDesc == tmpDesc ) {
+		if( rtLibDesc == tmpDesc ) {
             assert( !evProc->hasReachedBootstrapState(PCProcess::bs_initialized) );
             proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
 
@@ -1297,6 +1341,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
             evProc->runtime_lib.insert(newObj);
             // Don't register the runtime library with the BPatch layer
         }else{
+			assert(tmpDesc.file() != rtLibDesc.file());
             // Register the new modules with the BPatch layer
             const pdvector<mapped_module *> &modlist = newObj->getModules();
             for(unsigned i = 0; i < modlist.size(); ++i) {
@@ -1398,7 +1443,7 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
     // If it is synchronous, the caller is responsible for de-allocating the object
     if( rpcInProg->synchronous ) {
         rpcInProg->isComplete = true;
-        evProc->removeSyncRPCThread(rpcInProg->thread);
+		evProc->removeSyncRPCThread(rpcInProg->thread);
     }else{
         delete rpcInProg;
     }

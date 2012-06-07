@@ -32,6 +32,7 @@
 #define HANDLER_H_
 
 #include "Event.h"
+#include "util.h"
 
 #include <set>
 #include <vector>
@@ -39,7 +40,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class Handler 
+class PC_EXPORT Handler 
 {
  protected:
    std::string name;

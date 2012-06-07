@@ -59,7 +59,7 @@ class StepperGroup;
 class CallTree;
 class int_walkerSet;
 
-class Walker {
+class SW_EXPORT Walker {
  private:
    //Object creation functions
    Walker(ProcessState *p,

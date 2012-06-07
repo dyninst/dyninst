@@ -118,6 +118,7 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    else {
       hit_counts[cur_thread]++;
    }
+   //logerror("mutator breakpoint callback, hit_counts[0x%lx] = %d\n", cur_thread, (hit_counts[cur_thread]));
 
    return Process::cbProcContinue;
 }
@@ -220,6 +221,7 @@ test_results_t pc_breakpointMutator::executeTest()
          logerror("Failed to handle events\n");
          return FAILED;
       }
+	  logerror("%d/%d breakpoints hit OK\n", num_breakpoints_hit, total_breakpoints);
    }
 
    std::map<Thread::const_ptr, unsigned>::iterator l;

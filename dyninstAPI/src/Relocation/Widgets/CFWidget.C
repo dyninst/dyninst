@@ -410,9 +410,9 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
    return true;
 }
 
-bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
-                                       const codeGen &templ,
-                                       Register &reg) 
+bool CFWidget::generateAddressTranslator(CodeBuffer & /*buffer*/,
+                                         const codeGen & /*templ*/,
+                                         Register & /*reg*/) 
 {
    return true;
 #if 0

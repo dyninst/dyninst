@@ -30,27 +30,26 @@
  */
 
 #include "remotetest.h"
+#include "test_lib.h"
 #include <stdio.h>
 
-#define SOCKTYPE_UNIX
-extern FILE *debug_log;
-#define debug_printf(str, ...) do { if (debug_log) { fprintf(debug_log, str, ## __VA_ARGS__); fflush(debug_log); } } while (0)
-//#define debug_printf(str, args...)
-
-#include <sys/time.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <assert.h>
-
+#include <cstring>
 #include <string>
 
 using namespace std;
+
+static Connection *con = NULL;
+Connection *getConnection()
+{
+   return con;
+}
+
+void setConnection(Connection *c)
+{
+   con = c;
+}
+
 
 static void exit_header(MessageBuffer &buffer)
 {
@@ -58,6 +57,12 @@ static void exit_header(MessageBuffer &buffer)
    buffer.add(EXIT_MSG, strlen(EXIT_MSG));
 }
 
+#if defined(os_windows_test)
+char *my_strtok(char *str, const char *delim)
+{
+	return strtok(str, delim);
+}
+#else
 char *my_strtok(char *str, const char *delim)
 {
    static char *my_str = NULL;
@@ -75,6 +80,7 @@ char *my_strtok(char *str, const char *delim)
    
    return strtok_r(my_str, delim, &save_ptr);
 }
+#endif
 
 char *decodeInt(int i, char *buffer)
 {
@@ -191,8 +197,10 @@ Connection::~Connection()
    exit_header(buf);
    send_message(buf);
 
+#if !defined(os_windows_test)
    if (fd != -1)
       close(fd);
+#endif
 }
 
 int Connection::getFD()
@@ -204,6 +212,25 @@ bool Connection::hasError()
 {
    return has_error;
 }
+
+#if !defined(os_windows_test)
+
+#define SOCKTYPE_UNIX
+
+#if defined(CONNECTION_DEBUG)
+#define debug_printf(str, ...) do { if (getDebugLog()) { fprintf(getDebugLog(), str, ## __VA_ARGS__); fflush(getDebugLog()); } } while (0)
+#else
+#define debug_printf(str, args...)
+#endif
+#include <sys/time.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
 
 bool Connection::send_message(MessageBuffer &buffer)
 {
@@ -226,7 +253,8 @@ bool Connection::send_message(MessageBuffer &buffer)
      debug_printf("[%s:%u] - Error sending raw data on socket\n", __FILE__, __LINE__);
       return false;
    }
-   if (debug_log) {
+#if defined(CONNECTION_DEBUG)
+   if (getDebugLog()) {
       debug_printf("[%d] - Sent buffer ", getpid());
       char *c = buffer.get_buffer();
       for (unsigned i=0; i<buffer.get_buffer_size(); i++) {
@@ -238,6 +266,7 @@ bool Connection::send_message(MessageBuffer &buffer)
       }
       debug_printf("\n");
    }
+#endif
    return true;
 }
 
@@ -293,7 +322,8 @@ bool Connection::recv_message(char* &buffer)
    }
 
    buffer = cur_buffer;
-   if (debug_log) {
+#if defined(CONNECTION_DEBUG)
+   if (getDebugLog()) {
       debug_printf("[%d] - Recv of buffer ", getpid());
       char *c = cur_buffer;
       for (unsigned i=0; i<msg_size; i++) {
@@ -305,7 +335,7 @@ bool Connection::recv_message(char* &buffer)
       }
       debug_printf("\n");
    }
-
+#endif
    return true;
 }
 
@@ -522,14 +552,42 @@ bool Connection::server_setup(string &hostname_, int &port_)
    return true;
 }
 
-static Connection *con = NULL;
-Connection *getConnection()
+#else
+
+bool Connection::send_message(MessageBuffer &)
 {
-   return con;
+	assert(0);
+   return true;
 }
 
-void setConnection(Connection *c)
+bool Connection::recv_message(char* &)
 {
-   con = c;
+	assert(0);
+	return true;
 }
 
+bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
+{
+	assert(0);
+	return true;
+}
+
+bool Connection::server_accept()
+{
+	assert(0);
+	return true;
+}
+
+bool Connection::client_connect()
+{
+	assert(0);
+	return true;
+}
+
+bool Connection::server_setup(string &hostname_, int &port_)
+{
+	assert(0);
+	return true;
+}
+
+#endif

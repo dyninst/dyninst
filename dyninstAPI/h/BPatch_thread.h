@@ -50,7 +50,7 @@ class BPatch_process;
 class BPatch_statement;
 class PCThread;
 
-typedef long dynthread_t;
+typedef Dyninst::THR_ID dynthread_t;
 
 /*
  * Represents a thread of execution.
@@ -94,7 +94,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     dynthread_t, getTid, ());
 
     API_EXPORT(Int, (),
-    int, getLWP, ());
+		Dyninst::LWP, getLWP, ());
 
     API_EXPORT(Int, (),
     unsigned, getBPatchID, ());

@@ -374,7 +374,7 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
   slice->exitNodes(exitBegin, exitEnd);
 
   for (; exitBegin != exitEnd; ++exitBegin) {
-    SliceNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<SliceNode>(*exitBegin);
+    SliceNode::Ptr aNode = dyn_dynamic_pointer_cast<SliceNode>(*exitBegin);
     assert(aNode);
 
     // By definition, a widen point is potentially behavior changing.
@@ -504,7 +504,7 @@ void PCSensitiveTransformer::handleThunkCall(RelocBlockList::iterator &b_iter,
     (*iter).swap(replacement);
   }
   else {
-    CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
+    CFWidget::Ptr cf = dyn_dynamic_pointer_cast<CFWidget>(*iter);
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     
@@ -577,7 +577,7 @@ void PCSensitiveTransformer::emulateInsn(RelocBlockList::iterator &b_iter,
   }
   else {
     //cerr << "... end of block" << endl;
-    CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
+    CFWidget::Ptr cf = dyn_dynamic_pointer_cast<CFWidget>(*iter);
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     

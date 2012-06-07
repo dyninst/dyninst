@@ -51,7 +51,7 @@ class LibraryState;
 class ThreadState;
 class Walker;
 
-class ProcessState {
+class SW_EXPORT ProcessState {
    friend class Walker;
 protected:
    Dyninst::PID pid;
@@ -121,7 +121,7 @@ class ProcSelf : public ProcessState {
   virtual ~ProcSelf();
 };
 
-class ProcDebug : public ProcessState {
+class SW_EXPORT ProcDebug : public ProcessState {
  protected:
    Dyninst::ProcControlAPI::Process::ptr proc;
    ProcDebug(Dyninst::ProcControlAPI::Process::ptr p);

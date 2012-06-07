@@ -36,12 +36,14 @@
 #include "PCErrors.h"
 
 #include "common/h/dthread.h"
+#include "util.h"
 
 #include <set>
 #include <map>
 #include <string>
 
 struct GeneratorMTInternals;
+class int_process;
 
 namespace Dyninst {
 namespace ProcControlAPI {
@@ -51,7 +53,7 @@ class ArchEvent;
 class Event;
 class Mailbox;
 
-class Generator
+class PC_EXPORT Generator
 {
  public:
    static Generator *getDefaultGenerator();
@@ -62,7 +64,8 @@ class Generator
    typedef void (*gen_cb_func_t)();
    static void registerNewEventCB(gen_cb_func_t func);
    static void removeNewEventCB(gen_cb_func_t);
- protected:
+   
+
 
    //State tracking
    typedef enum {
@@ -78,19 +81,26 @@ class Generator
       exiting
    } state_t;
    state_t state;
-   bool isExitingState();
-   void setState(state_t newstate);
+   virtual bool isExitingState();
+   virtual void setState(state_t newstate);
+   virtual state_t getState();
 
+ protected:
    //Event handling
    static std::map<Dyninst::PID, Process *> procs;
    typedef std::set<Decoder *, decoder_cmp> decoder_set_t;
    decoder_set_t decoders;
 
+   ArchEvent* m_Event;
+   virtual ArchEvent* getCachedEvent();
+   virtual void setCachedEvent(ArchEvent* ae);
+
    //Misc
-   bool hasLiveProc();
+   virtual bool hasLiveProc();
    std::string name;
    Generator(std::string name_);
    bool getAndQueueEventInt(bool block);
+   static bool allStopped(int_process *proc, void *);
 
    static std::set<gen_cb_func_t> CBs;
    static Mutex *cb_lock;
@@ -103,24 +113,32 @@ class Generator
    virtual bool plat_skipGeneratorBlock();
    //  Implemented by MT or ST
    virtual bool processWait(bool block) = 0;
+
+   virtual bool plat_continue(ArchEvent* /*evt*/) { return true; }
+   virtual void wake(Dyninst::PID/* proc */, long long /* sequence */) {}
+
    //  Optional interface for systems that want to return multiple events
    virtual bool getMultiEvent(bool block, std::vector<ArchEvent *> &events);
 };
 
-class GeneratorMT : public Generator
+class PC_EXPORT GeneratorMT : public Generator
 {
  private:
    GeneratorMTInternals *sync;
    void main();
+protected:
+	void lock();
+	void unlock();
 
  public:
    void launch(); //Launch thread
    void start(); //Startup function for new thread
+   virtual void plat_start() {}
+   virtual bool plat_continue(ArchEvent* /*evt*/) { return true;}
    GeneratorMTInternals *getInternals();
 
    GeneratorMT(std::string name_);
    virtual ~GeneratorMT();
-   
    virtual bool processWait(bool block);
    virtual bool getAndQueueEvent(bool block);
 };

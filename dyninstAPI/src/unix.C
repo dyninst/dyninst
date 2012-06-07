@@ -488,7 +488,7 @@ bool PCProcess::startDebugger() {
 
     proccontrol_printf("%s[%d]: Launching %s %s %s\n", FILE__, __LINE__,
             args[0], args[1], args[2]);
-    if( execv(args[0], (char **)args) == -1 ) {
+    if( execv(args[0], const_cast<char **>(args)) == -1 ) {
         perror("execv");
         return false;
     }

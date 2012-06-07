@@ -39,14 +39,17 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/response.h"
-
 #include "common/h/Types.h"
-
 #include <stdlib.h>
 #include <map>
 #include <algorithm>
 
+#if defined(os_windows)
+#include "external/stdint-win.h"
+#include "external/inttypes-win.h"
+#endif
 #include <boost/crc.hpp>
+#include <iterator>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -105,6 +108,42 @@ AddressSet::ptr AddressSet::newAddressSet(ProcessSet::const_ptr ps, string libra
 }
 
 AddressSet::ptr AddressSet::newAddressSet(Process::const_ptr p, Address addr)
+{
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   newset->iaddrs->insert(value_type(addr, p->llproc()->proc()));
+   return newset;
+}
+
+AddressSet::ptr AddressSet::newAddressSet(ProcessSet::ptr ps, Address addr)
+{
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
+      newset->iaddrs->insert(value_type(addr, *i));
+   }
+   return newset;
+}
+
+AddressSet::ptr AddressSet::newAddressSet(ProcessSet::ptr ps, string library_name, Offset off)
+{
+   MTLock lock_this_func;
+
+   AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
+   newset->iaddrs = new int_addressSet();
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
+      int_process *p = (*i)->llproc();
+      if (!p) 
+         continue;
+      int_library *lib = p->getLibraryByName(library_name);
+      if (!lib)
+         continue;
+      newset->iaddrs->insert(value_type(lib->getAddr() + off, *i));
+   }
+   return newset;
+}
+
+AddressSet::ptr AddressSet::newAddressSet(Process::ptr p, Address addr)
 {
    AddressSet::ptr newset = AddressSet::ptr(new AddressSet);
    newset->iaddrs = new int_addressSet();
@@ -204,6 +243,33 @@ size_t AddressSet::insert(Address a, ProcessSet::const_ptr ps)
 {
    size_t count_added = 0;
    for (ProcessSet::const_iterator i = ps->begin(); i != ps->end(); i++) {
+      Process::ptr proc = *i;
+      pair<AddressSet::iterator, bool> result = insert(a, *i);
+      if (result.second)
+         count_added++;
+   }
+   return count_added;
+}
+
+pair<AddressSet::iterator, bool> AddressSet::insert(Address a, Process::ptr p)
+{
+   Process::ptr ncp = pc_const_cast<Process>(p);
+   pair<iterator, bool> result;
+   for (result.first = iaddrs->find(a); result.first != iaddrs->end() && result.first->first == a; result.first++) {
+      if (result.first->second == ncp) {
+         result.second = false;
+         return result;
+      }
+   }
+   result.first = iaddrs->insert(value_type(a, ncp));
+   result.second = true;
+   return result;
+}
+
+size_t AddressSet::insert(Address a, ProcessSet::ptr ps)
+{
+   size_t count_added = 0;
+   for (ProcessSet::iterator i = ps->begin(); i != ps->end(); i++) {
       Process::ptr proc = *i;
       pair<AddressSet::iterator, bool> result = insert(a, *i);
       if (result.second)
@@ -577,6 +643,18 @@ ProcessSet::ptr ProcessSet::newProcessSet(const set<Process::ptr> &procs)
    ProcessSet::ptr newps = newProcessSet();
    copy(procs.begin(), procs.end(), inserter(*newps->procset, newps->procset->end()));
    return newps;
+}
+
+ProcessSet::ptr ProcessSet::newProcessSet(Process::ptr p)
+{
+   ProcessSet::ptr newps = newProcessSet();
+   newps->insert(p);
+   return newps;
+}
+
+ProcessSet::ptr ProcessSet::newProcessSet(ProcessSet::ptr pp)
+{
+   return newProcessSet(*pp->procset);
 }
 
 struct proc_strip_const {
@@ -1742,15 +1820,16 @@ bool ProcessSet::rmBreakpoint(AddressSet::ptr addrset, Breakpoint::ptr bp) const
       int_process *proc = p->llproc();
       Address addr = i->first;
 
-      result_response::ptr resp = result_response::createResultResponse();
-      bool result = proc->rmBreakpoint(addr, bp->llbp(), resp);
+      set<response::ptr> resps;
+      bool result = proc->removeBreakpoint(addr, bp->llbp(), all_responses);
       if (!result) {
          pthrd_printf("Failed to rmBreakpoint on %d\n", proc->getPid());
          had_error = true;
          continue;
       }
-      all_responses.insert(resp);
-      resp_to_proc.insert(make_pair(resp, proc));
+      all_responses.insert(resps.begin(), resps.end());
+      for (set<response::ptr>::iterator i=resps.begin(); i != resps.end(); i++)
+         resp_to_proc.insert(make_pair(*i, proc));
    }
 
    bool result = int_process::waitForAsyncEvent(all_responses);
@@ -1857,10 +1936,12 @@ ProcessSet::iterator::~iterator()
 {
 }
 
+
 Process::ptr ProcessSet::iterator::operator*() const
 {
    return *int_iter;
 }
+
 
 bool ProcessSet::iterator::operator==(const ProcessSet::iterator &i) const
 {
@@ -1880,11 +1961,6 @@ ProcessSet::iterator ProcessSet::iterator::operator++()
 ProcessSet::iterator ProcessSet::iterator::operator++(int)
 {
    return ProcessSet::iterator(int_iter++);
-}
-
-ProcessSet::const_iterator::const_iterator(int_processSet::const_iterator i)
-{
-   int_iter = i;
 }
 
 ProcessSet::const_iterator::const_iterator()
@@ -2780,14 +2856,12 @@ bool LibraryTracking::setTrackLibraries(ProcessSet::ptr ps, bool b)
          bps_to_install.insert(make_pair(proc, is));
       }
       else {
-         result_response::ptr resp = result_response::createResultResponse();
-         result = proc->rmBreakpoint(addr, bp, resp);
+         result = proc->removeBreakpoint(addr, bp, all_responses);
          if (!result) {
             pthrd_printf("Error removing breakpoint in setTrackLibraries\n");
             had_error = true;
             continue;
          }
-         all_responses.insert(resp);
       }
    }
 

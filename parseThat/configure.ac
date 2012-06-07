@@ -2,6 +2,7 @@
 AC_INIT([parseThat], [1.0])
 AC_CONFIG_SRCDIR([src/config.C])
 AC_PREFIX_DEFAULT([.])
+AC_CONFIG_AUX_DIR([../autodyninst])
 
 AC_ARG_WITH(dyninst,
             [AS_HELP_STRING([--with-dyninst],[Base directory to look for dyninst headers and libraries])],
@@ -39,8 +40,8 @@ if test -n ${DYNINST_ROOT}; then
 fi
 
 AC_SUBST([LDFLAGS], ["-L${DYNINST_LIB} ${LDFLAGS}"])
-AC_SUBST([DWARFFLAGS], ["-L${DWARF_LIB}"])
-AC_SUBST([ELFFLAGS], ["-L${ELF_LIB}"])
+AC_SUBST([DWARFFLAGS], ["${DWARF_LIB}"])
+AC_SUBST([ELFFLAGS], ["${ELF_LIB}"])
 AC_SUBST([LIBERTYFLAGS], ["${LIBERTY_LIB}"])
 AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} ${CPPFLAGS}"])
 

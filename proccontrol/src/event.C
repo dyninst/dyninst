@@ -38,6 +38,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Process.h"
 #include "proccontrol/h/PCErrors.h"
+#include "proccontrol/h/Generator.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +62,7 @@ std::string ArchEvent::getName()
 Event::Event(EventType etype_, Thread::ptr thread_) :
    etype(etype_),
    thread(thread_),
-   proc(thread ? thread->getProcess() : Process::ptr()),
+   proc(thread_ ? thread_->getProcess() : Process::ptr()),
    stype(unset),
    master_event(Event::ptr()),
    suppress_cb(false),
@@ -88,7 +89,7 @@ void Event::setThread(Thread::const_ptr t) {
 }
 
 void Event::setProcess(Process::const_ptr p) {
-   proc = p;
+	proc = p;
 }
 
 void Event::setUserEvent(bool b) {
@@ -120,7 +121,7 @@ bool Event::triggersCB() const
    if (cbhandler->requiresCB(shared_from_this()))
      return true;
    std::vector<Event::ptr>::const_iterator i = subservient_events.begin();
-   for (; i != subservient_events.end(); i++) {
+   for (; i != subservient_events.end(); ++i) {
       if ((*i)->triggersCB())
          return true;
    }
@@ -192,8 +193,10 @@ std::string EventType::name() const
       STR_CASE(Detach);
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
+	  STR_CASE(PreBootstrap);
       STR_CASE(Nop);
       STR_CASE(ThreadDB);
+	  STR_CASE(ThreadInfo);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -321,9 +324,9 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) co
 {
    if (!int_bp)
       return;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
-   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
+   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); ++i) {
       bps.push_back(*i);
    }
 }
@@ -332,7 +335,7 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 {
    if (!int_bp)
       return;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
@@ -341,8 +344,9 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 
 bool EventBreakpoint::suppressCB() const
 {
-   if (Event::suppressCB()) return true;
-   installed_breakpoint *ibp = int_bp->lookupInstalledBreakpoint();
+   if (Event::suppressCB())
+      return true;
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    return ibp->hl_bps.empty();
 }
 
@@ -354,12 +358,12 @@ int_eventBreakpoint *EventBreakpoint::getInternal() const
 bool EventBreakpoint::procStopper() const
 {
    int num_proc_stoppers = 0;
-   installed_breakpoint *bp = int_bp->lookupInstalledBreakpoint();
+   bp_instance *bp = int_bp->lookupInstalledBreakpoint();
    if (!bp) {
       return false;
    }
 
-   for (installed_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
+   for (sw_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
       if (!(*i)->isProcessStopper())
          continue;
       if (isGeneratorThread()) {
@@ -424,6 +428,16 @@ EventBootstrap::EventBootstrap() :
 EventBootstrap::~EventBootstrap()
 {
 }
+
+EventPreBootstrap::EventPreBootstrap() :
+   Event(EventType(EventType::None, EventType::PreBootstrap))
+{
+}
+
+EventPreBootstrap::~EventPreBootstrap()
+{
+}
+
 
 EventNewThread::EventNewThread(EventType et) : 
    Event(et)
@@ -640,6 +654,9 @@ int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 
 bool EventBreakpointClear::procStopper() const
 {
+   if (!int_bpc->stopped_proc)
+      return false;
+
    if (!handled_by.empty())
       return false;
 
@@ -817,8 +834,17 @@ bool EventThreadDB::triggersCB() const
    return false;
 }
 
-int_eventBreakpoint::int_eventBreakpoint(Address a, installed_breakpoint *, int_thread *thr) :
+int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
    addr(a),
+   hwbp(NULL),
+   thrd(thr),
+   stopped_proc(false)
+{
+}
+
+int_eventBreakpoint::int_eventBreakpoint(hw_breakpoint *i, int_thread *thr) :
+   addr(i->getAddr()),
+   hwbp(i),
    thrd(thr),
    stopped_proc(false)
 {
@@ -828,15 +854,19 @@ int_eventBreakpoint::~int_eventBreakpoint()
 {
 }
 
-installed_breakpoint *int_eventBreakpoint::lookupInstalledBreakpoint()
+bp_instance *int_eventBreakpoint::lookupInstalledBreakpoint()
 {
-   return thrd->llproc()->getBreakpoint(addr);
+   if (hwbp)
+      return static_cast<bp_instance *>(hwbp);
+   else
+      return static_cast<bp_instance *>(thrd->llproc()->getBreakpoint(addr));
 }
 
 int_eventBreakpointClear::int_eventBreakpointClear() :
    started_bp_suspends(false),
    cached_bp_sets(false),
-   set_singlestep(false)
+   set_singlestep(false),
+   stopped_proc(false)
 {
 }
 
@@ -844,8 +874,9 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
 
-int_eventBreakpointRestore::int_eventBreakpointRestore(installed_breakpoint *breakpoint_) :
+int_eventBreakpointRestore::int_eventBreakpointRestore(bp_instance *breakpoint_) :
    set_states(false),
+   bp_resume_started(false),
    bp(breakpoint_)
 {
 }
@@ -932,31 +963,31 @@ int_eventDetach::~int_eventDetach()
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE) return NAME::const_ptr();  \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST2(NAME, TYPE, TYPE2) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::ptr(); \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::const_ptr(); \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
@@ -983,6 +1014,7 @@ DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCLaunch, RPCLaunch)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
+DEFN_EVENT_CAST(EventPreBootstrap, PreBootstrap)
 DEFN_EVENT_CAST(EventDetach, Detach)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop);

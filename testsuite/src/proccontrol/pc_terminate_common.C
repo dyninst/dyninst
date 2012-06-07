@@ -32,6 +32,13 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 
+#if defined(os_windows_test)
+	void sleep(int msec)
+	{
+		::Sleep(msec);
+	}
+#endif
+
 #if defined(STOP_TEST)
 #define PC_TERMINATE(suffix) pc_terminate_stopped ## suffix
 #else

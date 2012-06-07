@@ -52,7 +52,7 @@
 				RuntimeTypeInfo="true"
 				WarningLevel="3"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4251;4503"
+				DisableSpecificWarnings="4251;4503;4396"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -330,47 +330,6 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_addressSpace.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_asyncEventHandler.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -886,27 +845,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\callbacks.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\Widgets\CFWidget-x86.C"
 				>
 				<FileConfiguration
@@ -1110,68 +1048,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\dyn_lwp.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dyn_thread.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dynamiclinking.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\edge.C"
 				>
 				<FileConfiguration
@@ -1205,43 +1081,13 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\eventgate.C"
+				RelativePath=".\src\eventLock.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\EventHandler.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1482,18 +1328,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\instPoint.C"
 				>
 				<FileConfiguration
@@ -1547,6 +1381,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\List.C"
 				>
 				<FileConfiguration
@@ -1582,27 +1428,6 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\mailbox.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1792,6 +1617,54 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\pcEventHandler.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pcProcess-x86.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pcProcess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pcThread.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Widgets\PCWidget.C"
 				>
 				<FileConfiguration
@@ -1820,39 +1693,6 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\pdwinntDL.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\process.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1911,7 +1751,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
+				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1935,81 +1775,10 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr-lwp.C"
+				RelativePath=".\src\Relocation\CFG\RelocGraph.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\rpcMgr-thr.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\rpcMgr.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\signalgenerator.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2018,22 +1787,13 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\signalhandler.C"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2113,18 +1873,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocTarget.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\templates-nt.C"
 				>
 				<FileConfiguration
@@ -2137,18 +1885,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CFG\RelocBlock.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2234,10 +1970,6 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Widgets\ASTWidget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File
@@ -2449,15 +2181,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\dyn_lwp.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\dyn_thread.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\dynamiclinking.h"
 				>
 			</File>
 			<File
@@ -2474,10 +2198,6 @@
 			</File>
 			<File
 				RelativePath=".\src\emit-x86.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\eventgate.h"
 				>
 			</File>
 			<File
@@ -2513,11 +2233,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
@@ -2538,10 +2258,6 @@
 			</File>
 			<File
 				RelativePath=".\src\inst.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2566,6 +2282,10 @@
 			</File>
 			<File
 				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\InstWidget.h"
 				>
 			</File>
 			<File
@@ -2669,15 +2389,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\CFG\RelocGraph.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\replacedInstruction.h"
+				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr.h"
+				RelativePath=".\src\replacedInstruction.h"
 				>
 			</File>
 			<File
@@ -2725,14 +2449,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\CFG\RelocTarget.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CFG\RelocBlock.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\Relocation\Transformers\Transformer.h"
 				>
 			</File>
@@ -2750,6 +2466,10 @@
 			</File>
 			<File
 				RelativePath=".\src\w32CONTEXT.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Widgets\Widget.h"
 				>
 			</File>
 			<File

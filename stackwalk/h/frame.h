@@ -45,7 +45,7 @@ namespace Stackwalker {
 class Walker;
 class FrameStepper;
 
-class Frame : public AnnotatableDense {
+class SW_EXPORT Frame : public AnnotatableDense {
   friend class Walker;
   friend class CallTree;
   friend class ::StackCallback;

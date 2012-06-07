@@ -43,13 +43,12 @@
 #include "BPatch_function.h"
 #include "Annotatable.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::DepGraphAPI;
-using namespace dyn_detail::boost;
 
 // Annotation type for storing xPDGs.
 AnnotationClass<xPDG::Ptr> xPDGAnno(std::string("xPDGAnno"));

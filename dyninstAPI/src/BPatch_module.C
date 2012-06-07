@@ -874,7 +874,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 
     // build up list of memory pages that contain analyzed code
     std::set<Address> pageAddrs;
-#if defined (os_windows)
+#if defined (os_windows) && defined(working_windows_proccontrol)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
@@ -919,7 +919,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
             end += pageSize;
         } 
 
-#if defined(os_windows)
+#if defined(os_windows) && defined(working_windows_proccontrol)
         int newRights = PAGE_EXECUTE_READ;
         if (writeable) {
             newRights = PAGE_EXECUTE_READWRITE;

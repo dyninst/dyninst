@@ -324,10 +324,15 @@ BPatch_process::BPatch_process
    startup_printf("%s[%d]:  attached to process %s/%d\n", FILE__, __LINE__, path ? path : 
             "no_path", pid);
 
-   // Create an initial thread
-   PCThread *thr = llproc->getInitialThread();
-   BPatch_thread *initial_thread = new BPatch_thread(this, thr);
-   threads.push_back(initial_thread);
+   // Create the initial threads
+   pdvector<PCThread *> llthreads;
+   llproc->getThreads(llthreads);
+   for (pdvector<PCThread *>::iterator i = llthreads.begin();
+           i != llthreads.end(); ++i)
+   {
+      BPatch_thread *thrd = new BPatch_thread(this, *i);
+      threads.push_back(thrd);
+   }
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
@@ -878,14 +883,6 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
     int retval = RPC_LEAVE_AS_IS;
 
     assert(BPatch::bpatch != NULL);
-    bool need_to_unlock = true;
-    global_mutex->_Lock(FILE__, __LINE__);
-    if (global_mutex->depth() > 1) {
-        global_mutex->_Unlock(FILE__, __LINE__);
-        need_to_unlock = false;
-    }
-
-    assert(global_mutex->depth());
 
     OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
 
@@ -918,9 +915,6 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
 
         delete info;
     }
-
-    if (need_to_unlock)
-        global_mutex->_Unlock(FILE__, __LINE__);
 
     return retval;
 }

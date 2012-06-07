@@ -56,7 +56,7 @@ unsigned ppc_process::plat_breakpointSize()
   return 4;
 }
 
-void ppc_process::plat_breakpointBytes(char *buffer)
+void ppc_process::plat_breakpointBytes(unsigned char *buffer)
 {
   buffer[0] = 0x7d;
   buffer[1] = 0x82;
@@ -334,4 +334,46 @@ bool ppc_process::plat_convertToBreakpointAddress(Address &addr, int_thread *thr
 bool ppc_process::plat_needsPCSaveBeforeSingleStep() 
 {
    return true;
+}
+
+ppc_thread::ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l)
+{
+}
+
+ppc_thread::~ppc_thread()
+{
+}
+
+bool ppc_thread::rmHWBreakpoint(hw_breakpoint *,
+                                bool,
+                                std::set<response::ptr> &,
+                                bool &)
+{
+   return false;
+}
+
+bool ppc_thread::addHWBreakpoint(hw_breakpoint *,
+                                 bool,
+                                 std::set<response::ptr> &,
+                                 bool &)
+{
+   return false;
+}
+
+unsigned ppc_thread::hwBPAvail(unsigned)
+{
+   return 0;
+}
+
+EventBreakpoint::ptr ppc_thread::decodeHWBreakpoint(response::ptr &,
+                                                    bool,
+                                                    Dyninst::MachRegisterVal)
+{
+   return EventBreakpoint::ptr();
+}
+
+bool ppc_thread::bpNeedsClear(hw_breakpoint *)
+{
+   return false;
 }

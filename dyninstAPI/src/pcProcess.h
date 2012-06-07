@@ -79,6 +79,7 @@ class PCProcess : public AddressSpace {
     // This allows changes to the internals to have relatively low impact on the
     // rest of Dyninst
     friend class PCEventHandler;
+	friend class HybridAnalysis;
 
 public:
     // The desired state of the process, as indicated by the user
@@ -117,7 +118,7 @@ public:
     void setDesiredProcessState(processState_t ps);
 
     // Memory access
-    bool dumpCore(const std::string coreFile); // platform-specific
+    bool dumpCore(std::string coreFile); // platform-specific
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
     bool writeDataWord(void *inTracedProcess,
@@ -179,7 +180,19 @@ public:
                  bool userRPC,
                  bool isMemAlloc = false,
                  Address addr = 0);
-
+	bool postIRPC(void* buffer, 
+		int size, 
+		void* userData, 
+		bool runProcessWhenDone, 
+		PCThread* thread, 
+		bool synchronous, 
+		void** result, 
+		bool userRPC, 
+		bool isMemAlloc = false, 
+		Address addr = 0);
+private:
+	bool commonIRPCSetup(PCThread* thread, bool& tempStop);
+public:
     /////////////////////////////////////////////
     // Begin Exploratory and Defensive mode stuff
     /////////////////////////////////////////////
@@ -280,6 +293,7 @@ protected:
     typedef enum {
         bs_attached,
         bs_readyToLoadRTLib,
+        bs_loadedRTLib,
         bs_initialized // RT library has been loaded
     } bootstrapState_t;
     
@@ -435,7 +449,10 @@ protected:
 
     // RT library management
     bool loadRTLib();
-    AstNodePtr createLoadRTAST(); // architecture-specific
+
+	bool postRTLoadRPC();
+
+	AstNodePtr createLoadRTAST(); // architecture-specific
     AstNodePtr createUnprotectStackAST(); // architecture-specific
     bool setRTLibInitParams();
     bool instrumentMTFuncs();
@@ -498,8 +515,8 @@ protected:
     void incPendingEvents();
     void decPendingEvents();
     bool hasRunningSyncRPC() const;
-    void addSyncRPCThread(PCThread *thr);
-    void removeSyncRPCThread(PCThread *thr);
+	void addSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
+    void removeSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
     bool continueSyncRPCThreads();
 
     // ProcControl doesn't keep around a process's information after it exits.
@@ -576,7 +593,7 @@ protected:
     // Misc.
     baseTramp *irpcTramp_;
     bool inEventHandling_;
-    std::set<PCThread *> syncRPCThreads_;
+	std::set<Dyninst::ProcControlAPI::Thread::ptr> syncRPCThreads_;
     Dyninst::Stackwalker::Walker *stackwalker_;
     DynSymReaderFactory *symReaderFactory_;
     std::map<Address, ProcControlAPI::Breakpoint::ptr> installedCtrlBrkpts;
@@ -594,7 +611,7 @@ public:
         isComplete(false),
         deliverCallbacks(false),
         userData(NULL),
-        thread(NULL),
+		thread(Dyninst::ProcControlAPI::Thread::ptr()),
         synchronous(false),
         memoryAllocated(false)
     {}
@@ -614,7 +631,7 @@ public:
     bool isComplete;
     bool deliverCallbacks;
     void *userData;
-    PCThread *thread;
+	Dyninst::ProcControlAPI::Thread::ptr thread;
     bool synchronous; // caller is responsible for cleaning up this object
     bool memoryAllocated;
 };

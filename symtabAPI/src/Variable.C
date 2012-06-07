@@ -74,6 +74,7 @@ Type* Variable::getType()
 	return type_;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
@@ -157,6 +158,12 @@ Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THRO
 
 	return NULL;
 }
+#else
+Serializable *Variable::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
 {
@@ -230,6 +237,8 @@ bool VariableLocation::operator==(const VariableLocation &f)
 	if (lowPC != f.lowPC) return false;
 	return true;
 }
+
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
@@ -244,6 +253,12 @@ Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *t
 	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 	return NULL;
 }
+#else
+Serializable *VariableLocation::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
 		int lineNum, Function *f, std::vector<VariableLocation> *locs) :
@@ -434,6 +449,7 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
@@ -496,4 +512,9 @@ Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THRO
 	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 	return NULL;
 }
-
+#else
+Serializable *localVar::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+   return NULL;
+}
+#endif

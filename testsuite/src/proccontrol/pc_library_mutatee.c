@@ -30,6 +30,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "pcontrol_mutatee_tools.h"
 
 
@@ -59,7 +60,20 @@ void closeLib(const char *lib, void *handle)
 }
 
 #else
-#error Implement windows
+#include <winsock2.h>
+#include <windows.h>
+#define LIBTESTA "./libtestA.dll"
+#define LIBTESTB "./libtestB.dll"
+
+void* openLib(const char* lib)
+{
+	return LoadLibrary(lib);
+}
+
+void closeLib(const char* lib, void* handle)
+{
+	FreeLibrary((HMODULE)handle);
+}
 #endif
 
 static int threadFunc(int myid, void *data)
@@ -75,16 +89,21 @@ int pc_library_mutatee()
    int result;
    void *handlea, *handleb;
    syncloc msg;
-
+	//fprintf(stderr, "Entering pc_library_mutatee\n");
    result = initProcControlTest(threadFunc, NULL);
+	//fprintf(stderr, "Done with init, pc_library_mutatee\n");
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
 
+   //fprintf(stderr, "Opening libtestA pc_library_mutatee\n");
    handlea = openLib(LIBTESTA);
+   //fprintf(stderr, "Opening libtestB pc_library_mutatee\n");
    handleb = openLib(LIBTESTB);
+   //fprintf(stderr, "Closing libtestB\n");
    closeLib(LIBTESTB, handleb);
+   //fprintf(stderr, "Closing libtestB\n");
    closeLib(LIBTESTA, handlea);
 
    msg.code = SYNCLOC_CODE;

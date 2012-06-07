@@ -81,7 +81,7 @@ typedef enum {
   BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
-typedef long dynthread_t;
+typedef Dyninst::THR_ID dynthread_t;
 
 
 typedef struct {

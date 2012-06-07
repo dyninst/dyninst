@@ -43,20 +43,13 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
+#include "boost/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
 
-namespace dyn_detail 
-{
-namespace boost {
-    template< typename T > class shared_ptr;
-    template<> class shared_ptr<AstNode *>;
-}
-}
-
-typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
+typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode;
 class BPatch_process;

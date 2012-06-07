@@ -195,7 +195,7 @@ ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs
       return PS_ERR;
    }
 
-   thread_db_thread *thr = static_cast<thread_db_thread *>(llthr);
+   thread_db_thread *thr = dynamic_cast<thread_db_thread *>(llthr);
    
    pthrd_printf("thread_db reading registers on thread %d/%d\n",
                 proc->getPid(), thr->getLWP());
@@ -279,7 +279,7 @@ ps_err_e ps_pstop(struct ps_prochandle *) {
 ps_err_e ps_get_thread_area(const struct ps_prochandle *phandle, lwpid_t lwp, int val, psaddr_t *addr)
 {
    thread_db_process *tdb_proc = phandle->thread_db_proc;
-   thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(tdb_proc->threadPool()->findThreadByLWP(lwp));
+   thread_db_thread *tdb_thread = dynamic_cast<thread_db_thread *>(tdb_proc->threadPool()->findThreadByLWP(lwp));
 
    Dyninst::Address daddr = 0;
    bool result = tdb_thread->thrdb_getThreadArea(val, daddr);
@@ -571,7 +571,7 @@ async_ret_t thread_db_process::initThreadWithHandle(td_thrhandle_t *thr, td_thri
       lwp = (Dyninst::LWP) info->ti_lid;
       pthrd_printf("initThreadWithHandle found thread %d/%d\n", getPid(), lwp);
    }
-   thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadPool()->findThreadByLWP(lwp));
+   thread_db_thread *tdb_thread = dynamic_cast<thread_db_thread *>(threadPool()->findThreadByLWP(lwp));
    if (!tdb_thread) {
       perr_printf("Error.  Thread_db reports thread %d/%d, but couldn't find existing LWP\n",
                   getPid(), lwp);
@@ -671,7 +671,7 @@ async_ret_t thread_db_process::initThreadDB() {
    bool hasAsync = false;
    set<pair<td_thrhandle_t *, LWP> > all_handles;
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
-      thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(*i);
+      thread_db_thread *tdb_thread = dynamic_cast<thread_db_thread *>(*i);
       
       if (tdb_thread->threadHandle_alloced) {
          all_handles.insert(pair<td_thrhandle_t *, LWP>(tdb_thread->threadHandle, tdb_thread->getLWP()));
@@ -846,7 +846,7 @@ const char *thread_db_process::getThreadLibName(const char *)
 
 bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 {
-   thread_db_thread *db_thread = static_cast<thread_db_thread *>(lwp_ev->getThread()->llthrd());
+   thread_db_thread *db_thread = dynamic_cast<thread_db_thread *>(lwp_ev->getThread()->llthrd());
    assert(db_thread);
    
    if (db_thread->destroyed || !db_thread->thread_initialized)
@@ -1041,8 +1041,8 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
    return aret_success;
 }
 
-#warning TODO fix detach part in post attach rewrite
 #if 0
+#warning TODO fix detach part in post attach rewrite
 bool thread_db_process::post_attach(bool wasDetached) {
     if( !int_process::post_attach(wasDetached) ) return false;
 
@@ -1197,7 +1197,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
       }
    }
 
-   thread_db_thread *main_thread = static_cast<thread_db_thread *>(proc->threadPool()->initialThread());
+   thread_db_thread *main_thread = dynamic_cast<thread_db_thread *>(proc->threadPool()->initialThread());
    if (main_thread->tinfo_initialized)
       proc->initialThreadEventCreated = true;
 
@@ -1224,6 +1224,7 @@ Handler::handler_ret_t ThreadDBDispatchHandler::handleEvent(Event::ptr ev)
       }
 
       td_thrinfo_t tinfo;
+      bzero(&tinfo, sizeof(td_thrinfo_t));
       async_ret_t result = proc->ll_fetchThreadInfo(main_thread->threadHandle, &tinfo);
       if (result == aret_async) {
          pthrd_printf("Async return during ll_fetchThreadInfo for main thread\n");
@@ -1349,7 +1350,7 @@ Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
 
    EventNewUserThread::ptr threadEv = ev->getEventNewUserThread();
    thread_db_process *tdb_proc = dynamic_cast<thread_db_process *>(threadEv->getProcess()->llproc());
-   thread_db_thread *tdb_thread = static_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
+   thread_db_thread *tdb_thread = dynamic_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
 
    pthrd_printf("ThreadDBCreateHandler::handleEvent for %d/%d\n", tdb_proc->getPid(), tdb_thread->getLWP());
    if (threadEv->getInternalEvent()->needs_update) {
@@ -1398,7 +1399,7 @@ Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
       return Handler::ret_success;
    }
    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
-   thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+   thread_db_thread *thrd = dynamic_cast<thread_db_thread *>(ev->getThread()->llthrd());
    pthrd_printf("Running ThreadDBDestroyHandler on %d/%d\n", proc->getPid(), thrd->getLWP());
    thrd->markDestroyed();
 
@@ -1648,27 +1649,18 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr)
    return false;
 }
 
+bool thread_db_process::decodeThreadBP(EventBreakpoint::ptr)
+{
+   return false;
+}
+
 async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr)
 {
    return aret_error;
 }
 
-bool thread_db_process::decodeTdbLibLoad(EventLibrary::ptr)
-{
-   return false;
-}
-
 void thread_db_process::addThreadDBHandlers(HandlerPool *)
 {
-}
-
-bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-    return true;
-}
-
-bool thread_db_process::plat_supportThreadEvents()
-{
-   return false;
 }
 
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) : 

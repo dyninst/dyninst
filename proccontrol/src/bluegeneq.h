@@ -212,7 +212,7 @@ class bgq_process :
    static unsigned int num_pending_stackwalks;
 };
 
-class bgq_thread : public thread_db_thread
+class bgq_thread : public thread_db_thread, ppc_thread
 {
    friend class bgq_process;
   private:

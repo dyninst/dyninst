@@ -35,7 +35,7 @@
 #include "debug_parse.h"
 
 #include "parseAPI/h/CodeObject.h"
-#include "external/boost/tuple/tuple.hpp"
+#include "boost/tuple/tuple.hpp"
 
 using namespace Dyninst;
 using namespace Dyninst::InsnAdapter;

@@ -37,28 +37,17 @@
 #include <limits.h>
 #include "mutatee_util.h"
 
-#if defined(os_windows_test)
-#define TVOLATILE
-#else
-#define TVOLATILE volatile
-#endif
-
 #define NTHRD 5
 thread_t thrds[NTHRD];
 
 int thr_ids[NTHRD] = {0, 1, 2, 3, 4};
 volatile int ok_to_exit[NTHRD] = {0, 0, 0, 0, 0};
-int threads_running[NTHRD];
+volatile int threads_running[NTHRD];
 
 /* These functions are accessed by the mutator */
 void check_sync();
 void check_async();
 
-/* oneTimeCodes will set these to the tid for the desired thread */
-/*
-TVOLATILE thread_t sync_test;
-TVOLATILE thread_t async_test;
-*/
 volatile int sync_failure = 0;
 volatile int async_failure = 0;
 volatile int timeout_failure = 0;
@@ -203,10 +192,9 @@ int test_thread_8_mutatee() {
               __FILE__, __LINE__, async_failure);
 
    /* TODO Check return value for this mutatee! */
-   if (sync_failure || async_failure || timeout_failure) {
-     return -1;
-   } else {
-     test_passes(testname);
-     return 0;
-   }
+   if(sync_failure) return -1;
+   if(async_failure) return -2;
+   if(timeout_failure) return -3;
+   test_passes(testname);
+   return 0;
 }

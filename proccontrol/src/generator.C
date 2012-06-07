@@ -103,11 +103,44 @@ bool Generator::isExitingState()
    return (state == error || state == exiting);
 }
 
+#if defined(STR_CASE)
+#undef STR_CASE
+#endif
+#define STR_CASE(X) case Generator::X: return #X
+
+static const char *generatorStateStr(Generator::state_t s) {
+   switch (s) {
+      STR_CASE(none);
+      STR_CASE(initializing);
+      STR_CASE(process_blocked);
+      STR_CASE(system_blocked);
+      STR_CASE(decoding);
+      STR_CASE(statesync);
+      STR_CASE(handling);
+      STR_CASE(queueing);
+      STR_CASE(error);
+      STR_CASE(exiting);
+   }
+   assert(0);
+   return NULL;
+}
+
 void Generator::setState(Generator::state_t new_state)
 {
+	pthrd_printf("Setting generator state to %s\n", generatorStateStr(new_state));
    if (isExitingState())
       return;
    state = new_state;
+}
+
+ArchEvent* Generator::getCachedEvent() 
+{
+	return m_Event;
+}
+
+void Generator::setCachedEvent(ArchEvent* ae)
+{
+	m_Event = ae;
 }
 
 bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
@@ -126,6 +159,8 @@ bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
 bool Generator::getAndQueueEventInt(bool block)
 {
    bool result = true;
+   //static ArchEvent *arch_event = NULL;
+   ArchEvent* arch_event = getCachedEvent();
    vector<Event::ptr> events;
    vector<ArchEvent *> archEvents;
 
@@ -142,12 +177,21 @@ bool Generator::getAndQueueEventInt(bool block)
       goto done;
    }
    if (!result) {
-      pthrd_printf("getAndQueueEventInt returning due to processWait call\n");
+	   pthrd_printf("Generator exiting after processWait returned false\n");
+	   result = false;
       goto done;
    }
-
+   result = plat_continue(arch_event);
+   if(!result) {
+	   pthrd_printf("Generator exiting after plat_continue returned false\n");
+	   result = false;
+	   goto done;
+   }
    setState(system_blocked);
+
+   pthrd_printf("About to getEvent()\n");
    result = getMultiEvent(block, archEvents);
+   pthrd_printf("Got event\n");
    if (isExitingState()) {
       pthrd_printf("Generator exiting after getEvent\n");
       result = false;
@@ -160,10 +204,11 @@ bool Generator::getAndQueueEventInt(bool block)
    }
 
    setState(decoding);
+   //mbox()->lock_queue();
    ProcPool()->condvar()->lock();
 
    for (vector<ArchEvent *>::iterator i = archEvents.begin(); i != archEvents.end(); i++) {
-      ArchEvent *arch_event = *i;
+	   arch_event = *i;
       for (decoder_set_t::iterator j = decoders.begin(); j != decoders.end(); j++) {
          Decoder *decoder = *j;
          bool result = decoder->decode(arch_event, events);
@@ -175,24 +220,29 @@ bool Generator::getAndQueueEventInt(bool block)
    setState(statesync);
    for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
       Event::ptr event = *i;
-      event->getProcess()->llproc()->updateSyncState(event, true);
+	  if(event) {
+	      event->getProcess()->llproc()->updateSyncState(event, true);
+	  }
    }
 
    ProcPool()->condvar()->unlock();
 
    setState(queueing);
-   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); i++) {
+   for (vector<Event::ptr>::iterator i = events.begin(); i != events.end(); ++i) {
       mbox()->enqueue(*i);
       Generator::cb_lock->lock();
-      for (set<gen_cb_func_t>::iterator j = CBs.begin(); j != CBs.end(); j++) {
+      for (set<gen_cb_func_t>::iterator j = CBs.begin(); j != CBs.end(); ++j) {
          (*j)();
       }
       Generator::cb_lock->unlock(); 
    }
+   //mbox()->unlock_queue();
+
 
    result = true;
  done:
    setState(none);
+   setCachedEvent(arch_event);
    return result;
 }
 
@@ -202,6 +252,12 @@ bool Generator::plat_skipGeneratorBlock()
    return false;
 }
 
+Generator::state_t Generator::getState()
+{
+	return state;
+}
+
+// TODO: override this in Windows generator so that we use local counters
 bool Generator::hasLiveProc()
 {
    if (plat_skipGeneratorBlock()) {
@@ -220,13 +276,13 @@ bool Generator::hasLiveProc()
       pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
       return false;
    }
-   if (num_force_generator_blocking) {
-      pthrd_printf("Generator is forced into blocking state, returning true from hasLiveProc\n");
+   if(num_force_generator_blocking) {
+      pthrd_printf("Generator forcing blocking, returning true from hasLiveProc\n");
       return true;
    }
-   pthrd_printf("All threads stopped, returing false from hasLiveProc\n");
-   return false;
+   return true;
 }
+
 
 struct GeneratorMTInternals
 {
@@ -242,10 +298,19 @@ void GeneratorInternalJoin(GeneratorMTInternals *gen_int)
   gen_int->thrd.join();
 }
 
+#if defined(os_windows)
+static unsigned long WINAPI start_generator(void *g)
+#else
 static void start_generator(void *g)
+#endif
 {
    GeneratorMT *gen = (GeneratorMT *) g;
    gen->start();
+#if defined(os_windows)
+   return 0;
+#else
+   return;
+#endif
 }
 
 GeneratorMT::GeneratorMT(std::string name_) :
@@ -258,16 +323,24 @@ GeneratorMT::GeneratorMT(std::string name_) :
    sync = new GeneratorMTInternals();
 }
 
+void GeneratorMT::lock()
+{
+   sync->init_cond.lock();
+}
+void GeneratorMT::unlock()
+{
+   sync->init_cond.unlock();
+}
 void GeneratorMT::launch()
 {
    sync->init_cond.lock();
-   state = initializing;
+   setState(initializing);
    sync->thrd.spawn(start_generator, this);
-   while (state == initializing)
+   while (getState() == initializing)
       sync->init_cond.wait();
    sync->init_cond.unlock();
 
-   if (state == error) {
+   if (getState() == error) {
       pthrd_printf("Error creating generator\n");
    }
 }
@@ -301,6 +374,8 @@ void GeneratorMT::start()
    else {
       setState(none);
    }
+   plat_start();
+   if(getState() == error) result = false;
    sync->init_cond.signal();
    sync->init_cond.unlock();
 
@@ -330,11 +405,15 @@ bool GeneratorMT::processWait(bool block)
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
+		 pp->condvar()->signal();
+		 pp->condvar()->unlock();
          return false;
       }
       pp->condvar()->wait();
    }
+   pp->condvar()->signal();
    pp->condvar()->unlock();
+   pthrd_printf("processWait returning true\n");
    return true;
 }
 

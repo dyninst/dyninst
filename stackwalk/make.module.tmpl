@@ -7,8 +7,11 @@
 #
 
 SUITE_NAME	= Stackwalker
-RELEASE_MAJOR	= 2
+RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
+
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
@@ -86,4 +89,4 @@ libstackwalk_c.so: libsw.a sw_c.o
 	g++ -o $@ -shared sw_c.o -Wl,--exclude-libs -Wl,ALL libsw.a $(WRAPPER_LIBS_NOCOMMA)
 
 $(DEST)/libstackwalk_c.so: libstackwalk_c.so
-	-$(CP) libstackwalk_c.so $(DEST)
+	-$(INSTALL) libstackwalk_c.so $(DEST)

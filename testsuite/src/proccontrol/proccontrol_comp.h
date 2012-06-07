@@ -34,9 +34,10 @@
 
 #include "test_lib.h"
 #include "TestMutator.h"
+
 #include "Process.h"
-#include "ProcessSet.h"
 #include "Event.h"
+#include "ProcessSet.h"
 
 #include <vector>
 
@@ -50,12 +51,7 @@ class commInfo;
 //NUM_PARALLEL_PROCS is actually a maximum number across all platforms
 #define NUM_PARALLEL_PROCS 256
 
-typedef enum {
-   un_socket,
-   named_pipe
-} mutatee_connection_t;
-
-class ProcControlComponent : public ComponentTester
+class COMPLIB_DLL_EXPORT ProcControlComponent : public ComponentTester
 {
 private:
    bool setupServerSocket(ParameterDict &param);
@@ -91,6 +87,12 @@ public:
    std::map<EventType, std::vector<Event::const_ptr>, eventtype_cmp > eventsRecieved;
 
    ParamPtr me;
+
+#if defined(os_windows_test)
+   HANDLE winsock_event;
+#endif
+
+   // FIXME: this doesn't live here anymore
 
    ProcControlComponent();
    virtual ~ProcControlComponent();

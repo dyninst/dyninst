@@ -49,6 +49,7 @@
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="true"
+				PrecompiledHeaderThrough="headers.h"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4251;4503"
@@ -301,6 +302,18 @@
 			</File>
 			<File
 				RelativePath=".\src\DOT.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dthread-win.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -624,6 +637,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
 						CompileAsManaged="0"
 						CompileAs="2"
 					/>
@@ -731,6 +745,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\dthread.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dynutil\h\dyn_regs.h"
 				>
 			</File>
@@ -760,6 +778,10 @@
 			</File>
 			<File
 				RelativePath=".\h\int64iostream.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\IntervalTree.h"
 				>
 			</File>
 			<File
@@ -877,4 +899,3 @@
 	<Globals>
 	</Globals>
 </VisualStudioProject>
-

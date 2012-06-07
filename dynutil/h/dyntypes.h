@@ -35,6 +35,7 @@
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <winsock2.h>
 #endif
 
 #ifndef FILE__
@@ -118,11 +119,12 @@ namespace Dyninst
    typedef HANDLE PROC_HANDLE;
    typedef HANDLE LWP;
    typedef HANDLE THR_ID;
+   typedef DWORD psaddr_t; // for breakpoints; match the debug struct
 
-#define NULL_PID     INVALID_HANDLE_VALUE
+#define NULL_PID     -1
 #define NULL_LWP     INVALID_HANDLE_VALUE
 #define NULL_THR_ID     INVALID_HANDLE_VALUE
-
+#define DYNINST_SINGLETHREADED INVALID_HANDLE_VALUE
 #else
    typedef int PID;
    typedef int PROC_HANDLE;

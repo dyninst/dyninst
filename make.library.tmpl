@@ -12,11 +12,6 @@ BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
 XTARGET	= $(basename $(basename $(TARGET)))
 VOUCHER	= V_$(XTARGET)
 
-$(VOUCHER):
-	@echo Updating build voucher information: $(VOUCHER)
-	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(HIDE_COMP)$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
-
 VPATH		+= ../src
 
 ifndef NO_STD_OBJS
@@ -53,16 +48,24 @@ ifdef STATIC_COMPS
 STATIC_LIBRARY = true
 endif
 
+$(VOUCHER).c: $(OBJS)
+	@echo Updating build voucher information: $(VOUCHER)
+	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+
+$(VOUCHER).o: $(VOUCHER).c
+	@echo Compiling $@
+	$(HIDE_COMP)$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
+
 ifndef OVERRIDE_LINK
 ifndef STATIC_LIBRARY
-$(TARGET): $(OBJS) $(EXTRA_LIBS)
+$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
-	$(HIDE_COMP)$(MAKE) $(VOUCHER)
-	$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
+	@echo Linking $@
+	$(HIDE_COMP)$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
 else # build a static lib
-$(TARGET): $(OBJS) $(EXTRA_LIBS)
+$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
-	$(HIDE_COMP)$(MAKE) $(VOUCHER)
+	@echo Linking $@
 	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
 endif # STATIC_LIBRARY
 
@@ -102,8 +105,9 @@ $(STATIC_TARGET): ASFLAGS = $(STATIC_ASFLAGS)
 endif
 
 $(STATIC_TARGET): $(STATIC_OBJS)
+	@echo Linking $@
 	$(HIDE_COMP)$(RM) $(STATIC_TARGET)
-	$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
+	$(HIDE_COMP)$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
 
 endif # STATIC_TARGET
 
@@ -111,7 +115,8 @@ endif  # OVERRIDE_LINK
 
 ifdef PUBLIC_H
 $(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	$(CP) $^ $(INCLUDE_DEST)
+	@echo Install $@
+	$(HIDE_COMP)$(INSTALL) $^ $(INCLUDE_DEST)
 
 public_includes: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
 else
@@ -132,11 +137,15 @@ distclean: clean
 	$(RM) DEPENDS
 
 $(DEST)/$(TARGET): $(TARGET)
-	-$(CP) $(TARGET) $(DEST)
+	@echo Installing $(TARGET) to $(DEST)/$(TARGET).$(RELEASE_NUM)
+	$(HIDE_COMP)-$(INSTALL) $(TARGET) $(DEST)/$(TARGET).$(RELEASE_NUM)
+	@echo Making symlink $(TARGET).$(RELEASE_NUM) to $(DEST)/$(TARGET)
+	$(HIDE_COMP)-$(LN) -f $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET)
 
 ifdef STATIC_TARGET
 $(DEST)/$(STATIC_TARGET): $(STATIC_TARGET)
-	-$(CP) $(STATIC_TARGET) $(DEST)
+	@echo Installing $(STATIC_TARGET) to $(DEST)
+	$(HIDE_COMP)-$(INSTALL) $(STATIC_TARGET) $(DEST)
 
 install_generic: $(DEST)/$(TARGET) public_includes $(DEST)/$(STATIC_TARGET)
 
@@ -236,3 +245,37 @@ include $(TO_CORE)/make.platform.tmpl
 %.o : %.C
 	@echo Compiling $<
 	$(HIDE_COMP) $(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
+
+ifdef LIBELF_PLATFORM
+ifdef USES_LIBELF
+ifneq (x,x$(strip $(LIBELF_LIB)))
+LIBELF_LINK_FLAGS += -L$(LIBELF_LIB)
+endif
+ifndef LIBELFSTATIC
+LIBELF_LINK_FLAGS += -lelf
+endif
+ifneq (x,x$(strip $(LIBELF_INC)))
+LIBELF_INC_FLAGS += -I$(LIBELF_INC)
+endif
+LIBS += $(LIBELF_LINK_FLAGS)
+MYFLAGS += $(LIBELF_INC_FLAGS)
+endif
+endif
+
+ifdef LIBDWARF_PLATFORM
+ifdef USES_DWARF_DEBUG
+ifneq (x,x$(strip $(LIBDWARF_LIB)))
+LIBDWARF_LINK_FLAGS += -L$(LIBDWARF_LIB)
+endif
+ifndef LIBDWARFSTATIC
+LIBDWARF_LINK_FLAGS += -ldwarf
+endif
+ifneq (x,x$(strip $(LIBDWARF_INC)))
+LIBDWARF_INC_FLAGS += -I$(LIBDWARF_INC)
+endif
+LIBS += $(LIBDWARF_LINK_FLAGS)
+MYFLAGS += $(LIBDWARF_INC_FLAGS)
+endif
+endif
+
+

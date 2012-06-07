@@ -49,7 +49,7 @@ class Region;
 class FastParser;
 class DwarfHandle;
 
-class SymtabReaderFactory : public SymbolReaderFactory
+class SYMTAB_EXPORT SymtabReaderFactory : public SymbolReaderFactory
 {
   private:
    std::map<std::string, SymReader *> open_syms;
@@ -61,7 +61,7 @@ class SymtabReaderFactory : public SymbolReaderFactory
    virtual bool closeSymbolReader(SymReader *sr);
 };
 
-class SymtabReader : public SymReader {
+class SYMTAB_EXPORT SymtabReader : public SymReader {
    friend class SymtabReaderFactory;
   protected:
    Symtab *symtab;
@@ -102,7 +102,7 @@ class SymtabReader : public SymReader {
 };
 
 extern "C" {
-   SymbolReaderFactory *getSymtabReaderFactory();
+   SYMTAB_EXPORT SymbolReaderFactory *getSymtabReaderFactory();
 }
 
 }

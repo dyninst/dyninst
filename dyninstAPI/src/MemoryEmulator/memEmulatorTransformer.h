@@ -48,7 +48,7 @@ namespace Relocation {
 class InsnAtom;
 
 class MemEmulatorTransformer : public Transformer {
-  typedef dyn_detail::boost::shared_ptr<InsnAtom> InsnAtomPtr;
+  typedef dyn_shared_ptr<InsnAtom> InsnAtomPtr;
  public:
   typedef std::map<Register, TracePtr> TranslatorMap;
 

@@ -205,35 +205,35 @@ void response::setProcess(int_process *p)
 result_response::ptr response::getResultResponse()
 {
    return resp_type == rt_result ? 
-      dyn_detail::boost::static_pointer_cast<result_response>(shared_from_this()) :
+      boost::static_pointer_cast<result_response>(shared_from_this()) :
       result_response::ptr();
 }
 
 mem_response::ptr response::getMemResponse()
 {
    return resp_type == rt_mem ? 
-      dyn_detail::boost::static_pointer_cast<mem_response>(shared_from_this()) :
+      boost::static_pointer_cast<mem_response>(shared_from_this()) :
       mem_response::ptr();
 }
 
 reg_response::ptr response::getRegResponse()
 {
    return resp_type == rt_reg ? 
-      dyn_detail::boost::static_pointer_cast<reg_response>(shared_from_this()) :
+      boost::static_pointer_cast<reg_response>(shared_from_this()) :
       reg_response::ptr();
 }
 
 allreg_response::ptr response::getAllRegResponse()
 {
    return resp_type == rt_allreg ? 
-      dyn_detail::boost::static_pointer_cast<allreg_response>(shared_from_this()) :
+      boost::static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
 }
 
 stack_response::ptr response::getStackResponse()
 {
    return resp_type == rt_stack ?
-      dyn_detail::boost::static_pointer_cast<stack_response>(shared_from_this()) :
+      boost::static_pointer_cast<stack_response>(shared_from_this()) :
       stack_response::ptr();
 }
 
@@ -362,7 +362,7 @@ void responses_pending::noteResponse()
       return;
    }
    ProcPool()->condvar()->lock();
-   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
 }
 

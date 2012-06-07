@@ -193,7 +193,6 @@ void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)
 DyninstInstrStepperImpl::~DyninstInstrStepperImpl()
 {
 }
-
 BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
    FrameStepper(w),
    parent(p),
@@ -329,7 +328,7 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
-#if defined(os_linux) || defined(os_bg) || defined(os_freebsd)
+#if defined(os_linux) || defined(os_bg) || defined(os_freebsd) || defined(os_windows)
 #define OVERLOAD_NEWLIBRARY
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif

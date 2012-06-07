@@ -40,7 +40,7 @@
 class int_process;
 
 typedef enum {
-   aret_error,
+   aret_error = 0,
    aret_success,
    aret_async 
 } async_ret_t;

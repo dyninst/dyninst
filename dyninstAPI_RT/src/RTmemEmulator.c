@@ -187,7 +187,7 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
 int RTuntranslatedEntryCounter;
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
-    if ((int)direction == 1) {
+   if ((int)((long) direction) == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);

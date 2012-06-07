@@ -175,8 +175,6 @@ void DYNINSTsafeBreakPoint()
 }
 
 void mark_heaps_exec() {
-	RTprintf( "*** Initializing dyninstAPI runtime.\n" );
-
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
 	if( pageSize == 0 || pageSize == - 1 ) {

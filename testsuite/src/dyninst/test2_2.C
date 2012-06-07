@@ -74,7 +74,7 @@ test_results_t test2_2_Mutator::executeTest() {
 
     // try to run a file that is not a valid program
 
-    char *mutatee_name;
+    const char *mutatee_name;
 #ifdef os_windows_test
     mutatee_name = "nul:";
 #else

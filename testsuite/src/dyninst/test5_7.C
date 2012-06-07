@@ -61,7 +61,7 @@ extern "C" DLLEXPORT TestMutator *test5_7_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_7_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn2 = "template_test::func_cpp";
+  const char *fn2 = "template_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #7 (template)\n");
@@ -138,7 +138,7 @@ test_results_t test5_7_Mutator::executeTest() {
    }
    
    bpfv.clear();
-   char *fn3 = "test5_7_passed";
+   const char *fn3 = "test5_7_passed";
    if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
      logerror("**Failed** test #7 (template)\n");

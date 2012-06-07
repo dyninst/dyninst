@@ -129,7 +129,7 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
    switch(i->type()) {
       case None:
          assert(0);
-         return std::pair<instPoint *, instPoint *>(NULL, NULL);
+         return std::make_pair((instPoint*)NULL, (instPoint*)NULL);
       case PreInsn:
          return std::pair<instPoint *, instPoint *>(i, 
                                                     postInsn(i->func(),
@@ -153,10 +153,10 @@ std::pair<instPoint *, instPoint *> instPoint::getInstpointPair(instPoint *i) {
                                                             i->block()),
                                                     i);
       default:
-         return std::pair<instPoint *, instPoint *>(i, NULL);
+         return std::make_pair(i, (instPoint*)NULL);
    }
    assert(0);
-   return std::pair<instPoint *, instPoint *>(NULL, NULL);
+   return std::make_pair((instPoint*)NULL, (instPoint*)NULL);
 }
 
 instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {

@@ -214,7 +214,7 @@ class ExpandOrder {
             Edge::Ptr edge = *begin;
             if(skip_edges.find(edge) == skip_edges.end()) {
                 SliceNode::Ptr parent =
-                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                    boost::static_pointer_cast<SliceNode>(
                         edge->source());
                 if(done.find(parent) == done.end())
                     ++pcnt;
@@ -243,7 +243,7 @@ class ExpandOrder {
             Edge::Ptr edge = *begin;
             if(skip_edges.find(edge) == skip_edges.end()) {
                 SliceNode::Ptr child = 
-                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                    boost::static_pointer_cast<SliceNode>(
                         edge->target());
                 if(remove(child))
                     children.insert(child);
@@ -316,7 +316,7 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
     std::vector<SliceNode::Ptr> sortVector;
     for ( ; gbegin != gend; ++gbegin) {
         Node::Ptr ptr = *gbegin;
-        SliceNode::Ptr cur = dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+        SliceNode::Ptr cur = boost::static_pointer_cast<SliceNode>(ptr);
         sortVector.push_back(cur);
     }
     std::stable_sort(sortVector.begin(), sortVector.end(), vectorSort);
@@ -328,7 +328,7 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
     std::vector<SliceNode::Ptr>::iterator vit = sortVector.begin();
     for ( ; vit != sortVector.end(); ++vit) {
         SliceNode::Ptr ptr = *vit;
-        Node::Ptr cur = dyn_detail::boost::static_pointer_cast<Node>(ptr);
+        Node::Ptr cur = boost::static_pointer_cast<Node>(ptr);
         dfs_worklist.push(cur);
     }
 
@@ -345,7 +345,7 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
         expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
         Node::Ptr ptr = *gbegin;
         SliceNode::Ptr sptr = 
-            dyn_detail::boost::static_pointer_cast<SliceNode>(ptr);
+            boost::static_pointer_cast<SliceNode>(ptr);
         worklist.insert(sptr,false);
     }
 
@@ -409,7 +409,7 @@ SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
         for (; oB != oE; ++oB) {
             if(worklist.skipEdges().find(*oB) == worklist.skipEdges().end()) {
                 SliceNode::Ptr out =
-                    dyn_detail::boost::static_pointer_cast<SliceNode>(
+                    boost::static_pointer_cast<SliceNode>(
                         (*oB)->target());
                 worklist.insert(out);
             }
@@ -478,8 +478,8 @@ SymEval::Retval_t SymEval::process(SliceNode::Ptr ptr,
     ptr->ins(begin, end);
 
     for (; begin != end; ++begin) {
-       SliceEdge::Ptr edge = dyn_detail::boost::static_pointer_cast<SliceEdge>(*begin);
-       SliceNode::Ptr source = dyn_detail::boost::static_pointer_cast<SliceNode>(edge->source());
+       SliceEdge::Ptr edge = boost::static_pointer_cast<SliceEdge>(*begin);
+       SliceNode::Ptr source = boost::static_pointer_cast<SliceNode>(edge->source());
 
        // Skip this one to break a cycle.
        if (skipEdges.find(edge) != skipEdges.end()) {

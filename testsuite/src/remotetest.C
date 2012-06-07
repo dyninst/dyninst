@@ -44,8 +44,7 @@ extern char **environ;
 
 using namespace std;
 
-extern FILE *debug_log;
-#define debug_printf(str, ...) do { if (debug_log) { fprintf(debug_log, str, ## __VA_ARGS__); fflush(debug_log); } } while (0)
+#define debug_printf(str, ...) do { if (getDebugLog()) { fprintf(getDebugLog(), str, ## __VA_ARGS__); fflush(getDebugLog()); } } while (0)
 
 static void encodeParams(ParameterDict &params, MessageBuffer &buf)
 {
@@ -170,7 +169,7 @@ static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buf
 {
    char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, GROUP_ARG) == 0);
-   int group_index;
+   unsigned int group_index;
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
    assert(group_index >= 0 && group_index < groups.size());
@@ -189,7 +188,7 @@ static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffe
 {
    char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, TESTINFO_ARG) == 0);
-   int group_index, test_index;
+   unsigned int group_index, test_index;
 
    cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
@@ -205,7 +204,7 @@ static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffe
    return strchr(buffer, ';')+1;
 }
 
-static void comp_header(std::string name, MessageBuffer &buffer, char *call)
+static void comp_header(std::string name, MessageBuffer &buffer, const char *call)
 {
    buffer.add("C;", 2);
    buffer.add(call, strlen(call));
@@ -214,7 +213,7 @@ static void comp_header(std::string name, MessageBuffer &buffer, char *call)
    buffer.add(";", 1);   
 }
 
-static void test_header(TestInfo *test, MessageBuffer &buffer, char *call)
+static void test_header(TestInfo *test, MessageBuffer &buffer, const char *call)
 {
    buffer.add("T;", 2);
    buffer.add(call, strlen(call));

@@ -80,6 +80,7 @@ platform_module(P, 'instruction') :- platform('power64', _, _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'linux', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'freebsd', _, P).
 platform_module(P, 'proccontrol') :- platform(_, 'bluegene', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'windows', _, P).
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -2384,6 +2385,7 @@ tests_module('mov_size_details', 'instruction').
 
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform(_, 'linux', _, P).
+pcPlatforms(P) :- platform(_, 'windows', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
 pcPlatforms(P) :- platform(_, 'bluegene', _, P).
@@ -2402,9 +2404,9 @@ pcMutateeLibs(Libs) :-
    ).
 
 compiler_for_mutatee(Mutatee, Compiler) :-
-           test(T, _, Mutatee),
+    test(T, _, Mutatee),
     tests_module(T, 'proccontrol'),
-    member(Compiler, ['gcc', 'g++', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
+    member(Compiler, ['gcc', 'g++', 'VC', 'VC++', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
 
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
@@ -2446,6 +2448,21 @@ tests_module('pc_breakpoint', 'proccontrol').
 mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
+
+test('pc_hw_breakpoint', 'pc_hw_breakpoint', 'pc_hw_breakpoint').
+test_description('pc_hw_breakpoint', 'Test breakpoints').
+test_platform('pc_hw_breakpoint', Platform) :- 
+   platform(Arch, 'linux', _, Platform),
+   member(Arch, ['x86_64', 'i386']).
+mutator('pc_hw_breakpoint', ['pc_hw_breakpoint.C']).
+test_runmode('pc_hw_breakpoint', 'dynamic').
+test_threadmode('pc_hw_breakpoint', 'Threading').
+test_processmode('pc_hw_breakpoint', 'Processes').
+test_start_state('pc_hw_breakpoint', 'selfattach').
+tests_module('pc_hw_breakpoint', 'proccontrol').
+mutatee('pc_hw_breakpoint', ['pc_hw_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+mutatee_requires_libs('pc_hw_breakpoint', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_hw_breakpoint', _, Opt) :- member(Opt, ['none']).
 
 test('pc_library', 'pc_library', 'pc_library').
 test_description('pc_library', 'Library loads').
@@ -3137,10 +3154,12 @@ compiler_static_link('bg_gcc', P, '-static') :- platform(_,'bluegene', 'bluegene
 compiler_static_link('bgq_g++', P, '-static') :- platform(_, _, 'bluegeneq', P).
 compiler_static_link('bgq_gcc', P, '-static') :- platform(_, _, 'bluegeneq', P).
 
-compiler_dynamic_link('bg_g++', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bg_gcc', P, '-dynamic') :- platform(_, _, 'bluegenep', P).
-compiler_dynamic_link('bgq_g++', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
-compiler_dynamic_link('bgq_gcc', P, '-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bg_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bg_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegenep', P).
+compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
+compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
+compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
 
 
 % Specify the standard flags for each compiler

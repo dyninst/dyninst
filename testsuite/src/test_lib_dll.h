@@ -43,11 +43,17 @@
 #pragma warning(disable:4251)
 #pragma warning(disable:4275)
 #pragma warning(disable:4786)
+// posix/ISO warning
+#pragma warning(disable:4996)
+// shared pointer warning
+#pragma warning(disable:4396)
 
 #ifdef COMPLIB_DLL_BUILD
 #define COMPLIB_DLL_EXPORT __declspec(dllexport)
+#pragma message("COMPLIB_DLL_EXPORT exporting")
 #else
 #define COMPLIB_DLL_EXPORT __declspec(dllimport)
+#pragma message("COMPLIB_DLL_EXPORT importing")
 #endif
 
 #ifdef TESTLIB_DLL_BUILD

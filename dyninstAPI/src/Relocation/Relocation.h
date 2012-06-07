@@ -36,11 +36,12 @@
 #if !defined(_RELOCATION_H_)
 #define _RELOCATION_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 #include "common/h/Types.h"
 #include <list>
 #include <map>
 #include "dyninstAPI/src/codegen.h" // codeGen structure
+#include "boost/shared_ptr.hpp"
 
 namespace Dyninst {
 namespace Relocation {
@@ -50,8 +51,8 @@ class SpringboardMap;
 struct SpringboardReq;
 class SpringboardBuilder;
 
-typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
-typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
+typedef boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
+typedef boost::shared_ptr<Dyninst::Relocation::SpringboardBuilder> SpringboardBuilderPtr;
 
 };
 };

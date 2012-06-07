@@ -1608,7 +1608,9 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 }
 
 bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
    thread_db_thread(p, t, l),
+   ppc_thread(p, t, l),
    last_signaled(false)
 {
 }
@@ -1628,7 +1630,7 @@ bool bgq_thread::plat_cont()
 
    int_threadPool *tp = proc->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
-      bgq_thread *t = static_cast<bgq_thread *>(*i);
+      bgq_thread *t = dynamic_cast<bgq_thread *>(*i);
       if (t->last_signaled) {
          signal_thrd = t;
          t->last_signaled = false;
@@ -2989,7 +2991,7 @@ bool DecoderBlueGeneQ::decodeBreakpoint(ArchEventBGQ *archevent, bgq_process *pr
       events.push_back(rpc_event);
       return true;
    }
-   installed_breakpoint *ibp = proc->getBreakpoint(addr);
+   sw_breakpoint *ibp = proc->getBreakpoint(addr);
    if (ibp) {
       pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), thr->getLWP(), addr);
       
@@ -3058,7 +3060,7 @@ bool DecoderBlueGeneQ::decodeStep(ArchEventBGQ *, bgq_process *proc,
 {
    assert(thr->singleStep());
    
-   installed_breakpoint *ibp = thr->isClearingBreakpoint();
+   bp_instance *ibp = thr->isClearingBreakpoint();
    if (ibp) {
       pthrd_printf("Decoded to breakpoint cleanup\n");
       Event::ptr new_ev = EventBreakpointRestore::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(ibp)));

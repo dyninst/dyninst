@@ -40,13 +40,11 @@
 #include <string>
 #include <stdio.h>
 
-extern FILE *debug_log;
-
 using namespace std;
 
 #include <sys/time.h>
 #include <sys/resource.h>
-#define log_printf(str, args...) do { if (debug_log) { fprintf(debug_log, str, args); fflush(debug_log); } } while (0)
+#define log_printf(str, args...) do { if (getDebugLog()) { fprintf(getDebugLog(), str, args); fflush(getDebugLog()); } } while (0)
 
 #if defined(cap_launchmon)
 #include "lmon_api/lmon_be.h"
@@ -163,7 +161,7 @@ int be_main(int argc, char *argv[])
   if (connection.hasError()) {
      log_printf("[%s:%u] - Error connecting to FE\n",
                 __FILE__, __LINE__);
-     if (debug_log) fclose(debug_log);
+     if (getDebugLog()) fclose(getDebugLog());
      return -1;
   }
 
@@ -187,6 +185,6 @@ int be_main(int argc, char *argv[])
       }
       remotebe.dispatch(buffer);
    }
-   if (debug_log) fclose(debug_log);
+   if (getDebugLog()) fclose(getDebugLog());
    return 0;
 }

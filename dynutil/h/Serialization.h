@@ -34,6 +34,43 @@
 //  Hopefully just a few definitions allowing for a public interface to 
 //  serializing user-providede annotations
 
+
+#define SERIALIZATION_DISABLED
+#if defined(SERIALIZATION_DISABLED)
+
+#if defined(THROW_SPEC)
+#undef THROW_SPEC
+#endif
+#define THROW_SPEC(X)
+
+#include <stdlib.h>
+
+namespace Dyninst {
+   class Serializable {
+     public:
+      virtual ~Serializable() {}
+   };
+   class SerializerBase {
+     public:
+      virtual ~SerializerBase() {}
+   };
+
+   template <class T>
+   class AnnotationContainer
+   {
+      virtual bool deserialize_item(SerializerBase *) { return true; }
+     public:
+		AnnotationContainer() { }
+		virtual ~AnnotationContainer() { }
+		virtual bool addItem_impl(T t) = 0;
+		bool addItem(T t) { return addItem_impl(t); }
+		virtual const char *getElementTypename() {return NULL;}
+		virtual Serializable *ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError) { return NULL; };
+   };
+}
+
+#else
+
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -1670,4 +1707,8 @@ bool gtranslate_w_err(SerializerBase *ser, T &it,
 }
 
 } /* namespace Dyninst */
+
 #endif
+
+#endif
+

@@ -45,6 +45,7 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+#if !defined(SERIALIZATION_DISABLED)
 bool addSymID(SerializerBase *sb, Symbol *sym, Address id)
 {
 	assert(id);
@@ -149,6 +150,17 @@ Symbol * getSymForID(SerializerBase *sb, Address id)
 	}
 	return iter->second;
 }
+#else
+bool addSymID(SerializerBase *, Symbol *, Address)
+{
+   return false;
+}
+
+Symbol * getSymForID(SerializerBase *, Address)
+{
+   return NULL;
+}
+#endif
 
 Symbol *Symbol::magicEmitElfSymbol() {
 	// I have no idea why this is the way it is,
@@ -377,6 +389,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
@@ -484,6 +497,16 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 	}
 
 }
+#else
+Serializable *Symbol::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+
+void Symbol::restore_module_and_region(SerializerBase *, std::string &, Offset) THROW_SPEC (SerializerError)
+{
+}
+#endif
 
 std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {

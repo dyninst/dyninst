@@ -41,10 +41,10 @@
 #include "util.h"
 #include <vector>
 #include <set>
-#include <dyn_detail/boost/shared_ptr.hpp>
+#include "dynptr.h"
 #include <iostream>
-#include <dyn_detail/boost/enable_shared_from_this.hpp>
 #include "Result.h"
+#include "boost/enable_shared_from_this.hpp"
 
 namespace Dyninst
 {
@@ -72,10 +72,10 @@ namespace Dyninst
     /// - They are of the same type
     /// - If leaf nodes, they represent the same immediate value or the same register
     /// - If non-leaf nodes, they represent the same operation and their corresponding children are equal
-    class INSTRUCTION_EXPORT InstructionAST : public dyn_detail::boost::enable_shared_from_this<InstructionAST>
+    class INSTRUCTION_EXPORT InstructionAST : public boost::enable_shared_from_this<InstructionAST>
     {
     public:
-      typedef dyn_detail::boost::shared_ptr<InstructionAST> Ptr;
+      typedef boost::shared_ptr<InstructionAST> Ptr;
 
       InstructionAST();
       virtual ~InstructionAST();

@@ -272,6 +272,8 @@ void codeGen::copy(const std::vector<unsigned char> &buf) {
    realloc(used() + buf.size());
    
    unsigned char * ptr = (unsigned char *)cur_ptr();
+	assert(ptr);
+
    std::copy(buf.begin(), buf.end(), ptr);
 
    moveIndex(buf.size());

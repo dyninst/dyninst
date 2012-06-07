@@ -192,6 +192,7 @@ void handleAttach()
    HANDLE signalPipe;
 
    if (!useAttach) return;
+   fprintf(stderr, "Creating signal pipe in mutatee...\n");
    signalPipe = CreateFile(pipeName,
                            GENERIC_WRITE,
                            0,
@@ -261,11 +262,10 @@ int main(int iargc, char *argv[])
    unsigned int label_count = 0;
    int print_labels = FALSE;
    int has_pidfile = 0;
+   FILE* f;
 
 #if defined(os_bgq_test)
-   printf("[%s:%u] - Entering MPI_Init\n", __FILE__, __LINE__);
    MPI_Init(&iargc, &argv);
-   printf("[%s:%u] - Leaving MPI_Init\n", __FILE__, __LINE__);
 #endif
 
    gargc = argc;
@@ -365,7 +365,7 @@ int main(int iargc, char *argv[])
          unique_id = atoi(argv[i]);
       } else if (!strcmp(argv[i], "-signal_file")) {
          i += 1;
-         FILE *f = fopen(argv[i], "w");
+         f = fopen(argv[i], "w");
          fclose(f);
       } else if (!strcmp(argv[i], "-signal_fd")) {
          signal_fd = atoi(argv[++i]);
@@ -379,6 +379,7 @@ int main(int iargc, char *argv[])
           */
       }
    }
+	//fprintf(stderr, "parsed command line args\n");
 
    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
@@ -397,8 +398,10 @@ int main(int iargc, char *argv[])
    if ((argc==1) || debugPrint)
       logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
-   if (argc==1) exit(0);
-
+   if (argc==1) {
+		fprintf(stderr, "no tests specified, exiting\n");
+	   exit(0);
+   }
    /* see if we should wait for the attach */
    if (useAttach && !custom_attach) {
       handleAttach();
@@ -439,8 +442,8 @@ int main(int iargc, char *argv[])
 	   for (i = 0; i < max_tests; ++i)
 	   {
 		   if (runTest[i])
-			   logstatus("%s[%d]: %s: %s \n", passedTest[i] ? "PASSED" : "FAILED", __FILE__, __LINE__, 
-					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel);
+			   logstatus("%s[%d]: %s: %s \n",  __FILE__, __LINE__, 
+					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel, passedTest[i] ? "PASSED" : "FAILED");
 	   }
 	   logstatus("\n");
 #endif

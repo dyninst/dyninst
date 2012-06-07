@@ -38,6 +38,14 @@
 #include "common/h/Types.h"
 #include "common/h/headers.h"
 
+#if defined(SERIALIZATION_DISABLED)
+unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *) {
+  return 0;
+}
+
+
+#else
+
 using namespace Dyninst;
 
 //COMMON_EXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
@@ -2467,3 +2475,4 @@ void SerializerBase::translate_base(std::string &v, const char *t)
    getSD().translate(v, t);
 }
 
+#endif

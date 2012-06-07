@@ -124,14 +124,24 @@ class fileDescriptor {
     // hand in the same address for code and data.
     fileDescriptor(string file, Address code, Address data, 
                    bool isShared=false, Address dynamic=0) :
-        file_(file),
+#if defined(os_windows)
+		procHandle_(INVALID_HANDLE_VALUE),
+		fileHandle_(INVALID_HANDLE_VALUE),
+#endif
+		file_(file),
         member_(emptyString),
         code_(code),
         data_(data),
-        dynamic_(dynamic),
+		dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0)
+#if defined(os_windows)
+		loadAddr_(code),
+#else
+		loadAddr_(0),
+#endif
+		length_(0),
+		rawPtr_(NULL)
         {}
 
      ~fileDescriptor() {}
@@ -185,8 +195,6 @@ class fileDescriptor {
  private:
      HANDLE procHandle_;
      HANDLE fileHandle_;
-     Address length_;        // set only if this is not really a file
-     unsigned char* rawPtr_; // set only if this is not really a file
  public:
 #endif
 
@@ -201,6 +209,8 @@ class fileDescriptor {
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address loadAddr_;
+     Address length_;        // set only if this is not really a file
+     unsigned char* rawPtr_; // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };

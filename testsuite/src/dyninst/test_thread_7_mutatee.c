@@ -114,7 +114,7 @@ void test_thread_7_level1()
 
    thread_t me = threadSelf();
    for (i=0; i<NTHRD; i++) {
-      /* dprintf("Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me)); */
+      dprintf("Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me));
       if (threads_equal(thrds[i].tid, me))
          break;
    }

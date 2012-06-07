@@ -36,20 +36,6 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-ifdef LIBDWARF_INC
-MYFLAGS += -I$(LIBDWARF_INC)
-endif
-
-ifdef LIBELF_LIB
-LDFLAGS += -L$(LIBELF_LIB) -lelf
-endif
-ifdef LIBDWARF_LIB
-LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
-endif
-
 MYFLAGS 	+= -I../../parseAPI/h -I../../symtabAPI/h -I../../symEval/h
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)

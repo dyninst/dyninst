@@ -74,7 +74,6 @@ typedef union {
 
 #endif
 
-
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
   ra_fp_pair_t **sp;

@@ -35,7 +35,13 @@
 #include <fcntl.h>
 #include <string.h>
 
-void int_notify::writeToPipe()
+int_notify::unix_details::unix_details() :
+   pipe_in(-1),
+   pipe_out(-1)
+{
+}
+
+void int_notify::unix_details::writeToPipe()
 {
    if (pipe_out == -1) 
       return;
@@ -51,7 +57,7 @@ void int_notify::writeToPipe()
    pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
 }
 
-void int_notify::readFromPipe()
+void int_notify::unix_details::readFromPipe()
 {
    if (pipe_out == -1)
       return;
@@ -76,7 +82,25 @@ void int_notify::readFromPipe()
    pthrd_printf("Cleared notification pipe %d\n", pipe_in);
 }
 
-bool int_notify::createPipe()
+void int_notify::unix_details::clearEvent()
+{
+   readFromPipe();
+}
+
+int_notify::unix_details::wait_object_t int_notify::unix_details::getWaitObject()
+{
+   return pipe_in;
+}
+
+bool int_notify::unix_details::internalsValid() {
+   return (pipe_in != -1 && pipe_out != -1);
+}
+
+void int_notify::unix_details::noteEvent() {
+   writeToPipe();
+}
+
+bool int_notify::unix_details::createInternals()
 {
    if (pipe_in != -1 || pipe_out != -1)
       return true;

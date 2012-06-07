@@ -136,6 +136,8 @@ class IntervalTree {
 
   void clear() { tree_.clear(); }
 
+  bool empty() { return tree_.empty(); }
+
  private:
   
   static V &value(Entry &e) { return e.second; }

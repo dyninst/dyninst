@@ -259,7 +259,7 @@ void CodeMover::extractDefensivePads(AddressSpace *AS) {
    }
 }
 
-void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
+void CodeMover::createInstrumentationSpringboards(AddressSpace * /*as*/) {
    return;
 #if 0
   for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();

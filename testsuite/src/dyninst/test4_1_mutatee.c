@@ -33,7 +33,7 @@
 #include "mutatee_util.h"
 
 #ifdef os_windows_test
-#include <process.h>
+/* #include <process.h> */
 #endif
 
 /* Externally accessed function prototypes.  These must have globally unique
@@ -59,6 +59,10 @@ unsigned int test4_1_global1 = 0xdeadbeef;
 
 int test4_1_mutatee() {
   test4_1_global1 = 1000001;
-  exit((int) getpid());
+#if defined(os_windows)
+  exit(GetCurrentProcessId());
+#else
+  exit(getpid());
+#endif
   return 0; /* Unreachable, but stops some compilers from complaining */
 }

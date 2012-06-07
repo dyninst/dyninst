@@ -325,7 +325,7 @@ class AddressSpace : public InstructionSource {
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
 
     // And this....
-    typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
+    typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionPtr insn,
                                 Address addr,
                                 pdvector<AstNodePtr> &args);

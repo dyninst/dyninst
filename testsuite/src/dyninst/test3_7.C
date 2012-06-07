@@ -67,11 +67,7 @@ extern "C" DLLEXPORT  TestMutator *test3_7_factory() {
 
 test3_7_Mutator::test3_7_Mutator()
   : pathname(NULL), bpatch(NULL) {
-#if defined(os_windows_test)
-  expectedSignal = ExitedNormally;
-#else
   expectedSignal = ExitedViaSignal;
-#endif
 }
 
 static unsigned int num_callbacks_issued = 0;
@@ -86,7 +82,7 @@ static void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
                                 void * /*returnValue*/)
 {
-  dprintf("%s[%d]:  inside oneTimeCode callback\n", __FILE__, __LINE__);
+  dprintf("%s[%d]:  inside oneTimeCode callback, iteration %d\n", __FILE__, __LINE__, num_callbacks_issued);
   num_callbacks_issued++;
   if (num_callbacks_issued == TEST7_NUM_ONETIMECODE) {
     *((bool *)userData) = true; // we are done
@@ -147,7 +143,7 @@ test_results_t test3_7_Mutator::executeTest() {
         BPatch_image *appImage = appProc[i]->getImage();
       //  our oneTimeCode will just be a simple call to a function that increment
       BPatch_Vector<BPatch_function *> bpfv;
-      char *funcname = "test3_7_call1";
+      const char *funcname = "test3_7_call1";
       if (NULL == appImage->findFunction(funcname, bpfv) || !bpfv.size()
           || NULL == bpfv[0]){
         logerror("    Unable to find function %s\n", funcname);
@@ -171,15 +167,18 @@ test_results_t test3_7_Mutator::executeTest() {
       dprintf("%s[%d]:  issuing oneTimeCode to thread %d\n", __FILE__, __LINE__, index);
       appProc[index]->oneTimeCodeAsync(*(irpcSnippets[index]), (void *)&doneFlag);
     }
+	////////////////////////////
+	// RPCs are now post-and-run, not post-then-run, semantics. So post all, wait for all.
+	// This holds even for async RPCs. Blame ProcControl/Windows.
+	// Also in the blame PC/Win department: if you post an RPC to a running process, it *may* fail b/c of process
+	// exit.
+	////////////////////////////
+
 
     dprintf("Running mutatees post-iRPC...\n");
     for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
-
-   ////////////////////////////
-   ////////////////////////////
-
    // and wait for completion
-   while( !doneFlag ) {
+   while( !doneFlag) {
        bpatch->waitForStatusChange();
    }
 

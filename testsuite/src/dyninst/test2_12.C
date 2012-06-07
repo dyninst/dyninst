@@ -67,7 +67,7 @@ extern "C" DLLEXPORT  TestMutator *test2_12_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test2_12_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
-  char *funcname = "test2_12_func1";
+  const char *funcname = "test2_12_func1";
     if ((NULL == appImage->findFunction(funcname, found_funcs, 1)) || !found_funcs.size()) {
       logerror("    Unable to find function %s\n", funcname);
       return FAILED;

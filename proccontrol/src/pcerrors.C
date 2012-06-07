@@ -60,6 +60,7 @@ const char *thrdName()
       return "U";
 }
 
+#if defined(PROCCTRL_PRINT_TIMINGS)
 #include <sys/time.h>
 unsigned long gettod()
 {
@@ -76,6 +77,7 @@ unsigned long gettod()
    }
    return (unsigned long) (t - start);
 }
+#endif
 
 void setGeneratorThread(long t)
 {
@@ -167,7 +169,8 @@ public:
    init_debug_channel() 
    {
       pctrl_err_out = stderr;
-      if (getenv("DYNINST_DEBUG_PROCCONTROL")) {
+      char *debug = getenv("DYNINST_DEBUG_PROCCONTROL");
+      if (debug) {
          setDebug(true);
       }
    }

@@ -29,6 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -37,7 +38,12 @@
 #include "communication.h"
 
 extern void *ThreadTrampoline(void *d);
+#if !defined(os_windows_test)
 __thread int thread_test_tls = 0;
+#else
+// replace this with TLSAlloced variable
+int thread_test_tls = 0;
+#endif
 
 testlock_t sendlock;
 testlock_t synclock;
@@ -87,14 +93,28 @@ int getlwp()
 }
 #endif
 
+#if defined(os_windows_test)
+
+int getlwp()
+{
+	return GetCurrentThreadId();
+}
+#endif
+
 static int sendThreadMsg(int initial_thrd)
 {
    int result;
    threadinfo tinfo;
    tinfo.code = THREADINFO_CODE;
+#if !defined(os_windows_test)
    tinfo.pid = (unsigned long) getpid();
    tinfo.lwp = (unsigned long) getlwp();
    tinfo.tid = (unsigned long) pthread_self();
+#else
+   tinfo.pid = GetCurrentProcessId();
+   tinfo.tid = GetCurrentThreadId();
+   tinfo.lwp = GetCurrentThread();
+#endif
    tinfo.a_stack_addr = (unsigned long) &tinfo;
    if (initial_thrd)
       tinfo.initial_func = (unsigned long) 0x0;
