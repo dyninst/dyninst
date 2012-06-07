@@ -36,10 +36,10 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/dynProcess.h"
-#include "dyninstAPI/src/pcEventHandler.h"
 #include "dyninstAPI/src/ast.h"
 
 #include "proccontrol/h/EventType.h"
+#include "dyninstAPI/src/pcEventMuxer.h"
 using namespace ProcControlAPI;
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
@@ -77,71 +77,55 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
 /////////// Prefork instrumentation 
 
 bool syscallNotification::installPreFork() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Fork));
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) return true;
 
-    if( cbCase == PCEventHandler::BreakpointOnly ||
-        cbCase == PCEventHandler::BothCallbackBreakpoint )
-    {
-        preForkInst = new instMapping(getForkFuncName(),
-                                      "DYNINST_instForkEntry",
-                                      FUNC_ENTRY);
-        preForkInst->dontUseTrampGuard();
-        pdvector<instMapping *> instReqs;
-        instReqs.push_back(preForkInst);
-        
-        proc->installInstrRequests(instReqs);
-    }
+   preForkInst = new instMapping(getForkFuncName(),
+                                 "DYNINST_instForkEntry",
+                                 FUNC_ENTRY);
+   preForkInst->dontUseTrampGuard();
+   pdvector<instMapping *> instReqs;
+   instReqs.push_back(preForkInst);
+   
+   proc->installInstrRequests(instReqs);
 
-    return true;
+   return true;
 }
 
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork));
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
 
-    if( cbCase == PCEventHandler::BreakpointOnly ||
-        cbCase == PCEventHandler::BothCallbackBreakpoint )
-    {
-        AstNodePtr returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
-        postForkInst = new instMapping(getForkFuncName(), "DYNINST_instForkExit",
-                                       FUNC_EXIT|FUNC_ARG,
-                                       returnVal);
-        postForkInst->dontUseTrampGuard();
-        postForkInst->canUseTrap(false);
-        
-        pdvector<instMapping *> instReqs;
-        instReqs.push_back(postForkInst);
-        
-        proc->installInstrRequests(instReqs);
-    }
+   AstNodePtr returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
+   postForkInst = new instMapping(getForkFuncName(), "DYNINST_instForkExit",
+                                  FUNC_EXIT|FUNC_ARG,
+                                  returnVal);
+   postForkInst->dontUseTrampGuard();
+   postForkInst->canUseTrap(false);
+   
+   pdvector<instMapping *> instReqs;
+   instReqs.push_back(postForkInst);
+   
+   proc->installInstrRequests(instReqs);
 
-    return true;
+   return true;
 }    
 
 /////////// Pre-exec instrumentation
 
 bool syscallNotification::installPreExec() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exec));
-
-    if( cbCase == PCEventHandler::BreakpointOnly ||
-        cbCase == PCEventHandler::BothCallbackBreakpoint )
-    {
-        AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
-        preExecInst = new instMapping(getExecFuncName(), "DYNINST_instExecEntry",
-                                       FUNC_ENTRY|FUNC_ARG,
-                                       arg0);
-        preExecInst->dontUseTrampGuard();
-
-        pdvector<instMapping *> instReqs;
-        instReqs.push_back(preExecInst);
-        
-        proc->installInstrRequests(instReqs);
-    }
-    return true;
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
+   AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
+   preExecInst = new instMapping(getExecFuncName(), "DYNINST_instExecEntry",
+                                 FUNC_ENTRY|FUNC_ARG,
+                                 arg0);
+   preExecInst->dontUseTrampGuard();
+   
+   pdvector<instMapping *> instReqs;
+   instReqs.push_back(preExecInst);
+   
+   proc->installInstrRequests(instReqs);
+   return true;
 }    
 
 //////////// Post-exec instrumentation
@@ -155,26 +139,21 @@ bool syscallNotification::installPostExec() {
 /////////// Pre-exit instrumentation
 
 bool syscallNotification::installPreExit() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit));
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
+   AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
+   preExitInst = new instMapping(getExitFuncName(), "DYNINST_instExitEntry",
+                                 FUNC_ENTRY|FUNC_ARG,
+                                 arg0);
+   preExitInst->dontUseTrampGuard();
+   
+   preExitInst->allow_trap = true;
+   
+   pdvector<instMapping *> instReqs;
+   instReqs.push_back(preExitInst);
+   
+   proc->installInstrRequests(instReqs);
 
-    if( cbCase == PCEventHandler::BreakpointOnly ||
-        cbCase == PCEventHandler::BothCallbackBreakpoint )
-    {
-        AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
-        preExitInst = new instMapping(getExitFuncName(), "DYNINST_instExitEntry",
-                                      FUNC_ENTRY|FUNC_ARG,
-                                      arg0);
-        preExitInst->dontUseTrampGuard();
-
-        preExitInst->allow_trap = true;
-
-        pdvector<instMapping *> instReqs;
-        instReqs.push_back(preExitInst);
-        
-        proc->installInstrRequests(instReqs);
-    }
-    return true;
+   return true;
 }    
 
 bool syscallNotification::installPreLwpExit() {
@@ -187,15 +166,7 @@ bool syscallNotification::installPreLwpExit() {
 /////// Remove pre-fork instrumentation
 
 bool syscallNotification::removePreFork() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit));
-
-    if( cbCase != PCEventHandler::BreakpointOnly &&
-        cbCase != PCEventHandler::BothCallbackBreakpoint )
-    {
-        // Nothing to remove
-        return true;
-    }
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork))) return true;
 
     if (!preForkInst) return false;
 
@@ -228,15 +199,7 @@ bool syscallNotification::removePreFork() {
 /////// Remove post-fork instrumentation
 
 bool syscallNotification::removePostFork() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit));
-
-    if( cbCase != PCEventHandler::BreakpointOnly &&
-        cbCase != PCEventHandler::BothCallbackBreakpoint )
-    {
-        // Nothing to remove
-        return true;
-    }
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) return true;
 
     if (!postForkInst) return false;
 
@@ -267,15 +230,7 @@ bool syscallNotification::removePostFork() {
 /////// Remove pre-exec instrumentation
 
 bool syscallNotification::removePreExec() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit));
-
-    if( cbCase != PCEventHandler::BreakpointOnly &&
-        cbCase != PCEventHandler::BothCallbackBreakpoint )
-    {
-        // Nothing to remove
-        return true;
-    }
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exec))) return true;
 
     if (!preExecInst) return false;
 
@@ -313,15 +268,7 @@ bool syscallNotification::removePostExec() {
 /////// Remove pre-exit instrumentation
 
 bool syscallNotification::removePreExit() {
-    PCEventHandler::CallbackBreakpointCase cbCase = 
-        PCEventHandler::getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit));
-
-    if( cbCase != PCEventHandler::BreakpointOnly &&
-        cbCase != PCEventHandler::BothCallbackBreakpoint )
-    {
-        // Nothing to remove
-        return true;
-    }
+   if (!PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) return true;
 
     if( !preExitInst ) return false;
 

@@ -122,6 +122,44 @@ public:
 //    static cb_ret_t singlestepCallback(EventPtr);
 
 	// Platform-specific capability functions
+    /*
+     * SYSCALL HANDLING
+     *
+     * The logic for handling system call entry/exit is complicated by the
+     * fact that ProcControlAPI doesn't provide events for all system call
+     * entry/exit events we are interested in on all platforms (it doesn't 
+     * provide them due to lacking OS debug interfaces). Additionally,
+     * for some events we need to alert ProcControl that they have occurred
+     * to allow it to update its Process/Thread structures (e.g., Post-Fork
+     * on FreeBSD).
+     *
+     * The following approach is used to manage this situation in a 
+     * sane, clean way.
+     *
+     * There are two events that are used to indicate syscall entry/exit:
+     * 1) A Dyninst breakpoint via the RT library
+     * 2) A ProcControlAPI event for the syscall
+     *
+     * There are three cases we need to handle related to these events:
+     * case 1: Event 2 is provided by ProcControl -> 1 is not necessary,
+     * the BPatch-level event is reported when 2 is received.
+     *
+     * case 2: Event 2 is not provided by ProcControl -> 1 is necessary,
+     * 2 is reported to ProcControl at 1, the BPatch-level event is
+     * reported when 2 is received via ProcControl (after it updates its
+     * internal data structures)
+     *
+     * case 3: Event 2 is not provided by ProcControl -> 1 is necessary,
+     * the BPatch-level event is reported at 1
+     *
+     * These cases translate to the following in terms of registering
+     * ProcControlAPI callbacks and inserting breakpoints via the
+     * syscallNotification class.
+     *
+     * case 1: register the callback, don't insert the breakpoint
+     * case 2: register the callback, insert the breakpoint
+     * case 3: don't register the callback, insert the breakpoint
+     */
 	static bool useCallback(ProcControlAPI::EventType et);
 	static bool useBreakpoint(ProcControlAPI::EventType et);
 
