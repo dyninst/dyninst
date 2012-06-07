@@ -79,7 +79,6 @@ int test3_3_mutatee() {
 #endif
 	 fp = fopen(filename, "w");
 
-VS2010.:testsuite/src/dyninst/test3_3_mutatee.c
      assert(fp);
      fprintf(fp, "%d\n", test3_3_ret);
      fclose(fp);
