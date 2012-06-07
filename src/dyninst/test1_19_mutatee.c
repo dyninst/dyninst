@@ -73,6 +73,7 @@ int test1_19_mutatee() {
 	retval = -1; /* Test failed */
     }
 
+	fprintf(stderr, "Mutatee calling stop_process_() time 2\n");
     stop_process_();
 
     if (globalVariable19_2 == MAGIC19_2) {

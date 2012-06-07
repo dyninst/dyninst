@@ -36,20 +36,21 @@
 #include <string>
 #include "test_info_new.h"
 #include "ParameterDict.h"
+#include "dyntypes.h"
 
-std::string launchMutatee(RunGroup *group, ParameterDict &params);
-std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict &params);
-std::string launchMutatee(std::string executable, std::vector<std::string> &args, 
+TESTLIB_DLL_EXPORT std::string launchMutatee(RunGroup *group, ParameterDict &params);
+TESTLIB_DLL_EXPORT std::string launchMutatee(std::string executable, RunGroup *group, ParameterDict &params);
+TESTLIB_DLL_EXPORT std::string launchMutatee(std::string executable, std::vector<std::string> &args, 
                           RunGroup *group, ParameterDict &params);
 
-bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_name,
+TESTLIB_DLL_EXPORT bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_name,
                       std::vector<std::string> &args);
-char **getCParams(std::string executable, const std::vector<std::string> &args);
+TESTLIB_DLL_EXPORT char **getCParams(std::string executable, const std::vector<std::string> &args);
 
 //void setMutateeDict(RunGroup *group, ParameterDict &params);
 
-void registerMutatee(std::string mutatee_string);
-int getMutateePid(RunGroup *group);
+TESTLIB_DLL_EXPORT void registerMutatee(std::string mutatee_string);
+TESTLIB_DLL_EXPORT Dyninst::PID getMutateePid(RunGroup *group);
 
 /**
  * setMutateeDict is a macro function because we want to objects created

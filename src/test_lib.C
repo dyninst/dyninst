@@ -96,14 +96,14 @@ FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
 
-static char *binedit_dir = BINEDIT_BASENAME;
+static const char *binedit_dir = BINEDIT_BASENAME;
 
-char *get_binedit_dir()
+const char *get_binedit_dir()
 {
 	return binedit_dir;
 }
 
-void set_binedit_dir(char *d)
+void set_binedit_dir(const char *d)
 {
 	binedit_dir = d;
 }
@@ -578,7 +578,7 @@ int setenv(const char *envname, const char *envval, int)
 {
 	std::string *alloc_env = new std::string(std::string(envname) 
 			+ std::string("=") + std::string(envval));
-	return putenv((char *)alloc_env->c_str());
+	return _putenv((char *)alloc_env->c_str());
 
 }
 #endif
@@ -643,4 +643,15 @@ int getNumThreads(const ParameterDict &dict)
 #else
    return 8;
 #endif
+}
+
+static FILE *debug_log = NULL;
+FILE *getDebugLog()
+{
+	return debug_log;
+}
+
+void setDebugLog(FILE *f)
+{
+	debug_log = f;
 }

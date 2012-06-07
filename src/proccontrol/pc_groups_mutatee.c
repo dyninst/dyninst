@@ -80,7 +80,15 @@ static void *findUnallocatedMemory() {
 }
 #elif defined(os_windows_test)
 static void *findUnallocatedMemory() {
-#error TODO: Find some page of unmapped memory
+	// Do the same allocate/deallocate trick as above
+	void *result;
+	unsigned pagesize;
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	pagesize = sysinfo.dwPageSize;
+
+	result = VirtualAlloc(NULL, pagesize, MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	return result;
 }
 #else
 #include <sys/mman.h>

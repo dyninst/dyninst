@@ -112,7 +112,7 @@ bool verifyProcMemory(const char *name, BPatch_variableExpr *var,
    }
 }
 
-char *subTestNames[10] = {
+const char *subTestNames[10] = {
     "<no test # 0>",
     "Delete snippet in parent",
     "Delete snippet in child",

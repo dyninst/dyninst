@@ -57,8 +57,8 @@ static std::map<Process::const_ptr, proc_info_forkexec> pinfo;
 static bool myerror;
 #define EXIT_CODE 4
 
-char *exec_name = "pc_exec_targ";
-char *libtestA = "libtestA";
+const char *exec_name = "pc_exec_targ";
+const char *libtestA = "libtestA";
 
 static bool hasLibrary(std::string lib, Process::const_ptr proc)
 {

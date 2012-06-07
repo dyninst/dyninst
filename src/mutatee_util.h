@@ -40,12 +40,14 @@ extern "C" {
 
 #if !defined(os_windows_test)
 #include <stdint.h>
+#else
+	typedef unsigned __int64 uint64_t;
 #endif
 
 #include <stdio.h>
 
 #if defined(os_windows_test)
-
+#include <winsock2.h>
 #include <windows.h>
 
 #if !defined(INVALID_HANDLE)

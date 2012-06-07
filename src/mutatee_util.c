@@ -36,7 +36,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#if !defined(os_windows_test)
 #include <sys/time.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

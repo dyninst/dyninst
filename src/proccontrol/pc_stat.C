@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "ProcessPlat.h"
+#include "PlatFeatures.h"
 #include "proccontrol_comp.h"
 #include "communication.h"
 
@@ -203,9 +203,9 @@ bool pc_statMutator::takeSample()
    MachRegister stack_pointer = MachRegister::getStackPointer(a_proc->getArchitecture());
 
 
-   SysVProcess *sysvp = a_proc->getPlatformProcess()->getSysVProcess();
-   if (sysvp) {
-      result = SysVProcess::refreshLibraries(pset);
+   LibraryTracking *libtracker = a_proc->getPlatformFeatures()->getLibraryTracking();
+   if (libtracker) {
+      result = LibraryTracking::refreshLibraries(pset);
       if (!result) {
          logerror("Failure refreshing libraries\n");
          return false;
@@ -213,10 +213,10 @@ bool pc_statMutator::takeSample()
    }
    
    all_threads = ThreadSet::newThreadSet(pset);
-   BlueGeneQProcess *bgqproc = a_proc->getPlatformProcess()->getBlueGeneQProcess();
+   BlueGeneQFeatures *bgqproc = a_proc->getPlatformFeatures()->getBlueGeneQFeatures();
    if (bgqproc) {
       StackCallbackTest cb_test;
-      result = BlueGeneQProcess::walkStack(all_threads, &cb_test);
+      result = BlueGeneQFeatures::walkStack(all_threads, &cb_test);
       if (!result) {
          logerror("Failue to collect stackwalks\n");
          return false;

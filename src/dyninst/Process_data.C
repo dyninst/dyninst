@@ -31,7 +31,9 @@
 
 // $Id: Process_data.C,v 1.1 2008/10/30 19:17:05 legendre Exp $
 
+#if !defined(COMPLIB_DLL_BUILD)
 #define COMPLIB_DLL_BUILD
+#endif
 
 #include "Process_data.h"
 

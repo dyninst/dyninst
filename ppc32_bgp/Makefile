@@ -6,8 +6,6 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
@@ -30,8 +28,6 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 # without the libdl)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
-MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 MUTATEE_LDFLAGS_GNU    += -ldl $(LDFLAGS)
 MUTATEE_LDFLAGS_NATIVE += -ldl $(LDFLAGS)

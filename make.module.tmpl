@@ -20,7 +20,7 @@ LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instru
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) $(IFLAGS) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
@@ -73,10 +73,7 @@ COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
 COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
 MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 
-TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
-LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
-
-LIBDIR += -L$(LIBRARY_DEST) $(LFLAGS)
+LIBDIR += $(LFLAGS)
 
 #######################################################################
 ###  Basic definitions (filename prefixes)
@@ -631,7 +628,7 @@ test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o tes
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ $^ $(LAUNCHMON_BE_LINK)
+	$(HIDE_COMP)$(CXX) -o $@ connection.o testdriver_wrapper.o $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers

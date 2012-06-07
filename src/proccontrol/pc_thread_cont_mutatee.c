@@ -68,6 +68,8 @@ int pc_thread_cont_mutatee()
    int error = 0;
    int i;
    struct local_data *localData = NULL;
+   handshake can_stop;
+   allow_exit can_exit;
 
    num_threads = 0;
    for (i = 0; i < gargc; i++) {
@@ -98,7 +100,6 @@ int pc_thread_cont_mutatee()
        waitTestBarrier(&localData->barrier);
        // Alert the mutator that all the threads have gotten through the lock
        // and can safely be stopped now
-       handshake can_stop;
        can_stop.code = HANDSHAKE_CODE;
        send_message((unsigned char *)&can_stop, sizeof(handshake));
        // Wait for mutator to indicate that the stop finished
@@ -119,7 +120,6 @@ int pc_thread_cont_mutatee()
        send_message((unsigned char *)&can_stop, sizeof(handshake));
        logstatus("initial thread: all threads can be continued\n");
    }
-   allow_exit can_exit;
    recv_message((unsigned char *) &can_exit, sizeof(allow_exit));
    if (can_exit.code != ALLOWEXIT_CODE) {
       output->log(STDERR, "Recieved event that wasn't allow_exit\n");

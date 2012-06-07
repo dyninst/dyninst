@@ -219,7 +219,8 @@ def print_mutators_list(out, mutator_dict, test_dict):
 		except KeyError:
 			print "Couldn't find libs for mutator " + m['name']
 			raise
-		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) %s\n" % (ObjSuffix, module, libstr))
+                out.write("\t@echo Linking mutator $@\n");
+		out.write("\t$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) %s\n" % (ObjSuffix, module, libstr))
 		out.write("ifndef NO_OPT_FLAG\n")
 		out.write("ifdef STRIP_SO\n")
 		out.write("\t$(STRIP_SO) $@\n")
@@ -599,7 +600,8 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 			out.write("mutatee_driver_solo_%s_%s%s\n"
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
-		out.write("\t%s %s -o $@ $(filter %%%s,$^) %s %s"
+		out.write("\t@echo Linking $@\n");
+		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s"
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 				    compiler['flags']['std'],
 					 ObjSuffix,
@@ -646,7 +648,8 @@ def print_special_object_rules(compiler, out):
 		for d in o['dependencies']:
 			out.write("%s " % (d))
 		out.write("\n")
-		out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
+		out.write("\t@echo Compiling $@\n")
+		out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
 		for f in o['flags']:
 			out.write("%s " % (f))
 		out.write("-o $@ %s " % info['compilers'][compiler]['parameters']['partial_compile'])
@@ -686,7 +689,8 @@ def print_patterns_wildcards(c, out, module):
                     else:
                         out.write("%%%s%s: ../src/%s/%%%s\n"
                                     % (cto, ObjSuffix, module, e))
-                    out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+                    out.write("\t@echo Compiling $@\n");
+                    out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
                                 % (compiler['defstring'],
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
@@ -746,7 +750,8 @@ def print_patterns(c, out, module):
 
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
-				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler['defstring'], module,
 						   object_flag_string(platform, compiler, abi, o, p),
 						   module,
@@ -758,7 +763,8 @@ def print_patterns(c, out, module):
 
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
-				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler['defstring'], module,
 						   object_flag_string(platform, compiler, abi, o, p),
 
@@ -776,7 +782,8 @@ def print_patterns(c, out, module):
                                     ext = extension(sourcefile)
                                     basename = sourcefile[0:-len(ext)]
                                     out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
-                                    out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
+                                    out.write("\t@echo Compling $@\n")
+                                    out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
                                                             % (compiler['defstring'], module,
                                                                     object_flag_string(platform, compiler, abi, o, p)))
 
@@ -806,7 +813,8 @@ def print_aux_patterns(out, platform, comps, module):
 								 ext))
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
-					out.write("\t$(M_%s) %s -o $@ $<\n\n"
+					out.write("\t@echo Compiling $@\n")
+					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
 							  % (comp['defstring'],
 								 object_flag_string(platform, comp, abi, o, p)))
 
@@ -820,7 +828,8 @@ def print_aux_patterns(out, platform, comps, module):
 										  ext))
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
-					out.write("\t$(M_%s) %s -o $@ $<\n\n"
+					out.write("\t@echo Compiling $@\n")
+					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
 							  % (comp['defstring'],
 								 object_flag_string(platform, comp, abi, o, p)))
 
@@ -939,7 +948,8 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		if 'c' in info['compilers'][c]['languages']:
 			for abi in platform['abis']:
 				out.write("mutatee_driver_solo_%s_%s%s: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi, ObjSuffix))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n"
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n"
 						  % (compilers[c]['defstring'],
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
@@ -947,7 +957,8 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 				out.write("mutatee_util_%s_%s%s: ../src/mutatee_util.c\n"
 						  % (info['compilers'][c]['executable'],
 							 abi, ObjSuffix))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n\n"
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n\n"
 						  % (compilers[c]['defstring'],
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
@@ -1184,8 +1195,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
   for (int i = 0; i < %d; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;

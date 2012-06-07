@@ -200,7 +200,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       }
       case USEATTACH:
       {
-         int pid = getMutateePid(group);
+         Dyninst::PID pid = getMutateePid(group);
          if (pid == NULL_PID) {
             std::string mutateeString = launchMutatee(group, params);
             if (mutateeString == string("")) {
@@ -410,6 +410,9 @@ DyninstComponent::~DyninstComponent()
 // All the constructor does is set the instance fields to NULL
 DyninstMutator::DyninstMutator() :
     appThread(NULL),
+	appAddrSpace(NULL),
+	appBinEdit(NULL),
+	appProc(NULL),
     appImage(NULL)
 {
 }
@@ -1384,7 +1387,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
         BPatch_bytesAccessedExpr bae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 	if(!conditional) {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 std::string insn2 = (*res2)[i]->getInsnAtPoint()->format();
@@ -1397,7 +1400,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
         }
 	else {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 std::string insn = (*res2)[i]->getInsnAtPoint()->format();

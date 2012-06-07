@@ -26,6 +26,10 @@ static int gargc;
 static char **gargv;
 
 FILE *debug_log = stderr;
+FILE *getDebugLog()
+{
+   return debug_log;
+}
 
 #include <link.h>
 void copy_iolibs()

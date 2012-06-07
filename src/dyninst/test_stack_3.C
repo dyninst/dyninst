@@ -110,7 +110,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
 	
   /* Instrument test_stack_3_func2() to call test_stack_3_func3(), which will trip another breakpoint. */
   BPatch_Vector<BPatch_function *> instrumentedFunctions;	
-  char *fName = "test_stack_3_func2";
+  const char *fName = "test_stack_3_func2";
   appImage->findFunction(fName, instrumentedFunctions );
   if (instrumentedFunctions.size() != 1) {
     // FIXME Print out a useful error message
@@ -130,7 +130,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
   }
 	
   BPatch_Vector<BPatch_function *> calledFunctions;
-  char *fName2 = "test_stack_3_func3";
+  const char *fName2 = "test_stack_3_func3";
   appImage->findFunction(fName2, calledFunctions );
   if (calledFunctions.size() != 1) {
     //FIXME Print out a useful error message

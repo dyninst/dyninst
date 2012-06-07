@@ -45,7 +45,7 @@ $(SUBDIRS:%=%/test_info_new.gen.C): %/test_info_new.gen.C: $(PYTHON_FILES) %/tup
 
 $(SUBDIRS:%=%): %:%/make.mutators.gen %/make.solo_mutatee.gen %/test_info_new.gen.C
 
-$(SUBDIR_WINDOWS:%=%): %:%/make.mutators.gen %/make.solo_mutatee.gen %/test_info_new.gen.C
+$(SUBDIR_WINDOWS:%=%): %:%/nmake.mutators.gen %/nmake.solo_mutatee.gen %/test_info_new.gen.C
 
 # Do the same as above for windows
 $(SUBDIR_WINDOWS:%=%/tuples): %/tuples: $(PROLOG_FILES)

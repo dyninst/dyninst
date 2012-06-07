@@ -92,6 +92,9 @@ static Process::cb_ret_t proc_exit(Event::const_ptr ev)
 
 static Process::cb_ret_t handle_new_thread(Thread::const_ptr thr)
 {
+	if(!thr) {
+		return Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
+	}
    user_cb_count++;
 
    if (!thr->haveUserThreadInfo()) {
@@ -199,7 +202,7 @@ static Process::cb_ret_t uthr_destroy(Event::const_ptr ev)
       has_error = true;
    }
 
-   char *pstr = NULL;
+   const char *pstr = NULL;
    if (ev->getEventType().time() == EventType::Pre)
    {
       if (pre_dead_tids.find(pair<PID, THR_ID>(pid, tid)) != pre_dead_tids.end()) {
@@ -293,7 +296,7 @@ static Process::cb_ret_t lwp_destroy(Event::const_ptr ev)
    PID pid = thr->getProcess()->getPid();
    LWP lwp = thr->getLWP();
 
-   char *pstr = NULL;
+   const char *pstr = NULL;
    if (ev->getEventType().time() == EventType::Pre)
    {
       if (pre_dead_lwps.find(pair<PID, LWP>(pid, lwp)) != pre_dead_lwps.end()) {
@@ -340,7 +343,7 @@ static void checkThreadMsg(threadinfo tinfo, Process::ptr proc)
    }
    Thread::ptr thr = *i;
    
-   if (has_thr && thr->getTID() != -1) {
+   if (has_thr && thr && thr->getTID() != (Dyninst::THR_ID)(-1)) {
       if (thr->getTID() != (Dyninst::THR_ID) tinfo.tid) {
          logerror("Error.  Mismatched TID, %lx != %lx\n", (unsigned long) thr->getTID(), (unsigned long) tinfo.tid);
          has_error = true;
@@ -399,6 +402,10 @@ test_results_t pc_threadMutator::pre_init(ParameterDict &param)
    has_lwp = false;
    has_thr = true;
    has_stack_info = false;
+#elif defined(os_windows_test)
+	has_lwp = false;
+	has_thr = true;
+    has_stack_info = false;
 #else
 #error Unknown platform
 #endif

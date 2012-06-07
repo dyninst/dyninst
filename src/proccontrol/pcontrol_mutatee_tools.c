@@ -28,18 +28,29 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "mutatee_util.h"
+
+#include "../src/mutatee_util.h"
 #include "pcontrol_mutatee_tools.h"
 #include "communication.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <assert.h>
 
+#if defined(os_windows_test)
+#include <winsock2.h>
+#include <windows.h>
+#if !defined(MSG_WAITALL)
+#define MSG_WAITALL 8
+#endif
+
+#else
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -86,9 +97,11 @@ void *ThreadTrampoline(void *d)
 
    testLock(&thread_startup_lock);
    testUnlock(&thread_startup_lock);
-
+#if defined(os_windows_test)
+   func_result = func(thread_id.threadid, data);
+#else
    func_result = func((unsigned long)thread_id, data);
-   
+#endif
    return (void *) (long) func_result;
 }
 
@@ -108,6 +121,9 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    int i, j;
    int is_mt = 0;
    num_threads = 0;
+
+   //fprintf(stderr, "starting MultiThreadInit\n");
+
    for (i = 0; i < gargc; i++) {
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
          is_mt = 1;
@@ -120,8 +136,13 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       testLock(&thread_startup_lock);
       for (j = 0; j < num_threads; j++) {
          datagram *data = (datagram *) malloc(sizeof(datagram));
-         data->thread_id = (thread_t)j;
-         data->func = init_func;
+#if defined(os_windows_test)
+		 data->thread_id.threadid = j;
+		data->thread_id.hndl = INVALID_HANDLE;
+#else
+		 data->thread_id = (thread_t)j;
+#endif
+		 data->func = init_func;
          data->data = thread_data;
          threads[j] = spawnNewThread((void *) ThreadTrampoline, (void *) data);
       }
@@ -135,6 +156,22 @@ uint64_t getFunctionPtr(unsigned long *ptr) {
 #if defined(arch_power_test) && defined(arch_64bit_test)
     /* need to dereference function pointers before sending them to mutator */
     tmpAddr = *ptr;
+#elif defined (os_windows_test)
+	/* Windows function pointers may be IAT entries, which are jumps to the actual
+	   function */
+	unsigned char *opcode = (unsigned char *)ptr;
+	/* 4-byte offset branch is 0xe9 <offset>
+	   Said offset is from the end of the instruction, or start of the instruction + 5. */
+	if (*opcode == 0xe9) {
+		int *offsetPtr;
+		/* Jump byte */
+		opcode++;
+		offsetPtr = (int *)opcode;
+		tmpAddr = (unsigned long) (((unsigned long) ptr) + 5 + *offsetPtr);
+	}
+	else {
+		tmpAddr = (unsigned long)ptr;
+	}
 #else
     tmpAddr = (unsigned long)ptr;
 #endif
@@ -156,35 +193,49 @@ int handshakeWithServer()
 {
    int result;
    send_pid spid;
+   handshake shake;
+
+  //fprintf(stderr, "starting handshakeWithServer\n");
+
    spid.code = SEND_PID_CODE;
+#if !defined(os_windows_test)
    spid.pid = getpid();
+#else
+   spid.pid = GetCurrentProcessId();
+#endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
-   handshake shake;
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
+  //fprintf(stderr, "got handshake message, checking\n");
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message\n");
       return -1;
    }
+  //fprintf(stderr, "got handshake message OK\n");
 
    return 0;
 }
 
 void pingSignalFD(int sfd)
 {
-   char c = 'X';
+#if !defined(os_windows_test)
+	char c = 'X';
    if (sfd == 0 || sfd == -1) {
       return;
    }
    write(sfd, &c, sizeof(char));
+#else
+//	assert(!"really, matt?");
+	return;
+#endif
 }
 
 int releaseThreads()
@@ -200,6 +251,17 @@ int releaseThreads()
 int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 {
    int result = 0;
+#if defined(os_windows_test)
+	WORD wsVer = MAKEWORD(2,0);
+   WSADATA ignored;
+   //fprintf(stderr, "starting initProcControlTest\n");
+   result = WSAStartup(wsVer, &ignored);
+   if(result)
+   {
+	   fprintf(stderr, "error in WSAStartup: %d\n", result);
+	   return -1;
+   }
+#endif
 
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
@@ -209,6 +271,7 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       return -1;
    }
    pingSignalFD(signal_fd);
+
    getSocketInfo();
 
    result = initMutatorConnection();
@@ -233,6 +296,7 @@ int finiProcControlTest(int expected_ret_code)
 {
    int i, result;
    int has_error = 0;
+   //fprintf(stderr, "begin finiProcControlTest\n");
    if (num_threads == 0)
       return 0;
 
@@ -247,13 +311,13 @@ int finiProcControlTest(int expected_ret_code)
          has_error = 1;
       }
    }
+
+#if defined(os_windows_test)
+   WSACleanup();
+#endif
+   //fprintf(stderr, "end finiProcControlTest\n");
    return has_error ? -1 : 0;
 }
-
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -271,11 +335,15 @@ char *socket_name = NULL;
 void getSocketInfo()
 {
    int count = 0;
-
+	char *space = NULL;
    count = 0;
    while (MutatorSocket[0] == '\0') {
-      usleep(10000); //.01 seconds
-      count++;
+#if defined(os_windows_test)
+	   Sleep(10);
+#else
+	   usleep(10000); //.01 seconds
+#endif
+	   count++;
       if (count >= MESSAGE_TIMEOUT * 100) {
          logerror("Mutatee timeout\n");
          exit(-2);
@@ -283,10 +351,17 @@ void getSocketInfo()
    }
    MutatorSocket[4095] = '\0';
    socket_type = (char *) MutatorSocket;
-   char *space = strchr((char *) MutatorSocket, ' ');
+   space = strchr((char *) MutatorSocket, ' ');
    socket_name = space+1;
    *space = '\0';
 }
+
+#if !defined(os_windows_test)
+
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 void sigalarm_handler(int sig)
 {
@@ -404,11 +479,10 @@ int initMutatorConnection()
 
 int send_message(unsigned char *msg, size_t msg_size)
 {
-   int result;
-
-   if (strcmp(socket_type, "un_socket") == 0) {
-      result = send(sockfd, msg, msg_size, 0);
-   }
+	int result;
+	if (strcmp(socket_type, "un_socket") == 0) {
+		result = send(sockfd, msg, msg_size, 0);
+	}
    else if (strcmp(socket_type, "named_pipe") == 0) {
       assert(created_named_pipes);
       result = write(w_pipe, msg, msg_size);
@@ -513,3 +587,72 @@ int recv_message(unsigned char *msg, size_t msg_size)
    }      
    return 0;
 }
+#else // windows
+
+
+int initMutatorConnection()
+{
+   int result;
+   int i, pid;
+   struct sockaddr_in server_addr;
+
+   if (!socket_name) {
+	   fprintf(stderr, "no socket name set, bailing\n");
+	   return 0;
+   }
+	sscanf(socket_name, "/tmp/pct%d", &pid);
+
+	sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sockfd == INVALID_SOCKET) {
+	  fprintf(stderr, "socket() failed: %d\n", WSAGetLastError());
+      perror("Failed to create socket");
+      return -1; 
+	}
+  
+      memset(&server_addr, 0, sizeof(struct sockaddr_in));
+      server_addr.sin_family = AF_INET;
+	  server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	  server_addr.sin_port = (USHORT)(pid);
+
+      result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_in));
+      if (result != 0) {
+		  fprintf(stderr, "connect() to 127.0.0.1:%d failed: %d\n", server_addr.sin_port, WSAGetLastError());
+         perror("Failed to connect to server");
+//		 assert(!"connect failed");
+         return -1;
+      }
+  
+
+   return 0;
+}
+
+int send_message(unsigned char *msg, size_t msg_size)
+{
+   int result;
+   result = send(sockfd, (char*)msg, msg_size, 0);
+   if (result == -1) {
+	   fprintf(stderr, "Mutatee unable to send message\n");
+      return -1;
+   }
+   return 0;
+}
+
+int recv_message(unsigned char *msg, size_t msg_size)
+{
+   int result = -1;
+   int bytes_remaining = msg_size;
+   while( (bytes_remaining > 0) && (result != 0) ) {
+       result = recv(sockfd, (char*)msg, bytes_remaining, 0);
+
+       if (result == -1) {
+		   fprintf(stderr, "recv() failed: %d\n", WSAGetLastError());
+          fprintf(stderr, "Mutatee unable to recieve message\n");
+          return -1;
+       }
+	   bytes_remaining -= result;
+   }
+   return 0;
+}
+
+
+#endif

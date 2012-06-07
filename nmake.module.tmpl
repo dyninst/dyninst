@@ -1,4 +1,4 @@
-# 
+#
 # Common makefile template for dyninst Tests.  This file is not intended to
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
@@ -16,47 +16,60 @@ CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_te
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/testsuite/src \
-	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi -Dsnprintf=_snprintf
+	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi -Dsnprintf=_snprintf \
+	-D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib
 
-SYSLIBS		= 
+SYSLIBS		=
 
 LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
 LIBSYMTABCOMP = libtestsymtab.dll
 LIBINSTRUCTIONCOMP = libtestinstruction.dll
+LIBPROCCONTROLCOMP = libtestproccontrol.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib libtestproccontrol.lib proccontrol.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
-                    ../src/ParameterDict.C \
                     ../src/TestData.C \
                     ../src/TestMutator.C \
                     ../src/TestOutputDriver.C \
                     ../src/StdOutputDriver.C \
-                    ../src/ResumeLog.C \
-                    ../src/test_info_new.C
+					../src/remotetest.C \
+					../src/connection.C \
+					../src/module.C
+
+SRCS_LIBTESTLAUNCH = ../src/CmdLine.C \
+					 ../src/ParameterDict.C \
+					 ../src/ResumeLog.C \
+					 ../src/MutateeStart.C \
+                     ../src/test_info_new.C \
+					 ../i386-unknown-nt4.0/test_info_new.gen.C
 
 SRCS_DYNINSTCOMP = ../src/dyninst/dyninst_comp.C \
                    ../src/dyninst/test_lib_mutateeStart.C \
                    ../src/dyninst/Callbacks.C \
                    ../src/dyninst/Process_data.C
-SRCS_DYNINSTTESTLIB = ../src/dyninst/libtestA.c \
-                      ../src/dyninst/libtestB.c \
+
+
+SRCS_DYNINSTTESTLIB = ../src/libtestA.c \
+                      ../src/libtestB.c \
                       ../src/dyninst/libInstMe.c \
                       ../src/dyninst/libLoadMe.c
 !ifdef M_ABI
 DYNINST_TESTLIBS = $(SRCS_DYNINSTTESTLIB:.c=.dll)
 DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
+DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/=)
 # no ABIs on windows yet, this should be $src_$m_abi.dll
 DYNINST_TESTLIBS_ABI =
 !else
 DYNINST_TESTLIBS = $(SRCS_DYNINSTTESTLIB:.c=.dll)
 DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
+DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/=)
 DYNINST_TESTLIBS_ABI =
 !endif
 
@@ -67,7 +80,7 @@ DYNINST_TESTLIBS_OBJS = $(DYNINST_TESTLIBS_OBJS:../src/dyninst/=)
 
 SRCS_SYMTABCOMP = ../src/symtab/symtab_comp.C
 
-OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
+OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj) $(SRCS_LIBTESTLAUNCH:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
 OBJS_DYNINSTCOMP = $(SRCS_DYNINSTCOMP:.C=.obj)
@@ -85,9 +98,15 @@ SRCS_INSTRUCTIONCOMP = ../src/instruction/instruction_comp.C
 OBJS_INSTRUCTIONCOMP = $(SRCS_INSTRUCTIONCOMP:.C=.obj)
 OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
 
+SRCS_PROCCONTROLCOMP = ../src/proccontrol/proccontrol_comp.C
+
+OBJS_PROCCONTROLCOMP = $(SRCS_PROCCONTROLCOMP:.C=.obj)
+OBJS_PROCCONTROLCOMP = $(OBJS_PROCCONTROLCOMP:../src/proccontrol/=)
+
+
 TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
 
-all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPROCCONTROLCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -95,21 +114,21 @@ UNCOMMON_INSTALL=true
 install: all
 
 # try not to have clean remove dbghelp.dll
-clean: 
+clean:
 	$(RM) *.ilk
-	$(RM) *.exp 
-	$(RM) *.lib 
-	$(RM) *.obj 
+	$(RM) *.exp
+	$(RM) *.lib
+	$(RM) *.obj
 	$(RM)	$(TESTDRIVER_LIBS) libtestA.dll libtestB.dll libtestsymtab.dll test*.dll
-	$(RM) *.exe 
+	$(RM) *.exe
 	$(RM) *.pdb
 
 # Old Install commands if we actually want to install
 # -$(MKDIR) $(DEST)
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
-LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib
+LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib ws2_32.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib proccontrol.lib stackwalk.lib libcommon.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
@@ -120,10 +139,14 @@ $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 $(LIBSYMTABCOMP): $(OBJS_SYMTABCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_SYMTABCOMP) $(LIBS) libtestSuite.lib
 
+$(LIBPROCCONTROLCOMP): $(OBJS_PROCCONTROLCOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_PROCCONTROLCOMP) $(LIBS) libtestSuite.lib ws2_32.lib
+
+
 $(LIBINSTRUCTIONCOMP): $(OBJS_INSTRUCTIONCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_INSTRUCTIONCOMP) $(LIBS) libtestSuite.lib
 
-$(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
+$(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE) $(SRCS_LIBTESTLAUNCH)
 	$(CXX) $(CXXFLAGS_NORM) -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
@@ -132,6 +155,10 @@ $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 $(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
+$(OBJS_PROCCONTROLCOMP): $(SRCS_PROCCONTROLCOMP)
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+
 $(OBJS_INSTRUCTIONCOMP): $(SRCS_INSTRUCTIONCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
@@ -139,7 +166,7 @@ $(DYNINST_TESTLIBS_OBJS) : $(SRCS_DYNINSTTESTLIB)
 	$(CC) -c $(LDFLAGS) $(CFLAGS) $(CFLAGS_TESTLIBS)$**
 
 $(DYNINST_TESTLIBS): $(DYNINST_TESTLIBS_OBJS)
-	$(LINK) $(TESTLIB_FLAGS) $*.obj -out:$@
+	$(LINK) $(TESTLIB_FLAGS) /base:@dlls.txt,$* $*.obj -out:$@
 
 
 #CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
@@ -150,8 +177,8 @@ $(OBJS_TEMPLATES): $(SRCS_TEMPLATES)
 test_info_new.gen.obj: test_info_new.gen.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
-test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP)
-	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(TESTDRIVER_LIBS)
+test_driver.exe:  test_driver.obj dynlmon.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) test_driver.obj dynlmon.obj $(TESTDRIVER_LIBS)
 
 test_driver.obj: ../src/test_driver.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
@@ -166,7 +193,7 @@ runTests-utils-nt.obj: ../src/runTests-utils-nt.C
 
 DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
 	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ $**
-	
+
 DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**

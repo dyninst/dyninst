@@ -37,8 +37,6 @@
 #include "Expression.h"
 #include "Result.h"
 
-//#include <dyn_detail/boost/assign/list_of.hpp>
-//#include <dyn_detail/boost/iterator/indirect_iterator.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 
