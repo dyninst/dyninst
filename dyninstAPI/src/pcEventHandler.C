@@ -850,17 +850,15 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
         fileDescriptor rtLibDesc(evProc->dyninstRT_name, (*i)->getLoadAddress(),
             dataAddress, true);
-		if( rtLibDesc == tmpDesc ) {
-            assert( !evProc->hasReachedBootstrapState(PCProcess::bs_initialized) );
-            proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
+        if( rtLibDesc == tmpDesc ) {
+           proccontrol_printf("%s[%d]: library event contains RT library load\n", FILE__, __LINE__);
 
-            // In the dynamic case, we can only work with dynamic binaries at
-            // this point and thus the RT library is a shared library, so the
-            // runtime_lib structure should be empty
-            assert( evProc->runtime_lib.size() == 0 );
-
-            evProc->runtime_lib.insert(newObj);
-            // Don't register the runtime library with the BPatch layer
+           // In the dynamic case, we can only work with dynamic binaries at
+           // this point and thus the RT library is a shared library, so the
+           // runtime_lib structure should be empty
+           if (evProc->runtime_lib.size() == 0)
+              evProc->runtime_lib.insert(newObj);
+           // Don't register the runtime library with the BPatch layer
         }else{
 			assert(tmpDesc.file() != rtLibDesc.file());
             // Register the new modules with the BPatch layer
