@@ -5822,7 +5822,7 @@ bool Process::runIRPCSync(IRPC::ptr irpc)
    if (!result) return false;
 
    while (irpc->state() != IRPC::Done) {
-	   result = int_process::waitAndHandleEvents(false);
+	   result = int_process::waitAndHandleEvents(true);
 	   if (!result) {
 		  perr_printf("Error waiting for process to finish iRPC\n");
 		  return false;
