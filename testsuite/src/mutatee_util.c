@@ -469,7 +469,7 @@ int setupFortranOutput() {
    if (-1 == outlog_fd) {
       return -1; /* Error */
    }
-   printf(" "); /* Workaround */
+   //printf(" "); /* Workaround */
    stdout_fd = fileno(stdout);
    saved_stdout_fd = dup(stdout_fd); /* Duplicate stdout */
    if (-1 == saved_stdout_fd) {
