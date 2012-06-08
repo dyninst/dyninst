@@ -56,7 +56,9 @@ typedef enum __ptrace_request pt_req;
 
 class GeneratorLinux : public GeneratorMT
 {
- public:
+  private:
+   int generator_lwp;
+  public:
    GeneratorLinux();
    virtual ~GeneratorLinux();
 

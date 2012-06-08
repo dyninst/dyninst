@@ -72,6 +72,9 @@
 #define PTRACE_SETREGS PPC_PTRACE_SETREGS
 #endif
 
+static pid_t P_gettid();
+static bool t_kill(int pid, int sig);
+
 using namespace Dyninst;
 using namespace std;
 
@@ -89,6 +92,7 @@ Generator *Generator::getDefaultGenerator()
 
 bool GeneratorLinux::initialize()
 {
+   generator_lwp = P_gettid();
    return true;
 }
 
@@ -147,8 +151,50 @@ GeneratorLinux::GeneratorLinux() :
    decoders.insert(new DecoderLinux());
 }
 
+static volatile int on_sigusr2_hit;
+static void on_sigusr2(int)
+{
+   on_sigusr2_hit = 1;
+}
+
 GeneratorLinux::~GeneratorLinux()
 {
+   setState(exiting);
+   
+   if (!generator_lwp)
+      return;
+   
+   //Throw a SIGUSR2 at the generator thread.  This will kick it out of
+   // a waitpid with EINTR, and allow it to exit.  Will do nothing if not
+   // blocked in waitpid.
+   //
+   //There's a subtle race condition here, which we can't easily fix.  
+   // The generator thread could be just before waitpid, but after 
+   // it's exit test when the signal hits.  We won't throw EINTR because
+   // we're not in waitpid yet, and we won't retest the exiting state.
+   // This exact kind of race is why we have things like pselect, but
+   // waitpid doesn't have a pwaitpid, so we're stuck.
+   struct sigaction newact, oldact;
+   memset(&newact, 0, sizeof(struct sigaction));
+   memset(&oldact, 0, sizeof(struct sigaction));
+   newact.sa_handler = on_sigusr2;
+
+   int result = sigaction(SIGUSR2, &newact, &oldact);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+      return;
+   }
+   on_sigusr2_hit = 0;
+   t_kill(generator_lwp, SIGUSR2);
+   while (!on_sigusr2_hit)
+      sched_yield();
+
+   result = sigaction(SIGUSR2, &oldact, NULL);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+   }
 }
 
 DecoderLinux::DecoderLinux()
@@ -1090,8 +1136,6 @@ SymbolReaderFactory *linux_process::plat_defaultSymReader()
 #define SYS_tkill 238
 #endif
 
-#if 0
-//Currently unused
 static pid_t P_gettid()
 {
   static int gettid_not_valid = 0;
@@ -1108,7 +1152,6 @@ static pid_t P_gettid()
   }
   return (int) result;
 }
-#endif
 
 static bool t_kill(int pid, int sig)
 {
