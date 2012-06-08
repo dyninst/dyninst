@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"

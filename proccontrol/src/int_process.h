@@ -32,7 +32,7 @@
 #if !defined(INT_PROCESS_H_)
 #define INT_PROCESS_H_
 
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Event.h"
 

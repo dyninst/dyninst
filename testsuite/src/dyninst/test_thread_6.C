@@ -111,7 +111,7 @@ static void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead\n", __FILE__, __LINE__, my_dyn_id);
+   dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead, %d total dead threads\n", __FILE__, __LINE__, my_dyn_id, deleted_threads);
 }
 
 // Globals: dyn_tids, error13, initial_funcs(?), our_tid_max, proc,
@@ -293,6 +293,15 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
 
    newthr(appProc, appThread);
 
+   // For the attach case, we may already have the threads in existence; if so, 
+   // manually trigger them here. 
+   std::vector<BPatch_thread *> threads;
+   appProc->getThreads(threads);
+   for (unsigned i = 0; i < threads.size(); ++i) {
+	   if (threads[i] == appThread) continue;
+	   newthr(appProc, threads[i]);
+   }
+
    // Wait for NUM_THREADS new thread callbacks to run
    while (thread_count < NUM_THREADS) {
       dprintf(stderr, "Going into waitForStatusChange...\n");
@@ -353,7 +362,9 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    num_attempts = 0;
    while(deleted_threads != NUM_THREADS && num_attempts != TIMEOUT) {
       num_attempts++;
-      P_sleep(1);
+	  std::cerr << "Deleted " << deleted_threads << " and expected " << NUM_THREADS << std::endl;
+	  P_sleep(1);
+
    }
 
    for (unsigned i=1; i<NUM_THREADS; i++)

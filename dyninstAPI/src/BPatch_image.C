@@ -56,7 +56,7 @@
 #include "BPatch_point.h"
 
 #include "addressSpace.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 
 #include "parseAPI/h/CodeSource.h"
 

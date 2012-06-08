@@ -40,7 +40,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 
 inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 	return dynamic_cast< inferiorRPCinProgress * >( this );

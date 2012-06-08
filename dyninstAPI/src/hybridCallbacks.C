@@ -37,7 +37,7 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 #include "function.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "eventLock.h"
 #include "MemoryEmulator/memEmulator.h"
 

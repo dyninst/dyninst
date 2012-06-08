@@ -1,3 +1,34 @@
+/*
+ * Copyright (c) 1996-2011 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #include "DecoderWindows.h"
 #include "windows_process.h"
 #include "windows_handler.h"
@@ -128,6 +159,7 @@ Event::ptr DecoderWindows::decodeSingleStepEvent(DEBUG_EVENT e, int_process* pro
 	CONTEXT verification;
 	verification.ContextFlags = CONTEXT_FULL;
 	::GetThreadContext(((windows_thread *)thread)->plat_getHandle(), &verification);
+
 	if (verification.EFlags & TF_BIT) {
 		pthrd_printf("BUG ENCOUNTERED: OS handled us a thread with TF set, clearing manually\n");
 		verification.EFlags &= (~TF_BIT);
@@ -185,7 +217,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			winEvt->evt.dwProcessId, winEvt->evt.dwThreadId);
 		return false;
 	}
-	windows_proc->clearPendingDebugBreak();
+	//windows_proc->clearPendingDebugBreak();
 
 	DEBUG_EVENT e = winEvt->evt;
 
@@ -221,6 +253,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				{
 					bool didSomething = false;
 
+#if 0
 
 					// Case 2: breakpoint from debugBreak() being used for a stop on one/all threads.
 					pthrd_printf("Possible stop, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
@@ -232,11 +265,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 					  }
 				   }   
 
-					if(didSomething)
+#endif
+				   if (windows_proc->pendingDebugBreak())
 					{
 						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
 						newEvt = Event::ptr(new EventStop());
-						windows_proc->clearPendingDebugBreak();
+						// Handler'll get this one
+						//						windows_proc->clearPendingDebugBreak();
 					}
 					else
 					{
@@ -271,6 +306,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 			{
 				pthrd_printf("segfault in mutatee, thread %d/%d\n", e.dwProcessId, e.dwThreadId);
 				unsigned problemArea = (unsigned int)(e.u.Exception.ExceptionRecord.ExceptionAddress);
+				cerr << "SEGFAULT @ " << hex << problemArea << dec << endl;
 				dumpSurroundingMemory(problemArea, proc);
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);

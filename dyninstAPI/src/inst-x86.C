@@ -56,7 +56,7 @@
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 
 #include "dyninstAPI/src/registerSpace.h"
 

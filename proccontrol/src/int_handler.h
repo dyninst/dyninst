@@ -30,7 +30,7 @@
  */
 
 #include "proccontrol/h/Handler.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include <map>
 #include <vector>
 

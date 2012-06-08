@@ -34,7 +34,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/PCProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,

@@ -90,9 +90,9 @@ public:
 	HANDLE plat_getHandle();
 	void plat_setHandles(HANDLE hp, HANDLE hf, Address fb);
 	virtual bool hasPendingDetach() const { return pendingDetach; }
-	virtual void clearPendingDebugBreak() { pendingDebugBreak_ = false; }
-	virtual void setPendingDebugBreak() { pendingDebugBreak_ = true; }
-	virtual bool pendingDebugBreak() const { return pendingDebugBreak_; }
+	virtual void clearPendingDebugBreak();
+	virtual void setPendingDebugBreak();
+	virtual bool pendingDebugBreak() const;
 	// Windows lets us do this directly.
 	virtual Dyninst::Address direct_infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
 	virtual bool direct_infFree(Dyninst::Address addr);

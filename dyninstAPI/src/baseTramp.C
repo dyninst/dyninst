@@ -35,7 +35,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/pcThread.h"
+#include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"

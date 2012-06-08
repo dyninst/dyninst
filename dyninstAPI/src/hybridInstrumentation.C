@@ -40,7 +40,7 @@
 #include "function.h"
 #include "instPoint.h"
 #include "debug.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "mapped_object.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "mapped_module.h"

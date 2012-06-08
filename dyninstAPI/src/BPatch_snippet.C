@@ -56,7 +56,7 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "debug.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "pcEventHandler.h"
 
 #include "symtabAPI/h/Type.h"

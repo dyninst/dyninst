@@ -31,7 +31,7 @@
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Mailbox.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
 

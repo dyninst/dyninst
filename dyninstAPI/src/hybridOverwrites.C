@@ -36,7 +36,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_edge.h"
 #include "BPatch_module.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "BPatch_point.h"
 #include "function.h"
 #include "debug.h"

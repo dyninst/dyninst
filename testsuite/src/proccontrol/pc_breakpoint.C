@@ -30,7 +30,7 @@
  */
 #include "proccontrol_comp.h"
 #include "communication.h"
-#include "Process.h"
+#include "PCProcess.h"
 #include "Event.h"
 
 #include <stdio.h>

@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PCPROCESS_H
-#define PCPROCESS_H
+#ifndef DYNPROCESS_H
+#define DYNPROCESS_H
 /*
  * pcProcess.h
  *
@@ -42,7 +42,7 @@
 #include <set>
 
 #include "addressSpace.h"
-#include "pcThread.h"
+#include "dynThread.h"
 #include "pcEventHandler.h"
 #include "inst.h"
 #include "codeRange.h"
@@ -55,7 +55,7 @@
 #include "Symtab.h"
 
 #include "symtabAPI/h/SymtabReader.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
@@ -66,6 +66,7 @@
 #define RPC_STOP_WHEN_DONE 2
 
 class DynSymReaderFactory;
+class PCEventMuxer;
 
 class PCProcess : public AddressSpace {
     // Why PCEventHandler is a friend
@@ -79,6 +80,7 @@ class PCProcess : public AddressSpace {
     // This allows changes to the internals to have relatively low impact on the
     // rest of Dyninst
     friend class PCEventHandler;
+	friend class PCEventMuxer; // Needed for some state queries that are protected
 	friend class HybridAnalysis;
 
 public:
@@ -93,11 +95,10 @@ public:
                                     BPatch_hybridMode analysisMode,
                                     pdvector<std::string> &envp,
                                     const std::string dir, int stdin_fd, int stdout_fd,
-                                    int stderr_fd, PCEventHandler *eventHandler);
+                                    int stderr_fd);
 
     static PCProcess *attachProcess(const std::string &progpath, int pid,
-                                    BPatch_hybridMode analysisMode, 
-                                    PCEventHandler *eventHandler);
+                                    BPatch_hybridMode analysisMode);
     ~PCProcess();
 
     static std::string createExecPath(const std::string &file, const std::string &dir);
@@ -307,7 +308,7 @@ protected:
 
     // Process create/exec constructor
     PCProcess(ProcControlAPI::Process::ptr pcProc, std::string file,
-            BPatch_hybridMode analysisMode, PCEventHandler *eventHandler)
+            BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
           parent_(NULL),
           initialThread_(NULL), 
@@ -331,7 +332,6 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
-          eventHandler_(eventHandler),
           eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
@@ -346,8 +346,7 @@ protected:
     }
 
     // Process attach constructor
-    PCProcess(ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode,
-            PCEventHandler *eventHandler)
+    PCProcess(ProcControlAPI::Process::ptr pcProc, BPatch_hybridMode analysisMode)
         : pcProc_(pcProc),
           parent_(NULL),
           initialThread_(NULL), 
@@ -370,7 +369,6 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
-          eventHandler_(eventHandler),
           eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),

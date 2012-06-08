@@ -450,7 +450,7 @@ bool windows_process::direct_infFree(Dyninst::Address addr)
 	}
 	// HACK: short-circuit and don't deallocate.
 	return true;
-
+	cerr << "FREEING " << hex << addr << dec << endl;
 	BOOL result = ::VirtualFreeEx(hproc, (LPVOID)addr, 0, MEM_RELEASE);
 	if (!result) {
 		fprintf(stderr, "VirtualFreeEx failed at 0x%lx, retval %d", addr, ::GetLastError());
@@ -629,4 +629,20 @@ ExecFileInfo* windows_process::plat_getExecutableInfo() const
 	ret->processHandle = (void*)hproc;
 	ret->fileBase = execBase;
 	return ret;
+}
+
+bool windows_process::pendingDebugBreak() const {
+	pthrd_printf("win_proc: pending debug break %s\n",
+		pendingDebugBreak_ ? "<true>" : "<false");
+	return pendingDebugBreak_;
+}
+
+void windows_process::setPendingDebugBreak() {
+	pthrd_printf("win_proc: setting pending debug break\n");
+	pendingDebugBreak_ = true;
+}
+
+void windows_process::clearPendingDebugBreak() {
+	pthrd_printf("win_proc: clearing pending debug break\n");
+	pendingDebugBreak_ = false;
 }

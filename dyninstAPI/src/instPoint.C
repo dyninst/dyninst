@@ -45,7 +45,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/pcThread.h"
+#include "dyninstAPI/src/dynThread.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;

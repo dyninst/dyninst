@@ -34,7 +34,7 @@
 #include <cstdlib>
 
 #include "binaryEdit.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "symtab.h"
 #include "function.h"
 #include "instPoint.h"

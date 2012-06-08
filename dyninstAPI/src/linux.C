@@ -32,7 +32,7 @@
 // $Id: linux.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
 
 #include "binaryEdit.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "symtab.h"
 #include "function.h"
 #include "instPoint.h"
@@ -43,6 +43,8 @@
 #include "mapped_module.h"
 #include "linux.h"
 #include <dlfcn.h>
+
+#include "pcEventMuxer.h"
 
 #include "common/h/headers.h"
 #include "common/h/linuxKludges.h"
@@ -378,48 +380,34 @@ AstNodePtr PCProcess::createLoadRTAST() {
     return AstNode::sequenceNode(sequence);
 }
 
-PCEventHandler::CallbackBreakpointCase
-PCEventHandler::getCallbackBreakpointCase(EventType et) {
+bool PCEventMuxer::useBreakpoint(Dyninst::ProcControlAPI::EventType et)
+{
     // This switch statement can be derived from the EventTypes and Events
     // table in the ProcControlAPI manual -- it states what Events are
     // available on each platform
-    
-    switch(et.code()) {
-        case EventType::Fork:
-            switch(et.time()) {
-                case EventType::Pre:
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return CallbackOnly;
-                default:
-                    break;
-            }
-            break;
-        case EventType::Exit:
-            switch(et.time()) {
-                case EventType::Pre:
-                    // Using the RT library breakpoint allows us to determine
-                    // the exit code in a uniform way across Unices
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return CallbackOnly;
-                default:
-                    break;
-            }
-            break;
-        case EventType::Exec:
-            switch(et.time()) {
-                case EventType::Pre:
-                    return BreakpointOnly;
-                case EventType::Post:
-                    return CallbackOnly;
-                default:
-                    break;
-            }
-            break;
-    }
 
-    return NoCallbackOrBreakpoint;
+   // Pre-events are breakpoint
+   // Post-events are callback
+   if (et.time() == EventType::Pre &&
+       ((et.code() == EventType::Exit) ||
+        (et.code() == EventType::Fork) ||
+        (et.code() == EventType::Exec))) return true;
+   return false;
+}
+
+bool PCEventMuxer::useCallback(Dyninst::ProcControlAPI::EventType et)
+{
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+
+   // Pre-events are breakpoint
+   // Post-events are callback
+   if (et.time() == EventType::Post &&
+       ((et.code() == EventType::Exit) ||
+        (et.code() == EventType::Fork) ||
+        (et.code() == EventType::Exec))) return true;
+   return false;
 }
 
 bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<string> &paths) {

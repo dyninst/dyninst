@@ -30,7 +30,7 @@
  */
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/PCErrors.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/Mailbox.h"
 
 #include "proccontrol/src/int_process.h"
@@ -40,6 +40,10 @@
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
 #include "dynutil/h/dyn_regs.h"
+
+#if defined(os_windows)
+#include "proccontrol/src/windows_process.h"
+#endif
 
 using namespace Dyninst;
 using namespace std;
@@ -1029,6 +1033,14 @@ Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
    if (ev->getSyncType() == Event::sync_process) {
       pthrd_printf("Handling process stop for %d\n", proc->getPid());
       bool found_pending_stop = false;
+#if defined(os_windows)
+	  windows_process *wproc = dynamic_cast<windows_process *>(proc);
+	  if (wproc && wproc->pendingDebugBreak()) {
+		  found_pending_stop = true;
+		  wproc->clearPendingDebugBreak();
+	  }
+#endif
+
       for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
          int_thread *thrd = *i;
          pthrd_printf("Handling process stop for %d/%d\n", proc->getPid(), thrd->getLWP());

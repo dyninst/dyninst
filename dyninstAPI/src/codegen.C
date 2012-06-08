@@ -36,8 +36,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "addressSpace.h"
-#include "pcThread.h"
-#include "pcProcess.h"
+#include "dynThread.h"
+#include "dynProcess.h"
 #include "common/h/Types.h"
 #if defined (os_osf)
 #include <malloc.h>

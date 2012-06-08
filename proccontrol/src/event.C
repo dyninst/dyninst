@@ -36,7 +36,7 @@
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/h/Event.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include <assert.h>

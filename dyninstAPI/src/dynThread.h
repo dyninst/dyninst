@@ -29,12 +29,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PCTHREAD_H
-#define PCTHREAD_H
+#ifndef DYNTHREAD_H
+#define DYNTHREAD_H
 
 #include "frame.h"
 
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 
 /*
  * pcThread.h
@@ -65,7 +65,7 @@ public:
     Dyninst::LWP getLWP() const;
     PCProcess *getProc() const;
     bool isLive() const;
-
+	ProcControlAPI::Thread::ptr pcThr() const { return pcThr_; }
     // Thread info
     dynthread_t getTid() const;
     func_instance *getStartFunc();

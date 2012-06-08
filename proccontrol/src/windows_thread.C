@@ -177,6 +177,8 @@ bool windows_thread::plat_stop()
 	{
 		// If there's a debug break pending or we're generator stopped, then all we need to do is set state.
 		// Only make the debug break call if we don't know that we're going to become stopped at some future point.
+		pthrd_printf("Pending debug break (%s) or generator stopped (%s), erasing pending stop and returning true\n",
+			(wproc->pendingDebugBreak() ? "<true>" : "<false>"), (getGeneratorState().getState() == int_thread::stopped) ? "<true>" : "<false>");
 		setPendingStop(false);
 		return true;
 	}

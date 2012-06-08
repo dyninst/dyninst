@@ -56,9 +56,9 @@
 #include "eventLock.h"
 
 // ProcControlAPI interface
-#include "pcProcess.h"
-#include "pcThread.h"
-#include "pcEventHandler.h"
+#include "dynProcess.h"
+#include "dynThread.h"
+#include "pcEventMuxer.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
@@ -115,7 +115,6 @@ BPatch::BPatch()
     notificationFDOutput_(-1),
     notificationFDInput_(-1),
     FDneedsPolling_(false),
-    eventHandler_(NULL),
     errorCallback(NULL),
     preForkCallback(NULL),
     postForkCallback(NULL),
@@ -174,8 +173,9 @@ BPatch::BPatch()
         builtInTypes->addBuiltInType(new BPatch_type((*sTypes)[i]));
 
     //loadNativeDemangler();
-    
-    eventHandler_ = PCEventHandler::createPCEventHandler();
+
+	// Start up the event handler thread
+	PCEventMuxer::start();
 }
 
 
@@ -186,8 +186,6 @@ BPatch::BPatch()
  */
 void BPatch::BPatch_dtor()
 {
-    delete eventHandler_;
-
     for(dictionary_hash<int, BPatch_process *>::iterator i =
             info->procsByPid.begin(); i != info->procsByPid.end();
             ++i)
@@ -802,7 +800,7 @@ void BPatch::registerNormalExit(PCProcess *proc, int exitcode)
    process->setExitedNormally();
 
    if (thrd) {
-      if( threadDestroyCallback ) {
+	   if( threadDestroyCallback && !thrd->madeExitCallback() ) {
           threadDestroyCallback(process, thrd);
       }
    }
@@ -840,7 +838,7 @@ void BPatch::registerSignalExit(PCProcess *proc, int signalnum)
    bpprocess->terminated = true;
 
    if (thrd) {
-      if( threadDestroyCallback ) {
+	   if( threadDestroyCallback && !thrd->madeExitCallback() ) {
           threadDestroyCallback(bpprocess, thrd);
       }
       if( exitCallback ) {
@@ -893,10 +891,13 @@ void BPatch::registerThreadExit(PCProcess *llproc, PCThread *llthread)
         return;
     }
 
+	if (thrd->madeExitCallback()) return;
+
     if( threadDestroyCallback ) {
         threadDestroyCallback(bpprocess, thrd);
     }
 
+	thrd->setMadeExitCallback();
     bpprocess->deleteBPThread(thrd);
 }
 
@@ -1116,11 +1117,6 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 #endif // !VxWorks
 #endif // !Windows
 
-   if( !eventHandler_->start() ) {
-       reportError(BPatchFatal, 68, "create process failed to create event handler");
-       return NULL;
-   }
-
    BPatch_process *ret = 
       new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
 
@@ -1169,12 +1165,6 @@ BPatch_process *BPatch::processAttachInt
       return NULL;
    }
 
-   // make sure the event handler is waiting on events from ProcControlAPI
-   if( !eventHandler_->start() ) {
-       reportError(BPatchFatal, 26, "attach process failed to create event handler");
-       return NULL;
-   }
-
    BPatch_process *ret = new BPatch_process(path, pid, mode);
 
    if (!ret->llproc ||
@@ -1219,10 +1209,10 @@ bool BPatch::pollForStatusChangeInt()
     proccontrol_printf("[%s:%u] Polling for events\n", FILE__, __LINE__);
 
     recursiveEventHandling = true;
-    PCEventHandler::WaitResult result = eventHandler_->waitForEvents(false);
+    PCEventMuxer::WaitResult result = PCEventMuxer::wait(false);
     recursiveEventHandling = false;
 
-    if( result == PCEventHandler::Error ) {
+    if( result == PCEventMuxer::Error ) {
         proccontrol_printf("[%s:%u] Failed to poll for events\n",
                 FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0, 
@@ -1232,7 +1222,7 @@ bool BPatch::pollForStatusChangeInt()
 
     clearNotificationFD();
 
-    if( result == PCEventHandler::EventsReceived ) {
+    if( result == PCEventMuxer::EventsReceived ) {
         proccontrol_printf("[%s:%u] Events received\n", FILE__, __LINE__);
         return true;
     }
@@ -1276,10 +1266,10 @@ bool BPatch::waitForStatusChangeInt() {
     proccontrol_printf("%s:[%d] Waiting for events\n", FILE__, __LINE__);
 
     recursiveEventHandling = true;
-    PCEventHandler::WaitResult result = eventHandler_->waitForEvents(true);
+    PCEventMuxer::WaitResult result = PCEventMuxer::wait(true);
     recursiveEventHandling = false;
 
-    if( result == PCEventHandler::Error ) {
+    if( result == PCEventMuxer::Error ) {
         proccontrol_printf("%s:[%d] Failed to wait for events\n",
                       FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
@@ -1289,7 +1279,7 @@ bool BPatch::waitForStatusChangeInt() {
 
     clearNotificationFD();
 
-    if( result == PCEventHandler::EventsReceived ) {
+    if( result == PCEventMuxer::EventsReceived ) {
         proccontrol_printf("%s:[%d] Events received\n", FILE__, __LINE__);
         return true;
     }

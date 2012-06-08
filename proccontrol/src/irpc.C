@@ -1385,3 +1385,27 @@ int_thread* iRPCMgr::createThreadForRPC(int_process*, int_thread *candidate)
    return candidate;
 }
 #endif
+
+IRPC::State IRPC::state() const
+{
+	// Up-map from the underlying state
+	switch (wrapper->rpc->getState()) {
+		case int_iRPC::Unassigned:
+			return Created;
+		case int_iRPC::Posted:
+			return Posted;
+		case int_iRPC::Prepping:
+		case int_iRPC::Prepped:
+		case int_iRPC::Saving:
+		case int_iRPC::Saved:
+		case int_iRPC::Writing:
+		case int_iRPC::Ready:
+		case int_iRPC::Running:
+			return Running;
+		case int_iRPC::Cleaning:
+		case int_iRPC::Finished:
+			return Done;
+		default:
+			return Error;
+	}
+}

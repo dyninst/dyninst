@@ -35,8 +35,8 @@
 #include "debug.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-#include "pcProcess.h"
-#include "pcThread.h"
+#include "dynProcess.h"
+#include "dynThread.h"
 #include "function.h"
 
 #include "common/h/pathName.h"
@@ -612,7 +612,6 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 #include "dyninstAPI/src/addressSpace.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/pcProcess.h"
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/debug.h"
 #include "boost/tuple/tuple.hpp"

@@ -68,6 +68,10 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     BPatch_process *proc;
     PCThread *llthread;
+	// Sometimes we get per-thread exit notifications, sometimes we 
+	// just get whole-process. So keep track of whether we've notified
+	// the user of an exit so we don't duplicate when the process exits.
+	bool madeExitCallback_;
 
  protected:
     BPatch_thread(BPatch_process *parent, PCThread *thr);
@@ -78,6 +82,9 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     // Currently only used on an exec to replace the underlying PCThread
     void updateThread(PCThread *newThr);
     
+	bool madeExitCallback() { return madeExitCallback_; }
+	void setMadeExitCallback() { madeExitCallback_ = true; }
+
  public:
 
     //  BPatch_thread::getCallStack

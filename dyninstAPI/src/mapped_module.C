@@ -37,7 +37,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include <iomanip>
 #include <string>
 

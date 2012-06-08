@@ -1101,7 +1101,30 @@ bool int_process::terminate(bool &needs_sync)
       return false;
    }
    forcedTermination = true;
+
+	// On windows this leads to doubling up events
+#if defined(os_windows)
+   // If we're on windows, we want to force the generator thread into waiting for a debug
+   // event _if the process is stopped_. If the process is running then we're already
+   // waiting (or will wait) for a debug event, and forcing the generator to block may
+   // lead to doubling up. 
+   
+   // The following code is similar to GeneratorWindows::hasLiveProc. This is not a coincidence.
+	bool all_stopped = true;
+   for (int_threadPool::iterator iter = threadpool->begin(); iter != threadpool->end(); ++iter) {
+		if (RUNNING_STATE((*iter)->getActiveState().getState())) {
+			all_stopped = false;
+			break;
+		}
+   }
+   if (all_stopped) {
+	   setForceGeneratorBlock(true);
+   }
+#else
+   // Do it all the time
    setForceGeneratorBlock(true);
+#endif
+
    return true;
 }
 
@@ -2584,6 +2607,7 @@ bool int_thread::isStopped(int state_id)
 
 void int_thread::setPendingStop(bool b)
 {
+	pthrd_printf("******: setting pending stop to %d, thread %p\n", b, getLWP());
    if (b) {
       pending_stop.inc();
 
@@ -2597,6 +2621,8 @@ void int_thread::setPendingStop(bool b)
       getPendingStopState().restoreState();
       pending_stop.dec();
    }
+	pthrd_printf("\t Pending stop level is %d\n", pending_stop.localCount());
+
 }
 
 bool int_thread::hasPendingStop() const
@@ -5738,7 +5764,7 @@ bool Process::allThreadsRunningWhenAttached() const
     return true;
 }
 
-bool Process::launchIRPC(IRPC::ptr irpc)
+bool Process::runIRPCAsync(IRPC::ptr irpc)
 {
    MTLock lock_this_func;
    if (!llproc_) {
@@ -5761,7 +5787,13 @@ bool Process::launchIRPC(IRPC::ptr irpc)
    int_iRPC::ptr rpc = irpc->llrpc()->rpc;
    rpc->setAsync(false);
 
-   bool result = rpcMgr()->postRPCToProc(proc, rpc);
+   bool result = false;
+   if (rpc->thread()) {
+	   result = rpcMgr()->postRPCToThread(rpc->thread(), rpc);
+   }
+   else {
+		result = rpcMgr()->postRPCToProc(proc, rpc);
+   }
    if (!result) {
       pthrd_printf("postRPCToProc failed on %d\n", proc->getPid());
       return false;
@@ -5778,12 +5810,43 @@ bool Process::launchIRPC(IRPC::ptr irpc)
    }
 
    llproc_->throwNopEvent();
-   result = int_process::waitAndHandleEvents(false);
-   if (!result) {
-      perr_printf("Error waiting for process to finish iRPC\n");
-      return false;
+   return true;
+}
+
+
+bool Process::runIRPCSync(IRPC::ptr irpc)
+{
+   MTLock lock_this_func;
+   pthrd_printf("Running SYNC RPC\n");
+   bool result = runIRPCAsync(irpc);
+   if (!result) return false;
+
+   while (irpc->state() != IRPC::Done) {
+	   result = int_process::waitAndHandleEvents(false);
+	   if (!result) {
+		  perr_printf("Error waiting for process to finish iRPC\n");
+		  return false;
+	   }
    }
    return true;
+}
+
+// Apologies for the code duplication; if this works, refactor. 
+bool Thread::runIRPCAsync(IRPC::ptr irpc)
+{
+   int_iRPC::ptr rpc = irpc->llrpc()->rpc;
+   rpc->setThread(llthrd());
+
+   return getProcess()->runIRPCAsync(irpc);
+}
+
+
+bool Thread::runIRPCSync(IRPC::ptr irpc)
+{
+   int_iRPC::ptr rpc = irpc->llrpc()->rpc;
+   rpc->setThread(llthrd());
+
+	return getProcess()->runIRPCSync(irpc);   
 }
 
 bool Process::postIRPC(IRPC::ptr irpc) const

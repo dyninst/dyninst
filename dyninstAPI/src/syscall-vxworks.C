@@ -39,7 +39,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/pcProcess.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/ast.h"
 
 extern bool getInheritedMiniTramp(const miniTramp *parentMT,

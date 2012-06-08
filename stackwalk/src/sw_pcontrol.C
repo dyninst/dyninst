@@ -34,7 +34,7 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/steppergroup.h"
 
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PCErrors.h"
 
 #include "dynutil/h/dyn_regs.h"

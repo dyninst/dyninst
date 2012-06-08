@@ -33,7 +33,7 @@
 #include "debug.h"
 #include "eventLock.h"
 #include "os.h"
-#include "pcProcess.h"
+#include "dynProcess.h"
 #include "mapped_object.h"
 #include "registerSpace.h"
 #include "RegisterConversion.h"
@@ -41,7 +41,7 @@
 
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
-
+#include "pcEventMuxer.h"
 #include <set>
 #include <queue>
 #include <vector>
@@ -51,474 +51,17 @@ using std::set;
 
 using namespace Dyninst::ProcControlAPI;
 
-PCEventMailbox::PCEventMailbox()
-{
-}
-
-PCEventMailbox::~PCEventMailbox()
-{
-}
-
-void PCEventMailbox::enqueue(Event::const_ptr ev) {
-    queueCond.lock();
-    eventQueue.push(ev);
-    queueCond.broadcast();
-
-    proccontrol_printf("%s[%d]: Added event %s to mailbox\n", FILE__, __LINE__,
-            ev->name().c_str());
-
-    queueCond.unlock();
-}
-
-Event::const_ptr PCEventMailbox::dequeue(bool block) {
-    queueCond.lock();
-
-    if( eventQueue.empty() && !block ) {
-        queueCond.unlock();
-        return Event::const_ptr();
-    }
-
-    while( eventQueue.empty() ) {
-        proccontrol_printf("%s[%d]: Blocking for events from mailbox\n", FILE__, __LINE__);
-        queueCond.wait();
-    }
-
-    Event::const_ptr ret = eventQueue.front();
-    eventQueue.pop();
-    queueCond.unlock();
-
-    proccontrol_printf("%s[%d]: Returning event %s from mailbox\n", FILE__, __LINE__, ret->name().c_str());
-    return ret;
-}
-
-unsigned int PCEventMailbox::size() {
-    unsigned result = 0;
-    queueCond.lock();
-    result = (unsigned int) eventQueue.size();
-    queueCond.unlock();
-    return result;
-}
-
-// Start Callback Thread Code
-
-// Callback thread entry point
-DThread::dthread_ret_t PCEventHandler::main_wrapper(void *h) {
-    PCEventHandler *handler = (PCEventHandler *) h;
-    handler->main();
-	return DTHREAD_RET_VAL;
-}
-
-// Set by callbacks - ProcControlAPI guarantees only one thread will
-// execute a callback at a time
-static bool eventsQueued = false;
-
-void PCEventHandler::main() {
-    setCallbackThreadID(DThread::self());
-    proccontrol_printf("%s[%d]: ProcControlAPI callback handler started on thread %lx\n",
-            FILE__, __LINE__, DThread::self());
-
-    assert( exitNotificationOutput_ != -1 );
-
-    int pcFD = evNotify()->getFD();
-
-    // Register callbacks before allowing the user thread to continue
-
-    vector<EventType> standardEvents;
-    standardEvents.push_back(EventType(EventType::Any, EventType::Crash));
-    standardEvents.push_back(EventType(EventType::Any, EventType::ForceTerminate));
-    standardEvents.push_back(EventType(EventType::Any, EventType::ThreadCreate));
-    standardEvents.push_back(EventType(EventType::Pre, EventType::ThreadDestroy));
-    // Note: we do not care about EventStop's right now (these correspond to internal stops see bug 1121)
-    standardEvents.push_back(EventType(EventType::Any, EventType::Signal));
-    standardEvents.push_back(EventType(EventType::Any, EventType::Library));
-    // Note: we do not care about EventBootstrap's
-    standardEvents.push_back(EventType(EventType::Any, EventType::Breakpoint));
-    standardEvents.push_back(EventType(EventType::Any, EventType::RPC));
-    standardEvents.push_back(EventType(EventType::Any, EventType::SingleStep));
-
-    for(vector<EventType>::iterator i = standardEvents.begin();
-            i != standardEvents.end(); ++i)
-    {
-        // Any error in registration is a programming error
-        bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
-        assert( registerResult && "Failed to register event callback");
-    }
-
-    // Check if callbacks should be registered for syscalls on this platform
-    vector<EventType> syscallTypes;
-    syscallTypes.push_back(EventType(EventType::Pre, EventType::Exit));
-	// Used on Windows, at least...
-    syscallTypes.push_back(EventType(EventType::Post, EventType::Exit));
-    syscallTypes.push_back(EventType(EventType::Pre, EventType::Fork));
-    syscallTypes.push_back(EventType(EventType::Post, EventType::Fork));
-    syscallTypes.push_back(EventType(EventType::Pre, EventType::Exec));
-    syscallTypes.push_back(EventType(EventType::Post, EventType::Exec));
-
-    for(vector<EventType>::iterator i = syscallTypes.begin();
-            i != syscallTypes.end(); ++i)
-    {
-        switch(getCallbackBreakpointCase(*i)) {
-            case CallbackOnly:
-            case BothCallbackBreakpoint: {
-                bool registerResult = Process::registerEventCallback(*i, PCEventHandler::callbackMux);
-                assert( registerResult && "Failed to register event callback" );
-                break;
-            }
-            default:
-                break;
-        }
-    }
-
-    initCond_.lock();
-    initCond_.signal();
-    initCond_.unlock();
-
-    while( true ) {
-        proccontrol_printf("%s[%d]: waiting for ProcControlAPI callbacks...\n",
-                FILE__, __LINE__);
-
-#if !defined(os_windows)
-        int nfds = ( (pcFD < exitNotificationOutput_) ? exitNotificationOutput_ : pcFD ) + 1;
-        fd_set readset; FD_ZERO(&readset);
-        fd_set writeset; FD_ZERO(&writeset);
-        fd_set exceptset; FD_ZERO(&exceptset);
-        FD_SET(pcFD, &readset);
-        FD_SET(exitNotificationOutput_, &readset);
-
-        int result;
-        do {
-           result = P_select(nfds, &readset, &writeset, &exceptset, NULL);
-        } while( result == -1 && errno == EINTR );
-        if( result == 0 || result == -1 ) {
-            // Report the error but keep trying anyway
-            proccontrol_printf("%s[%d]: select on ProcControlAPI fd failed\n", FILE__, __LINE__);
-            Event::const_ptr evError = Event::const_ptr(new Event(EventType::Error));
-            eventMailbox_->enqueue(evError);
-        }
-
-        // Give precedence to Dyninst user thread over ProcControlAPI's event handling
-        if( FD_ISSET(exitNotificationOutput_, &readset) ) {
-            proccontrol_printf("%s[%d]: user thread has signaled exit\n", FILE__, __LINE__);
-            break;
-        }
-
-        if( !FD_ISSET(pcFD, &readset) ) {
-            proccontrol_printf("%s[%d]: ProcControlAPI fd not set, waiting again\n");
-            continue;
-        }
-#else
-		HANDLE waitables[2];
-		waitables[0] = (HANDLE)pcFD;
-		waitables[1] = (HANDLE)exitNotificationOutput_;
-		DWORD result = ::WaitForMultipleObjects(2, waitables, FALSE, INFINITE);
-#endif
-
-        proccontrol_printf("%s[%d]: attempting to handle events via ProcControlAPI\n",
-                FILE__, __LINE__);
-        // Don't block for events -- we have already blocked in the select so
-        // we know events are available.
-        //
-        // Additionally, blocking could trigger a race where the user thread
-        // invokes a ProcControlAPI operation that implicitly does event
-        // handling and thus causing a deadlock where the callback thread waits
-        // indefinitely in ProcControlAPI and the user thread is waiting for 
-        // the callback thread to leave ProcControlAPI
-        if( !Process::handleEvents(false) ) {
-            // Report errors but keep trying anyway
-            proccontrol_printf("%s[%d]: error returned by Process::handleEvents: %s\n",
-                    FILE__, __LINE__,
-                    getLastErrorMsg());
-        }
-
-        if( eventsQueued ) {
-            // Alert the user that events are now available
-            BPatch::bpatch->signalNotificationFD();
-            eventsQueued = false;
-        }
-    }
-
-    // Clean-up after ourselves
-    proccontrol_printf("%s[%d]: removing Dyninst's ProcControlAPI callbacks\n",
-            FILE__, __LINE__);
-    // Ignore error code on purpose
-    Process::removeEventCallback(PCEventHandler::callbackMux);
-
-    proccontrol_printf("%s[%d]: callback thread exiting\n", FILE__, __LINE__);
-}
-
-Process::cb_ret_t PCEventHandler::callbackMux(Event::const_ptr ev) {
-    // Get access to the event mailbox
-    PCProcess *process = (PCProcess *)ev->getProcess()->getData();
-    proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process);
-
-    // This occurs when creating/attaching to the process
-    if( process == NULL ) {
-	    proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__);
-        return Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
-    }
-
-    Process::cb_ret_t ret(Process::cbProcStop, Process::cbProcStop);
-    PCEventHandler *eventHandler = process->getPCEventHandler();
-
-    bool isCallbackRPC = false;
-
-    bool queueEvent = true;
-
-    // Do some event-specific handling
-    switch(ev->getEventType().code()) {
-        case EventType::Exit:
-            // Anything but the default doesn't make sense for a Post-Exit process
-            if( ev->getEventType().time() == EventType::Post ) {
-			    proccontrol_printf("%s[%d]: post-exit case = default/default\n", FILE__, __LINE__);
-                ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
-            }
-            break;
-        case EventType::Crash:
-            // Anything but the default doesn't make sense for a Crash
-            if( ev->getEventType().time() != EventType::Pre ) {
-		    proccontrol_printf("%s[%d]: crash case = default/default\n", FILE__, __LINE__);
-                ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
-            }
-            break;
-        case EventType::Signal: {
-            EventSignal::const_ptr evSignal = ev->getEventSignal();
-
-            // Don't deliver any signals to the process unless we explicitly choose
-            // to forward the signal to the process
-            if( !PCEventHandler::isKillSignal(evSignal->getSignal()) )
-                evSignal->clearThreadSignal();
-            break;
-        }
-        case EventType::Breakpoint: {
-            // Control transfer breakpoints are used for trap-based instrumentation
-            // No user interaction is required
-            EventBreakpoint::const_ptr evBreak = ev->getEventBreakpoint();
-
-            bool hasCtrlTransfer = false;
-            vector<Breakpoint::const_ptr> breakpoints;
-            evBreak->getBreakpoints(breakpoints);
-            Breakpoint::const_ptr ctrlTransferPt;
-            for(vector<Breakpoint::const_ptr>::iterator i = breakpoints.begin();
-                    i != breakpoints.end(); ++i)
-            {
-                if( (*i)->isCtrlTransfer() ) {
-                    hasCtrlTransfer = true;
-                    ctrlTransferPt = *i;
-                    break;
-                }
-
-                // Explicit synchronization unnecessary here
-                if( (*i) == process->getBreakpointAtMain() ) {
-                    // We need to remove the breakpoint in the ProcControl callback to ensure
-                    // the breakpoint is not automatically suspended and resumed
-                    startup_printf("%s[%d]: removing breakpoint at main\n", FILE__, __LINE__);
-                    if( !process->removeBreakpointAtMain() ) {
-                        proccontrol_printf("%s[%d]: failed to remove main breakpoint in event handling\n",
-                                FILE__, __LINE__);
-                        ev = Event::const_ptr(new Event(EventType::Error));
-                    }
-
-                    // If we are in the midst of bootstrapping, update the state to indicate
-                    // that we have hit the breakpoint at main
-                    if( !process->hasReachedBootstrapState(PCProcess::bs_readyToLoadRTLib) ) {
-                        process->setBootstrapState(PCProcess::bs_readyToLoadRTLib);
-                    }
-
-                    // Need to pass the event on the user thread to indicate to that the breakpoint
-                    // at main was hit
-                }
-            }
-
-            if( hasCtrlTransfer ) {
-                proccontrol_printf("%s[%d]: received control transfer breakpoint on thread %d/%d (0x%lx => 0x%lx)\n",
-                        FILE__, __LINE__, ev->getProcess()->getPid(), ev->getThread()->getLWP(),
-                        evBreak->getAddress(), ctrlTransferPt->getToAddress());
-                ret = Process::cb_ret_t(Process::cbProcContinue, Process::cbProcContinue);
-                queueEvent = false;
-            }
-            break;
-        }
-        case EventType::RPC:
-        {
-            EventRPC::const_ptr evRPC = ev->getEventRPC();
-            inferiorRPCinProgress *rpcInProg = (inferiorRPCinProgress *)evRPC->getIRPC()->getData();
-
-            if( rpcInProg->resultRegister == REG_NULL ) {
-                // If the resultRegister isn't set, the returnValue shouldn't matter
-                rpcInProg->returnValue = NULL;
-            }else{
-                // Get the result out of a register
-                MachRegister resultReg = convertRegID(rpcInProg->resultRegister, 
-                        ev->getProcess()->getArchitecture());
-                MachRegisterVal resultVal;
-                if( !ev->getThread()->getRegister(resultReg, resultVal) ) {
-                    proccontrol_printf("%s[%d]: failed to retrieve register from thread %d/%d\n",
-                            FILE__, __LINE__,
-                            ev->getProcess()->getPid(), ev->getThread()->getLWP());
-                    ev = Event::const_ptr(new Event(EventType::Error));
-                }else{
-                    rpcInProg->returnValue = (void *)resultVal;
-
-                    proccontrol_printf("%s[%d]: iRPC %lu return value = 0x%lx\n",
-                        FILE__, __LINE__, rpcInProg->rpc->getID(),
-                        resultVal);
-                }
-            }
-
-            // Special handling for callback RPCs
-            eventHandler->pendingCallbackLock_.lock();
-            if( eventHandler->pendingCallbackRPCs_.count(evRPC->getIRPC()->getID()) ) {
-                isCallbackRPC = true;
-                eventHandler->pendingCallbackRPCs_.erase(evRPC->getIRPC()->getID());
-            }
-            eventHandler->pendingCallbackLock_.unlock();
-        }
-            break;
-		case EventType::LWPCreate:
-			ret = Process::cb_ret_t(Process::cbDefault, Process::cbDefault);
-			break;
-        default:
-            break;
-    }
-
-    // If callback RPCs cause other events, need to make sure that the RPC thread is still continued
-    eventHandler->pendingCallbackLock_.lock();
-    if( eventHandler->pendingCallbackRPCs_.size() ) {
-	    proccontrol_printf("%s[%d]: pending callback RPCs case, thread continue\n", FILE__, __LINE__);
-        ret = Process::cb_ret_t(Process::cbThreadContinue);
-    }
-    eventHandler->pendingCallbackLock_.unlock();
-
-    if( queueEvent ) {
-        process->incPendingEvents();
-        eventsQueued = true;
-
-        if( !isCallbackRPC ) {
-            eventHandler->eventMailbox_->enqueue(ev);
-        }else{
-            eventHandler->callbackRPCMailbox_->enqueue(ev);
-        }
-    }
-
-    return ret;
-}
-
-int makePipe(int* fds)
-{
-#if !defined(os_windows)
-	return pipe(fds);
-#else
-	fds[0] = fds[1] = (int)::CreateEvent(NULL, false, false, NULL);
-	return fds[0] == (int)INVALID_HANDLE_VALUE;
-#endif
-}
-
-bool PCEventHandler::start() {
-    if( started_ ) return true;
-
-    // Create the mailboxes
-    eventMailbox_ = new PCEventMailbox;
-    callbackRPCMailbox_ = new PCEventMailbox;
-
-    // Create the pipe to signal exit
-    int pipeFDs[2];
-    pipeFDs[0] = pipeFDs[1] = -1;
-    if( makePipe(pipeFDs) == 0 ) {
-        exitNotificationOutput_ = pipeFDs[0];
-        exitNotificationInput_ = pipeFDs[1];
-    }else{
-        proccontrol_printf("%s[%d]: failed to create pipe for callback thread\n",
-                FILE__, __LINE__);
-        return false;
-    }
-
-    initCond_.lock();
-	thrd_.spawn((DThread::initial_func_t) PCEventHandler::main_wrapper, this);
-
-    // Wait for the callback thread to say its ready
-    initCond_.wait();
-
-    started_ = true;
-    initCond_.unlock();
-
-    return true;
-}
-
-// End Callback Thread Code
-
-// Start User Thread Code
-
-PCEventHandler *PCEventHandler::createPCEventHandler() {
-    return new PCEventHandler;
-}
+PCEventHandler PCEventHandler::handler_;
 
 PCEventHandler::PCEventHandler() 
-    : eventMailbox_(NULL),
-      callbackRPCMailbox_(NULL), 
-      started_(false),
-      exitNotificationOutput_(-1), exitNotificationInput_(-1)
 {
 }
 
-PCEventHandler::~PCEventHandler()
-{
-    if( !started_ ) return;
-
-    assert( exitNotificationInput_ != -1 );
-
-    char e = 'e';
-
-    if( write(exitNotificationInput_, &e, sizeof(char)) == -1 ) {
-        proccontrol_printf("%s[%d]: failed to tell callback thread to exit, not waiting for it\n",
-                FILE__, __LINE__);
-        return;
-    }
-
-    thrd_.join();
-
-    close(exitNotificationInput_);
-    close(exitNotificationOutput_);
-
-    if( eventMailbox_ ) delete eventMailbox_;
-    if( callbackRPCMailbox_ ) delete callbackRPCMailbox_;
+bool PCEventHandler::handle(EventPtr ev) {
+	return handler().handle_internal(ev);
 }
 
-void PCEventHandler::registerCallbackRPC(inferiorRPCinProgress *rpc) {
-    pendingCallbackLock_.lock();
-    pendingCallbackRPCs_.insert(rpc->rpc->getID());
-    pendingCallbackLock_.unlock();
-}
-
-PCEventHandler::WaitResult PCEventHandler::waitForCallbackRPC() {
-    Event::const_ptr newEvent = callbackRPCMailbox_->dequeue(true);
-    if( !newEvent ) return NoEvents;
-
-    if( !eventMux(newEvent) ) {
-        proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
-                FILE__, __LINE__, newEvent->getEventType().name().c_str());
-        return Error;
-    }
-
-    return EventsReceived;
-}
-
-PCEventHandler::WaitResult PCEventHandler::waitForEvents(bool block) {
-   bool handledEvent = false;
-   
-   // Empty the mailbox before returning
-   Event::const_ptr newEvent;
-   while( (newEvent = eventMailbox_->dequeue(block && !handledEvent)) ) {
-      if( !eventMux(newEvent) ) {
-         proccontrol_printf("%s[%d]: error resulted from handling event: %s\n",
-                            FILE__, __LINE__, newEvent->getEventType().name().c_str());
-         return Error;
-      }
-      handledEvent = true;
-   }
-   return (handledEvent ? EventsReceived : NoEvents);
-}
-
-bool PCEventHandler::eventMux(Event::const_ptr ev) const {
+bool PCEventHandler::handle_internal(EventPtr ev) {
     proccontrol_printf("%s[%d]: attempting to handle event %s on thread %d/%d\n",
             FILE__, __LINE__, ev->getEventType().name().c_str(),
             (ev->getProcess() ? ev->getProcess()->getPid() : -1), (ev->getThread() ? ev->getThread()->getLWP() : (Dyninst::LWP)-1));
@@ -527,7 +70,7 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
 		proccontrol_printf("%s[%d]: Event received w/o associated ProcControl process object, treating as handled successfully\n", FILE__, __LINE__);
 		return true;
 	}
-    PCProcess *evProc = (PCProcess *)ev->getProcess()->getData();
+    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
     if( evProc == NULL ) {
         proccontrol_printf("%s[%d]: ERROR: handle to Dyninst process is invalid\n",
                 FILE__, __LINE__);
@@ -607,7 +150,7 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             break;
         case EventType::Exec:
             // On Post-Exec, a new PCProcess is created
-            ret = handleExec(ev->getEventExec(), &evProc);
+            ret = handleExec(ev->getEventExec(), evProc);
             break;
         case EventType::UserThreadCreate:
         case EventType::LWPCreate:
@@ -639,7 +182,7 @@ bool PCEventHandler::eventMux(Event::const_ptr ev) const {
             break;
     }
 
-    evProc->decPendingEvents();
+    //evProc->decPendingEvents();
     evProc->setInEventHandling(prevEventHandlingState);
 
     if( dyn_debug_proccontrol ) {
@@ -747,27 +290,20 @@ bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) cons
                     FILE__, __LINE__, ev->getChildProcess()->getPid(), evProc->getPid());
             return false;
         }
-
-        switch(getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork))) {
-            case BreakpointOnly:
-            case BothCallbackBreakpoint: {
-                Address event_breakpoint_addr = childProc->getRTEventBreakpointAddr();
-                if( !event_breakpoint_addr ) {
-                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
-                            FILE__, __LINE__, childProc->getPid());
-                    return false;
-                }
-
-                int zero = 0;
-                if( !childProc->writeDataWord((void *)event_breakpoint_addr, sizeof(int), &zero) ) {
-                    proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
-                            FILE__, __LINE__, childProc->getPid());
-                    return false;
-                }
-                break;
+		if (PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) {
+            Address event_breakpoint_addr = childProc->getRTEventBreakpointAddr();
+            if( !event_breakpoint_addr ) {
+                proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                        FILE__, __LINE__, childProc->getPid());
+                return false;
             }
-            default:
-                break;
+
+            int zero = 0;
+            if( !childProc->writeDataWord((void *)event_breakpoint_addr, sizeof(int), &zero) ) {
+                proccontrol_printf("%s[%d]: failed to unset breakpoint event flag in process %d\n",
+                        FILE__, __LINE__, childProc->getPid());
+                return false;
+            }
         }
 
         BPatch::bpatch->registerForkedProcess(evProc, childProc);
@@ -791,19 +327,19 @@ bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) cons
     return true;
 }
 
-bool PCEventHandler::handleExec(EventExec::const_ptr ev, PCProcess **evProc) const {
-    (*evProc)->setReportingEvent(false);
+bool PCEventHandler::handleExec(EventExec::const_ptr ev, PCProcess *&evProc) const {
+    evProc->setReportingEvent(false);
     if( ev->getEventType().time() == EventType::Pre ) {
         // This is handled as an RT signal on all platforms for now
     }else{
-        PCProcess *newProc = PCProcess::setupExecedProcess(*evProc, ev->getExecPath());
+        PCProcess *newProc = PCProcess::setupExecedProcess(evProc, ev->getExecPath());
         if( newProc == NULL ) {
             proccontrol_printf("%s[%d]: failed to setup newly execed process %d\n",
-                    FILE__, __LINE__, (*evProc)->getPid());
+                    FILE__, __LINE__, evProc->getPid());
             return false;
         }
 
-        *evProc = newProc;
+        evProc = newProc;
     }
 
     return true;
@@ -1062,34 +598,21 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
     case DSE_forkEntry:
         proccontrol_printf("%s[%d]: decoded forkEntry, arg = %lx\n",
                       FILE__, __LINE__, arg1);
-        switch(getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Fork))) {
-            case BreakpointOnly:
+		if (PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Fork)))
+		{
                 proccontrol_printf("%s[%d]: reporting fork entry event to BPatch layer\n",
                         FILE__, __LINE__);
                 BPatch::bpatch->registerForkingProcess(evProc->getPid(), NULL);
-                break;
-            case BothCallbackBreakpoint:
-                // Cannot create events that ProcControl currently doesn't support
-                assert(!"Pre-Fork events are currently not implemented in ProcControlAPI");
-                break;
-            default:
-                break;
+              
         }
         break;
     case DSE_forkExit:
         proccontrol_printf("%s[%d]: decoded forkExit, arg = %lx\n",
                       FILE__, __LINE__, arg1);
-        switch(getCallbackBreakpointCase(EventType(EventType::Post, EventType::Fork))) {
-            case BreakpointOnly:
-                assert(!"Post-Fork via just a breakpoint is invalid");
-                break;
-            case BothCallbackBreakpoint:
+		if (PCEventMuxer::useBreakpoint(EventType(EventType::Post, EventType::Fork))) {
                 proccontrol_printf("%s[%d]: reporting fork exit event to ProcControlAPI\n",
                         FILE__, __LINE__);
                 newEvt = Event::ptr(new EventFork(EventType::Pre, (Dyninst::PID)arg1));
-                break;
-            default:
-                break;
         }
         break;
     case DSE_execEntry:
@@ -1111,19 +634,17 @@ PCEventHandler::handleRTSignal(EventSignal::const_ptr ev, PCProcess *evProc) con
         /* Entry of exit, used for the callback. We need to trap before
            the process has actually exited as the callback may want to
            read from the process */
-        switch(getCallbackBreakpointCase(EventType(EventType::Pre, EventType::Exit))) {
-            case BreakpointOnly:
-                proccontrol_printf("%s[%d]: reporting exit entry event to BPatch layer\n",
-                        FILE__, __LINE__);
-                evProc->triggerNormalExit((int)arg1);
-                break;
-            case BothCallbackBreakpoint:
+		if (PCEventMuxer::useBreakpoint(EventType(EventType::Pre, EventType::Exit))) {
+			if (PCEventMuxer::useCallback(EventType(EventType::Pre, EventType::Exit))) {
                 proccontrol_printf("%s[%d]: reporting exit entry event to ProcControlAPI\n",
                         FILE__, __LINE__);
                 newEvt = Event::ptr(new EventExit(EventType::Pre, (int)arg1));
-                break;
-            default:
-                break;
+			}
+			else {
+                proccontrol_printf("%s[%d]: reporting exit entry event to BPatch layer\n",
+                        FILE__, __LINE__);
+                evProc->triggerNormalExit((int)arg1);
+			}
         }
         break;
     case DSE_loadLibrary:
@@ -1447,6 +968,5 @@ bool PCEventHandler::handleRPC(EventRPC::const_ptr ev, PCProcess *evProc) const 
     }else{
         delete rpcInProg;
     }
-
     return true;
 }
