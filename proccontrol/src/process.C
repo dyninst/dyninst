@@ -2384,6 +2384,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    running_when_attached(true),
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
+   postponed_stopped_on_breakpoint_addr(0x0),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL)
@@ -3373,6 +3374,13 @@ void int_thread::setRunningRPC(int_iRPC::ptr rpc_)
    assert(!running_rpc);
    running_rpc = rpc_;
 
+   if (stopped_on_breakpoint_addr) {
+      pthrd_printf("Thread %d/%d is stopped on BP at 0x%lx and about to run RPC.  Postponing BP clear.\n",
+                   llproc()->getPid(), getLWP(), stopped_on_breakpoint_addr);
+      postponed_stopped_on_breakpoint_addr = stopped_on_breakpoint_addr;
+      stopped_on_breakpoint_addr = 0x0;
+   }
+
    if (rpc_->isProcStopRPC() && !proc_stop_rpc_count.local()) {
       proc_stop_rpc_count.inc();
    }
@@ -3385,6 +3393,13 @@ int_iRPC::ptr int_thread::runningRPC() const
 
 void int_thread::clearRunningRPC()
 {
+   if (postponed_stopped_on_breakpoint_addr) {
+      pthrd_printf("Thread %d/%d is moving back to stopped breakpoint at %lx after IRPC completion\n",
+                   llproc()->getPid(), getLWP(), postponed_stopped_on_breakpoint_addr);
+      stopped_on_breakpoint_addr = postponed_stopped_on_breakpoint_addr;
+      postponed_stopped_on_breakpoint_addr = 0x0;
+   }
+
    if (running_rpc->isProcStopRPC()) {
       proc_stop_rpc_count.dec();
    }

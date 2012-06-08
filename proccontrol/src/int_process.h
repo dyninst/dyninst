@@ -872,6 +872,7 @@ public:
    bool suspended;
 
    Address stopped_on_breakpoint_addr;
+   Address postponed_stopped_on_breakpoint_addr;
 
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
