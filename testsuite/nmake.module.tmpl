@@ -21,7 +21,7 @@ CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
-LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\dyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\common.lib $(TO_CORE)\$(LIBRARY_DEST)\instructionAPI.lib
 
 SYSLIBS		=
 
@@ -31,7 +31,7 @@ LIBSYMTABCOMP = libtestsymtab.dll
 LIBINSTRUCTIONCOMP = libtestinstruction.dll
 LIBPROCCONTROLCOMP = libtestproccontrol.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib libtestproccontrol.lib proccontrol.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib dyninstAPI.lib libtestsymtab.lib symtabAPI.lib common.lib libtestinstruction.lib instructionAPI.lib libtestproccontrol.lib proccontrol.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -104,7 +104,7 @@ OBJS_PROCCONTROLCOMP = $(SRCS_PROCCONTROLCOMP:.C=.obj)
 OBJS_PROCCONTROLCOMP = $(OBJS_PROCCONTROLCOMP:../src/proccontrol/=)
 
 
-TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
+TESTDRIVER_LIBS = dyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
 
 all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) $(LIBPROCCONTROLCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
@@ -128,7 +128,7 @@ clean:
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib ws2_32.lib
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib proccontrol.lib stackwalk.lib libcommon.lib
+LIBS    = dyninstAPI.lib symtabAPI.lib instructionAPI.lib proccontrol.lib stackwalk.lib common.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
