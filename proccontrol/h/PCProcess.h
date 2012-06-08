@@ -232,6 +232,10 @@ class PC_EXPORT IRPC
    void setData(void *p) const;
 
    State state() const;
+
+   // Continues the thread this RPC is running on.
+   // Useful if you don't know the thread assigned to an IRPC
+   bool continueStoppedIRPC();
 };
 
 class PC_EXPORT Process : public boost::enable_shared_from_this<Process>

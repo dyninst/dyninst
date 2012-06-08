@@ -1409,3 +1409,37 @@ IRPC::State IRPC::state() const
 			return Error;
 	}
 }
+
+bool IRPC::continueStoppedIRPC()
+{
+   MTLock lock_this_func;
+
+   int_iRPC::ptr rpc = wrapper->rpc;
+   int_thread *thrd = rpc->thread();
+   IRPC::State cur_state = state();
+   if (cur_state != Running && cur_state != Posted) {
+      perr_printf("Tried to continueStoppedIRPC on RPC %lu with invalid state %d\n", rpc->id(), cur_state);
+      if (thrd)
+         thrd->setLastError(err_nothrd, "RPC is not assigned to a thread\n");
+      else
+         globalSetLastError(err_nothrd, "RPC is not assigned to a thread\n");
+      return false;
+   }
+
+   assert(thrd);
+   int_thread::StateTracker &userstate = thrd->getUserState();
+   if (RUNNING_STATE(userstate.getState())) {
+      perr_printf("Tried to continue already running thread %d/%d\n", thrd->llproc()->getPid(), thrd->getLWP());
+      thrd->setLastError(err_notstopped, "Thread is not stopped\n");
+      return false;
+   }
+
+   bool result = userstate.setState(int_thread::running);
+   if (!result) {
+      pthrd_printf("Failed to continue thread %d/%d\n", thrd->llproc()->getPid(), thrd->getLWP());
+      thrd->setLastError(err_internal, "Could not continue thread associated with iRPC\n");
+      return false;
+   }
+   thrd->llproc()->throwNopEvent();
+   return true;
+}

@@ -2607,7 +2607,7 @@ bool int_thread::isStopped(int state_id)
 
 void int_thread::setPendingStop(bool b)
 {
-	pthrd_printf("******: setting pending stop to %d, thread %p\n", b, getLWP());
+	pthrd_printf("Setting pending stop to %s, thread %d/%d\n", b ? "true" : "false", proc()->getPid(), getLWP());
    if (b) {
       pending_stop.inc();
 

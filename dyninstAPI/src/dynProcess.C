@@ -2075,7 +2075,7 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
                 return false;
              }
              else {
-                thread->pcThr_->continueThread();
+                newRPC->rpc->continueStoppedIRPC();
                 res = pcProc_->handleEvents(true);
                 if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
                    done = true;
@@ -2279,7 +2279,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                 return false;
              }
              else {
-                thread->pcThr_->continueThread();
+                newRPC->rpc->continueStoppedIRPC();
                 res = pcProc_->handleEvents(true);
                 if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
                    done = true;
