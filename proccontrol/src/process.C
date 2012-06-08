@@ -5402,7 +5402,10 @@ bool Process::handleEvents(bool block)
 
    bool result = int_process::waitAndHandleEvents(block);
    if (!result) {
-      pthrd_printf("Error handling events for user\n");
+      if (!block && ProcControlAPI::getLastError() == err_noevents)
+         pthrd_printf("Polling Process::handleEvents returning false due to no events\n");
+      else 
+         pthrd_printf("Error handling events for user\n");
       return false;
    }
    return true;
