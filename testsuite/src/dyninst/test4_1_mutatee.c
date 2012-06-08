@@ -32,10 +32,6 @@
 
 #include "mutatee_util.h"
 
-#ifdef os_windows_test
-/* #include <process.h> */
-#endif
-
 /* Externally accessed function prototypes.  These must have globally unique
  * names.  I suggest following the pattern <testname>_<function>
  */
@@ -59,7 +55,7 @@ unsigned int test4_1_global1 = 0xdeadbeef;
 
 int test4_1_mutatee() {
   test4_1_global1 = 1000001;
-#if defined(os_windows)
+#if defined(os_windows_test)
   exit(GetCurrentProcessId());
 #else
   exit(getpid());
