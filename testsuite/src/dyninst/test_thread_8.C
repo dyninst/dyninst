@@ -84,7 +84,7 @@ static long pthread_ids[NUM_THREADS];
 static unsigned error15 = 0;
 static bool create_proc = true;
 
-static bool debug_flag = true;
+static bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
 // Globals: create_proc, dyn_tids, error15, NUM_THREADS, pthread_ids, proc,

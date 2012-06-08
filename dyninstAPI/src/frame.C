@@ -109,7 +109,10 @@ ostream & operator << ( ostream & s, Frame & f ) {
   else 
   {
     func = f.getFunc();
-    s << func->name();
+    if (func)
+       s << func->name();
+    else
+       s << "[UNKNOWN FUNCTION]";
   }
 
   s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getProc()->getPid() << " "; 

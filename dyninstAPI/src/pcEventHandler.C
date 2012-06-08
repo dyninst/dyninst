@@ -227,7 +227,7 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
         evProc->markExited();
     }
 
-    proccontrol_printf("%s[%d]: finished handling event: %s (error = %s)\n",
+    proccontrol_printf("%s[%d]: finished handling event: %s (err = %s)\n",
             FILE__, __LINE__, ev->getEventType().name().c_str(),
             !ret ? "true" : "false");
 
