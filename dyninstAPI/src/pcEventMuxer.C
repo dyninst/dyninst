@@ -97,8 +97,14 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 		}
 		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
 		EventPtr ev = dequeue(false);
-		if (!ev) return NoEvents;
-		if (!handle(ev)) return Error;
+      if (!ev) {
+         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
+         return NoEvents;
+      }
+      if (!handle(ev)) {
+         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
+         return Error;
+      }
 	}
 	return EventsReceived;
 }
