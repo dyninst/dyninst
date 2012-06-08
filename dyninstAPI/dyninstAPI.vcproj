@@ -1048,6 +1048,42 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\dynProcess-x86.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dynProcess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dynThread.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\edge.C"
 				>
 				<FileConfiguration
@@ -1629,31 +1665,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\pcProcess-x86.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\pcProcess.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\pcThread.C"
+				RelativePath=".\src\pcEventMuxer.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2181,11 +2193,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\dyn_thread.h"
+				RelativePath=".\src\dyninst.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\dyninst.h"
+				RelativePath=".\src\dynProcess.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\dynThread.h"
 				>
 			</File>
 			<File
@@ -2233,11 +2249,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Widgets\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Widgets\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
@@ -2361,15 +2377,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\pcEventHandler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcEventMuxer.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Widgets\PCWidget.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\pdwinnt.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\process.h"
 				>
 			</File>
 			<File
