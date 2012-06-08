@@ -48,7 +48,7 @@ private:
   static const int compiler_len = 6;
   static const int opt_len = 4;
   static const int abi_len = 3;
-  static const int mode_len = 7;
+  static const int mode_len = 8;
   static const int thread_len = 7;
   static const int link_len = 7;
   static const int pic_len = 7;
