@@ -2257,17 +2257,22 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     // Post the iRPC
     Thread::ptr t;
-
-    if(thread == NULL) {
-       newRPC->thread = Thread::ptr();
+#if !defined(os_windows)
+    if (thread) {
+       t = thread->pcThr();
     }
+#endif
+    newRPC->thread = t;
     
     bool res = false;
     if (synchronous) {
        // We have an interesting problem here. ProcControl allows callbacks to specify whether the 
        // process should stop or run; however, that allows us to stop a process in the middle of an
        // inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
-       res = pcProc_->runIRPCSync(newRPC->rpc);
+       if (t)
+          res = t->runIRPCSync(newRPC->rpc);
+       else
+          res = pcProc_->runIRPCSync(newRPC->rpc);
        if (!res) {
           bool done = false;
           while (!done) {
@@ -2289,7 +2294,10 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
        }
     }
     else {
-       res = pcProc_->runIRPCAsync(newRPC->rpc);
+       if (t)
+          res = t->runIRPCAsync(newRPC->rpc);
+       else
+          res = pcProc_->runIRPCAsync(newRPC->rpc);
     }
     if(!res) {
        proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
