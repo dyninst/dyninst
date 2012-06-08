@@ -144,14 +144,6 @@ Parser::parse()
     parsing_printf("[%s:%d] parse() called on Parser %p with state %d\n",
                    FILE__,__LINE__,this, _parse_state);
 
-    SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(obj().cs());
-    if (scs) {
-       cerr << "Parsing CO from Symtab " << scs->getSymtabObject()->name() << endl;
-    }
-    else {
-       cerr << "Parsing CO from non-Symtab" << endl;
-    }
-
     // For modification: once we've full-parsed once, don't do it again
     if (_parse_state >= COMPLETE) return;
 

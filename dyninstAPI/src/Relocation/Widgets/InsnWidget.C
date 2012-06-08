@@ -46,7 +46,7 @@ using namespace InstructionAPI;
 bool InsnWidget::generate(const codeGen &, 
                         const RelocBlock *t,
                         CodeBuffer &buffer) {
-  buffer.addPIC(ptr_, size_, tracker(t));
+   buffer.addPIC(insn()->ptr(), insn()->size(), tracker(t));
   return true;
 }
 
@@ -61,12 +61,7 @@ InsnWidget::Ptr InsnWidget::create(Instruction::Ptr insn,
 }
 
 InsnWidget::InsnWidget(Instruction::Ptr insn, Address addr) :
-addr_(addr) {
-	size_ = insn->size();
-	ptr_ = (void *) malloc(size_);
-	memcpy(ptr_, insn->ptr(), insn->size());
-	arch_ = insn->getArch();
-}
+   insn_(insn), addr_(addr) {}
 
 string InsnWidget::format() const {
 	stringstream ret;
@@ -75,8 +70,6 @@ string InsnWidget::format() const {
 	return ret.str();
 }
 
-InstructionAPI::Instruction::Ptr InsnWidget::insn() const {
-    InstructionDecoder d(ptr_, size_, arch_);
-	return d.decode();
+unsigned InsnWidget::size() const {
+   return insn_->size();
 }
-

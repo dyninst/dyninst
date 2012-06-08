@@ -57,24 +57,19 @@ class InsnWidget : public Widget {
 
   virtual std::string format() const;
 
-  virtual InstructionAPI::Instruction::Ptr insn() const;
+  virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   virtual Address addr() const { return addr_; }
-  virtual unsigned size() const { return size_; }
+  virtual unsigned size() const;
 
  private:
   InsnWidget(InstructionAPI::Instruction::Ptr insn,
 	    Address addr);
 
   // Pointer to the instruction we represent
-  //InstructionAPI::Instruction::Ptr insn_;
-  unsigned size_;
-  void *ptr_;
+  InstructionAPI::Instruction::Ptr insn_;
 
   // Original address of this instruction
   Address addr_;
-  
-  // Temp: architecture for re-decoding
-  Architecture arch_;
 
 };
 

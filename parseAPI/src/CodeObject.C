@@ -72,8 +72,6 @@ CodeObject::CodeObject(CodeSource *cs,
     defensive(defMode),
     flist(parser->sorted_funcs)
 {
-   fprintf(stderr, "CodeObject %p from CS %p created parser %p\n",
-           this, cs, parser);
     process_hints(); // if any
 }
 

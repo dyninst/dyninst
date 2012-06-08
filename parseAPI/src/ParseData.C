@@ -132,7 +132,6 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
             snprintf(name,32,"targ%lx",entry);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
-            printf("[%s] new function for target %lx\n",FILE__,entry);
             ret = _parser->factory()._mkfunc(
                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
             _parser->record_func(ret);
@@ -321,7 +320,6 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
                 snprintf(name,32,"targ%lx",addr);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,addr);
-            printf("[%s] new function for target %lx\n",FILE__,addr);
             ret = _parser->factory()._mkfunc(
                addr,src,name,&_parser->obj(),cr,cr);
             _parser->record_func(ret);
