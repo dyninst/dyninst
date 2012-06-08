@@ -1280,13 +1280,13 @@ bool BPatch::waitForStatusChangeInt() {
     clearNotificationFD();
 
     if( result == PCEventMuxer::EventsReceived ) {
-        proccontrol_printf("%s:[%d] Events received\n", FILE__, __LINE__);
+        proccontrol_printf("%s:[%d] Events received in waitForStatusChange\n", FILE__, __LINE__);
         return true;
     }
-
-    //  we waited for a change, but didn't get it
-    proccontrol_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
-    return false;
+    else {
+        proccontrol_printf("%s:[%d] No events received in waitForStatusChange\n", FILE__, __LINE__);
+        return true;
+    }
 }
 
 /*
