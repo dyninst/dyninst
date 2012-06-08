@@ -159,10 +159,10 @@ bool PCEventMuxer::registerCallbacks() {
 		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Fork), defaultCallback);
 	}
 	if (useCallback(EventType(EventType::Pre, EventType::Exec))) {
-		ret &= Process::registerEventCallback(EventType(EventType::Pre, EventType::Exit), defaultCallback);
+		ret &= Process::registerEventCallback(EventType(EventType::Pre, EventType::Exec), defaultCallback);
 	}
 	if (useCallback(EventType(EventType::Post, EventType::Exec))) {
-		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Exit), defaultCallback);
+		ret &= Process::registerEventCallback(EventType(EventType::Post, EventType::Exec), defaultCallback);
 	}
 
 
