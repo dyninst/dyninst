@@ -254,7 +254,7 @@ PCProcess *PCProcess::setupExecedProcess(PCProcess *oldProc, std::string execPat
     oldProc = NULL;
 
     newProc->setInEventHandling(true);
-    newProc->incPendingEvents();
+    //newProc->incPendingEvents();
 
     BPatch::bpatch->registerExecExit(newProc);
 
