@@ -84,6 +84,13 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
 		while (mailbox_.size()) {
 			EventPtr ev = dequeue(false);
+#if defined(os_windows)
+			// Windows does early handling of exit, so if we see an exit come through here
+			// don't call handle(), just return success
+			if (ev->getEventType().code() == EventType::Exit) {
+				continue;
+			}
+#endif
 			if (!ev) return NoEvents;
 			if (!handle(ev)) return Error;
 		}
@@ -92,19 +99,26 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 		// It's really annoying from a user design POV that ProcControl methods can
 		// trigger callbacks; it means that we can't just block here, because we may
 		// have _already_ gotten a callback and just not finished processing...
-		if (mailbox_.size() == 0) {
+		while (mailbox_.size() == 0) {
 			Process::handleEvents(true);
 		}
 		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
 		EventPtr ev = dequeue(false);
-      if (!ev) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
-         return NoEvents;
-      }
-      if (!handle(ev)) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
-         return Error;
-      }
+#if defined(os_windows)
+		// Windows does early handling of exit, so if we see an exit come through here
+		// don't call handle(), just return success
+		if (ev->getEventType().code() == EventType::Exit) {
+			return EventsReceived;
+		}
+#endif
+		if (!ev) {
+           proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
+           return NoEvents;
+        }
+        if (!handle(ev)) {
+           proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
+           return Error;
+        }
 	}
 	return EventsReceived;
 }
@@ -200,6 +214,11 @@ PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 	if (ev->getEventType().time() == EventType::Post) {
 		ret = ret_default;
 	}
+#if defined(os_windows)
+	// On Windows we only receive post-exit, and as soon as the callback completes
+	// we terminate the process. Thus, we must handle things _right now_. 
+	muxer().handle(ev);
+#endif
 	DEFAULT_RETURN;
 }
 

@@ -1260,7 +1260,7 @@ bool BPatch::waitForStatusChangeInt() {
     if( !processRunning ) {
         BPatch_reportError(BPatchWarning, 0,
                 "No processes running, not waiting for events");
-        return false;
+		return false;
     }
 
     proccontrol_printf("%s:[%d] Waiting for events\n", FILE__, __LINE__);
@@ -1273,8 +1273,8 @@ bool BPatch::waitForStatusChangeInt() {
         proccontrol_printf("%s:[%d] Failed to wait for events\n",
                       FILE__, __LINE__);
         BPatch_reportError(BPatchWarning, 0,
-                           "Failed to handle events and deliver callbacks");
-        return false;
+							"Failed to handle events and deliver callbacks");
+		return false;
     }
 
     clearNotificationFD();
@@ -1287,6 +1287,9 @@ bool BPatch::waitForStatusChangeInt() {
         proccontrol_printf("%s:[%d] No events received in waitForStatusChange\n", FILE__, __LINE__);
         return true;
     }
+    //  we waited for a change, but didn't get it
+    proccontrol_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
+	return false;
 }
 
 /*
