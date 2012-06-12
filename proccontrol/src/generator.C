@@ -280,7 +280,7 @@ bool Generator::hasLiveProc()
       pthrd_printf("Generator forcing blocking, returning true from hasLiveProc\n");
       return true;
    }
-   return true;
+   return false;
 }
 
 
