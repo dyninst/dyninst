@@ -109,6 +109,9 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
    options = __WALL;
    options |= block ? 0 : WNOHANG; 
    pthrd_printf("%s in waitpid\n", block ? "blocking" : "polling");
+
+   if (isExitingState())
+      return NULL;
    int pid = waitpid(-1, &status, options);
 
    ArchEventLinux *newevent = NULL;
@@ -186,8 +189,8 @@ GeneratorLinux::~GeneratorLinux()
       return;
    }
    on_sigusr2_hit = 0;
-   t_kill(generator_lwp, SIGUSR2);
-   while (!on_sigusr2_hit)
+   result = t_kill(generator_lwp, SIGUSR2);
+   while (result == 0 && !on_sigusr2_hit)
       sched_yield();
 
    result = sigaction(SIGUSR2, &oldact, NULL);
