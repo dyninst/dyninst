@@ -430,15 +430,38 @@ void PCLibraryState::checkForNewLib(Library::ptr lib)
    
    if (lib->getData())
       return;
-   sw_printf("[%s:%u] - Detected new library %s, notifying\n",
-             __FILE__, __LINE__, lib->getName().c_str());
+   sw_printf("[%s:%u] - Detected new library %s at %lx, notifying\n",
+             __FILE__, __LINE__, lib->getName().c_str(), lib->getLoadAddress());
    
    lib->setData((void *) 0x1);
    StepperGroup *group = pdebug->getWalker()->getStepperGroup();
    LibAddrPair la(lib->getName(), lib->getLoadAddress());
    group->newLibraryNotification(&la, library_load);
 }
+/*
+For a given address, 'addr', PCLibraryState::getLibraryAtAddr returns
+the name and load address of the library/executable that loaded over
+'addr'.
 
+Traditionally when searching for the library that contains an address,
+we would sequentially open each library, read its program headers and
+see if that library contained the address.  This caused at-scale
+performance problems on apps with lots of libraries, as we turned up
+opening a lot of unnecessary files.
+
+This function tries to be smarter.  It identifies the libraries that
+most likely to contain our address, and then targets opens at them.
+We do this by getting the dynamic address for each library (a pointer
+given by the link map).  The dynamic address points to the library's
+DYNAMIC section, which must be loaded into memory as specified by the
+System V ABI.  We expect that the library containing addr will have a
+nearby DYNAMIC pointer, and we check the two libraries with a DYNAMIC
+pointer above and below addr.  One of these libraries should contain
+addr.
+
+If, for some reason, we fail to get a DYNAMIC section then we'll stash
+that library away in 'zero_dynamic_libs' and check it when done.
+*/ 
 bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
 {
    Process::ptr proc = pdebug->getProc();
@@ -527,6 +550,16 @@ bool PCLibraryState::getLibraryAtAddr(Address addr, LibAddrPair &lib)
          return true;
       }
    }
+   if(checkLibraryContains(addr, proc->libraries().getExecutable()))
+   {
+     
+     lib.first = proc->libraries().getExecutable()->getName();
+     lib.second = proc->libraries().getExecutable()->getLoadAddress();
+     sw_printf("[%s:%u] - Found executable %s contains address %lx\n", __FILE__,
+	       __LINE__, lib.first.c_str(), addr);
+     return true;
+   }
+   
    sw_printf("[%s:%u] - Could not find library for addr %lx\n", 
              __FILE__, __LINE__, addr);
    return false;

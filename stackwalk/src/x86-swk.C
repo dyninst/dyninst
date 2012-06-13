@@ -242,7 +242,7 @@ unsigned FrameFuncStepperImpl::getPriority() const
  * Look at the first few bytes in the function and see if they contain
  * the standard set to allocate a stack frame.
  **/
-#define FUNCTION_PROLOG_TOCHECK 12
+#define FUNCTION_PROLOG_TOCHECK 16
 static unsigned char push_ebp = 0x55;
 static unsigned char mov_esp_ebp[2][2] = { { 0x89, 0xe5 },
                                            { 0x8b, 0xec } };
@@ -327,16 +327,16 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
       }
    }
 
-   if (push_ebp_pos != -1 && mov_esp_ebp_pos != -1)
+   if ((push_ebp_pos != -1) && (mov_esp_ebp_pos != -1))
       res.first = standard_frame;
-   else if (push_ebp_pos != -1 && mov_esp_ebp_pos == -1)
+   else if ((push_ebp_pos != -1) && (mov_esp_ebp_pos == -1))
       res.first = savefp_only_frame;
    else 
       res.first = no_frame;
    
-   if (push_ebp_pos != -1 && addr <= func_addr + push_ebp_pos)
+   if ((push_ebp_pos != -1) && (addr <= func_addr + push_ebp_pos))
       res.second = unset_frame;
-   else if (mov_esp_ebp_pos != -1 && addr <= func_addr + mov_esp_ebp_pos)
+   else if ((mov_esp_ebp_pos != -1) && (addr <= func_addr + mov_esp_ebp_pos))
       res.second = halfset_frame;
    else
       res.second = set_frame;

@@ -54,6 +54,8 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+#define USE_PARSE_API
+
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;

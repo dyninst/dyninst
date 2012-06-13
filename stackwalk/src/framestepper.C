@@ -382,6 +382,8 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef PIMPL_NAME
 #undef OVERLOAD_NEWLIBRARY
 
+#define USE_PARSE_API
+
 //AnalysisStepper defined here
 #ifdef USE_PARSE_API
 #if defined(arch_x86) || defined(arch_x86_64)

@@ -23,7 +23,7 @@ SRCS = 	../src/linux-swk.C \
 	../src/linux-x86-swk.C \
 	../../common/src/Elf_X.C
 
-#USE_PARSE_API = true
+USE_PARSE_API = true
 
 ifdef USE_PARSE_API
 	SRCS += ../src/analysis_stepper.C \
