@@ -916,6 +916,7 @@ void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::WinStopThreadDestroy));
 }
 
 int HandleThreadDestroy::getPriority() const
@@ -972,6 +973,7 @@ void HandleThreadCleanup::getEventTypesHandled(vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::WinStopThreadDestroy));
 }
 
 int HandleThreadCleanup::getPriority() const
@@ -1029,6 +1031,11 @@ HandleThreadStop::HandleThreadStop() :
 
 HandleThreadStop::~HandleThreadStop()
 {
+}
+
+int HandleThreadStop::getPriority() const
+{
+	return DefaultPriority;
 }
 
 void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)

@@ -86,7 +86,8 @@ pendingDebugBreak_(false),
 hproc(INVALID_HANDLE_VALUE),
 hfile(INVALID_HANDLE_VALUE),
 dummyRPCThread_(NULL),
-m_executable(NULL)
+m_executable(NULL),
+stopthr_(0)
 {
 }
 
@@ -99,7 +100,8 @@ pendingDebugBreak_(false),
 hproc(INVALID_HANDLE_VALUE),
 hfile(INVALID_HANDLE_VALUE),
 dummyRPCThread_(NULL),
-m_executable(NULL)
+m_executable(NULL),
+stopthr_(0)
 {
 }
 

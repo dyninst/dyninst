@@ -12,6 +12,8 @@
 #include <sys/types.h>
 #include <vector>
 #include <deque>
+#include "proccontrol/src/int_handler.h"
+
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -151,5 +153,20 @@ public:
 	virtual int getPriority() const;
 	void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+// Windows stop behavior handlers
+
+class HandleThreadStop;
+
+class WindowsHandleThreadStop : public HandleThreadStop
+{
+ public:
+  WindowsHandleThreadStop();
+  virtual ~WindowsHandleThreadStop();
+
+  virtual int getPriority() const;
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 
 #endif // !defined WINDOWS_H_

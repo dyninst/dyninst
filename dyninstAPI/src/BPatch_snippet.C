@@ -1283,7 +1283,6 @@ bool BPatch_variableExpr::readValueInt(void *dst)
 	}
 
 	if (size == 2 || size == 4 || size == 8) {
-		cerr << "BPV::read, addr " << hex << address << dec << endl;
 		// XXX - We should be going off of type here, not just size.
 		if (!lladdrSpace->readDataWord(address, size, dst, true)) return false;
 		return true;

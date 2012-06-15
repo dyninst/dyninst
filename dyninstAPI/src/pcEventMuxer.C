@@ -100,7 +100,9 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 		// trigger callbacks; it means that we can't just block here, because we may
 		// have _already_ gotten a callback and just not finished processing...
 		while (mailbox_.size() == 0) {
-			Process::handleEvents(true);
+			if (!Process::handleEvents(true)) {
+				return Error;
+			}
 		}
 		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
 		EventPtr ev = dequeue(false);

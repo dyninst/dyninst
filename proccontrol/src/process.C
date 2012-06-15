@@ -2316,14 +2316,11 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       bool result = true;
-#if defined(os_windows)
-      // DEBUG HACK
-      windows_thread* wt = dynamic_cast<windows_thread*>(thr);
-      if(wt) {
-         wt->plat_suspend();
-         wt->plat_resume();
-      }
-#endif
+	  if (!thr->isUser()) {
+		  // Pretend is member of Wu Tang clan -- Bill Williams, 13JUN2012
+		  resumeThread(thr);
+		  continue;
+	  }
 	  if (thr->getDetachState().getState() == int_thread::detached)
          continue;
       if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
@@ -5681,8 +5678,10 @@ bool Process::reAttach()
 
 bool Process::terminate()
 {
+	if (!llproc_) return true; // Already terminated
    ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
-   return ps->terminate();
+   bool ret = ps->terminate();
+	return ret;
 }
 
 bool Process::isTerminated() const
