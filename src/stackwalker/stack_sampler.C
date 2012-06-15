@@ -2,7 +2,7 @@
 #include "walker.h"
 #include "frame.h"
 #include "swk_errors.h"
-#include "procstate.h"
+#include "Process.h"
 
 void parse_args(int argc, char** argv, Dyninst::PID& pid, int& num_samples, int& sample_interval, std::string& exe)
 {
@@ -35,8 +35,9 @@ int main(int argc, char** argv)
 {
   using namespace Dyninst;
   using namespace Stackwalker;
-  
-  PID pid;
+  using namespace ProcControlAPI;
+
+  PID pid = 0;
   int num_samples = 10;
   int sample_interval = 100;
   
@@ -44,15 +45,35 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv, pid, num_samples, sample_interval, exe);
   
-  ProcDebug* p = ProcDebug::newProcDebug(pid, exe);
+  Process::ptr p;
+  if(pid != 0) 
+  {
+    p = Process::attachProcess(pid, exe);
+  } 
+  else 
+  {
+    std::vector<std::string> argv;
+    p = Process::createProcess(exe, argv);
+  }
+  Address breakpoint_addr = 0x804843e;
+  Breakpoint::ptr b = Breakpoint::newBreakpoint();
+  p->addBreakpoint(breakpoint_addr, b);
+  
+  
   Walker* w = Walker::newWalker(p);
   
   std::vector<THR_ID> threads;
   std::vector<Frame> stack;
   int num_good, num_attempted = 0;
   
-  for(int i = 0; i < num_samples; i++)
+  //  for(int i = 0; i < num_samples; i++)
   {
+    p->continueProc();
+    while(!p->allThreadsStopped() && Process::handleEvents(true)) 
+    {
+      // handle events until stopped by breakpoint
+    }
+    
     threads.clear();
     if(!w->getAvailableThreads(threads)) 
     {
@@ -66,12 +87,11 @@ int main(int argc, char** argv)
     {
       stack.clear();
       num_attempted++;
-      p->pause(*t);
       
       if(!w->walkStack(stack, *t))
       {
 	fprintf(stderr, "Failed to get stack on process %d/%d (%s)\n", pid, *t, exe.c_str());
-	fprintf(stderr, "Error was: %s\n", getLastErrorMsg());
+	fprintf(stderr, "Error was: %s\n", Stackwalker::getLastErrorMsg());
 	continue;
       }
       num_good++;
@@ -84,10 +104,7 @@ int main(int argc, char** argv)
 	f->getName(name);
         printf("%s\n", name.c_str());
       }
-      p->resume(*t);
     }
-    // continue proc
-    usleep(sample_interval);
   }
   printf("%d good stackwalks of %d attempts\n", num_good, num_attempted);
   
