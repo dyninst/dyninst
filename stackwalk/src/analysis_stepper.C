@@ -109,7 +109,6 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
                 in_fp = in.getFP(),
                 out_sp = 0,
                 out_ra = 0,
-                out_ra_addr = 0,
                 out_fp = 0,
                 out_fp_addr = 0;
         StackAnalysis::Height sp_height = height.first;
@@ -131,27 +130,13 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
 
         // Since we know the outgoing SP,
         // the outgoing RA must be located just below it
-        out_ra_addr = out_sp - proc->getAddressWidth();
-        out_ra_loc.location = loc_address;
-        out_ra_loc.val.addr = out_ra_addr;
+	if(!getOutRA(out_sp, out_ra, out_ra_loc, proc)) continue;
 
-        bool resultMem = proc->readMem(&out_ra, out_ra_addr, proc->getAddressWidth());
-        if (!resultMem) {
-            sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
-                    __FILE__, __LINE__, out_ra_addr);
-            continue;
-        }
 
         // If we have multiple potential heights (due to overlapping functions), 
         // check if potential stack height is valid (verify that calculated RA follows a call instr)
         if (heights.size() > 1) {
-            sw_printf("[%s:%u] - Calling isPrevInstrACall\n", __FILE__, __LINE__);
-            Address target;
-            if (!isPrevInstrACall(out_ra, target)) {
-                sw_printf("[%s:%u] - Return location %lx does not follow a call instruction\n",
-                        __FILE__, __LINE__, out_ra);
-                continue;
-            }
+	  if(!validateRA(out_ra)) continue;
         }
 
         if (fp_height != StackAnalysis::Height::bottom) {
@@ -168,7 +153,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
                         __FILE__, __LINE__, in_fp, out_fp_addr);
             }
 
-            resultMem = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
+            bool resultMem = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
             if (resultMem) {
                 out_fp_loc.location = loc_address;
                 out_fp_loc.val.addr = out_fp_addr;
@@ -198,27 +183,14 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
             result = true;
         }
     }
-
-    
-    if (result) {
-        sw_printf("[%s:%u] - success\n", __FILE__, __LINE__); 
-        return gcf_success;
-    } else {
-        sw_printf("[%s:%u] - failed\n", __FILE__, __LINE__); 
-        return gcf_not_me;
-    }
+    return checkResult(result);
 }
 
-
-std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunction(string name,
-                                                                        Offset off)
+CodeRegion* AnalysisStepperImpl::getCodeRegion(std::string name, Offset off)
 {
-    set<height_pair_t> err_heights_pair;
-    err_heights_pair.insert(err_height_pair);
-
    CodeObject *obj = getCodeObject(name);
    if (!obj) {
-      return err_heights_pair;
+      return NULL;
    }
 
    set<CodeRegion *> regions;
@@ -226,12 +198,26 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
    
    if (regions.empty()) {
       sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, off);
-      return err_heights_pair;
+      return NULL;
    }
    //We shouldn't be dealing with overlapping regions in a live process
    assert(regions.size() == 1);
    CodeRegion *region = *(regions.begin());
-   
+   return region;
+}
+
+
+
+std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunction(string name,
+                                                                        Offset off)
+{
+    set<height_pair_t> err_heights_pair;
+    err_heights_pair.insert(err_height_pair);
+    CodeRegion* region = getCodeRegion(name, off);
+    CodeObject* obj = getCodeObject(name);
+    
+    if(!obj || !region) return err_heights_pair;
+
    set<ParseAPI::Function*> funcs;
    obj->findFuncs(region, off, funcs);
    if (funcs.empty()) {
@@ -380,13 +366,9 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
   vector<registerState_t>::const_iterator heightIter;
   for (heightIter = heights.begin(); heightIter != heights.end(); ++heightIter) {
 
-    Address in_sp = in.getSP(),
-    in_fp = in.getFP(),
+    Address
     out_sp = 0,
-    out_ra = 0,
-    out_ra_addr = 0,
-    out_fp = 0,
-    out_fp_addr = 0;
+    out_ra = 0;
     location_t out_ra_loc;
 	
     StackAnalysis::Height sp_height = heightIter->second;
@@ -404,31 +386,16 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
 
     // Since we know the outgoing SP,
     // the outgoing RA must be located just below it
-    out_ra_addr = out_sp - proc->getAddressWidth();
-    out_ra_loc.location = loc_address;
-    out_ra_loc.val.addr = out_ra_addr;
-
-    bool resultMem = proc->readMem(&out_ra, out_ra_addr, proc->getAddressWidth());
-    if (!resultMem) {
-      sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
-		__FILE__, __LINE__, out_ra_addr);
-      continue;
-    }
+    if(!getOutRA(out_sp, out_ra, out_ra_loc, proc)) continue;
 
     // If we have multiple potential heights (due to overlapping functions), 
     // check if potential stack height is valid (verify that calculated RA follows a call instr)
     if (heights.size() > 1) {
-      sw_printf("[%s:%u] - Calling isPrevInstrACall\n", __FILE__, __LINE__);
-      Address target;
-      if (!isPrevInstrACall(out_ra, target)) {
-	sw_printf("[%s:%u] - Return location %lx does not follow a call instruction\n",
-		  __FILE__, __LINE__, out_ra);
-	continue;
-      }
-      
-      sw_printf("[%s:%u] - Frame pointer analysis not implemented for register-based AnalysisStepper\n",
-		__FILE__, __LINE__);
+      if(!validateRA(out_ra)) continue;
     }
+      
+    sw_printf("[%s:%u] - Frame pointer analysis not implemented for register-based AnalysisStepper\n",
+	      __FILE__, __LINE__);
     
     out.setSP(out_sp);
     out.setRALocation(out_ra_loc);
@@ -443,6 +410,24 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
       result = true;
     }
   }
+  return checkResult(result);
+
+}
+
+bool AnalysisStepperImpl::validateRA(Address candidateRA)
+{
+  sw_printf("[%s:%u] - Calling isPrevInstrACall\n", __FILE__, __LINE__);
+  Address target;
+  if (!isPrevInstrACall(candidateRA, target)) {
+    sw_printf("[%s:%u] - Return location %lx does not follow a call instruction\n",
+	      __FILE__, __LINE__, candidateRA);
+    return false;
+  }
+  return true;
+}
+
+gcframe_ret_t AnalysisStepperImpl::checkResult(bool result)
+{
   if (result) {
     sw_printf("[%s:%u] - success\n", __FILE__, __LINE__); 
     return gcf_success;
@@ -450,5 +435,22 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     sw_printf("[%s:%u] - failed\n", __FILE__, __LINE__); 
     return gcf_not_me;
   }
+}
 
+bool AnalysisStepperImpl::getOutRA(Address out_sp, Address& out_ra, location_t& out_ra_loc, ProcessState* proc)
+{
+  // Since we know the outgoing SP,
+  // the outgoing RA must be located just below it
+  size_t addr_width = proc->getAddressWidth();
+  Address out_ra_addr = out_sp - addr_width;
+  out_ra_loc.location = loc_address;
+  out_ra_loc.val.addr = out_ra_addr;
+  
+  bool resultMem = proc->readMem(&out_ra, out_ra_addr, addr_width);
+  if (!resultMem) {
+    sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
+	      __FILE__, __LINE__, out_ra_addr);
+    return false;
+  }
+  return true;
 }

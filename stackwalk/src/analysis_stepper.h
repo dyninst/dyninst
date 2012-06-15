@@ -41,6 +41,8 @@ namespace Dyninst {
 namespace ParseAPI {
 class CodeObject;
 class CodeSource;
+ class CodeRegion;
+ 
 }
 }
 
@@ -79,6 +81,11 @@ class AnalysisStepperImpl : public FrameStepper
    virtual bool isPrevInstrACall(Address addr, Address & target);
    virtual gcframe_ret_t getCallerFrameArch(std::set<height_pair_t> height, const Frame &in, Frame &out);
    gcframe_ret_t getFirstCallerFrameArch(const std::vector<registerState_t>& heights, const Frame& in, Frame& out);
+   gcframe_ret_t checkResult(bool result);
+   bool validateRA(Address candidateRA);
+   ParseAPI::CodeRegion* getCodeRegion(std::string name, Offset off);
+   bool getOutRA(Address out_sp, Address& out_ra, location_t& out_ra_loc, ProcessState* proc);
+   
    
 };
 
