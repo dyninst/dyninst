@@ -394,9 +394,6 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
       if(!validateRA(out_ra)) continue;
     }
       
-    sw_printf("[%s:%u] - Frame pointer analysis not implemented for register-based AnalysisStepper\n",
-	      __FILE__, __LINE__);
-    
     out.setSP(out_sp);
     out.setRALocation(out_ra_loc);
     out.setRA(out_ra);
