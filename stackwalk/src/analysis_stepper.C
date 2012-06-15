@@ -290,12 +290,24 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    Offset offset = in.getRA() - libaddr.second;
 
    set<height_pair_t> heights = analyzeFunction(name, offset);
+   gcframe_ret_t ret = gcf_not_me;
    if (*(heights.begin()) == err_height_pair) {
-      sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", __FILE__, __LINE__, name.c_str(), offset);
-      return gcf_not_me;
+     sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", __FILE__, __LINE__, name.c_str(), offset);
+     return ret;
    }
 
-   return getCallerFrameArch(heights, in, out);
+   ret = getCallerFrameArch(heights, in, out);
+   
+   if((ret == gcf_not_me) && in.isTopFrame())
+   {
+     vector<registerState_t> all_defined_heights = fullAnalyzeFunction(name, offset);
+     if(!all_defined_heights.empty())
+     {
+	 ret = getFirstCallerFrameArch(all_defined_heights, in, out);
+     }
+   }
+   return ret;
+   
 }
 
 unsigned AnalysisStepperImpl::getPriority() const
@@ -307,3 +319,136 @@ bool AnalysisStepperImpl::isPrevInstrACall(Address addr, Address & target)
 {
     return callchecker->isPrevInstrACall(addr, target);
 } 
+
+std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnalyzeFunction(std::string name, Offset off)
+{
+  std::vector<registerState_t> heights;
+  
+   CodeObject *obj = getCodeObject(name);
+   if (!obj) {
+     return heights;
+   }
+
+   set<CodeRegion *> regions;
+   obj->cs()->findRegions(off, regions);
+   
+   if (regions.empty()) {
+      sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, off);
+      return heights;
+   }
+   //We shouldn't be dealing with overlapping regions in a live process
+   assert(regions.size() == 1);
+   CodeRegion *region = *(regions.begin());
+   
+   set<ParseAPI::Function*> funcs;
+   obj->findFuncs(region, off, funcs);
+   if (funcs.empty()) {
+      sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
+                __LINE__, off);
+      return heights;
+   }
+
+   //Since there is only one region, there is only one block with the offset
+   set<ParseAPI::Block*> blocks;
+   obj->findBlocks(region, off, blocks);
+   assert(blocks.size() == 1);
+   ParseAPI::Block *block = *(blocks.begin());
+
+   for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
+   {
+      StackAnalysis analysis(*i);
+      analysis.findDefinedHeights(block, off, heights);
+      
+   }
+
+   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
+
+   // Return set of possible heights
+   return heights;  
+  
+}
+
+
+gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<registerState_t>& heights,
+							   const Frame& in,
+							   Frame& out)
+{
+  ProcessState *proc = getProcessState();
+    
+  bool result = false;
+
+  vector<registerState_t>::const_iterator heightIter;
+  for (heightIter = heights.begin(); heightIter != heights.end(); ++heightIter) {
+
+    Address in_sp = in.getSP(),
+    in_fp = in.getFP(),
+    out_sp = 0,
+    out_ra = 0,
+    out_ra_addr = 0,
+    out_fp = 0,
+    out_fp_addr = 0;
+    location_t out_ra_loc;
+	
+    StackAnalysis::Height sp_height = heightIter->second;
+	
+	
+    // SP height is the distance from the last SP of the previous frame
+    // to the SP in this frame at the current offset.
+    // Since we are walking to the previous frame,
+    // we subtract this height to get the outgoing SP
+    MachRegisterVal sp_base;
+	
+    proc->getRegValue(heightIter->first, in.getThread(), sp_base);
+    out_sp = sp_base - sp_height.height();
+	
+
+    // Since we know the outgoing SP,
+    // the outgoing RA must be located just below it
+    out_ra_addr = out_sp - proc->getAddressWidth();
+    out_ra_loc.location = loc_address;
+    out_ra_loc.val.addr = out_ra_addr;
+
+    bool resultMem = proc->readMem(&out_ra, out_ra_addr, proc->getAddressWidth());
+    if (!resultMem) {
+      sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
+		__FILE__, __LINE__, out_ra_addr);
+      continue;
+    }
+
+    // If we have multiple potential heights (due to overlapping functions), 
+    // check if potential stack height is valid (verify that calculated RA follows a call instr)
+    if (heights.size() > 1) {
+      sw_printf("[%s:%u] - Calling isPrevInstrACall\n", __FILE__, __LINE__);
+      Address target;
+      if (!isPrevInstrACall(out_ra, target)) {
+	sw_printf("[%s:%u] - Return location %lx does not follow a call instruction\n",
+		  __FILE__, __LINE__, out_ra);
+	continue;
+      }
+      
+      sw_printf("[%s:%u] - Frame pointer analysis not implemented for register-based AnalysisStepper\n",
+		__FILE__, __LINE__);
+    }
+    
+    out.setSP(out_sp);
+    out.setRALocation(out_ra_loc);
+    out.setRA(out_ra);
+    
+    if (result) {
+      sw_printf("[%s:%u] - Warning - found multiple valid frames.\n", 
+		__FILE__, __LINE__);
+    } else {
+      sw_printf("[%s:%u] - Found a valid frame\n", 
+		__FILE__, __LINE__);
+      result = true;
+    }
+  }
+  if (result) {
+    sw_printf("[%s:%u] - success\n", __FILE__, __LINE__); 
+    return gcf_success;
+  } else {
+    sw_printf("[%s:%u] - failed\n", __FILE__, __LINE__); 
+    return gcf_not_me;
+  }
+
+}

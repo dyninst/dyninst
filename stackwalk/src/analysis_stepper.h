@@ -58,6 +58,8 @@ class AnalysisStepperImpl : public FrameStepper
    virtual ~AnalysisStepperImpl();
 
    typedef std::pair<StackAnalysis::Height, StackAnalysis::Height> height_pair_t;
+   typedef std::pair<MachRegister, StackAnalysis::Height> registerState_t;
+   
    static const height_pair_t err_height_pair;
 
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
@@ -72,8 +74,12 @@ class AnalysisStepperImpl : public FrameStepper
    static ParseAPI::CodeSource *getCodeSource(std::string name);
 
    std::set<height_pair_t> analyzeFunction(std::string name, Offset off);
+   std::vector<registerState_t> fullAnalyzeFunction(std::string name, Offset off);
+   
    virtual bool isPrevInstrACall(Address addr, Address & target);
    virtual gcframe_ret_t getCallerFrameArch(std::set<height_pair_t> height, const Frame &in, Frame &out);
+   gcframe_ret_t getFirstCallerFrameArch(const std::vector<registerState_t>& heights, const Frame& in, Frame& out);
+   
 };
 
 }
