@@ -162,7 +162,16 @@ BPatch_process *test_thread_8_Mutator::getProcess()
          return NULL;
       }
    }
-   // Getting rid of attach here because the old code is apparently broken.
+   else {
+#if defined(os_windows_test)
+	P_sleep(1);
+#endif
+	// Should be attached by test infrastructure, but
+	// we set delayedAttach so signal it here.
+	if (!appProc) return NULL;
+
+	proc = appProc;
+   }
    return proc;
 }
 
@@ -207,6 +216,18 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    }
    BPatch_function *check_async = asyncfuncs[0];   
 
+  // For the attach case, we may already have the threads in existence; if so, 
+   // manually trigger them here. 
+
+   if (!create_proc) {
+	   newthr(appProc, appThread);
+	   std::vector<BPatch_thread *> threads;
+	   appProc->getThreads(threads);
+	   for (unsigned i = 0; i < threads.size(); ++i) {
+		   if (threads[i] == appThread) continue;
+		   newthr(appProc, threads[i]);
+	   }
+   }
    proc->continueExecution();
 
    // Wait for NUM_THREADS to be created
@@ -384,7 +405,8 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
    /* Grab info from param */
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
-
+    appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    // Get log file pointers
    logfilename = param["logfilename"]->getString();
 
@@ -399,5 +421,5 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
        debug_flag = true;
    }
 
-   return PASSED;
+   return DyninstMutator::setup(param);
 }
