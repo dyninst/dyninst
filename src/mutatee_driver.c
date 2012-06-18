@@ -164,6 +164,7 @@ void setLabel(char *label) {
 
 static int pfd;
 static int custom_attach = 0;
+static int delayed_attach = 0;
 static int useAttach = FALSE;
 int signal_fd = 0;
 
@@ -313,6 +314,8 @@ int main(int iargc, char *argv[])
 #endif
       } else if (!strcmp(argv[i], "-customattach")) {
          custom_attach = 1;
+      } else if (!strcmp(argv[1], "-delayedattach")) {
+         delayed_attach = 1;
       } else if (!strcmp(argv[i], "-run")) {
          char *tests;
          char *name;
@@ -404,7 +407,8 @@ int main(int iargc, char *argv[])
    }
    /* see if we should wait for the attach */
    if (useAttach && !custom_attach) {
-      handleAttach();
+      if (!delayed_attach)
+         handleAttach();
    } else {
       setUseAttach(FALSE);
    }

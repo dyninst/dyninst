@@ -11,8 +11,6 @@ dyninst_SOLO_MUTATEES_native_cxx = dyninst_cxx_group_test_mutatee_solo_VC++_32_h
 
 # Now a list of rules for compiling the mutatees with VC++
 
-LDFLAGS = $(LDFLAGS) /DYNAMICBASE:NO
-
 dyninst_cxx_group_test_mutatee_solo_VC++_32_high.exe: dyninst_cxx_group_test_group_VC++_32_high.obj test5_1_mutatee_solo_VC++_32_high.obj test5_2_mutatee_solo_VC++_32_high.obj test5_3_mutatee_solo_VC++_32_high.obj test5_4_mutatee_solo_VC++_32_high.obj test5_5_mutatee_solo_VC++_32_high.obj test5_6_mutatee_solo_VC++_32_high.obj test5_7_mutatee_solo_VC++_32_high.obj test5_8_mutatee_solo_VC++_32_high.obj test5_9_mutatee_solo_VC++_32_high.obj cpp_test_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 dyninst_cxx_group_test_mutatee_solo_VC++_32_low.exe: dyninst_cxx_group_test_group_VC++_32_low.obj test5_1_mutatee_solo_VC++_32_low.obj test5_2_mutatee_solo_VC++_32_low.obj test5_3_mutatee_solo_VC++_32_low.obj test5_4_mutatee_solo_VC++_32_low.obj test5_5_mutatee_solo_VC++_32_low.obj test5_6_mutatee_solo_VC++_32_low.obj test5_7_mutatee_solo_VC++_32_low.obj test5_8_mutatee_solo_VC++_32_low.obj test5_9_mutatee_solo_VC++_32_low.obj cpp_test_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj

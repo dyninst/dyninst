@@ -41,6 +41,9 @@ enum start_state_t {
    RUNNING,
    // Start mutatee stopped normally, but do not trigger attach ack
    SELFATTACH,
+   // Start mutatee and create the attach pipe, but delay attach until 
+   // test does so explicitly
+   DELAYEDATTACH,
    // Allow the test to setup the mutatee itself
    SELFSTART
 };

@@ -1555,7 +1555,7 @@ test('test_thread_6', 'test_thread_6', 'test_thread_6').
 test_description('test_thread_6', 'thread create and destroy callbacks?').
 test_runs_everywhere('test_thread_6').
 test_runmode('test_thread_6', 'dynamic').
-test_start_state('test_thread_6', 'selfattach').
+test_start_state('test_thread_6', 'delayedattach').
 tests_module('test_thread_6', 'dyninst').
 
 % test_thread_7 (formerly test14_1)
@@ -1584,7 +1584,7 @@ test('test_thread_7', 'test_thread_7', 'test_thread_7').
 test_description('test_thread_7', 'multithreaded tramp guards').
 test_runs_everywhere('test_thread_7').
 test_runmode('test_thread_7', 'dynamic').
-test_start_state('test_thread_7', 'selfattach').
+test_start_state('test_thread_7', 'delayedattach').
 tests_module('test_thread_7', 'dyninst').
 
 % test_thread_8 (formerly test15_1)
@@ -1605,7 +1605,7 @@ test('test_thread_8', 'test_thread_8', 'test_thread_8').
 test_description('test_thread_8', 'thread-specific one time codes').
 test_runs_everywhere('test_thread_8').
 test_runmode('test_thread_8', 'dynamic').
-test_start_state('test_thread_8', 'selfattach').
+test_start_state('test_thread_8', 'delayedattach').
 tests_module('test_thread_8', 'dyninst').
 
 % The Fortran tests
@@ -2620,7 +2620,7 @@ optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
-% mutatee in state State, with State in {stopped, running, selfstart, selfattach}
+% mutatee in state State, with State in {stopped, running, selfstart, selfattach, delayedattach}
 
 % compiler_for_mutatee/2
 % compiler_for_mutatee(?Testname, ?Compiler)

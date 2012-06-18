@@ -360,6 +360,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('RUNNING, ')
 		elif group['start_state'] == 'selfattach':
 			out.write('SELFATTACH, ')
+                elif group['start_state'] == 'delayedattach':
+                        out.write('DELAYEDATTACH, ')
 		else: # Assuming 'selfstart'
 			out.write('SELFSTART, ')
 		if group['run_mode'] == 'createProcess':
@@ -1111,6 +1113,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			state_init = 'RUNNING'
 		elif group['start_state'] == 'selfattach':
 			state_init = 'SELFATTACH'
+                elif group['start_state'] == 'delayedattach':
+                        state_init = 'DELAYEDATTACH'
 		else: # Assuming 'selfstart'
 			state_init = 'SELFSTART'
 		if group['run_mode'] == 'createProcess':
