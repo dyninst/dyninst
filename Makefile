@@ -44,7 +44,7 @@ $(Everything_install) $(Everything_tests_install):
 $(Test_targets):
 	@$(MAKE) -C testsuite/$(PLATFORM) $(@:%_testsuite=%)
 
-install: intro ready $(fullSystem_install) testsuite_install
+install: intro ready $(fullSystem_install)
 
 world: intro $(fullSystem)
 depend:
