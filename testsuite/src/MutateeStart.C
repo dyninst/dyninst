@@ -444,6 +444,10 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    if (cm == USEATTACH && gs == SELFATTACH) {
       args.push_back("-customattach");
    }
+   
+   if (cm == USEATTACH && gs == DELAYEDATTACH) {
+      args.push_back("-delayedattach");
+   }
 
    test_procstate_t ps = (test_procstate_t) params["mp"]->getInt();
    if (ps == SingleProcess) 
