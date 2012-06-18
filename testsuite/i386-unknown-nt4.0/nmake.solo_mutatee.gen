@@ -3,6 +3,8 @@ M_native_cc = cl
 M_native_cxx = cl
 M_masm = ml
 
+LDFLAGS = $(LDFLAGS) /DYNAMICBASE:NO
+
 ######################################################################
 # Mutatees compiled with VC++ for dyninst
 ######################################################################

@@ -435,6 +435,8 @@ test_results_t test_thread_6_Mutator::setup(ParameterDict &param) {
       return FAILED;
    }
 
+   appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    
    return DyninstMutator::setup(param);
 }

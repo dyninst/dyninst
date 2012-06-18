@@ -192,8 +192,9 @@ void handleAttach()
    BOOL wrote_ok = FALSE;
    HANDLE signalPipe;
 
+  
    if (!useAttach) return;
-   fprintf(stderr, "Creating signal pipe in mutatee...\n");
+
    signalPipe = CreateFile(pipeName,
                            GENERIC_WRITE,
                            0,
@@ -205,12 +206,14 @@ void handleAttach()
    {
       if(GetLastError() != ERROR_PIPE_BUSY)
       {
+
          output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
          exit(-1);
       }
       if(!WaitNamedPipe(pipeName, 2000))
       {
-         output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+
+		  output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
          exit(-1);
       }
    }
@@ -221,6 +224,7 @@ void handleAttach()
                         NULL);
    if(!wrote_ok ||(bytes_written != 1))
    {
+
       output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
       exit(-1);
    }
@@ -228,7 +232,7 @@ void handleAttach()
 
    logstatus("mutatee: Waiting for mutator to attach...\n");
 #endif
-   
+ 
    setUseAttach(TRUE);
 
    flushOutputLog();
@@ -248,6 +252,7 @@ void handleAttach()
       /* Do nothing */
    }
    fflush(stderr);
+
    logstatus("Mutator attached.  Mutatee continuing.\n");
 }
 
@@ -292,6 +297,7 @@ int main(int iargc, char *argv[])
 
    /* Parse command line arguments */
    for (i=1; i < argc; i++) {
+
       if (!strcmp(argv[i], "-verbose")) {
          debugPrint = 1;
       } else if (!strcmp(argv[i], "-log")) {
@@ -314,8 +320,9 @@ int main(int iargc, char *argv[])
 #endif
       } else if (!strcmp(argv[i], "-customattach")) {
          custom_attach = 1;
-      } else if (!strcmp(argv[1], "-delayedattach")) {
-         delayed_attach = 1;
+      } else if (!strcmp(argv[i], "-delayedattach")) {
+
+		  delayed_attach = 1;
       } else if (!strcmp(argv[i], "-run")) {
          char *tests;
          char *name;
@@ -405,6 +412,7 @@ int main(int iargc, char *argv[])
 		fprintf(stderr, "no tests specified, exiting\n");
 	   exit(0);
    }
+
    /* see if we should wait for the attach */
    if (useAttach && !custom_attach) {
       if (!delayed_attach)
@@ -417,7 +425,8 @@ int main(int iargc, char *argv[])
     * Run the tests and keep track of return values in case of test failure
     */
    for (i = 0; i < (unsigned) max_tests; i++) {
-      if (runTest[i]) {
+
+	   if (runTest[i]) {
 
          log_testrun(mutatee_funcs[i].testname);
 
@@ -426,8 +435,10 @@ int main(int iargc, char *argv[])
          }
 
          output->setTestName(mutatee_funcs[i].testname);
-         mutatee_funcs[i].func();
-         log_testresult(passedTest[i]);
+	
+		 mutatee_funcs[i].func();
+	
+		 log_testresult(passedTest[i]);
     
          if (!passedTest[i]) {
             allTestsPassed = FALSE;
@@ -437,6 +448,7 @@ int main(int iargc, char *argv[])
       flushOutputLog();
       flushErrorLog();
    }
+	
    if (allTestsPassed) {
       logstatus("All tests passed.\n");
       retval = 0;
@@ -458,5 +470,6 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
+
    exit( retval);
 }

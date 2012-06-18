@@ -1173,7 +1173,8 @@ BPatch_process *BPatch::processAttachInt
        char msg[256];
        sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
        reportError(BPatchWarning, 26, msg);
-       delete ret;
+	   
+	   delete ret;
        return NULL;
    }
 

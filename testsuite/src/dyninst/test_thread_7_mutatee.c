@@ -168,7 +168,7 @@ volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
    threads_running[(int) (long) arg] = 1;
-   while(! ok_to_go) P_sleep(1);
+   while(! ok_to_go) P_sleep(1); 
    test_thread_7_level0(N_INSTR-1);
    return NULL;
 }
@@ -177,7 +177,6 @@ void *init_func(void *arg)
 int test_thread_7_mutatee() {
    unsigned i;
    int startedall = 0;
-
    initLock(&barrier_mutex);
    initLock(&count_mutex);
 
@@ -190,7 +189,6 @@ int test_thread_7_mutatee() {
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();
-
    while (!startedall) {
       for (i=1; i<NTHRD; i++) {
          startedall = 1;
@@ -201,14 +199,12 @@ int test_thread_7_mutatee() {
          }
       }
    }
-
    handleAttach();
-
    ok_to_go = 1;
    init_func(NULL);
    for (i=1; i<NTHRD; i++)
    {
-      joinThread(thrds[i].tid);
+	   joinThread(thrds[i].tid);
    }
    
    if (times_level1_called != NTHRD*N_INSTR)

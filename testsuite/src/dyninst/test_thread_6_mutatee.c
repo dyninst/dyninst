@@ -50,9 +50,7 @@ volatile int threads_running[NTHRD];
 void *init_func(void *arg)
 {
    threads_running[(int) (long) arg] = 1;
-   fprintf(stderr, "before while\n");
    while (!done);
-   fprintf(stderr, "after a while\n");
    return arg;
 }
 

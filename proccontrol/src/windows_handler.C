@@ -399,5 +399,5 @@ void WindowsHandleThreadStop::getEventTypesHandled(std::vector<EventType> &etype
 int WindowsHandleThreadStop::getPriority() const 
 {
 	// Needs to hit _after_ the LWP destroy
-	return DefaultPriority;
+	return PostPlatformPriority+1;
 }

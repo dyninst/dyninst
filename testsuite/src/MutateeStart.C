@@ -440,13 +440,13 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
    create_mode_t cm = (create_mode_t) params["createmode"]->getInt();
    start_state_t gs = group->state;
    AddArchAttachArgs(args, cm, gs);
-
+   
    if (cm == USEATTACH && gs == SELFATTACH) {
       args.push_back("-customattach");
    }
-   
+
    if (cm == USEATTACH && gs == DELAYEDATTACH) {
-      args.push_back("-delayedattach");
+	   args.push_back("-delayedattach");
    }
 
    test_procstate_t ps = (test_procstate_t) params["mp"]->getInt();
