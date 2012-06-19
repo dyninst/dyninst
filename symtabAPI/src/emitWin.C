@@ -31,12 +31,13 @@
 
 #include <algorithm>
 #include "../common/h/parseauxv.h"
+#include "Object.h"
+#include "Object-nt.h"
 #include "emitWin.h"
 #include "Symtab.h"
 #include <iostream>
 #include <dbghelp.h>
 
-//extern void symtab_log_perror(const char *msg);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -77,7 +78,248 @@ bool emitWin::AlignSection(PIMAGE_SECTION_HEADER p){
     return true;
 }
 
+// based on the dyninst section being the last section
+static Region *getDyninstSection(Symtab *st)
+{
+   vector<Region*> regs;
+   st->getAllRegions(regs);
+   return regs.back();
+}
+
+static Offset copy_ILT_or_ALT(unsigned int idtIdx, 
+                             vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> > &idt, 
+                             const vector<void*> &iltEntries, 
+                             const unsigned char *ptrDyn,
+                             Offset secOff, 
+                             Offset ptrToWrite,
+                             int addrWidth,
+                             bool isILT)
+{
+   assert(idtIdx < idt.size());
+   if (isILT) {
+      idt[idtIdx].second.OriginalFirstThunk = secOff + ptrToWrite;
+   } else {
+      idt[idtIdx].second.FirstThunk = secOff + ptrToWrite;;
+   }
+   idtIdx++;
+
+   for (vector<void*>::const_iterator eit = iltEntries.begin();
+        eit != iltEntries.end(); 
+        eit++)
+   {
+      if (0 == (*eit) && idtIdx < idt.size()) {
+         if (isILT) {
+            idt[idtIdx].second.OriginalFirstThunk = secOff + ptrToWrite + addrWidth;
+         } else {
+            idt[idtIdx].second.FirstThunk = secOff + ptrToWrite + addrWidth;
+         }
+         idtIdx++;
+      }
+      memcpy((void*)(ptrDyn + ptrToWrite), &(*eit), addrWidth);
+      ptrToWrite += addrWidth;
+   }
+   return ptrToWrite;
+}
+
+
+/* Things that need to change:
+ *
+ * Tables
+ *  - Move import descriptor table even if we're not adding new libraries 
+      (orig. ILT, IAT, HNT tables are full, must point to additional entries)
+ *  - Add extra import lookup table entries (per-lib ILT's are NULL terminated)
+ *  - Add extra Hint/Name table entries (1 table for whole binary, but can split)
+ *  - Add extra import address table entries (can't move original entries)
+ *  - Add extra library names (duplicates are OK)
+ * PE Header
+ *  - fix Import (descriptor) table pointer
+ *  - fix Import address table pointer
+ */
+bool emitWin::writeImpTable(Symtab* obj)
+{
+   bool ret = true; 
+
+   // populate Import descriptor table with existing entries
+   vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> > & idt = obj_nt->getImportDescriptorTable();
+   int origIDTSize = idt.size();
+
+   //get the dyninst section
+   Region *dynSec = getDyninstSection(obj);
+   assert(dynSec);
+
+   std::map<string, map<Offset, string> > & ref = obj_nt->getRefs();
+
+   // for each new library in ref, create new IDT entry,
+   // for each new function in ref, create new HNT entry
+   map<string, map<string, WORD> > hnt;
+   for(map<string, map<Offset, string> >::iterator lit=ref.begin(); 
+       lit != ref.end(); 
+       lit++)
+   {
+      // add IDT entry
+      IMAGE_IMPORT_DESCRIPTOR newID;
+      newID.FirstThunk = NULL;       // IAT offset,      don't know yet
+      newID.ForwarderChain=0;
+      newID.Name = NULL;             // lib name offset, don't know yet
+      newID.OriginalFirstThunk=NULL; // ILT offset,      don't know yet
+      newID.TimeDateStamp=0;
+      idt.push_back(std::pair<string, IMAGE_IMPORT_DESCRIPTOR>(lit->first, newID));
+
+      hnt[lit->first]; // add hnt entry for the library if needed 
+      map<string, map<string, WORD> >::iterator libHNT = hnt.find(lit->first);
+
+      // for each new function in ref, create new HNT entry
+      for(map<Offset, string>::iterator fit = lit->second.begin(); 
+          fit != lit->second.end(); 
+          fit++)
+      {
+         if (libHNT->second.end() == libHNT->second.find(fit->second)) {
+            // add missing HNT entry
+            (libHNT->second)[fit->second] = 0; // index hint = 0
+         }
+      }
+   }
+
+   //create space to hold the .dyninst section and updated import table
+   unsigned int numImports = 0;
+   // calculate hint/name table, number of import funcs, the concatenated length of lib names
+   unsigned int hntSize = 0;
+   unsigned int libNameSize = 0;
+   for (map<string, map<string, WORD> >::iterator hit = hnt.begin();
+        hit != hnt.end();
+        hit++)
+   {
+      numImports += hit->second.size();
+      libNameSize += hit->first.size() + 1;
+      for (map<string, WORD>::iterator fit = hit->second.begin();
+           fit != hit->second.end();
+           fit++)
+      {
+         int nameLen = fit->first.size();
+         hntSize += 2 + nameLen + 1 + ((nameLen+1) % 2); // hint + nameLen + '\0' + padding
+      }
+   }
+   unsigned int idtSize = sizeof(IMAGE_IMPORT_DESCRIPTOR) * (idt.size() + 1);
+   unsigned int iltSize = (numImports + hnt.size()) * obj->getAddressWidth();
+   unsigned int iatSize = iltSize;
+   unsigned int secSize = dynSec->getDiskSize() + idtSize + iltSize + hntSize + iatSize + libNameSize;
+   unsigned char* ptrDyn = (unsigned char*) GlobalAlloc(GMEM_FIXED|GMEM_ZEROINIT, secSize);
+
+   // initialize the new .dyninst section
+   Offset ptrToWrite = 0;
+
+   // a. copy the existing section, set dynSec data pointer
+   memcpy(ptrDyn + ptrToWrite,
+          dynSec->getPtrToRawData(), 
+          dynSec->getDiskSize());
+   ptrToWrite += dynSec->getDiskSize();
+   dynSec->setPtrToRawData(ptrDyn, secSize);
+
+   // b. copy the HNT, set (ILT/IAT)->HNT pointers
+   assert(sizeof(void*) == obj->getAddressWidth());
+   vector<void*> iltEntries;
+   for (map<string, map<string, WORD> >::iterator hit = hnt.begin();
+        hit != hnt.end();
+        hit++)
+   {
+      for (map<string, WORD>::iterator fit = hit->second.begin();
+           fit != hit->second.end();
+           fit++)
+      {
+         // set ILT pointer
+         iltEntries.push_back((void*)(dynSec->getMemOffset() + ptrToWrite));
+
+         // copy hint
+         memcpy(ptrDyn + ptrToWrite,
+                &(fit->second), 
+                2);
+         ptrToWrite += 2;
+
+         // copy func name
+         int nameLen = fit->first.size() + 1; // include the ending \0
+         memcpy(ptrDyn + ptrToWrite,
+                fit->first.c_str(), 
+                nameLen);
+         ptrToWrite += nameLen;
+
+         // copy padding
+         int padLen = nameLen % 2;
+         if (padLen) { // padLen is 0 or 1, write if 1
+            ptrDyn[ptrToWrite] = '\0';
+            ptrToWrite += padLen;
+         }
+      }
+
+      // add null entry to close library ILT
+      iltEntries.push_back(0);
+   }
+
+   // c. copy the ILT, set IDT pointers
+   ptrToWrite = copy_ILT_or_ALT(origIDTSize, 
+                                idt, 
+                                iltEntries, 
+                                ptrDyn,
+                                dynSec->getMemOffset(), 
+                                ptrToWrite, 
+                                obj->getAddressWidth(), 
+                                true); 
+
+   // d. copy the IAT (identical to ILT), set IDT pointers
+   Offset iatOffset = dynSec->getMemOffset() + ptrToWrite;
+   ptrToWrite = copy_ILT_or_ALT(origIDTSize, 
+                                idt, 
+                                iltEntries, 
+                                ptrDyn,
+                                dynSec->getMemOffset(), 
+                                ptrToWrite, 
+                                obj->getAddressWidth(), 
+                                false); 
+   assert(iatSize == (dynSec->getMemOffset() + ptrToWrite - iatOffset));
+
+   // e. create list of library names, set IDT pointers
+   for (int idtIdx = origIDTSize; idtIdx  != idt.size(); idtIdx++) {
+      idt[idtIdx].second.Name = dynSec->getMemOffset() + ptrToWrite;
+      int nameLen = idt[idtIdx].first.size() + 1; // include terminating \0
+      memcpy(ptrDyn + ptrToWrite,
+             idt[idtIdx].first.c_str(), 
+             nameLen);
+      ptrToWrite += nameLen;
+   }
+
+   // f. copy the null-terminated IDT
+   Offset idtOffset = dynSec->getMemOffset() + ptrToWrite;
+   for (vector<pair<string,IMAGE_IMPORT_DESCRIPTOR> >::iterator dit = idt.begin(); 
+        dit != idt.end();
+        dit++)
+   {
+      memcpy(ptrDyn + ptrToWrite,
+             (void*)& dit->second, 
+             sizeof(IMAGE_IMPORT_DESCRIPTOR));
+      ptrToWrite += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+   }
+   memset(ptrDyn + ptrToWrite, 0, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+   ptrToWrite += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+   assert(idtSize == (dynSec->getMemOffset() + ptrToWrite - idtOffset));
+
+   assert(ptrToWrite == secSize);
+
+   // fix PE header import descriptor table address & size
+   if (obj_nt->getPEHdr()->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_IMPORT) {
+      obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = idtOffset;
+      obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = idtSize;
+   } else {
+      ret = false;
+   }
+
+   return ret;
+} // end writeImpTable
+
+
 bool emitWin::driver(Symtab *obj, std::string fName){
+	//if external references exist, write the import info.
+	if(!obj_nt->getRefs().empty())
+		writeImpTable(obj);
+
 	Offset MoveAheadOffset=0;
     //get the number of new added sections
     std::vector<Region *> newregs;
@@ -160,16 +402,30 @@ bool emitWin::driver(Symtab *obj, std::string fName){
         secHdrs.push_back(p);
         pre = p;
     }
+    
     //printf("size of sec headers:%d\n", secHdrs.size());
     for(unsigned int i=0; i<secHdrs.size(); i++){
-        printf("%s, diskOff=%x, diskSize=%x, memoff=%x, memsize=%x\n", (const char*)secHdrs[i]->Name,secHdrs[i]->PointerToRawData, secHdrs[i]->SizeOfRawData,
-            secHdrs[i]->VirtualAddress, secHdrs[i]->Misc.VirtualSize);
+        printf("%s, diskOff=%x, diskSize=%x, memoff=%x, memsize=%x\n", 
+               (const char*)secHdrs[i]->Name,secHdrs[i]->PointerToRawData, 
+               secHdrs[i]->SizeOfRawData, secHdrs[i]->VirtualAddress, 
+               secHdrs[i]->Misc.VirtualSize);
+    }
+
+    //resize the last section to fit label and trap table pointer
+    PIMAGE_SECTION_HEADER lastSec = secHdrs[secHdrs.size()-1];
+    const int REWRITE_LABEL_SIZE = obj->getAddressWidth() + 16;
+    if (obj->getObject()->trapHeader()) {
+        lastSec->SizeOfRawData = PEAlign(
+            lastSec->SizeOfRawData + REWRITE_LABEL_SIZE, 
+            pehdr->OptionalHeader.FileAlignment);
+        lastSec->Misc.VirtualSize = PEAlign(
+            lastSec->SizeOfRawData + REWRITE_LABEL_SIZE, 
+            pehdr->OptionalHeader.SectionAlignment);
     }
 
     //calculate size of file
-    DWORD dwFileSize = secHdrs[secHdrs.size()-1]->PointerToRawData + secHdrs[secHdrs.size()-1]->SizeOfRawData;
+    DWORD dwFileSize = lastSec->PointerToRawData + lastSec->SizeOfRawData;
     //printf("size of file=%x", dwFileSize);
-
 
     //open a file to write the image to disk
     HANDLE hFile = CreateFileA(fName.c_str(),GENERIC_WRITE,
@@ -218,9 +474,27 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     NTHeader->OptionalHeader.SizeOfImage = secHdrs[secHdrs.size()-1]->VirtualAddress + 
         secHdrs[secHdrs.size()-1]->Misc.VirtualSize;
 
+	//if move the import descriptor table, update its address
+	if(!obj_nt->getRefs().empty() && NTHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_IMPORT) {
+       Offset newOff = obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+       Offset newSize = obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
+		NTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = newOff;
+		NTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = newSize;
+        printf("new import descriptor table address: %lu size: %lu\n", newOff, newSize);
+	}
+	//if move the import address table, update its address
+	if(!obj_nt->getRefs().empty() && NTHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_IAT) {
+       Offset newOff = obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress;
+       Offset newSize = obj_nt->getPEHdr()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size;
+		NTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress = newOff;
+		NTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size = newSize;
+		printf("new import address table address: %lu size: %lu\n", newOff, newSize);
+	}
+
     memcpy(pMem+writeOffset, NTHeader,sizeof(IMAGE_NT_HEADERS));
     //if bound import table is not empty, update its virtual address
     if(bit_addr != 0){
+        assert(NTHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_IMPORT);
         PIMAGE_NT_HEADERS newpeHdr = (PIMAGE_NT_HEADERS)((void *)(pMem+writeOffset));
         PIMAGE_OPTIONAL_HEADER newoptHdr = (PIMAGE_OPTIONAL_HEADER)&newpeHdr -> OptionalHeader;
         printf("old address: 0x%x\n", newoptHdr->DataDirectory[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress);
@@ -232,32 +506,27 @@ bool emitWin::driver(Symtab *obj, std::string fName){
     //write section header table and section
     //DWORD dwFirstSectionHeaderOffset = peHdrOffset + sizeof(IMAGE_NT_HEADERS);
 	DWORD dwFirstSectionHeaderOffset = writeOffset;
-
-    for(unsigned int i=0; i<secHdrs.size(); i++){
+    unsigned int numSecns = secHdrs.size();
+    for(unsigned int i=0; i<numSecns; i++){
         memcpy(pMem+dwFirstSectionHeaderOffset + i*sizeof(IMAGE_SECTION_HEADER),secHdrs[i],
             sizeof(IMAGE_SECTION_HEADER));
         memcpy(pMem+secHdrs[i]->PointerToRawData, regs[i]->getPtrToRawData(),regs[i]->getDiskSize());
-
     }
+
+    // copy trap-table header & DYNINST_REWRITE to end of last section
+    Address trapHead = obj->getObject()->trapHeader();
+    Address writeTarg = (Address) (pMem 
+        + lastSec->PointerToRawData 
+        + lastSec->SizeOfRawData 
+        - REWRITE_LABEL_SIZE);
+    memcpy((void*)writeTarg, (void*) &trapHead, obj->getAddressWidth());
+    memcpy((void*)(writeTarg + obj->getAddressWidth()), "DYNINST_REWRITE", 16);
 
     //write bound import table info
     if(bit_addr != 0){
         memcpy(pMem+dwFirstSectionHeaderOffset + secHdrs.size()*sizeof(IMAGE_SECTION_HEADER),
             (char*)(base_addr+bit_addr), bit_size);
-    }
-
-
-        //WriteFile(hFile, secHdrs[i],sizeof(IMAGE_SECTION_HEADER), &dwByteWritten, NULL);
-        //printf("section header%d:%lu, %lu\n", i,sizeof(IMAGE_SECTION_HEADER), dwByteWritten);
-    //}   
-
-    //write sections
-    //for(unsigned int i=0; i<secHdrs.size(); i++){
-    //    SetFilePointer(hFile,secHdrs[0]->PointerToRawData,NULL,FILE_BEGIN);
-    //    WriteFile(hFile, regs[i]->getPtrToRawData(),regs[i]->getDiskSize(),&dwByteWritten, NULL);
-    //    printf("section %d:%lu, %lu\n", i,regs[i]->getDiskSize(), dwByteWritten);
-    //}
-   
+    }   
 
     //move the file pointer to beginning to write
     DWORD dwByteWritten =0;
@@ -272,31 +541,6 @@ bool emitWin::driver(Symtab *obj, std::string fName){
 
     return true;
 }
-
-/*
-void emitWin::AlignSections(){
-    PIMAGE_NT_HEADERS pNTHeader = obj_nt -> GetImageHeader();
-    std::vector<PIMAGE_SECTION_HEADER> sectionHeader = obj_nt ->getSectionHeaders();
-    std::vector<PIMAGE_SECTION_HEADER>::iterator iter;
-   
-    for(iter = sectionHeader.begin(); iter != sectionHeader.end(); iter++)
-    {
-        iter->VirtualAddress = PEAlign(iter->VirtualAddress,
-            pNTHeader->OptionalHeader.SectionAlignment);
-
-        iter->Misc.VirtualSize=PEAlign(iter->Misc.VirtualSize,
-            pNTHeader->OptionalHeader.SectionAlignment);
-
-        iter->PointerToRawData=PEAlign(iter->PointerToRawData,
-            pNTHeader->OptionalHeader.FileAlignment);
-
-        iter->SizeOfRawData=PEAlign(iter->SizeOfRawData,
-            pNTHeader->OptionalHeader.FileAlignment);
-    }
-    pNTHeader->OptionalHeader.SizeOfImage=sectionHeader.end()->VirtualAddress+
-        sectionHeader.end()->Misc.VirtualSize;
-}
-*/
 
 
 /*In windows PE file, there are two alignments:

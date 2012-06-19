@@ -45,6 +45,11 @@ int sym_debug_types = 0;
 int sym_debug_translate = 0;
 int sym_debug_rewrite = 0;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4996) 
+#endif
+
 bool init_debug_symtabAPI() {
     static bool initialized = false;
     if (initialized) return true;
@@ -151,3 +156,39 @@ int rewrite_printf(const char *format, ...)
 
   return ret;
 }
+
+int dwarf_printf(const char *format, ...)
+{
+  static int dyn_debug_dwarf = 0;
+
+  if (dyn_debug_dwarf == -1) {
+    return 0;
+  }
+  if (!dyn_debug_dwarf) {
+    char *p = getenv("DYNINST_DEBUG_DWARF");
+    if (!p)
+      p = getenv("SYMTAB_DEBUG_DWARF");
+    if (p) {
+      fprintf(stderr, "Enabling SymtabAPI dwarf parsing\n");
+      dyn_debug_dwarf = 1;
+    }
+    else {
+      dyn_debug_dwarf = -1;
+      return 0;
+    }
+  }
+
+  if (!format)
+    return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif

@@ -20,7 +20,6 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =          ../src/Object-elf.C \
-		../../common/src/Elf_X.C \
 		../src/Archive.C \
 		../src/Archive-elf.C \
                 ../src/parseDwarf.C \
@@ -28,7 +27,7 @@ SRCS =          ../src/Object-elf.C \
 		../src/emitElf.C \
 		../src/emitElf-64.C \
 		../src/emitElfStatic.C \
-		../src/emitElfStatic-stub.C \
+		../src/emitElfStatic-ppc64.C \
 		../src/LinkMap.C \
 		../src/relocationEntry-elf-ppc64.C
 

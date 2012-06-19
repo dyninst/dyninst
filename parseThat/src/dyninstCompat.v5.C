@@ -33,7 +33,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <unistd.h>
+#include "unistd.h"
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"

@@ -43,13 +43,23 @@
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
+
 #include "common/h/SymLite-elf.h"
 #include "common/h/pathName.h"
+
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
+using namespace std;
+
+#define ELF_X_NAMESPACE ProcControlAPI
+#include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"

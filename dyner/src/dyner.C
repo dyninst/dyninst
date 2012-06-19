@@ -68,13 +68,11 @@ extern "C" {
 }
 
 bool stopFlag = false;
-//extern int dynerdebug;
 
 int debugPrint = 0;
 BPatch_point *targetPoint;
 bool errorLoggingOff = false;
-bool dynerVerbose = true;
-bool verbose = false;
+bool dynerVerbose = false;
 bool fromSource = false;
 
 // control debug printf statements
@@ -137,7 +135,6 @@ static int bpCtr = 1;
 static int ipCtr = 1;
 static DynerList<BPListElem *> bplist;
 static DynerList<IPListElem *> iplist;
-static std::vector<runtimeVar *> varList;
 
 int whereAmINow = -1;/*ccw 10 mar 2004 : this holds the index of the current stackframe for where, up, down*/
 
@@ -343,7 +340,6 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
    LIMIT_TO("break") {
       printf("break <function> [entry|exit|preCall|postCall] [<condition>] - set a (conditional)\n");
       printf("     break point at specified points of <function>\n");
-      printf("break <file name:line number> [<condition>] - set an arbitrary (conditional) break\n");
       printf("     point at <line number> of <file name>\n");
    }
   
@@ -449,18 +445,6 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
    LIMIT_TO("down"){
       printf("down - Move down the stack trace\n");
    }
-   
-	LIMIT_TO("saveStart"){
-		printf("saveStart - Call saveStart before 'save' to begin marking instrumentation\n");
-		printf("	to be saved to the mutated binary. This must be called before save is\n");
-		printf("	called.  Only instrumentation inserted after saveStart is called will be\n");
-		printf("	saved in the mutated binary.\n");
-	}
-	LIMIT_TO("save"){
-		printf("save <file name> - Save the currently loaded mutatee and its mutations to the\n");
-		printf("	file <file name>.  Call 'saveStart' before 'save' to begin marking \n");
-		printf("	instrumentation to be saved to the mutated binary\n");
-	} 
 #endif
    
    return TCL_OK;
@@ -518,7 +502,6 @@ int loadApp(const char *pathname, TCLCONST char **args)
    if (appProc != NULL) delete appProc;
    bplist.clear();
    iplist.clear();
-   varList.clear();
    appProc = bpatch->processCreate((char*)pathname, (const char**)args);
    bpNumber = NULL;
    
@@ -704,7 +687,6 @@ int attachPid(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    if (appProc != NULL) delete appProc;
    bplist.clear();
    iplist.clear();
-   varList.clear();
    
    pid = atoi(argv[1]);
    if (argc == 3) pathName = argv[2];
@@ -891,38 +873,6 @@ int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
    return TCL_OK;
 }
 
-#if defined(i386_unknown_linux2_0) || defined(rs6000_ibm_aix4_1)
-
-bool saveWorldStart =false;
-
-int saveStart(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv */){
-   
-	if (!haveApp()) return TCL_ERROR;
-
-	saveWorldStart = true;
-
-	appProc->enableDumpPatchedImage();
-
-	return TCL_OK;   
-}
-
-int saveWorld(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
-	if(argc != 2){
-		printf(" Usage: save <filename>\n");
-		return TCL_ERROR;
-	}
-	if(!saveWorldStart){
-		printf("Call saveStart before issuing instrumentation to save\n");
-		return TCL_ERROR;
-	}
-	char* directoryName = appProc->dumpPatchedImage(argv[1]);
-	printf(" saved in %s \n", directoryName);
-	delete [] directoryName;
-	
-	return TCL_OK;
-}
-#endif
-
 /*
  * This is a subroutine for getting the arguments of a line.
  * WARNING: Caller responsible for releasing the returned string!
@@ -939,11 +889,11 @@ char * getBufferAux(int argc, TCLCONST char *argv[], int expr_start, bool addNew
    char *line_buf = new char[line_len + (addNewLine ? 2 : 1)];
    //memset(line_buf, '\0', line_len + (addNewLine ? 2 : 1));
    *line_buf = '\0';
-   for (i = expr_start; i < argc - 1; ++i) {
-      strcat(line_buf, argv[i]);
+   for (i = expr_start + 1; i < argc /*- 1*/; ++i) {
+      strcat(line_buf, argv[i - 1]);
       strcat(line_buf, " ");
    }
-   strcat(line_buf, argv[i]);
+   strcat(line_buf, argv[i - 1]);
    if(addNewLine) strcat(line_buf, "\n");
    //strcat(line_buf, "\0\0");
    /* *strchr(line_buf, '\0') = EOF;
@@ -958,7 +908,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    //disabled temporarily
    if (argc < 2) {
       printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
-      printf("or     break <file name:line number> [<condition>]\n");
+//      printf("or     break <file name:line number> [<condition>]\n");
       return TCL_ERROR;
    }
    
@@ -980,6 +930,10 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    std::vector<BPatch_point *> *points;
    char *ptr = strchr(argv[1],':');
    if (ptr) {
+      printf("Usage: break <function> [entry|exit|preCall|postCall] [<condition>]\n");
+      return TCL_ERROR;
+/* Functionality pulled due to dyninst feature change */
+/*
       //Arbitrary break point, first find module name
       expr_start = 2;
       where = BPatch_entry;
@@ -994,8 +948,9 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       }
       points = new std::vector<BPatch_point *>;
       
-      /* Arbitrarily, the lower end of the first range. */
+      // Arbitrarily, the lower end of the first range. 
       points->push_back(appImage->createInstPointAtAddr((void *)absAddrVec[0].first));
+*/
    }
    else {
       if ( (argc > 2) && name2loc(argv[2], where, when)) {
@@ -1050,7 +1005,6 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    std::stringstream sn;
    
    for(unsigned int i = 0; i < points->size(); ++i){
-      printf("bpCounter = %d\n", bpCtr);
       sn.str("");
       if(argc > expr_start){
          sn << "if(" << line_buf << "){\n";
@@ -1065,15 +1019,13 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       snippetName.str() = "";
       snippetName << "breakSnippet_" << bpCtr;
       
-      BPatch_snippet *statement = dynC_API::createSnippet(sn.str().c_str(), *(*points)[i], snippetName.str().c_str());
+      BPatch_snippet *statement = dynC_API::createSnippet(sn.str(), *(*points)[i]);
       if(statement == NULL){
          fprintf(stderr, "Error creating breakpoint %d.\n", bpCtr);
          bpCtr++;
          continue;
          //return TCL_ERROR;
       }
-      printf("insert %d... point %p\n", bpCtr, (*points)[i]->getAddress());
-      printf("{\n%s}\n", sn.str().c_str());
       BPatchSnippetHandle *handle = appProc->insertSnippet(*statement, *(*points)[i], when, BPatch_lastSnippet);
          
       if (handle == 0) {
@@ -1202,7 +1154,7 @@ int instTermStatement(int argc, TCLCONST char *argv[])
    
    char *line_buf = getBufferAux(argc, argv, 2, true);
 
-   BPatch_snippet *statement = dynC_API::createSnippet(line_buf, *appProc, "terminalSnippet");
+   BPatch_snippet *statement = dynC_API::createSnippet(line_buf, *appProc);
    
    if(statement == NULL){
       fprintf(stderr, "Instrumentation not set due to error.\n");
@@ -1283,7 +1235,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    for(unsigned int i = 0; i < points->size(); ++i){
       std::stringstream snName;
       snName << "dynerSnippet_" << dynerSnippetNumber;
-      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i], snName.str().c_str());
+      BPatch_snippet *snippet = dynC_API::createSnippet(line_buf, *(*points)[i]);
       if(snippet == NULL){
          printf("Snippet generation failure for point %d.\n", ipCtr++);
          continue;
@@ -1349,7 +1301,7 @@ int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
    // reenable for targetpoint at breaks?
    // if(targetPoint == NULL){
    //printf("hi_generic\n");
-   statement = dynC_API::createSnippet(line_buf, *appProc, "SnippetEx");
+   statement = dynC_API::createSnippet(line_buf, *appProc);
    //}else{
    //   printf("func: %s\n", targetPoint->getFunction()->getName(new char[512], 512));
    //   statement = dynC_API::createSnippet(line_buf, *targetPoint, "SnippetEx");
@@ -1524,11 +1476,11 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 }
 #endif
 
-#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
+
 
 BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 {
-	BPatch_variableExpr *var=NULL;
+//	BPatch_variableExpr *var=NULL;
 #ifdef mips_sgi_irix6_4
 	/* mips_sgi_irix6_4 does not support local vars but if it does we are ready! */
 	long index;
@@ -1539,7 +1491,7 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 #define CASTOFFSET int
    
 #endif
-	int offset;
+//	int offset;
    
 	/* if we have a local context, use that. otherwise use the top of the call stack */
 	if( whereAmINow == -1 ){
@@ -1578,14 +1530,12 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
    if (printError) printf("Unable to locate local variable %s\n", name);
 	return NULL;
 }
-#endif
 
 int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 {
    if (!haveApp()) return TCL_ERROR;
 	bool found = false;
    BPatch_variableExpr *var; 
-#if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)  
    
    var = findLocalVariable(argv[1],false);
    
@@ -1595,8 +1545,6 @@ int printVar(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 		printVarRecursive(var, 1);
 		found = true;
 	}
-   
-#endif
    
 	var = findVariable(argv[1],false);
 	if( var ) {
@@ -1631,13 +1579,11 @@ int newVar(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
       return TCL_ERROR;
    }
    
-   BPatch_variableExpr *newVar = appProc->malloc(*type);
+   BPatch_variableExpr *newVar = appProc->malloc(*type, argv[2]);
    if (!newVar) {
       printf("Unable to create variable.\n");
       return TCL_ERROR;
    }
-   
-   varList.push_back(new runtimeVar(newVar, argv[2]));
    
    return TCL_OK;
 }
@@ -1647,14 +1593,6 @@ BPatch_variableExpr *findVariable(const char *name, bool printError)
 {
    BPatch_variableExpr *var;
    std::vector<runtimeVar *>::iterator i;
-   
-   // First look for runtime created variables
-   for (i = varList.begin(); i != varList.end(); i++) {
-      if (!strcmp(name, (*i)->name)) {
-         var = new BPatch_variableExpr(*((*i)->var));
-         return (var);
-      }
-   }
    
    if(targetPoint){
       var = appImage->findVariable(*targetPoint, name);
@@ -2125,7 +2063,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
    
    if ((num == 0) && ((level == BPatchWarning) || (level == BPatchInfo))) {
       // these are old warnings/status info from paradyn
-      if (!verbose) return;
+//      if (!verbose) return;
    }
    
    const char *msg = bpatch->getEnglishErrorString(num);
@@ -2251,8 +2189,8 @@ int ShowFunctions(int argc, TCLCONST char *argv[]) {
 
 int verboseCommand(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv */)
 {
-   verbose = !verbose;
-   printf("verbose mode is %s\n", verbose ? "on" : "off");
+   dynerVerbose = !dynerVerbose;
+   printf("verbose mode is %s\n", dynerVerbose ? "on" : "off");
    return TCL_OK;
 }
 static int stringCompare(const void *a, const void *b)
@@ -2685,24 +2623,6 @@ int traceFunc(Tcl_Interp *interp, const char *name)
            "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
    return Tcl_Eval(interp, cmdBuf);
 }
-/*
-int traceBPFunc(BPatch_function *func){
-   if (NULL == func) {
-      printf("Dyner Internal Error: Given NULL function.\n");
-      return TCL_ERROR;
-   }
-      
-   char cmdBuf[1024];
-   sprintf(cmdBuf, 
-           "at %s entry printf(\"Entering function %s\\n\"); } trace", name, name);
-   if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
-      return TCL_ERROR;
-   
-   sprintf(cmdBuf, 
-           "at %s exit { printf(\"Exiting function %s\\n\"); } trace", name, name);
-   return Tcl_Eval(interp, cmdBuf);
-
-   }*/
 
 /*
  * Trace all the function in a module
@@ -2931,23 +2851,6 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 }
 
 /*
- * Write the in-memory version of the program to the specified file
- */
-int dumpCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
-{
-   if (argc != 2) {
-      printf("Usage: dump <file name>\n");
-      return TCL_ERROR;
-   }
-   
-   if (!haveApp()) return TCL_ERROR;
-   
-   appProc->dumpImage(argv[1]);
-   
-   return TCL_OK;
-}
-
-/*
  * remove all the code inserted into target program
  */
 int detachCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **)
@@ -2998,6 +2901,29 @@ int debugParse(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 
 char *firstCommand = NULL;
 
+FILE * logFile = NULL;
+
+int logCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
+{
+   if(logFile == NULL) return TCL_OK;
+   if (argc < 2) return TCL_ERROR;
+   char *logString = new char[strlen(argv[1])];
+
+   memset(logString, '\0', strlen(argv[1]));
+
+   int offset = 8;
+   
+   if(strchr(argv[1], (int)'{') == NULL) offset = 7;
+   
+   strncpy(logString, argv[1] + offset, (strlen(argv[1]) - 2 * offset) + 1);
+
+   fprintf(logFile, "%s\n", logString);
+   fflush(logFile);
+   delete logString;
+   return TCL_OK;
+
+}
+
 int exitDyner(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
    printf("Goodbye!\n");
@@ -3006,6 +2932,7 @@ int exitDyner(ClientData, Tcl_Interp *, int, TCLCONST char **)
       if (appProc) delete appProc;
    }
    if(firstCommand != NULL) delete firstCommand;
+   if(logFile != NULL) fclose(logFile);
    exit(0);
 }
 
@@ -3019,49 +2946,102 @@ int Tcl_AppInit(Tcl_Interp *interp)
       return TCL_ERROR;
    }
    
+
+
    //Create BPatch library
    bpatch = new BPatch;
    if (!bpatch)
       return TCL_ERROR;
-   
+
+   Tcl_CreateCommand(interp, "dyner_log_internal", (Tcl_CmdProc*)logCommand, NULL, NULL);
+   Tcl_Eval(interp, "proc report args {dyner_log_internal [info level 0]}");
+
    Tcl_CreateCommand(interp, "at", (Tcl_CmdProc*)instStatement, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution at enter report");
+
    Tcl_CreateCommand(interp, "attach", (Tcl_CmdProc*)attachPid, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution attach enter report");
+
    Tcl_CreateCommand(interp, "break", (Tcl_CmdProc*)condBreak, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution break enter report");
+
    Tcl_CreateCommand(interp, "declare", (Tcl_CmdProc*)newVar, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution declare enter report");
+
    Tcl_CreateCommand(interp, "listbreak", (Tcl_CmdProc*)listBreak, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution listbreak enter report");
+
    Tcl_CreateCommand(interp, "deletebreak", (Tcl_CmdProc*)deleteBreak, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution deletebreak enter report");
+
    Tcl_CreateCommand(interp, "dset", (Tcl_CmdProc*)dsetCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution dset enter report");
+
    Tcl_CreateCommand(interp, "help", (Tcl_CmdProc*)help, NULL, NULL);
+
    Tcl_CreateCommand(interp, "exit", (Tcl_CmdProc*)exitDyner, NULL, NULL);
+
    Tcl_CreateCommand(interp, "quit", (Tcl_CmdProc*)exitDyner, NULL, NULL);
+
    Tcl_CreateCommand(interp, "kill", (Tcl_CmdProc*)killApp, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution kill enter report");
+
    Tcl_CreateCommand(interp, "load", (Tcl_CmdProc*)loadCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution load enter report");
+
    Tcl_CreateCommand(interp, "run", (Tcl_CmdProc*)runApp, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution run enter report");
+
    Tcl_CreateCommand(interp, "print", (Tcl_CmdProc*)printVar, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution trace print report");
+
    Tcl_CreateCommand(interp, "whatis", (Tcl_CmdProc*)whatisVar, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution trace whatis report");
+
    Tcl_CreateCommand(interp, "show", (Tcl_CmdProc*)showCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution trace show report");
+
    Tcl_CreateCommand(interp, "find", (Tcl_CmdProc*)findAndShowCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution trace find report");
+
    Tcl_CreateCommand(interp, "verbose", (Tcl_CmdProc*)verboseCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution verbose enter report");
+
    Tcl_CreateCommand(interp, "count", (Tcl_CmdProc*)countCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution count enter report");
+
    Tcl_CreateCommand(interp, "replace", (Tcl_CmdProc*)replaceCommand, NULL, NULL);
-   Tcl_CreateCommand(interp, "trace", (Tcl_CmdProc*)traceCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution replace enter report");
+
    Tcl_CreateCommand(interp, "untrace", (Tcl_CmdProc*)untraceCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution untrace enter report");
+
    Tcl_CreateCommand(interp, "mutations", (Tcl_CmdProc*)mutationsCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution mutations enter report");
+
    Tcl_CreateCommand(interp, "removecall", (Tcl_CmdProc*)removeCommand, NULL, NULL);
-   //Tcl_CreateCommand(interp, "dump", (Tcl_CmdProc*)dumpCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution removecall enter report");
+
    Tcl_CreateCommand(interp, "detach", (Tcl_CmdProc*)detachCommand, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution detatch enter report");
+
    Tcl_CreateCommand(interp, "execute", (Tcl_CmdProc*)execStatement, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution execute enter report");
+
    Tcl_CreateCommand(interp, "listinst", (Tcl_CmdProc*)listInstrument, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution listinst enter report");
+
    Tcl_CreateCommand(interp, "deleteinst", (Tcl_CmdProc*)deleteInstrument, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution deleteinst enter report");
+
    Tcl_CreateCommand(interp, "debugparse", (Tcl_CmdProc*)debugParse, NULL, NULL);
+   Tcl_Eval(interp, "trace add execution debugparse enter report");
+
 #if defined(rs6000_ibm_aix4_1) || defined(i386_unknown_linux2_0)
    
    Tcl_CreateCommand(interp, "where", (Tcl_CmdProc*)where, NULL, NULL);
    Tcl_CreateCommand(interp, "up", (Tcl_CmdProc*)whereUp, NULL, NULL);
    Tcl_CreateCommand(interp, "down", (Tcl_CmdProc*)whereDown, NULL, NULL);
-   
-   Tcl_CreateCommand(interp, "save", (Tcl_CmdProc*)saveWorld, NULL, NULL);
-   Tcl_CreateCommand(interp, "saveStart", (Tcl_CmdProc*)saveStart, NULL, NULL);
    
 #endif
 
@@ -3073,12 +3053,18 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "wtxDisconnect", (Tcl_CmdProc*)wtxDisconnectCommand, NULL, NULL);
 #endif
 
-   
+
+//trace command must be declared after it has been traced. 
+   Tcl_Eval(interp, "trace add execution trace enter report");
+   Tcl_CreateCommand(interp, "trace", (Tcl_CmdProc*)traceCommand, NULL, NULL);  
+
    Tcl_AllowExceptions(interp);
    
    bpatch->registerErrorCallback(errorFunc);
    bpatch->setTypeChecking(false);
    bpatch->registerExitCallback(&exitCallback);
+
+
    
    if(firstCommand){
       Tcl_Eval(interp, firstCommand); 
@@ -3088,26 +3074,36 @@ int Tcl_AppInit(Tcl_Interp *interp)
 }
 
 
+
+
 int main(int argc, char *argv[])
 {
 
    if (argc >= 2){
       for(int i = 1; i < argc; ++i){
-         if(!strncmp(argv[i], "-s", 2)){
+         if(!strncmp(argv[i], "-log", 4)){
+            char *logFileName = (char *) calloc(strlen(argv[i] + 2) + 7, sizeof(char));
+            if(logFileName == NULL){
+               perror("Failed to enable logging");
+               exit(-1);
+            }
+            strcpy(logFileName, argv[++i]);
+            logFile = fopen(logFileName, "w");
+            if(logFile == NULL){
+               perror("Failed to enable logging");
+               exit(-1);
+            }
+         }
+         if(!strncmp(argv[i], "-source", 2)){
             //tell tcl to evaluate the following
             fromSource = true;
             firstCommand = (char *) calloc(strlen(argv[i] + 2) + 7, sizeof(char));
             strcpy(firstCommand, "source ");
-            strcat(firstCommand, argv[i] + 2);
+            strcat(firstCommand, argv[++i]);
          }
+
       }
    }   
-  
-   if (argc >= 2 && !strcmp(argv[1], "-debug")) {
-      printf("parser debug enabled\n");
-      //dynerdebug = 1;
-      verbose = true;
-   }
    
 #if !defined(i386_unknown_nt4_0)
    signal(SIGINT, INThandler);

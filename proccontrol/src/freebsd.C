@@ -43,7 +43,13 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"
 #include "common/h/freebsdKludges.h"
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
+
+#define ELF_X_NAMESPACE ProcControlAPI
 #include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 // System includes
 #include <sys/syscall.h>
@@ -66,9 +72,6 @@
 
 #include <map>
 using std::make_pair;
-
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 /*
  * FreeBSD Bug Descriptions

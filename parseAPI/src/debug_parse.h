@@ -45,6 +45,7 @@ namespace ParseAPI {
     extern int dyn_debug_initialized;
 
 #define parsing_cerr if (dyn_debug_parsing) cerr
+#define malware_cerr if (dyn_debug_malware) cerr
 
 #if defined(__GNUC__)
 #define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
@@ -55,5 +56,20 @@ namespace ParseAPI {
 #endif
 }
 }
+
+#define PARSE_BLOCK_COUNT "parseBlockCount"
+#define PARSE_FUNCTION_COUNT "parseFunctionCount"
+#define PARSE_BLOCK_SIZE "parseBlockSize"
+
+#define PARSE_NORETURN_COUNT "parseNoReturnCount"
+#define PARSE_RETURN_COUNT "parseReturnCount"
+#define PARSE_UNKNOWN_COUNT "parseUnknownCount"
+
+#define PARSE_NORETURN_HEURISTIC "parseNoReturnHeuristicCount"
+
+#define PARSE_JUMPTABLE_COUNT "parseJumptableCount"
+#define PARSE_JUMPTABLE_FAIL "parseJumptableFail"
+#define PARSE_TAILCALL_COUNT "isTailcallCount"
+#define PARSE_TAILCALL_FAIL "isTailcallFail"
 
 #endif

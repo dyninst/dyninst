@@ -154,6 +154,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 			return i;
 		}
 	}
+	printf("Down through loop and return -1\n");
 	return -1;
 }
 

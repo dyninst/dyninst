@@ -40,7 +40,7 @@
 
 #include "common/h/IntervalTree.h"
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h"
-#include "dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h"
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 
 class AddressSpace;
 class mapped_object;
@@ -79,6 +79,9 @@ class MemoryEmulator {
         int size);
     void synchShadowOrig(bool toOrig);
 
+    void addPOPAD(Address addr);
+    bool isEmulPOPAD(Address addr);
+
     static const int STACK_SHIFT_VAL=256;
 
 	void debug() const;
@@ -106,7 +109,7 @@ class MemoryEmulator {
    RegionMap addedRegions_;
 
    std::map<SymtabAPI::Region *, unsigned char *> saved;
-
+   std::set<Address> emulatedPOPADs_;
 };
 };
 

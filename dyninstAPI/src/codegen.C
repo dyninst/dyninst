@@ -48,6 +48,7 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "pcrel.h"
+#include "bitArray.h"
 
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
@@ -103,6 +104,31 @@ codeGen::codeGen(unsigned size) :
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     if (!buffer_)
        fprintf(stderr, "%s[%d]: malloc failed: size is %d + codeGenPadding = %d\n", FILE__, __LINE__, size, codeGenPadding);
+    assert(buffer_);
+    memset(buffer_, 0, size+codeGenPadding);
+}
+
+// size is in bytes
+codeGen::codeGen(codeBuf_t *buffer, int size) :
+    buffer_(buffer),
+    offset_(0),
+    size_(size-codeGenPadding),
+    emitter_(NULL),
+    allocated_(false),
+    aSpace_(NULL),
+    thr_(NULL),
+    lwp_(NULL),
+    rs_(NULL),
+    t_(NULL),
+    addr_((Address)-1),
+    ip_(NULL),
+    f_(NULL),
+    bt_(NULL),
+    isPadded_(true),
+    trackRegDefs_(false),
+    inInstrumentation_(false),
+    obj_(NULL)
+{
     assert(buffer_);
     memset(buffer_, 0, size+codeGenPadding);
 }
@@ -676,7 +702,14 @@ Emitter *codeGen::codeEmitter() const {
 void codeGen::beginTrackRegDefs()
 {
    trackRegDefs_ = true;
-   regsDefined_ = registerSpace::getBitArray();
+#if defined(arch_x86) || defined(arch_x86_64)
+    regsDefined_ = bitArray(REGNUM_IGNORED+1);
+#elif defined(arch_power)
+    regsDefined_ = bitArray(registerSpace::lastReg);
+#else
+    regsDefined_ = bitArray();
+#endif
+
 }
 
 void codeGen::endTrackRegDefs()

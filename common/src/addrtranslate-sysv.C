@@ -767,9 +767,6 @@ bool AddressTranslateSysV::refresh()
    }
 
    do {
-      if (!link_elm->is_valid())
-         goto done;
-
       if (!link_elm->l_name()) {
          if (read_abort) {
             result = false;
@@ -777,34 +774,49 @@ bool AddressTranslateSysV::refresh()
          }
          continue;
       }
-
-      string obj_name;
-      LoadedLib *ll;
-      Address text = (Address) link_elm->l_addr();
-      Address dynamic = (Address) link_elm->l_ld();
-      if (!link_elm->l_name() || *link_elm->l_name() == '\0') {
-         if (text) continue;
-         exec->load_addr = text;
-         exec->data_load_addr = 0;
-         exec->dynamic_addr = dynamic;
-         loaded_lib_count++;
-         translate_printf("[%s:%u] -     New executable: %s(%lx, %lx)\n",
-                          __FILE__, __LINE__, getExecName().c_str(), text);
-         continue;
-      }
-      obj_name = resolve_file_path(link_elm->l_name());
+      string obj_name(link_elm->l_name());
 
       // Don't re-add the executable, it has already been added
-      if( obj_name.empty() || getExecName() == obj_name )
+      if( getExecName() == string(deref_link(obj_name.c_str())) ) {
+         if (exec)
+            exec->dynamic_addr = (Address) link_elm->l_ld();
           continue;
+      }
 
-      ll = getLoadedLibByNameAddr(text, obj_name, dynamic);
+      Address text = (Address) link_elm->l_addr();
+      if (obj_name == "" && !text) {
+         if (exec)
+            exec->dynamic_addr = (Address) link_elm->l_ld();
+         continue;
+      }
+      if (!link_elm->is_valid())
+         goto done;
 
+#if defined(os_linux)
+      unsigned maps_size;
+      if (obj_name == "") { //Augment using maps
+         if (!maps)
+            maps = getLinuxMaps(pid, maps_size);
+         for (unsigned i=0; maps && i<maps_size; i++) {
+            if (text == maps[i].start) {
+               obj_name = maps[i].path;
+               break;
+            }
+         }
+      }
+      if (obj_name.c_str()[0] == '[')
+         continue;
+#endif
+      
+      string s(deref_link(obj_name.c_str()));
+      LoadedLib *ll = getLoadedLibByNameAddr(text, s);
+      ll->dynamic_addr = (Address) link_elm->l_ld();
       loaded_lib_count++;
-      translate_printf("[%s:%u] -     New Loaded Library: %s(%lx, %lx)\n", __FILE__, __LINE__, obj_name.c_str(), text);
+      translate_printf("[%s:%u] -     New Loaded Library: %s(%lx)\n", __FILE__, __LINE__, s.c_str(), text);
 
       libs.push_back(ll);
    } while (link_elm->load_next());
+   
    
    if (read_abort) {
       result = false;

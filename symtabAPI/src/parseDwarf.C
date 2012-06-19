@@ -1333,8 +1333,15 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
         break;
      }
      
-     assert( locs[0].stClass != storageAddr );
-         
+     //assert( locs[0].stClass != storageAddr );
+       
+     if(locs[0].stClass == storageAddr) 
+     {
+       dwarf_printf("%s[%d]: ignoring formal parameter that appears to be in memory, not on stack/in register\n",
+		    __FILE__, __LINE__);
+       break;
+     }
+     
      /* If the DIE has an _abstract_origin, we'll use that for the
         remainder of our inquiries. */
      Dwarf_Die originEntry = dieEntry;

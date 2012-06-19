@@ -54,6 +54,9 @@ extern void showInfoCallback(std::string msg);
 void BPatch_reportError(int errLevel, int num, const char *str);
 
 extern int dyn_debug_malware;
+extern int dyn_debug_trap; // or rather, debug with traps
+extern int dyn_debug_signal;
+extern int dyn_debug_infrpc;
 extern int dyn_debug_startup;
 extern int dyn_debug_parsing;
 extern int dyn_debug_proccontrol;
@@ -69,7 +72,6 @@ extern int dyn_debug_catchup;
 extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
 extern int dyn_debug_write;
-extern int dyn_debug_liveness;
 extern int dyn_debug_infmalloc;
 extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
@@ -120,12 +122,13 @@ extern StatContainer stats_codegen;
 #define relocation_cerr   if (dyn_debug_reloc) cerr
 #define springboard_cerr  if (dyn_debug_springboard) cerr
 #define malware_cerr      if (dyn_debug_malware) cerr
+#define trap_cerr         if (dyn_debug_trap) cerr
 #define sensitivity_cerr  if (dyn_debug_sensitivity) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
 #define thread_cerr       if (dyn_debug_thread) cerr
-#define liveness_cerr     if (dyn_debug_liveness) cerr
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 #define crash_cerr        if (dyn_debug_crash) cerr
+#define ast_cerr          if (dyn_debug_ast) cerr
 
 // C prototypes for internal debugging functions
 extern int mal_printf(const char *format, ...);
@@ -143,7 +146,6 @@ extern int catchup_printf_int(const char *format, ...);
 extern int regalloc_printf_int(const char *format, ...);
 extern int ast_printf_int(const char *format, ...);
 extern int write_printf_int(const char *format, ...);
-extern int liveness_printf_int(const char *format, ...);
 extern int infmalloc_printf_int(const char *format, ...);
 extern int crash_printf_int(const char *format, ...);
 
@@ -163,7 +165,6 @@ extern int crash_printf_int(const char *format, ...);
 #define regalloc_printf(format, args...) do {if (dyn_debug_regalloc) regalloc_printf_int(format, ## args); } while(0)
 #define ast_printf(format, args...) do {if (dyn_debug_ast) ast_printf_int(format, ## args); } while(0)
 #define write_printf(format, args...) do {if (dyn_debug_write) write_printf_int(format, ## args); } while(0)
-#define liveness_printf(format, args...) do {if (dyn_debug_liveness) liveness_printf_int(format, ## args); } while(0)
 #define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
 #define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
 
@@ -183,7 +184,6 @@ extern int crash_printf_int(const char *format, ...);
 #define regalloc_printf regalloc_printf_int
 #define ast_printf ast_printf_int
 #define write_printf write_printf_int
-#define liveness_printf liveness_printf_int
 #define infmalloc_printf infmalloc_printf_int
 #define crash_printf crash_printf_int
 

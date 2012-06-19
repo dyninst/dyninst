@@ -12,6 +12,8 @@ class MemoryEmulator {
  public:
   MemoryEmulator(AddressSpace *) {};
   void addSpringboard(SymtabAPI::Region *, Address, int) {};
+  void removeSpringboards(func_instance*) {};
+  void removeSpringboards(const block_instance*) {};
   void addAllocatedRegion(Address, unsigned) {};
   void addRegion(mapped_object *) {};
   void removeRegion(Address, unsigned) {};

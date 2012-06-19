@@ -136,14 +136,15 @@ public:
 	void increaseConditionalLevel();
 	void decreaseAndClean(codeGen &gen);
 	void cleanKeptRegisters(int level);
-
 	void debugPrint();
+	
+
 };
 
 class dataReqNode;
 class AstNode {
  public:
-   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t};
+   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
    enum operandType { Constant, 
                       ConstantString,
                       DataReg,
@@ -181,6 +182,9 @@ class AstNode {
    bool snippetNameSet;
 
   public:
+   virtual std::string format(std::string indent);
+   std::string convert(operandType type);
+   std::string convert(opCode op);
 
    int getLineNum();
    int getColumnNum();
@@ -226,6 +230,8 @@ class AstNode {
 
    // Acquire the thread index value - a 0...n labelling of threads.
    static AstNodePtr threadIndexNode();
+
+   static AstNodePtr scrambleRegistersNode();
    
    
    // TODO...
@@ -321,7 +327,6 @@ class AstNode {
    virtual AstNodePtr deepCopy() { return AstNodePtr(this);};
    
 
-	void debugPrint(unsigned level = 0);
 	// Occasionally, we do not call .generateCode_phase2 for the
 	// referenced node, but generate code by hand. This routine decrements
 	// its use count properly
@@ -407,7 +412,10 @@ class AstNode {
 
 class AstNullNode : public AstNode {
  public:
+
     AstNullNode() : AstNode() {};
+
+   virtual std::string format(std::string indent);
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
@@ -439,6 +447,7 @@ class AstLabelNode : public AstNode {
 
 class AstOperatorNode : public AstNode {
  public:
+
     AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
     
     ~AstOperatorNode() {
@@ -446,6 +455,8 @@ class AstOperatorNode : public AstNode {
         //debugPrint();
     }
 
+
+   virtual std::string format(std::string indent);
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType();
@@ -488,6 +499,7 @@ class AstOperatorNode : public AstNode {
 class AstOperandNode : public AstNode {
     friend class AstOperatorNode; // ARGH
  public:
+
     // Direct operand
     AstOperandNode(operandType ot, void *arg);
 
@@ -504,6 +516,8 @@ class AstOperandNode : public AstNode {
         
     // Arguably, the previous should be an operation...
     // however, they're kinda endemic.
+
+   virtual std::string format(std::string indent);
 
     virtual operandType getoType() const { return oType; };
 
@@ -541,6 +555,8 @@ class AstOperandNode : public AstNode {
     virtual void emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
 			  bool noCost, registerSpace* rs, 
 			  int size, const instPoint* point, AddressSpace* as);
+
+    virtual bool initRegisters(codeGen &gen);
         
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -560,12 +576,15 @@ class AstOperandNode : public AstNode {
 
 class AstCallNode : public AstNode {
  public:
+
     AstCallNode(func_instance *func, pdvector<AstNodePtr>&args);
     AstCallNode(const std::string &str, pdvector<AstNodePtr>&args);
     AstCallNode(Address addr, pdvector<AstNodePtr> &args);
     AstCallNode(func_instance *func);
     
     ~AstCallNode() {}
+
+   virtual std::string format(std::string indent);
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
         
@@ -615,6 +634,8 @@ class AstSequenceNode : public AstNode {
 
     ~AstSequenceNode() {}
 
+   virtual std::string format(std::string indent);
+
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType();
@@ -647,6 +668,8 @@ class AstVariableNode : public AstNode {
     AstVariableNode(std::vector<AstNodePtr>&ast_wrappers, std::vector<std::pair<Offset, Offset> >*ranges);
 
     ~AstVariableNode() {}
+
+    virtual std::string format(std::string indent);
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
@@ -684,7 +707,9 @@ class AstVariableNode : public AstNode {
 
 class AstInsnNode : public AstNode {
  public: 
+
     AstInsnNode(instruction *insn, Address addr);
+
 
     // Template methods...
     virtual bool overrideBranchTarget(AstNodePtr) { return false; }
@@ -712,6 +737,7 @@ class AstInsnBranchNode : public AstInsnNode {
  public:
     AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_() {};
 
+
     virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
@@ -732,7 +758,7 @@ class AstInsnBranchNode : public AstInsnNode {
 class AstInsnMemoryNode : public AstInsnNode {
  public:
     AstInsnMemoryNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), load_(), store_() {};
-    
+
     virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
     virtual bool containsFuncCall() const;
@@ -759,6 +785,7 @@ class AstMiniTrampNode : public AstNode {
           ast->referenceCount++;
        ast_ = ast;
     }
+
 
     Address generateTramp(codeGen &gen, 
                           int &trampCost, 
@@ -794,6 +821,8 @@ class AstMemoryNode : public AstNode {
  public:
     AstMemoryNode(memoryType mem, unsigned which);
 	bool canBeKept() const;
+
+   virtual std::string format(std::string indent);
    virtual bool containsFuncCall() const;
    virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
@@ -816,6 +845,7 @@ class AstOriginalAddrNode : public AstNode {
 
     virtual ~AstOriginalAddrNode() {};
 
+
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return true; }
     virtual bool containsFuncCall() const;
@@ -836,6 +866,7 @@ class AstActualAddrNode : public AstNode {
 
     virtual ~AstActualAddrNode() {};
 
+
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
@@ -855,6 +886,7 @@ class AstDynamicTargetNode : public AstNode {
 
     virtual ~AstDynamicTargetNode() {};
 
+
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
@@ -867,6 +899,24 @@ class AstDynamicTargetNode : public AstNode {
                                      Address &retAddr,
                                      Register &retReg);
 };
+class AstScrambleRegistersNode : public AstNode {
+ public:
+    AstScrambleRegistersNode() {};
+
+    virtual ~AstScrambleRegistersNode() {};
+
+    virtual bool canBeKept() const { return false; }
+    virtual bool containsFuncCall() const;
+    virtual cfjRet_t containsFuncJump() const;
+    virtual bool usesAppRegister() const;
+ 
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,

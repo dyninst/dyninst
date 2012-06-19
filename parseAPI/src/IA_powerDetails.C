@@ -532,7 +532,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
       }
   }
     
-  Block::edgelist & sourceEdges = currBlk->sources();
+  const Block::edgelist & sourceEdges = currBlk->sources();
   if(sourceEdges.size() != 1 || (*sourceEdges.begin())->type() == CALL) {
     parsing_printf("%s[%d]: jump table not properly guarded, ret false\n", FILE__, __LINE__);
     return false;

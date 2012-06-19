@@ -91,7 +91,7 @@ static int const amd64_register_map[] =
        IA-32, however, it is not meaningful to provide this mapping. */
   };
 
-int Register_DWARFtoMachineEnc32(int n)
+static int Register_DWARFtoMachineEnc32(int n)
 {
   if (n > IA32_MAX_MAP) {
     dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
@@ -101,7 +101,7 @@ int Register_DWARFtoMachineEnc32(int n)
 }
 
 
-int Register_DWARFtoMachineEnc64(int n)
+static int Register_DWARFtoMachineEnc64(int n)
 {
   if (n <= AMD64_MAX_MAP)
     return amd64_register_map[n];
@@ -134,22 +134,22 @@ int Register_DWARFtoMachineEnc64(int n)
   if (condition) { if (depth != 1) { return false; } else {walk_error = true; break; } }
 
 
-Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, Dyninst::Architecture arch)
+static Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, Dyninst::Architecture arch)
 {
    return MachRegister::DwarfEncToReg(reg, arch);
 }
 
-Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
+static Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
 {
    return reg.getDwarfEnc();
 }
 
-bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
-                           long int *initialStackValue,
-                           VariableLocation *loc, bool &isLocSet,
-                           ProcessReader *reader,
-                           Dyninst::Architecture arch,
-                           long int &end_result)
+static bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                                  long int *initialStackValue,
+                                  VariableLocation *loc, bool &isLocSet,
+                                  ProcessReader *reader,
+                                  Dyninst::Architecture arch,
+                                  long int &end_result)
 {
    /* Initialize the stack. */
    int addr_width = getArchAddressWidth(arch);
@@ -437,7 +437,14 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                             "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
             long int first = opStack.top(); opStack.pop();
             long int second = opStack.top(); opStack.pop();
-            opStack.push( second / first );
+	    DWARF_FALSE_IF(((second != 0) && (first == 0)),
+			   "%s[%d]: invalid stack, div operation with %d / %d, returning false\n",
+			   __FILE__, __LINE__, second, first);
+	    
+	    if((second == 0) && (first == 0)) 
+	      opStack.push(0);
+	    else
+	      opStack.push( second / first );
          } break;
 
          case DW_OP_minus: 
@@ -455,7 +462,14 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                             "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
             long int first = opStack.top(); opStack.pop();
             long int second = opStack.top(); opStack.pop();
-            opStack.push( second % first );
+	    DWARF_FALSE_IF(((second != 0) && (first == 0)),
+			   "%s[%d]: invalid stack, mod operation with %d mod %d, returning false\n",
+			   __FILE__, __LINE__, second, first);
+	    
+	    if((second == 0) && (first == 0)) 
+	      opStack.push(0);
+	    else
+	      opStack.push( second % first );
          } break;
 
          case DW_OP_mul: 

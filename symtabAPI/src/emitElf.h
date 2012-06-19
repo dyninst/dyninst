@@ -101,7 +101,7 @@ class emitElf{
  
     //text & data segment ends
     Elf32_Off dataSegEnd, textSegEnd;
-    Elf32_Off dynSegOff, dynSegAddr;
+	 Elf32_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
     unsigned dynSegSize;
 
     //Section Names for all sections
@@ -152,6 +152,8 @@ class emitElf{
 *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf32_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+
+    void addDTNeeded(std::string s);
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();

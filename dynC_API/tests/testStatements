@@ -1,2 +1,1 @@
-inf`printf("Hi!\n");
-inf`printf("Hi -> %p.\n", &inf`hi);
+func`printf("Hello.\n");

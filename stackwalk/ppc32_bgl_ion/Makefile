@@ -18,7 +18,6 @@ LDFLAGS     += $(LIBDIR) -lcommon -ldl
 CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
 SRCS = ../src/bluegene-swk.C \
-       ../../common/src/Elf_X.C \
        ../src/bluegenel-swk.C \
        ../src/ppc-swk.C \
        ../src/symtab-swk.C

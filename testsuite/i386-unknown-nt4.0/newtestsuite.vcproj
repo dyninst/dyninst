@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="newtestsuite"
 	ProjectGUID="{73BD9B12-EDAE-48F5-9118-250FF506ED16}"
+	RootNamespace="newtestsuite"
 	Keyword="MakeFileProj"
 	TargetFrameworkVersion="131072"
 	>
@@ -80,4 +81,6 @@
 			>
 		</Filter>
 	</Files>
+	<Globals>
+	</Globals>
 </VisualStudioProject>

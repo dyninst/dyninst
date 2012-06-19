@@ -114,7 +114,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
     return true;
 }
 
-bool emitElfStatic::archSpecificRelocation(char *targetData, relocationEntry &rel,
+bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData, relocationEntry &rel,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
@@ -550,6 +550,10 @@ bool emitElfStatic::isConstructorRegion(Region *reg) {
     return ( CTOR_NAME.compare(reg->getRegionName()) == 0 );
 }
 
+bool emitElfStatic::isGOTRegion(Region *) {
+        return false;
+}
+
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
     /* 
      * .ctors sections are processed in reverse order on Linux x86. New .ctors
@@ -569,12 +573,12 @@ Offset emitElfStatic::layoutNewCtorRegion(LinkMap &lmap) {
             return ~0UL;
         }
 
-        retOffset += (*reg_it)->getRegionSize();
+        retOffset += (*reg_it)->getDiskSize();
     }
 
     if( lmap.originalCtorRegion != NULL ) {
         // Account for original .ctors section (minus the header and trailer)
-        retOffset += lmap.originalCtorRegion->getRegionSize() - addressWidth_ - addressWidth_;
+        retOffset += lmap.originalCtorRegion->getDiskSize() - addressWidth_ - addressWidth_;
     }
     retOffset += addressWidth_;
 
@@ -610,12 +614,12 @@ bool emitElfStatic::createNewCtorRegion(LinkMap &lmap) {
     if( lmap.originalCtorRegion != NULL ) {
         /* Determine where the original .ctors section should be placed */
         Offset originalOffset = lmap.ctorRegionOffset + lmap.ctorSize - 
-            trailerSize - (lmap.originalCtorRegion->getRegionSize() - headerSize - trailerSize);
+            trailerSize - (lmap.originalCtorRegion->getDiskSize() - headerSize - trailerSize);
 
         /* Copy the original .ctors section w/o the header and trailer */
         char *rawRegionData = reinterpret_cast<char *>(lmap.originalCtorRegion->getPtrToRawData());
         memcpy(&targetData[originalOffset], &rawRegionData[headerSize],
-                lmap.originalCtorRegion->getRegionSize() - headerSize - trailerSize);
+                lmap.originalCtorRegion->getDiskSize() - headerSize - trailerSize);
     }
 
     return true;
@@ -636,7 +640,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
     pair<map<Region *, LinkMap::AllocPair>::iterator, bool> result;
     if( lmap.originalDtorRegion != NULL ) {
         // Account for the original .dtors section (minus the header and trailer)
-        retOffset += lmap.originalDtorRegion->getRegionSize() - addressWidth_ - addressWidth_;
+        retOffset += lmap.originalDtorRegion->getDiskSize() - addressWidth_ - addressWidth_;
     }
 
     vector<Region *>::iterator reg_it;
@@ -648,7 +652,7 @@ Offset emitElfStatic::layoutNewDtorRegion(LinkMap &lmap) {
             return ~0UL;
         }
 
-        retOffset += (*reg_it)->getRegionSize();
+        retOffset += (*reg_it)->getDiskSize();
     }
 
     retOffset += addressWidth_;
@@ -688,7 +692,7 @@ bool emitElfStatic::createNewDtorRegion(LinkMap &lmap) {
         /* Copy the original .dtors section w/o header and trailer */
         char *rawRegionData = reinterpret_cast<char *>(lmap.originalDtorRegion->getPtrToRawData());
         memcpy(&targetData[originalOffset], &rawRegionData[headerSize],
-                lmap.originalDtorRegion->getRegionSize() - headerSize - trailerSize);
+                lmap.originalDtorRegion->getDiskSize() - headerSize - trailerSize);
     }
 
     return true;

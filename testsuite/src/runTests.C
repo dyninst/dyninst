@@ -368,15 +368,13 @@ int main(int argc, char *argv[])
          // TODO Make sure this is portable to Windows
          fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
-      }
-      if (driver == -2) {
+      } else if (driver == -2) {
           // We apparently have no children.  This may not be a possibility
           // anymore after we added the timeout flag.  I'm not sure what to
           // do in this case, though.  Both continuing and breaking are
           // problematic.
           assert(0 && "No children returned from waitpid.");
-      }
-      if (driver == -1) {
+      } else if (driver == -1) {
           // Timeout was encountered, and children were reaped.
           timeout = true;
           for (int idx=0; idx < parallel_copies; idx++) {

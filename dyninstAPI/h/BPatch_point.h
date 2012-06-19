@@ -58,6 +58,15 @@ class BPatch_register;
 
 #include "Instruction.h"
 
+namespace Dyninst {
+   namespace PatchAPI {
+      class Instance;
+      class Point;
+      typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+      Point *convert(const BPatch_point *, BPatch_callWhen);
+   }
+}
+
 /*
  * Provide these definitions for backwards compatability.
  *
@@ -98,6 +107,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_asyncEventHandler;
     friend class BPatch_edge;
     friend class BPatch_snippet;
+    friend Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *, BPatch_callWhen);
 
 private:
     
@@ -132,18 +142,12 @@ private:
     // and later need to override it to a specific type (e.g., loop entry)
     void overrideType(BPatch_procedureLocation loc) { pointType = loc; }
 
-    //  dynamic_call_site_flag:
-    //    0:  is not dynamic call site
-    //    1:  is dynamic call site
-    //    2:  dynamic status unknown (initial value)
-    int dynamic_call_site_flag;
-
     //  a snippet used in monitoring of dynamic calls
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;
 
-    instPoint *getPoint() {return point;}
-    instPoint *getPoint(BPatch_callWhen when);
+    instPoint *getPoint() const {return point;}
+    instPoint *getPoint(BPatch_callWhen when) const;
 
     // If we're edge inst
     BPatch_edge *edge_;
@@ -179,9 +183,7 @@ public:
     bool isReturnInstruction();
     static BPatch_procedureLocation convertInstPointType_t(int intType);
     instPoint *llpoint() { return point; } 
-    bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
     Dyninst::Address getCallFallThroughAddr();
-    bool getSavedTargets(std::vector<Dyninst::Address> & targs);
     bool patchPostCallArea();
     // End internal functions
 

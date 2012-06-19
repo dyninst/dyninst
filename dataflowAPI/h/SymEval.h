@@ -37,7 +37,7 @@
 #include <map>
 
 #include "Absloc.h"
-#include "AST.h"
+#include "DynAST.h"
 
 #include "Graph.h"
 #include "util.h"
@@ -314,9 +314,8 @@ class SymEvalPolicy;
 
 class  SymEval {
 public:
-    typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
-    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
-    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+    typedef dyn_detail::boost::shared_ptr<SliceNode> SliceNodePtr;
+    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 public:
   typedef enum {
      FAILED,
@@ -344,7 +343,7 @@ public:
   // Hand in a Graph (of SliceNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  DATAFLOW_EXPORT static Retval_t expand(Graph::Ptr slice, Result_t &res);
+  DATAFLOW_EXPORT static Retval_t expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res);
   
  private:
 

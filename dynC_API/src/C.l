@@ -23,7 +23,7 @@ IS(u|U|l|L)*
 int line_num = 1;
 
 extern "C" {
-  void set_lex_input(char *);   //not being called?
+  void set_lex_input(char *);
 }
 
 std::string lineStr;
@@ -47,7 +47,7 @@ extern bool fatalError;
 
 std::string c_string_buf = "";
 
-const bool lexVerbose = false;
+const bool lexVerbose = false; // set to true for debug mode
 
 //"$"{L}({L}|{D})* { yylval.sval = &yytext[1]; return(DYNINST_CALL); }
 
@@ -92,8 +92,9 @@ char|int|long|float|double|short|void|bool { yylval.sval = strdup(yytext); retur
 "global" { return(GLOBAL); }
 "dyninst" { return(DYNINST); }
 "inst" { return(INST); }
-"inf" { return(INF); }
-"inferior" { return(INF); }
+"func" { return(FUNC); }
+"function" { return(FUNC); }
+"reg" { return(REGISTER); }
 "NULL" {return (NILL); }
 
 [A-Za-z][A-Za-z0-9_]* {yylval.sval = strdup(yytext); if(lexVerbose) printf("ID: %s\n", yytext); return(IDENTIFIER); }
@@ -222,7 +223,9 @@ L?'(\\.|[^\\'])+' { return(CONSTANT); }
 
 \n {if(lexVerbose)printf("New Line!\n"); line_num++; yycolumn = 0; lineStr = "";}
 
-. { /* ignore bad characters */ }
+. { if(lexVerbose) printf("Unrecognized [%s]\n", yytext); /* ignore bad characters */ }
+
+
 
 %%
 

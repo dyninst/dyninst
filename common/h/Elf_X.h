@@ -32,9 +32,15 @@
 #ifndef __ELF_X_H__
 #define __ELF_X_H__
 
-#include <elf.h>
-#include <libelf.h>
-#include "common/h/headers.h"
+#include "libelf.h"
+
+#if !defined(ELF_X_NAMESPACE)
+//Example values of ELF_X_NAMESPACE may be 'Stackwalker' or 'Symtab'
+#error Define ELF_X_NAMESPACE before including Elf_X.h
+#endif
+
+namespace Dyninst {
+namespace ELF_X_NAMESPACE {
 
 // Forward declarations
 class Elf_X;
@@ -111,6 +117,8 @@ class Elf_X {
     int wordSize() const;
     Elf_X_Phdr get_phdr(unsigned int i = 0) const;
     Elf_X_Shdr get_shdr(unsigned int i) const;
+
+    bool findDebugFile(std::string origfilename, std::string &output_name, char* &output_buffer, unsigned long &output_buffer_size);
 
   protected:
     Elf *elf;
@@ -502,5 +510,8 @@ class Elf_X_Dyn {
     Elf64_Dyn *dyn64;
     bool is64;
 };
+
+}
+}
 
 #endif

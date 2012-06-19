@@ -265,7 +265,7 @@ int DYNINSTloadLibrary(char *libname)
 {
    void *res;
    gLoadLibraryErrorString[0]='\0';
-   res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
+   res = dlopen(libname, RTLD_LAZY | RTLD_GLOBAL);
    if (res)
    {
       return 1;
@@ -390,7 +390,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
   #endif // amd-64
 #elif defined(arch_power)
   #if defined(arch_64bit)
-    #define UC_PC(x) x->uc_mcontext.uc_regs.gp_regs[32]
+    #define UC_PC(x) x->uc_mcontext.gp_regs[32]
   #else // 32-bit
     #define UC_PC(x) x->uc_mcontext.uc_regs->gregs[32]
   #endif // power

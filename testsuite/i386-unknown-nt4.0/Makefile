@@ -17,8 +17,13 @@ DEFCFLAGS = $(DEFCFLAGS) -MDd # ccw 12 july 2001
 LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib /DYNAMICBASE:NO # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 
+<<<<<<< HEAD:testsuite/i386-unknown-nt4.0/Makefile
 CXXFLAGS = $(CXXFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE
 CFLAGS = $(CFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test -D_CRT_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_DEPRECATE
+=======
+CXXFLAGS = $(CXXFLAGS) -Dos_windows -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test
+CFLAGS = $(CFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test -Dcap_instruction_api_test
+>>>>>>> master:testsuite/i386-unknown-nt4.0/Makefile
 
 #Support for GNU compilers is being dropped since it seems to be rarely used.
 #M_GCC = gcc

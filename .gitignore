@@ -5,6 +5,11 @@ DEPENDS
 *.so
 *.so.1
 *.a
+*.tlog
+*.log
+*.rc
+*.filters
+*.lastbuildstate
 V_*
 *.obj
 *.ilk
@@ -22,10 +27,12 @@ V_*
 *.rsp
 *.dep
 *.dep
+*.vcxproj
+*~
 *_none
 BuildLog.htm
 *resumelog*
-._*
+._*resumelog
 dyninst.kdev*
 config.status
 test/*
@@ -39,6 +46,10 @@ instructionAPI/doc/latex/doxygen.sty
 instructionAPI/doc/latex/hierarchy.tex
 instructionAPI/doc/latex/index.tex
 instructionAPI/doc/latex/modules.tex
+patchAPI/doc/patchapi.aux
+patchAPI/doc/patchapi.log
+patchAPI/doc/patchapi.out
+patchAPI/doc/patchapi.toc
 test.sh
 autodyninst/configure
 config.log

@@ -69,6 +69,8 @@ all: $(TARGET) $(EXTRA_LIBS)
 
 # We use a separate target for regenerating Lex and Yacc source files because of 
 # inconsistent Lex and Yacc availability across platforms.
+
+# regenerate LEX and YACC files, use "make regenerate". Then run make from Dyninst Root.
 regenerate:
 	$(LEX) $(LEXFLAGS) ../src/C.l
 	mv lex.$(DYNCNAME).c ../src/lex.$(DYNCNAME).C
@@ -76,7 +78,13 @@ regenerate:
 	mv $(DYNCNAME).tab.c ../src/$(DYNCNAME).tab.C
 	mv $(DYNCNAME).tab.h ../h/
 
-
+# regenerate LEX and YACC files with debug flags. 
+regen_debug:
+	$(LEX) -d $(LEXFLAGS) ../src/C.l
+	mv lex.$(DYNCNAME).c ../src/lex.$(DYNCNAME).C
+	$(YACC) $(YACCFLAGS) -t ../src/C.y
+	mv $(DYNCNAME).tab.c ../src/$(DYNCNAME).tab.C
+	mv $(DYNCNAME).tab.h ../h/
 
 
 

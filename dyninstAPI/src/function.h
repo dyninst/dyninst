@@ -1,34 +1,34 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
- 
+
 // $Id: function.h,v 1.52 2008/09/08 16:44:02 bernat Exp $
 
 #ifndef FUNCTION_H
@@ -49,6 +49,8 @@
 
 #include "block.h"
 #include "instPoint.h"
+#include "PatchCFG.h"
+#include "Point.h"
 
 class PCProcess;
 class mapped_module;
@@ -67,255 +69,283 @@ typedef enum callType {
   thiscall_call
 } callType;
 
-class func_instance : public patchTarget {
+using Dyninst::PatchAPI::Point;
+
+class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunction {
   friend class block_instance;
   friend class edge_instance;
   friend class instPoint;
- public:
-   //static std::string emptyString;
+  public:
+    // Almost everythcing gets filled in later.
+    func_instance(parse_func *f,
+                  Address baseAddr,
+                  mapped_module *mod);
 
-   // Almost everything gets filled in later.
-  func_instance(parse_func *f,
-		Address baseAddr,
-                mapped_module *mod);
-  
-  func_instance(const func_instance *parent,
-                mapped_module *child_mod);
-  
-   ~func_instance();
+    func_instance(const func_instance *parent,
+                  mapped_module *child_mod);
 
-   ////////////////////////////////////////////////
-   // Passthrough functions.
-   ////////////////////////////////////////////////
-   // To minimize wasted memory (since there will be many copies of
-   // this function) we make most methods passthroughs to the original
-   // parsed version.
+    ~func_instance();
 
-   const string &symTabName() const { return ifunc_->symTabName(); };
-   const string &prettyName() const { return ifunc_->prettyName(); };
-   const string &typedName() const { return ifunc_->typedName(); };
-   const string &name() const { return symTabName(); }
-   
-   const vector<string>& symTabNameVector() const { return ifunc_->symTabNameVector(); }
-   const vector<string>& prettyNameVector() const { return ifunc_->prettyNameVector(); }
-   const vector<string>& typedNameVector() const { return ifunc_->typedNameVector(); }
+  ////////////////////////////////////////////////
+  // Passthrough functions.
+  ////////////////////////////////////////////////
+  // To minimize wasted memory (since there will be many copies of
+  // this function) we make most methods passthroughs to the original
+  // parsed version.
 
-   // Debuggering functions
-   void debugPrint() const;
+  const string &symTabName() const { return ifunc()->symTabName(); };
+  const string &prettyName() const { return ifunc()->prettyName(); };
+  const string &typedName() const { return ifunc()->typedName(); };
+  const string &name() const { return symTabName(); }
 
-   // And add...
-   // Don't make the std::string a reference; we want a copy.
-   void addSymTabName(const std::string name, bool isPrimary = false);
-   void addPrettyName(const std::string name, bool isPrimary = false);
+  const vector<string>& symTabNameVector() const { return ifunc()->symTabNameVector(); }
+  const vector<string>& prettyNameVector() const { return ifunc()->prettyNameVector(); }
+  const vector<string>& typedNameVector() const { return ifunc()->typedNameVector(); }
 
-   Address getPtrAddress() const {return ptrAddr_;}
-   Address addr() const { return addr_; }
+  // Debuggering functions
+  void debugPrint() const;
 
-   // Not defined here so we don't have to play header file magic
-   // Not const; we can add names via the Dyninst layer
-   parse_func *ifunc() { return ifunc_; }
-   mapped_module *mod() const { return mod_; }
-   mapped_object *obj() const;
-   AddressSpace *proc() const;
+  // And add...
+  // Don't make the std::string a reference; we want a copy.
+  void addSymTabName(const std::string name, bool isPrimary = false);
+  void addPrettyName(const std::string name, bool isPrimary = false);
 
-   std::string format() const;
+  Address getPtrAddress() const {return ptrAddr_;}
 
-   ////////////////////////////////////////////////
-   // CFG and other function body methods
-   ////////////////////////////////////////////////
-   typedef AddrOrderedBlockSet BlockSet;
+  // Not defined here so we don't have to play header file magic
+  // Not const; we can add names via the Dyninst layer
+  parse_func *ifunc() const { return SCAST_PF(func_); }
+  mapped_module *mod() const { return mod_; }
+  mapped_object *obj() const;
 
-   const BlockSet &blocks();
+  AddressSpace *proc() const;
+  std::string format() const;
 
-   block_instance *entryBlock();
-   const BlockSet &callBlocks();
-   const BlockSet &exitBlocks();
+  ////////////////////////////////////////////////
+  // CFG and other function body methods
+  ////////////////////////////////////////////////
+  typedef AddrOrderedBlockSet BlockSet;
 
-   // Kevin's defensive mode shtuff
-   // Blocks that have a sink target, essentially. 
-   const BlockSet &unresolvedCF();
-   // Blocks where we provisionally stopped parsing because things looked weird.
-   const BlockSet &abruptEnds();
+  block_instance *entryBlock();
 
-   block_instance *getBlock(const Address addr);
+  // Kevin's defensive mode shtuff
+  // Blocks that have a sink target, essentially.
+  const BlockSet &unresolvedCF();// Blocks that have a sink target, essentially
+  const BlockSet &abruptEnds(); // Blocks where we provisionally stopped 
+                                // parsing because things looked weird.
+  block_instance * setNewEntry(block_instance *def, // if no better choice
+                               std::set<block_instance*> &deadBlocks);
+  // kevin signal-handler information
+  bool isSignalHandler() {return handlerFaultAddr_ != 0;}
+  Address getHandlerFaultAddr() {return handlerFaultAddr_;}
+  Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
+  void setHandlerFaultAddr(Address fa);
+  void setHandlerFaultAddrAddr(Address faa, bool set);
+  void triggerModified();
 
-   Offset addrToOffset(const Address addr) const;
+  block_instance *getBlockByEntry(const Address addr);
+  // get all blocks that contain the given address
+  bool getBlocks(const Address addr, std::set<block_instance*> &blks);
+  // Get the block with an instruction that starts at addr
+  block_instance *getBlock(const Address addr);
 
-   bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
-   bool savesFramePointer() const {return ifunc_->savesFramePointer();}
+  Offset addrToOffset(const Address addr) const;
 
-   ////////////////////////////////////////////////
-   // Legacy/inter-module calls. Arguably should be an 
-   // interprocedural edge, but I expect that would
-   // break all manner of things
-   ////////////////////////////////////////////////
+  bool hasNoStackFrame() const {return ifunc()->hasNoStackFrame();}
+  bool savesFramePointer() const {return ifunc()->savesFramePointer();}
 
-   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
-   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
-   Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
-   void fixHandlerReturnAddr(Address newAddr);
-   void setHandlerFaultAddr(Address fa);
-   void setHandlerFaultAddrAddr(Address faa, bool set);
+  ////////////////////////////////////////////////
+  // Legacy/inter-module calls. Arguably should be an
+  // interprocedural edge, but I expect that would
+  // break all manner of things
+  ////////////////////////////////////////////////
+  func_instance *findCallee(block_instance *callBlock);
 
-   bool isInstrumentable();
+  bool isInstrumentable();
 
-   Address get_address() const;
-   unsigned get_size() const;
-   std::string get_name() const;
-   
+  Address get_address() const;
+  unsigned get_size() const;
+  unsigned footprint(); // not const, calls ifunc()->extents()
+  std::string get_name() const;
+
 #if defined(arch_x86) || defined(arch_x86_64)
-   //Replaces the function with a 'return val' statement.
-   // currently needed only on Linux/x86
-   // Defined in inst-x86.C
-   bool setReturnValue(int val);
+  //Replaces the function with a 'return val' statement.
+  // currently needed only on Linux/x86
+  // Defined in inst-x86.C
+  bool setReturnValue(int val);
 
 #endif
 
-   ////////////////////////////////////////////////
-   // Relocation
-   ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+  // Code overlapping
+  ////////////////////////////////////////////////
+  // Get all functions that "share" the block. Actually, the
+  // block_instance will not be shared (they are per function),
+  // but the underlying parse_block records the sharing status.
+  // So dodge through to the image layer and find out that info.
+  // Returns true if such functions exist.
 
-   bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
+  bool getSharingFuncs(block_instance *b,
+                       std::set<func_instance *> &funcs);
 
+  // The same, but for any function that overlaps with any of
+  // our basic blocks.
+  // OPTIMIZATION: we're not checking all blocks, only an exit
+  // point; this _should_ work :) but needs to change if we
+  // ever do flow-sensitive parsing
+  bool getSharingFuncs(std::set<func_instance *> &funcs);
 
-   ////////////////////////////////////////////////
-   // Code overlapping
-   ////////////////////////////////////////////////
-   // Get all functions that "share" the block. Actually, the
-   // block_instance will not be shared (they are per function),
-   // but the underlying parse_block records the sharing status. 
-   // So dodge through to the image layer and find out that info. 
-   // Returns true if such functions exist.
+  // Slower version of the above that also finds functions that occupy
+  // the same address range, even if they do not share blocks - this can
+  // be caused by overlapping but disjoint assembly sequences
+  bool getOverlappingFuncs(std::set<func_instance *> &funcs);
+  bool getOverlappingFuncs(block_instance *b, std::set<func_instance *> &funcs);
 
-   bool getSharingFuncs(block_instance *b,
-                        std::set<func_instance *> &funcs);
-
-   // The same, but for any function that overlaps with any of
-   // our basic blocks.
-   // OPTIMIZATION: we're not checking all blocks, only an exit
-   // point; this _should_ work :) but needs to change if we
-   // ever do flow-sensitive parsing
-   bool getSharingFuncs(std::set<func_instance *> &funcs);
-
-   // Slower version of the above that also finds functions that occupy
-   // the same address range, even if they do not share blocks - this can
-   // be caused by overlapping but disjoint assembly sequences
-   bool getOverlappingFuncs(std::set<func_instance *> &funcs);
-   bool getOverlappingFuncs(block_instance *b, std::set<func_instance *> &funcs);
-
-   ////////////////////////////////////////////////
-   // Misc
-   ////////////////////////////////////////////////
+  ////////////////////////////////////////////////
+  // Misc
+  ////////////////////////////////////////////////
 
 
-   const pdvector< int_parRegion* > &parRegions();
+  const pdvector< int_parRegion* > &parRegions();
 
-   bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
-   unsigned getNumDynamicCalls();
+  bool containsSharedBlocks() const { return ifunc()->containsSharedBlocks(); }
+  unsigned getNumDynamicCalls();
 
-    // Fill the <callers> vector with pointers to the statically-determined
-    // list of functions that call this function.
-   template <class OutputIterator>
-      void getCallerBlocks(OutputIterator result); 
-   template <class OutputIterator>
+  // Fill the <callers> vector with pointers to the statically-determined
+  // list of functions that call this function.
+  template <class OutputIterator>
+    void getCallerBlocks(OutputIterator result);
+  template <class OutputIterator>
     void getCallerFuncs(OutputIterator result);
+  bool getLiveCallerBlocks(const std::set<block_instance*> &deadBlocks,
+                           const std::list<func_instance*> &deadFuncs,
+                           std::map<Address,vector<block_instance*> > & output_stubs);
+
+
 
 #if defined(arch_power)
-    bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
-#endif
-    
-#if defined(os_windows) 
-    //Calling convention for this function
-    callType func_instance::getCallingConvention();
-    int getParamSize() { return paramSize; }
-    void setParamSize(int s) { paramSize = s; }
+  bool savesReturnAddr() const { return ifunc()->savesReturnAddr(); }
 #endif
 
-    void removeFromAll();
-    void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
-                            const std::list<block_instance*> &seedBlocks,
-                            std::set<block_instance*> &reachBlocks);//output
-   
-    // So we can assert(consistency());
-    bool consistency() const;
+#if defined(os_windows)
+  //Calling convention for this function
+  callType func_instance::getCallingConvention();
+  int getParamSize() { return paramSize; }
+  void setParamSize(int s) { paramSize = s; }
+#endif
 
-   instPoint *findPoint(instPoint::Type type, bool create);
-   instPoint *findPoint(instPoint::Type type, block_instance *b, bool create);
-   instPoint *findPoint(instPoint::Type type, block_instance *b, 
-                        Address a, InstructionAPI::Instruction::Ptr ptr, 
-                        bool trusted, bool create);
-   // And the "mass" version of the above
-   bool findInsnPoints(instPoint::Type type, block_instance *b,
-                       InsnInstpoints::const_iterator &begin,
-                       InsnInstpoints::const_iterator &end); 
+  void getReachableBlocks(const std::set<block_instance*> &exceptBlocks,
+                          const std::list<block_instance*> &seedBlocks,
+                          std::set<block_instance*> &reachBlocks);//output
 
-   instPoint *findPoint(instPoint::Type type, edge_instance *e, bool create);
+
+  // So we can assert(consistency());
+  bool consistency() const;
+
+  // Wrappers for patchapi findPoints to find a single instPoint
+  instPoint *funcEntryPoint(bool create);
+  instPoint *funcExitPoint(block_instance* blk, bool create);
+  instPoint *preCallPoint(block_instance* blk, bool create);
+  instPoint *postCallPoint(block_instance* blk, bool create);
+  instPoint *blockEntryPoint(block_instance* blk, bool create);
+  instPoint *blockExitPoint(block_instance* b, bool create);
+  instPoint *preInsnPoint(block_instance* b, Address a,
+                          InstructionAPI::Instruction::Ptr ptr,
+                          bool trusted, bool create);
+  instPoint *postInsnPoint(block_instance* b, Address a,
+                           InstructionAPI::Instruction::Ptr ptr,
+                           bool trusted, bool create);
+  instPoint *edgePoint(edge_instance* eg, bool create);
+
+  // Wrappers for patchapi findPoints to find all instPoints w/ certain type
+  typedef std::vector<instPoint*> Points;
+  void funcExitPoints(Points*);
+  void callPoints(Points*);
+  void blockInsnPoints(block_instance*, Points*);
+  void edgePoints(Points*);
+
+  // Function wrapping
+  bool addSymbolsForCopy();
+  bool updateRelocationsToSym(Dyninst::SymtabAPI::Symbol *oldsym, 
+			      Dyninst::SymtabAPI::Symbol *newsym);
+  Dyninst::SymtabAPI::Symbol *getWrapperSymbol();
+  Dyninst::SymtabAPI::Symbol *getRelocSymbol();
+  void createWrapperSymbol(Address entry, std::string name);
+
+  static void destroy(func_instance *f);
+  void removeBlock(block_instance *block);
+
+  void split_block_cb(block_instance *b1, block_instance *b2);
+  void add_block_cb(block_instance *block);
 
  private:
 
-   ///////////////////// Basic func info
-   Address addr_; // Absolute address of the start of the function
-   Address ptrAddr_; // Absolute address of the function descriptor, if exists
+  // helper func for block_instance::setNotAbruptEnd(), do not call directly 
+  void removeAbruptEnd(const block_instance *); 
 
-   parse_func *ifunc_;
-   mapped_module *mod_; // This is really a dodge; translate a list of
-			// parse_funcs to int_funcs
+  ///////////////////// Basic func info
+  //Address addr_; // Absolute address of the start of the function
+  Address ptrAddr_; // Absolute address of the function descriptor, if exists
 
-   ///////////////////// CFG and function body
+  // parse_func *ifunc_;
+  mapped_module *mod_; // This is really a dodge; translate a list of
+  // parse_funcs to int_funcs
 
-   BlockSet blocks_; 
-   BlockSet callBlocks_;
-   BlockSet exitBlocks_;
-   block_instance *entry_;
-    // Defensive mode
-    BlockSet unresolvedCF_;
-    BlockSet abruptEnds_;
+  ///////////////////// CFG and function body
+  // Defensive mode
+  BlockSet unresolvedCF_;
+  BlockSet abruptEnds_;
+  unsigned int prevBlocksAbruptEnds_; // num func blocks when calculated
 
-    ///////////////////// Function-level instPoints
-    FuncInstpoints points_;
-    std::map<block_instance *, BlockInstpoints> blockPoints_;
-    std::map<edge_instance *, EdgeInstpoints> edgePoints_;
-    
 
-   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
-                                 set to -1, or to the address of the fault 
-                                 that last caused the handler to be invoked. */
-   Address handlerFaultAddrAddr_; 
+  Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is
+                                set to -1, or to the address of the fault
+                                that last caused the handler to be invoked. */
+  Address handlerFaultAddrAddr_;
 
-   //////////////////////////  Parallel Regions 
-   pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
+  //////////////////////////  Parallel Regions
+  pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
-   void addblock_instance(block_instance *instance);
+  void addblock_instance(block_instance *instance);
 
-#if defined(os_windows) 
-   callType callingConv;
-   int paramSize;
+#if defined(os_windows)
+  callType callingConv;
+  int paramSize;
 #endif
+
+   Dyninst::SymtabAPI::Symbol *wrapperSym_;
 };
 
 template <class OutputIterator>
 void func_instance::getCallerBlocks(OutputIterator result)
 {
-   if(!ifunc_ || !ifunc_->entryBlock())
-      return;
-
-   const block_instance::edgelist &ins = entryBlock()->sources();
-   for (block_instance::edgelist::const_iterator iter = ins.begin();
-        iter != ins.end(); ++iter) {
-      *result = (*iter)->src();
-      ++result;
-   }
+  if(!ifunc() || !ifunc()->entryBlock())
+    return;
+  /*
+  const block_instance::edgelist &ins = entryBlock()->sources();
+  for (block_instance::edgelist::const_iterator iter = ins.begin();
+       iter != ins.end(); ++iter) {
+  */
+  const PatchBlock::edgelist &ins = entryBlock()->sources();
+  for (PatchBlock::edgelist::const_iterator iter = ins.begin();
+       iter != ins.end(); ++iter) 
+  {
+      if ((*iter)->type() == ParseAPI::CALL) {
+        *result = SCAST_EI(*iter)->src();
+        ++result;
+      }
+  }
 }
 
-template <class OutputIterator> 
+template <class OutputIterator>
 void func_instance::getCallerFuncs(OutputIterator result)
 {
-   std::set<block_instance *> callerBlocks;
-   getCallerBlocks(std::inserter(callerBlocks, callerBlocks.end()));
-   for (std::set<block_instance *>::iterator iter = callerBlocks.begin();
-        iter != callerBlocks.end(); ++iter) {
-      (*iter)->getFuncs(result);
-   }
+  std::set<block_instance *> callerBlocks;
+  getCallerBlocks(std::inserter(callerBlocks, callerBlocks.end()));
+  for (std::set<block_instance *>::iterator iter = callerBlocks.begin();
+       iter != callerBlocks.end(); ++iter) {
+    (*iter)->getFuncs(result);
+  }
 }
 
 

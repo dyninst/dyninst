@@ -389,7 +389,13 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
-#if !defined(SERIALIZATION_DISABLED)
+SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
+{
+   mangledName_ = name;
+   setStrIndex(-1);
+   return true;
+}
+
 Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
@@ -511,24 +517,25 @@ void Symbol::restore_module_and_region(SerializerBase *, std::string &, Offset) 
 std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
 	return os << "{"
-		<< " mangled=" << s.getMangledName()
-		<< " pretty="  << s.getPrettyName()
-              << " module="  << s.module_
-        //<< " type="    << (unsigned) s.type_
-              << " type="    << s.symbolType2Str(s.type_)
-        //<< " linkage=" << (unsigned) s.linkage_
-              << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-              << " offset=0x"    << hex << s.offset_ << dec
-              << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
-              << " localTOC=0x"    << hex << s.localTOC_ << dec
+                  << " mangled=" << s.getMangledName()
+                  << " pretty="  << s.getPrettyName()
+                  << " module="  << s.module_
+           //<< " type="    << (unsigned) s.type_
+                  << " type="    << s.symbolType2Str(s.type_)
+           //<< " linkage=" << (unsigned) s.linkage_
+                  << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+                  << " offset=0x"    << hex << s.offset_ << dec
+                  << " size=0x" << hex << s.size_ << dec
+                  << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
+                  << " localTOC=0x"    << hex << s.localTOC_ << dec
         //<< " tag="     << (unsigned) s.tag_
-              << " tag="     << s.symbolTag2Str(s.tag_)
-              << " isAbs="   << s.isAbsolute_
-              << " isCommon=" << s.isCommonStorage_
-              << (s.isFunction() ? " [FUNC]" : "")
-              << (s.isVariable() ? " [VAR]" : "")
-              << (s.isInSymtab() ? "[STA]" : "[DYN]")
-              << " }" << endl;
+                  << " tag="     << s.symbolTag2Str(s.tag_)
+                  << " isAbs="   << s.isAbsolute_
+                  << " isCommon=" << s.isCommonStorage_
+                  << (s.isFunction() ? " [FUNC]" : "")
+                  << (s.isVariable() ? " [VAR]" : "")
+                  << (s.isInSymtab() ? "[STA]" : "[DYN]")
+                  << " }";
 }
 
      Offset tryStart_;
@@ -661,18 +668,6 @@ Symbol::~Symbol ()
 		}
 		delete (sfa_p);
 	}
-
-	std::vector<std::string> *vn_p = NULL;
-	if (getAnnotation(vn_p, SymbolVersionNamesAnno))
-	{
-		if (!removeAnnotation(SymbolVersionNamesAnno))
-		{
-			fprintf(stderr, "%s[%d]:  failed to remove version names anno\n", 
-					FILE__, __LINE__);
-		}
-		delete (vn_p);
-	}
-
 }
 
 void Symbol::setReferringSymbol(Symbol* referringSymbol) 

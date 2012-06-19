@@ -121,7 +121,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
         // This is true, only if other regions have already been added
         vector<Region *>::iterator newReg_it;
         for(newReg_it = newRegs.begin(); newReg_it != newRegs.end(); ++newReg_it) {
-            Offset newRegEndAddr = (*newReg_it)->getRegionSize() + (*newReg_it)->getRegionAddr();
+            Offset newRegEndAddr = (*newReg_it)->getMemSize() + (*newReg_it)->getRegionAddr();
             if( newRegEndAddr > globalOffset ) {
                 globalOffset = newRegEndAddr;
             }
@@ -393,7 +393,9 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
                     + "' for object '" + curObjFile->memberName() + "'";
-                return false;
+rewrite_printf(" failed to locate symbol %s for %s  \n" , curUndefSym->getMangledName().c_str(), curObjFile->memberName().c_str());
+		continue;
+                //return false;
             }
 
             // Store the found symbol with the related relocations
@@ -468,7 +470,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         vector<Region *>::iterator reg_it;
         for(reg_it = regs.begin(); reg_it != regs.end(); ++reg_it) {
             string regionName = (*reg_it)->getRegionName();
-            if( (*reg_it)->isLoadable() && (*reg_it)->getRegionSize() > 0) {
+            if( (*reg_it)->isLoadable() && (*reg_it)->getMemSize() > 0) {
                 if( (*reg_it)->isTLS() ) {
                     switch((*reg_it)->getRegionType()) {
                         case Region::RT_DATA:
@@ -493,6 +495,12 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     if( (*reg_it)->getMemAlignment() > lmap.dtorRegionAlign ) {
                         lmap.dtorRegionAlign = (*reg_it)->getMemAlignment();
                     }
+		} else if( isGOTRegion(*reg_it) ) {
+                    		lmap.gotRegions.push_back(*reg_it);
+                    		if( (*reg_it)->getMemAlignment() > lmap.gotRegionAlign ) {
+                        		lmap.gotRegionAlign = (*reg_it)->getMemAlignment();
+                    		}
+
                 }else{
                     switch((*reg_it)->getRegionType()) {
                         case Region::RT_TEXT:
@@ -508,6 +516,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                             if( (*reg_it)->getMemAlignment() > lmap.dataRegionAlign ) {
                                 lmap.dataRegionAlign = (*reg_it)->getMemAlignment();
                             }
+
                             break;
                         case Region::RT_BSS:
                             lmap.bssRegions.push_back(*reg_it);
@@ -530,16 +539,63 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                 }
 
                 // Find symbols that need to be put in the GOT
+
+#if defined(arch_power) && defined(arch_64bit)
+		// If statically linked binary, we need to put all the entries in region toc to GOT
+		if(target->isStaticBinary()) {
+			if(regionName.compare(".toc") == 0){
+				// For every symbol in toc
+				// Get data of the region and split it into symbols
+				char *rawRegionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
+				unsigned long numSymbols = (*reg_it)->getMemSize()/8;
+				for (Offset entry = 0; entry < numSymbols; entry++ ) {	
+				// If symbol has relocation, add that 
+					bool relExist = false;
+		                	vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
+                			vector<relocationEntry>::iterator rel_it;
+                			for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+						if(entry*8 == rel_it->rel_addr()) {
+							lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));  
+							lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), rel_it->addend()));
+							relExist = true;
+
+							break;
+						}
+					}
+					if(!relExist) {
+						// else create a new symbol 
+						// Offset and name is all we care - offset should be value of the symbol
+					      Offset soffset = *((unsigned long *) (rawRegionData + entry*8));
+					      Symbol *newsym = new Symbol("dyntoc_entry",
+                                  					  Symbol::ST_UNKNOWN,
+                                  					  Symbol::SL_UNKNOWN,
+                                  					  Symbol::SV_UNKNOWN,
+									  soffset);
+
+					    lmap.gotSymbolTable.push_back(make_pair(newsym, 0));  
+					    lmap.gotSymbols.insert(make_pair(newsym, 0));
+						
+					}
+				}
+
+			}
+
+		} 
+#endif
                 vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
                 vector<relocationEntry>::iterator rel_it;
                 for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-                    if( isGOTRelocation(rel_it->getRelType()) ) {
-                        // initialize mapping
-                        lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
-                    }
+
+                    if(isGOTRelocation(rel_it->getRelType()) ) {
+                        	lmap.gotSymbolTable.push_back(make_pair(rel_it->getDynSym(), rel_it->addend()));
+									lmap.gotSymbols.insert(make_pair(rel_it->getDynSym(), 0));
+			
+		    }
+			
                 }
-            }
-        }
+            } // isLoadable
+           
+        } //for regions
 
         vector<Symbol *> definedSyms;
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
@@ -568,13 +624,29 @@ bool emitElfStatic::createLinkMap(Symtab *target,
     Offset currentOffset = 0;
 
     // Allocate code regions 
-    
+
     // Since this is the first new Region, the actual globalOffset should be 
     // the passed globalOffset plus the padding for this Region
-    lmap.codeRegionOffset = currentOffset;
-    globalOffset += computePadding(globalOffset + lmap.codeRegionOffset,
-            lmap.codeRegionAlign);
+    
+    Offset maxAlign = getGOTAlign(lmap);
+    if(maxAlign < lmap.codeRegionAlign) maxAlign = lmap.codeRegionAlign;
 
+    globalOffset += computePadding(globalOffset + currentOffset,
+            maxAlign);
+
+    // Allocate space for a GOT Region, if necessary
+    lmap.gotSize = getGOTSize(lmap);
+    if( lmap.gotSize > 0 ) {
+	lmap.gotRegionAlign = getGOTAlign(lmap);
+        lmap.gotRegionOffset = currentOffset;
+        currentOffset += lmap.gotSize;
+        layoutRegions(lmap.gotRegions, lmap.regionAllocs,
+            lmap.gotRegionOffset, globalOffset);
+    } 
+
+    lmap.codeRegionOffset = currentOffset;
+    lmap.codeRegionOffset += computePadding(globalOffset + lmap.codeRegionOffset,
+            lmap.codeRegionAlign);
     currentOffset = layoutRegions(lmap.codeRegions, lmap.regionAllocs,
             lmap.codeRegionOffset, globalOffset);
     if( currentOffset == ~0UL ) {
@@ -596,16 +668,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         return false;
     }
     lmap.dataSize = currentOffset - lmap.dataRegionOffset;
-
-    // Allocate space for a GOT Region, if necessary
-    lmap.gotSize = getGOTSize(lmap);
-    if( lmap.gotSize > 0 ) {
-        lmap.gotRegionAlign = getGOTAlign(lmap);
-        currentOffset += computePadding(globalOffset + currentOffset,
-                lmap.gotRegionAlign);
-        lmap.gotRegionOffset = currentOffset;
-        currentOffset += lmap.gotSize;
-    }
 
     /* 
      * Find current TLS Regions in target, also check for multiple TLS Regions
@@ -634,7 +696,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     return false;
                 }
                 dataTLS = *reg_it;
-                lmap.tlsSize += dataTLS->getRegionSize();
+                lmap.tlsSize += dataTLS->getMemSize();
                 if( dataTLS->getMemAlignment() > lmap.tlsRegionAlign ) {
                     lmap.tlsRegionAlign = dataTLS->getMemAlignment();
                 }
@@ -645,7 +707,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     return false;
                 }
                 bssTLS = *reg_it;
-                lmap.tlsSize += bssTLS->getRegionSize();
+                lmap.tlsSize += bssTLS->getMemSize();
                 if( bssTLS->getMemAlignment() > lmap.tlsRegionAlign ) {
                     lmap.tlsRegionAlign = bssTLS->getMemAlignment();
                 }
@@ -656,7 +718,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             lmap.originalDtorRegion = *reg_it;
         }
     }
-
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_power)
     // Allocate the new TLS region, if necessary
     if( lmap.tlsRegions.size() > 0 ) {
         lmap.tlsRegionOffset = currentOffset;
@@ -679,7 +741,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
          *  are used.
          */
         if( dataTLS != NULL ) {
-            lmap.tlsSize -= dataTLS->getRegionSize();
+            lmap.tlsSize -= dataTLS->getMemSize();
         }
 
         lmap.tlsSize += currentOffset - lmap.tlsRegionOffset;
@@ -710,7 +772,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         }
 
         cleanupTLSRegionOffsets(lmap.regionAllocs, dataTLS, bssTLS);
-        if( bssTLS != NULL ) lmap.tlsSize -= bssTLS->getRegionSize();
+        if( bssTLS != NULL ) lmap.tlsSize -= bssTLS->getMemSize();
 
         hasRewrittenTLS_ = true;
     }else{
@@ -734,6 +796,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         lmap.tlsSize = 0;
     }
 
+#endif
     // Allocate space for a new constructor region, if necessary
     if( lmap.newCtorRegions.size() > 0 ) {
         lmap.ctorRegionOffset = currentOffset;
@@ -812,6 +875,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         errMsg = "assumption failed while creating link map";
         return false;
     }
+
     lmap.bssSize = currentOffset - lmap.bssRegionOffset;
 
     // Update all relevant symbols with their offsets in the new target
@@ -831,7 +895,17 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                         lmap.origSymbols.push_back(make_pair(*sym_it, symbolOffset));
 
                         symbolOffset += globalOffset + regionOffset;
-
+// If region has relocations, set offset to got 
+			vector<relocationEntry> region_rels = result->first->getRelocations();
+			if(region_rels.size() > 0) {
+//			printf(" region %s has relocations %d \n", result->first->getRegionName().c_str(), region_rels.size()); 
+/*
+                    		result = lmap.regionAllocs.find((*sym_it)->getRegion());
+                        	regionOffset = result->second.second;
+*/
+			}
+			
+		
                         (*sym_it)->setOffset(symbolOffset);
                     }
                 }
@@ -866,15 +940,15 @@ bool emitElfStatic::createLinkMap(Symtab *target,
  *                      target (used for padding calculation)
  */
 Offset emitElfStatic::layoutRegions(deque<Region *> &regions, 
-        map<Region *, LinkMap::AllocPair> &regionAllocs,
-        Offset currentOffset, Offset globalOffset) 
+                                    map<Region *, LinkMap::AllocPair> &regionAllocs,
+                                    Offset currentOffset, Offset globalOffset) 
 {
     Offset retOffset = currentOffset;
 
     deque<Region *>::iterator copyReg_it;
     for(copyReg_it = regions.begin(); copyReg_it != regions.end(); ++copyReg_it) {
         // Skip empty Regions
-        if( (*copyReg_it)->getRegionSize() == 0 ) continue;
+        if( (*copyReg_it)->getMemSize() == 0 ) continue;
 
         // Make sure the Region is aligned correctly in the new aggregate Region
         Offset padding = computePadding(globalOffset + retOffset, (*copyReg_it)->getMemAlignment());
@@ -890,7 +964,7 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
             break;
         }
                        
-        retOffset += (*copyReg_it)->getRegionSize();
+        retOffset += (*copyReg_it)->getMemSize();
     }
 
     return retOffset;
@@ -905,12 +979,21 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
  */
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
-    
+ 
+#if defined(arch_x86) || defined(arch_x86_64)  || (defined(arch_power) && defined(arch_64bit))
+    if( lmap.gotSize > 0 ) {
+        buildGOT(lmap);
+        target->addRegion(globalOffset + lmap.gotRegionOffset,
+                reinterpret_cast<void *>(&newTargetData[lmap.gotRegionOffset]),
+                static_cast<unsigned int>(lmap.gotSize),
+                GOT_NAME, Region::RT_DATA, true, lmap.gotRegionAlign);
+    }   
+#endif
     if( lmap.codeSize > 0 ) {
         target->addRegion(globalOffset + lmap.codeRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.codeRegionOffset]),
                 static_cast<unsigned int>(lmap.codeSize),
-                CODE_NAME, Region::RT_TEXT, true, lmap.codeRegionAlign);
+                CODE_NAME, Region::RT_TEXTDATA, true, lmap.codeRegionAlign);
     }
 
     if( lmap.dataSize > 0 ) {
@@ -920,22 +1003,14 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
                 DATA_NAME, Region::RT_DATA, true, lmap.dataRegionAlign);
     }
 
-    if( lmap.gotSize > 0 ) {
-        buildGOT(lmap);
-
-        target->addRegion(globalOffset + lmap.gotRegionOffset,
-                reinterpret_cast<void *>(&newTargetData[lmap.gotRegionOffset]),
-                static_cast<unsigned int>(lmap.gotSize),
-                GOT_NAME, Region::RT_DATA, true, lmap.gotRegionAlign);
-    }
-
+#if defined(arch_x86) || defined(arch_x86_64)  || defined(arch_power) 
     if( lmap.tlsSize > 0 ) {
         target->addRegion(globalOffset + lmap.tlsRegionOffset,
                 reinterpret_cast<void *>(&newTargetData[lmap.tlsRegionOffset]),
                 static_cast<unsigned int>(lmap.tlsSize),
                 TLS_DATA_NAME, Region::RT_DATA, true, lmap.tlsRegionAlign, true);
     }
-
+#endif
     if( lmap.newCtorRegions.size() > 0 ) {
         if( !createNewCtorRegion(lmap) ) {
             return false;
@@ -989,7 +1064,7 @@ void emitElfStatic::copyRegions(LinkMap &lmap) {
         char *rawRegionData = reinterpret_cast<char *>(depRegion->getPtrToRawData());
 
         if( !depRegion->isBSS() ) {
-            memcpy(&targetData[regionOffset], rawRegionData, depRegion->getRegionSize());
+            memcpy(&targetData[regionOffset], rawRegionData, depRegion->getMemSize());
         }
 
         // Set the padded space to a meaningful value
@@ -1032,21 +1107,19 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
         vector<Region *> allRegions;
         (*depObj_it)->getAllRegions(allRegions);
 
-        rewrite_printf("\n*** Computing relocations for: %s\n\n",
-                (*depObj_it)->memberName().c_str());
-
         // Relocations are stored with the Region to which they will be applied
         // As an ELF example, .rel.text relocations are stored with the Region .text
         vector<Region *>::iterator region_it;
         for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
             // Only compute relocations for the new Regions
-            map<Region *, LinkMap::AllocPair>::iterator result;
-            result = lmap.regionAllocs.find(*region_it);
-            if( result != lmap.regionAllocs.end() ) {
-                rewrite_printf("\nComputing relocations to apply to region: %s\n\n",
-                        (*region_it)->getRegionName().c_str());
-                Offset regionOffset = result->second.second;
+			if ((*region_it)->getRegionName().compare(".text") && (*region_it)->getRegionName().compare(".toc") ) {
+				continue;
+	}
+        map<Region *, LinkMap::AllocPair>::iterator result;
+        result = lmap.regionAllocs.find(*region_it);
+	if( result != lmap.regionAllocs.end() ) { 
 
+		Offset regionOffset = result->second.second;
                 vector<relocationEntry> region_rels = (*region_it)->getRelocations();
 
                 vector<relocationEntry>::iterator rel_it;
@@ -1054,15 +1127,38 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                     // Compute destination of relocation
                     Offset dest = regionOffset + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
-
+			
+                   rewrite_printf("\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d 0x%lx dest %d 0x%lx  \n\n",
+                        (*region_it)->getRegionName().c_str(), regionOffset, relOffset,relOffset, dest,dest);
                     char *targetData = lmap.allocatedData;
-                    if( !archSpecificRelocation(targetData, *rel_it, dest, 
+                    if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest, 
                                 relOffset, globalOffset, lmap, errMsg) ) 
                     {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation: " + errMsg;
                         return false;
                     }
+/*
+		   if((*region_it)->getRegionName().compare(".toc") == 0){
+			Offset regOffset = lmap.gotRegionOffset; 
+                        dest = regOffset + rel_it->rel_addr();
+                        relOffset = globalOffset + dest;
+
+		    if((*rel_it).name().compare("__SYMTABAPI_CTOR_LIST__") == 0) 
+			{
+                   	printf("\n\tComputing relocations to apply to region: %s @ 0x%lx reloffset %d 0x%lx dest %d 0x%lx  \n\n",
+                        (*region_it)->getRegionName().c_str(), regOffset, relOffset,relOffset, dest,dest);
+                    if( !archSpecificRelocation(target, *depObj_it, targetData, *rel_it, dest, 
+                                relOffset, globalOffset, lmap, errMsg) ) 
+                    {
+                        err = Relocation_Computation_Failure;
+                        errMsg = "Failed to compute relocation: " + errMsg;
+                        return false;
+                    }
+			}
+		
+		   }  
+*/
                 }
             }
         }
@@ -1083,7 +1179,7 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
             rel_it != (*reg_it)->getRelocations().end();
             ++rel_it)
         {
-            if( !archSpecificRelocation(regionData, *rel_it,
+            if( !archSpecificRelocation(target, target, regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
                         rel_it->rel_addr(), globalOffset, lmap, errMsg) )
             {
@@ -1180,10 +1276,58 @@ bool emitElfStatic::hasRewrittenTLS() const {
 
 /* See architecture specific functions that call these for descriptions of function interface */
 
-Offset emitElfStatic::tlsLayoutVariant1(Offset, Region *, Region *, LinkMap &)
+Offset emitElfStatic::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap)
 {
-    assert(!"Layout of TLS initialization image, Variant 1, currently not implemented.");
-    return 0;
+    // The original init. image needs to remain in the image 1 slot because
+    // the TLS data references are relative to that position
+    unsigned long tlsBssSize = 0;
+    if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
+    if( bssTLS != NULL ) tlsBssSize = bssTLS->getMemSize();
+    deque<Region *> tlsRegionsVar;
+
+    deque<Region *>::iterator copyReg_it;
+    for(copyReg_it = lmap.tlsRegions.begin(); copyReg_it != lmap.tlsRegions.end(); ++copyReg_it) {
+         tlsRegionsVar.push_front(*copyReg_it);
+    }
+
+    // Create the image, note new BSS regions are expanded
+    Offset endOffset = layoutRegions(lmap.tlsRegions,
+            lmap.regionAllocs, lmap.tlsRegionOffset, globalOffset);
+    if( endOffset == ~0UL ) return lmap.tlsRegionOffset;
+    Offset adjustedEnd = endOffset - lmap.tlsRegionOffset;
+
+    // This is necessary so the offsets of existing TLS symbols can be updated
+    // in a uniform, architecture independent way
+    if( bssTLS != NULL ) {
+        if( dataTLS != NULL ) {
+            lmap.regionAllocs.insert(make_pair(bssTLS, lmap.regionAllocs[dataTLS]));
+        }else{
+            lmap.regionAllocs.insert(make_pair(bssTLS, make_pair(0, endOffset)));
+        }
+    }
+
+    // Update the symbols with their offsets relative to the TCB address
+    vector<Symbol *>::iterator sym_it;
+    for(sym_it = lmap.tlsSymbols.begin(); sym_it != lmap.tlsSymbols.end(); ++sym_it) {
+        map<Region *, LinkMap::AllocPair>::iterator result;
+        result = lmap.regionAllocs.find((*sym_it)->getRegion());
+
+        // It is a programming error if the region for the symbol
+        // was not passed to this function
+        if( result == lmap.regionAllocs.end() ) {
+            endOffset = lmap.tlsRegionOffset;
+            break;
+        }
+
+        Offset regionOffset = result->second.second;
+        Offset symbolOffset = (*sym_it)->getOffset();
+        lmap.origSymbols.push_back(make_pair((*sym_it), symbolOffset));
+
+        symbolOffset += (regionOffset - lmap.tlsRegionOffset) - (adjustedEnd + tlsBssSize);
+        (*sym_it)->setOffset(symbolOffset);
+    }
+
+    return endOffset;
 }
 
 Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Region *bssTLS,
@@ -1193,7 +1337,7 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
     // the TLS data references are relative to that position
     unsigned long tlsBssSize = 0;
     if( dataTLS != NULL ) lmap.tlsRegions.push_back(dataTLS);
-    if( bssTLS != NULL ) tlsBssSize = bssTLS->getRegionSize();
+    if( bssTLS != NULL ) tlsBssSize = bssTLS->getMemSize();
 
     // Create the image, note new BSS regions are expanded
     Offset endOffset = layoutRegions(lmap.tlsRegions,
@@ -1244,10 +1388,11 @@ Offset emitElfStatic::tlsAdjustVariant2(Offset curOffset, Offset tlsSize) {
     return retOffset;
 }
 
-void emitElfStatic::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &,
-        Region *, Region *) 
+void emitElfStatic::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &regionAllocs,
+        Region *, Region *bssTLS) 
 {
-    assert(!"Cleanup of TLS Regions from allocation map currently unimplemented");
+    // Existing BSS TLS region is not copied to the new target data
+    if( bssTLS != NULL ) regionAllocs.erase(bssTLS);
 }
 
 void emitElfStatic::tlsCleanupVariant2(map<Region *, LinkMap::AllocPair> &regionAllocs,

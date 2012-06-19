@@ -76,12 +76,16 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
+bool IA_IAPI::isTailCall(Function* context,unsigned int) const
 {
     parsing_printf("Checking for Tail Call \n");
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
     if(tailCall.first) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
+        if (tailCall.second) {
+            context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+        }
         return tailCall.second;
     }
     tailCall.first = true;
@@ -101,9 +105,11 @@ bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
     if(allInsns.size() < 2) {
         tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");
+        context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
         return tailCall.second;
     }
     tailCall.second = false;
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return tailCall.second;
 
 }
@@ -156,7 +162,7 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
       if ( outReg.absloc().isPC() ) {
           Slicer slicer(*ait,bit,func);
           Graph::Ptr slGraph = slicer.backwardSlice(preds);
-          DataflowAPI::SymEval::Result_t slRes;
+          DataflowAPI::Result_t slRes;
           DataflowAPI::SymEval::expand(slGraph,slRes);
           pcDef = slRes[*ait];
           /*
@@ -168,11 +174,11 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
               cout << (r_iter->second ? r_iter->second->format() : "<NULL>") << endl;
           }
           */
-          if (!pcDef) assert(0);
           break;
       }
   }
 
+  if (!pcDef) { return false; }
   PPC_BLR_Visitor checker(ret_addr);
   pcDef->accept(&checker);
   if (checker.returnState() == PPC_BLR_Visitor::PPC_BLR_RETURN) {
@@ -185,11 +191,17 @@ bool IA_IAPI::sliceReturn(ParseAPI::Block* bit, Address ret_addr, ParseAPI::Func
 bool IA_IAPI::isReturnAddrSave(Address& retAddr) const
 {
   RegisterAST::Ptr regLR, regSP;
+  regLR = ppc32_LR; regSP = ppc32_SP;
+
+ /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
+  * For now, use ppc32:LR for ppc64 also.
+
   switch (_isrc->getArch()) {
   case Arch_ppc32: regLR = ppc32_LR; regSP = ppc32_SP; break;
   case Arch_ppc64: regLR = ppc64_LR; regSP = ppc64_SP; break;
   default: assert(0 && "Inappropriate _isrc architechture.");
   }
+  */
 
   std::set < RegisterAST::Ptr > regs;
   RegisterAST::Ptr destLRReg;
@@ -263,6 +275,11 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
       parsing_printf ("\t LR saved for %s \n", func->name().c_str());
       // Check for lwz from Stack - mtlr - blr 
       RegisterAST::Ptr regLR, regSP, reg11;
+		regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11;
+
+ /* FIXME: InstructionAPI doesn't handle ppc64:LR correctly. 
+  * For now, use ppc32:LR for ppc64 also.
+
       switch (_isrc->getArch()) {
       case Arch_ppc32:
           regLR = ppc32_LR; regSP = ppc32_SP; reg11 = ppc32_R11; break;
@@ -270,7 +287,7 @@ bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * context, Dyninst::ParseAPI:
           regLR = ppc64_LR; regSP = ppc64_SP; reg11 = ppc64_R11; break;
       default: assert(0 && "Inappropriate _isrc architechture.");
       }
-
+*/
       std::set < RegisterAST::Ptr > regs;
       RegisterAST::Ptr sourceLRReg;
 
@@ -341,7 +358,7 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-const char* IA_IAPI::isIATcall() const
+bool IA_IAPI::isIATcall(std::string &) const
 {
     return false;
 }

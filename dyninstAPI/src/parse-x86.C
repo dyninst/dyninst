@@ -201,7 +201,11 @@ static bool replaceHandler(func_instance *origHandler, func_instance *newHandler
    // TODO: this should be a function replacement!
    // And why the hell is it in parse-x86.C?
    origHandler->proc()->replaceFunction(origHandler, newHandler);
-   origHandler->proc()->relocate();
+   //origHandler->proc()->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(origHandler->proc());
+    /* End of PatchAPI stuffs */
+
     
     /* create the special relocation for the new list -- search the RT library for
      * the symbol
@@ -372,16 +376,17 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     }
 
     if( loadLibc ) {
-        std::map<std::string, BinaryEdit *> res = openResolvedLibraryName("libc.a");
-        std::map<std::string, BinaryEdit *>::iterator bedit_it;
-        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
-            if( bedit_it->second == NULL ) {
-                logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
-                return false;
-            }
-        }
+       std::map<std::string, BinaryEdit *> res;
+       openResolvedLibraryName("libc.a", res);
+       std::map<std::string, BinaryEdit *>::iterator bedit_it;
+       for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
+          if( bedit_it->second == NULL ) {
+             logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
+             return false;
+          }
+       }
     }
-
+    
     return true;
 }
 
@@ -440,12 +445,12 @@ func_instance *mapped_object::findGlobalConstructorFunc(const std::string &ctorH
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize(),
+    InstructionDecoder decoder(p, initRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch()); 
 
     Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < CTOR_NUM_CALLS && curInsn && curInsn->isValid() &&
-          bytesSeen < initRegion->getRegionSize()) 
+          bytesSeen < initRegion->getDiskSize()) 
     {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {
@@ -543,14 +548,14 @@ func_instance *mapped_object::findGlobalDestructorFunc(const std::string &dtorHa
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize(),
+    InstructionDecoder decoder(p, finiRegion->getDiskSize(),
         parse_img()->codeObject()->cs()->getArch());
 
     Instruction::Ptr lastCall;
     Instruction::Ptr curInsn = decoder.decode();
 
     while(curInsn && curInsn->isValid() &&
-          bytesSeen < finiRegion->getRegionSize()) 
+          bytesSeen < finiRegion->getDiskSize()) 
     {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {

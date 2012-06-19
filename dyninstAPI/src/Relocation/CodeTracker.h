@@ -48,6 +48,7 @@ class baseTramp;
 class func_instance;
 class block_instance;
 class AddressSpace;
+class instPoint;
 
 namespace Dyninst {
 namespace Relocation {
@@ -63,7 +64,7 @@ class TrackerElement {
     padding
   } type_t;
 
-  TrackerElement(Address o, block_instance *b, func_instance *f = NULL) 
+  TrackerElement(Address o, block_instance *b, func_instance *f) 
       : orig_(o), reloc_(0), size_(0), 
      block_(b), func_(f) {
      assert(b);
@@ -84,6 +85,7 @@ class TrackerElement {
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
 
+  virtual bool mergeable() const { return true; } 
 
  protected:
   TrackerElement() { assert(0); };
@@ -97,7 +99,7 @@ class TrackerElement {
 
 class OriginalTracker : public TrackerElement {
  public:
-  OriginalTracker(Address orig, block_instance *b, func_instance *f = NULL) :
+  OriginalTracker(Address orig, block_instance *b, func_instance *f) :
    TrackerElement(orig, b, f) {};
   virtual ~OriginalTracker() {};
 
@@ -115,12 +117,13 @@ class OriginalTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::original; };
 
+
  private:
 };
 
 class EmulatorTracker : public TrackerElement {
  public:
-  EmulatorTracker(Address orig, block_instance *b, func_instance *f = NULL) : 
+  EmulatorTracker(Address orig, block_instance *b, func_instance *f) : 
    TrackerElement(orig, b, f) {};
   virtual ~EmulatorTracker() {};
 
@@ -137,12 +140,14 @@ class EmulatorTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::emulated; };
 
+
+
  private:
 };
 
 class InstTracker : public TrackerElement {
  public:
-  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f = NULL) :
+  InstTracker(Address orig, baseTramp *baseT, block_instance *b, func_instance *f) :
    TrackerElement(orig, b, f), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
@@ -159,6 +164,8 @@ class InstTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
   baseTramp *baseT() const { return baseT_; };
+  
+  virtual bool mergeable() const { return false; };
 
  private:
   baseTramp *baseT_;
@@ -166,9 +173,9 @@ class InstTracker : public TrackerElement {
 
 class PaddingTracker : public TrackerElement {
  public:
-  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f = NULL) :
-   TrackerElement(orig, b, f), pad_(pad) {assert(0);};
-   virtual ~PaddingTracker() {assert(0);};
+  PaddingTracker(Address orig, unsigned pad, block_instance *b, func_instance *f) :
+   TrackerElement(orig, b, f), pad_(pad) {};
+   virtual ~PaddingTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
     assert(reloc >= reloc_);
@@ -184,6 +191,8 @@ class PaddingTracker : public TrackerElement {
   virtual type_t type() const { return TrackerElement::padding; };
   unsigned pad() const { return pad_; }
 
+  virtual bool mergeable() const { return false; };
+
  private:
   unsigned pad_; 
 };
@@ -191,10 +200,10 @@ class PaddingTracker : public TrackerElement {
 class CodeTracker {
  public:
   struct RelocatedElements {
-    Address instruction;
-    Address instrumentation;
+     Address instruction;
+     std::map<instPoint *, Address> instrumentation;
      Address pad;
-  RelocatedElements() : instruction(0), instrumentation(0), pad(0) {};
+  RelocatedElements() : instruction(0), pad(0) {};
   };
 
   // I'd like to use a block * as a unique key element, but
@@ -246,6 +255,8 @@ class CodeTracker {
   void createIndices();
 
   void debug();
+
+  const TrackerList &trackers() { return trackers_; }
 
  private:
 

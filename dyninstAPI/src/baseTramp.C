@@ -72,7 +72,9 @@ baseTramp::baseTramp() :
 {
 }
 
-baseTramp::~baseTramp() {
+baseTramp::~baseTramp()
+{
+   //TODO: implement me
 }
 
 baseTramp *baseTramp::create(instPoint *p) {
@@ -292,9 +294,16 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    pdvector<AstNodePtr> miniTramps;
 
    if (point_) {
+     /*
       for (instPoint::iterator iter = point_->begin(); 
            iter != point_->end(); ++iter) {
          miniTramps.push_back((*iter)->ast());
+      }
+     */
+      for (instPoint::instance_iter iter = point_->begin(); 
+           iter != point_->end(); ++iter) {
+        miniTramp* mini = GET_MINI(*iter);
+        miniTramps.push_back(mini->ast());
       }
    }
    else {
@@ -434,9 +443,16 @@ bool baseTramp::checkForFuncCalls()
    if (ast_)
       return ast_->containsFuncCall();
    if (point_) {
+     /*
       for (instPoint::iterator iter = point_->begin(); 
            iter != point_->end(); ++iter) {
          if ((*iter)->ast()->containsFuncCall()) return true;
+      }
+*/
+      for (instPoint::instance_iter iter = point_->begin(); 
+           iter != point_->end(); ++iter) {
+	miniTramp* mini = GET_MINI(*iter);
+        if (mini->ast()->containsFuncCall()) return true;
       }
    }
    return false;
@@ -455,12 +471,22 @@ bool baseTramp::hasFuncJump()
       }
       return (funcJumpState_ >= cfj_jump);
    }
-   for (instPoint::iterator iter = point_->begin(); 
+   /*   
+	for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       cfjRet_t tmp = (*iter)->ast()->containsFuncJump();
       if ((int) tmp > (int) funcJumpState_)
          funcJumpState_ = tmp;
    }
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+      cfjRet_t tmp = mini->ast()->containsFuncJump();
+      if ((int) tmp > (int) funcJumpState_)
+         funcJumpState_ = tmp;
+   }
+
    return (funcJumpState_ >= cfj_jump);
 }
 
@@ -474,6 +500,7 @@ bool baseTramp::doOptimizations()
    }
 
    hasFuncCall = false;
+   /*
    for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       if ((*iter)->ast()->containsFuncCall()) {
@@ -481,7 +508,16 @@ bool baseTramp::doOptimizations()
          break;
       }
    }
-   
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+      if (mini->ast()->containsFuncCall()) {
+         hasFuncCall = true;
+         break;
+      }
+   }
+
    needsStackFrame_ = usesReg;
    
    if (!hasFuncCall) {
@@ -555,6 +591,7 @@ bool baseTramp::guarded() const {
    bool recursive = false;
 
    // See if any of our miniTramps are guarded
+   /*
    for (instPoint::iterator iter = point_->begin(); 
         iter != point_->end(); ++iter) {
       if ((*iter)->recursive())
@@ -562,6 +599,16 @@ bool baseTramp::guarded() const {
       else
          guarded = true;
    }
+   */
+   for (instPoint::instance_iter iter = point_->begin(); 
+        iter != point_->end(); ++iter) {
+     miniTramp* mini = GET_MINI(*iter);
+     if (mini->recursive())
+         recursive = true;
+      else
+         guarded = true;
+   }
+
    if (recursive && guarded) {
       cerr << "Warning: mix of recursive and guarded snippets @ " << point_
            << ", picking guarded" << endl;

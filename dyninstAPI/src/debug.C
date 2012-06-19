@@ -209,6 +209,9 @@ int bpinfo(const char *format, ...)
 // Internal debugging
 
 int dyn_debug_malware = 0;
+int dyn_debug_trap = 0;
+int dyn_debug_signal = 0;
+int dyn_debug_infrpc = 0;
 int dyn_debug_startup = 0;
 int dyn_debug_parsing = 0;
 int dyn_debug_proccontrol = 0;
@@ -226,7 +229,6 @@ int dyn_debug_bpatch = 0;
 int dyn_debug_regalloc = 0;
 int dyn_debug_ast = 0;
 int dyn_debug_write = 0;
-int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
@@ -244,6 +246,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");
     dyn_debug_malware = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_TRAP"))) {
+    fprintf(stderr, "Enabling DyninstAPI debugging using traps\n");
+    dyn_debug_trap = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_SPRINGBOARD"))) {
     fprintf(stderr, "Enabling DyninstAPI springboard debug\n");
@@ -335,10 +341,6 @@ bool init_debug() {
     dyn_debug_write = 1;
     dyn_debug_write_filename = p;
   }
-  if ( (p=getenv("DYNINST_DEBUG_LIVENESS"))) {
-    fprintf(stderr, "Enabling DyninstAPI liveness debugging\n");
-    dyn_debug_liveness = 1;
-  }
   if ( (p=getenv("DYNINST_DEBUG_INFMALLOC")) ||
        (p=getenv("DYNINST_DEBUG_INFERIORMALLOC"))) {
     fprintf(stderr, "Enabling DyninstAPI inferior malloc debugging\n");
@@ -365,6 +367,59 @@ int mal_printf(const char *format, ...)
 
   debugPrintLock->_Lock(FILE__, __LINE__);
 
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int trap_printf(const char *format, ...)
+{
+  if (!dyn_debug_trap) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int signal_printf_int(const char *format, ...)
+{
+  if (!dyn_debug_signal) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int inferiorrpc_printf_int(const char *format, ...)
+{
+  if (!dyn_debug_infrpc) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -615,7 +670,7 @@ int ast_printf_int(const char *format, ...)
 
 int write_printf_int(const char *format, ...)
 {
-  if (1 || /*KEVINTODO: revert this*/ !dyn_debug_write) return 0;
+  if (!dyn_debug_write) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);
@@ -640,23 +695,6 @@ int write_printf_int(const char *format, ...)
   return ret;
 }
 
-int liveness_printf_int(const char *format, ...)
-{
-  if (!dyn_debug_liveness) return 0;
-  if (NULL == format) return -1;
-
-  debugPrintLock->_Lock(FILE__, __LINE__);
-  
-  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  debugPrintLock->_Unlock(FILE__, __LINE__);
-
-  return ret;
-}
 
 int infmalloc_printf_int(const char *format, ...)
 {

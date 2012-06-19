@@ -41,11 +41,13 @@
 
 #include "InstructionSource.h"
 #include "ParseContainers.h"
-
 #include "Annotatable.h"
 #include <iostream>
 namespace Dyninst {
 namespace ParseAPI {
+
+class CFGModifier;
+class CodeObject;
 
 enum EdgeTypeEnum {
     CALL = 0,
@@ -126,6 +128,7 @@ class allocatable {
 
 class Block;
 class Edge : public allocatable {
+   friend class CFGModifier;
  protected:
     Block * _source;
     Block * _target;
@@ -169,11 +172,16 @@ class Edge : public allocatable {
                type() == RET);
     }
 
+    bool intraproc() const {
+       return !interproc();
+    }
+
     PARSER_EXPORT void install();
 
-    /* removes from blocks & finalized source functions if of type CALL */
+    /* removes from blocks (and if of type CALL, from finalized source functions ) */
     PARSER_EXPORT void uninstall();
 
+    PARSER_EXPORT static void destroy(Edge *, CodeObject *);
 
  friend class CFGFactory;
  friend class Parser;
@@ -271,6 +279,7 @@ class CodeObject;
 class CodeRegion;
 class Block : public Dyninst::interval<Address>, 
               public allocatable {
+    friend class CFGModifier;
  public:
     typedef ContainerWrapper<
         std::vector<Edge*>,
@@ -285,6 +294,7 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT Address start() const { return _start; }
     PARSER_EXPORT Address end() const { return _end; }
     PARSER_EXPORT Address lastInsnAddr() const { return _lastInsn; } 
+    PARSER_EXPORT Address last() const { return lastInsnAddr(); }
     PARSER_EXPORT Address size() const { return _end - _start; }
 
     PARSER_EXPORT bool parsed() const { return _parsed; }
@@ -293,8 +303,8 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT CodeRegion * region() const { return _region; }
 
     /* Edge access */
-    PARSER_EXPORT edgelist & sources() { return _srclist; }
-    PARSER_EXPORT edgelist & targets() { return _trglist; }
+    PARSER_EXPORT const edgelist & sources() const { return _srclist; }
+    PARSER_EXPORT const edgelist & targets() const { return _trglist; }
 
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn);
 
@@ -321,12 +331,15 @@ class Block : public Dyninst::interval<Address>,
         }
     };
 
+    static void destroy(Block *b);
+
  private:
     void addSource(Edge * e);
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
     void removeFunc(Function *);
+    void updateEnd(Address addr);
 
  private:
     CodeObject * _obj;
@@ -410,6 +423,7 @@ class CodeObject;
 class CodeRegion;
 class FuncExtent;
 class Function : public allocatable, public AnnotatableSparse {
+   friend class CFGModifier;
  protected:
     Address _start;
     CodeObject * _obj;
@@ -441,6 +455,7 @@ class Function : public allocatable, public AnnotatableSparse {
         CodeRegion * region, InstructionSource * isource);
 
     PARSER_EXPORT virtual ~Function();
+
     PARSER_EXPORT virtual const string & name();
 
     PARSER_EXPORT Address addr() const { return _start; }
@@ -457,6 +472,7 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool contains(Block *b);
     PARSER_EXPORT edgelist & callEdges();
     PARSER_EXPORT blocklist & returnBlocks();
+    PARSER_EXPORT blocklist & exitBlocks();
 
     /* Function details */
     PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -465,8 +481,9 @@ class Function : public allocatable, public AnnotatableSparse {
 
     /* Parse updates and obfuscation */
     PARSER_EXPORT void setEntryBlock(Block *new_entry);
-    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-    PARSER_EXPORT void deleteBlocks( vector<Block*> dead_blocks );
+    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs);
+    PARSER_EXPORT void removeBlock( Block* );
+
     PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 
     struct less
@@ -483,6 +500,8 @@ class Function : public allocatable, public AnnotatableSparse {
     /* This should not remain here - this is an experimental fix for
        defensive mode CFG inconsistency */
     void invalidateCache() { _cache_valid = false; }
+
+    static void destroy(Function *f);
 
  private:
     std::vector<Block *> const& blocks_int();
@@ -505,7 +524,12 @@ class Function : public allocatable, public AnnotatableSparse {
     edgelist _call_edge_list;
     std::vector<Block *> _return_blocks;
     blocklist _retBL;
-
+    // Superset of return blocks; this includes all blocks where
+    // execution leaves the function without coming back, including
+    // returns, calls to non-returning calls, tail calls, etc.
+    // Might want to include exceptions...
+    std::vector<Block *> _exit_blocks;
+    blocklist _exitBL;
 
     /* function details */
     bool _no_stack_frame;

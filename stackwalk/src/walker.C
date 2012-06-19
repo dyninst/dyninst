@@ -318,6 +318,7 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
   result = true; \
   Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
   Dyninst::MachRegisterVal pc, sp, fp; \
+  location_t loc; \
   if (thread == NULL_THR_ID) { \
     result = proc->getDefaultThread(thread); \
     if (!result) { \
@@ -337,6 +338,13 @@ void Walker::setSymbolReader(SymbolReaderFactory *srf)
   frame.setRA(pc); \
   frame.setFP(fp); \
   frame.setSP(sp); \
+  loc.location = loc_register; \
+  loc.val.reg = Dyninst::ReturnAddr; \
+  frame.setRALocation(loc); \
+  loc.val.reg = Dyninst::StackTop; \
+  frame.setSPLocation(loc); \
+  loc.val.reg = Dyninst::FrameBase; \
+  frame.setFPLocation(loc); \
   frame.setThread(thread); \
   frame.markTopFrame(); \
   done_gifi: ; \
@@ -654,3 +662,15 @@ StepperGroup *Walker::getStepperGroup() const
 {
    return group;
 }
+
+SymbolReaderFactory *Walker::symrfact = NULL;
+SymbolReaderFactory *Walker::getSymbolReader()
+{
+   return Dyninst::Stackwalker::getDefaultSymbolReader();
+}
+
+void Walker::setSymbolReader(SymbolReaderFactory *val)
+{
+   symrfact = val;
+}
+

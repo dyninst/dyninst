@@ -18,7 +18,7 @@ PUBLIC_H = Annotatable.h \
 		dyn_regs.h \
 		stl_utils.h \
 		SymReader.h \
-		AST.h \
+		DynAST.h \
 		ProcReader.h \
 	   IBSTree.h \
       entryIDs.h

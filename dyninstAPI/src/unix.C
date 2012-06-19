@@ -505,9 +505,9 @@ bool PCProcess::startDebugger() {
 
 using namespace Dyninst::SymtabAPI;
 
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
-    std::map<std::string, BinaryEdit *> retMap;
 
+mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
+                                                   std::map<std::string, BinaryEdit*> &retMap) {
     std::vector<std::string> paths;
     std::vector<std::string>::iterator pathIter;
 
@@ -520,14 +520,15 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                        FILE__, __LINE__, filename.c_str());
 
         Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-
+	assert(mgr());
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+	      BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
-                    return retMap;
+                    return temp->getMappedObject();
                 }
                 delete temp;
             }
@@ -554,26 +555,32 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                            BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                                std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
-                                retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
-                            }
+                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
+                           
+                           if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                              std::string mapName = *pathIter + string(":") +
+                                 (*member_it)->memberName();
+                              retMap.insert(std::make_pair(mapName, temp));
+                           }else{
+                              if(temp) delete temp;
+                              retMap.clear();
+                              break;
+                           }
                         }
 
                         if (retMap.size() > 0) {
                             origSymtab->addLinkingResource(library);
-                            return retMap;
+                            // So we tried loading "libc.a", and got back a swarm of individual members. 
+                            // Lovely. 
+                            // Just return the first thing...
+                            return retMap.begin()->second->getMappedObject();
                         }
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-                    BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
+		  BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+
+
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {
                         if( singleObject->getObjectType() == obj_SharedLib ||
                             singleObject->getObjectType() == obj_Executable ) 
@@ -586,7 +593,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                           delete singleObject;
                         }else{
                             retMap.insert(std::make_pair(*pathIter, temp));
-                            return retMap;
+                            return temp->getMappedObject();
                         }
                     }
                     if(temp) delete temp;
@@ -597,9 +604,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 
     startup_printf("[%s:%u] - Creation error opening %s\n",
                    FILE__, __LINE__, filename.c_str());
-    retMap.clear();
-    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-    return retMap;
+    return NULL;
 }
 
 #endif
@@ -640,6 +645,10 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 // HACK: made an func_instance method to remove from instPoint class...
 // FURTHER HACK: made a block_instance method so we can share blocks
 func_instance *block_instance::callee() {
+   // Check 1: pre-computed callee via PLT
+   func_instance *ret = obj()->getCallee(this);
+   if (ret) return ret;
+
    // See if we've already done this
    edge_instance *tEdge = getTarget();
    if (!tEdge) {
@@ -647,9 +656,14 @@ func_instance *block_instance::callee() {
    }
 
    if (!tEdge->sinkEdge()) {
-      return obj()->findFuncByEntry(tEdge->trg());
+      func_instance *tmp = obj()->findFuncByEntry(tEdge->trg());
+      if (tmp && !(tmp->ifunc()->isPLTFunction())) {
+         return tmp;
+      }
    }
+
    
+
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr; bool success;
@@ -667,9 +681,9 @@ func_instance *block_instance::callee() {
    vector <relocationEntry> fbtvector;
    if (!sym->getFuncBindingTable(fbtvector)) {
       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-      cerr << "Failed to get func binding table" << endl;
       return NULL;
    }
+
 
    /**
     * Object files and static binaries will not have a function binding table
@@ -686,10 +700,12 @@ func_instance *block_instance::callee() {
       fbt.push_back(fbtvector[index]);
    
    Address base_addr = obj()->codeBase();
-   dictionary_hash<Address, std::string> *pltFuncs = obj()->parse_img()->getPltFuncs();
+   
+   std::map<Address, std::string> pltFuncs;
+   obj()->parse_img()->getPltFuncs(pltFuncs);
 
    // find the target address in the list of relocationEntries
-   if (pltFuncs->defines(target_addr)) {
+   if (pltFuncs.find(target_addr) != pltFuncs.end()) {
       for (u_int i=0; i < fbt.size(); i++) {
          if (fbt[i].target_addr() == target_addr) 
          {
@@ -700,13 +716,14 @@ func_instance *block_instance::callee() {
             if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
                updateCallTarget(target_pdf);
                obj()->setCalleeName(this, target_pdf->symTabName());
+               obj()->setCallee(this, target_pdf);
                return target_pdf;
             }
          }
       }
-
       const char *target_name = (*pltFuncs)[target_addr].c_str();
       PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
+
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
       obj()->setCalleeName(this, std::string(target_name));
       pdvector<func_instance *> pdfv;
@@ -714,6 +731,7 @@ func_instance *block_instance::callee() {
       // See if we can name lookup
       if (dproc) {
          if (proc()->findFuncsByMangled(target_name, pdfv)) {
+            obj()->setCallee(this, pdfv[0]);
             updateCallTarget(pdfv[0]);
             return pdfv[0];
          }
@@ -723,6 +741,7 @@ func_instance *block_instance::callee() {
          for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
          {
             if ((*i)->findFuncsByMangled(target_name, pdfv)) {
+               obj()->setCallee(this, pdfv[0]);
                updateCallTarget(pdfv[0]);
                return pdfv[0];
             }
@@ -916,3 +935,4 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
 }
 
 #endif
+

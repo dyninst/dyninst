@@ -19,7 +19,6 @@ SRCS = ../src/freebsd.C \
 		 ../src/notify_pipe.C \
        ../../common/src/dthread-unix.C \
        ../../common/src/Elf_X.C
-
 CXXFLAGS += $(MYFLAGS)
 CFLAGS += $(MYFLAGS)
 

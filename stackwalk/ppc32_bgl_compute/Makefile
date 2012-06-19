@@ -22,7 +22,6 @@ TFLAGS          += $(MYFLAGS)
 
 SRCS = ../src/ppc-swk.C \
 		 ../src/bg_firstparty.C \
-		 ../../common/src/Elf_X.C \
 		 ../src/firstparty.C \
 		 dyn_regs.C \
 		 addrtranslate.C \

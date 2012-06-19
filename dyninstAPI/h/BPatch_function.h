@@ -55,12 +55,20 @@ class BPatch_flowGraph;
 class BPatchTranslatorBase;
 class ParameterType;
 class ReturnParameterType;
+class BPatch_function;
 
 namespace Dyninst {
   namespace ParseAPI {
     class Function;
+    Function *convert(const BPatch_function *);
+  };
+  namespace PatchAPI {
+     class PatchFunction;
+     PatchFunction *convert(const BPatch_function *);
   };
 };
+
+
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -87,6 +95,8 @@ class BPATCH_DLL_EXPORT BPatch_function :
 						   InstrucIter &ii, 
 						   BPatch_process *proc,
 						   BPatch_function *bpf);
+    friend Dyninst::ParseAPI::Function *Dyninst::ParseAPI::convert(const BPatch_function *);
+    friend Dyninst::PatchAPI::PatchFunction *Dyninst::PatchAPI::convert(const BPatch_function *);
 
     //BPatch_process *proc;
     BPatch_addressSpace *addSpace;
@@ -153,7 +163,6 @@ public:
     void getCallPoints(BPatch_Vector<BPatch_point *> &entryPoints);
 
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
-    void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation(bool useInsertionSet);
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
@@ -263,6 +272,14 @@ public:
 
     BPatch_Vector<BPatch_point *> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
+    //  BPatch_function::findPoint
+    //
+    //  Returns a BPatch_point that corresponds with the provided address. Returns NULL
+    //  if the address does not correspond with an instruction. 
+    API_EXPORT(Int, (addr), 
+    BPatch_point *, findPoint, (Dyninst::Address addr));
+
+
     //  BPatch_function::findLocalVar
     //  Returns a BPatch_localVar, if a match for <name> is found
 
@@ -339,14 +356,20 @@ public:
     API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
 
     //  Get the underlying ParseAPI Function
-    API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
+    operator Dyninst::ParseAPI::Function *() const;
 
+    // Get the underlying PatchAPI Function
+    operator Dyninst::PatchAPI::PatchFunction *() const;
 
     API_EXPORT(Int, (start, end),
     bool,getAddressRange,(void * &start, void * &end));
 
     API_EXPORT(Int, (start, end),
                bool,getAddressRange,(Dyninst::Address &start, Dyninst::Address &end));
+
+    API_EXPORT(Int, (),
+    unsigned int,getFootprint,());
+
 };
 
 #endif /* _BPatch_function_h_ */

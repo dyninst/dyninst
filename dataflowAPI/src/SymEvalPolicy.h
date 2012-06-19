@@ -53,7 +53,7 @@
 #if !defined(Sym_Eval_Policy_h)
 #define Sym_Eval_Policy_h
 
-#include "AST.h"
+#include "DynAST.h"
 #include "Operation.h"
 #include "../h/Absloc.h"
 

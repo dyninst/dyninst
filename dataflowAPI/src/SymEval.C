@@ -35,7 +35,7 @@
 #include "../h/SymEval.h"
 #include "SymEvalPolicy.h"
 
-#include "AST.h"
+#include "DynAST.h"
 
 #include "parseAPI/h/CFG.h"
 
@@ -74,7 +74,7 @@ std::pair<AST::Ptr, bool> SymEval::expand(const Assignment::Ptr &assignment) {
 }
 
 bool SymEval::expand(Result_t &res, 
-                     std::set<Instruction::Ptr> &failedInsns,
+                     std::set<InstructionPtr> &failedInsns,
                      bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
@@ -109,7 +109,7 @@ bool edgeSort(Edge::Ptr ptr1, Edge::Ptr ptr2) {
     Address addr1 = ptr1->target()->addr();
     Address addr2 = ptr2->target()->addr();
 
-    return (addr1 <= addr2);
+    return (addr1 < addr2);
 }
 
 void dfs(Node::Ptr source,
@@ -279,13 +279,14 @@ class ExpandOrder {
     set<SliceNode::Ptr> done;
 };
 
+// implements < , <= causes failures when used to sort Windows vectors
 bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
     AssignmentPtr assign1 = ptr1->assign();
     AssignmentPtr assign2 = ptr2->assign();
 
-    if (!assign1) return true;
-    else if (!assign2) return false;
+    if (!assign2) return false;
+    else if (!assign1) return true;
 
     Address addr1 = assign1->addr();
     Address addr2 = assign2->addr();
@@ -293,8 +294,7 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
     if (addr1 == addr2) {
         AbsRegion &out1 = assign1->out();
         AbsRegion &out2 = assign2->out();
-        if (out1 == out2) return true;
-        else return out1 < out2;
+        return out1 < out2;
     } else {
         return addr1 < addr2;
     }
@@ -302,7 +302,7 @@ bool vectorSort(SliceNode::Ptr ptr1, SliceNode::Ptr ptr2) {
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-SymEval::Retval_t SymEval::expand(Graph::Ptr slice, Result_t &res) {
+SymEval::Retval_t SymEval::expand(Dyninst::Graph::Ptr slice, DataflowAPI::Result_t &res) {
    bool failedTranslation = false;
    bool skippedInput = false;
 

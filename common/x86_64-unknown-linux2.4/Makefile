@@ -4,12 +4,7 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#USES_SHM_SAMPLING = true
-#USES_PAPI = true
 NO_IMPLICIT_TEMPLATES = true
-
-# For debugging.
-#NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -28,9 +23,6 @@ SRCS =		../../common/src/linuxKludges.C \
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-
-# Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS		+= -g
 
 LIBS    += -ldl
 
