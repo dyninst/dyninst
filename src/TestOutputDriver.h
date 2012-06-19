@@ -85,7 +85,7 @@ public:
   TESTLIB_DLL_EXPORT void setNeedsHeader(bool h);
   // Returns arguments to pass to the mutatee driver that cause it to invoke
   // its support for this output driver
-  TESTLIB_DLL_EXPORT virtual void getMutateeArgs(std::vector<std::string> &args);
+  virtual void getMutateeArgs(std::vector<std::string> &args);
 };
 
 #endif // TEST_OUTPUT_DRIVER_H

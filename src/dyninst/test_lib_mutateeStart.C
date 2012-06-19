@@ -255,6 +255,7 @@ bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_
    
    binEdit = (BPatch_binaryEdit *) params["appBinaryEdit"]->getPtr();
    result = binEdit->writeFile(outfile.c_str());
+
    if (!result) {
       goto done;
    }

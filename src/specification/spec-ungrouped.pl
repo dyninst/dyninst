@@ -57,6 +57,7 @@
 
 module('dyninst').
 module('symtab').
+module('patchapi').
 module('stackwalker').
 module('instructionapi').
 
@@ -2589,6 +2590,7 @@ all_mutators_require_libs(['iberty', 'testSuite']).
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
+module_required_libs('patchapi', ['patchAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instructionapi', ['instructionAPI']).
 
