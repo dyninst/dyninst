@@ -1,5 +1,4 @@
 SUBDIRS = i386-unknown-linux2.4 rs6000-ibm-aix5.1 x86_64-unknown-linux2.4 ppc32_linux ppc64_linux x86_64_cnl i386-unknown-freebsd7.2 amd64-unknown-freebsd7.2 ppc32_bgp_ion ppc32_bgp ppc64_bgq_ion
-
 SUBDIR_WINDOWS = i386-unknown-nt4.0
 
 TO_SPEC = src/specification

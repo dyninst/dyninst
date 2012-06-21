@@ -219,11 +219,7 @@ int RTuntranslatedEntryCounter;
 extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
-<<<<<<< HEAD:dyninstAPI_RT/src/RTmemEmulator.c
    if ((int)((long) direction) == 1) {
-=======
-    if ((long)direction == 1) {
->>>>>>> master:dyninstAPI_RT/src/RTmemEmulator.c
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);

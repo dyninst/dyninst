@@ -49,8 +49,6 @@
 // for blockSet...
 //#include "dyninstAPI/src/image-func.h"
 
-#include "dynptr.h"
-
 // To define StackAST
 #include "DynAST.h"
 

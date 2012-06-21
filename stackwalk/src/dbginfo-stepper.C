@@ -45,6 +45,8 @@
 using namespace Dyninst;
 using namespace Stackwalker;
 
+static std::map<std::string, DwarfSW *> dwarf_info;
+
 typedef enum {
    storageAddr,
    storageReg,
@@ -73,6 +75,9 @@ public:
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
 
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/Elf_X.h"
+
 DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)
 {
    Dwarf_Debug dbg;
@@ -87,12 +92,10 @@ DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)
 
    ret = new DwarfSW(dbg, addr_width);
 
-   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
-   DwarfSW *dresult = ll_getDwarfInfo(elfx);
-   dwarf_aux_info[s] = dresult;
-   return dresult;
+  done:
+   dwarf_info[s] = ret;
+   return ret;
 }
-
 
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
@@ -104,44 +107,7 @@ DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
 
 bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 {
-   bool result = getProcessState()->readMem(buffer, addr, size);
-
-   last_addr_read = 0;
-   if (!result)
-      return false;
-   if (size != addr_width)
-      return true;
-   
-   last_addr_read = addr;
-   if (addr_width == 4) {
-      uint32_t v = *((uint32_t *) buffer);
-      last_val_read = v;
-   }
-   else if (addr_width == 8) {
-      uint64_t v = *((uint64_t *) buffer);
-      last_val_read = v;
-   }
-   else {
-      assert(0); //Unknown size
-   }
-
-   return true;
-}
-
-location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
-{
-   location_t loc;
-   if (last_addr_read && last_val_read == value) {
-      loc.val.addr = last_addr_read;
-      loc.location = loc_address;
-   }
-   else {
-      loc.val.addr = 0;
-      loc.location = loc_unknown;
-   }
-   last_addr_read = 0;
-   last_val_read = 0;
-   return loc;
+   return getProcessState()->readMem(buffer, addr, size);
 }
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
@@ -200,45 +166,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
                 __FILE__, __LINE__, in.getRA());
       return gcf_stackbottom;
    }
-
-   Address pc = in.getRA() - lib.second;
-   if (in.getRALocation().location != loc_register) {
-      /**
-       * If we're here, then our in.getRA() should be pointed at the
-       * instruction following a call.  We could either use the
-       * call instruction's debug info (pc - 1) or the following
-       * instruction's debug info (pc) to continue the stackwalk.
-       *
-       * In most cases it doesn't matter.  Because of how DWARF debug
-       * info is defined, the stack doesn't change between these two points.
-       *
-       * However, if the call is a non-returning call (e.g, a call to exit)
-       * then the next instruction may not exist or may be part of a separate
-       * block with different debug info.  In these cases we want to use the
-       * debug info associated with the call.  So, we subtract 1 from the
-       * pc to get at the call instruction.
-       **/
-      pc = pc - 1;
-   }
-
-   /**
-    * Some system libraries on some systems have their debug info split
-    * into separate files, usually in /usr/lib/debug/.  Check these 
-    * for DWARF debug info
-    **/
-   DwarfSW *dauxinfo = getAuxDwarfInfo(lib.first);
-   if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
-      sw_printf("[%s:%u] - Using separate DWARF debug file for %s\n", 
-                __FILE__, __LINE__, lib.first.c_str());
-      cur_frame = &in;
-      gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo);
-      cur_frame = NULL;
-      if (gcresult == gcf_success) {
-         sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
-                   __FILE__, __LINE__);
-         return gcf_success;
-      }
-   }
    
    DwarfSW *dinfo = getDwarfInfo(lib.first, walker->getProcessState()->getAddressWidth());
    if (!dinfo) {
@@ -263,7 +190,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo, isVsyscallPage);
    cur_frame = NULL;
-
    return gcresult;
 }
 
@@ -299,7 +225,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    FrameErrors_t frame_error = FE_No_Error;
 
    Dyninst::Architecture arch;
-   addr_width = getProcessState()->getAddressWidth();
+   unsigned addr_width = getProcessState()->getAddressWidth();
    if (addr_width == 4)
       arch = Dyninst::Arch_x86;
    else
@@ -325,7 +251,8 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                 __FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
-   location_t ra_loc = getLastComputedLocation(ret_value);
+
+ 
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
@@ -340,7 +267,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
-   location_t fp_loc = getLastComputedLocation(frame_value);
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, arch, this, frame_error);
@@ -349,15 +275,12 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
-   location_t sp_loc = getLastComputedLocation(stack_value);
 
    out.setRA(ret_value);
    out.setFP(frame_value);
    out.setSP(stack_value);
-   out.setRALocation(ra_loc);
-   out.setFPLocation(fp_loc);
-   out.setSPLocation(sp_loc);
 
    return gcf_success;
 }
 #endif
+

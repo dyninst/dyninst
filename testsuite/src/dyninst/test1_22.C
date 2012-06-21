@@ -260,7 +260,6 @@ test_results_t test1_22_Mutator::mutatorTest22()
 		logerror("  Mutator couldn't replaceFunction (shlib -> a.out)\n");
 		return FAILED;
 	}
-
 	return PASSED;
 }
 

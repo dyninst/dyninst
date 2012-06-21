@@ -144,13 +144,8 @@ class SW_EXPORT Walker {
    //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
 
-   //Manage SymbolReader
-   static SymbolReaderFactory* getSymbolReader();
-   static void setSymbolReader(SymbolReaderFactory*);
-
    virtual ~Walker();
  private:
-   static SymbolReaderFactory *symrfact;
    ProcessState *proc;
    SymbolLookup *lookup;
    bool creation_error;

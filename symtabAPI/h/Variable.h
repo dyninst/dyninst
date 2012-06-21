@@ -37,58 +37,13 @@
 #include "Symtab.h"
 #include "Aggregate.h"
 #include "dyn_regs.h"
+#include "VariableLocation.h"
 
 //class Dyninst::SymtabAPI::Variable;
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
 
 namespace Dyninst {
 namespace SymtabAPI {
-
-/*
- * storageClass: Encodes how a variable is stored.
- *
- * storageAddr           - Absolute address of variable.
- * storageReg            - Register which holds variable value.
- * storageRegOffset      - Address of variable = $reg + address.
- */
-
-typedef enum {
-	storageAddr,
-	storageReg,
-	storageRegOffset
-} storageClass;
-
-const char *storageClass2Str(storageClass sc);
-
-/*
- * storageRefClass: Encodes if a variable can be accessed through a register/address.
- *
- * storageRef        - There is a pointer to variable.
- * storageNoRef      - No reference. Value can be obtained using storageClass.
- */
-typedef enum {
-	storageRef,
-	storageNoRef
-} storageRefClass;
-
-const char *storageRefClass2Str(storageRefClass sc);
-
-//location for a variable
-//Use mr_reg instead of reg for new code.  reg left in for backwards
-// compatibility.
-class VariableLocation : public Serializable {
-	public:
-	storageClass stClass;
-	storageRefClass refClass;
-	int reg;
-   MachRegister mr_reg;
-	long frameOffset;
-	Address lowPC;
-	Address hiPC;
-	SYMTAB_EXPORT bool operator==(const VariableLocation &);
-	SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *, 
-			const char *tag = "VariableLocation") THROW_SPEC (SerializerError);
-};
 
 
 class Symbol;
@@ -163,5 +118,6 @@ class localVar : public Serializable, public AnnotatableSparse
 
 }
 }
+
 
 #endif

@@ -158,8 +158,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         }
     } else {
         // exit from unknown thread
-        logerror("Failed test #4 (fork callback), expected pid %d\n", 
-                test4Child->getProcess()->getPid());
+        logerror("Failed test #4 (fork callback)\n");
         logerror("    exit from unknown pid = %d\n", exitCode);
         failedTest = true;
     }

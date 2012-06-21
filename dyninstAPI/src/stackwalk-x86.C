@@ -249,19 +249,19 @@ bool DynWandererHelper::isPrevInstrACall(Address addr, Address &target)
     proc_->findFuncsByAddr(addr, funcs, true);
     for (std::set<func_instance *>::iterator iter = funcs.begin();
          iter != funcs.end(); ++iter) {
-        for (func_instance::BlockSet::const_iterator c_iter = (*iter)->callBlocks().begin();
-             c_iter != (*iter)->callBlocks().end(); ++c_iter) {
-            if ((*c_iter)->end() == addr) {
-                calleeFunc = (*c_iter)->callee();
-                if (calleeFunc) {
-                    target = calleeFunc->addr();
-                }
-                else {
-                    target = 0;
-                }
-                return true;
+       for (PatchAPI::PatchFunction::Blockset::const_iterator c_iter = (*iter)->callBlocks().begin();
+            c_iter != (*iter)->callBlocks().end(); ++c_iter) {
+          if ((*c_iter)->end() == addr) {
+             calleeFunc = SCAST_BI((*c_iter))->callee();
+             if (calleeFunc) {
+                target = calleeFunc->addr();
+             }
+             else {
+                target = 0;
+             }
+             return true;
             }
-        }
+       }
     }
     return false;
 }

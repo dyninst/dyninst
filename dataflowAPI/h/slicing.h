@@ -34,7 +34,6 @@
 #if !defined(_SLICING_H_)
 #define _SLICING_H_
 
-#include "dynptr.h"
 #include <vector>
 #include "dyntypes.h"
 #include <queue>

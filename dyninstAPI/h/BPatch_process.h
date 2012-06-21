@@ -228,7 +228,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // Begin internal functions, DO NOT USE
     //
     // this function should go away as soon as Paradyn links against Dyninst
-    PCProcess *lowlevel_process() { return llproc; }
+    PCProcess *lowlevel_process() const { return llproc; }
     // These internal funcs trigger callbacks registered to matching events
     bool triggerStopThread(instPoint *intPoint, func_instance *intFunc, 
                             int cb_ID, void *retVal);

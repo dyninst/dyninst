@@ -380,10 +380,6 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
       return unknown_s;
    }
    pc_offset = pc - pc_lib.second;
-   /* Wenbin: this makes walking from _init in a shared-library work.
-      But I'm not sure whether this is correct to bypass the following
-      sanity checking. Aug. 1st, 2011 */
-   return true;
 
    if (func_entry > pc) {
       sw_printf("[%s:%u] - func_entry %lx is greater than pc %lx\n",

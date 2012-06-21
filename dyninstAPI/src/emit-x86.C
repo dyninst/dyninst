@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/symtab.h"
 // get_index...
-#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/dynThread.h"
 #include "ABI.h"
 #include "liveness.h"
 #include "RegisterConversion.h"

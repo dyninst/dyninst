@@ -78,5 +78,6 @@ class x86_thread : virtual public int_thread
                                                    Dyninst::MachRegisterVal regval = 0);
    virtual bool bpNeedsClear(hw_breakpoint *hwbp);
 };
+
 #endif
 

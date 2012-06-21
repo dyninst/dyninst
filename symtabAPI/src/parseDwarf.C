@@ -47,6 +47,7 @@
 #include <stdarg.h>
 #include "dynutil/h/Annotatable.h"
 #include "annotations.h"
+#include "debug.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
@@ -72,8 +73,6 @@ int dwarf_get_fde_info_for_cfa_reg3(
 #endif
 
 std::map<Dwarf_Off, fieldListType*> enclosureMap;
-
-int dwarf_printf(const char *format, ...);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

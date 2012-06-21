@@ -143,6 +143,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
    }
+   assert(desc.file() != "");
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());

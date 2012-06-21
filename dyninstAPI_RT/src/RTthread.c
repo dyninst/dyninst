@@ -67,7 +67,6 @@ DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free)
 
 void DYNINST_initialize_index_list()
 {
-<<<<<<< HEAD:dyninstAPI_RT/src/RTthread.c
   static int init_index_done;
   unsigned i;
 
@@ -93,45 +92,6 @@ void DYNINST_initialize_index_list()
       DYNINST_thread_hash_indices[i] = IDX_NONE;
 
   num_free = DYNINST_max_num_threads;
-=======
-   int result;
-   rtBPatch_asyncEventRecord aev;
-   aev.pid = pid;
-   aev.type = type;
-   aev.event_fd = 0;
-   aev.size = ev_size;
-
-   result = tc_lock_lock(&DYNINST_trace_lock);
-   if (result == DYNINST_DEAD_LOCK)
-   {
-      rtdebug_printf("[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock in thread %lu\n",
-                    __FILE__, __LINE__, (unsigned long) dyn_pthread_self() );
-      return DYNINST_TRACEPIPE_ERRVAL;
-   }
-   
-   result = DYNINSTwriteEvent((void *) &aev, sizeof(rtBPatch_asyncEventRecord));
-   if (result == -1)
-   {
-      rtdebug_printf("%s[%d]:  write error creating thread\n",
-                     __FILE__, __LINE__);
-      goto done;
-   }
-
-   result = DYNINSTwriteEvent((void *) ev, ev_size);
-   if (result == -1)
-   {
-      fprintf(stderr, "%s[%d]:  write error creating thread\n",
-              __FILE__, __LINE__);
-      goto done;
-   }
-   
-   
- done:
-   tc_lock_unlock(&DYNINST_trace_lock);
-   rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
-                  __FILE__, __LINE__, result ? "error" : "ok");
-   return result;
->>>>>>> master:dyninstAPI_RT/src/RTthread.c
 }
 
 /**

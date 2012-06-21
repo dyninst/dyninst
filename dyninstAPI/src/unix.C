@@ -64,6 +64,14 @@ bool OS::executableExists(const std::string &file)
    return (stat_result != -1);
 }
 
+void OS::get_sigaction_names(std::vector<std::string> &names)
+{
+   names.push_back(string("sigaction"));
+   names.push_back(string("signal"));
+}
+
+
+
 std::string PCProcess::createExecPath(const std::string &file, const std::string &dir) {
     std::string ret = file;
     if (dir.length() > 0) {
@@ -721,7 +729,7 @@ func_instance *block_instance::callee() {
             }
          }
       }
-      const char *target_name = (*pltFuncs)[target_addr].c_str();
+      const char *target_name = pltFuncs[target_addr].c_str();
       PCProcess *dproc = dynamic_cast<PCProcess *>(proc());
 
       BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());

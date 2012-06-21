@@ -68,7 +68,7 @@ class BPatch_image;
 namespace Dyninst {
    namespace PatchAPI {
       class PatchMgr;
-      typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+      typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
       PatchMgrPtr convert(const BPatch_image *);
    }
 }

@@ -62,7 +62,7 @@ namespace Dyninst {
    namespace PatchAPI {
       class Instance;
       class Point;
-      typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+      typedef boost::shared_ptr<Instance> InstancePtr;
       Point *convert(const BPatch_point *, BPatch_callWhen);
    }
 }

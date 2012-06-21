@@ -286,7 +286,7 @@ enum SnippetState {
 
 /* A representation of a particular snippet inserted at a
    particular point */
-class Instance : public dyn_detail::boost::enable_shared_from_this<Instance> {
+class Instance : public boost::enable_shared_from_this<Instance> {
   public:
   Instance(Point* point, SnippetPtr snippet)
               : point_(point), snippet_(snippet) { }

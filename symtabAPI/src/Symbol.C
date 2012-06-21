@@ -395,115 +395,6 @@ SYMTAB_EXPORT bool Symbol::setMangledName(std::string name)
    setStrIndex(-1);
    return true;
 }
-
-Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
-{
-	//  Need to serialize regions before symbols
-	//  Use disk offset as unique identifier
-	Address symid = (Address) this;
-	Region *r = region_;
-	Offset r_off = r ? r->getDiskOffset() : (Offset) 0;
-	std::string modname = "";
-	if (!module_) {
-		//fprintf(stderr, "%s[%d]:  WARN:  NULL module\n", FILE__, __LINE__);
-	}
-	else
-	    modname = module_->fullName();
-
-		ifxml_start_element(s, tag);
-		gtranslate(s, type_, symbolType2Str, "type");
-		gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
-		gtranslate(s, tag_, symbolTag2Str, "tag");
-		gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
-		gtranslate(s, offset_, "offset");
-                gtranslate(s, ptr_offset_, "ptr_offset");
-                gtranslate(s, localTOC_, "localTOC");
-		gtranslate(s, size_, "size");
-		gtranslate(s, index_, "index");
-		gtranslate(s, isDynamic_, "isDynamic");
-		gtranslate(s, isAbsolute_, "isAbsolute");
-                gtranslate(s, isCommonStorage_, "isCommonStorage");
-		gtranslate(s, versionHidden_, "versionHidden");
-		gtranslate(s, prettyName_, "prettyName");
-		gtranslate(s, mangledName_, "mangledName");
-		gtranslate(s, typedName_, "typedName");
-		gtranslate(s, r_off, "regionDiskOffset");
-		gtranslate(s, modname, "moduleName");
-		gtranslate(s, symid, "symbolID");
-		ifxml_end_element(s, "Symbol");
-
-		//  Now, if we are doing binary deserialization, lookup type and region by unique ids
-		if (s->isBin() && s->isInput())
-		{
-			restore_module_and_region(s, modname, r_off);
-			addSymID(s, this, symid);
-			//serialize_printf("%s[%d]:  added sym ID mapping: %p--%p\n", FILE__, __LINE__, this, symid);
-		}
-
-		return NULL;
-}
-
-void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)
-{
-#if 0
-	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
-
-	if (!ssb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	Symtab *st = ssb->getScope();
-#endif
-	SerContextBase *scb = s->getContext();
-	if (!scb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-	if (!scs)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	Symtab *st = scs->getScope();
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	module_ = NULL;
-
-	if (modname.length())
-	{
-		//  All symbols should have an associated module
-		if (!st->findModuleByName(module_, modname) || !module_)
-		{
-			//  This should throw...  but not quite ready for that yet
-			fprintf(stderr, "%s[%d]:  WARNING:  No module '%s' for symbol\n", 
-					FILE__, __LINE__, modname.c_str());
-		}
-	}
-
-	region_ = NULL;
-
-	//  All symbols should have an associated region 
-	if (!st->findRegionByEntry(region_, r_off) || !region_)
-	{
-		//  This should throw...  but not quite ready for that yet
-		fprintf(stderr, "%s[%d]:  WARNING:  No region for symbol\n", 
-				FILE__, __LINE__);
-	}
-
-}
-#else
 Serializable *Symbol::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    return NULL;
@@ -512,7 +403,6 @@ Serializable *Symbol::serialize_impl(SerializerBase *, const char *) THROW_SPEC 
 void Symbol::restore_module_and_region(SerializerBase *, std::string &, Offset) THROW_SPEC (SerializerError)
 {
 }
-#endif
 
 std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {

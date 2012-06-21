@@ -31,20 +31,18 @@
 
 #define DYN_DEFINE_REGS
 #include "dynutil/h/dyn_regs.h"
-#include "dyn_detail/boost/make_shared.hpp"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
-
 
 #include <iostream>
 
 using namespace Dyninst;
 
-dyn_detail::boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
+boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
 {
-    static dyn_detail::boost::shared_ptr<MachRegister::NameMap> store =
-        dyn_detail::boost::make_shared<MachRegister::NameMap>();
+    static boost::shared_ptr<MachRegister::NameMap> store = 
+       boost::shared_ptr<MachRegister::NameMap>(new MachRegister::NameMap);
     return store;
 }
 

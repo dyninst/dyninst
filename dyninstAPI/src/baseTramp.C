@@ -302,8 +302,10 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
      */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-        miniTramp* mini = GET_MINI(*iter);
-        miniTramps.push_back(mini->ast());
+         PatchAPI::InstancePtr inst = (*iter);
+         PatchAPI::SnippetPtr psnip = inst->snippet();
+         PatchAPI::Snippet<miniTramp *>::Ptr snip = boost::static_pointer_cast<PatchAPI::Snippet<miniTramp *> >(psnip);
+         miniTramps.push_back(snip->rep()->ast());
       }
    }
    else {
@@ -451,7 +453,11 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-	miniTramp* mini = GET_MINI(*iter);
+         PatchAPI::InstancePtr inst = (*iter);
+         PatchAPI::SnippetPtr psnip = inst->snippet();
+         PatchAPI::Snippet<miniTramp *>::Ptr snip = boost::static_pointer_cast<PatchAPI::Snippet<miniTramp *> >(psnip);
+         miniTramp *mini = snip->rep();
+
         if (mini->ast()->containsFuncCall()) return true;
       }
    }

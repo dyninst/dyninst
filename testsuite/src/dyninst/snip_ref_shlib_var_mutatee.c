@@ -86,7 +86,7 @@ int snip_ref_shlib_var_mutatee()
 finish_up:
 	if (failed)
 	{
-	  logerror("Failed snip_ref_shlib_var test with code %d\n", failed);
+      logerror("Failed snip_ref_shlib_var test with code %d\n", failed);
 	  logerror("\tgv_srsv1 = %d\n", gv_srsv1);
 	  logerror("\tgv_srsv2 = %lu\n", gv_srsv2);
 	  logerror("\tgv_srsv3 = %c\n", gv_srsv3);

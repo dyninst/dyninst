@@ -38,6 +38,7 @@
 #include "common/h/dthread.h"
 
 #include <assert.h>
+#include <iostream>
 
 using namespace std;
 
@@ -127,7 +128,10 @@ static const char *generatorStateStr(Generator::state_t s) {
 
 void Generator::setState(Generator::state_t new_state)
 {
-	pthrd_printf("Setting generator state to %s\n", generatorStateStr(new_state));
+   pthrd_printf("Setting generator state to %s\n", generatorStateStr(new_state));
+   if (strcmp(generatorStateStr(new_state), "exiting") == 0) {
+      assert(0);
+   }
    if (isExitingState())
       return;
    state = new_state;

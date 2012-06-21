@@ -115,8 +115,8 @@ int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
 // stopThread cache variables 
-char cacheLRUflags[TARGET_CACHE_LENGTH];
-void *DYNINST_target_cache[TARGET_CACHE_LENGTH][TARGET_CACHE_WAYS];
+char cacheLRUflags[TARGET_CACHE_WIDTH];
+void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
 FILE *stOut;
 int fakeTickCount;
 
@@ -275,21 +275,10 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    /* defensive stuff */
    memset(DYNINST_target_cache, 
           0, 
-<<<<<<< HEAD:dyninstAPI_RT/src/RTcommon.c
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
    // stOut = fopen("rtdump.txt","w");
-=======
-          sizeof(void*) * TARGET_CACHE_LENGTH * TARGET_CACHE_WAYS);
-   memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_LENGTH);
-   if (getenv("DYNINST_DEBUG_MALWARE")) {
-      stOut = fopen("rtdump.txt","w");
-      fprintf(stOut,"Runtime library output\n");
-      fflush(stOut);
-   } else {
-      stOut = 0;
-   }
->>>>>>> master:dyninstAPI_RT/src/RTcommon.c
+
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */
@@ -457,7 +446,7 @@ void DYNINST_instLwpExit(void) {
 // instrumentation will take the form of a call to cache check  
 RT_Boolean cacheLookup(void *calculation)
 {
-    int index = ((unsigned long) calculation) % TARGET_CACHE_LENGTH;
+    int index = ((unsigned long) calculation) % TARGET_CACHE_WIDTH;
     if (DYNINST_target_cache[index][0] == calculation) {
         cacheLRUflags[index] = 0;
         return RT_TRUE;

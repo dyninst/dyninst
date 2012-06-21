@@ -95,10 +95,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    // changing BPatch_points, because otherwise we get all sorts of weird from the
    // function/block entry + first insn problem.
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
-      preSnippets.push_back(handle);
+      assert(0 && "Fixed in patchapi_snippet branch!");
    }
 }
 
@@ -123,11 +120,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
 
   // And check to see if there's already instrumentation there (from a fork, say)
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
-      preSnippets.push_back(handle);
+      assert(0 && "Fixed in patchapi_snippet branch!");
    }
 }
 
@@ -241,105 +234,6 @@ std::string BPatch_point::getCalledFunctionNameInt() {
 	return point->block()->obj()->getCalleeName(point->block());
 }
 
-/*  BPatch_point::getCFTargets
- *  Returns true if the point corresponds to a control flow
- *  instruction whose target can be statically determined, in which
- *  case "target" is set to the targets of the control flow instruction
- */
-bool BPatch_point::getCFTargets(BPatch_Vector<Address> & /*targets*/)
-{
-   assert(0 && "TODO");
-   return false;
-#if 0
-    bool ret = true;
-    if (point->isDynamic()) {
-        if (point->getSavedTargets(targets)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    switch(point->getPointType()) 
-    {
-      case callSite: 
-      {
-        Address targ = point->callTarget();
-        if (targ) {
-            targets.push_back(targ);
-        } else {
-            ret = false;
-        }
-        break;
-      }
-      case abruptEnd:
-        targets.push_back( point->block()->end() );
-        break;
-      default: 
-      { // branch or jump. 
-        // don't miss targets to invalid addresses 
-        // (these get linked to the sink block by ParseAPI)
-        using namespace ParseAPI;
-        Address baseAddr = point->block()->start() 
-                         - point->block()->llb()->start();
-        Block::edgelist & trgs = point->block()->llb()->targets();
-        Block::edgelist::iterator iter = trgs.begin();
-        mapped_object *obj = point->func()->obj();
-        Architecture arch = point->proc()->getArch();
-
-        for ( ; iter != trgs.end(); iter++) {
-            if ( ! (*iter)->sinkEdge() ) {
-                targets.push_back( baseAddr + (*iter)->trg()->start() );
-            } else {
-                // if this is a cond'l branch taken or direct 
-                // edge, decode the instruction to get its target, 
-                // otherwise we won't find a target for this insn
-                switch((*iter)->type()) {
-                case INDIRECT:
-                    break;
-                case COND_NOT_TAKEN:
-                case FALLTHROUGH:
-                    if (point->proc()->proc() && 
-                        BPatch_defensiveMode == 
-                        point->proc()->proc()->getHybridMode()) 
-                    {
-                        assert( 0 && "should be an abrupt end point");
-                    }
-                    break;
-                default:
-                { // this is a cond'l taken or jump target
-#if defined(cap_instruction_api)
-                using namespace InstructionAPI;
-                RegisterAST::Ptr thePC = RegisterAST::Ptr
-                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
-
-                void *ptr = obj->getPtrToInstruction(point->addr());
-                assert(ptr);
-                InstructionDecoder dec
-                    (ptr, InstructionDecoder::maxInstructionLength, arch);
-                Instruction::Ptr insn = dec.decode();
-                Expression::Ptr trgExpr = insn->getControlFlowTarget();
-                    // FIXME: templated bind()
-                trgExpr->bind(thePC.get(), 
-                              Result(s64, point->block()->llb()->lastInsnOffset()));
-                Result actualTarget = trgExpr->eval();
-                if(actualTarget.defined)
-                {
-                    Address targ = actualTarget.convert<Address>() + baseAddr;
-                    targets.push_back( targ );
-                }
-                break;
-                } // end default case
-                } // end edge-type switch
-#endif
-            }
-        }
-        break;
-      }
-    }
-
-    return ret;
-#endif
-}
 
 Address BPatch_point::getCallFallThroughAddr()
 {
@@ -349,12 +243,6 @@ Address BPatch_point::getCallFallThroughAddr()
     edge_instance *fte = point->block()->getFallthrough();
     if (fte && !fte->sinkEdge()) return fte->trg()->start();
     else return point->block()->end();
-}
-
-bool BPatch_point::getSavedTargets(vector<Address> & /*targs*/)
-{
-   assert(0);
-   return false;
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
@@ -826,10 +714,6 @@ instPoint *BPatch_point::getPoint(BPatch_callWhen when) const {
    return NULL;
 }
 
-std::string BPatch_point::getCalledFunctionNameInt() {
-	assert(point->block());
-	return point->block()->obj()->getCalleeName(point->block());
-}
 
 Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *p, BPatch_callWhen when) {
   return p->getPoint(when);

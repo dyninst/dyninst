@@ -1022,9 +1022,9 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
 BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    if (!libname) {
-      BPatch_reportError(BPatchWarning, 0, 
-              "loadLibrary called with NULL library name");
-      return false;
+      fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
+              __FILE__, __LINE__);
+      return NULL;
    }
 
    bool wasStopped = isStoppedInt();
@@ -1036,69 +1036,61 @@ BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
        }
    }
 
-   bool error = false;
-   do {
-       /**
-        * Find the DYNINSTloadLibrary function
-        **/
-       BPatch_Vector<BPatch_function *> bpfv;
-       BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
-       if(dyn_rt_lib == NULL)
-       {
-          BPatch_reportError(BPatchFatal, 0, 
-                   "FATAL: Cannot find module for DyninstAPI Runtime Library");
-          error = true;
-          break;
-       }
-
-       dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
-       if (!bpfv.size() || bpfv[0] == NULL) {
-          BPatch_reportError(BPatchFatal, 0,
-                  "FATAL: Cannot find Internal Function DYNINSTloadLibrary");
-          error = true;
-          break;
-       }
-
-       if (bpfv.size() > 1) {
-          std::string msg = std::string("Found ") + utos(bpfv.size()) + 
-             std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
-          BPatch_reportError(BPatchSerious, 100, msg.c_str());
-          error = true;
-          break;
-       }
-
-       BPatch_function *dlopen_func = bpfv[0]; 
-
-       /**
-        * Generate a call to DYNINSTloadLibrary, and then run the generated code.
-        **/
-       BPatch_Vector<BPatch_snippet *> args;   
-       BPatch_constExpr nameArg(libname);
-       args.push_back(&nameArg);   
-       BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
-        
-       if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true, false)) {
-          BPatch_variableExpr *dlerror_str_var = 
-             dyn_rt_lib->findVariable("gLoadLibraryErrorString");
-          assert(NULL != dlerror_str_var);      
-          char dlerror_str[256];
-          dlerror_str_var->readValue((void *)dlerror_str, 256);
-          BPatch_reportError(BPatchSerious, 124, dlerror_str);
-          error = true;
-          break;
-       }
-   }while(0);
-
-   if( !wasStopped ) {
-       if( !continueExecutionInt() ) {
-          BPatch_reportError(BPatchWarning, 0, 
-                  "Failed to continue process after loadLibrary");
-          error = true;
-       }
+   /**
+    * Find the DYNINSTloadLibrary function
+    **/
+   BPatch_Vector<BPatch_function *> bpfv;
+   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
+   if(dyn_rt_lib == NULL)
+   {
+      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
+           << "DyninstAPI Runtime Library" << endl;
+      return NULL;
    }
+   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
+   if (!bpfv.size()) {
+      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
+           << "Function DYNINSTloadLibrary" << endl;
+      return NULL;
+   }
+   if (bpfv.size() > 1) {
+      std::string msg = std::string("Found ") + utos(bpfv.size()) +
+         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
+   BPatch_function *dlopen_func = bpfv[0];
+   if (dlopen_func == NULL) return false;
 
-   return !error;
+   /**
+    * Generate a call to DYNINSTloadLibrary, and then run the generated code.
+    **/
+   BPatch_Vector<BPatch_snippet *> args;
+   BPatch_constExpr nameArg(libname);
+   args.push_back(&nameArg);
+   BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
+
+   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
+      BPatch_variableExpr *dlerror_str_var =
+         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
+      assert(NULL != dlerror_str_var);
+      char dlerror_str[256];
+      dlerror_str_var->readValue((void *)dlerror_str, 256);
+      BPatch_reportError(BPatchSerious, 124, dlerror_str);
+      return NULL;
+   }
+   /* Find the new mapped_object, map it to a BPatch_module, and return it */
+   mapped_object* plib = llproc->findObject(libname);
+   if (!plib) {
+     std::string wildcard(libname);
+     wildcard += "*";
+     plib = llproc->findObject(wildcard, true);
+   }
+   assert(plib);
+
+   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+   return getImage()->findOrCreateModule(plib->getDefaultModule());
 }
+
 
 void BPatch_process::enableDumpPatchedImageInt(){
     // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
@@ -1514,7 +1506,6 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 }
 
 // is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
-/* commented out to squash warnings
 static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
@@ -1534,16 +1525,13 @@ static bool hasWeirdEntryBytes(func_instance *func)
     }
     return false;
 }
-*/
 
-// return true if the analysis changed
-//
 void BPatch_process::overwriteAnalysisUpdate
-    ( std::map<Dyninst::Address,unsigned char*>& /* owPages */, //input
-      std::vector<Dyninst::Address>& /* deadBlockAddrs */, //output
-      std::vector<BPatch_function*>& /* owFuncs */, //output: overwritten & modified
-      std::set<BPatch_function *> & /* monitorFuncs */, // output: those that call overwritten or modified funcs
-      bool & /*changedPages*/, bool & /* changedCode */) //output
+    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
+      std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
+      std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
+      std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
+      bool &changedPages, bool &changedCode) //output
 {
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
@@ -1650,8 +1638,6 @@ void BPatch_process::overwriteAnalysisUpdate
         assert(0);
     }
     mal_printf("Done deleting blocks\n"); 
-
-
     // delete completely dead functions // 
 
     // save deadFunc block addresses in deadBlocks
@@ -1708,7 +1694,7 @@ void BPatch_process::overwriteAnalysisUpdate
                                                     sit->first,
                                                     ParseAPI::CALL));
        }
-    }
+   }
 
     // re-parse the functions
     for (map<mapped_object*,vector<edgeStub> >::iterator mit= dfstubs.begin();
@@ -1765,7 +1751,6 @@ void BPatch_process::overwriteAnalysisUpdate
         assert(fit->first->consistency());
     }
 }
-
 
 /* Protect analyzed code without protecting relocated code in the
  * runtime library and for now only protect code in the aOut,

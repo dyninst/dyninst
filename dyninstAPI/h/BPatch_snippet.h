@@ -43,7 +43,6 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "dynptr.h"
 #include "boost/shared_ptr.hpp"
 
 class AstNode;
@@ -51,12 +50,9 @@ class AstNode;
 class BPatch_snippet;
 
 typedef boost::shared_ptr<AstNode> AstNodePtr;
-namespace dyn_detail 
-{
-   namespace boost {
-      template< typename T > class shared_ptr;
-      template<> class shared_ptr<AstNode *>;
-   }
+namespace boost {
+   template< typename T > class shared_ptr;
+   template<> class shared_ptr<AstNode *>;
 }
 
 namespace Dyninst {

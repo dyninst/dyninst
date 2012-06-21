@@ -29,13 +29,13 @@ typedef std::set<Point*> PointSet;
 typedef PointSet::iterator PointIter;
 
 class Instance;
-typedef dyn_detail::boost::shared_ptr<Instance> InstancePtr;
+typedef boost::shared_ptr<Instance> InstancePtr;
 typedef std::set<InstancePtr> InstanceSet;
 typedef std::list<InstancePtr> InstanceList;
 
 class Instrumenter;
 class PatchMgr;
-typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
 
 class PatchFunction;
 class PatchBlock;
@@ -48,7 +48,7 @@ class Command;
 class BatchCommand;
 class Patcher;
 
-typedef dyn_detail::boost::shared_ptr<void> VoidPtr;
+typedef boost::shared_ptr<void> VoidPtr;
 typedef VoidPtr SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;

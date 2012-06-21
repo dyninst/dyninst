@@ -34,14 +34,9 @@ SRCS =          ../src/linux.C \
 		../src/frameChecker.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
-<<<<<<< HEAD:dyninstAPI/x86_64-unknown-linux2.4/Makefile
 		../src/IAPI_to_AST.C  \
 		../src/dynProcess-x86.C \
 		../src/Relocation/Widgets/CFWidget-x86.C
-=======
-		../src/IAPI_to_AST.C \
-		../src/Relocation/Widgets/CFWidget-x86.C \
->>>>>>> master:dyninstAPI/x86_64-unknown-linux2.4/Makefile
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

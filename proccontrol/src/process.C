@@ -4710,6 +4710,8 @@ int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Add
    marked(false),
    user_data(NULL)
 {
+   cerr << "Created new int_library " << hex << this << " /w/ name " << n << dec << endl;
+   assert(n != "");
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
@@ -5140,6 +5142,7 @@ int_registerPool::~int_registerPool()
 
 Library::Library()
 {
+   cerr << hex << "Default Library " << this << dec << endl;
 }
 
 Library::~Library()

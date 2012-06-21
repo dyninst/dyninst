@@ -46,6 +46,8 @@
 #include <vector>
 #include <string>
 
+#include <iostream>
+
 #include "common/h/parseauxv.h"
 #include "common/h/headers.h"
 #include "common/h/pathName.h"
@@ -277,6 +279,17 @@ bool link_map_dyn<link_map_X>::load_link(Address addr)
 {
    return proc->ReadMem(addr, &link_elm, sizeof(link_elm));
 }
+
+static const char *deref_link(const char *path)
+{
+   static char buffer[PATH_MAX], *p;
+   buffer[PATH_MAX-1] = '\0';
+   p = realpath(path, buffer);
+   if (!p)
+      return path;
+   return p;
+}
+
 
 ProcessReaderSelf::ProcessReaderSelf() :
    ProcessReader() 
@@ -608,7 +621,7 @@ bool AddressTranslateSysV::init() {
    return true;
 }
 
-LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name, Address dynamic)
+LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name)
 {
    std::pair<Address, std::string> p(addr, name);
    sorted_libs_t::iterator i = sorted_libs.find(p);
@@ -618,7 +631,6 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
    }
    else {
       ll = new LoadedLib(name, addr);
-      ll->dynamic_addr = dynamic;
       ll->setFactory(symfactory);
       assert(ll);
       sorted_libs[p] = ll;
@@ -626,6 +638,7 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
    ll->setShouldClean(false);
    return ll;
 }
+
 
 Address AddressTranslateSysV::getTrapAddrFromRdebug() {
     Address retVal = 0;
@@ -724,8 +737,7 @@ bool AddressTranslateSysV::refresh()
       {
          if (interpreter) {
             libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                                  interpreter->getFilename(),
-                                                  interpreter_base));
+                                                  interpreter->getFilename()));
          }
          result = true;
          goto done;
@@ -748,8 +760,7 @@ bool AddressTranslateSysV::refresh()
       {
          if (interpreter) {
             libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                                  interpreter->getFilename(),
-                                                  interpreter_base));
+                                                  interpreter->getFilename()));
          }
          result = true;
          goto done;
@@ -775,7 +786,6 @@ bool AddressTranslateSysV::refresh()
          continue;
       }
       string obj_name(link_elm->l_name());
-
       // Don't re-add the executable, it has already been added
       if( getExecName() == string(deref_link(obj_name.c_str())) ) {
          if (exec)
@@ -784,9 +794,10 @@ bool AddressTranslateSysV::refresh()
       }
 
       Address text = (Address) link_elm->l_addr();
-      if (obj_name == "" && !text) {
-         if (exec)
+      if (obj_name.empty()) {
+         if (!text && exec) {
             exec->dynamic_addr = (Address) link_elm->l_ld();
+         }
          continue;
       }
       if (!link_elm->is_valid())

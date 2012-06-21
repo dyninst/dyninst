@@ -77,7 +77,7 @@ bool DefensiveTransformer::processTrace(TraceList::iterator &iter) {
 
   // 1) Fallthrough for old block.
   // 1a) Get CF atom for the block
-  CFAtom::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFAtom>((*iter)->elements().back());
+  CFAtom::Ptr cf = boost::dynamic_pointer_cast<CFAtom>((*iter)->elements().back());
   assert(cf);
   // 1b) Cache old fallthrough if it exists
   TargetInt *oldFallthrough = cf->getDestination(CFAtom::Fallthrough);

@@ -43,15 +43,7 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
  private:
    DebugStepper *parent_stepper;
    const Frame *cur_frame; //TODO: Thread safety
-<<<<<<< HEAD:stackwalk/src/dbgstepper-impl.h
    const Frame *depth_frame; // Current position in the stackwalk
-=======
-   Dyninst::Address last_addr_read;
-   unsigned long last_val_read;
-   unsigned addr_width;
-
-   location_t getLastComputedLocation(unsigned long val);
->>>>>>> master:stackwalk/src/dbgstepper-impl.h
  public:
   DebugStepperImpl(Walker *w, DebugStepper *parent);
   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);

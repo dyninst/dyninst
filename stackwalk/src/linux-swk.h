@@ -63,7 +63,12 @@ struct vsys_info {
 };
 
 vsys_info *getVsysInfo(ProcessState *ps);
+
+class Elf_X;
+
 }
 }
+
+Dyninst::Stackwalker::Elf_X *getElfHandle(std::string s);
 
 #endif

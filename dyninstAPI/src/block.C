@@ -39,6 +39,7 @@
 #include <set>
 #include <sstream>
 #include "Relocation/Transformers/Movement-analysis.h"
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

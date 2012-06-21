@@ -95,7 +95,8 @@ AddressSpace::AddressSpace () :
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
-    static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
+    if (mgr_)
+       static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
 }
 
 PCProcess *AddressSpace::proc() {
@@ -1694,7 +1695,6 @@ bool AddressSpace::relocate() {
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
 
-     mapped_object *obj = iter->first;
      FuncSet &modFuncs = iter->second;
 
      bool repeat = false;
@@ -1859,7 +1859,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           getRelocAddrs(orig, block, func, relocPCs, true);
           mal_printf("Found %d matches for address 0x%lx\n", relocPCs.size(), orig);
           if (!relocPCs.empty()) {
-             (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
+             (*titer)->changePC(relocPCs.back() + offset);
              mal_printf("Pulling active frame PC into newest relocation "
                         "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)]\n", orig, 
                         tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset);

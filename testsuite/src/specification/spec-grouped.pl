@@ -69,7 +69,6 @@ module('symtab').
 module('stackwalker').
 module('instruction').
 module('proccontrol').
-module('patchapi').
 
 platform_module(P, 'dyninst') :- platform(_, S, _, P),
  S \= 'bluegene'.
@@ -101,18 +100,6 @@ mutatee_comp('').
 mutatee_link_options('', '').
 comp_std_flags_str('', '').
 comp_mutatee_flags_str('', '').
-
-mutatee('patchapi_group_test', [
-   'patch1_1_mutatee.c',
-   'patch1_2_mutatee.c',
-   'patch2_1_mutatee.c',
-   'patch3_1_mutatee.c',
-   'patch3_2_mutatee.c',
-   'patch_modifier_mutatee.c'
-   ]).
-compiler_for_mutatee('patchapi_group_test', Compiler) :-
-    comp_lang(Compiler, 'c').
-mutatee_format('patchapi_group_test', 'staticMutatee').
 
 mutatee('dyninst_group_test', ['test1_1_mutatee.c', 
 	'test1_2_mutatee.c',
@@ -782,7 +769,10 @@ tests_module('test2_5', 'dyninst').
 
 test('test2_6', 'test2_6', 'test2_6').
 test_description('test2_6', 'Load a dynamically linked library from the mutatee').
-test_runs_everywhere('test2_6').
+% test2_6 doesnt run on Windows
+test_platform('test2_6', Platform) :-
+    platform(_, OS, _, Platform),
+    OS \= 'windows'.
 mutator('test2_6', ['test2_6.C']).
 mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
@@ -2176,72 +2166,6 @@ groupable_test('test1_36F').
 tests_module('test1_36F', 'dyninst').
 
 
-% patchAPI tests
-
-test('patch1_1', 'patch1_1', 'patchapi_group_test').
-test_description('patch1_1', 'insert snippets at entry, exit, and call points').
-test_runs_everywhere('patch1_1').
-groupable_test('patch1_1').
-mutator('patch1_1', ['patch1_1.C']).
-%test_runmode('patch1_1', 'staticdynamic').
-test_runmode('patch1_1', 'createProcess').
-test_start_state('patch1_1', 'stopped').
-tests_module('patch1_1', 'patchapi').
-
-test('patch1_2', 'patch1_2', 'patchapi_group_test').
-test_description('patch1_2', 'insert snippet order').
-test_runs_everywhere('patch1_2').
-groupable_test('patch1_2').
-mutator('patch1_2', ['patch1_2.C']).
-test_runmode('patch1_2', 'createProcess').
-test_start_state('patch1_2', 'stopped').
-tests_module('patch1_2', 'patchapi').
-
-test('patch2_1', 'patch2_1', 'patchapi_group_test').
-test_description('patch2_1', 'remove snippets at function entry').
-test_runs_everywhere('patch2_1').
-groupable_test('patch2_1').
-mutator('patch2_1', ['patch2_1.C']).
-test_runmode('patch2_1', 'createProcess').
-test_start_state('patch2_1', 'stopped').
-tests_module('patch2_1', 'patchapi').
-
-test('patch3_1', 'patch3_1', 'patchapi_group_test').
-test_description('patch3_1', 'function call replacement / removal').
-test_runs_everywhere('patch3_1').
-groupable_test('patch3_1').
-mutator('patch3_1', ['patch3_1.C']).
-test_runmode('patch3_1', 'createProcess').
-test_start_state('patch3_1', 'stopped').
-tests_module('patch3_1', 'patchapi').
-
-test('patch3_2', 'patch3_2', 'patchapi_group_test').
-test_description('patch3_2', 'replace function').
-test_runs_everywhere('patch3_2').
-groupable_test('patch3_2').
-mutator('patch3_2', ['patch3_2.C']).
-test_runmode('patch3_2', 'createProcess').
-test_start_state('patch3_2', 'stopped').
-tests_module('patch3_2', 'patchapi').
-
-test('patch4_1', 'patch4_1', 'patchapi_group_test').
-test_description('patch4_1', 'transactional semantics').
-test_runs_everywhere('patch4_1').
-groupable_test('patch4_1').
-mutator('patch4_1', ['patch4_1.C']).
-test_runmode('patch4_1', 'createProcess').
-test_start_state('patch4_1', 'stopped').
-tests_module('patch4_1', 'patchapi').
-
-test('patch_modifier', 'patch_modifier', 'patchapi_group_test').
-test_description('patch_modifier', 'transactional semantics').
-test_runs_everywhere('patch_modifier').
-groupable_test('patch_modifier').
-mutator('patch_modifier', ['patch_modifier.C']).
-test_runmode('patch_modifier', 'createProcess').
-test_start_state('patch_modifier', 'stopped').
-tests_module('patch_modifier', 'patchapi').
-
 % SymtabAPI tests
 
 test('test_lookup_func', 'test_lookup_func', 'symtab_group_test').
@@ -2394,17 +2318,17 @@ test_runmode('test_instruction_bind_eval', 'disk').
 test_start_state('test_instruction_bind_eval', 'stopped').
 tests_module('test_instruction_bind_eval', 'instruction').
 
-%test('test_instruction_profile', 'test_instruction_profile', none).
-%test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
-%test_platform('test_instruction_profile', Platform) :-
-%        platform(Platform),
-%        platform('i386', OS, _, Platform), OS \= 'windows';
-%        platform('x86_64', OS, _, Platform), OS \= 'windows'.
-%mutator('test_instruction_profile', ['test_instruction_profile.C']).
-%test_runmode('test_instruction_profile', 'createProcess').
-%test_start_state('test_instruction_profile', 'stopped').
-%tests_module('test_instruction_profile', 'instruction').
-%mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
+test('test_instruction_profile', 'test_instruction_profile', none).
+test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
+test_platform('test_instruction_profile', Platform) :-
+        platform(Platform),
+        platform('i386', OS, _, Platform), OS \= 'windows';
+        platform('x86_64', OS, _, Platform), OS \= 'windows'.
+mutator('test_instruction_profile', ['test_instruction_profile.C']).
+test_runmode('test_instruction_profile', 'disk').
+test_start_state('test_instruction_profile', 'stopped').
+tests_module('test_instruction_profile', 'instruction').
+mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
 
 test('power_decode', 'power_decode', none).
 test_description('power_decode', 'Tests the read & write sets of POWER instructions.').
@@ -2496,32 +2420,6 @@ tests_module('pc_launch', 'proccontrol').
 mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
-
-test('pc_terminate', 'pc_terminate', 'pc_terminate').
-test_description('pc_terminate', 'Terminate a process').
-test_platform('pc_terminate', Platform) :- pcPlatforms(Platform).
-mutator('pc_terminate', ['pc_terminate.C']).
-test_runmode('pc_terminate', 'dynamic').
-test_threadmode('pc_terminate', 'Threading').
-test_processmode('pc_terminate', 'Processes').
-test_start_state('pc_terminate', 'stopped').
-tests_module('pc_terminate', 'proccontrol').
-mutatee('pc_terminate', ['pc_terminate_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-mutatee_requires_libs('pc_terminate', Libs) :- pcMutateeLibs(Libs).
-optimization_for_mutatee('pc_terminate', _, Opt) :- member(Opt, ['none']).
-
-test('pc_terminate_stopped', 'pc_terminate_stopped', 'pc_terminate_stopped').
-test_description('pc_terminate_stopped', 'Terminate a stopped process').
-test_platform('pc_terminate_stopped', Platform) :- pcPlatforms(Platform).
-mutator('pc_terminate_stopped', ['pc_terminate_stopped.C']).
-test_runmode('pc_terminate_stopped', 'dynamic').
-test_threadmode('pc_terminate_stopped', 'Threading').
-test_processmode('pc_terminate_stopped', 'Processes').
-test_start_state('pc_terminate_stopped', 'stopped').
-tests_module('pc_terminate_stopped', 'proccontrol').
-mutatee('pc_terminate_stopped', ['pc_terminate_stopped_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-mutatee_requires_libs('pc_terminate_stopped', Libs) :- pcMutateeLibs(Libs).
-optimization_for_mutatee('pc_terminate_stopped', _, Opt) :- member(Opt, ['none']).
 
 test('pc_thread_cont', 'pc_thread_cont', 'pc_thread_cont').
 test_description('pc_thread_cont', 'Test process running').
@@ -2793,10 +2691,6 @@ platform_format(P, 'dynamicMutatee') :- platform(_, _, S, P),
    S \= 'bluegenel'.
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('power32', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('power32', 'bluegene', _, P).
-platform_format(P, 'staticMutatee') :- platform('power64', 'linux', _, P).
-platform_format(P, 'staticMutatee') :- platform('power64', 'bluegene', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform(_, 'bluegene', _, P).
@@ -2806,8 +2700,6 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
-compiler_format('bgxlc++', 'staticMutatee').
-compiler_format('bgxlc', 'staticMutatee').
 compiler_format('gfortran', 'staticMutatee').
 
 compiler_format('bg_gcc', 'staticMutatee').
@@ -2842,7 +2734,6 @@ platform_abi(Platform, 32) :-
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
-platform_abi('ppc64_bgq', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
 platform_abi('x86_64_cnl', 64).
 platform_abi('amd64-unknown-freebsd7.2', 64).
@@ -3257,13 +3148,14 @@ compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(
 compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
 compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
 
+
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
 comp_std_flags_str('xlc', '$(CFLAGS_NATIVE)').
 comp_std_flags_str('pgcc', '$(CFLAGS_NATIVE)').
-comp_std_flags_str('bgxlc', '').
-comp_std_flags_str('bgxlc++', '').
+comp_std_flags_str('bgxlc', '-qnostaticlink').
+comp_std_flags_str('bgxlc++', '-qnostaticlink').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
@@ -3429,7 +3321,6 @@ all_mutators_require_libs(['testSuite']).
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
-module_required_libs('patchapi', ['patchAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instruction', ['instructionAPI']).
 module_required_libs('proccontrol', ['pcontrol']).

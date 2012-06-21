@@ -253,7 +253,7 @@ bool PCProcess::instrumentLibcStartMain()
 #endif
 
 
-bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance *, Address target_addr) {
    // We just want to overwrite the GOT entry with our target address. 
    Address got_entry = entry.rel_addr() + base_addr;

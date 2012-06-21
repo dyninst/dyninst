@@ -552,7 +552,7 @@ class AddressSpace : public InstructionSource {
 
   // PatchAPI stuffs
   public:
-    Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
+    Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);

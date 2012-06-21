@@ -93,6 +93,7 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
 #define NUMBER_OF_MAIN_POSSIBILITIES 8
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
 
 class image;
 class lineTable;

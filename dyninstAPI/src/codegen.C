@@ -117,7 +117,6 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     allocated_(false),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
     t_(NULL),
     addr_((Address)-1),
@@ -126,8 +125,7 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false),
-    obj_(NULL)
+    inInstrumentation_(false)
 {
     assert(buffer_);
     memset(buffer_, 0, size+codeGenPadding);

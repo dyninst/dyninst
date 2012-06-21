@@ -159,7 +159,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     baseTramp *baseTramp_;
 };
-#define GET_MINI(i) (Dyninst::PatchAPI::Snippet<miniTramp*>::get((i)->snippet())->rep())
+#define GET_MINI(i) (boost::static_pointer_cast<PatchAPI::Snippet<miniTramp *> >((i)->snippet()))->rep()
 
 #define IPCONV(p) (static_cast<instPoint *>(p))
 

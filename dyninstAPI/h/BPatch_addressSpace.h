@@ -32,7 +32,7 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "boost/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
@@ -57,8 +57,8 @@ namespace PatchAPI {
    class PatchMgr;
    class DynAddrSpace;
    class Patcher;
-   typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
-   typedef dyn_detail::boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+   typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
+   typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
    PatchMgrPtr convert(const BPatch_addressSpace *);
 };
 namespace SymtabAPI {

@@ -119,14 +119,11 @@ test_results_t init_fini_callback_Mutator::executeTest()
     appImage->getModules(appModules);
     char buffer[80];
     test_results_t pass_fail = PASSED;
-
-    int init_installed = 0;
-    int fini_installed = 0;
-
+    
     for(unsigned int i = 0; i < appModules.size(); i++)
     {
         appModules[i]->getName(buffer, 80);
-        if(!(strstr(buffer, libNameA)) && appModules[i]->isSharedLib())
+        if(!(strstr(buffer, "DEFAULT_MODULE")) && !(strstr(buffer, libNameA)))
         {
             continue;
         }
@@ -135,26 +132,22 @@ test_results_t init_fini_callback_Mutator::executeTest()
         BPatch_funcCallExpr callInitExpr(*callinit_func, nameArgs);
         BPatch_funcCallExpr callFiniExpr(*callfini_func, nameArgs);
 
-        if (appModules[i]->insertInitCallback(callInitExpr)) {
-           logerror("**Succeeded** inserting init callback in module %s\n", buffer);
-           init_installed++;
-        }  
-        else {
+        if(!appModules[i]->insertInitCallback(callInitExpr)) {
             logerror("**Failed** to insert init callback in module %s\n", buffer);
-        }
-
-        if(appModules[i]->insertFiniCallback(callFiniExpr)) {
-            logerror("**Succeeded** inserting fini callback in module %s\n", buffer);
-            fini_installed++;
+            pass_fail = FAILED;
         }
         else
         {
+            logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+        }
+        if(!appModules[i]->insertFiniCallback(callFiniExpr)) {
             logerror("**Failed** to insert fini callback in module %s\n", buffer);
+            pass_fail = FAILED;
+        }
+        else
+        {
+            logerror("**Succeeded** inserting fini callback in module %s\n", buffer);
         }
     }
-    if (init_installed == 2 &&
-        fini_installed == 2)
-       return PASSED;
-    else
-       return FAILED;
+    return pass_fail;
 }

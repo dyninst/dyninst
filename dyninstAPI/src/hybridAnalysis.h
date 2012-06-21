@@ -39,6 +39,9 @@
 #include "dyntypes.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
+#include "function.h"
+#include "block.h"
+#include "BPatch_process.h"
 
 class BPatch_module;
 class BPatch_function;
@@ -117,10 +120,10 @@ public:
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
-    void getCallBlocks(Address retAddr, 
+    void getCallBlocks(Dyninst::Address retAddr, 
                        func_instance *retFunc,
                        block_instance *retBlock,
-                       pair<ParseAPI::Block*, Address> & returningCallB, // output
+                       pair<ParseAPI::Block*, Dyninst::Address> & returningCallB, // output
                        set<ParseAPI::Block*> & callBlocks); // output
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
@@ -197,11 +200,11 @@ private:
 
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate
-        ( std::map<Dyninst::Address,unsigned char*>& owPages, 
-        std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
-          std::vector<BPatch_function*>& owFuncs,     
-          std::set<BPatch_function *> &monitorFuncs, 
-          bool &changedPages, bool &changedCode ); 
+       ( std::map<Dyninst::Address,unsigned char*>& owPages, 
+         std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
+         std::vector<BPatch_function*>& owFuncs,     
+         std::set<BPatch_function *> &monitorFuncs, 
+         bool &changedPages, bool &changedCode ); 
 
     // variables
     std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 

@@ -19,7 +19,7 @@ class DynObject : public PatchObject {
       return (new DynObject(co, as, base));
     }
     DynObject(ParseAPI::CodeObject* co, AddressSpace* as, Address base);
-    DynObject(const DynObject *par_obj, process *child, Address base);
+    DynObject(const DynObject *par_obj, AddressSpace* child, Address base);
     ~DynObject();
 
     // Getters
@@ -43,7 +43,7 @@ class DynCFGMaker : public Dyninst::PatchAPI::CFGMaker {
     virtual PatchEdge* makeEdge(ParseAPI::Edge*, PatchBlock*, PatchBlock*, PatchObject*);
     virtual PatchEdge* copyEdge(PatchEdge*, PatchObject*);
 };
-typedef dyn_detail::boost::shared_ptr<DynCFGMaker> DynCFGMakerPtr;
+typedef boost::shared_ptr<DynCFGMaker> DynCFGMakerPtr;
 
 }
 }

@@ -1224,7 +1224,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
         Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
         vector<AstNodePtr> variableASTs;
         vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
-        vector<Dyninst::SymtabAPI::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
+        vector<Dyninst::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
         for (unsigned i=0; i<locs.size(); i++)
         {
                 AstNodePtr variableAst;

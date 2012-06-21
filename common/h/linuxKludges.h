@@ -47,5 +47,8 @@ bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
 map_entries *getVMMaps(int pid, unsigned &maps_size);
 
+#define getVMMaps getLinuxMaps
+map_entries *getLinuxMaps(int pid, unsigned &maps_size);
+
 #endif
 

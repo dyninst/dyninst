@@ -43,8 +43,6 @@
 #include "common/h/serialize.h"
 #include "common/h/pathName.h"
 
-#include "dyn_detail/boost/make_shared.hpp"
-
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -142,38 +140,36 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
-dyn_detail::boost::shared_ptr<Type> Symtab::type_Error()
+boost::shared_ptr<Type> Symtab::type_Error()
 {
-    static dyn_detail::boost::shared_ptr<Type> store =
-        dyn_detail::boost::make_shared<Type>( 
-            std::string("<error>"), 0, dataUnknownType);
+    static boost::shared_ptr<Type> store = 
+       boost::shared_ptr<Type>(new Type(std::string("<error>"), 0, dataUnknownType));
     return store;
 }
-dyn_detail::boost::shared_ptr<Type> Symtab::type_Untyped()
+boost::shared_ptr<Type> Symtab::type_Untyped()
 {
-    static dyn_detail::boost::shared_ptr<Type> store =
-        dyn_detail::boost::make_shared<Type>(
-            std::string("<no type>"), 0, dataUnknownType);
+    static boost::shared_ptr<Type> store =
+       boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
     return store;
 }
 
-dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
+boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
 {
-    static dyn_detail::boost::shared_ptr<builtInTypeCollection> store =
+    static boost::shared_ptr<builtInTypeCollection> store =
         setupBuiltinTypes();
     return store;
 }
-dyn_detail::boost::shared_ptr<typeCollection> Symtab::stdTypes()
+boost::shared_ptr<typeCollection> Symtab::stdTypes()
 {
-    static dyn_detail::boost::shared_ptr<typeCollection> store =
+    static boost::shared_ptr<typeCollection> store =
         setupStdTypes();
     return store;
 }
 
-dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
+boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 {
-    dyn_detail::boost::shared_ptr<builtInTypeCollection> builtInTypes =
-        dyn_detail::boost::make_shared<builtInTypeCollection>(); 
+    boost::shared_ptr<builtInTypeCollection> builtInTypes =
+       boost::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
 
    typeScalar *newType;
 
@@ -307,10 +303,10 @@ dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 }
 
 
-dyn_detail::boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
+boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
 {
-    dyn_detail::boost::shared_ptr<typeCollection> stdTypes =
-        dyn_detail::boost::make_shared<typeCollection>();
+    boost::shared_ptr<typeCollection> stdTypes =
+       boost::shared_ptr<typeCollection>(new typeCollection);
 
    typeScalar *newType;
 
