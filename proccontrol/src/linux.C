@@ -1225,8 +1225,6 @@ void linux_thread::setOptions()
    long options = 0;
    options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXIT;
-   options |= PTRACE_O_TRACEFORK;
-   options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXEC;
    options |= PTRACE_O_TRACEFORK;
 
