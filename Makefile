@@ -123,6 +123,9 @@ $(foreach targ,$(Everything),$(eval $(targ): $(filter-out $(targ),$($(targ)))))
 # Same as above, but for %_install targets
 $(foreach targ,$(Everything),$(eval $(targ)_install: $(patsubst %,%_install,$(filter-out $(targ),$($(targ))))))
 
+#Every install target depends on ready
+$(foreach targ,$(Everything),$(eval $(targ)_install: ready))
+
 # Now add testsuite dependency rules.  An example of these expanding is:
 #   dyninstAPI_testsuite: dyninstAPI
 $(foreach targ,$(test_comps),$(eval $(targ)_testsuite: $(targ)))
