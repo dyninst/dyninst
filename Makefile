@@ -110,6 +110,7 @@ ProcControlAPI: comp_intro proccontrol proccontrol_testsuite
 
 # Testsuite dependencies
 parseThat: $(filter-out parseThat,$(parseThat))
+parseThat_install: $(fullSystem_install_notests)
 testsuite: $(fullSystem_notests)
 testsuite_install: $(fullSystem_install_notests)
 
