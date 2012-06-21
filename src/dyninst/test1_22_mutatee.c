@@ -162,12 +162,12 @@ int test1_22_mutatee()
 /*     int (*call22_6)(int); */
     call_type call22_5;
     call_type call22_6; /* Why shadowing the top-level declaration? */
-    call_type call22_4;
 
     void *handleA;
     char dlopenName[128];
     int result;
     unused = sprintf(dlopenName, "%s", libNameA);
+
     handleA = loadDynamicLibrary(dlopenName);
     if (! handleA) {
 	 logerror("**Failed test #22 (replaceFunction)\n");
@@ -192,13 +192,12 @@ int test1_22_mutatee()
     /* Call functions that have been replaced by the mutator.  The
        side effects of these calls (replaced, not replaced, or
        otherwise) are independent of each other. */
-    result = test1_22_call1(10);  /* replaced by test1_22_call2 */ 
+    result = test1_22_call1(10);  /* replaced by test1_22_call2 */
     if (result != 10 + MAGIC22_2) {
 	 logerror("**Failed test #22 (replace function) (a.out -> a.out)\n");
 	 retval = -1; /* Test failed */
     }
     result = test1_22_call3(20);  /* replaced by call22_4 */
-
     if (result != 20 + MAGIC22_4) {
 	 logerror("**Failed test #22 (replace function) (a.out -> shlib)\n");
 	 retval = -1; /* Test failed */

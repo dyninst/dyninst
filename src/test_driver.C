@@ -49,7 +49,6 @@
 #define vsnprintf _vsnprintf
 #define snprintf _snprintf
 #pragma warning(disable:4786)
-#include <shlwapi.h>
 #include <direct.h>
 #else
 #include <fnmatch.h>
@@ -69,7 +68,6 @@
 #include "ResumeLog.h"
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
-#include "QuietOutputDriver.h"
 #include "comptester.h"
 #include "CmdLine.h"
 #include "module.h"
@@ -528,6 +526,7 @@ void executeGroup(RunGroup *group,
    for (size_t i = 0; i < group->tests.size(); i++) {
       executeTest(tester, group, group->tests[i], param);
    }
+
    log_teststart(groupnum, 0, group_teardown_rs);
    result = tester->group_teardown(group, param);
    log_testresult(result);
@@ -863,26 +862,24 @@ int main(int argc, char *argv[]) {
    getGroupList(groups, params);
 
    result = setupLogs(params);
-   if (result)
+   if (result) {
       exit(result);
+   }
 
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
       set_resumelog_name(getenv("RESUMELOG"));
    }
-
+   fprintf(stderr, "starting tests\n");
    startAllTests(groups, params);
 
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-   setOutput(NULL);
    fflush(stdout);
-   
-   
-
-   if (!testsRemain(groups) && !params["limited_tests"]->getInt())
+   if (!testsRemain(groups) && !params["limited_tests"]->getInt()) {
       return NOTESTS;
+   }
    return 0;
 }
 

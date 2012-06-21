@@ -165,6 +165,7 @@ test_results_t snip_ref_shlib_var_Mutator::mutatorTest()
 		return FAILED;
 	}
 
+
 	return PASSED;
 }
 
