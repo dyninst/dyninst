@@ -282,7 +282,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     threadmode(ThreadMode),
     processmode(ProcessMode),
     platform_mode(Platform, PlatMode, RunMode, ThreadMode),
-    member(StartState, ['stopped', 'running', 'selfstart', 'selfattach']),
+    member(StartState, ['stopped', 'running', 'selfstart', 'selfattach', 'delayedattach']),
     member(Groupable, ['true', 'false']),
     (
         % Rungroups for the 'none' mutatee should only contain a single test

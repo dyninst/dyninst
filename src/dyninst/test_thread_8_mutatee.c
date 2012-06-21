@@ -154,7 +154,6 @@ void *init_func(void *arg)
 int test_thread_8_mutatee() {
    unsigned i;
    int startedall = 0;
-
    thr_exits = 0;
 
    /* create the workers */
@@ -174,6 +173,7 @@ int test_thread_8_mutatee() {
          }
       }
    }
+   handleAttach();
 
    // Allow the mutator to know when initialization has been finished
    stop_process_();
