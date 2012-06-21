@@ -58,10 +58,15 @@ $(VOUCHER).o: $(VOUCHER).c
 
 ifndef OVERRIDE_LINK
 ifndef STATIC_LIBRARY
-$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
-	$(HIDE_COMP)$(RM) $(TARGET)
+$(TARGET): $(TARGET).$(RELEASE_NUM)
+	@echo Making symlink $(TARGET).$(RELEASE_NUM) to $(TARGET)
+	$(HIDE_COMP)-$(LN) -f $(TARGET).$(RELEASE_NUM) $(TARGET)
+
+$(TARGET).$(RELEASE_NUM): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
+	$(HIDE_COMP)$(RM) $(TARGET) $(TARGET).$(RELEASE_NUM)
 	@echo Linking $@
-	$(HIDE_COMP)$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
+	$(HIDE_COMP)$(LD) $(LIBDIR) $(SONAME_FLAGS) $(LDFLAGS) -o $(TARGET).$(RELEASE_NUM) $(VOUCHER).o $(OBJS) $(LIBS)
+
 else # build a static lib
 $(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
@@ -127,20 +132,25 @@ ifndef DEST
 DEST		= $(LIBRARY_DEST)
 endif
 
-echo:
-	echo $(OBJS)
-
 clean:
 	$(RM) *.o *.[hC] *.a *.so* .__afs* $(TARGET) $(STATIC_TARGET)
 
 distclean: clean
 	$(RM) DEPENDS
 
-$(DEST)/$(TARGET): $(TARGET)
-	@echo Installing $(TARGET) to $(DEST)/$(TARGET).$(RELEASE_NUM)
-	$(HIDE_COMP)-$(INSTALL) $(TARGET) $(DEST)/$(TARGET).$(RELEASE_NUM)
+$(DEST)/$(TARGET).$(RELEASE_NUM): $(TARGET).$(RELEASE_NUM) $(TARGET)
+	@echo Installing $(TARGET).$(RELEASE_NUM) to $(DEST)/$(TARGET).$(RELEASE_NUM)
+	$(HIDE_COMP)-$(INSTALL) $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET).$(RELEASE_NUM)
+
+ifndef STATIC_LIBRARY
+$(DEST)/$(TARGET): $(DEST)/$(TARGET).$(RELEASE_NUM)
 	@echo Making symlink $(TARGET).$(RELEASE_NUM) to $(DEST)/$(TARGET)
 	$(HIDE_COMP)-$(LN) -f $(TARGET).$(RELEASE_NUM) $(DEST)/$(TARGET)
+else
+$(DEST)/$(TARGET): $(TARGET)
+	@echo Installing $(TARGET) to $(DEST)/$(TARGET)
+	$(HIDE_COMP)-$(INSTALL) $(TARGET) $(DEST)/$(TARGET)
+endif
 
 ifdef STATIC_TARGET
 $(DEST)/$(STATIC_TARGET): $(STATIC_TARGET)

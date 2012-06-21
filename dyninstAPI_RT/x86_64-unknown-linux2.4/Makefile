@@ -20,6 +20,7 @@ LD		= $(GCC)
 LDFLAGS         += -shared
 LDFLAGS		+= -m64
 CFLAGS		+= -Wall -m64 -DMUTATEE64
+DEST ?= $(LIBRARY_DEST)
 
 # if we want to produce a shared object...
 CC              = $(GCC)
@@ -58,6 +59,8 @@ include ../make.module.tmpl
 # 32-bit runtime library
 ASM_SRCS_32  = ../src/RTspace.S ../src/RTtlsgetaddr-x86.S
 
+RELEASE_NUM ?= $(RELEASE_MAJOR).$(RELEASE_MINOR)
+
 TARGET_32_SO = libdyninstAPI_RT_m32.so
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
 VOUCHER_32   = V_$(XTARGET_32)
@@ -65,7 +68,8 @@ OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
 ASM_OBJS_32  = $(patsubst %.S, %_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
 CFLAGS_32    = $(subst -DMUTATEE64,-DMUTATEE_32,$(CFLAGS))
 LDFLAGS_32   = $(LDFLAGS)
-LIBS_32      = -L/usr/lib $(LIBS)
+LIBS_32      = $(LIBS)
+SONAME_FLAGS_32 = -Wl,-soname,$(TARGET_32_SO).$(RELEASE_NUM)
 
 
 $(OBJS_32): %_m32.o: ../src/%.c
@@ -74,23 +78,31 @@ $(OBJS_32): %_m32.o: ../src/%.c
 $(ASM_OBJS_32): %_m32.o: ../src/%.S
 	@echo "Compiling $< (32-bit)"
 	$(HIDE_COMP)$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
-$(VOUCHER_32):
+$(VOUCHER_32).o:
 	@echo Updating build voucher information: $(VOUCHER_32)
 	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
 	$(HIDE_COMP)$(MODCC) -m32 -c $(VOUCHER).c -o $(VOUCHER_32).o
-$(TARGET_32_SO): $(OBJS_32) $(ASM_OBJS_32)
-	$(HIDE_COMP)$(RM) $(TARGET_32_SO)
-	$(HIDE_COMP)$(MAKE) $(VOUCHER_32)
-	$(HIDE_COMP)$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
+
+$(TARGET_32_SO).$(RELEASE_NUM): $(OBJS_32) $(ASM_OBJS_32) $(VOUCHER_32).o
+	@echo Linking $(TARGET_32_SO).$(RELEASE_NUM)
+	$(HIDE_COMP)$(RM) $(TARGET_32_SO).$(RELEASE_NUM)
+	$(HIDE_COMP)$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) $(SONAME_FLAGS_32) -o $(TARGET_32_SO).$(RELEASE_NUM) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
+
+$(TARGET_32_SO): $(TARGET_32_SO).$(RELEASE_NUM)
+	@echo Making symlink $(TARGET_32_SO).$(RELEASE_NUM) to $(TARGET_32_SO)
+	$(HIDE_COMP)-$(LN) -f $(TARGET_32_SO).$(RELEASE_NUM) $(TARGET_32_SO)
+
+$(DEST)/$(TARGET_32_SO).$(RELEASE_NUM): $(TARGET_32_SO).$(RELEASE_NUM) $(TARGET_32_SO)
+	@echo Installing $(TARGET_32_SO).$(RELEASE_NUM) to $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
+	$(HIDE_COMP)$(INSTALL) $(TARGET_32_SO).$(RELEASE_NUM) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
+
+$(DEST)/$(TARGET_32_SO): $(TARGET_32_SO) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
+	@echo Making symlink $(TARGET_32_SO).$(RELEASE_NUM) to $(DEST)/$(TARGET_32_SO)
+	$(HIDE_COMP)-$(LN) -f $(TARGET_32_SO).$(RELEASE_NUM) $(DEST)/$(TARGET_32_SO)
+
 RTspace.o: ../src/RTspace.S
 	@echo "Compiling RTspace"
 	$(HIDE_COMP)$(CC) $(CFLAGS) -c $< -o $@
-
-RELEASE_NUM ?= $(RELEASE_MAJOR).$(RELEASE_MINOR)
-
-$(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
-	-$(INSTALL) $(TARGET_32_SO) $(DEST)/$(TARGET_32_SO).$(RELEASE_NUM)
-	-$(LN) -f $(TARGET_32_SO).$(RELEASE_NUM) $(DEST)/$(TARGET_32_SO)
 
 # 32-bit static runtime library
 
