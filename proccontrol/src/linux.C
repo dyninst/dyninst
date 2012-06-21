@@ -93,6 +93,7 @@ Generator *Generator::getDefaultGenerator()
 bool GeneratorLinux::initialize()
 {
    generator_lwp = P_gettid();
+   generator_pid = P_getpid();
    return true;
 }
 
@@ -149,7 +150,9 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
 }
 
 GeneratorLinux::GeneratorLinux() :
-   GeneratorMT(std::string("Linux Generator"))
+   GeneratorMT(std::string("Linux Generator")),
+   generator_lwp(0),
+   generator_pid(0)
 {
    decoders.insert(new DecoderLinux());
 }
@@ -165,6 +168,8 @@ GeneratorLinux::~GeneratorLinux()
    setState(exiting);
    
    if (!generator_lwp)
+      return;
+   if (generator_pid != P_getpid())
       return;
    
    //Throw a SIGUSR2 at the generator thread.  This will kick it out of
@@ -189,9 +194,11 @@ GeneratorLinux::~GeneratorLinux()
       return;
    }
    on_sigusr2_hit = 0;
-   result = t_kill(generator_lwp, SIGUSR2);
-   while (result == 0 && !on_sigusr2_hit)
+   bool bresult = t_kill(generator_lwp, SIGUSR2);
+   while (bresult && !on_sigusr2_hit) {
+      //Don't use a lock because pthread_mutex_unlock is not signal safe
       sched_yield();
+   }
 
    result = sigaction(SIGUSR2, &oldact, NULL);
    if (result == -1) {
@@ -1225,8 +1232,6 @@ void linux_thread::setOptions()
    long options = 0;
    options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXIT;
-   options |= PTRACE_O_TRACEFORK;
-   options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXEC;
    options |= PTRACE_O_TRACEFORK;
 

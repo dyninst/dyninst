@@ -65,8 +65,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib libsymtabAPI.lib"
-				OutputFile="$(OutDir)\libdyninstAPI.dll"
+				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib "
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"

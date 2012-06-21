@@ -253,25 +253,12 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				{
 					bool didSomething = false;
 
-#if 0
-
-					// Case 2: breakpoint from debugBreak() being used for a stop on one/all threads.
-					pthrd_printf("Possible stop, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-				   for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); ++i)
-				   {
-					  int_thread *thr = *i;
-					  if (thr->hasPendingStop()) {
-						  didSomething = true;
-					  }
-				   }   
-
-#endif
 				   if (windows_proc->pendingDebugBreak())
 					{
 						pthrd_printf("Decoded Stop event, PID: %d, TID: %d\n", e.dwProcessId, e.dwThreadId);
-						newEvt = Event::ptr(new EventStop());
-						// Handler'll get this one
-						//						windows_proc->clearPendingDebugBreak();
+						//newEvt = Event::ptr(new EventStop());
+						windows_proc->setStopThread(e.dwThreadId);
+						return true;
 					}
 					else
 					{
@@ -372,7 +359,13 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 		if(thread) {
 			thread->getGeneratorState().setState(int_thread::exited);
 			thread->setExitingInGenerator(true);
-			newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+			if (e.dwThreadId == windows_proc->getStopThread()) {
+				newEvt = EventWinStopThreadDestroy::ptr(new EventWinStopThreadDestroy(EventType::Pre));
+				windows_proc->clearStopThread();
+			}
+			else {
+				newEvt = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+			}
 		} else {
 			// If the thread is NULL, we can't give the user an event with a valid thread object anymore.
 			// So fail the decode.

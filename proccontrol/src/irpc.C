@@ -374,6 +374,12 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
 bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
 {
    pthrd_printf("Posting iRPC %lu to thread %d\n", rpc->id(), thread->getLWP());
+
+   	if(thread->notAvailableForRPC()) {
+	  cerr << "Skipping thread that is marked as system - in thread-specific RPC" << endl;
+	  
+  }
+
    if (thread->getGeneratorState().getState() != int_thread::running && 
        thread->getGeneratorState().getState() != int_thread::stopped) 
    {

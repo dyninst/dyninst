@@ -813,6 +813,11 @@ EventThreadDB::~EventThreadDB()
    int_etdb = NULL;
 }
 
+EventWinStopThreadDestroy::EventWinStopThreadDestroy(EventType::Time time_) :
+EventThreadDestroy(EventType(time_, EventType::WinStopThreadDestroy)) {};
+
+EventWinStopThreadDestroy::~EventWinStopThreadDestroy() {}
+
 int_eventThreadDB *EventThreadDB::getInternal() const
 {
    return int_etdb;
@@ -956,6 +961,8 @@ int_eventDetach::~int_eventDetach()
 {
 }
 
+
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -1013,5 +1020,6 @@ DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
 DEFN_EVENT_CAST(EventPreBootstrap, PreBootstrap)
 DEFN_EVENT_CAST(EventDetach, Detach)
 DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
-DEFN_EVENT_CAST(EventNop, Nop);
+DEFN_EVENT_CAST(EventNop, Nop)
 DEFN_EVENT_CAST(EventThreadDB, ThreadDB)
+DEFN_EVENT_CAST(EventWinStopThreadDestroy, WinStopThreadDestroy)

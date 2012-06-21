@@ -65,7 +65,7 @@
 				Name="VCLinkerTool"
 				AdditionalOptions="/SECTION:.bss,RWE"
 				AdditionalDependencies="Ws2_32.lib"
-				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				AssemblyDebug="1"

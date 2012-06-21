@@ -32,7 +32,7 @@
 #include "common/h/Types.h"
 #include "proccontrol/src/int_thread_db.h"
 
-#if defined(cap_thread_db)
+using namespace std;
 
 #include <cassert>
 #include <cerrno>
@@ -41,11 +41,11 @@
 #include <set>
 #include <dlfcn.h>
 
-using namespace std;
-
 #include "common/h/dthread.h"
 #include "dynutil/h/SymReader.h"
 #include "proccontrol/src/int_event.h"
+
+#if defined(cap_thread_db)
 
 /* 
  * proc_service interface implementation, needed by libthread_db
@@ -1649,11 +1649,6 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr)
    return false;
 }
 
-bool thread_db_process::decodeThreadBP(EventBreakpoint::ptr)
-{
-   return false;
-}
-
 async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr)
 {
    return aret_error;
@@ -1716,6 +1711,49 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &)
    perr_printf("Error. thread_db not installed on this platform.\n");
    setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");
    return false;
+}
+
+bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
+                                                unsigned char *)
+{
+   return true;
+}
+
+async_ret_t thread_db_process::post_attach(bool, set<response::ptr> &) {
+   return aret_success;
+}
+
+async_ret_t thread_db_process::post_create(std::set<response::ptr> &) {
+   return aret_success;
+}
+
+bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) {
+   return false;
+}
+
+const char *thread_db_process::getThreadLibName(const char *)
+{
+   return "";
+}
+
+void thread_db_process::freeThreadDBAgent() {
+}
+
+async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &) 
+{
+   return aret_error;
+}
+
+bool thread_db_process::isSupportedThreadLib(string) {
+   return false;
+}
+
+bool thread_db_process::plat_supportThreadEvents() {
+   return false;
+}
+
+bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
+   return true;
 }
 
 #endif

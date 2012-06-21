@@ -501,6 +501,7 @@ private:
       }
 
       int_process *proc = p->llproc();
+	  if (!proc) return false;
       if ((flags & CLEAR_ERRS) && !finished_clear) {
          proc->clearLastError();
       }

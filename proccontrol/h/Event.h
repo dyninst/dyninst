@@ -86,6 +86,7 @@ class EventDetach;
 class EventIntBootstrap;
 class EventNop;
 class EventThreadDB;
+class EventWinStopThreadDestroy;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
@@ -216,6 +217,9 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventThreadDB> getEventThreadDB();
    boost::shared_ptr<const EventThreadDB> getEventThreadDB() const;
+
+   boost::shared_ptr<EventWinStopThreadDestroy> getEventWinStopThreadDestroy();
+   boost::shared_ptr<const EventWinStopThreadDestroy> getEventWinStopThreadDestroy() const;
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -682,6 +686,17 @@ class PC_EXPORT EventThreadDB : public Event
    virtual ~EventThreadDB();
 
    virtual bool triggersCB() const;
+};
+
+class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
+{
+   friend void boost::checked_delete<EventWinStopThreadDestroy>(EventWinStopThreadDestroy *);
+   friend void boost::checked_delete<const EventWinStopThreadDestroy>(const EventWinStopThreadDestroy *);
+ public:
+   typedef boost::shared_ptr<EventWinStopThreadDestroy> ptr;
+   typedef boost::shared_ptr<const EventWinStopThreadDestroy> const_ptr;
+   EventWinStopThreadDestroy(EventType::Time time_);
+   virtual ~EventWinStopThreadDestroy();
 };
 
 }

@@ -39,7 +39,7 @@
 #include "common/h/headers.h"
 
 #if defined(SERIALIZATION_DISABLED)
-unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *sb) {
+unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *) {
   return 0;
 }
 
