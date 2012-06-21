@@ -58,6 +58,7 @@ class GeneratorLinux : public GeneratorMT
 {
   private:
    int generator_lwp;
+   int generator_pid;
   public:
    GeneratorLinux();
    virtual ~GeneratorLinux();
