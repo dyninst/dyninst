@@ -117,6 +117,17 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
          return NULL;
       }
    }
+   else {
+#if defined(os_windows_test)
+	   P_sleep(1);
+#endif
+		// Should be attached by test infrastructure, but
+	   // we set delayedAttach so signal it here.
+	   if (!appProc) return NULL;
+
+	   signalAttached(appImage);
+	   proc = appProc;
+   }
    // Getting rid of attach here because the old code is apparently broken.
    return proc;
 }
@@ -179,6 +190,8 @@ test_results_t test_thread_7_Mutator::executeTest() {
 //extern "C" TEST_DLL_EXPORT int test14_1_mutatorMAIN(ParameterDict &param)
 test_results_t test_thread_7_Mutator::setup(ParameterDict &param) {
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    filename = param["pathname"]->getString();
 
    if ( param["createmode"]->getInt() != CREATE )
@@ -186,5 +199,8 @@ test_results_t test_thread_7_Mutator::setup(ParameterDict &param) {
       create_proc = false;
    }
 
+//   return DyninstMutator::setup(param);
+	// Leaving here for reference: we don't want to use the Dyninst setup,
+   // since it breaks attach.
    return PASSED;
 }

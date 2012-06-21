@@ -631,7 +631,11 @@ Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
    
    ProcPool()->condvar()->lock();
 
+#if !defined(os_windows)
+   // On Windows, this is the only callback we get, so delay setting exited
+   // until cleanup
    proc->setState(int_process::exited);
+#endif
    ProcPool()->rmProcess(proc);
    if(proc->wasForcedTerminated())
    {
@@ -668,6 +672,12 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread() ? ev->getThread()->llthrd() : NULL;
    assert(proc);
+
+#if defined(os_windows)
+   // On Windows, this is the only callback we get, so delay setting exited
+   // until cleanup
+   proc->setState(int_process::exited);
+#endif
 //   assert(thrd);
    pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1));
@@ -906,6 +916,7 @@ void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::WinStopThreadDestroy));
 }
 
 int HandleThreadDestroy::getPriority() const
@@ -962,6 +973,7 @@ void HandleThreadCleanup::getEventTypesHandled(vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::Any, EventType::UserThreadDestroy));
    etypes.push_back(EventType(EventType::Any, EventType::LWPDestroy));
+   etypes.push_back(EventType(EventType::Any, EventType::WinStopThreadDestroy));
 }
 
 int HandleThreadCleanup::getPriority() const
@@ -1019,6 +1031,11 @@ HandleThreadStop::HandleThreadStop() :
 
 HandleThreadStop::~HandleThreadStop()
 {
+}
+
+int HandleThreadStop::getPriority() const
+{
+	return DefaultPriority;
 }
 
 void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)

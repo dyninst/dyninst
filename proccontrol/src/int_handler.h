@@ -221,6 +221,7 @@ class HandleThreadStop : public Handler
   HandleThreadStop();
   virtual ~HandleThreadStop();
 
+  virtual int getPriority() const;
   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
   virtual handler_ret_t handleEvent(Event::ptr ev);
 };
@@ -392,5 +393,6 @@ class HandleCallbacks : public Handler
 
   static void getRealEvents(EventType ev, std::vector<EventType> &out_evs);
 };
+
 
 #endif

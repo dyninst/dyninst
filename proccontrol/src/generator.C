@@ -405,13 +405,13 @@ bool GeneratorMT::processWait(bool block)
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
-		 pp->condvar()->signal();
+		 pp->condvar()->broadcast();
 		 pp->condvar()->unlock();
          return false;
       }
       pp->condvar()->wait();
    }
-   pp->condvar()->signal();
+   pp->condvar()->broadcast();
    pp->condvar()->unlock();
    pthrd_printf("processWait returning true\n");
    return true;

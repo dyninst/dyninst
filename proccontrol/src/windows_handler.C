@@ -229,6 +229,7 @@ int WindowsHandleLWPDestroy::getPriority() const
 void WindowsHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
 {
     etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
+	etypes.push_back(EventType(EventType::Pre, EventType::WinStopThreadDestroy));
 }
 
 WindowsHandleProcessExit::WindowsHandleProcessExit()
@@ -267,6 +268,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    static WinHandleBootstrap* wbootstrap = NULL;
    static WindowsHandleSetThreadInfo* wsti = NULL;
    static WindowsHandleProcessExit* wexit = NULL;
+   static WindowsHandleThreadStop *wstop = NULL;
    if (!initialized) {
       wnewthread = new WindowsHandleNewThr();
       wthreaddestroy = new WindowsHandleLWPDestroy();
@@ -274,7 +276,8 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 	  wbootstrap = new WinHandleBootstrap();
 	  wsti = new WindowsHandleSetThreadInfo();
 	  wexit = new WindowsHandleProcessExit();
-      initialized = true;
+	  wstop = new WindowsHandleThreadStop();
+	  initialized = true;
    }
    hpool->addHandler(wnewthread);
    hpool->addHandler(wthreaddestroy);
@@ -282,6 +285,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
    hpool->addHandler(wbootstrap);
    hpool->addHandler(wsti);
 //   hpool->addHandler(wexit);
+   hpool->addHandler(wstop);
    return hpool;
 }
 
@@ -379,3 +383,21 @@ void WindowsHandleSetThreadInfo::getEventTypesHandled( std::vector<EventType> &e
 	etypes.push_back(EventType(EventType::Any, EventType::ThreadInfo));
 }
 
+WindowsHandleThreadStop::WindowsHandleThreadStop() 
+{
+}
+
+WindowsHandleThreadStop::~WindowsHandleThreadStop()
+{
+}
+
+void WindowsHandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+	etypes.push_back(EventType(EventType::Any, EventType::WinStopThreadDestroy));
+}
+
+int WindowsHandleThreadStop::getPriority() const 
+{
+	// Needs to hit _after_ the LWP destroy
+	return PostPlatformPriority+1;
+}

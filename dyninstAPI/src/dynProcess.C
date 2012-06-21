@@ -2257,11 +2257,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     // Post the iRPC
     Thread::ptr t;
-#if !defined(os_windows)
     if (thread) {
        t = thread->pcThr();
     }
-#endif
     newRPC->thread = t;
     
     bool res = false;

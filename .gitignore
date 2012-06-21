@@ -43,3 +43,10 @@ instructionAPI/doc/latex/modules.tex
 test.sh
 autodyninst/configure
 config.log
+# For Windows
+_UpgradeReport_Files/*
+*.tlog
+*.lastbuildstate
+*.cache
+*.log
+*_manifest.rc
