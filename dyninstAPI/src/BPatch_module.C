@@ -934,6 +934,7 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callba
             return addSpace->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
+    
     return NULL;
 }
 

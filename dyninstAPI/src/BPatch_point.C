@@ -95,8 +95,12 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    // changing BPatch_points, because otherwise we get all sorts of weird from the
    // function/block entry + first insn problem.
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
-      assert(0 && "Fixed in patchapi_snippet branch!");
-   }
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
+      miniTramp* mini = GET_MINI(*iter);
+      handle->addMiniTramp(mini);
+      preSnippets.push_back(handle);
+    }
 }
 
 /*
@@ -120,7 +124,11 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
 
   // And check to see if there's already instrumentation there (from a fork, say)
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
-      assert(0 && "Fixed in patchapi_snippet branch!");
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
+      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
+      miniTramp* mini = GET_MINI(*iter);
+      handle->addMiniTramp(mini);
+      preSnippets.push_back(handle);
    }
 }
 

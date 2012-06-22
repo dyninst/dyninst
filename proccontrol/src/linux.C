@@ -1175,10 +1175,6 @@ static bool t_kill(int pid, int sig)
   static bool has_tkill = true;
   long int result = 0;
   pthrd_printf("Sending %d to %d\n", sig, pid);
-  if (sig == 12) {
-     std::cerr << "Ignoring t_kill of " << pid << " /w/ sig " << sig << std::endl;
-     return true;
-  }
   if (has_tkill) {
      result = syscall(SYS_tkill, pid, sig);
      if (result == -1 && errno == ENOSYS)

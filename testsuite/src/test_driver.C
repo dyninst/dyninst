@@ -870,7 +870,6 @@ int main(int argc, char *argv[]) {
    if ( getenv("RESUMELOG") ) {
       set_resumelog_name(getenv("RESUMELOG"));
    }
-   fprintf(stderr, "starting tests\n");
    startAllTests(groups, params);
 
    if ((outlog != NULL) && (outlog != stdout)) {

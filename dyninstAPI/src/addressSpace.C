@@ -932,6 +932,7 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
    }
 
    // get rid of the directory in the path
+   std::string orig_name = obj_name;
    std::string::size_type dir = obj_name.rfind('/');
    if (dir != std::string::npos) {
       // +1, as that finds the slash and we don't want it. 
@@ -949,7 +950,14 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
            wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
          return mapped_objects[j];
    }
-
+#if 0
+   cerr << "Warning: failed to find mapped_object matching " << obj_name
+        << " (originally " << orig_name << ")"
+        << " with wildcard " << (wildcard ? "<on>" : "<off>") << endl;
+   for (unsigned int i = 0; i < mapped_objects.size(); ++i) {
+      cerr << "\t" << mapped_objects[i]->fileName() << " / " << mapped_objects[i]->fullName() << endl;
+   }
+#endif
    return NULL;
 }
 

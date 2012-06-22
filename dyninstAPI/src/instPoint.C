@@ -250,7 +250,8 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
           point->size() == parent->size());
    if (point->empty()) {
       for (instance_iter iter = parent->begin(); iter != parent->end(); ++iter) {
-         assert(0 && "fixed on a different branch");
+         miniTramp *mini = GET_MINI(*iter);
+         point->push_back(mini->ast(), mini->recursive());
       }
    }
 
@@ -307,7 +308,13 @@ miniTramp *instPoint::insert(callOrder order, AstNodePtr ast, bool recursive) {
 
 void instPoint::erase(miniTramp *m) {
    for (instance_iter iter = begin(); iter != end(); ++iter) {
-      assert(0 && "fixed in different branch");
+      miniTramp *mini = GET_MINI(*iter);
+      if (mini == m) {
+         markModified();
+         delete m;
+         remove(*iter);
+         return;
+      }
    }
 }
 

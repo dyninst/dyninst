@@ -1079,13 +1079,17 @@ BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
       return NULL;
    }
    /* Find the new mapped_object, map it to a BPatch_module, and return it */
+
    mapped_object* plib = llproc->findObject(libname);
    if (!plib) {
      std::string wildcard(libname);
      wildcard += "*";
      plib = llproc->findObject(wildcard, true);
    }
-   assert(plib);
+   if (!plib) {
+      // Best effort; take the latest added mapped_object
+      plib = llproc->mappedObjects().back();
+   }
 
    dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
    return getImage()->findOrCreateModule(plib->getDefaultModule());
