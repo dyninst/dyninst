@@ -44,7 +44,7 @@ $(Everything_install) $(Everything_tests_install):
 $(Test_targets):
 	@$(MAKE) -C testsuite/$(PLATFORM) $(@:%_testsuite=%)
 
-install: intro ready $(fullSystem_install) testsuite_install
+install: intro ready $(fullSystem_install)
 
 world: intro $(fullSystem)
 depend:
@@ -110,6 +110,7 @@ ProcControlAPI: comp_intro proccontrol proccontrol_testsuite
 
 # Testsuite dependencies
 parseThat: $(filter-out parseThat,$(parseThat))
+parseThat_install: $(fullSystem_install_notests)
 testsuite: $(fullSystem_notests)
 testsuite_install: $(fullSystem_install_notests)
 
@@ -121,6 +122,9 @@ $(foreach targ,$(Everything),$(eval $(targ): $(filter-out $(targ),$($(targ)))))
 
 # Same as above, but for %_install targets
 $(foreach targ,$(Everything),$(eval $(targ)_install: $(patsubst %,%_install,$(filter-out $(targ),$($(targ))))))
+
+#Every install target depends on ready
+$(foreach targ,$(Everything),$(eval $(targ)_install: ready))
 
 # Now add testsuite dependency rules.  An example of these expanding is:
 #   dyninstAPI_testsuite: dyninstAPI
