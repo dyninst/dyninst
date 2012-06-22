@@ -822,10 +822,6 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
     const set<Library::ptr> &added = ev->libsAdded();
 
     for(set<Library::ptr>::const_iterator i = added.begin(); i != added.end(); ++i) {
-       cerr << "Loaded library " << hex << (*i).get() << " / " << (*i)->getName() << dec << endl;
-       cerr << "\t internal library " << hex << (*i)->debug() << dec << endl;
-    }
-    for(set<Library::ptr>::const_iterator i = added.begin(); i != added.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
 

@@ -42,7 +42,7 @@ class PatchObject {
     ParseAPI::CodeObject* co() const { return co_; }
     //ParseAPI::CodeSource* cs() const { return cs_; }
     AddrSpace* addrSpace() const { return addr_space_; }
-    void setAddrSpace(AddrSpace* as) { addr_space_ = as; }
+    void setAddrSpace(AddrSpace* as);
     PatchMgrPtr mgr() const;
 
     // Function

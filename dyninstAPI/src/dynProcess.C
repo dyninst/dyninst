@@ -702,7 +702,7 @@ bool PCProcess::createInitialMappedObjects() {
 void PCProcess::addASharedObject(mapped_object *newObj) {
     assert(newObj);
 
-    mapped_objects.push_back(newObj);
+    addMappedObject(newObj);
 
     findSignalHandler(newObj);
 
@@ -758,7 +758,9 @@ bool PCProcess::setAOut(fileDescriptor &desc) {
         return false;
     }
 
-    mapped_objects.push_back(aout);
+    initPatchAPI(aout);
+
+    addMappedObject(aout);
     startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
 
     startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);

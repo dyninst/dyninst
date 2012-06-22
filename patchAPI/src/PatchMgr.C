@@ -43,7 +43,6 @@ PatchMgr::PatchMgr(AddrSpace* as, Instrumenter* inst, PointMaker* pt)
 
 PatchMgrPtr
 PatchMgr::create(AddrSpace* as, Instrumenter* inst, PointMaker* pf) {
-   assert(0);
   patchapi_debug("Create PatchMgr");
   PatchMgrPtr ret = PatchMgrPtr(new PatchMgr(as, inst, pf));
   if (!ret) return PatchMgrPtr();

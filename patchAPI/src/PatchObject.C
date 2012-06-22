@@ -27,7 +27,10 @@ PatchObject::clone(PatchObject* par_obj, Address base, CFGMaker* cm, PatchCallba
 }
 
 PatchObject::PatchObject(ParseAPI::CodeObject* o, Address a, CFGMaker* cm, PatchCallback *cb)
-  : co_(o), codeBase_(a) {
+   : co_(o), codeBase_(a),
+     addr_space_(NULL),
+     cfg_maker_(NULL)
+{
   if (!cm) {
     patchapi_debug("Use default CFGMaker");
     cfg_maker_ = new CFGMaker;
@@ -262,4 +265,8 @@ bool PatchObject::consistency(const AddrSpace *as) const {
 
 PatchMgrPtr PatchObject::mgr() const { 
    return addr_space_->mgr();
+}
+
+void PatchObject::setAddrSpace(AddrSpace *as) {
+   addr_space_ = as;
 }
