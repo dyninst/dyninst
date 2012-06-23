@@ -1438,6 +1438,9 @@ bool PCProcess::removeThread(dynthread_t tid) {
 }
 
 bool PCProcess::unregisterThread(dynthread_t tid) {
+   // FIXME
+   return true;
+
     pdvector<AstNodePtr> the_args(1);
     the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)tid);
     AstNodePtr unregisterAST = AstNode::funcCallNode("DYNINSTunregisterThread", the_args);
