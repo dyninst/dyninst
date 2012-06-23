@@ -15,28 +15,28 @@ symtab_SOLO_MUTATEES_gnu_xx = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp
 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_high: symtab_group_test_group_powerpc-bgp-linux-g++_32_none_high.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_none_high.o mutatee_util_powerpc-bgp-linux-g++_32_none_high.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_high: symtab_group_test_group_powerpc-bgp-linux-g++_32_pic_high.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_pic_high.o mutatee_util_powerpc-bgp-linux-g++_32_pic_high.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_low: symtab_group_test_group_powerpc-bgp-linux-g++_32_none_low.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_none_low.o mutatee_util_powerpc-bgp-linux-g++_32_none_low.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_low: symtab_group_test_group_powerpc-bgp-linux-g++_32_pic_low.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_pic_low.o mutatee_util_powerpc-bgp-linux-g++_32_pic_low.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_max: symtab_group_test_group_powerpc-bgp-linux-g++_32_none_max.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_none_max.o mutatee_util_powerpc-bgp-linux-g++_32_none_max.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_max: symtab_group_test_group_powerpc-bgp-linux-g++_32_pic_max.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_pic_max.o mutatee_util_powerpc-bgp-linux-g++_32_pic_max.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: symtab_group_test_group_powerpc-bgp-linux-g++_32_none_none.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: symtab_group_test_group_powerpc-bgp-linux-g++_32_pic_none.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_line_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_module_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_relocations_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_type_info_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 ######################################################################
 # Mutatees compiled with bg_g++ for proccontrol
 ######################################################################
@@ -47,64 +47,64 @@ proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_powerpc-bg
 
 pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_breakpoint_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_detach_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_detach_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_groups_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_groups_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_irpc_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_launch_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_launch_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_library_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_library_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_terminate_stopped_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_terminate_stopped_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none: pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_powerpc-bgp-linux-g++_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: pc_thread_mutatee_solo_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_powerpc-bgp-linux-g++_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-g++_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-g++_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-g++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_xx) $(CXXFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with bg_g++
 
@@ -832,28 +832,28 @@ symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp
 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_high: symtab_group_test_group_powerpc-bgp-linux-gcc_32_none_high.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_none_high.o mutatee_util_powerpc-bgp-linux-gcc_32_none_high.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_high: symtab_group_test_group_powerpc-bgp-linux-gcc_32_pic_high.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_high.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_high.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_low: symtab_group_test_group_powerpc-bgp-linux-gcc_32_none_low.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_none_low.o mutatee_util_powerpc-bgp-linux-gcc_32_none_low.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_low: symtab_group_test_group_powerpc-bgp-linux-gcc_32_pic_low.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_low.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_low.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_max: symtab_group_test_group_powerpc-bgp-linux-gcc_32_none_max.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_none_max.o mutatee_util_powerpc-bgp-linux-gcc_32_none_max.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_max: symtab_group_test_group_powerpc-bgp-linux-gcc_32_pic_max.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_max.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_max.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: symtab_group_test_group_powerpc-bgp-linux-gcc_32_none_none.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: symtab_group_test_group_powerpc-bgp-linux-gcc_32_pic_none.o test_lookup_func_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_lookup_var_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_line_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_module_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_relocations_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_ser_anno_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_type_info_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_anno_basic_types_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o test_add_symbols_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ltestA 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ltestA 
 ######################################################################
 # Mutatees compiled with bg_gcc for proccontrol
 ######################################################################
@@ -864,64 +864,64 @@ proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_powerpc-bg
 
 pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_breakpoint_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_detach_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_groups_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_groups_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_irpc_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_launch_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_launch_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_library_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_library_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_singlestep_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_terminate_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_terminate_stopped_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_terminate_stopped_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none: pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_powerpc-bgp-linux-gcc_32_none_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_none_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_none_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: pc_thread_mutatee_solo_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_util_mt_powerpc-bgp-linux-gcc_32_pic_none.o pcontrol_mutatee_tools_powerpc-bgp-linux-gcc_32_pic_none.o mutatee_driver_solo_powerpc-bgp-linux-gcc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)  -dynamic -Wl,-export-dynamic -ldl -lpthread 
+	$(HIDE_COMP)$(M_gnu_cc) $(CFLAGS) -o $@ $(filter %.o,$^)   -dynamic -Wl,-export-dynamic -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with bg_gcc
 
@@ -1553,10 +1553,10 @@ symtab_SOLO_MUTATEES_bg_cc = symtab_group_test.mutatee_solo_dynamic_bgxlc_32_non
 
 symtab_group_test.mutatee_solo_dynamic_bgxlc_32_none_none: symtab_group_test_group_bgxlc_32_none_none.o test_lookup_func_mutatee_solo_bgxlc_32_none_none.o test_lookup_var_mutatee_solo_bgxlc_32_none_none.o test_line_info_mutatee_solo_bgxlc_32_none_none.o test_module_mutatee_solo_bgxlc_32_none_none.o test_relocations_mutatee_solo_bgxlc_32_none_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc_32_none_none.o test_ser_anno_mutatee_solo_bgxlc_32_none_none.o test_type_info_mutatee_solo_bgxlc_32_none_none.o test_anno_basic_types_mutatee_solo_bgxlc_32_none_none.o test_add_symbols_mutatee_solo_bgxlc_32_none_none.o mutatee_util_bgxlc_32_none_none.o mutatee_driver_solo_bgxlc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+	$(HIDE_COMP)$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)   -ltestA 
 symtab_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none: symtab_group_test_group_bgxlc_32_pic_none.o test_lookup_func_mutatee_solo_bgxlc_32_pic_none.o test_lookup_var_mutatee_solo_bgxlc_32_pic_none.o test_line_info_mutatee_solo_bgxlc_32_pic_none.o test_module_mutatee_solo_bgxlc_32_pic_none.o test_relocations_mutatee_solo_bgxlc_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc_32_pic_none.o test_ser_anno_mutatee_solo_bgxlc_32_pic_none.o test_type_info_mutatee_solo_bgxlc_32_pic_none.o test_anno_basic_types_mutatee_solo_bgxlc_32_pic_none.o test_add_symbols_mutatee_solo_bgxlc_32_pic_none.o mutatee_util_bgxlc_32_pic_none.o mutatee_driver_solo_bgxlc_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+	$(HIDE_COMP)$(M_bg_cc) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)   -ltestA 
 
 # Exceptional rules for mutatees compiled with bgxlc
 
@@ -1738,10 +1738,10 @@ symtab_SOLO_MUTATEES_bg_CC = symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_n
 
 symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none: symtab_group_test_group_bgxlc++_32_none_none.o test_lookup_func_mutatee_solo_bgxlc++_32_none_none.o test_lookup_var_mutatee_solo_bgxlc++_32_none_none.o test_line_info_mutatee_solo_bgxlc++_32_none_none.o test_module_mutatee_solo_bgxlc++_32_none_none.o test_relocations_mutatee_solo_bgxlc++_32_none_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_none_none.o test_ser_anno_mutatee_solo_bgxlc++_32_none_none.o test_type_info_mutatee_solo_bgxlc++_32_none_none.o test_anno_basic_types_mutatee_solo_bgxlc++_32_none_none.o test_add_symbols_mutatee_solo_bgxlc++_32_none_none.o mutatee_util_bgxlc++_32_none_none.o mutatee_driver_solo_bgxlc++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+	$(HIDE_COMP)$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)   -ltestA 
 symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none: symtab_group_test_group_bgxlc++_32_pic_none.o test_lookup_func_mutatee_solo_bgxlc++_32_pic_none.o test_lookup_var_mutatee_solo_bgxlc++_32_pic_none.o test_line_info_mutatee_solo_bgxlc++_32_pic_none.o test_module_mutatee_solo_bgxlc++_32_pic_none.o test_relocations_mutatee_solo_bgxlc++_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_bgxlc++_32_pic_none.o test_ser_anno_mutatee_solo_bgxlc++_32_pic_none.o test_type_info_mutatee_solo_bgxlc++_32_pic_none.o test_anno_basic_types_mutatee_solo_bgxlc++_32_pic_none.o test_add_symbols_mutatee_solo_bgxlc++_32_pic_none.o mutatee_util_bgxlc++_32_pic_none.o mutatee_driver_solo_bgxlc++_32.o
 	@echo Linking $@
-	$(HIDE_COMP)$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
+	$(HIDE_COMP)$(M_bg_CC) -qnostaticlink -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_NATIVE)   -ltestA 
 
 # Exceptional rules for mutatees compiled with bgxlc++
 
