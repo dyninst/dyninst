@@ -603,7 +603,7 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
 		out.write("\t@echo Linking $@\n");
-		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s"
+		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s "
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 				    compiler['flags']['std'],
 					 ObjSuffix,
