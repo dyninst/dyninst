@@ -246,15 +246,6 @@ Offset Region::getRegionAddr() const
 #endif
 }
 
-Offset Region::getRegionSize() const
-{
-#if defined(_MSC_VER) || defined(os_vxworks)
-        return memSize_;
-#else
-        return diskSize_;
-#endif
-}
-
 Offset Region::getDiskOffset() const
 {
     return diskOff_;
@@ -263,6 +254,11 @@ Offset Region::getDiskOffset() const
 unsigned long Region::getDiskSize() const
 {
     return diskSize_;
+}
+
+unsigned long Region::getFileOffset()
+{
+    return fileOff_;
 }
 
 Offset Region::getMemOffset() const
@@ -285,6 +281,11 @@ void Region::setMemOffset(Offset newoff)
     memOff_ = newoff;
 }
 
+void Region::setFileOffset(Offset newoff)
+{
+    fileOff_ = newoff;
+}
+
 void Region::setMemSize(unsigned long newsize)
 {
     memSize_ = newsize;
@@ -302,7 +303,7 @@ void *Region::getPtrToRawData() const
 
 bool Region::setPtrToRawData(void *buf, unsigned long newsize)
 {
-    rawDataPtr_ = buf;
+   rawDataPtr_ = buf;
     diskSize_ = newsize;
     isDirty_ = true;
     return true;
@@ -392,5 +393,28 @@ bool Region::setRegionPermissions(Region::perm_t newPerms)
 Region::RegionType Region::getRegionType() const 
 {
     return rType_;
+}
+
+bool Region::updateRelocations(Address start,
+                               Address end,
+                               Symbol *oldsym,
+                               Symbol *newsym) {
+   
+   for (unsigned i = 0; i < rels_.size(); ++i) {
+      // If the relocation entry matches, update the symbol. We
+      // have an address range and an old symbol...
+      relocationEntry &e = rels_[i];
+      if (e.getDynSym()->getMangledName() != oldsym->getMangledName()) {
+         continue;
+      }
+      if (e.rel_addr() < start) {
+         continue;
+      }
+      if (e.rel_addr() > end) {
+         continue;
+      }
+      e.addDynSym(newsym);
+   }
+   return true;
 }
 

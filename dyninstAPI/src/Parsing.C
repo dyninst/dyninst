@@ -64,6 +64,14 @@ using namespace Dyninst::InstructionAPI;
 #define record_block_alloc(s) do { } while(0)
 #endif
 
+#ifdef __GNUC__
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#define likely(x) x
+#define unlikely(x) x
+#endif
+
 void DynCFGFactory::dump_stats()
 {
     fprintf(stderr,"===DynCFGFactory for image %p===\n",_img);
@@ -92,11 +100,6 @@ DynCFGFactory::DynCFGFactory(image * im) :
 
 }
 
-DynCFGFactory::~DynCFGFactory()
-{
-    free_all();
-}
-
 Function *
 DynCFGFactory::mkfunc(
     Address addr, 
@@ -123,33 +126,10 @@ DynCFGFactory::mkfunc(
     assert(stf);
 
     ret = new parse_func(stf,pdmod,_img,obj,reg,isrc,src);
-    funcs_.add(*ret);
 
     if(obj->cs()->linkage().find(ret->addr()) != obj->cs()->linkage().end())
         ret->isPLTFunction_ = true;
 
-    // make an entry instpoint
-    size_t insn_size = 0;
-    unsigned char * insn_buf = (unsigned char *)isrc->getPtrToInstruction(addr);
-    InstructionDecoder dec(insn_buf,InstructionDecoder::maxInstructionLength,
-        isrc->getArch());
-    Instruction::Ptr insn = dec.decode();
-    if(insn)
-        insn_size = insn->size();
-
-#if defined(os_vxworks)
-   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
-    if(!ret->isInstrumentableByFunctionName())
-#else
-    if(!ret->isInstrumentableByFunctionName() || _img->isRelocatableObj())
-#endif
-        ret->setInstLevel(UNINSTRUMENTABLE);
-    else {
-        // Create instrumentation points for non-plt functions 
-        if(obj->cs()->linkage().find(addr) != obj->cs()->linkage().end()) { 
-            ret->setInstLevel(UNINSTRUMENTABLE);
-        }
-    }
 
     /*
      * OMP parallel regions support
@@ -171,8 +151,6 @@ DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
     record_block_alloc(false);
 
     ret = new parse_block((parse_func*)f,r,addr);
-    //fprintf(stderr,"mkbloc(%lx, %lx) produced %p\n",f->addr(),addr,ret);
-    blocks_.add(*ret);
 
     //fprintf(stderr,"mkbloc(%lx, %lx) returning %p\n",f->addr(),addr,ret);
 
@@ -189,30 +167,25 @@ DynCFGFactory::mksink(CodeObject *obj, CodeRegion *r) {
     record_block_alloc(true);
 
     ret = new parse_block(obj,r,numeric_limits<Address>::max());
-    blocks_.add(*ret);
     return ret;
 }
 
 Edge *
 DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     image_edge * ret;
-
     record_edge_alloc(type,false); // FIXME can't tell if it's a sink
 
     ret = new image_edge((parse_block*)src,
                          (parse_block*)trg,
                          type);
 
-    //fprintf(stderr,"mkedge between Block %p and %p, img_bb: %p and %p\n",
-        //src,trg,(parse_block*)src,(parse_block*)trg);
-    edges_.add(*ret);
-
     return ret;
 }
 
 void
-DynParseCallback::abruptEnd_cf(Address /*addr*/,ParseAPI::Block * /*b*/,default_details*)
+DynParseCallback::abruptEnd_cf(Address /*addr*/,ParseAPI::Block *b,default_details*)
 {
+  static_cast<parse_block*>(b)->setAbruptEnd(true);
 }
 
 void
@@ -221,15 +194,25 @@ DynParseCallback::newfunction_retstatus(Function *func)
     dynamic_cast<parse_func*>(func)->setinit_retstatus( func->retstatus() );
 }
 
-void
-DynParseCallback::block_split(Block *first, Block *second)
-{
-   _img->addSplitBlock(static_cast<parse_block *>(first),
-                       static_cast<parse_block *>(second));
+void DynParseCallback::destroy_cb(Block *b) {
+   _img->destroy(b);
 }
 
-void DynParseCallback::block_delete(Block * /*b*/) {
+void DynParseCallback::destroy_cb(Edge *e) {
+   _img->destroy(e);
+}
 
+void DynParseCallback::destroy_cb(Function *f) {
+   _img->destroy(f);
+}
+
+void DynParseCallback::remove_edge_cb(ParseAPI::Block *, ParseAPI::Edge *, edge_type_t) {
+   //cerr << "Warning: edge removal callback unimplemented" << endl;
+}
+
+void DynParseCallback::remove_block_cb(ParseAPI::Function *, ParseAPI::Block *) {
+   // we currently do all necessary cleanup during destroy
+   //cerr << "Warning: block removal callback unimplemented" << endl;
 }
 
 void
@@ -244,17 +227,18 @@ DynParseCallback::patch_nop_jump(Address addr)
 }
 
 void
-DynParseCallback::interproc_cf(Function*f,Block * /*b*/,Address /*addr*/,interproc_details* det)
+DynParseCallback::interproc_cf(Function*f,Block *b,Address /*addr*/,interproc_details*det)
 {
 #if defined(ppc32_linux) || defined(ppc32_bgp)
     if(det->type == interproc_details::call) {
         parse_func * ifunc = static_cast<parse_func*>(f);
         _img->updatePltFunc(ifunc,det->data.call.target);
     }
-#else
-    f = f; // compiler warning
-    det = det;
 #endif
+    f = f; // compiler warning
+    if (det->type == ParseCallback::interproc_details::unresolved) {
+        static_cast<parse_block*>(b)->setUnresolvedCF(true);
+    }
 }
 
 void
@@ -276,24 +260,6 @@ DynParseCallback::updateCodeBytes(Address target)
                               target + _img->desc().loadAddr() );
 }
 
-bool 
-DynParseCallback::loadAddr(Address absoluteAddr, Address & loadAddr) 
-{ 
-    std::vector<BPatch_process*> * procs = BPatch::bpatch->getProcesses();
-    for (unsigned pidx=0; pidx < procs->size(); pidx++) {
-        if ((*procs)[pidx]->lowlevel_process()->findObject(_img->desc())) {
-            mapped_object * obj = (*procs)[pidx]->lowlevel_process()->
-                findObject(absoluteAddr);
-            if (obj) {
-                loadAddr = obj->codeBase();
-                return true;
-            }
-            return false;
-        }
-    }
-    return false; 
-}
-
 bool
 DynParseCallback::hasWeirdInsns(const ParseAPI::Function* func) const
 {
@@ -308,3 +274,19 @@ DynParseCallback::foundWeirdInsns(ParseAPI::Function* func)
     static_cast<parse_func*>(func)->setHasWeirdInsns(true);
 }
 
+void DynParseCallback::split_block_cb(ParseAPI::Block *first, ParseAPI::Block *second)
+{
+    if (SCAST_PB(first)->abruptEnd()) {
+        SCAST_PB(first)->setAbruptEnd(false);
+        SCAST_PB(second)->setAbruptEnd(true);
+    }
+    if (SCAST_PB(first)->unresolvedCF()) {
+        SCAST_PB(first)->setUnresolvedCF(false);
+        SCAST_PB(second)->setUnresolvedCF(true);
+    }
+    if (SCAST_PB(first)->needsRelocation()) {
+        SCAST_PB(second)->markAsNeedingRelocation();
+    }
+    //parse_block::canBeRelocated_ doesn't need to be set, it's only ever
+    // true for the sink block, which is never split
+}

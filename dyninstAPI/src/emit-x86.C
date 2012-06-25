@@ -51,6 +51,11 @@
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/symtab.h"
+// get_index...
+#include "dyninstAPI/src/dynThread.h"
+#include "ABI.h"
+#include "liveness.h"
+#include "RegisterConversion.h"
 
 const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -616,7 +621,7 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
 
     if (saveOrigAddr) {
-       emitPushImm(bt->instP()->nextExecutedAddr(), gen);
+       emitPushImm(bt->instP()->addr_compat(), gen);
     }
     if (createFrame)
     {
@@ -1261,6 +1266,17 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
                                 codeGen &gen)
 {
+/* disabling hack
+   // HACKITY - remove before doing anything else
+   // 
+   // If the input is a character, then mask off the value in the register so that we're
+   // only comparing the low bytes. 
+   if (src2imm < 0xff) {
+      // Use a 32-bit mask instead of an 8-bit since it sign-extends...
+      emitOpRegImm64(0x81, EXTENDED_0x81_AND, src1, 0xff, true, gen); 
+  }
+*/
+
    // cmp $src2imm, %src1
    emitOpRegImm64(0x81, 7, src1, src2imm, true, gen);
 
@@ -1513,11 +1529,6 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
    registerSlot *dest = (*gen.rs())[destination];
    assert(dest);
 
-   if (src->spilledState == registerSlot::unspilled)
-   {
-      emitMoveRegToReg((Register) register_num, destination, gen);
-      return;
-   }
    if (register_num == REGNUM_ESP) {
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
       if (!gen.bt() || gen.bt()->alignedStack)
@@ -1525,6 +1536,11 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
       else
          emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset,
                    destination, true, gen);
+      return;
+   }
+   if (src->spilledState == registerSlot::unspilled)
+   {
+      emitMoveRegToReg((Register) register_num, destination, gen);
       return;
    }
 
@@ -1656,7 +1672,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
    // the call. 
    pdvector<pair<unsigned,int> > savedRegsToRestore;
    if (inInstrumentation) {
-      bitArray regsClobberedByCall = registerSpace::getRegisterSpace(8)->getCallWrittenRegisters();
+      bitArray regsClobberedByCall = ABI::getABI(8)->getCallWrittenRegisters();
       for (int i = 0; i < gen.rs()->numGPRs(); i++) {
          registerSlot *reg = gen.rs()->GPRs()[i];
          regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
@@ -1686,8 +1702,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
          }
          else {
             Register r = reg->encoding();
-            if (regsClobberedByCall.test(r))
+	    static LivenessAnalyzer live(8);
+	    // mapping from Register to MachRegister, then to index in liveness bitArray
+	    if (regsClobberedByCall.test(live.getIndex(regToMachReg64.equal_range(r).first->second))){	  
                gen.markRegDefined(r);
+            }
          }
       }
    }
@@ -1741,6 +1760,11 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
                                                noCost,
                                                unused,
                                                reg)) assert(0);
+	 if (reg != amd64_arg_regs[u]) {
+	   // Code generator said "we've already got this one in a different
+	   // register, so just reuse it"
+	   emitMovRegToReg64(amd64_arg_regs[u], reg, true, gen);
+	 }	
       }
    }
 
@@ -1823,8 +1847,11 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
          return true;
       }
    }
-       
-   Register ptr = gen.rs()->allocateRegister(gen, false);
+   
+   pdvector<Register> excluded;
+   excluded.push_back(REGNUM_RAX);
+   
+   Register ptr = gen.rs()->getScratchRegister(gen, excluded);
    gen.markRegDefined(ptr);
    Register effective = ptr;
    emitMovImmToReg64(ptr, callee->addr(), true, gen);
@@ -1835,7 +1862,6 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, func_instance *callee, R
    *insn++ = 0xFF;
    *insn++ = static_cast<unsigned char>(0xD0 | effective);
    SET_PTR(insn, gen);
-   gen.rs()->freeRegister(ptr);
 
    return true;
 }
@@ -2345,10 +2371,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (!shouldSaveReg(reg, bt, saveFlags))
-         continue;
+           continue; 
       if (createFrame && reg->encoding() == REGNUM_RBP)
-         continue;
-
+           continue;
       emitPushReg64(reg->encoding(),gen);
       // We move the FP down to just under here, so we're actually
       // measuring _up_ from the FP. 
@@ -2369,7 +2394,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
    // push a return address for stack walking
    if (saveOrigAddr) {
       // FIXME use a scratch register!
-      emitMovImmToReg64(REGNUM_RAX, bt->instP()->nextExecutedAddr(), true, gen);
+      emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr_compat(), true, gen);
       emitPushReg64(REGNUM_RAX, gen);
       gen.markRegDefined(REGNUM_RAX);
       num_saved++;
@@ -2613,27 +2638,7 @@ Address Emitter::getInterModuleFuncAddr(func_instance *func, codeGen& gen)
         assert(!"Invalid function call (function info is missing)");
     }
 
-    // find the Symbol corresponding to the func_instance
-    std::vector<SymtabAPI::Symbol *> syms;
-    func->ifunc()->func()->getSymbols(syms);
-
-    if (syms.size() == 0) {
-        char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
-                , __FILE__, __LINE__, func->symTabName().c_str());
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-    // try to find a dynamic symbol
-    // (take first static symbol if none are found)
-    SymtabAPI::Symbol *referring = syms[0];
-    for (unsigned k=0; k<syms.size(); k++) {
-        if (syms[k]->isInDynSymtab()) {
-            referring = syms[k];
-            break;
-        }
-    }
+    SymtabAPI::Symbol *referring = func->getRelocSymbol();
 
     // have we added this relocation already?
     relocation_address = binEdit->getDependentRelocationAddr(referring);

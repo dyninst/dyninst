@@ -4710,6 +4710,7 @@ int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Add
    marked(false),
    user_data(NULL)
 {
+   assert(n != "");
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }

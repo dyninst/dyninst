@@ -46,10 +46,6 @@ namespace {
         if(fact) return fact;
         return new CFGFactory();
     }
-    static inline ParseCallback * __pcb_init(ParseCallback * cb) {
-        if(cb) return cb;
-        return new ParseCallback();
-    }
 }
 
 static const int ParseAPI_major_version = 1;
@@ -70,10 +66,9 @@ CodeObject::CodeObject(CodeSource *cs,
                        bool defMode) :
     _cs(cs),
     _fact(__fact_init(fact)),
-    _pcb(__pcb_init(cb)),
+    _pcb(new ParseCallbackManager(cb)),
     parser(new Parser(*this,*_fact,*_pcb) ),
     owns_factory(fact == NULL),
-    owns_pcb(cb == NULL),
     defensive(defMode),
     flist(parser->sorted_funcs)
 {
@@ -90,10 +85,10 @@ CodeObject::process_hints()
     for(hit = hints.begin();hit!=hints.end();++hit) {
         CodeRegion * cr = (*hit)._reg;
         if(!cs()->regionsOverlap())
-            f = parser->factory().mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+            f = parser->factory()._mkfunc(
+               (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
         else
-            f = parser->factory().mkfunc(
+            f = parser->factory()._mkfunc(
                 (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
@@ -105,8 +100,7 @@ CodeObject::process_hints()
 CodeObject::~CodeObject() {
     if(owns_factory)
         delete _fact;
-    if(owns_pcb)
-        delete _pcb;
+    delete _pcb;
     if(parser)
         delete parser;
 }
@@ -165,6 +159,15 @@ CodeObject::parse(Address target, bool recursive) {
 }
 
 void
+CodeObject::parse(CodeRegion *cr, Address target, bool recursive) {
+   if (!parser) {
+      fprintf(stderr, "FATAL: internal parser undefined\n");
+      return;
+   }
+   parser->parse_at(cr, target, recursive, ONDEMAND);
+}
+
+void
 CodeObject::parseGaps(CodeRegion *cr) {
     if(!parser) {
         fprintf(stderr,"FATAL: internal parser undefined\n");
@@ -188,16 +191,6 @@ CodeObject::finalize() {
     parser->finalize();
 }
 
-void 
-CodeObject::deleteFunc(Function *func)
-{
-    mal_printf("deleting func at %lx, ptr=%p\n", func->addr(), func);
-    assert(func->_cache_valid);
-    parser->remove_func(func);
-    func->deleteBlocks(func->_blocks);
-    fact()->free_func(func);
-}
-
 // Call this function on the CodeObject corresponding to the targets,
 // not the sources, if the edges are inter-module ones
 // 
@@ -217,23 +210,39 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         Block *trgB = findBlockByEntry(*(regs.begin()), worklist[idx].target);
 
         if (trgB) {
-            add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
-            if (CALL == worklist[idx].edge_type) {
-                // if it's a call edge, add it to Function::_call_edges
-                // since we won't re-finalize the function
-                vector<Function*> funcs;
-                worklist[idx].source->getFuncs(funcs);
-                for(vector<Function*>::iterator fit = funcs.begin();
-                    fit != funcs.end();
-                    fit++) 
+            // don't add edges that already exist 
+            // (this could happen because of shared code)
+            bool edgeExists = false;
+            const Block::edgelist & existingTs = worklist[idx].source->targets();
+            for (Block::edgelist::iterator tit = existingTs.begin();
+                 tit != existingTs.end();
+                 tit++)
+            {
+                if ((*tit)->trg() == trgB && 
+                    (*tit)->type() == worklist[idx].edge_type) 
                 {
-                    Block::edgelist & tedges = worklist[idx].source->targets();
-                    for(Block::edgelist::iterator eit = tedges.begin();
-                        eit != tedges.end();
-                        eit++)
+                    edgeExists = true;
+                }
+            }
+            if (!edgeExists) {
+                add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
+                if (CALL == worklist[idx].edge_type) {
+                    // if it's a call edge, add it to Function::_call_edges
+                    // since we won't re-finalize the function
+                    vector<Function*> funcs;
+                    worklist[idx].source->getFuncs(funcs);
+                    for(vector<Function*>::iterator fit = funcs.begin();
+                        fit != funcs.end();
+                        fit++) 
                     {
-                        if ((*eit)->trg() == trgB) {
-                            (*fit)->_call_edges.insert(*eit);
+                        const Block::edgelist & tedges = worklist[idx].source->targets();
+                        for(Block::edgelist::iterator eit = tedges.begin();
+                            eit != tedges.end();
+                            eit++)
+                        {
+                            if ((*eit)->trg() == trgB) {
+                                (*fit)->_call_edges.insert(*eit);
+                            }
                         }
                     }
                 }
@@ -242,7 +251,14 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         else {
             parsedTargs.push_back(pair<Address,CodeRegion*>(worklist[idx].target,
                                                             *regs.begin()));
-            ParseWorkBundle *bundle = new ParseWorkBundle();
+            // FIXME this is a memory leak; bundles need to go in a frame or
+            // they will never get reclaimed. Flag for Kevin or Drew
+            //
+            // The inline comment was added after I made this observation
+            // but before the commit; I still don't see it, but if I'm
+            // wrong ignore my warning. --nate
+            //
+            ParseWorkBundle *bundle = new ParseWorkBundle(); //parse_frames will delete when done
             ParseWorkElem *elem = bundle->add(new ParseWorkElem
                 ( bundle, 
                   parser->link_tempsink(worklist[idx].source, worklist[idx].edge_type),
@@ -253,7 +269,9 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
         }
     }
 
+    parser->_pcb.batch_begin(); // must batch callbacks and deliver after parsing structures are stable
     parser->parse_edges( work_elems );
+    parser->_pcb.batch_end(_fact);
 
     if (defensiveMode()) {
         // update tampersStack for modified funcs
@@ -268,7 +286,83 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             }
         }
     }
-
     return true;
 }
 
+// set things up to pass through to IA_IAPI
+bool CodeObject::isIATcall(Address insnAddr, std::string &calleeName)
+{
+   // find region
+   std::set<CodeRegion*> regs;
+   cs()->findRegions(insnAddr, regs);
+   if (regs.size() != 1) {
+      return false;
+   }
+   CodeRegion *reg = *regs.begin();
+
+   // find block
+   std::set<Block*> blocks;
+   findBlocks(reg, insnAddr, blocks);
+   if (blocks.empty()) {
+      return false;
+   }
+   Block *blk = *blocks.begin();
+
+   const unsigned char* bufferBegin = 
+      (const unsigned char *)(cs()->getPtrToInstruction(insnAddr));
+   using namespace InstructionAPI;
+   InstructionDecoder dec = InstructionDecoder(bufferBegin,
+      InstructionDecoder::maxInstructionLength, reg->getArch());
+   InstructionAdapter_t ah = InstructionAdapter_t(
+      dec, insnAddr, this, reg, cs(), blk);
+
+   return ah.isIATcall(calleeName);
+}
+
+void CodeObject::startCallbackBatch() {
+   _pcb->batch_begin();
+}
+
+void CodeObject::finishCallbackBatch() {
+   _pcb->batch_end(_fact);
+}
+
+void CodeObject::destroy(Edge *e) {
+   // The callback deletes the object so that we can
+   // be sure to allow users to access its data before
+   // its freed.
+   // We hand in a CFGFactory so that we have customized
+   // deletion methods.
+   _pcb->destroy(e, _fact);
+}
+
+void CodeObject::destroy(Block *b) {
+   parser->remove_block(b);
+   _pcb->destroy(b, _fact);
+}
+
+void CodeObject::destroy(Function *f) {
+   parser->remove_func(f);
+   _pcb->destroy(f, _fact);
+}
+
+void CodeObject::registerCallback(ParseCallback *cb) {
+   assert(_pcb);
+   _pcb->registerCallback(cb);
+}
+
+void CodeObject::unregisterCallback(ParseCallback *cb) {
+   _pcb->unregisterCallback(cb);
+}
+
+Address CodeObject::getFreeAddr() const {
+   // Run over the code regions and return the highest address. We do this
+   // so we can allocate more space...
+   Address hi = 0;
+   const std::vector<CodeRegion *> &regions = _cs->regions();
+   for (std::vector<CodeRegion *>::const_iterator iter = regions.begin();
+        iter != regions.end(); ++iter) {
+      hi = (hi > (*iter)->high()) ? hi : (*iter)->high();
+   }
+   return hi;
+}

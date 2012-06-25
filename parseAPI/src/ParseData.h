@@ -33,6 +33,7 @@
 
 #include <set>
 #include <vector>
+#include <queue>
 
 #include "dyntypes.h"
 #include "IBSTree.h"
@@ -52,6 +53,7 @@ class Parser;
 class ParseData;
 
 /** Describes a saved frame during recursive parsing **/
+// Parsing data for a function. 
 class ParseFrame {
  public:
     enum Status {
@@ -60,7 +62,8 @@ class ParseFrame {
         CALL_BLOCKED,
         PARSED,
         FRAME_ERROR,
-        BAD_LOOKUP  // error for lookups that return Status
+        BAD_LOOKUP,  // error for lookups that return Status
+        FRAME_DELAYED // discovered cyclic dependency, delaying parse
     };
 
     /* worklist details */
@@ -71,7 +74,15 @@ class ParseFrame {
        > worklist_t;
 
     vector<ParseWorkBundle*> work_bundles; 
-
+   
+    /* convenience generator for work elements. If a NULL bundle is
+       supplied, one will be provided. */
+    ParseWorkElem * mkWork(
+        ParseWorkBundle * b,
+        Edge * e,
+        Address target,
+        bool resolvable,
+        bool tailcall);
     void pushWork(ParseWorkElem * elem) {
         worklist.push(elem);
     }
@@ -84,11 +95,17 @@ class ParseFrame {
         return ret;
     }
 
+    void pushDelayedWork(ParseWorkElem * elem, Function * ct) {
+        delayedWork.insert(make_pair(elem, ct));
+    }
+
     void cleanup();
 
-    worklist_t worklist; 
+    worklist_t worklist;
+   
+    // Delayed work elements 
+    std::map<ParseWorkElem *, Function *> delayedWork;
 
-    
     dyn_hash_map<Address, Block*> leadersToBlock;  // block map
     Address curAddr;                           // current insn address
     unsigned num_insns;

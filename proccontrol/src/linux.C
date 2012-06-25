@@ -40,10 +40,11 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <iostream>
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
-#include "common/h/SymLite-elf.h"
+
 #include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -53,16 +54,22 @@
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
+#include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/linux.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
-#include "proccontrol/src/int_thread_db.h"
 
 #include "proccontrol/src/snippets.h"
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
+#define ELF_X_NAMESPACE ProcControlAPI
+#include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS
@@ -2198,6 +2205,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
 
 linux_x86_thread::linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
+   thread_db_thread(p, t, l),
    linux_thread(p, t, l),
    x86_thread(p, t, l)
 {
@@ -2209,6 +2217,7 @@ linux_x86_thread::~linux_x86_thread()
 
 linux_ppc_thread::linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
+   thread_db_thread(p, t, l),
    linux_thread(p, t, l),
    ppc_thread(p, t, l)
 {

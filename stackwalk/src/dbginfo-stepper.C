@@ -74,6 +74,8 @@ public:
 #include "libdwarf.h"
 #include "common/h/dwarfExpr.h"
 #include "common/h/dwarfSW.h"
+
+#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/Elf_X.h"
 
 DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)

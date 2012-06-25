@@ -95,7 +95,8 @@ PCProcess *PCProcess::createProcess(const string file, pdvector<string> &argv,
     Process::ptr tmpPcProc = Process::createProcess(path, argv, envp, fdMap);
 
     if( !tmpPcProc ) {
-        const char *lastErrMsg = getLastErrorMsg();
+       cerr << "Failed to create process " << path << endl;
+       const char *lastErrMsg = getLastErrorMsg();
         startup_printf("%s[%d]: failed to create process for %s: %s\n", __FILE__,
                 __LINE__, file.c_str(), lastErrMsg);
         string msg = string("Failed to create process for ") + file +
@@ -701,7 +702,7 @@ bool PCProcess::createInitialMappedObjects() {
 void PCProcess::addASharedObject(mapped_object *newObj) {
     assert(newObj);
 
-    mapped_objects.push_back(newObj);
+    addMappedObject(newObj);
 
     findSignalHandler(newObj);
 
@@ -757,7 +758,9 @@ bool PCProcess::setAOut(fileDescriptor &desc) {
         return false;
     }
 
-    mapped_objects.push_back(aout);
+    initPatchAPI(aout);
+
+    addMappedObject(aout);
     startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
 
     startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
@@ -792,18 +795,7 @@ void PCProcess::findSignalHandler(mapped_object *obj) {
     startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, obj);
 }
 
-// Here's the list of functions to look for:
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-    "main",
-    "DYNINST_pltMain",
-    "_main",
-    "WinMain",
-    "_WinMain",
-    "wWinMain",
-    "_wWinMain"
-};
-
+// NUMBER_OF_MAIN_POSSIBILITIES is defined in symtab.h
 void PCProcess::setMainFunction() {
     assert(!main_function_);
 
@@ -1446,6 +1438,9 @@ bool PCProcess::removeThread(dynthread_t tid) {
 }
 
 bool PCProcess::unregisterThread(dynthread_t tid) {
+   // FIXME
+   return true;
+
     pdvector<AstNodePtr> the_args(1);
     the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)tid);
     AstNodePtr unregisterAST = AstNode::funcCallNode("DYNINSTunregisterThread", the_args);
@@ -1896,19 +1891,19 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
             }
             // We mask to strip off the FUNC_ARG bit...
             switch ( ( req->where & 0x7) ) {
-            case FUNC_EXIT:
-                {
-                   for (func_instance::BlockSet::const_iterator iter = func->exitBlocks().begin();
-                        iter != func->exitBlocks().end(); ++iter) {
-                      miniTramp *mt = instPoint::funcExit(func, *iter)->insert(req->order, ast, req->useTrampGuard);
-                      if (mt) 
-                         minis.push_back(mt);
-                      else {
-                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                      }
-                   }
-                }
-                break;
+               case FUNC_EXIT:
+               {
+                  for (PatchFunction::Blockset::const_iterator iter = func->exitBlocks().begin();
+                       iter != func->exitBlocks().end(); ++iter) {
+                     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
+                     if (mt) 
+                        minis.push_back(mt);
+                     else {
+                        fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                     }
+                  }
+               }
+               break;
                case FUNC_ENTRY:
                {
                   miniTramp *mt = instPoint::funcEntry(func)->insert(req->order, ast, req->useTrampGuard);
@@ -1917,24 +1912,25 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                   else {
                      fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
                   }
-                }
-                break;
-            case FUNC_CALL:
-                {
-                   for (func_instance::BlockSet::const_iterator iter = func->callBlocks().begin();
-                        iter != func->callBlocks().end(); ++iter) {
-                      miniTramp *mt = instPoint::preCall(func, *iter)->insert(req->order, ast, req->useTrampGuard);
-                      if (mt) 
-                         minis.push_back(mt);
-                      else {
-                         fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                      }
-                   }
-                }
-                break;
-            default:
-                fprintf(stderr, "Unknown where: %d\n",
-                        req->where);
+               }
+               break;
+               case FUNC_CALL:
+               {
+                  for (PatchFunction::Blockset::const_iterator iter = func->callBlocks().begin();
+                       iter != func->callBlocks().end(); ++iter) {
+                     block_instance* iblk = SCAST_BI(*iter);
+                     miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);
+                     if (mt) 
+                        minis.push_back(mt);
+                     else {
+                        fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                     }
+                  }
+               }
+               break;
+               default:
+                  fprintf(stderr, "Unknown where: %d\n",
+                          req->where);
             } // switch
             minis.clear();
         } // matchingFuncs        
@@ -2805,8 +2801,8 @@ bool PCProcess::patchPostCallArea(instPoint *callPt) {
    return true;
 }
 
-bool PCProcess::generateRequiredPatches(instPoint *callPt, 
-                                      AddrPairSet &patchAreas)
+bool PCProcess::generateRequiredPatches(instPoint *callPoint, 
+                                        AddrPairSet &patchAreas)
 {
     // We need to figure out where this patch should branch to.
     // To do that, we're going to:
@@ -2814,42 +2810,75 @@ bool PCProcess::generateRequiredPatches(instPoint *callPt,
     //    its most recent relocated version (if that exists)
     // 2) For each padding area, create a (padAddr,target) pair
 
-    // 1)
-    block_instance *callbbi = callPt->block();
-    block_instance *ftbbi = callbbi->getFallthroughBlock();
-    assert(ftbbi);
+    // 3)
 
-    std::vector<func_instance *> funcs;
-    ftbbi->getFuncs(std::back_inserter(funcs));
-
-    Relocation::CodeTracker::RelocatedElements reloc;
-    CodeTrackers::reverse_iterator rit;
-    for (unsigned i = 0; i < funcs.size(); ++i) {
-       for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++) {
-          if ((*rit)->origToReloc(ftbbi->start(), ftbbi, funcs[i], reloc)) {
-             break;
-          }
-       }
+    block_instance *callB = callPoint->block();
+    block_instance *ftBlk = callB->getFallthrough()->trg();
+    if (!ftBlk) {
+        // find the block at the next address, if there's no fallthrough block
+        ftBlk = callB->obj()->findBlockByEntry(callB->end());
+        assert(ftBlk);
     }
-    assert(rit != relocatedCode_.rend());
-    
-    Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
 
-    // 2) 
-    if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callPt)) {
-        set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
-        for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
+    // ensure that we patch other callPts at the same address
+
+    vector<ParseAPI::Function*> callFuncs;
+    callPoint->block()->llb()->getFuncs(callFuncs);
+    for (vector<ParseAPI::Function*>::iterator fit = callFuncs.begin();
+         fit != callFuncs.end();
+         fit++)
+    {
+        func_instance *callF = findFunction((parse_func*)*fit);
+        instPoint *callP = instPoint::preCall(callF, callB);
+        Relocation::CodeTracker::RelocatedElements reloc;
+        CodeTrackers::reverse_iterator rit;
+        for (rit = relocatedCode_.rbegin(); rit != relocatedCode_.rend(); rit++)
         {
-          Address jumpAddr = d_iter->first;
-          patchAreas.insert(std::make_pair(jumpAddr, to));
-          mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
-                     callbbi->end(), jumpAddr, to, FILE__,__LINE__);
+            if ((*rit)->origToReloc(ftBlk->start(), ftBlk, callF, reloc)) {
+                break;
+            }
+        }
+        if (rit == relocatedCode_.rend()) {
+            mal_printf("WARNING: no relocs of call-fallthrough at %lx "
+                       "in func at %lx, will not patch its post-call "
+                       "padding\n", callP->block()->last(),callF->addr());
+            (*relocatedCode_.rbegin())->debug();
+            continue;
+        }
+
+        Address to = reloc.instruction;
+        if (!reloc.instrumentation.empty()) {
+           // There could be a lot of instrumentation at this point. Bias towards the lowest,
+           // non-edge instrumentation
+           for (std::map<instPoint *, Address>::iterator inst_iter = reloc.instrumentation.begin();
+                inst_iter != reloc.instrumentation.end(); ++inst_iter) {
+              if (inst_iter->first->type() == PatchAPI::Point::EdgeDuring) continue;
+              to = (inst_iter->second < to) ? inst_iter->second : to;
+           }
+        }
+
+        // 2) 
+        Address callInsnAddr = callP->block()->last();
+        if (forwardDefensiveMap_.end() != forwardDefensiveMap_.find(callInsnAddr)) {
+            map<func_instance*,set<DefensivePad> >::iterator mit = forwardDefensiveMap_[callInsnAddr].begin();
+            for (; mit != forwardDefensiveMap_[callInsnAddr].end(); ++mit) {
+              if (callF == mit->first) {
+                  set<DefensivePad>::iterator dit = mit->second.begin();
+                  for (; dit != mit->second.end(); ++dit) {
+                     Address jumpAddr = dit->first;
+                     patchAreas.insert(std::make_pair(jumpAddr, to));
+                     mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                                callB->end(), jumpAddr, to, FILE__,__LINE__);
+                  }
+              }
+            }
         }
     }
-    if (!patchAreas.size()) {
-       mal_printf("no relocs to patch for call at %lx\n", callPt->nextExecutedAddr());
+    if (patchAreas.empty()) {
+       mal_printf("WARNING: no relocs to patch for call at %lx, block end %lx\n", 
+                  callPoint->addr_compat(),ftBlk->start());
     }
-    return true;
+    return ! patchAreas.empty();
 }
 
 void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
@@ -2864,15 +2893,15 @@ void PCProcess::generatePatchBranches(AddrPairSet &branchesNeeded) {
 
     // Safety check: make sure we didn't overrun the patch area
     Address lb, ub;
-    instPoint *tmp;
+    std::pair<func_instance*,Address> tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // Huh? This worked before!
       assert(0);
     }
     assert((from + gen.used()) <= ub);
     if (!writeTextSpace((void *)from, 
-                        gen.used(),
-                        gen.start_ptr())) {
+			gen.used(),
+			gen.start_ptr())) {
       assert(0);
     }
   }
@@ -3088,7 +3117,7 @@ bool PCProcess::triggerStopThread(Address pointAddress, int callbackID, void *ca
 Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint, 
                                          Address target)
 {
-   Address pointAddr = intPoint->nextExecutedAddr();
+   Address pointAddr = intPoint->addr_compat();
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
@@ -3108,15 +3137,21 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
         // b. We're in an analyzed fallthrough block
         // c. The stack was tampered with and we need the (mod_pc - pc) 
         //    offset to figure out where we should be
-        cerr << "Looking for matches to incoming address " << hex << target << dec << endl;
-        instPoint *callPt = NULL;
-        block_instance *callBBI = NULL;
+        malware_cerr << "Looking for matches to incoming address " 
+            << hex << target << dec << endl;
+        std::pair<func_instance*,Address> tmp;
 
-        if ( reverseDefensiveMap_.find(target,callPt) ) {
+        if ( reverseDefensiveMap_.find(target,tmp) ) {
             // a. 
-            cerr << "\t Found in defensive map" << endl;
-            callBBI = callPt->block();
-            unrelocTarget = callBBI->end();
+           std::set<block_instance*> callBs;
+           tmp.first->getBlocks(tmp.second, callBs);
+           block_instance *callB = (*callBs.begin());
+           edge_instance *fallthrough = callB->getFallthrough();
+           if (fallthrough) {
+              unrelocTarget = fallthrough->trg()->start();
+           } else {
+              unrelocTarget = callB->end();
+           }
         }
         else {
             // b. 
@@ -3125,6 +3160,11 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
            AddressSpace::RelocInfo ri;
            bool hasFT = getRelocInfo(target, ri);
            assert(hasFT); // otherwise we should be in the defensive map
+           if (ri.pad) {
+               unrelocTarget = ri.block->end();
+           } else {
+               unrelocTarget = ri.block->start();
+           }
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
             target, unrelocTarget, FILE__, __LINE__);
@@ -3134,6 +3174,20 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
            // into memory regions that are allocated at runtime
         mapped_object *obj = findObject(target);
         if (!obj) {
+
+#if 0           
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           for (unsigned i = 0; i < 0x100; ++i) {
+		          Address stackTOP = activeFrame.esp;
+		          Address stackTOPVAL =0;
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
+
             obj = createObjectNoFile(target);
             if (!obj) {
                 fprintf(stderr,"ERROR, point %lx has target %lx that responds "
@@ -3144,6 +3198,22 @@ Address PCProcess::stopThreadCtrlTransfer (instPoint* intPoint,
             }
         }
     }
+
+#if 0
+           Frame activeFrame = threads[0]->get_lwp()->getActiveFrame();
+           Address stackTOP = activeFrame.esp;
+           Address stackTOPVAL =0;
+           for (unsigned i = 0; 
+                i < 0x100 && 0 != ((stackTOP + 4*i) % memoryPageSize_); 
+                ++i) 
+           {
+                readDataSpace((void *) (stackTOP + 4*i), 
+                              sizeof(getAddressWidth()), 
+                              &stackTOPVAL, false);
+		          malware_cerr << "\tSTACK[" << hex << stackTOP+4*i << "]=" 
+                             << stackTOPVAL << dec << endl;
+           }
+#endif
 
     return unrelocTarget;
 }

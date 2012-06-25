@@ -820,6 +820,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 
     // Create new mapped objects for all the new loaded libraries
     const set<Library::ptr> &added = ev->libsAdded();
+
     for(set<Library::ptr>::const_iterator i = added.begin(); i != added.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();

@@ -85,13 +85,17 @@ BPatch_edge *BPatch_basicBlockLoop::getBackEdgeInt()
 {
   return  * backEdges.begin();
 }
-
 int BPatch_basicBlockLoop::getBackEdgesInt(BPatch_Vector<BPatch_edge*> &edges)
 {
+   std::copy(backEdges.begin(), backEdges.end(), std::back_inserter(edges));
+   return edges.size();
+
+#if 0
     for (unsigned idx =0; idx < edges.size(); idx++) {
         backEdges.insert(edges[idx]);
     }
     return edges.size();
+#endif
 }
 
 // this is a private function, invoked by BPatch_flowGraph::createLoops

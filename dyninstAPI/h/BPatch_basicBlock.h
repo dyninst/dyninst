@@ -50,9 +50,21 @@ class BPatch_point;
 class BPatch_edge;
 class BPatch_function;
 class BPatch_flowGraph;
+class BPatch_basicBlock;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
+
+namespace Dyninst {
+   namespace ParseAPI {
+      class Block;
+      Block *convert(const BPatch_basicBlock *);
+   };
+   namespace PatchAPI {
+      class PatchBlock;
+      PatchBlock *convert(const BPatch_basicBlock *);
+   };
+};
 
 
 /** class for machine code basic blocks. We assume the user can not 
@@ -84,6 +96,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class func_instance;
         friend class BPatch_instruction;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
+        friend Dyninst::ParseAPI::Block *Dyninst::ParseAPI::convert(const BPatch_basicBlock *);
+        friend Dyninst::PatchAPI::PatchBlock *Dyninst::PatchAPI::convert(const BPatch_basicBlock *);
+
 
  private:
    /** the internal basic block structure **/
@@ -114,6 +129,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** the outgoing edges */
    BPatch_Set<BPatch_edge*> outgoingEdges;
 
+  public:
    BPatch_flowGraph *fg() const { return flowGraph; }
    block_instance *block() const { return iblock; }
    BPatch_function *func() const;
@@ -286,6 +302,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    API_EXPORT(Int, (filter),
               BPatch_Vector<BPatch_point*> *,findPoint,(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr)));
+   
+   API_EXPORT(Int, (addr),
+              BPatch_point *, findPoint, (Dyninst::Address addr));
+
    /** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
 
@@ -309,6 +329,8 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
                 void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
 
 
+   operator Dyninst::ParseAPI::Block *() const;
+   operator Dyninst::PatchAPI::PatchBlock *() const;
 
    int blockNo() const;
 

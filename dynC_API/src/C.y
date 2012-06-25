@@ -35,15 +35,15 @@ extern "C" {
 
 extern std::string lineStr;
 
+#define YYDEBUG 0 //set to 1 for debug mode
 
 //name of current snippet for error reporting
 char *dynCSnippetName = "";
+
 SnippetGenerator *snippetGen;
 BPatch_point *snippetPoint = NULL;
 
 std::set<std::string> *universalErrors = new std::set<std::string>();
-
-//void yywarn(char *s);
 
 int oneTimeCount = 0;
 int oneTimeGblCount = 0;
@@ -57,13 +57,9 @@ bool actionTaken = false;
 extern bool interactive;
 bool verbose = false;
 
-//message file
-FILE * mfile = fopen("messages.out", "w");
-
 extern int line_num;
 
 std::vector<BPatch_snippet *> endSnippets;
-
 %}
 
 
@@ -97,6 +93,14 @@ std::vector<BPatch_snippet *> endSnippets;
    std::pair<BPatch_snippet *, char *> *snippetStringPair;   
 };
 
+%initial-action{
+#ifdef YYDEBUG
+#if YYDEBUG == 1
+   yydebug = 1;
+#endif
+#endif
+ }
+
 %locations
 
 %nonassoc KNOWN_ERROR_TOK
@@ -114,12 +118,13 @@ std::vector<BPatch_snippet *> endSnippets;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOID
 %token STRUCT UNION ENUM ELLIPSIS 
 %token IF
-%token LOCAL PARAM GLOBAL INF DYNINST INST
+%token LOCAL PARAM GLOBAL FUNC DYNINST INST REGISTER
 %token NEWLINE
 
 %token CASE DEFAULT SWITCH RETURN
 %token NILL
 
+%token EOF_TOK
 
 %left DOT ASTERISK AMPERSAND COMMA
 %left NOT
@@ -134,10 +139,12 @@ std::vector<BPatch_snippet *> endSnippets;
 %left START_BLOCK END_BLOCK
 %left DOLLAR
 %left BACKTICK
+%left '[' ']'
 
 %right '!' '~' '&'
 %right AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN ASSIGN
 
+%nonassoc EOF_TOK
 %nonassoc NOPEN NCLOSE
 %nonassoc LOWER_THAN_ELSE //used to trick Bison into accepting if else statements
 %nonassoc ELSE
@@ -158,20 +165,27 @@ start:
     { 
        oneTimeCount = 0;
        oneTimeGblCount = 0;
-       $1->insert($1->end(), endSnippets.begin(), endSnippets.end());
-       parse_result = new BPatch_sequence(*$1); 
+       if(fatalError){
+          parse_result = NULL;
+       }else{
+          $1->insert($1->end(), endSnippets.begin(), endSnippets.end());
+          parse_result = new BPatch_sequence(*$1); 
+       }
+
+       fatalError = false;
        delete $1;
+
        endSnippets.clear();
        if(verbose) {
           printf("\n");
           fflush(stdout);
        }
+       YYACCEPT;
     }
     ; 
 
 var_declaration: var_decl_modifiers IDENTIFIER 
     {
-       //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::string mangledName;
        mangledName = dynC_API::mangle($2, dynCSnippetName, $1.type);
        if(verbose) printf("name : %s\n", mangledName.c_str());
@@ -228,7 +242,6 @@ var_declaration: var_decl_modifiers IDENTIFIER
        std::stringstream type;
        type << $1.type << "[" << $4 << "]";
        std::string mangledName = dynC_API::mangle($2, dynCSnippetName, type.str().c_str());
-      
        $$ = snippetGen->findOrCreateArray(mangledName.c_str(), $1.type, $4);
        if($$ == NULL){
           $$ = new BPatch_nullExpr();
@@ -250,7 +263,6 @@ var_declaration: var_decl_modifiers IDENTIFIER
     }
     | var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' const_list '}'
     {
-       //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::stringstream type;
        type << $1.type << "[" << $7->size() << "]";
        std::string mangledName = dynC_API::mangle($2, dynCSnippetName, type.str().c_str());
@@ -282,14 +294,12 @@ var_declaration: var_decl_modifiers IDENTIFIER
           if($1.isStatic || $1.isGlobal){
               makeOneTimeStatement(*assign);
               }
-          //makeOneTimeStatement(*assign);
           assignVect->push_back(assign);
        }
        $$ = new BPatch_sequence(*assignVect);
     }
     | var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN '{' const_list '}'
     {
-       //IDENTIFIER leaks, but how to fix b/c use of $0?
        std::vector<BPatch_snippet *> argVect;
        std::stringstream type;
        if($4 < 0){
@@ -335,7 +345,6 @@ var_declaration: var_decl_modifiers IDENTIFIER
           if($1.isStatic || $1.isGlobal){
              makeOneTimeStatement(*assign);
           }
-          //   makeOneTimeStatement(*assign);
           assignVect->push_back(assign);
        
        }
@@ -357,66 +366,7 @@ var_decl_modifiers: TYPE
          $2.isStatic = true;
       }
       $$ = $2;
-  }
-/*   | CONST var_decl_modifiers
-   {
-      if ($2.isConstant){
-         //throw error: two consts
-         yyerror("Syntax error");
-      }else{
-         $2.isConstant = true;
-      }
-      $$ = $2;
-   }
-   | GLOBAL var_decl_modifiers
-   {
-      if ($2.isGlobal){
-         //throw error: two globals
-         yyerror("Syntax error");
-      }else if($2.isLocal){
-         //throw error: can't be global and local
-         yyerror("Syntax error: variable cannot be both local and global");
-      }else {
-         $2.isGlobal = true;
-      }
-      $$ = $2;   
-   }
-   | LOCAL var_decl_modifiers
-   {
-      if ($2.isLocal){
-         //throw error: two locals
-         yyerror("Syntax error");
-      }else if($2.isGlobal){
-         yyerror("Syntax error: variable cannot be both local and global");
-         //throw error: can't be global and local
-      }else{
-         $2.isLocal = true;
-      }
-      $$ = $2;   
-   }
-   | THREAD var_decl_modifiers
-   {
-      if ($2.isThread){
-         //throw error: two thread
-         yyerror("Syntax error");
-      }else{
-         yyerror("Thread variables not supported");
-         $2.isThread = true;
-      }
-      $$ = $2;   
-   }
-   | MACHINE var_decl_modifiers
-   {
-      if ($2.isMachineState){
-         //error
-         yyerror("Syntax error");
-      }else{
-         yyerror("Machine state variables not supported");
-         $2.isMachineState = true;
-      }
-      $$ = $2;   
-      }*/
-   ;
+  };
 
 
 statement_list:
@@ -449,7 +399,7 @@ statement_list:
     ;
 
 statement:
-    error // built in error recovery point
+    error // error recovery point
     {
        $$ = new BPatch_nullExpr();
        actionTaken = false;
@@ -506,22 +456,20 @@ block: statement
 
 func_call: DYNINST BACKTICK IDENTIFIER '(' param_list ')'
     {
-       //TODO: built in dyninst actions and (future) other snippet calls?
        if(strcmp($3, "break") == 0){
           if(verbose) printf("break_ ()");
           $$ = new BPatch_breakPointExpr();
-       }else if(strcmp($3, "stopThread") == 0){
-          //how?
-          if(verbose) printf("stopThread ()");
-          $$ = new BPatch_nullExpr();
        }else{
-          yyerror("Dyninst function not found!\n");
+          char *errString = (char *)calloc(strlen($3), sizeof(char));
+          sprintf(errString, "%s not found!\n", $3);
+          yyerror(errString);
           $$ = new BPatch_nullExpr();
+          free(errString);
        }
        delete $3;
     }
    
-    |INF BACKTICK IDENTIFIER '(' param_list ')'
+    |FUNC BACKTICK IDENTIFIER '(' param_list ')'
            //funct(stuff,stuff)
     { 
        BPatch_function *func = snippetGen->findFunction($3, *$5);
@@ -531,9 +479,6 @@ func_call: DYNINST BACKTICK IDENTIFIER '(' param_list ')'
           yyerrorNoTok(errString);
           free(errString);
           break;
-       }
-       if($5 == NULL){
-          fprintf(stderr, "Internal Error: Param_list is null!\n");
        }
        $$ = new BPatch_funcCallExpr(*func, *$5);
     }
@@ -612,8 +557,6 @@ bool_expression: bool_constant
     {       if(verbose) printf(" OR ");
        $$ = new BPatch_boolExpr(BPatch_or, *$1, *$3);
     }
-
-    // add not
     ;
 
 
@@ -636,18 +579,6 @@ var_modifiers:
       vSpec.isParam = true;
       $$ = vSpec;   
    }
-/*   | THREAD
-   {
-     YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
-      vSpec.isThread = true;
-      $$ = vSpec;   
-   }
-   | MACHINE
-   {
-      YYSTYPE::VariableSpec vSpec = {false,false,false,false,false,false,false,false,""};
-      vSpec.isMachineState = true;
-      $$ = vSpec;   
-      }*/
    ;
 
 
@@ -662,32 +593,7 @@ variable_expr: IDENTIFIER
           break;
        }
     }
-    | '*' IDENTIFIER
-    {
-       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($2, dynCSnippetName).c_str(), $2);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
-    }
-    | '&' IDENTIFIER
-    {
-       $$ = snippetGen->findInstVariable(dynC_API::getMangledStub($2, dynCSnippetName).c_str(), $2);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerror(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
-    }
-
-    | INF BACKTICK IDENTIFIER
+    | FUNC BACKTICK IDENTIFIER
     {
        $$ = snippetGen->findAppVariable($3);
        if($$ == NULL){
@@ -698,31 +604,6 @@ variable_expr: IDENTIFIER
           break;
        }
     }
-    | '*' INF BACKTICK IDENTIFIER
-    {
-       $$ = snippetGen->findAppVariable($4);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
-    }
-    | '&' INF BACKTICK IDENTIFIER
-    {
-       $$ = snippetGen->findAppVariable($4);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
-    }
-
 
     | var_modifiers BACKTICK IDENTIFIER
     {
@@ -753,59 +634,6 @@ variable_expr: IDENTIFIER
           break;
        }
     }
-    | '*' var_modifiers BACKTICK IDENTIFIER
-    {
-       if(snippetPoint == NULL){
-          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
-          break;
-       }       
-       if($2.isParam){
-          $$ = snippetGen->findParameter($4);
-       }else{
-          $$ = snippetGen->findAppVariable($4, $2.isGlobal, $2.isLocal);
-       }
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          if($2.isGlobal){
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
-          }else{
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerrorNonUni(errString);
-             free(errString);
-          }
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));       
-    }
-
-    | '&' var_modifiers BACKTICK IDENTIFIER
-    {
-       if(snippetPoint == NULL){
-          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
-          break;
-       }       
-       if($2.isParam){
-          $$ = snippetGen->findParameter($4);
-       }else{
-          $$ = snippetGen->findAppVariable($4, $2.isGlobal, $2.isLocal);
-       }
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          if($2.isGlobal){
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerror(errString);
-             free(errString);
-          }else{
-             char *errString = strdup(snippetGen->getError().c_str());
-             yyerrorNonUni(errString);
-             free(errString);
-          }
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));       
-    }
 
     | var_modifiers BACKTICK NUMBER 
     {
@@ -828,51 +656,6 @@ variable_expr: IDENTIFIER
           break;
        }
     }
-    | '*' var_modifiers BACKTICK NUMBER 
-    {
-       //special case for indexed parameters
-       if(snippetPoint == NULL){
-          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
-          break;
-       }       
-       if(!$2.isParam){
-          yyerror("Numbered indexes for parameters only");
-          $$ = new BPatch_nullExpr();
-          break;
-       }
-       $$ = snippetGen->findParameter($4);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$$));
-    }
-    | '&' var_modifiers BACKTICK NUMBER 
-    {
-       //special case for indexed parameters
-       if(snippetPoint == NULL){
-          yyerrorNoTok("Local variables not allowed when snippet point is unspecified.");
-          break;
-       }       
-
-       if(!$2.isParam){
-          yyerror("Numbered indexes for parameters only");
-          $$ = new BPatch_nullExpr();
-          break;
-       }
-       $$ = snippetGen->findParameter($4);
-       if($$ == NULL){
-          $$ = new BPatch_nullExpr();
-          char *errString = strdup(snippetGen->getError().c_str());
-          yyerrorNoTokNonUni(errString);
-          free(errString);
-          break;
-       }
-       $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$$));
-    }
 
     | variable_expr '[' arith_expression ']'
     {
@@ -887,18 +670,14 @@ variable_expr: IDENTIFIER
           break;
        }
     }
-/*
     | '*' variable_expr 
     {
-       //dereference variable
-       printf("DEREF!\n");
        $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_deref, *$2));
     }
     | '&' variable_expr
     {
-       //referance variable
        $$ = (BPatch_snippet *)(new BPatch_arithExpr(BPatch_addr, *$2));
-       }*/
+    }
     ;
 
 constant: 
@@ -932,6 +711,17 @@ const_list:
 arith_expression: variable_expr
 | constant {$$ = $1->first}
 | NILL {$$ = new BPatch_nullExpr();}
+| REGISTER BACKTICK IDENTIFIER 
+{
+   $$ = snippetGen->findRegister($3);
+   if ($$ == NULL){
+      $$ = new BPatch_nullExpr();
+      char *errString = strdup(snippetGen->getError().c_str());
+      yyerror(errString);
+      free(errString);
+   }
+}
+
    | DYNINST BACKTICK IDENTIFIER
     {
        if(verbose) printf("dyninst`%s ", $3);
@@ -1130,6 +920,7 @@ std::stringstream * err;
 
 void yyerror(char *s)
 {
+   fatalError = true;
    fflush(stdout);
    if(strlen(s) != 0){
       std::stringstream err;
@@ -1146,6 +937,7 @@ void yyerror(char *s)
 }
 
 void yyerrorNonUni(char *s){
+   fatalError = true;
    fflush(stdout);
    std::stringstream err;
    err.str("");
@@ -1162,6 +954,7 @@ void getErrorBase(char *errbase, int length){
 }
 
 void yyerrorNoTok(char *s){
+   fatalError = true;
    fflush(stdout);
    std::stringstream err;
    err.str("");
@@ -1177,6 +970,7 @@ void yyerrorNoTok(char *s){
 
 
 void yyerrorNoTokNonUni(char *s){
+   fatalError = true;
    char ebase[256];
    getErrorBase(ebase, 256);
    printf("%s error: %s\n", ebase, s);
@@ -1192,12 +986,6 @@ void yywarn(char *s)
    }   
    printf("%s\n", err.str().c_str());
    universalErrors->insert(std::string(strdup(err.str().c_str())));
-}
-
-void writeMessage(char *s){
-   fflush(mfile);
-   fprintf(mfile, "At line %d: ", line_num);
-   fprintf(mfile, "%s\n", s);   
 }
 
 void makeOneTimeStatement(BPatch_snippet &statement){

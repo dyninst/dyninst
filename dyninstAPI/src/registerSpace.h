@@ -97,7 +97,7 @@ class registerSlot {
     const initialLiveness_t initialState;
 
     // Are we off limits for allocation in this particular instance?
-    const bool offLimits; 
+    bool offLimits; 
 
     typedef enum { invalid, GPR, FPR, SPR, realReg} regType_t;
     const regType_t type; 
@@ -341,8 +341,6 @@ class registerSpace {
     bool anyLiveFPRsAtEntry() const;
     bool anyLiveSPRsAtEntry() const;
 
-    // And for the bitarrays we use to track these
-    static bitArray getBitArray();
 
     /**
      * The following set of 'public' and 'private' methods and data deal with
@@ -464,6 +462,7 @@ class registerSpace {
 
 #if defined(cap_liveness)
     void specializeSpace(const bitArray &);
+    bool checkLive(Register reg, const bitArray &liveRegs);
 #endif
 
     unsigned addr_width;
@@ -497,42 +496,6 @@ class registerSpace {
     Register getRegByName(const std::string name);
     std::string getRegByNumber(Register num);
     void getAllRegisterNames(std::vector<std::string> &ret);
-
-    // Bit vectors that represent the ABI behavior at call points
-    // and exits. 
-
-#if defined(cap_liveness)
-
-    const bitArray &getCallReadRegisters() const;
-    const bitArray &getCallWrittenRegisters() const;
-    const bitArray &getReturnReadRegisters() const;
-    // No such thing as return written...
-
-    // Syscall!
-    const bitArray &getSyscallReadRegisters() const;
-    const bitArray &getSyscallWrittenRegisters() const;
-
-    const bitArray &getAllRegs() const;
- private:
-    static bitArray callRead_;
-    static bitArray callRead64_;
-
-    static bitArray callWritten_;
-    static bitArray callWritten64_;
-
-    static bitArray returnRead_;
-    static bitArray returnRead64_;
-
-    static bitArray syscallRead_;
-    static bitArray syscallRead64_;
-
-    static bitArray syscallWritten_;
-    static bitArray syscallWritten64_;
-
-    static bitArray allRegs_;
-    static bitArray allRegs64_;
-
-#endif
 
 
 };

@@ -49,10 +49,8 @@
 // for blockSet...
 //#include "dyninstAPI/src/image-func.h"
 
-#include "dynptr.h"
-
 // To define StackAST
-#include "AST.h"
+#include "DynAST.h"
 
 #if defined(os_aix) 
 // AIX is missing a MINLONG...
@@ -367,6 +365,7 @@ class StackAnalysis {
     void handlePushPop(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
     void handleReturn(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleAddSub(InstructionPtr insn, int sign, TransferFuncs &xferFuncs);
+    void handleLEA(InstructionPtr insn, TransferFuncs &xferFuncs);
     void handleLeave(TransferFuncs &xferFuncs);
     void handlePushPopFlags(int sign, TransferFuncs &xferFuncs);
 	void handlePushPopRegs(int sign, TransferFuncs &xferFuncs);

@@ -35,7 +35,7 @@
 //#include "SymEvalPolicy.h"
 #include "RoseInsnFactory.h"
 
-#include "AST.h"
+#include "DynAST.h"
 
 #include "../rose/x86InstructionSemantics.h"
 #include "external/rose/powerpcInstructionEnum.h"

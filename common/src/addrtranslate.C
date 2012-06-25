@@ -49,11 +49,63 @@ AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand, std::string exen
 
 bool AddressTranslate::getLibAtAddress(Address addr, LoadedLib* &lib)
 {
+
+   /**
+    * This code sets lower_lib_index and higher_lib_index to point
+    * to the indexes in libs[] that have dynamic section addresses
+    * that are the closest to the target address.
+    **/
+   Address lower_dynamic_addr = 0, higher_dynamic_addr = 0;
+   int lower_lib_index = -1, higher_lib_index = -1;
    for (unsigned i=0; i<libs.size(); i++)
    {
       LoadedLib *l = libs[i];
+      if (!l) continue;
+      Address daddr = l->getDynamicAddr();
+      if (!daddr) continue;
+      if (daddr < addr) {
+         if (daddr > lower_dynamic_addr) {
+            lower_dynamic_addr = daddr;
+            lower_lib_index = i;
+         }
+      }
+      else if (daddr > addr) {
+         if (!higher_dynamic_addr || daddr < higher_dynamic_addr) {
+            higher_dynamic_addr = daddr;
+            higher_lib_index = i;
+         }
+      }
+   }
+   
+   /**
+    * Let's search this list in a not-stupid order.  We'll
+    * check lower_lib_index and higher_lib_index first
+    * (the -1 and -2 cases).  If neither of those look right,
+    * then we'll just have to walk the entire list.
+    **/
+   for (int i=-2; i< (int) libs.size(); i++)
+   {
+      LoadedLib *l = NULL;
+
+      if (i == -2) {
+         if (lower_lib_index ==  -1)
+            continue;
+         l = libs[lower_lib_index];
+      }
+      else if (i == -1) {
+         if (higher_lib_index ==  -1)
+            continue;
+         l = libs[higher_lib_index];
+      }
+      else if (i == lower_lib_index || i == higher_lib_index) {
+         continue;
+      }
+      else {
+         l = libs[i];
+      }
       if (!l)
          continue;
+
       vector<pair<Address, unsigned long> > *addresses = l->getMappedRegions();
       if (!addresses)
          continue;

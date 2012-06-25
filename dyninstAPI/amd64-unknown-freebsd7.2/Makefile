@@ -23,6 +23,9 @@ include ../../make.config
 
 SRCS =          ../src/freebsd.C \
 		../src/freebsd-x86.C \
+		../src/RegisterConversion-x86.C \
+		../src/Relocation/Widgets/CFWidget-x86.C \
+		../src/dynamiclinking.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
 		../src/codegen-x86.C \
@@ -31,11 +34,10 @@ SRCS =          ../src/freebsd.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-x86.C \
 		../src/dynProcess-x86.C \
 		../src/syscall-freebsd.C \
 		../src/parse-x86.C \
-		../src/Relocation/Widgets/CFWidget-x86.C
+		../src/frameChecker.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

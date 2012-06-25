@@ -62,7 +62,7 @@ namespace {
     };
 }
 
-Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
+Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb) :
     _obj(obj),
     _cfgfact(fact),
     _pcb(pcb),
@@ -94,7 +94,10 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     sort(copy.begin(),copy.end(),less_cr());
 
     // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact.mksink(&_obj,copy[0]);
+    _sink = _cfgfact._mksink(&_obj,copy[0]);
+
+    // initialize variable for tracking delayed frames
+    num_delayedFrames = 0;
 
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
@@ -117,7 +120,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
 
 ParseFrame::~ParseFrame()
 {
-    // no locally allocated storage
+    cleanup(); // error'd frames still need cleanup
 }
 
 Parser::~Parser()
@@ -299,16 +302,17 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             {
                 if ((*eit)->type() == CALL) {
                     callEdge = *eit;
-                    break;
+                    if (!(*eit)->sinkEdge()) // if it's a sink edge, look for nonsink CALL
+                        break; 
                 }
             }
             // create a call work elem so that the bundle is complete
             // and set the target function's return status and 
             // tamper to RETURN and TAMPER_NONE, respectively
             //assert(callEdge);
-            // KEVIN TODO
-            // In cases where we had a direct call to garbage that was later unpacked,
-            // we aren't putting in the call edge when the call is first executed. I'm
+
+            // When we have a direct call to unallocated memory or garbage
+            // we there is no call edge when the call is first executed. I'm
             // not sure why not, so I'm attempting to continue past here without
             // fixing up the called function...
             // Also, in the case I saw, the callee was _not_ returning. Not directly. It 
@@ -322,7 +326,8 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
                 {
                     isResolvable = true;
                     callTarget = callEdge->trg()->start();
-                    Function *callee = findFuncByEntry(
+                    // the call target may be in another Code Object
+                    Function *callee = callEdge->trg()->obj()->findFuncByEntry(
                         callEdge->trg()->region(), callTarget);
                     assert(callee);
                     callee->set_retstatus(RETURN);
@@ -389,6 +394,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 
     /* Recursive traversal parsing */ 
     while(!work.empty()) {
+        
         pf = work.back();
         work.pop_back();
 
@@ -428,84 +434,162 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                     // XXX should never get here
                     //parsing_printf("    recursive parsing disabled\n");
                 }
+
                 break;
             }
             case ParseFrame::PARSED:
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
                     FILE__,pf->func->addr(),pf->func->_rs);
+
                 if (unlikely( _obj.defensiveMode() && 
                               TAMPER_NONE != pf->func->tampersStack() &&
                               TAMPER_NONZERO != pf->func->tampersStack() ))
-                {   // add a fallthrough / tamper-target edge if there is one
-                    for (unsigned widx = 0; 
-                         pf->func->tampersStack() == TAMPER_REL && 
-                         widx < work.size(); 
-                         widx++) 
-                    {
-                        if (work[widx]->status() == ParseFrame::CALL_BLOCKED &&
-                            pf->func == work[widx]->call_target) 
-                        {
-                            for (unsigned bidx=0 ; 
-                                 bidx < work[widx]->work_bundles.size(); 
-                                 bidx++) 
-                            {
-                                const vector<ParseWorkElem*> &elems = 
-                                    work[widx]->work_bundles[bidx]->elems();
-                                bool rightBundle = false;
-                                ParseWorkElem * ftEdge = NULL;
-                                for (unsigned eix=0; eix < elems.size(); eix++)
-                                {
-                                    if (NULL == elems[eix]->edge()) 
-                                    {
-                                        continue;
-                                    }
-                                    if (elems[eix]->edge()->type() == CALL &&
-                                        elems[eix]->target()==pf->func->addr())
-                                    {
-                                        rightBundle = true;
-                                    }
-                                    else if (elems[eix]->edge()->type() == 
-                                             CALL_FT)
-                                    {
-                                        ftEdge = elems[eix];
-                                    }
-                                }
-                                if (rightBundle && ftEdge) 
-                                {
-                                    ftEdge->setTarget(ftEdge->target() + 
-                                                      pf->func->_tamper_addr);
-                                }
-                            }
-                        }
-                    }
-                    if (pf->func->tampersStack() == TAMPER_ABS) 
-                    {
-                        ParseFrame * tf = getTamperAbsFrame(pf->func);
-                        if (tf) 
-                        {
-                            if( ! _parse_data->findFrame(tf->func->region(),
-                                                         tf->func->addr()) ) 
-                            {
-                                init_frame(*tf);
-                                frames.push_back(tf);
-                                _parse_data->record_frame(tf);
-                                Address loadBase =0;
-                                _pcb.loadAddr(pf->func->_tamper_addr, loadBase);
-                                _pcb.updateCodeBytes(pf->func->_tamper_addr - loadBase);
-                            }
-                            work.push_back(tf);
-                        }
-                    }
+                {   // may adjust CALL_FT targets, add a frame to the worklist,
+                    // or trigger parsing in a separate target CodeObject
+                    tamper_post_processing(work,pf);
                 }
+                
+                /* add waiting frames back onto the worklist */
+                resumeFrames(pf->func, work);
+                
                 pf->cleanup();
                 break;
             case ParseFrame::FRAME_ERROR:
                 parsing_printf("[%s] frame %lx error at %lx\n",
                     FILE__,pf->func->addr(),pf->curAddr);
                 break;
+            case ParseFrame::FRAME_DELAYED: {
+                parsing_printf("[%s] frame %lx delayed at %lx\n",
+                        FILE__,
+                        pf->func->addr(),
+                       pf->curAddr);
+                
+                if (pf->delayedWork.size()) {
+                    // Add frame to global delayed list
+                    map<ParseWorkElem *, Function *>::iterator iter;
+                    map<Function *, set<ParseFrame *> >::iterator fIter;
+                    for (iter = pf->delayedWork.begin();
+                            iter != pf->delayedWork.end();
+                            ++iter) {
+
+                        Function * ct = iter->second;
+                        parsing_printf("[%s] waiting on %s\n",
+                                __FILE__,
+                                ct->name().c_str());
+
+                        fIter = delayedFrames.find(ct);
+                        if (fIter == delayedFrames.end()) {
+                            std::set<ParseFrame *> waiters;
+                            waiters.insert(pf);
+                            delayedFrames[ct] = waiters;
+                        } else {
+                            delayedFrames[ct].insert(pf);
+                        }
+                    }
+                } else {
+                    // We shouldn't get here
+                    assert(0 && "Delayed frame with no delayed work");
+                }
+                
+                /* if the return status of this function has been updated, add
+                 * waiting frames back onto the work list */
+                resumeFrames(pf->func, work);
+                break;
+            }
             default:
                 assert(0 && "invalid parse frame status");
         }
+    }
+
+    // Use fixed-point to ensure we parse frames whose parsing had to be delayed
+    if (delayedFrames.size() == 0) {
+        // Done!
+        parsing_printf("[%s] Fixed point reached (0 funcs with unknown return status)\n)",
+                __FILE__);
+        num_delayedFrames = 0;
+    } else if (delayedFrames.size() == num_delayedFrames) {
+        // If we've reached a fixedpoint and have remaining frames, we must
+        // have a cyclic dependency
+        parsing_printf("[%s] Fixed point reached (%d funcs with unknown return status)\n", 
+                __FILE__, 
+                delayedFrames.size());
+
+        // Mark UNSET functions in cycle as NORETURN
+        map<Function *, set<ParseFrame *> >::iterator iter;
+        vector<Function *> updated;
+        for (iter = delayedFrames.begin(); iter != delayedFrames.end(); ++iter) {
+            Function * func = iter->first;
+            if (func->retstatus() == UNSET) {
+                func->set_retstatus(NORETURN);
+                func->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
+                updated.push_back(func);
+            } 
+
+            set<ParseFrame *> vec = iter->second;
+            set<ParseFrame *>::iterator vIter;
+            for (vIter = vec.begin(); vIter != vec.end(); ++vIter) {
+                Function * delayed = (*vIter)->func;
+                if (delayed->retstatus() == UNSET) {
+                    delayed->set_retstatus(NORETURN);
+                    delayed->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
+                    updated.push_back(func);
+                }
+            }
+        }
+
+        // We should have updated the return status of one or more frames; recurse
+        if (updated.size()) {
+            for (vector<Function *>::iterator uIter = updated.begin();
+                    uIter != updated.end();
+                    ++uIter) {
+                resumeFrames((*uIter), work);
+            }
+
+            if (work.size()) {
+                parsing_printf("[%s] Updated retstatus of delayed frames, trying again; work.size() = %d\n",
+                        __FILE__,
+                        work.size());
+                parse_frames(work, true);
+            }
+        } else {
+            // We shouldn't get here
+            parsing_printf("[%s] No more work can be done (%d funcs with unknown return status)\n",
+                    __FILE__, 
+                    delayedFrames.size());
+            assert(0);
+        }
+    } else {
+        // We haven't yet reached a fixedpoint; let's recurse
+        parsing_printf("[%s] Fixed point not yet reached (%d funcs with unknown return status)\n", 
+                __FILE__,
+                delayedFrames.size());
+
+        // Update num_delayedFrames for next iteration 
+        num_delayedFrames = delayedFrames.size();
+
+        // Check if we can resume any frames yet
+        vector<Function *> updated;
+        for (map<Function *, set<ParseFrame *> >::iterator iter = delayedFrames.begin(); 
+                iter != delayedFrames.end(); 
+                ++iter) {
+            if (iter->first->_rs != UNSET) {
+                updated.push_back(iter->first);
+            }
+        }
+
+        if (updated.size()) {
+            for (vector<Function *>::iterator uIter = updated.begin();
+                    uIter != updated.end();
+                    ++uIter) {
+                resumeFrames((*uIter), work);
+            }
+        }
+
+        // Recurse through parse_frames        
+        parsing_printf("[%s] Calling parse_frames again, work.size() = %d\n", 
+                __FILE__,
+                work.size());
+        parse_frames(work, true);
     }
 
     for(unsigned i=0;i<frames.size();++i) {
@@ -558,14 +642,11 @@ Parser::finalize(Function *f)
     vector<Block*> const& blocks = f->blocks_int();
 
     // is this the first time we've parsed this function?
-    bool firstParse = true;
-    if (unlikely( f->_extents.size() )) {
-        firstParse = false;
+    if (unlikely( !f->_extents.empty() )) {
+        _parse_data->remove_extents(f->_extents);
+        f->_extents.clear();
     }
     
-    // extents
-    _parse_data->remove_extents(f->_extents);
-    f->_extents.clear();
 
     if(blocks.empty()) {
         f->_cache_valid = cache_value; // see above
@@ -607,15 +688,10 @@ Parser::finalize(Function *f)
             if (2 > (*eit)->src()->targets().size()) {
                 Block *ft = _parse_data->findBlock((*eit)->src()->region(),
                                                    (*eit)->src()->end());
-                if (ft) {
+                if (ft && HASHDEF(f->_bmap,ft->start())) {
                     link((*eit)->src(),ft,CALL_FT,false);
                 }
             }
-        }
-        // check for stack tampering
-        if ( firstParse ) {
-            f->tampersStack();
-            _pcb.newfunction_retstatus( f );
         }
     }
 }
@@ -679,7 +755,7 @@ Parser::init_frame(ParseFrame & frame)
             return;
         }
         if (split) {
-            _pcb.block_split(split,b);
+            _pcb.splitBlock(split,b);
         }
     }
 
@@ -701,6 +777,10 @@ void ParseFrame::cleanup()
 {
     for(unsigned i=0;i<work_bundles.size();++i)
         delete work_bundles[i];
+    work_bundles.clear();
+    if(seed)
+        delete seed;
+    seed = NULL;
 }
 
 namespace {
@@ -766,12 +846,30 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
+        // Pull work that can be resumed off the delayedWork list
+        std::map<ParseWorkElem *, Function *>::iterator iter;
+        
+        vector<ParseWorkElem *> updated;
+        vector<ParseWorkElem *>::iterator uIter;
+
+        for (iter = frame.delayedWork.begin();
+                iter != frame.delayedWork.end();
+                ++iter) {
+            if (iter->second->_rs != UNSET) {
+                frame.pushWork(iter->first);
+                updated.push_back(iter->first);
+            }
+        }
+        for (uIter = updated.begin(); uIter != updated.end(); ++uIter) {
+            frame.delayedWork.erase(*uIter);
+        }
     }
 
 
     frame.set_status(ParseFrame::PROGRESS);
 
     while(!worklist.empty()) {
+        
         Block * cur = NULL;
         ParseWorkElem * work = frame.popWork();
 
@@ -816,9 +914,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 //     function has to take UNKNOWN
                 if(func->_rs != RETURN) {
                     if(ct->_rs > NORETURN)
-                        func->_rs = ct->_rs;
+                      func->set_retstatus(ct->_rs);
                     else if(ct->_rs == UNSET)
-                        func->_rs = UNKNOWN;
+                      func->set_retstatus(UNKNOWN);
                 }
             }
 
@@ -834,22 +932,20 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     Edge * catch_edge = link_tempsink(caller,CATCH);
                 
                     // push on worklist
-                    ParseWorkElem * catch_work = 
-                       work->bundle()->add(
-                        new ParseWorkElem(
+                    frame.pushWork(
+                        frame.mkWork(
                             work->bundle(),
                             catch_edge,
                             catchStart,
-                            true, false)
-                       );
-                    frame.pushWork(catch_work);
+                            true,
+                            false));
                 }
             }
     
             continue;
         } else if(work->order() == ParseWorkElem::call_fallthrough) {
-
-			// check associated call edge's return status
+            
+            // check associated call edge's return status
             Edge * ce = bundle_call_edge(work->bundle());
             if(!ce) {
                 // odd; no call edge in this bundle
@@ -862,6 +958,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 bool is_plt = false;
                 bool is_nonret = false;
 
+                // check if associated call edge's return status is still unknown
+                if (ct && (ct->_rs == UNSET) ) {
+                    // Delay parsing until we've finished the corresponding call edge
+                    parsing_printf("[%s] Parsing FT edge %lx, corresponding callee (%s) return status unknown; delaying work\n",
+                            __FILE__,
+                            work->edge()->src()->lastInsnAddr(),
+                            ct->name().c_str());
+
+                    // Add work to ParseFrame's delayed list
+                    frame.pushDelayedWork(work, ct);
+
+                    // Continue other work for this frame
+                    continue; 
+                }
+                
                 is_plt = HASHDEF(plt_entries,target);
    
                 // CodeSource-defined tests 
@@ -891,8 +1002,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         mal_printf("Disallowing FT edge: function %lx in "
                                    "defensive binary may not return\n", ct->addr());
                     } else {
-                        is_nonret |= (TAMPER_NONZERO == ct->tampersStack());
-                        is_nonret |= (TAMPER_ABS == ct->tampersStack());
+                        StackTamper ct_tamper = ct->tampersStack();
+                        is_nonret |= (TAMPER_NONZERO == ct_tamper);
+                        is_nonret |= (TAMPER_ABS == ct_tamper);
                         if (is_nonret) {
                             mal_printf("Disallowing FT edge: function at %lx "
                                        "tampers with its stack\n", ct->addr());
@@ -909,7 +1021,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     // unlink tempsink fallthrough edge
                     Edge * remove = work->edge();
                     remove->src()->removeTarget(remove);
-                    factory().free_edge(remove);
+                    factory().destroy_edge(remove);
                     continue;
                 }
 
@@ -959,10 +1071,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 Function * other_func = _parse_data->findFunc(
                     func->region(), cur->start());
                 if (other_func && other_func->retstatus() > UNKNOWN) {
-                    func->_rs = other_func->retstatus();
+                  func->set_retstatus(other_func->retstatus());
                 }
                 else {
-                    func->_rs = UNKNOWN;
+                  func->set_retstatus(UNKNOWN);
                 }
             }
             continue;
@@ -1007,7 +1119,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
                     FILE__,curAddr);
                 if (frame.func->obj()->defensiveMode()) {
-                    mal_printf("new block at %lx\n",curAddr);
+                    mal_printf("straight-line parse into block at %lx\n",curAddr);
                 }
                 ah.retreat();
                 curAddr = ah.getAddr();
@@ -1023,6 +1135,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,nextBlockAddr);
 
                     frame.pushWork(
+                        frame.mkWork(
+                            NULL,
+                            newedge.second,
+                            nextBlockAddr,
+                            true,
+                            false)
+                    );
+                    /* preserved as example of leaky code; use mkWork instead
+                    frame.pushWork(
                         new ParseWorkElem(
                             NULL,
                             newedge.second,
@@ -1030,6 +1151,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                             true,
                             false)
                         );
+                    */
                     leadersToBlock[nextBlockAddr] = nextBlock;
                 }
                 break;
@@ -1079,7 +1201,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        new ParseWorkElem(
+                        frame.mkWork(
                             NULL,
                             newedge.second,
                             targ->start(),
@@ -1130,7 +1252,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         FILE__,__LINE__,targ->start());
 
                     frame.pushWork(
-                        new ParseWorkElem(
+                        frame.mkWork(
                             NULL,
                             newedge.second,
                             targ->start(),
@@ -1151,7 +1273,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 {
                     // add instrumentation at this addr so we can
                     // extend the function if this really executes
-                    // KEVINTODO: the weirdInsns flag really ought to be associated with the block so we can halt parsing along multiple function paths
                     ParseCallback::default_details det(
                         (unsigned char*) cur->region()->getPtrToInstruction(cur->lastInsnAddr()),
                         cur->end() - cur->lastInsnAddr(),
@@ -1161,7 +1282,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     end_block(cur,ah);
                     break;
                 }
-#if 0
                 else if (ah.isNopJump()) 
                 {
                     // patch the jump to make it a nop, and re-set the 
@@ -1176,10 +1296,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         (func->isrc()->getPtrToInstruction(ah.getAddr()));
                     dec = InstructionDecoder
                         (bufferBegin, bufsize, frame.codereg->getArch());
-                    ah = new InstructionAdapter_t(dec, curAddr, func->obj(), 
+                    ah = InstructionAdapter_t(dec, curAddr, func->obj(), 
                                               func->region(), func->isrc(), cur);
                 }
-#endif
                 else {
                     entryID id = ah.getInstruction()->getOperation().getID();
                     switch (id) {
@@ -1205,6 +1324,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     FILE__,ah.getNextAddr());
 
                 end_block(cur,ah);
+                // We need to tag the block with a sink edge
+                link(cur, _sink, DIRECT, true);
                 break;
             }
             else if(!cur->region()->contains(ah.getNextAddr()))
@@ -1214,34 +1335,52 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     cur->region()->offset(),
                     cur->region()->offset()+cur->region()->length());
                 end_block(cur,ah);
+                // We need to tag the block with a sink edge
+                link(cur, _sink, DIRECT, true);
                 break;
             }
             ah.advance();
         }
     }
 
+    // Check if parsing is complete
+    if (!frame.delayedWork.empty()) {
+        frame.set_status(ParseFrame::FRAME_DELAYED);
+        return; 
+    }
+
     /** parsing complete **/
     if(HASHDEF(plt_entries,frame.func->addr())) {
        if(obj().cs()->nonReturning(frame.func->addr())) {
-          frame.func->_rs = NORETURN;
+          frame.func->set_retstatus(NORETURN);
        }
-       else
-          frame.func->_rs = UNKNOWN; 
+       else {
+          frame.func->set_retstatus(UNKNOWN); 
+       }
 
        // Convenience -- adopt PLT name
        frame.func->_name = plt_entries[frame.func->addr()];
     }
     else if(frame.func->_rs == UNSET) {
-        frame.func->_rs = NORETURN;
+        frame.func->set_retstatus(NORETURN);
     }
+
     frame.set_status(ParseFrame::PARSED);
+
+    if (unlikely(obj().defensiveMode())) {
+       // calculate this after setting the function to PARSED, so that when
+       // we finalize the function we'll actually save the results and won't 
+       // re-finalize it
+       func->tampersStack(); 
+       _pcb.newfunction_retstatus( func ); 
+    }
 }
 
 void
 Parser::end_block(Block * b, InstructionAdapter_t & ah)
 {
     b->_lastInsn = ah.getAddr();
-    b->_end = ah.getNextAddr();
+    b->updateEnd(ah.getNextAddr());
 
     record_block(b);
 }
@@ -1327,8 +1466,9 @@ Parser::block_at(
             ret = split_block(owner,exist,addr,prev_insn);
         }
     } else {
-        ret = factory().mkblock(owner,cr,addr);
+        ret = factory()._mkblock(owner,cr,addr);
         record_block(ret);
+        _pcb.addBlock(owner, ret);
     }
 
     if(unlikely(inconsistent)) {
@@ -1392,6 +1532,7 @@ Parser::split_block(
 {
     Block * ret;
     CodeRegion * cr;
+    bool isRetBlock = false;
     if(owner->region()->contains(b->start()))
         cr = owner->region();
     else
@@ -1401,7 +1542,7 @@ Parser::split_block(
     // enable for extra-safe testing, but callers are responsbible
     // assert(b->consistent(addr);
 
-    ret = factory().mkblock(owner,cr,addr);
+    ret = factory()._mkblock(owner,cr,addr);
 
     // move out edges
     vector<Edge *> & trgs = b->_targets;
@@ -1411,8 +1552,11 @@ Parser::split_block(
         e->_source = ret;
         ret->_targets.push_back(e);
     }
+    if (!trgs.empty() && RET == (*trgs.begin())->type()) {
+       isRetBlock = true;
+    }
     trgs.clear();
-    ret->_end = b->_end;
+    ret->updateEnd(b->_end);
     ret->_lastInsn = b->_lastInsn;
     ret->_parsed = true;
     link(b,ret,FALLTHROUGH,false); 
@@ -1421,7 +1565,7 @@ Parser::split_block(
 
     // b's range has changed
     rd->blocksByRange.remove(b);
-    b->_end = addr;
+    b->updateEnd(addr);
     b->_lastInsn = previnsn;
     rd->blocksByRange.insert(b); 
     // Any functions holding b that have already been finalized
@@ -1433,14 +1577,18 @@ Parser::split_block(
         oit != prev_owners.end(); ++oit)
     {
         Function * po = *oit;
-        po->_cache_valid = false;
-        parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
-                "func at %lx\n",
-        FILE__,__LINE__,b->start(),b->end(),po->addr());
+        if (po->_cache_valid) {
+           po->_cache_valid = false;
+           parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                   "func at %lx\n",
+           FILE__,__LINE__,b->start(),b->end(),po->addr());
+        }
+        if (isRetBlock) {
+           po->_return_blocks.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
+        }
     }
-
-    // if we're re-parsing in this function, inform user program of the split
-    _pcb.block_split(b,ret);
+    // KEVINTODO: study performance impact of this callback
+    _pcb.splitBlock(b,ret);
 
     return ret;
  }
@@ -1562,10 +1710,12 @@ Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
     assert(et != NOEDGE);
-    Edge * e = factory().mkedge(src,dst,et);
+    Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
     src->_targets.push_back(e);
     dst->_sources.push_back(e);
+    _pcb.addEdge(src, e, ParseCallback::target);
+    _pcb.addEdge(dst, e, ParseCallback::source);
     return e;
 }
 
@@ -1586,7 +1736,7 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-    Edge * e = factory().mkedge(src,_sink,et);
+    Edge * e = factory()._mkedge(src,_sink,et);
     e->_type._sink = true;
     src->_targets.push_back(e);
     return e;
@@ -1595,16 +1745,30 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 void
 Parser::relink(Edge * e, Block *src, Block *dst)
 {
+    bool addSrcAndDest = true;
     if(src != e->src()) {
         e->src()->removeTarget(e);
+        _pcb.removeEdge(e->src(), e, ParseCallback::target);
         e->_source = src;
         src->addTarget(e);
+        _pcb.addEdge(src, e, ParseCallback::target);
+        addSrcAndDest = false;
     }
     if(dst != e->trg()) { 
-        if(e->trg() != _sink)
+        if(e->trg() != _sink) {
             e->trg()->removeSource(e);
+            _pcb.removeEdge(e->trg(), e, ParseCallback::source);
+            addSrcAndDest = false;
+        }
         e->_target = dst;
         dst->addSource(e);
+        _pcb.addEdge(dst, e, ParseCallback::source);
+        if (addSrcAndDest) {
+            // We're re-linking a sinkEdge to be a non-sink edge; since 
+            // we don't inform PatchAPI of temporary sinkEdges, we have
+            // to add both the source AND target edges
+            _pcb.addEdge(src, e, ParseCallback::target);
+        }
     }
 
     e->_type._sink = (dst == _sink);
@@ -1649,9 +1813,6 @@ Parser::remove_func(Function *func)
 void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
-    if (block->containingFuncs() == 1) {
-        _pcb.block_delete(block);
-    }
     _parse_data->remove_block(block);
 }
 
@@ -1662,104 +1823,6 @@ void Parser::move_func(Function *func, Address new_entry, CodeRegion *new_reg)
 
     reg_data = _parse_data->findRegion(new_reg);
     reg_data->funcsByAddr[new_entry] = func;
-}
-
-
-/* called in defensive mode to create parseFrames at tampered addresses 
-   for functions that return TAMPER_ABS. */
-ParseFrame * 
-Parser::getTamperAbsFrame(Function *tamperFunc)
-{
-    assert(TAMPER_ABS == tamperFunc->tampersStack());
-    Function * targFunc = NULL;
-
-    // get the binary's load address and subtract it
-    Address loadAddr = 0;
-    if ( ! _pcb.loadAddr(tamperFunc->_tamper_addr, loadAddr) ) {
-        parsing_printf("WARNING: Failed to find object load address "
-                       "for tampered return address 0x%lx\n", 
-                       tamperFunc->_tamper_addr);
-        mal_printf("WARNING: Failed to find object load address "
-                   "for tampered return address 0x%lx\n", 
-                   tamperFunc->_tamper_addr);
-        tamperFunc->_tamper = TAMPER_NONZERO;
-        return NULL; // failed to find object load address
-    }
-    Address target = tamperFunc->_tamper_addr - loadAddr;
-
-    targFunc = _parse_data->get_func
-        (tamperFunc->region(), 
-         target, 
-         tamperFunc->src());
-
-    if (!targFunc) {
-        targFunc = _parse_data->get_func(tamperFunc->region(),target,RT);
-    }
-
-    if(!targFunc) {
-        mal_printf("ERROR: could not create function at tamper "
-                   "addr %lx\n",target);
-        return NULL;
-    }
-
-    ParseFrame * pf = NULL;
-    CodeRegion *reg = targFunc->region();
-
-    ParseFrame::Status exist = _parse_data->frameStatus(reg, target);
-    switch(exist) {
-    case ParseFrame::FRAME_ERROR:
-    case ParseFrame::PROGRESS:
-        fprintf(stderr,"ERROR: function frame at %lx in bad state, can't "
-                "add edge; status=%d\n",target, exist);
-        return NULL;
-        break;
-    case ParseFrame::PARSED:
-        fprintf(stderr,"ERROR: function frame at %lx already parsed, can't "
-                "add edge; status=%d\n",target, exist);
-        return NULL;
-        break;
-    case ParseFrame::BAD_LOOKUP:
-        // create new frame
-        pf = _parse_data->findFrame(reg, target);
-        assert( !pf );
-        pf = new ParseFrame(targFunc,_parse_data);
-        break;
-    case ParseFrame::UNPARSED:
-    case ParseFrame::CALL_BLOCKED:
-        pf = _parse_data->findFrame(reg, target);
-        if ( !pf ) {
-            fprintf(stderr,"ERROR: no function frame at %lx for frame "
-                    "that should exist, can't add edge; status=%d\n",
-                    target, exist);
-            return NULL;
-        }
-        break;
-    default:
-        assert(0);
-    }
-        
-    // make a temp edge
-    Function::blocklist & ret_blks = tamperFunc->returnBlocks();
-    for (Function::blocklist::iterator bit = ret_blks.begin(); 
-         bit != ret_blks.end(); 
-         bit++)
-    {
-        Edge *edge = link_tempsink(*bit, CALL);
-
-        // create new bundle since we're not adding CALL,CALL_FT edge pairs
-        ParseWorkBundle *bundle = new ParseWorkBundle();
-        pf->work_bundles.push_back(bundle);
-        bundle->add(
-            new ParseWorkElem(
-                bundle,
-                edge,
-                target,
-                true,
-                true)
-          );
-    }
-
-    return pf;
 }
 
 void Parser::invalidateContainingFuncs(Function *owner, Block *b)
@@ -1787,3 +1850,41 @@ void Parser::invalidateContainingFuncs(Function *owner, Block *b)
                        FILE__,__LINE__,b->start(),b->end(),po->addr());
     }   
 }
+
+/* Add ParseFrames waiting on func back to the work queue */
+void Parser::resumeFrames(Function * func, vector<ParseFrame *> & work)
+{
+    // If we do not know the function's return status, don't put its waiters back on the worklist
+    if (func->_rs == UNSET) { 
+        parsing_printf("[%s] %s return status unknown, cannot resume waiters\n",
+                __FILE__,
+                func->name().c_str());
+        return; 
+    }
+
+    // When a function's return status is set, all waiting frames back into the worklist
+    map<Function *, set<ParseFrame *> >::iterator iter = delayedFrames.find(func);
+    if (iter == delayedFrames.end()) {
+        // There were no frames waiting, ignore
+        parsing_printf("[%s] %s return status %d, no waiters\n",
+                __FILE__,
+                func->name().c_str(),
+                func->_rs);
+        return;
+    } else {
+        parsing_printf("[%s] %s return status %d, undelaying waiting functions\n",
+                __FILE__,
+                func->name().c_str(),
+                func->_rs);
+        // Add each waiting frame back to the worklist
+        set<ParseFrame *> vec = iter->second;
+        for (set<ParseFrame *>::iterator fIter = vec.begin(); 
+                fIter != vec.end();
+                ++fIter) {
+            work.push_back(*fIter);
+        }
+        // remove func from delayedFrames map
+        delayedFrames.erase(func);
+    }
+}
+

@@ -156,9 +156,6 @@ bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
     return true;
 }
 
-extern std::set<Address> suicideAddrs;
-
-#if 0
 static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_active)
 {
     bool ret = false;
@@ -173,12 +170,11 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
             vector<func_instance *> funcs;
-            baseTramp *bti = NULL;
-            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bti);
+            baseTramp *bt = NULL;
+            ev.proc->getAddrInfo(ev.address, origAddr, funcs, bt);
             mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
-            //ev.proc->detachPCProcess(true);
             pdvector<pdvector<Frame> >  stacks;
             if (!ev.proc->walkStacks(stacks)) {
                 mal_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
@@ -196,7 +192,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             }
             dyn_saved_regs regs;
             ev.lwp->getRegisters(&regs,false);
-            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+            fprintf(stderr,"REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
                    "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
                    regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
                    regs.cont.Esi, regs.cont.Edi);
@@ -206,15 +202,15 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 1: {// bad write 
         Address origAddr = ev.address;
         vector<func_instance *> writefuncs;
-        baseTramp *bti = NULL;
-        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
+        baseTramp *bt = NULL;
+        bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bt);
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
 			Address shadowAddr = 0;
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = ev.proc->getMemEm()->translateBackwards(violationAddr);
 
-			cerr << "Overwrite insn @ " << hex << origAddr << endl;
+			cerr << "Overwrite insn @ " << hex << origAddr << dec << endl;
             vector<func_instance *> writefuncs;
             baseTramp *bti = NULL;
             bool success = ev.proc->getAddrInfo(ev.address, origAddr, writefuncs, bti);
@@ -223,7 +219,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                         "function\"%s\" [%lx], writing to %lx (%lx) \n",
                         FILE__,__LINE__, ev.address, origAddr,
 						writefuncs.empty() ? "<NO FUNC>" : writefuncs[0]->get_name().c_str(), 
-						writefuncs.empty() ? 0 : writefuncs[0]->get_address(), 
+						writefuncs.empty() ? 0 : writefuncs[0]->addr(), 
                         violationAddr, shadowAddr);
             } else { 
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
@@ -232,7 +228,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             }
             dyn_saved_regs regs;
             ev.lwp->getRegisters(&regs,false);
-            printf("REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
+            fprintf(stderr,"REGISTER STATE:\neax=%lx \necx=%lx \nedx=%lx \nebx=%lx \nesp=%lx \nebp=%lx \nesi=%lx "
                    "\nedi=%lx\n",regs.cont.Eax, regs.cont.Ecx, regs.cont.Edx, 
                    regs.cont.Ebx, regs.cont.Esp, regs.cont.Ebp, 
                    regs.cont.Esi, regs.cont.Edi);
@@ -325,8 +321,10 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             faultObj = ev.proc->findObject(origAddr);
         }
         if (!faultObj || BPatch_defensiveMode == faultObj->hybridMode()) {
-            // KEVINTODO: we're emulating the instruction, pop saved regs off of the stack and into the appropriate registers, 
-            // KEVINTODO: signalHandlerEntry will have to fix up the saved context information on the stack 
+            // KEVINTODO: we're emulating the instruction, pop saved regs off 
+            // of the stack and into the appropriate registers,
+            // signalHandlerEntry will have to fix up the saved 
+            // context information on the stack 
             assert(1 || "stack imbalance and bad reg values resulting from incomplete memory emulation of instruction that caused a fault");
         }
     }
@@ -340,20 +338,12 @@ void OS::osDisconnect(void) {
 }
 
 #if 0
-bool PCProcess::setMemoryAccessRights
-(Address start, Address size, int rights)
+bool PCProcess::setMemoryAccessRights (Address start, Address size, int rights)
 {
-    mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
+    //mal_printf("setMemoryAccessRights to %x [%lx %lx]\n", rights, start, start+size);
     // get lwp from which we can call changeMemoryProtections
     dyn_lwp *stoppedlwp = query_for_stopped_lwp();
-    if ( ! stoppedlwp ) {
-        assert(0); //KEVINTODO: I don't think this code is right, it doesn't resume the stopped lwp
-        bool wasRunning = true;
-        stoppedlwp = stop_an_lwp(&wasRunning);
-        if ( ! stoppedlwp ) {
-        return false;
-        }
-    }
+    assert( stoppedlwp );
     if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
         mapped_object *obj = findObject(start);
         int page_size = getMemoryPageSize();
@@ -368,7 +358,7 @@ bool PCProcess::setMemoryAccessRights
 bool PCProcess::getMemoryAccessRights(Address start, Address size, int rights)
 {
    assert(0 && "Unimplemented!");
-   return false;
+   return 0;
 }
 
 #if 0
@@ -384,9 +374,8 @@ int dyn_lwp::changeMemoryProtections
 	// Temporary: set on a page-by-page basis to work around problems
 	// with memory deallocation
 	for (Address idx = pageBase; idx < pageBase + size; idx += pageSize) {
-        //mal_printf("setting rights to %lx for [%lx %lx)\n", 
-          //         rights, idx , idx + pageSize);
-		if (!VirtualProtectEx((HANDLE)getPCProcessHandle(), (LPVOID)(idx), 
+      //mal_printf("setting rights to %lx for [%lx %lx)\n", rights, idx , idx + pageSize);
+		if (!VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(idx), 
 			(SIZE_T)pageSize, (DWORD)rights, (PDWORD)&oldRights)) 
 		{
 			fprintf(stderr, "ERROR: failed to set access rights for page %lx, error code %d "
@@ -402,8 +391,8 @@ int dyn_lwp::changeMemoryProtections
 			bool valid = false;
 			boost::tie(valid, shadowAddr) = proc()->getMemEm()->translate(idx);
 			if (!valid) {
-				fprintf(stderr, "WARNING: set access rights on page %lx that has "
-					"no shadow %s[%d]\n",addr,FILE__,__LINE__);
+				//fprintf(stderr, "WARNING: set access rights on page %lx that has "
+				//	"no shadow %s[%d]\n",addr,FILE__,__LINE__);
 			}
 			else 
 			{
@@ -428,6 +417,7 @@ int dyn_lwp::changeMemoryProtections
 
 
 #if 0
+
 // sets PC for stack frames other than the active stack frame
 bool Frame::setPC(Address newpc) {
 
@@ -451,8 +441,6 @@ bool Frame::setPC(Address newpc) {
 	return false;
 }
 #endif
-
-
 
 void InitSymbolHandler( HANDLE hPCProcess )
 {
@@ -830,6 +818,7 @@ std::string GetLoadedDllImageName( PCProcess* p, const DEBUG_EVENT& ev )
 #endif
 
 
+
 bool AddressSpace::getDyninstRTLibName() {
     // Set the name of the dyninst RT lib
     if (dyninstRT_name.length() == 0) {
@@ -944,7 +933,8 @@ bool PCProcess::loadDYNINSTlib()
 
     bool status = lwp->getRegisters(savedRegs);
     assert(status == true);    
-    lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
+
+	lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
     
     setBootstrapState(loadingRT_bs);
     return true;
@@ -1413,11 +1403,14 @@ mapped_object *PCProcess::createObjectNoFile(Address addr)
             (desc,this,proc()->getHybridMode(),false);
         if (obj != NULL) {
             obj->setMemoryImg();
-            mapped_objects.push_back(obj);
+            //mapped_objects.push_back(obj);
+	    addMappedObject(obj);
 
             obj->parse_img()->getOrCreateModule(
                 obj->parse_img()->getObject()->getDefaultModule());
             return obj;
+        } else {
+           fprintf(stderr,"Failed to create object (that was not backed by a file) at %lx\n", objStart);
         }
     }
     return NULL;
@@ -1468,7 +1461,11 @@ bool PCProcess::instrumentThreadInitialFunc(func_instance *f) {
     AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
 	instPoint *entry = instPoint::funcEntry(f);
 	miniTramp *mt = entry->push_front(call_dummy_create, false);
-	relocate();
+	//	relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(this);
+    /* End of PatchAPI stuffs */
+
     if (!mt) {
       fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
               __FILE__, __LINE__);

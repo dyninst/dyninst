@@ -55,8 +55,13 @@ typedef Dyninst::InsnAdapter::IA_IAPI InstructionAdapter_t;
 namespace Dyninst {
 namespace ParseAPI {
 
+   class CFGModifier;
+
 /** This is the internal parser **/
 class Parser {
+   // The CFG modifier needs to manipulate the lookup structures,
+   // which are internal Parser data. 
+   friend class CFGModifier;
  private:
     // Owning code object
     CodeObject & _obj;
@@ -65,13 +70,17 @@ class Parser {
     CFGFactory & _cfgfact;
 
     // Callback notifications
-    ParseCallback & _pcb;
+    ParseCallbackManager & _pcb;
 
     // region data store
     ParseData * _parse_data;
 
     // All allocated frames
     vector<ParseFrame *> frames;
+
+    // Delayed frames
+    unsigned num_delayedFrames;
+    std::map<Function *, std::set<ParseFrame *> > delayedFrames;
 
     // differentiate those provided via hints and
     // those found through RT or speculative parsing
@@ -99,7 +108,7 @@ class Parser {
     bool _in_finalize;
 
  public:
-    Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb);
+    Parser(CodeObject & obj, CFGFactory & fact, ParseCallbackManager & pcb);
     ~Parser();
 
     /** Initialization & hints **/
@@ -124,8 +133,8 @@ class Parser {
     CodeObject & obj() { return _obj; }
 
     // removal
-    void remove_func(Function *);
     void remove_block(Block *);
+    void remove_func(Function *);
     void move_func(Function *, Address new_entry, CodeRegion *new_reg);
 
  public: 
@@ -170,6 +179,11 @@ class Parser {
 
     void parse_frames(std::vector<ParseFrame *> &, bool);
     void parse_frame(ParseFrame & frame,bool);
+
+    void resumeFrames(Function * func, vector<ParseFrame *> & work);
+    
+    // defensive parsing details
+    void tamper_post_processing(std::vector<ParseFrame *>&, ParseFrame *);
     ParseFrame * getTamperAbsFrame(Function *tamperFunc);
 
     /* implementation of the parsing loop */
@@ -177,8 +191,7 @@ class Parser {
         ParseFrame&,
         Block*,
         InstructionAdapter_t&,
-        Address target,
-        EdgeTypeEnum etype);
+        Address target);
     void ProcessCallInsn(
         ParseFrame&,
         Block*,

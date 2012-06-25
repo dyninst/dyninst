@@ -373,7 +373,7 @@ public:
 
     void fixupUnknown(BPatch_module *);
     Dyninst::SymtabAPI::localVar *getSymtabVar();
-    BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc);
+    BPatch_storageClass convertToBPatchStorage(Dyninst::VariableLocation *loc);
 
 public:
     //  end of functions for internal use only

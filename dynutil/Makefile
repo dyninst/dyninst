@@ -18,10 +18,11 @@ PUBLIC_H = Annotatable.h \
 		dyn_regs.h \
 		stl_utils.h \
 		SymReader.h \
-		AST.h \
+		DynAST.h \
 		ProcReader.h \
 	   IBSTree.h \
-      entryIDs.h
+      entryIDs.h \
+		VariableLocation.h
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
 INSTALL_TARGETS = $(addprefix $(LOCAL_INCLUDE_DEST)/, $(PUBLIC_H))

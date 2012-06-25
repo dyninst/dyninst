@@ -35,8 +35,6 @@
 #include <string>
 #include <map>
 
-#include "dynptr.h"
-
 #include "dyntypes.h"
 #include "PCProcess.h"
 #include "PCErrors.h"

@@ -33,7 +33,7 @@
 #include "CodeTracker.h"
 #include "Widgets/Widget.h" //  Currently Patch is defined here; we may want to move it.
 
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/codegen.h"
 #include <iostream>
 
@@ -149,7 +149,9 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker *t) {
 
    for (Trackers::iterator iter = trackers_.begin();
         iter != trackers_.end(); ++iter) {
-      TrackerElement *e = iter->second; assert(e);
+      TrackerElement *e = iter->second;
+      if (!e) continue; // 0-length "mark me" Widgets may not have trackers
+
       //relocation_cerr << "\t Tracker element: " << *e << endl;
       unsigned size = 0;
       Trackers::iterator next = iter; ++next;

@@ -30,7 +30,7 @@
  */
 
 #include "CodeTracker.h"
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/block.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -115,6 +115,7 @@ bool CodeTracker::relocToOrig(Address relocAddr,
   ri.orig = e->relocToOrig(relocAddr);
   ri.block = e->block();
   ri.func = e->func();
+  ri.reloc = relocAddr;
   if (e->type() == TrackerElement::instrumentation) {
      InstTracker *i = static_cast<InstTracker *>(e);
      ri.bt = i->baseT();
@@ -142,50 +143,56 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // If that happens, the assumption origToReloc makes that we can
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
+   //relocation_cerr << "Adding tracker: " << *e << endl;
+
    if (!trackers_.empty()) {
-      TrackerElement *last = trackers_.back();
-      if (e->orig() == last->orig() &&
-          e->type() == last->type()) {
-         if (false) relocation_cerr << "OVERLAPPING TRACKERS, combining...." << endl;
-         if (false) relocation_cerr << "\t Current: " << *last << endl;
-         if (false) relocation_cerr << "\t New: " << *e << endl;
-         if (e->reloc() != (last->reloc() + last->size())) {
-            cerr << "Error: mismatch in addresses; old ended at " << hex << last->reloc() + last->size() 
-                 << " and new at " << e->reloc() << endl;
-            cerr << "\t" << *last << endl;
-            cerr << "\t" << *e << endl;
-         }
-         assert(e->reloc() == (last->reloc() + last->size()));
-         last->setSize(last->size() + e->size());
+      TrackerElement *previous = trackers_.back();
+      if (previous->mergeable() &&
+          e->mergeable() && 
+          previous->type() == e->type() &&
+          e->orig() == (previous->orig()+previous->size()) &&
+          e->block() == previous->block() &&
+          e->func() == previous->func()) {
+         // Merge!
+         previous->size_ += e->size_;
+         // update relocToOrig_
+         delete e;
          return;
       }
    }
-   if (false) relocation_cerr << "Adding tracker: " << *e << endl;
-
+   
    trackers_.push_back(e);
 }
 
 void CodeTracker::createIndices() {
   // Take each thing in trackers_ and add it to 
   // the origToReloc_ and relocToOrig_ mapping trees
-  for (TrackerList::iterator iter = trackers_.begin();
-       iter != trackers_.end(); ++iter) {
-    TrackerElement *e = *iter;
 
-    relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
+   // We may have multiple Trackers for the same original address.
+   // If they have different types that's fine; if they have the same type
+   // we accumulate instead of adding one of them.
 
-   if (e->type() == TrackerElement::instrumentation) {
-      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instrumentation = e->reloc();
-   }
-   else if (e->type() == TrackerElement::padding) {
-      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].pad = e->reloc();
-   }
-   else {
-      origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
-   }
-  }
+   for (TrackerList::iterator iter = trackers_.begin();
+        iter != trackers_.end(); ++iter) {
+      TrackerElement *e = *iter;
 
-  //if (patch_debug_relocation) debug();
+      relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
+      
+      if (e->type() == TrackerElement::instrumentation) {
+         InstTracker *inst = static_cast<InstTracker *>(e);
+         
+         origToReloc_[e->block()->start()]
+            [e->func() ? e->func()->addr() : 0]
+            [e->orig()].instrumentation[inst->baseT()->point()] = e->reloc();
+      }
+      else if (e->type() == TrackerElement::padding) {
+         origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].pad = e->reloc();
+      }
+      else {
+         origToReloc_[e->block()->start()][e->func() ? e->func()->addr() : 0][e->orig()].instruction = e->reloc();
+      }
+   }
+
 }
 
 void CodeTracker::debug() {
@@ -198,9 +205,9 @@ void CodeTracker::debug() {
         for (FwdMapInner::const_iterator iter3 = iter2->second.begin();
              iter3 != iter2->second.end(); ++iter3) {
            cerr << "\t\t" << hex \
-                << iter3->first 
-                << " -> " << iter3->second.instrumentation << "(bt), " 
+                << iter3->first << " "
                 << iter3->second.instruction << "(insn)"
+                << iter3->second.instrumentation.size() << " (bts)"
                 << ", block @" << iter->first
                 << ", func @" << iter2->first << dec << endl;
         }

@@ -40,8 +40,9 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
-
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
+
+# Now make any necessary architecture specific changes to variables:
 VPATH += ../../common/src

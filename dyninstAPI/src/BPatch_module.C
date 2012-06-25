@@ -338,11 +338,14 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
    if (!isValid())
       return false;
 
-   if (!full_func_parse || func_map.size() != mod->getFuncVectorSize()) {
+   if (!full_func_parse || 
+       func_map.size() != mod->getFuncVectorSize() || 
+       mod->obj()->isExploratoryModeOn())
+   {
       const pdvector<func_instance*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
-            addSpace->findOrCreateBPFunc(funcs[i], this);
+            addSpace->findOrCreateBPFunc(funcs[i], this); // adds func to func_map
          }
       }
       full_func_parse = true;
@@ -579,7 +582,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
-bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
+bool BPatch_module::remove(BPatch_function *bpfunc)
 {
     func_instance *func = bpfunc->lowlevel_func();
 
@@ -593,47 +596,19 @@ bool BPatch_module::removeFunction(BPatch_function *bpfunc, bool deepRemoval)
         return false;
     }
 
-    if (deepRemoval) {
-        std::map<func_instance*,block_instance*> newFuncEntries;
-
-        //remove instrumentation from dead function
-        bpfunc->removeInstrumentation(true);
-        bool dontcare=false;
-        addSpace->finalizeInsertionSet(false,&dontcare);
-
-        // delete completely dead functions
-        using namespace ParseAPI;
-        vector<pair<block_instance*,Edge*> > deadFuncCallers; // build up list of live callers
-        Address funcAddr = func->addr();
-        mal_printf("Removing function at %lx from mod %s\n", funcAddr, 
-                   mod->fileName().c_str());
-
-        // nuke all call edges, assert that there's a sink edge, otherwise we'll 
-        // have to fill in the code for direct transfers, creating unresolved points
-        // at the source blocks
-        Block::edgelist &callEdges = func->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        CFGFactory *fact = func->ifunc()->img()->codeObject()->fact();
-        bool foundSinkEdge = false;
-        for( ; eit != callEdges.end(); ++eit) {
-            if ( (*eit)->sinkEdge() ) {
-                foundSinkEdge = true;
-            }
-            else if (CALL == (*eit)->type()) {// includes tail calls
-                (*eit)->uninstall();
-                fact->free_edge(*eit);
-            }
-        }
-        assert(foundSinkEdge);
- 
-        //remove dead function
-        func->removeFromAll();
-
-    } // end deepRemoval
-
-    this->func_map.erase(fmap_iter);
+    func_map.erase(fmap_iter);
 
     return true;
+}
+
+bool BPatch_module::remove(instPoint* point)
+{
+    BPatch_instpMap::iterator pit = instp_map.find(point);
+    if (pit != instp_map.end()) {
+        instp_map.erase(pit);
+        return true;
+    }
+    return false;
 }
 
 void BPatch_module::parseTypes() 
@@ -797,13 +772,20 @@ unsigned long BPatch_module::getSizeInt()
    return (unsigned long) mod->obj()->imageSize();
 }
 
-Dyninst::ParseAPI::CodeObject *
-BPatch_module::getCodeObjectInt()
-{
-    if(!mod) return NULL;
-    return mod->obj()->parse_img()->codeObject();
+Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return NULL;
+   return m->mod->obj()->parse_img()->codeObject();
 }
 
+Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return NULL;
+   return m->mod->obj();
+}
+
+Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *m) {
+   if (!m->mod) return NULL;
+   return m->mod->pmod()->mod()->exec();
+}
 
 bool BPatch_module::isNativeCompilerInt()
 {
@@ -952,6 +934,7 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callba
             return addSpace->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
+    
     return NULL;
 }
 
@@ -1080,3 +1063,24 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 
 }
 #endif
+
+bool BPatch_module::findPointsInt(Dyninst::Address addr,
+                                          std::vector<BPatch_point *> &points) {
+   mapped_object *obj = mod->obj();
+   block_instance *blk = obj->findOneBlockByAddr(addr);
+   if (!blk) return false;
+
+   std::vector<func_instance *> funcs;
+   blk->getFuncs(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      // Check module ownership
+      if (funcs[i]->mod() != mod) continue;
+      BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(funcs[i], this);
+      if (!bpfunc) continue;
+      instPoint *p = instPoint::preInsn(funcs[i], blk, addr);
+      if (!p) continue;
+      BPatch_point *pbp = addSpace->findOrCreateBPPoint(bpfunc, p, BPatch_locInstruction);
+      if (pbp) points.push_back(pbp);
+   }
+   return true;
+}

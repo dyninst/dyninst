@@ -57,7 +57,7 @@ typedef enum eBPatch_procedureLocation {
     BPatch_locSourceBlockExit,		// not yet used
     BPatch_locSourceLoopEntry,		// not yet used
     BPatch_locSourceLoopExit,		// not yet used
-    BPatch_locBasicBlockEntry,		// not yet used
+    BPatch_locBasicBlockEntry,
     BPatch_locBasicBlockExit,		// not yet used
     BPatch_locSourceLoop,		// not yet used
     BPatch_locLoopEntry,	

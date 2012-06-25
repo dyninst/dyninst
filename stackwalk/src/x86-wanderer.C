@@ -381,7 +381,6 @@ WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address 
    }
    pc_offset = pc - pc_lib.second;
 
-
    if (func_entry > pc) {
       sw_printf("[%s:%u] - func_entry %lx is greater than pc %lx\n",
                 __FILE__, __LINE__, func_entry, pc);

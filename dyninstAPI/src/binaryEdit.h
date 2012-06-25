@@ -44,6 +44,7 @@
 #include "ast.h"
 
 #include "parseAPI/h/InstructionSource.h"
+#include "PatchMgr.h"
 
 class fileDescriptor;
 class func_instance;
@@ -105,10 +106,6 @@ class BinaryEdit : public AddressSpace {
     Address offset() const;
     Address length() const;
     Architecture getArch() const;
-
-    virtual bool registerTrapMapping(Address from, Address to);
-    virtual bool unregisterTrapMapping(Address from);
-
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
@@ -146,7 +143,9 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file, const std::string &member = "");
+    static BinaryEdit *openFile(const std::string &file,
+                                Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
+                                const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
     
@@ -158,10 +157,13 @@ class BinaryEdit : public AddressSpace {
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
     // add a shared library relocation
-	void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
+    void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
 
     // search for a shared library relocation
-	Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
+    Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
+
+    // Add a library prerequisite
+    void addLibraryPrereq(std::string libname);
 
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();
@@ -183,7 +185,16 @@ class BinaryEdit : public AddressSpace {
    bool replaceTrapHandler();
    bool usedATrap();
    bool isMultiThreadCapable();
-   std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
+   mapped_object *openResolvedLibraryName(std::string filename, 
+                                          std::map<std::string, BinaryEdit*> &allOpened);
+
+   bool writing() { return writing_; }
+
+   void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
+
+   // Not needed for binary rewriting
+   virtual bool registerTrapMapping(Address, Address) { return true; };
+   virtual bool unregisterTrapMapping(Address) { return true; };
 
  private:
     Address highWaterMark_;
@@ -218,11 +229,16 @@ class BinaryEdit : public AddressSpace {
 
     void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
                              SymtabAPI::Region *newSec,
-                             SymtabAPI::Module *mod);
+                             SymtabAPI::Module *newMod);
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
+    bool writing_;
+
+    // Symbols that other people (e.g., functions) want us to add
+    std::vector<SymtabAPI::Symbol *> newDyninstSyms_;
+
 };
 
 class depRelocation {

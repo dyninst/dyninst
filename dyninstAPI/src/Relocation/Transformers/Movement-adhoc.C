@@ -31,7 +31,7 @@
 
 #include "Transformer.h"
 #include "Movement-adhoc.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../Widgets/RelDataWidget.h"
 #include "../Widgets/CFWidget.h"
@@ -226,6 +226,8 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   // Check for call + size;
   // Check for call to thunk.
   // TODO: need a return register parameter.
+
+   if (ptr->insn()->getCategory() != InstructionAPI::c_CallInsn) return false;
 
   // Okay: checking for call + size
   Expression::Ptr CFT = ptr->insn()->getControlFlowTarget();

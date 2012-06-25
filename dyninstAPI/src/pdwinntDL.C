@@ -110,12 +110,16 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
                          (HANDLE)procHandle,
                          ev.info.u.LoadDll.hFile, true, 
                          (Address)ev.info.u.LoadDll.lpBaseOfDll);   
-     // discover structure of new DLL, and incorporate into our
-     // list of known DLLs
+
      BPatch_hybridMode mode = proc->getHybridMode();
-     //KEVINTODO: re-enable this // if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
+     bool parseGaps = true;
+     if (BPatch_defensiveMode == mode && !mapped_object::isSystemLib(imageName))
+         parseGaps = false;
+     //else //KEVINTODO: re-instate the else once isSystemLib is working
          mode = BPatch_normalMode;
-     mapped_object *newobj = mapped_object::createMappedObject(desc, proc, mode);
+
+     mapped_object *newobj = 
+         mapped_object::createMappedObject(desc, proc, mode, parseGaps);
      if (!newobj) {
          fprintf(stderr, "[%s:%u] - Couldn't parse loaded module %s\n", 
                  FILE__,__LINE__, imageName.c_str());

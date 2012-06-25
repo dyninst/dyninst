@@ -77,6 +77,9 @@
 #include "dyninstAPI/src/vxworks.h"
 #endif
 
+// For callbacks
+#include "dyninstAPI/src/mapped_object.h" 
+
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
 AnnotationClass<parse_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
@@ -90,6 +93,16 @@ using Dyninst::SymtabAPI::Symbol;
 using Dyninst::SymtabAPI::Region;
 using Dyninst::SymtabAPI::Variable;
 using Dyninst::SymtabAPI::Module;
+
+char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
+    "main",
+    "DYNINST_pltMain",
+    "_main",
+    "WinMain",
+    "_WinMain",
+    "wWinMain",
+    "_wWinMain",
+    "tls_cb_0"};
 
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor() {
@@ -132,13 +145,6 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
         return false;
 }
 
-void fileDescriptor::setLoadAddr(Address a) 
-{ 
-   loadAddr_ = a; 
-   code_ += a;
-   data_ += a;
-}
-
 // only for non-files
 unsigned char* fileDescriptor::rawPtr()
 {
@@ -161,13 +167,13 @@ extern unsigned enable_pd_sharedobj_debug;
 
 int codeBytesSeen = 0;
 
-#if defined(ppc32_linux) || defined(ppc32_bgp)
+#if defined(ppc32_linux) || defined(ppc32_bgp) || defined(ppc64_linux) || defined(ppc64_bgq)
 
 #include <dataflowAPI/h/slicing.h>
 #include <dataflowAPI/h/SymEval.h>
 #include <dataflowAPI/h/AbslocInterface.h>
 #include <dataflowAPI/h/Absloc.h>
-#include <dynutil/h/AST.h>
+#include <dynutil/h/DynAST.h>
 
 namespace {
     /* On PPC GLIBC (32 & 64 bit) the address of main is in a structure
@@ -310,8 +316,8 @@ namespace {
         Slicer slc(*ait,b,f);
         Default_Predicates preds;
         Graph::Ptr slg = slc.backwardSlice(preds);
-        SymEval::Result_t sl_res;
-        SymEval::expand(slg,sl_res);
+        DataflowAPI::Result_t sl_res;
+        DataflowAPI::SymEval::expand(slg,sl_res);
         AST::Ptr calculation = sl_res[*ait];
         SimpleArithVisitor visit; 
         AST::Ptr simplified = calculation->accept(&visit);
@@ -736,16 +742,6 @@ void image::findMain()
 
 #elif defined(i386_unknown_nt4_0)
 
-#define NUMBER_OF_MAIN_POSSIBILITIES 7
-   char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-       "main",
-       "DYNINST_pltMain",
-       "_main",
-       "WinMain",
-       "_WinMain",
-       "wWinMain",
-       "_wWinMain"};
-   
    if(linkedFile->isExec()) {
        vector <Symbol *>syms;
        vector<SymtabAPI::Function *> funcs;
@@ -759,8 +755,7 @@ void image::findMain()
                break;
            }
        }
-       if (!found_main) {
-           syms.clear();
+       if (found_main) {
            if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //use 'start' for mainCRTStartup.
                Symbol *startSym = new Symbol( "start", 
@@ -774,35 +769,8 @@ void image::findMain()
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
-#if 0 //KEVIN: this makes no sense, why would we parse at arbitrary locations?
-           if(!linkedFile->findSymbol(syms,"winStart",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-               //make up a func name for the start of the text section
-               Symbol *sSym = new Symbol( "winStart", 
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL,
-                                          Symbol::SV_DEFAULT, 
-                                          imageOffset_,
-                                          linkedFile->getDefaultModule(),
-                                          linkedFile->findEnclosingRegion(imageOffset_), 
-                                          UINT_MAX );
-               linkedFile->addSymbol(sSym);
-           }
-           syms.clear();
-           if(!linkedFile->findSymbol(syms,"winFini",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
-               //make up one for the end of the text section
-               Address end_text = imageOffset_ + linkedFile->imageLength() - 1;
-               Symbol *fSym = new Symbol( "winFini", 
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, 
-                                          Symbol::SV_DEFAULT, 
-                                          end_text, 
-                                          linkedFile->getDefaultModule(),
-                                          linkedFile->findEnclosingRegion(end_text),
-                                          UINT_MAX );
-               linkedFile->addSymbol(fSym);
-           }
-           syms.clear();
-#endif
+       } 
+       else {
            // add entry point as main given that nothing else was found
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",
@@ -1191,29 +1159,6 @@ void image::removeImage(image *img)
   */
 }
 
-void image::removeImage(const string file)
-{
-  image *img = NULL;
-  for (unsigned i = 0; i < allImages.size(); i++) {
-    if (allImages[i]->file() == file)
-      img = allImages[i];
-  }
-  // removeImage plays with the allImages vector... so do this
-  // outside the for loop.
-  if (img) image::removeImage(img);
-}
-
-void image::removeImage(fileDescriptor &desc)
-{
-  image *img = NULL;
-  for (unsigned i = 0; i < allImages.size(); i++) {
-    // Never bothered to implement a != operator
-    if (allImages[i]->desc() == desc)
-      img = allImages[i];
-  }
-  if (img) image::removeImage(img);
-}
-
 int image::destroy() {
     refCount--;
     if (refCount == 0) {
@@ -1228,20 +1173,6 @@ int image::destroy() {
     return refCount; 
 }
 
-void image::deleteFunc(parse_func *func)
-{
-    // remove the function from symtabAPI
-    SymtabAPI::Function *sym_func =NULL;
-    getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
-    if (sym_func) 
-        getObject()->deleteFunction(sym_func);
-
-    // tell the parseAPI to remove the func from its datastructures
-    // and delete the function
-    codeObject()->deleteFunc(func);
-
-}
-
 void image::analyzeIfNeeded() {
   if (parseState_ == symtab) {
       parsing_printf("ANALYZING IMAGE %s\n",
@@ -1250,7 +1181,6 @@ void image::analyzeIfNeeded() {
 	  // For defensive mode: we only care about incremental splitting and block
 	  // creation, not ones noted during parsing (as we haven't created the int
 	  // layer yet, so no harm no foul)
-	  clearSplitBlocks();
 	  clearNewBlocks();
   }
 }
@@ -1378,7 +1308,6 @@ image::image(fileDescriptor &desc,
    mode_(mode),
    arch(Dyninst::Arch_none)
 {
-
 #if defined(os_aix)
    archive = NULL;
    string file = desc_.file().c_str();
@@ -1461,14 +1390,16 @@ image::image(fileDescriptor &desc,
 #else
 	std::string file = desc_.file();
    startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
+   Symtab::def_t symMode = (BPatch_defensiveMode == mode) ? 
+       Symtab::Defensive : Symtab::NotDefensive;
    if(desc.rawPtr()) {
-       linkedFile = new SymtabAPI::Symtab((unsigned char*)desc.rawPtr(), 
+       linkedFile = new Symtab((unsigned char*)desc.rawPtr(), 
                                           desc.length(), 
                                           desc.file(), 
-                                          BPatch_defensiveMode == mode,
+                                          symMode,
                                           err);
    } 
-   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, (BPatch_defensiveMode == mode) ? SymtabAPI::Symtab::Defensive : SymtabAPI::Symtab::NotDefensive))
+   else if(!Symtab::openFile(linkedFile, file, symMode)) 
    {
       err = true;
       return;
@@ -1529,11 +1460,6 @@ image::image(fileDescriptor &desc,
         }
     } nuke_heap;
     filt = &nuke_heap;
-
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
-
 
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
@@ -2148,6 +2074,19 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    return pltFuncs;
 }
 
+void image::getPltFuncs(std::map<Address, std::string> &out)
+{
+   out.clear();
+   vector<SymtabAPI::relocationEntry> fbt;
+   bool result = getObject()->getFuncBindingTable(fbt);
+   if (!result)
+      return;
+
+   for(unsigned k = 0; k < fbt.size(); k++) {
+      out[fbt[k].target_addr()] = fbt[k].name();
+   }
+}
+
 image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
     // What to do here?
@@ -2169,21 +2108,7 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-void image::addSplitBlock(parse_block *first, parse_block *second) {
 
-    std::list<Address> toRemove;
-	splitBlocks_.insert(make_pair(first, second));
-}
-
-
-const image::SplitBlocks & image::getSplitBlocks() const
-{
-    return splitBlocks_;
-}
-void image::clearSplitBlocks()
-{
-    splitBlocks_.clear();
-}
 const vector<parse_block*> & image::getNewBlocks() const
 {
     return newBlocks_;
@@ -2197,3 +2122,7 @@ void image::setImageLength(Address newlen)
 {
     imageLen_ = newlen; 
 }
+
+void image::destroy(ParseAPI::Block *) {}
+void image::destroy(ParseAPI::Edge *) {}
+void image::destroy(ParseAPI::Function *) {}

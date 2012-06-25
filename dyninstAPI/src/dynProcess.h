@@ -290,6 +290,11 @@ public:
     void addSignalHandler(Address, unsigned);
     bool isInSignalHandler(Address addr);
 
+    bool bindPLTEntry(const SymtabAPI::relocationEntry &,
+                      Address,
+                      func_instance *, 
+                      Address);
+
 protected:
     typedef enum {
         bs_attached,

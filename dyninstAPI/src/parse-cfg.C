@@ -97,9 +97,9 @@ parse_func::parse_func(
   containsFPRWrites_(unknown),
   containsSPRWrites_(unknown),
   containsSharedBlocks_(false),
-  instLevel_(NORMAL),
-  canBeRelocated_(true),
   hasWeirdInsns_(false),
+  prevBlocksUnresolvedCF_(0),
+  unresolvedCF_(UNSET_CF),
   init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)
@@ -126,7 +126,7 @@ parse_func::parse_func(
 parse_func::~parse_func() 
 {
     /* FIXME */ 
-  fprintf(stderr,"SCREAMING FIT IN UNIMPL ~parse_func()\n");
+  mal_printf("~image_func() for func at %lx\n",_start);
   delete usedRegisters;
 }
 
@@ -212,8 +212,7 @@ parse_block::parse_block(
         CodeRegion * reg,
         Address addr) :
     Block(obj,reg,addr),
-    needsRelocation_(false),
-    canBeRelocated_(false)
+    needsRelocation_(false)
 {
      
 }
@@ -224,7 +223,8 @@ parse_block::parse_block(
         Address firstOffset) :
     Block(func->obj(),reg,firstOffset),
     needsRelocation_(false),
-    canBeRelocated_(true)
+    unresolvedCF_(false),
+    abruptEnd_(false)
 { 
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();
@@ -253,7 +253,7 @@ void parse_block::debugPrint() {
                    end());
 
     parsing_printf("  Sources:\n");
-    Block::edgelist & srcs = sources();
+    const Block::edgelist & srcs = sources();
     Block::edgelist::iterator sit = srcs.begin();
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
@@ -264,7 +264,7 @@ void parse_block::debugPrint() {
         ++s;
     }
     parsing_printf("  Targets:\n");
-    Block::edgelist & trgs = sources();
+    const Block::edgelist & trgs = sources();
     Block::edgelist::iterator tit = trgs.begin();
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
@@ -323,7 +323,7 @@ bool parse_block::isEntryBlock(parse_func * f) const
  */
 bool parse_block::isExitBlock()
 {
-    Block::edgelist & trgs = targets();
+    const Block::edgelist & trgs = targets();
     if(trgs.empty()) {
         return false;
     }
@@ -350,6 +350,23 @@ bool parse_block::isExitBlock()
         }
     }
     return true;
+}
+
+bool parse_block::isCallBlock()
+{
+    const Block::edgelist & trgs = targets();
+    if(!trgs.empty())
+    {
+        for (Block::edgelist::iterator eit = trgs.begin();
+             eit != trgs.end();
+             eit++) 
+        {
+            if ((*eit)->type() == CALL) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 image *parse_block::img()
@@ -447,7 +464,7 @@ void parse_func::getReachableBlocks
     // reachBlocks set
     while(worklist.size()) {
         parse_block *curBlock = worklist.front();
-        Block::edgelist & outEdges = curBlock->targets();
+        const Block::edgelist & outEdges = curBlock->targets();
         Block::edgelist::iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
             parse_block *targB = (parse_block*) (*tIter)->trg();
@@ -469,96 +486,6 @@ void parse_func::getReachableBlocks
         worklist.pop_front();
     } 
 }
-
-#if 0
-/* This function is static.
- *
- * Find the blocks that would become unreachable if we were to delete
- * the dead blocks.
- */
-void parse_func::getUnreachableBlocks
-( std::set<parse_block*> &deadBlocks,  // input
-  std::set<parse_block*> &unreachable )// output
-{
-    using namespace ParseAPI;
-    mal_printf("GetUnreachableBlocks for %d dead blocks\n",deadBlocks.size());
-
-    // find all funcs containing dead blocks
-    std::set<parse_func*> deadFuncs; 
-    vector<Function*> curfuncs;
-    for (set<parse_block*>::iterator dIter = deadBlocks.begin();
-         dIter != deadBlocks.end(); 
-         dIter++) 
-    {
-        (*dIter)->getFuncs(curfuncs);
-        for (vector<Function*>::iterator fit = curfuncs.begin();
-             fit != curfuncs.end();
-             fit++) 
-        {
-            deadFuncs.insert(dynamic_cast<parse_func*>(*fit));
-        }
-        curfuncs.clear();
-    }
-
-    // add function entry blocks to the worklist and the visited set
-    std::set<parse_block*> visited;
-    std::list<parse_block*> worklist;
-    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
-        fIter != deadFuncs.end();
-        fIter++) 
-    {
-        parse_block *entryBlock = (*fIter)->entryBlock();
-        if (deadBlocks.end() == deadBlocks.find(entryBlock)) {
-            visited.insert(entryBlock);
-            worklist.push_back(entryBlock);
-            mal_printf("func [%lx %lx] entryBlock [%lx %lx]\n",
-                    (*fIter)->getOffset(),(*fIter)->getEndOffset(),
-                    entryBlock->firstInsnOffset(),
-                    entryBlock->endOffset());
-        }
-    }
-
-    // iterate through worklist, adding all blocks (except for
-    // deadBlocks) that are reachable through target edges to the
-    // visited set
-    while(worklist.size()) {
-        parse_block *curBlock = worklist.front();
-        Block::edgelist & outEdges = curBlock->targets();
-        Block::edgelist::iterator tIter = outEdges.begin();
-        for (; tIter != outEdges.end(); tIter++) {
-            parse_block *targB = (parse_block*) (*tIter)->trg();
-            if ( CALL != (*tIter)->type() &&
-                 deadBlocks.end() == deadBlocks.find(targB) && 
-                 visited.end() == visited.find(targB) )
-            {   
-                worklist.push_back(targB);
-                visited.insert(targB);
-                mal_printf("block [%lx %lx] is reachable\n",
-                           targB->firstInsnOffset(),
-                           targB->endOffset());
-            }
-        }
-        worklist.pop_front();
-    } 
-
-    // add all blocks in deadFuncs but not in "visited" to the unreachable set
-    for(std::set<parse_func*>::iterator fIter=deadFuncs.begin(); 
-        fIter != deadFuncs.end();
-        fIter++) 
-    {
-        Function::blocklist & blks = (*fIter)->blocks();
-        Function::blocklist::iterator bIter = blks.begin();
-        for( ; bIter != blks.end(); ++bIter) {
-            if (visited.end() == visited.find( (parse_block*)(*bIter) )) {
-                unreachable.insert( (parse_block*)(*bIter) );
-                mal_printf("block [%lx %lx] is unreachable\n",
-                           (*bIter)->start(), (*bIter)->end());
-            }
-        }
-    }
-}
-#endif
-
 void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 {
     init_retstatus_ = rs;
@@ -568,19 +495,24 @@ void parse_func::setinit_retstatus(ParseAPI::FuncReturnStatus rs)
 }
 ParseAPI::FuncReturnStatus parse_func::init_retstatus() const
 {
+    if (UNSET == init_retstatus_) {
+        assert(!obj()->defensiveMode()); // should have been set for defensive binaries
+        return retstatus();
+    }
     if (init_retstatus_ > retstatus()) {
         return retstatus();
     }
     return init_retstatus_;
 }
 
-void parse_func::destroyBlocks(std::vector<ParseAPI::Block *> &blocks) {
-   deleteBlocks(blocks);
-}
-
 void parse_func::setHasWeirdInsns(bool wi)
 {
    hasWeirdInsns_ = wi;
+}
+
+void parse_block::setUnresolvedCF(bool newVal) 
+{ 
+   unresolvedCF_ = newVal;
 }
 
 parse_func *parse_block::getCallee() {
@@ -614,4 +546,46 @@ std::pair<bool, Address> parse_block::callTarget() {
       return std::make_pair(true, res.convert<Address>());
    }
    return std::make_pair(false, 0);
+}
+
+bool parse_func::hasUnresolvedCF() {
+   if (unresolvedCF_ == UNSET_CF) {
+      for (blocklist::iterator iter = blocks().begin();
+           iter != blocks().end(); ++iter) {
+         for (Block::edgelist::iterator iter2 = (*iter)->targets().begin();
+              iter2 != (*iter)->targets().end(); ++iter2) {
+            if ((*iter2)->sinkEdge() &&
+                (*iter2)->type() == ParseAPI::INDIRECT) {
+               unresolvedCF_ = HAS_UNRESOLVED_CF;
+               break;
+            }
+         }
+         if (unresolvedCF_ == HAS_UNRESOLVED_CF) break;
+      }
+      if (unresolvedCF_ == UNSET_CF)
+         unresolvedCF_ = NO_UNRESOLVED_CF;
+   }
+
+   return (unresolvedCF_ == HAS_UNRESOLVED_CF);
+}
+
+bool parse_func::isInstrumentable() {
+#if defined(os_vxworks)
+   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
+   if(!isInstrumentableByFunctionName())
+#else
+   if(!isInstrumentableByFunctionName() || img()->isRelocatableObj())
+#endif
+      return false;
+   else {
+      // Create instrumentation points for non-plt functions 
+      if(obj()->cs()->linkage().find(getOffset()) != obj()->cs()->linkage().end()) { 
+         return false;
+      }
+    }
+
+   if (hasUnresolvedCF()) {
+      return false;
+   }
+   return true;
 }

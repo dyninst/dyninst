@@ -92,6 +92,9 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define USER_MODULE "USER_MODULE"
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
+#define NUMBER_OF_MAIN_POSSIBILITIES 8
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
+
 class image;
 class lineTable;
 class parse_func;
@@ -135,13 +138,13 @@ class fileDescriptor {
 		dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
-#if defined(os_windows)
-		loadAddr_(code),
-#else
-		loadAddr_(0),
+        loadAddr_(0)
+#if defined (os_windows)
+        ,procHandle_(0)
+        ,fileHandle_(0)
+        ,length_(0)
+        ,rawPtr_(0)
 #endif
-		length_(0),
-		rawPtr_(NULL)
         {}
 
      ~fileDescriptor() {}
@@ -170,7 +173,11 @@ class fileDescriptor {
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
-     void setLoadAddr(Address a);
+     void setLoadAddr(Address a) { 
+        loadAddr_ = a;
+        code_ += a;
+        data_ += a;
+     }
      void setCode(Address c) { code_ = c; }
      void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
@@ -272,11 +279,10 @@ class image : public codeRange {
    static void removeImage(image *img);
 
    // "I need another handle!"
-   image *clone() { refCount++; return this; }
-
-   // And alternates
-   static void removeImage(const string file);
-   static void removeImage(fileDescriptor &desc);
+   image *clone() {
+      refCount++; 
+      return this; 
+   }
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
@@ -378,18 +384,10 @@ class image : public codeRange {
    ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-
    //-----------DEFENSIVE-MODE CODE------------//
    BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
 
-   void deleteFunc(parse_func *func);
-   void addSplitBlock(parse_block *first,
-                      parse_block *second);
-   typedef std::set<std::pair<parse_block *, parse_block *> > SplitBlocks;
-   const SplitBlocks & getSplitBlocks() const;
-   bool hasSplitBlocks() const { return !splitBlocks_.empty(); }
-   void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<parse_block*> & getNewBlocks() const;
    void clearNewBlocks();
@@ -417,11 +415,17 @@ class image : public codeRange {
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
    dictionary_hash<Address, std::string> *getPltFuncs();
+   void getPltFuncs(std::map<Address, std::string> &out);
 #if defined(arch_power)
    bool updatePltFunc(parse_func *caller_func, Address stub_targ);
 #endif
 
-   
+   // Object deletion (defensive mode)
+   void destroy(ParseAPI::Block *);
+   void destroy(ParseAPI::Edge *);
+   void destroy(ParseAPI::Function *);
+
+
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
@@ -451,18 +455,6 @@ class image : public codeRange {
    //
    //  **** GAP PARSING SUPPORT  ****
    bool parseGaps() { return parseGaps_; }
-#if 0
-#if defined(cap_stripped_binaries)
-   bool compute_gap(
-        Address,
-        set<parse_func *, parse_func::compare>::const_iterator &,
-        Address &, Address &);
-   
-   bool gap_heuristics(Address addr); 
-   bool gap_heuristic_GCC(Address addr);
-   bool gap_heuristic_MSVS(Address addr);
-#endif
-#endif
 
    //
    //  ****  PRIVATE DATA MEMBERS  ****
@@ -537,7 +529,6 @@ class image : public codeRange {
    vector<pair<string, Address> > dataHeaps_;
 
    // new element tracking
-   SplitBlocks splitBlocks_;
    vector<parse_block*> newBlocks_;
    bool trackNewBlocks_;
 
@@ -546,6 +537,7 @@ class image : public codeRange {
    bool parseGaps_;
    BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
+
 };
 
 class pdmodule {

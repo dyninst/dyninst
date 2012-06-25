@@ -33,7 +33,7 @@
 
 #include "Transformer.h"
 #include "Instrumenter.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "../Widgets/Widget.h"
 #include "../CFG/RelocTarget.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -77,6 +77,7 @@ bool Instrumenter::process(RelocBlock *trace,
    if (!insnInstrumentation(trace)) return false;
    if (!preCallInstrumentation(trace)) return false;
    if (!blockEntryInstrumentation(trace)) return false;
+   if (!blockExitInstrumentation(trace)) return false;
    if (!funcExitInstrumentation(trace)) return false;
 
    // And on to the graph modification shtuff. 
@@ -89,13 +90,14 @@ bool Instrumenter::process(RelocBlock *trace,
 bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    // We're going to unify pre- and post- instruction instrumentation
    // into a single pass for efficiency. 
-   InsnInstpoints::const_iterator pre;
-   InsnInstpoints::const_iterator preEnd;
-   InsnInstpoints::const_iterator post;
-   InsnInstpoints::const_iterator postEnd;
+   PatchAPI::InsnPoints::const_iterator pre;
+   PatchAPI::InsnPoints::const_iterator preEnd;
+   PatchAPI::InsnPoints::const_iterator post;
+   PatchAPI::InsnPoints::const_iterator postEnd;
 
    bool instPre = false;
    bool instPost = false;
+
 
    if (trace->func()) {
       instPre = trace->func()->findInsnPoints(instPoint::PreInsn, trace->block(),
@@ -106,7 +108,8 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
    else {
       assert(0 && "Unimplemented!");
    }
-   
+
+
    RelocBlock::WidgetList::iterator elem = trace->elements().begin();
 
    while ((instPre && (pre != preEnd)) ||
@@ -119,7 +122,6 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       if (post != postEnd) {
          postAddr = post->first;
       }
-
       assert(elem != trace->elements().end());
 
       Address next;
@@ -133,6 +135,16 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
          assert(elem != trace->elements().end());
       }
 
+      if ((preAddr != 0) &&
+          (preAddr < (*elem)->addr())) {
+         // We missed this? Bad instPoint!
+         assert(0);
+      }
+      if ((postAddr != 0) &&
+          (postAddr < (*elem)->addr())) {
+         assert(0);
+      }
+
       if (preAddr == (*elem)->addr()) {
          if (!pre->second->empty()) {
             Widget::Ptr inst = makeInstrumentation(pre->second);
@@ -143,8 +155,11 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
       }
       if (postAddr == (*elem)->addr()) {
          if (!post->second->empty()) {
+            // We can split an instruction into multiple widgets so skip over all of them...
             RelocBlock::WidgetList::iterator tmp = elem;
-            ++tmp;
+            while ((tmp != trace->elements().end()) &&
+                   ((*tmp)->addr() == postAddr) &&
+                   ((*tmp)->insn())) ++tmp;
             Widget::Ptr inst = makeInstrumentation(post->second);
             if (!inst) return false;
             trace->elements().insert(tmp, inst);
@@ -159,25 +174,34 @@ bool Instrumenter::insnInstrumentation(RelocBlock *trace) {
 bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    instPoint *call = NULL;
    if (trace->func()) {
-      call = trace->func()->findPoint(instPoint::PreCall, trace->block(), false);
+     call = trace->func()->preCallPoint(trace->block(), false);
    }
    if (!call || call->empty()) return true;
 
    RelocBlock::WidgetList &elements = trace->elements();
    // For now, we're inserting this instrumentation immediately before the last instruction
    // in the list of elements. 
+
+   // Unfortunately, we may have split the last instruction into multiple Widgets to 
+   // piecewise emulate. Therefore, we can't just drop it in second-to-last; instead, we
+   // need to put it in before that instruction. 
+
    Widget::Ptr inst = makeInstrumentation(call);
    if (!inst) return false;
 
-   inst.swap(elements.back());
-   elements.push_back(inst);
+   RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
+   InstructionAPI::Instruction::Ptr call_insn = (*riter)->insn();
+   if (call_insn) {
+      while (riter != elements.rend() && (*riter)->insn() == call_insn) ++riter;
+   }
+   elements.insert(riter.base(), inst);
 
    return true;
 }
 
 bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
    // TODO: do this right :)
-   instPoint *exit = trace->func()->findPoint(instPoint::FuncExit, trace->block(), false);
+   instPoint *exit = trace->func()->funcExitPoint(trace->block(), false);
    if (!exit || exit->empty()) return true;
 
    RelocBlock::WidgetList &elements = trace->elements();
@@ -196,7 +220,7 @@ bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
 bool Instrumenter::blockEntryInstrumentation(RelocBlock *trace) {
    instPoint *entry = NULL;
    if (trace->func()) {
-      entry = trace->func()->findPoint(instPoint::BlockEntry, trace->block(), false);
+     entry = trace->func()->blockEntryPoint(trace->block(), false);
    }
 
    if (!entry || entry->empty()) return true;
@@ -207,6 +231,32 @@ bool Instrumenter::blockEntryInstrumentation(RelocBlock *trace) {
    if (!inst) return false;
 
    elements.push_front(inst);
+   return true;
+}
+
+bool Instrumenter::blockExitInstrumentation(RelocBlock *trace) {
+   instPoint *exit = NULL;
+   if (trace->func()) {
+     exit = trace->func()->blockExitPoint(trace->block(), false);
+   }
+
+   if (!exit || exit->empty()) return true;
+
+   RelocBlock::WidgetList &elements = trace->elements();
+   // Block exit instrumentation goes in after anything except a CFAtom
+   // .. which means before the last instruction
+
+   Widget::Ptr last;
+   if (!elements.empty()) {
+      last = elements.back();
+      elements.pop_back();
+   }
+   Widget::Ptr inst = makeInstrumentation(exit);
+   if (!inst) return false;
+
+   elements.push_back(inst);
+   if (last) elements.push_back(last);
+
    return true;
 }
 
@@ -221,7 +271,7 @@ bool Instrumenter::postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    // C (DEFENSIVE TODO) to a new RelocBlock. 
    instPoint *post = NULL;
    if (trace->func()) {
-      post = trace->func()->findPoint(instPoint::PostCall, trace->block(), false);
+     post = trace->func()->postCallPoint(trace->block(), false);
    }
 
    if (!post || post->empty()) return true;
@@ -253,7 +303,7 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
    instPoint *entry = NULL;
    if (trace->func() &&
        trace->func()->entryBlock() == trace->block()) {
-      entry = trace->func()->findPoint(instPoint::FuncEntry, false);
+     entry = trace->func()->funcEntryPoint(false);
    }
    if (!entry || entry->empty()) return true;
 
@@ -275,7 +325,7 @@ bool Instrumenter::funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg) 
                       new Target<RelocBlock *>(trace),
                       ParseAPI::FALLTHROUGH)) return false;
 
-   if (!cfg->setSpringboard(trace->block(), instRelocBlock)) return false;
+   if (!cfg->setSpringboard(trace->block(), trace->func(), instRelocBlock)) return false;
    Predicates::Interprocedural pred;
    if (!cfg->changeTargets(pred, trace->ins(), instRelocBlock)) return false;
 
@@ -287,25 +337,28 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
    assert(trace->type() == RelocBlock::Relocated);
    block_instance *block = trace->block();
    assert(block);
-   const block_instance::edgelist &targets = block->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin();
+   const PatchBlock::edgelist &targets = block->targets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin();
         iter != targets.end(); ++iter) {
       instPoint *point = NULL;
+      edge_instance* iedge = SCAST_EI(*iter);
       if (trace->func()) {
-         point = trace->func()->findPoint(instPoint::Edge, *iter, false);
+        // point = trace->func()->findPoint(instPoint::EdgeDuring, *iter, false);
+        point = trace->func()->edgePoint(iedge, false);
       }
       if (!point || point->empty()) continue;
 
-      RelocBlock *instRelocBlock = RelocBlock::createInst(point, (*iter)->trg()->start(), (*iter)->trg(), trace->func());
+      RelocBlock *instRelocBlock = RelocBlock::createInst(point, iedge->trg()->start(), iedge->trg(), trace->func());
       cfg->addRelocBlockAfter(trace, instRelocBlock);
 
-      Predicates::Edge pred(*iter);
+      Predicates::Edge pred(iedge);
       if (!cfg->interpose(pred, trace->outs(), instRelocBlock)) return false;
    }
    return true;
 }
 
-Widget::Ptr Instrumenter::makeInstrumentation(instPoint *point) {
+Widget::Ptr Instrumenter::makeInstrumentation(PatchAPI::Point *p) {
+   instPoint *point = IPCONV(p);
    assert(!point->empty());
 
    InstWidget::Ptr inst = InstWidget::create(point);

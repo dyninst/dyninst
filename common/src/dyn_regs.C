@@ -39,7 +39,12 @@
 
 using namespace Dyninst;
 
-MachRegister::NameMap *Dyninst::MachRegister::names = NULL;
+boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
+{
+    static boost::shared_ptr<MachRegister::NameMap> store = 
+       boost::shared_ptr<MachRegister::NameMap>(new MachRegister::NameMap);
+    return store;
+}
 
 MachRegister::MachRegister() :
    reg(0)
@@ -54,20 +59,13 @@ MachRegister::MachRegister(signed int r) :
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
-	init_names();
-	(*names)[r] = std::string(n);
+	(*names())[r] = std::string(n);
 }
 
 MachRegister::MachRegister(signed int r, std::string n) :
 reg(r)
 {
-	init_names();
-	(*names)[r] = n;
-}
-
-void MachRegister::init_names() {
-	if (names == NULL)
-		names = new NameMap();
+	(*names())[r] = n;
 }
 
 unsigned int MachRegister::regClass() const
@@ -78,9 +76,11 @@ unsigned int MachRegister::regClass() const
 MachRegister MachRegister::getBaseRegister() const { 
    switch (getArchitecture()) {
       case Arch_x86:
+         if (reg & x86::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_x86_64:
-	
-          return MachRegister(reg & 0xfffff0ff);
+         if (reg & x86_64::GPR) return MachRegister(reg & 0xfffff0ff);
+         else return *this;
       case Arch_ppc32:
       case Arch_ppc64:
       case Arch_none:
@@ -117,9 +117,9 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister& subreg,
 }
 
 std::string MachRegister::name() const { 
-	assert(names != NULL);
-	NameMap::const_iterator iter = names->find(reg);
-	if (iter != names->end()) {
+	assert(names() != NULL);
+	NameMap::const_iterator iter = names()->find(reg);
+	if (iter != names()->end()) {
 		return iter->second;
 	}
 	return std::string("<INVALID_REG>");
@@ -146,7 +146,7 @@ unsigned int MachRegister::size() const {
             case x86::BIT:
                return 0;
             default:
-               return 0;//KEVINTODO: removed sanity-check assert for fuzz testing
+               return 0;//KEVINTODO: removed sanity-check assert because of asprotect fuzz testing, could use this as a sign that the parse has gone into junk
                assert(0);
          }
       case Arch_x86_64:

@@ -232,6 +232,7 @@ void DYNINSTBaseInit()
  *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
+ *    Windows: called from DllMain, which exists in lieu of libdyninstAPI_RT_init
  *
  * This is only called in the Dynamic instrumentation case.  Static
  * libraries don't call this.
@@ -277,6 +278,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
           sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
    memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
    // stOut = fopen("rtdump.txt","w");
+
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */
@@ -492,6 +494,8 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("RT_st: pt[%lx] flags[%lx] calc[%lx] ", 
                    (long)pointAddr, (long)flags, (long)calculation);
+    fprintf(stOut,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
+                   (long)pointAddr, (long)flags, (long)calculation);
 
 #if 0 && defined STACKDUMP
     //if (0 && ((unsigned long)calculation == 0x9746a3 || 
@@ -521,6 +525,12 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
         // the address of real code, so that we add the address to the cache 
         // even if we will stop the thread if there's a cache hit
         isInCache = cacheLookup(calculation);
+        if ((unsigned long)calculation == 0xacb838) {
+           fprintf(stOut,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
+                   (long)pointAddr, (long)flags, (long)calculation);
+           fprintf(stderr,"RT_st: pt[%lx] flags[%lx] calc[%lx]\n", 
+                   (long)pointAddr, (long)flags, (long)calculation);
+        }
     }
 
     // if the cache flag bit is not set, or if we get a cache miss, 
@@ -553,7 +563,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
         DYNINST_synch_event_arg2 = NULL;
         DYNINST_synch_event_arg3 = NULL;
     }
-
+    fflush(stOut);
     tc_lock_unlock(&DYNINST_trace_lock);
 	reentrant = 0;
     return;
@@ -784,8 +794,12 @@ void* dyninstTrapTranslate(void *source,
          
          for (;;) {
             mid = (min + max) / 2;
-            if (mid == prev)
+            if (mid == prev) {
+                fprintf(stderr,"ERROR: dyninstTrapTranslate couldn't find "
+                        "entry for 0x%x: min=%x mid=%x max=%x prev=%x\n",
+                        source,min,mid,max,prev);
                break;
+            }
             prev = mid;
             
             if ((*trap_table)[mid].source < source)
@@ -808,7 +822,7 @@ void* dyninstTrapTranslate(void *source,
       }         
    } while (local_version != *table_version);
 
-   /*   fprintf(stderr, "Mapped %p to %p\n", source, target);*/
+   // rtdebug_printf "Mapped %p to %p\n", source, target);
    return target;
 }
 

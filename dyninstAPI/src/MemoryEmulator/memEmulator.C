@@ -135,8 +135,8 @@ void MemoryEmulator::addRegion(mapped_object *obj) {
 }
 
 void MemoryEmulator::removeRegion(mapped_object *obj) {
-	cerr << "Removing region " << obj->fileName() << endl;
-	cerr << "\t Before: " << endl;
+	sensitivity_cerr << "Removing region " << obj->fileName() << endl;
+	sensitivity_cerr << "\t Before: " << endl;
 	debug();
 	// Remove each code region
 	std::vector<Region *> codeRegions;
@@ -147,7 +147,7 @@ void MemoryEmulator::removeRegion(mapped_object *obj) {
 
 		removeRegion(reg, obj->codeBase());
 	}
-	cerr << "\t After: " << endl;
+	sensitivity_cerr << "\t After: " << endl;
 	debug();
 }
 
@@ -466,66 +466,16 @@ void MemoryEmulator::addSpringboard(Region *reg, Address offset, int size)
     }
     // Otherwise keep the current value
     springboard_cerr << "\t New value: " << hex << offset << " -> " << smap[offset] + offset << dec << endl;
-
-
-#if 0
-    // We don't want to delete these, actually, because we can conflict between a springboard
-    // addition and a synchronization operation.
-
-    while (true)
-    {
-        std::map<Address, int>::iterator lb = smap.lower_bound(offset);
-        if (lb != smap.end()) {
-            // Found a legal lower bound
-            if (lb->first >= offset &&
-                lb->first < (offset + size)) 
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-            if ((lb->first + lb->second) >= offset &&
-                (lb->first + lb->second) < (offset + size))
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-        }
-        // Lower bound is "first entry that is greater than the search term",
-        // so we need to try and back it up to check that one too
-        if (lb != smap.begin()) {
-            lb--;
-            if (lb->first >= offset &&
-                lb->first < (offset + size)) 
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-            if ((lb->first + lb->second) >= offset &&
-                (lb->first + lb->second) < (offset + size))
-            {
-                //cerr << "Erasing SB [" << hex << lb->first << "," << lb->first + lb->second << "]" << dec << endl;
-                smap.erase(lb);
-                continue;
-            }
-        }
-        break;
-    }
-#endif
-
-
 }
 
 void MemoryEmulator::removeSpringboards(func_instance * func) 
 {
    malware_cerr << "untracking springboards from deadfunc " << hex << func->addr() << dec << endl;
 
-   const func_instance::BlockSet & blocks = func->blocks();
-   func_instance::BlockSet::const_iterator bit = blocks.begin();
+   const PatchFunction::Blockset & blocks = func->getAllBlocks();
+   PatchFunction::Blockset::const_iterator bit = blocks.begin();
    for (; bit != blocks.end(); bit++) {
-      removeSpringboards((*bit));
+      removeSpringboards(SCAST_BI(*bit));
    }
 }
 
@@ -540,12 +490,31 @@ void MemoryEmulator::removeSpringboards(const block_instance *bbi)
 }
 
 void  MemoryEmulator::debug() const {
+   if (!dyn_debug_sensitivity) {
+      return;
+   }
 	std::vector<MemoryMapTree::Entry> elements;
 	memoryMap_.elements(elements);
 	cerr << "\t Forward map: " << endl;
 	for (std::vector<MemoryMapTree::Entry>::iterator iter = elements.begin(); iter != elements.end(); ++iter)
 	{
 		cerr << "\t\t " << hex << "[" << iter->first.first << "," << iter->first.second << "]: " << iter->second << dec << endl;
+#if 0 // debug output
+      if (iter->first.first == 0x40d000) {
+         Address val;
+         Address addr = (iter->second + 0x40d84b);
+         assert(sizeof(Address) == aS_->getAddressWidth());
+         Address width = aS_->getAddressWidth();
+         for (Address idx=0; idx < 0x40; idx+=width) {
+            aS_->readDataSpace((void*)(addr+idx), width, &val, true);
+            cerr << hex << " " << 0x40d84b + idx << "[" << addr+idx << "]:  ";
+            fprintf(stderr,"%2x",((unsigned char*)&val)[3]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[2]);
+            fprintf(stderr,"%2x",((unsigned char*)&val)[1]);
+            fprintf(stderr,"%2x\n",((unsigned char*)&val)[0]);
+         }
+      }
+#endif
 	}
 	elements.clear();
 	cerr << "\t Backwards map: " << endl;
@@ -556,4 +525,20 @@ void  MemoryEmulator::debug() const {
 	}
 	elements.clear();
 
+}
+
+void MemoryEmulator::addPOPAD(Address addr)
+{
+    emulatedPOPADs_.insert(addr);
+}
+
+bool MemoryEmulator::isEmulPOPAD(Address addr)
+{
+    Address orig = -1;
+    std::vector<func_instance*> dontcare1;
+    baseTramp *dontcare2;
+    if (!aS_->getAddrInfo(addr, orig, dontcare1, dontcare2)) {
+        assert(0);
+    }
+    return emulatedPOPADs_.end() != emulatedPOPADs_.find(orig);
 }

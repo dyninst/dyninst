@@ -43,6 +43,7 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTthread.c \
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \
+		   ../src/RTstatic_ctors_dtors-ppc64.c \
 		   ../src/RTspace.S
 #		   ../src/RTmutatedBinary.c \
 #		   ../src/RTmutatedBinary_ELF.c \
@@ -65,8 +66,8 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 RTthread-powerpc-asm.o:
-	$(CC) -c $(CFLAGS) ../src/RTthread-powerpc-asm.S
+	$(CC) -m64 -c $(CFLAGS) ../src/RTthread-powerpc-asm.S
 
 RTspace.o:
-	$(CC) -c $(CFLAGS) ../src/RTspace.S
+	$(CC) -m64 -c $(CFLAGS) ../src/RTspace.S
 

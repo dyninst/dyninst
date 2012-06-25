@@ -70,7 +70,6 @@ void ASTFactory::visit(Dereference* )
 {
     AstNodePtr effaddr = m_stack.back();
     m_stack.pop_back();
-	// KEVINTODO: parameterize this
 	// We need to translate the addr to handle emulation shadow pages
 	// before we dereference
 	std::vector<AstNodePtr> args;
@@ -79,10 +78,6 @@ void ASTFactory::visit(Dereference* )
 	args.push_back(AstNode::operandNode(AstNode::Constant, (void *) 0xcafebabe));
 	AstNodePtr funcCall = AstNode::funcCallNode("RTtranslateMemory", args);
 	m_stack.push_back(AstNode::operandNode(AstNode::DataIndir, funcCall));	
-/*	
-	m_stack.push_back(AstNode::operandNode(AstNode::DataIndir,
-                    effaddr));
-*/
 }
 
 void ASTFactory::visit(Immediate* i)

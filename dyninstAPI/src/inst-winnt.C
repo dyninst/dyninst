@@ -113,6 +113,11 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&
     return false;
 }
 
+bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance *, Address target_addr) {
+   return false;
+}
+
 bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	assert(!edge->sinkEdge());
 	// We have a direct call but don't yet know the callee.
@@ -136,7 +141,7 @@ bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	if (cFunc == NULL) return false;
 
 	// 1)
-	if (cFunc->blocks().size() > 1) return false;
+	if (cFunc->getAllBlocks().size() > 1) return false;
 
 	// 2)
 	block_instance *cBlock = cFunc->entryBlock();
@@ -177,8 +182,11 @@ func_instance *block_instance::callee()
 	 * Since we're interpreting callees, we want to track this down
 	 * and represent the callee as bar, not stub.
 	 */
+   if (!containsCall()) {
+      return NULL;
+   }
 
-	edge_instance *tEdge = getTarget();
+   edge_instance *tEdge = getTarget();
 	if (!tEdge) return NULL;
 
     // Otherwise use the target function...
@@ -189,7 +197,7 @@ func_instance *block_instance::callee()
 		if (thunkILT(tEdge, proc(), ret)) {
 			return ret;
 		}
-		return obj()->findFuncByEntry(tEdge->trg());
+		return tEdge->trg()->obj()->findFuncByEntry(tEdge->trg());
     }
 
 	  // An call that uses an indirect call instruction could be one
@@ -230,18 +238,25 @@ func_instance *block_instance::callee()
 	              
 				// obtain the target address from memory if it is available
 			  Address targetAddr = ADDR_NULL;
-			  proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
-			  &targetAddr, true );
-			  if( targetAddr != ADDR_NULL )
-			  {
-	        
-			// see whether we already know anything about the target
-			// this may be the case with implicitly-loaded and delay-loaded
-			// DLLs, and it is possible with other types of indirect calls
-			func_instance *target = proc()->findFuncByEntry( targetAddr );
-			updateCallTarget(target);
-			return target;
-			  }
+              if (insn->readsMemory()) {
+                 proc()->readDataSpace( (const void*)funcPtrAddress, 
+                                        sizeof(Address), &targetAddr, true );
+              } 
+              else { // this is not an indirect call at all, but a call to 
+                     // an uninitialized or invalid address
+                  targetAddr = funcPtrAddress;
+              }
+              if( targetAddr != ADDR_NULL )
+              {
+                 // see whether we already know anything about the target
+                 // this may be the case with implicitly-loaded and delay-loaded
+                 // DLLs, and it is possible with other types of indirect calls
+                 func_instance *target = proc()->findFuncByEntry( targetAddr );
+                 if (target) {
+                     updateCallTarget(target);
+                     return target;
+                 }
+              }
 		  }
 	  }
   return NULL;

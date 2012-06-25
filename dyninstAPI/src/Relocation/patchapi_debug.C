@@ -35,7 +35,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string>
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 
 int patch_debug_relocation = 0;
 int patch_debug_springboard = 0;

@@ -37,6 +37,7 @@
 #define _R_T_EMULATE_MEMORY_H_
 
 #include "dyninstAPI/src/Relocation/Transformers/Transformer.h"
+#include "dyninstAPI/src/Relocation/Transformers/Modification.h"
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
@@ -45,16 +46,15 @@ class func_instance;
 namespace Dyninst {
 namespace Relocation {
 
-class InsnAtom;
+class InsnWidget;
 
 class MemEmulatorTransformer : public Transformer {
-  typedef dyn_shared_ptr<InsnAtom> InsnAtomPtr;
+   typedef boost::shared_ptr<InsnWidget> InsnWidgetPtr;
+
  public:
-  typedef std::map<Register, TracePtr> TranslatorMap;
+  typedef std::map<Register, Widget::RelocBlockPtr> TranslatorMap;
 
-  virtual bool preprocess(TraceList &);
-
-  virtual bool processTrace(TraceList::iterator &, const TraceMap &);
+  virtual bool process(RelocBlock *, RelocGraph *);
 
  MemEmulatorTransformer() :
   aConverter(false) {};
@@ -63,19 +63,19 @@ class MemEmulatorTransformer : public Transformer {
 
  private:
 
-  AtomPtr createReplacement(InsnAtomPtr reloc,
+  WidgetPtr createReplacement(InsnWidgetPtr reloc,
 			       func_instance *func, block_instance *);
 
-  bool canRewriteMemInsn(InsnAtomPtr reloc,
+  bool canRewriteMemInsn(InsnWidgetPtr reloc,
 			 func_instance *func);
 
-  bool isSensitive(InsnAtomPtr reloc, 
+  bool isSensitive(InsnWidgetPtr reloc, 
 		   func_instance *func,
 		   block_instance *block);
 
   void createTranslator(Register r);
 
-  bool override(InsnAtomPtr reloc);
+  bool override(InsnWidgetPtr reloc);
 
   TranslatorMap translators_;
 

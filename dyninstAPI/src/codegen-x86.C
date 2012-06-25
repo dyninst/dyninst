@@ -826,15 +826,15 @@ bool insnCodeGen::generateMem(codeGen &gen,
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0) {
 	   //The instruction accesses memory via segment registers.  Disallow.
-	// That just takes all the fun out of it. Don't disallow, but still skip FS
+      // That just takes all the fun out of it. Don't disallow, but still skip FS
 	   if (orig_instr.getPrefix()->getPrefix(1) == 0x64) {
-		   cerr << "Warning: insn uses segment regs: " << hex << (int) orig_instr.getPrefix()->getPrefix(1) << endl;
-		  return false;
-		   }
-	   }
+		   cerr << "Warning: insn at << uses segment regs: " << hex << (int) orig_instr.getPrefix()->getPrefix(1) << endl;
+         return false;
+      }
+   }
    if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
-      return false; 
+      return false; // e.g., leave, pushad instruction
    }
 
    //if (loc.address_size == 1) {

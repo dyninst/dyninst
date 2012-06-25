@@ -50,6 +50,11 @@ int count(int i, char *n){
    return i + 1;
 }
 
+int printfWrapper(char *s){
+   printf(s);
+   return 1;
+}
+
 int count(char *s){
    printf("%s\n",s);
    return 1;

@@ -21,8 +21,7 @@ SRCS = 	../src/linux-swk.C \
 	../src/x86-wanderer.C \
 	../src/analysis_stepper.C \
 	../src/linuxbsd-swk.C \
-	../src/linux-x86-swk.C \
-	../../common/src/Elf_X.C
+	../src/linux-x86-swk.C 
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

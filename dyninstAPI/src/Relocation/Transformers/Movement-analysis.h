@@ -102,17 +102,17 @@ class PCSensitiveTransformer : public Transformer {
      Sens_(0), extSens_(0), intSens_(0), thunk_(0), overApprox_(0), adhoc(as) {};
   virtual ~PCSensitiveTransformer() {};
 
-  static void invalidateCache(block_instance *);
+  static void invalidateCache(func_instance *);
   static void invalidateCache(const block_instance *);
 
  private:
   bool analysisRequired(RelocBlock *);
 
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
-		     Address addr,
-		     func_instance *func,
-                     block_instance *block,
-		     AssignList &sensitiveAssignment);
+                     Address addr,
+                     const func_instance *func,
+                     const block_instance *block,
+                     AssignList &sensitiveAssignment);
   Graph::Ptr forwardSlice(Assignment::Ptr ptr,
 			  parse_block *block,
 			  parse_func *func);
@@ -124,10 +124,12 @@ class PCSensitiveTransformer : public Transformer {
 		       Address addr,
 		       Absloc &destination);
   void handleThunkCall(RelocBlock *b_iter,
+                       RelocGraph *cfg,
 		       WidgetList::iterator &iter,
 		       Absloc &destination);
   void recordIntSensitive(Address addr);
   void emulateInsn(RelocBlock *b_iter,
+                   RelocGraph *cfg,
 		   WidgetList::iterator &iter,
 		   InstructionAPI::Instruction::Ptr insn,
 		   Address addr);

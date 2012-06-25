@@ -43,13 +43,25 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "dynptr.h"
 #include "boost/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
+class BPatch_snippet;
 
 typedef boost::shared_ptr<AstNode> AstNodePtr;
+namespace boost {
+   template< typename T > class shared_ptr;
+   template<> class shared_ptr<AstNode *>;
+}
+
+namespace Dyninst {
+   namespace PatchAPI {
+      class DynASTSnippet;
+      DynASTSnippet *convert(const BPatch_snippet *);
+   }
+}
+
 
 class AstNode;
 class BPatch_process;
@@ -108,6 +120,7 @@ typedef enum {
 #define DYNINST_CLASS_NAME BPatch_snippet
 
 class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
+
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
@@ -155,6 +168,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     API_EXPORT(Int, (),
     BPatch_type *,getType,());
 
+    operator Dyninst::PatchAPI::DynASTSnippet *() const;
 
   private: 
 
@@ -407,6 +421,8 @@ class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
 
     API_EXPORT_CTOR(Int, (reg),
                     BPatch_registerExpr, (BPatch_register reg));
+    API_EXPORT_CTOR(Int, (reg),
+                    BPatch_registerExpr, (Dyninst::MachRegister reg));
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -795,6 +811,22 @@ class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
 
   API_EXPORT_CTOR(Int, (),
   BPatch_dynamicTargetExpr, ());
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_scrambleRegistersExpr
+
+
+class BPATCH_DLL_EXPORT BPatch_scrambleRegistersExpr : public BPatch_snippet
+{
+
+  // BPatch_scrambleRegistersExpr
+  // Set all GPR to flag value.
+
+  API_EXPORT_CTOR(Int, (),
+  BPatch_scrambleRegistersExpr, ());
 };
 
 #endif /* _BPatch_snippet_h_ */

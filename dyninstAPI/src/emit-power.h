@@ -116,73 +116,72 @@ class EmitterPOWER : public Emitter {
     virtual bool clobberAllFuncCall(registerSpace *rs,func_instance *callee);
 
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address) = 0;
-    virtual Register emitCallReplacement(opCode ocode, codeGen &gen, bool noCost, func_instance *callee) = 0;
+    virtual bool emitCallInstruction(codeGen &, func_instance *,
+                                     bool, Address);
+    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+                                         func_instance *);
 };
 
-class EmitterPOWERDyn : public EmitterPOWER {
- public:
-    virtual ~EmitterPOWERDyn() {};
-
- protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
-    virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
-                                 bool noCost, func_instance *callee);
-
-};
-
-class EmitterPOWERStat : public EmitterPOWER {
- public:
-    virtual ~EmitterPOWERStat() {};
-
- protected:
-    virtual Register emitCallReplacement(opCode ocode, codeGen &gen,
-                                 bool noCost, func_instance *callee);
-};
-
-class EmitterPOWER32Dyn : public EmitterPOWERDyn {
- public:
+class EmitterPOWER32Dyn : public EmitterPOWER
+{
+  public:
     virtual ~EmitterPOWER32Dyn() {}
 };
 
-class EmitterPOWER32Stat : public EmitterPOWERStat {
+class EmitterPOWER32Stat : public EmitterPOWER
+{
  public:
     virtual ~EmitterPOWER32Stat() {}
 
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-
+    virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
+    virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
+    virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
+                                     Address);
+    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+                                         func_instance *) {
+        assert(0 && "emitCallReplacement not implemented for binary rewriter");
+    }
+
+  private:
+    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
+    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
-class EmitterPOWER64Dyn : public EmitterPOWERDyn {
- public:
+class EmitterPOWER64Dyn : public EmitterPOWER
+{
+  public:
+  virtual bool emitTOCCall(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, true, gen); }
+  virtual bool emitTOCJump(block_instance *dest, codeGen &gen) { return emitTOCCommon(dest, false, gen); }
     virtual ~EmitterPOWER64Dyn() {}
-
-    virtual bool emitTOCCommon(block_instance *, bool call, codeGen &);
-
-    virtual bool emitTOCJump(block_instance *, codeGen &);
-    virtual bool emitTOCCall(block_instance *, codeGen &);
+ private:
+    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 
 };
 
-class EmitterPOWER64Stat : public EmitterPOWERStat {
- public:
+class EmitterPOWER64Stat : public EmitterPOWER {
+  public:
     virtual ~EmitterPOWER64Stat() {}
 
     virtual bool emitPLTCall(func_instance *dest, codeGen &gen);
     virtual bool emitPLTJump(func_instance *dest, codeGen &gen);
 
-    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
-
-
+    virtual bool emitTOCCall(block_instance *dest, codeGen &gen);
+    virtual bool emitTOCJump(block_instance *dest, codeGen &gen);
  protected:
-    virtual bool emitCallInstruction(codeGen& /*gen*/, func_instance* /*callee*/, bool /*setTOC*/, Address);
-    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address ) ;
+    virtual bool emitCallInstruction(codeGen &, func_instance *, bool,
+                                     Address);
+    virtual Register emitCallReplacement(opCode, codeGen &, bool,
+                                         func_instance *) {
+        assert(0 && "emitCallReplacement not implemented for binary rewriter");
+    }
+
+  private:
+    bool emitPLTCommon(func_instance *dest, bool call, codeGen &gen);
+    bool emitTOCCommon(block_instance *dest, bool call, codeGen &gen);
 };
 
 #endif

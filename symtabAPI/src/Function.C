@@ -39,7 +39,7 @@
 #include "Module.h"
 #include "Collections.h"
 #include "Function.h"
-
+#include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
 
 #include "annotations.h"
@@ -114,8 +114,8 @@ Offset Function::getTOCOffset() const
     return retval;
 }
 
-static std::vector<Dyninst::SymtabAPI::VariableLocation> emptyLocVec;
-std::vector<Dyninst::SymtabAPI::VariableLocation> &Function::getFramePtr() 
+static std::vector<Dyninst::VariableLocation> emptyLocVec;
+std::vector<Dyninst::VariableLocation> &Function::getFramePtr() 
 {
 	if (locs_) return *locs_;
 	return emptyLocVec;
@@ -369,7 +369,7 @@ bool Function::removeSymbol(Symbol *sym)
 	return true;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::VariableLocation &l)
+std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 {
 	const char *stc = storageClass2Str(l.stClass);
 	const char *strc = storageRefClass2Str(l.refClass);

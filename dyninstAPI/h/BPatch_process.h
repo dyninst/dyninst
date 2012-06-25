@@ -228,7 +228,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // Begin internal functions, DO NOT USE
     //
     // this function should go away as soon as Paradyn links against Dyninst
-    PCProcess *lowlevel_process() { return llproc; }
+    PCProcess *lowlevel_process() const { return llproc; }
     // These internal funcs trigger callbacks registered to matching events
     bool triggerStopThread(instPoint *intPoint, func_instance *intFunc, 
                             int cb_ID, void *retVal);
@@ -241,7 +241,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     unsigned char *makeShadowPage(Dyninst::Address pageAddress);
     void overwriteAnalysisUpdate
         ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
-          std::vector<Dyninst::Address>& deadBlockAddrs, //output
+          std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
           std::vector<BPatch_function*>& owFuncs,     //output
           std::set<BPatch_function *> &monitorFuncs, //output
           bool &changedPages, bool &changedCode ); //output
@@ -500,6 +500,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (),
     bool,hideDebugger,());
 
+    API_EXPORT_V(Int, (),
+    void, printDefensiveStats, ());
+
     //  BPatch_process::enableDumpPatchedImage
     //  
     //  
@@ -517,7 +520,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     //  Returns true if successful
 
     API_EXPORT_VIRT(Int, (libname, reload),
-    bool, loadLibrary,(const char *libname, bool reload = false));
+    BPatch_module *, loadLibrary,(const char *libname, bool reload = false));
 
 };
 

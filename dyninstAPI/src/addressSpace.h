@@ -47,6 +47,10 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
+#include "Patching.h"
+
+#include "PatchMgr.h"
+#include "Command.h"
 
 class codeRange;
 class replacedFunctionCall;
@@ -81,7 +85,6 @@ class Dyn_Symbol;
 class BinaryEdit;
 class PCProcess;
 class trampTrapMappings;
-
 class baseTramp;
 
 namespace Dyninst {
@@ -90,7 +93,6 @@ namespace Dyninst {
    namespace InstructionAPI {
       class Instruction;
    }
-   
 };
 
 // This file serves to define an "address space", a set of routines that 
@@ -117,8 +119,8 @@ class AddressSpace : public InstructionSource {
    //   ... if F_c is not specified, we use NULL
    // F specifies the replacement callee; if we want to remove the call entirely,
    // also use NULL
-   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
-   typedef std::map<func_instance *, func_instance *> FuncModMap;
+   //typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   //typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
     PCProcess *proc();
@@ -156,6 +158,12 @@ class AddressSpace : public InstructionSource {
     virtual bool writeTextSpace(void *inOther,
                                 u_int amount,
                                 const void *inSelf) = 0;
+
+    // this is only used on aix so far - naim
+    // And should really be defined in a arch-dependent place, not process.h - bernat
+    Address getTOCoffsetInfo(Address);
+    Address getTOCoffsetInfo(func_instance *);
+    Address getTOCoffsetInfo(mapped_object *);
 
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
@@ -251,6 +259,7 @@ class AddressSpace : public InstructionSource {
     func_instance *findOneFuncByAddr(Address addr);
     // And the one thing that is unique: entry address!
     func_instance *findFuncByEntry(Address addr);
+    block_instance *findBlockByEntry(Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
     func_instance *findFunction(parse_func *ifunc);
@@ -278,7 +287,7 @@ class AddressSpace : public InstructionSource {
     mapped_module *findModule(const std::string &mod_name, bool wildcard = false);
     // And the same for objects
     // Wildcard: handles "*" and "?"
-    mapped_object *findObject(const std::string &obj_name, bool wildcard = false) const;
+    mapped_object *findObject(std::string obj_name, bool wildcard = false) const;
     mapped_object *findObject(Address addr) const;
     mapped_object *findObject(fileDescriptor desc) const;
     mapped_object *findObject(const ParseAPI::CodeObject *co) const;
@@ -317,12 +326,17 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
+
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
-    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *original, 
+                      func_instance *wrapper, 
+                      SymtabAPI::Symbol *clone);
+    void revertWrapFunction(func_instance *original);                      
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
+    const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
@@ -334,6 +348,10 @@ class AddressSpace : public InstructionSource {
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               func_instance *&, 
                               Address) { return false; }
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry & /*entry*/,
+                              Address /*base_addr*/, 
+                              func_instance * /*target_func*/,
+                              Address /*target_addr*/) { return false; }
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
@@ -433,7 +451,7 @@ class AddressSpace : public InstructionSource {
 
 
     bool getAddrInfo(Address relocAddr,//input
-					  Address &origAddr,
+                     Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
     typedef Relocation::CodeTracker::RelocInfo RelocInfo;
@@ -451,7 +469,8 @@ class AddressSpace : public InstructionSource {
              const std::set<block_instance*> &delBBIs,
              const std::list<func_instance*> &deadFuncs);
 
-    void addDefensivePad(block_instance *callBlock, Address padStart, unsigned size);
+    void addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                         Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,
@@ -465,8 +484,8 @@ class AddressSpace : public InstructionSource {
     bool isMemoryEmulated() { return emulateMem_; }
     bool emulatingPC() { return emulatePC_; }
     MemoryEmulator *getMemEm();
-    void invalidateMemory(Address base, Address size);
 
+    bool delayRelocation() const;
  protected:
 
     // inferior malloc support functions
@@ -510,16 +529,16 @@ class AddressSpace : public InstructionSource {
 
     // defensive mode code
     typedef std::pair<Address, unsigned> DefensivePad;
-    std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
-    IntervalTree<Address, instPoint *> reverseDefensiveMap_;
+    std::map<Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;
+    IntervalTree<Address, std::pair<func_instance*,Address> > reverseDefensiveMap_;
 
     // Tracking instrumentation for fast removal
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
-    CallModMap callModifications_;
-    FuncModMap functionReplacements_;
-    FuncModMap functionWraps_;
+    // CallModMap callModifications_;
+    // FuncModMap functionReplacements_;
+    // FuncModMap functionWraps_;
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);
@@ -529,6 +548,20 @@ class AddressSpace : public InstructionSource {
     bool emulateMem_;
     bool emulatePC_;
 
+    bool delayRelocation_;
+
+  // PatchAPI stuffs
+  public:
+    Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
+    void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
+    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
+    void initPatchAPI(mapped_object* aout);
+    void addMappedObject(mapped_object* obj);
+    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
+    static bool patch(AddressSpace*);
+  protected:
+    Dyninst::PatchAPI::PatchMgrPtr mgr_;
+    Dyninst::PatchAPI::Patcher* patcher_;
 };
 
 
