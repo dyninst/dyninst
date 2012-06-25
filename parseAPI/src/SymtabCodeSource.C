@@ -33,6 +33,7 @@
 
 #include <boost/assign/list_of.hpp>
 
+#include "common/h/stats.h"
 #include "dyntypes.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -82,7 +83,6 @@ SymtabCodeRegion::SymtabCodeRegion(
     _symtab(st),
     _region(reg)
 {
-
 }
 
 void
@@ -218,10 +218,12 @@ SymtabCodeRegion::length() const
 
 SymtabCodeSource::~SymtabCodeSource()
 {
+    _have_stats = false;
+    free(stats_parse);
     if(owns_symtab && _symtab)
         SymtabAPI::Symtab::closeSymtab(_symtab);
     for(unsigned i=0;i<_regions.size();++i)
-        delete _regions[i]; 
+        delete _regions[i];
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st, 
@@ -229,24 +231,34 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st,
                                    bool allLoadedRegions) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL)
+    _lookup_cache(NULL),
+    stats_parse(new ::StatContainer()),
+    _have_stats(false)
 {
+    init_stats();
     init(filt,allLoadedRegions);
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) : 
     _symtab(st),
     owns_symtab(false),
-    _lookup_cache(NULL)
+    _lookup_cache(NULL),
+    stats_parse(new ::StatContainer()),
+    _have_stats(false)
 {
+    init_stats();
     init(NULL,false);
 }
 
 SymtabCodeSource::SymtabCodeSource(char * file) :
     _symtab(NULL),
     owns_symtab(true),
-    _lookup_cache(NULL)
+    _lookup_cache(NULL),
+    stats_parse(new ::StatContainer()),
+    _have_stats(false)
 {
+    init_stats();
+    
     bool valid;
 
     valid = SymtabAPI::Symtab::openFile(_symtab,file);
@@ -257,6 +269,97 @@ SymtabCodeSource::SymtabCodeSource(char * file) :
         return;
     }
     init(NULL,false);
+}
+
+bool
+SymtabCodeSource::init_stats() {
+    char *p;
+
+    if ((p = getenv("DYNINST_STATS_PARSING"))) {
+        parsing_printf("[%s] Enabling ParseAPI parsing statistics\n", FILE__);
+        // General counts
+        stats_parse->add(PARSE_BLOCK_COUNT, CountStat);
+        stats_parse->add(PARSE_FUNCTION_COUNT, CountStat);
+        
+        // Basic block size information
+        stats_parse->add(PARSE_BLOCK_SIZE, CountStat);
+
+        // Function return status counts
+        stats_parse->add(PARSE_NORETURN_COUNT, CountStat);
+        stats_parse->add(PARSE_RETURN_COUNT, CountStat);
+        stats_parse->add(PARSE_UNKNOWN_COUNT, CountStat);
+        stats_parse->add(PARSE_NORETURN_HEURISTIC, CountStat);
+
+        // Heuristic information
+        stats_parse->add(PARSE_JUMPTABLE_COUNT, CountStat);
+        stats_parse->add(PARSE_JUMPTABLE_FAIL, CountStat);
+        stats_parse->add(PARSE_TAILCALL_COUNT, CountStat);
+        stats_parse->add(PARSE_TAILCALL_FAIL, CountStat);
+
+        _have_stats = true;
+    }
+
+    return _have_stats;
+}
+
+void
+SymtabCodeSource::print_stats() const {
+    
+    if (_have_stats) {
+        fprintf(stderr, "[%s] Printing ParseAPI statistics\n", FILE__);
+        fprintf(stderr, "\t Basic Stats:\n");
+        fprintf(stderr, "\t\t Block Count: %ld\n", (*stats_parse)[PARSE_BLOCK_COUNT]->value());
+        fprintf(stderr, "\t\t Function Count: %ld\n", (*stats_parse)[PARSE_FUNCTION_COUNT]->value());
+        
+        long int blockSize = (*stats_parse)[PARSE_BLOCK_SIZE]->value();
+        if (blockSize) {
+            fprintf(stderr, "\t Basic Block Stats:\n");
+            fprintf(stderr, "\t\t Sum of block sizes (in bytes): %ld\n", blockSize);
+            fprintf(stderr, "\t\t Average block size (in bytes): %lf\n", (double)blockSize/(double)(*stats_parse)[PARSE_BLOCK_COUNT]->value());
+            fprintf(stderr, "\t\t Average blocks per function: %lf\n", 
+                    (double)(*stats_parse)[PARSE_BLOCK_COUNT]->value()/(double)(*stats_parse)[PARSE_FUNCTION_COUNT]->value());
+        } 
+        fprintf(stderr, "\t Function Return Status Stats:\n");
+        fprintf(stderr, "\t\t NORETURN Count: %ld", (*stats_parse)[PARSE_NORETURN_COUNT]->value());
+        long int noretHeuristicCount = (*stats_parse)[PARSE_NORETURN_HEURISTIC]->value();
+        if (noretHeuristicCount) {
+            fprintf(stderr, " (Labled based on heuristic: %ld)", noretHeuristicCount);
+        }
+        fprintf(stderr, "\n");
+        fprintf(stderr, "\t\t RETURN Count: %ld\n", (*stats_parse)[PARSE_RETURN_COUNT]->value());
+        fprintf(stderr, "\t\t UNKNOWN Count: %ld\n", (*stats_parse)[PARSE_UNKNOWN_COUNT]->value());
+
+        fprintf(stderr, "\t Heuristic Stats:\n");
+        fprintf(stderr, "\t\t parseJumpTable attempts: %ld\n", (*stats_parse)[PARSE_JUMPTABLE_COUNT]->value());
+        fprintf(stderr, "\t\t parseJumpTable failures: %ld\n", (*stats_parse)[PARSE_JUMPTABLE_FAIL]->value());
+        fprintf(stderr, "\t\t isTailCall attempts: %ld\n", (*stats_parse)[PARSE_TAILCALL_COUNT]->value());
+        fprintf(stderr, "\t\t isTailCall failures: %ld\n", (*stats_parse)[PARSE_TAILCALL_FAIL]->value());
+
+    }
+}
+
+void
+SymtabCodeSource::incrementCounter(std::string name) const
+{
+    if (_have_stats) {
+        stats_parse->incrementCounter(name);
+    }
+}
+
+void 
+SymtabCodeSource::addCounter(std::string name, int num) const
+{
+    if (_have_stats) {
+        stats_parse->addCounter(name, num);
+    }
+}
+
+void
+SymtabCodeSource::decrementCounter(std::string name) const
+{
+    if (_have_stats) {
+        stats_parse->decrementCounter(name);
+    }
 }
 
 void

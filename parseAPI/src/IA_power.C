@@ -76,12 +76,16 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
+bool IA_IAPI::isTailCall(Function* context,unsigned int) const
 {
     parsing_printf("Checking for Tail Call \n");
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_COUNT); 
 
     if(tailCall.first) {
         parsing_printf("\tReturning cached tail call check result: %d\n", tailCall.second);
+        if (tailCall.second) {
+            context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
+        }
         return tailCall.second;
     }
     tailCall.first = true;
@@ -101,9 +105,11 @@ bool IA_IAPI::isTailCall(Function* /*context*/,unsigned int) const
     if(allInsns.size() < 2) {
         tailCall.second = false;
         parsing_printf("\ttoo few insns to detect tail call\n");
+        context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
         return tailCall.second;
     }
     tailCall.second = false;
+    context->obj()->cs()->incrementCounter(PARSE_TAILCALL_FAIL);
     return tailCall.second;
 
 }

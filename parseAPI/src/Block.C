@@ -53,11 +53,19 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _func_cnt(0),
     _parsed(false)
 {
+    if (_obj && _obj->cs()) {
+        _obj->cs()->incrementCounter(PARSE_BLOCK_COUNT);
+        _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
+    }
 }
 
 Block::~Block()
 {
     // nothing special
+    if (_obj && _obj->cs()) {
+        _obj->cs()->decrementCounter(PARSE_BLOCK_COUNT);
+        _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());
+    }
 }
 
 bool
@@ -155,6 +163,13 @@ void Block::removeFunc(Function *)
     }
     assert(0 != _func_cnt);
     _func_cnt --;
+}
+
+void Block::updateEnd(Address addr)
+{
+    _obj->cs()->addCounter(PARSE_BLOCK_SIZE, -1*size());
+    _end = addr;
+    _obj->cs()->addCounter(PARSE_BLOCK_SIZE, size());
 }
 
 void Block::destroy(Block *b) {

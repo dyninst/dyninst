@@ -489,7 +489,7 @@ void Parser::ProcessCFInsn(
 
     // Update function return status if possible
     if(unlikely(insn_ret != UNSET && frame.func->_rs < RETURN))
-        frame.func->_rs = insn_ret; 
+        frame.func->set_retstatus(insn_ret);
 
     // Return instructions need extra processing
     if(insn_ret == RETURN)

@@ -807,6 +807,11 @@ bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
 {
     IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
     bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    
+    // Update statistics 
+    currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_COUNT);
+    if (!ret) currBlk->obj()->cs()->incrementCounter(PARSE_JUMPTABLE_FAIL);
+
     delete jumpTableParser;
     return ret;
 }
