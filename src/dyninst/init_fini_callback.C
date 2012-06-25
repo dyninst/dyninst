@@ -120,34 +120,69 @@ test_results_t init_fini_callback_Mutator::executeTest()
     char buffer[80];
     test_results_t pass_fail = PASSED;
     
+    bool init_libtesta = false;
+    bool fini_libtesta = false;
+
+    bool init_aout = false;
+    bool fini_aout = false;
+
     for(unsigned int i = 0; i < appModules.size(); i++)
     {
+       // We want libTestA and the a.out
+
         appModules[i]->getName(buffer, 80);
-        if(!(strstr(buffer, "DEFAULT_MODULE")) && !(strstr(buffer, libNameA)))
-        {
-            continue;
+        
+        bool testa = false;
+        bool aout = false;
+        if (strstr(buffer, libNameA)) {
+           testa = true;
         }
+        if ((strcmp(buffer, "DEFAULT_MODULE") == 0) ||
+            !appModules[i]->isSharedLib()) {
+           aout = true;
+        }
+        if (!testa && !aout) continue;
+
         BPatch_Vector<BPatch_snippet *> nameArgs;
         nameArgs.push_back(new BPatch_constExpr(buffer));
         BPatch_funcCallExpr callInitExpr(*callinit_func, nameArgs);
         BPatch_funcCallExpr callFiniExpr(*callfini_func, nameArgs);
 
-        if(!appModules[i]->insertInitCallback(callInitExpr)) {
-            logerror("**Failed** to insert init callback in module %s\n", buffer);
-            pass_fail = FAILED;
+        if(appModules[i]->insertInitCallback(callInitExpr)) {
+           logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+           if (testa) init_libtesta = true;
+           if (aout) init_aout = true;
         }
-        else
-        {
-            logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+        else {
+           logerror("Warning: failed to insert init callback in module %s\n", buffer);
         }
-        if(!appModules[i]->insertFiniCallback(callFiniExpr)) {
-            logerror("**Failed** to insert fini callback in module %s\n", buffer);
-            pass_fail = FAILED;
+
+        if(appModules[i]->insertFiniCallback(callFiniExpr)) {
+           logerror("**Succeeded** inserting init callback in module %s\n", buffer);
+           if (testa) fini_libtesta = true;
+           if (aout) fini_aout = true;
         }
-        else
-        {
-            logerror("**Succeeded** inserting fini callback in module %s\n", buffer);
+        else {
+           logerror("Warning: failed to insert fini callback in module %s\n", buffer);
         }
+        
     }
-    return pass_fail;
+    if (!init_libtesta) {
+       logerror("Failed to insert init callback in libTestA\n");
+       return FAILED;
+    }
+    if (!fini_libtesta) {
+       logerror("Failed to insert fini callback in libTestA\n");
+       return FAILED;
+    }
+    if (!init_aout) {
+       logerror("Failed to insert init callback in a.out\n");
+       return FAILED;
+    }
+    if (!fini_aout) {
+       logerror("Failed to insert fini callback in a.out\n");
+       return FAILED;
+    }
+
+    return PASSED;
 }
