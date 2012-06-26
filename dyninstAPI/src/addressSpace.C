@@ -176,7 +176,10 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
 
 
     // Clone the tramp guard base
-    trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
+    if (parent->trampGuardBase_) 
+      trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
+    else
+      trampGuardBase_ = NULL;
 
     /////////////////////////
     // Inferior heap

@@ -2423,7 +2423,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &entry,
 
 #endif
 
-bool process::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, 
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &, Address, 
                            func_instance *, Address) {
    assert(0 && "TODO!");
    return false;

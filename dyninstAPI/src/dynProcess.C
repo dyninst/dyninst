@@ -2062,7 +2062,10 @@ bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcess
        res = pcProc_->runIRPCSync(newRPC->rpc);
        if (!res) {
           bool done = false;
+	  unsigned count = 0;
           while (!done) {
+	    count++;
+	    assert(count < 1000);
              if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
                 // Something went wrong
                 proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
@@ -2269,7 +2272,10 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
           res = pcProc_->runIRPCSync(newRPC->rpc);
        if (!res) {
           bool done = false;
+	  int counter = 0;
           while (!done) {
+	    counter++;
+	    assert(counter < 1000);
              if (ProcControlAPI::getLastError() != ProcControlAPI::err_noevents) {
                 // Something went wrong
                 proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",

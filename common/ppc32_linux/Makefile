@@ -1,3 +1,4 @@
+
 #
 # $Id: Makefile,v 1.3 2008/06/11 22:48:23 legendre Exp $
 #
@@ -24,7 +25,8 @@ SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/parseauxv.C \
 		../../common/src/addrtranslate-sysv.C \
 		../../common/src/addrtranslate-auxv.C \
-		../../common/src/addrtranslate-linux.C
+		../../common/src/addrtranslate-linux.C \
+		../../common/src/dwarfExpr.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

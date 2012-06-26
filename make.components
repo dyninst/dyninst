@@ -1,5 +1,5 @@
 #Don't add tests to Everything
-Everything = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API patchAPI
+Everything = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
 #List of tests
 Everything_tests = testsuite parseThat

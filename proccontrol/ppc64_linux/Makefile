@@ -16,7 +16,6 @@ LDFLAGS     += $(LIBDIR) -lcommon
 SRCS = ../src/linux.C \
        ../src/unix.C \
        ../src/notify_pipe.C \
-       ../src/Elf_X.C \
        ../../common/src/dthread-unix.C
 
 CXXFLAGS += $(MYFLAGS)
