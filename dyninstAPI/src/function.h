@@ -45,8 +45,6 @@
 
 #include "bitArray.h"
 
-#include "dynptr.h"
-
 #include "block.h"
 #include "instPoint.h"
 #include "PatchCFG.h"
@@ -277,6 +275,8 @@ class func_instance : public patchTarget, public Dyninst::PatchAPI::PatchFunctio
 
   void split_block_cb(block_instance *b1, block_instance *b2);
   void add_block_cb(block_instance *block);
+
+  virtual void markModified();
 
  private:
 

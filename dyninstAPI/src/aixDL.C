@@ -39,7 +39,6 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/arch.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>

@@ -68,6 +68,8 @@ namespace Dyninst {
    namespace PatchAPI {
       class PatchObject;
       PatchObject *convert(const BPatch_module *);
+      class PatchFunction;
+      class Point;
    }
    namespace SymtabAPI {
       class Symtab;
@@ -98,10 +100,13 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *);
 
 
-    typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
+    typedef std::map<Dyninst::PatchAPI::PatchFunction*, 
+       BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
-    typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
-    
+    typedef std::map<Dyninst::PatchAPI::Point *, 
+       BPatch_point*> BPatch_instpMap;
+
+
     
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;

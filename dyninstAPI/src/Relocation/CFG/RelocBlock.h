@@ -32,7 +32,6 @@
 #if !defined(PATCHAPI_TRACE_H_)
 #define PATCHAPI_TRACE_H_
 
-#include "dynptr.h" // shared_ptr
 #include "common/h/Types.h" // Address
 #include "dyninstAPI/src/codegen.h" // codeGen
 #include "dyninstAPI/src/function.h"
@@ -107,6 +106,7 @@ class RelocBlock {
    // Non-const for use by transformer classes
    WidgetList &elements() { return elements_; }
    CFWidgetPtr &cfWidget() { return cfWidget_; }
+   void setCF(CFWidgetPtr cf);
 
    // Code generation
    bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);

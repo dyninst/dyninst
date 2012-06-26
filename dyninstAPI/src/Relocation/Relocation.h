@@ -36,7 +36,6 @@
 #if !defined(_RELOCATION_H_)
 #define _RELOCATION_H_
 
-#include "dynptr.h"
 #include "common/h/Types.h"
 #include <list>
 #include <map>

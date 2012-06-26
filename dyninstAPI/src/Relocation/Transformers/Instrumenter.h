@@ -45,7 +45,7 @@ class Instrumenter : public Transformer {
 
   virtual bool process(RelocBlock *cur, RelocGraph *);
   
-  Instrumenter() {};
+     Instrumenter() : skip(NULL) {};
   
   virtual ~Instrumenter() {};
   
@@ -63,8 +63,8 @@ class Instrumenter : public Transformer {
   bool funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool funcExitInstrumentation(RelocBlock *trace, RelocGraph *cfg);
 
-  bool funcExitInstrumentation(RelocBlock *trace);
   bool blockEntryInstrumentation(RelocBlock *trace);
   bool blockExitInstrumentation(RelocBlock *trace);
   bool preCallInstrumentation(RelocBlock *trace);
@@ -82,6 +82,8 @@ class Instrumenter : public Transformer {
     bool operator()(RelocEdge *e);
     edge_instance *e_;
   };
+
+  RelocBlock *skip;
 
 };
 

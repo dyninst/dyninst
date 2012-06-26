@@ -1900,7 +1900,6 @@ int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair /*ev*/, SignalGenerator * /
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/registerSpace.h"
 

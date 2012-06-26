@@ -137,6 +137,9 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   for (; begin != end; ++begin) {
      block_instance *bbl = SCAST_BI(*begin);
 
+     if (bbl->wasUserAdded()) continue;
+     // Don't try to springboard a user-added block...
+
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
     Address start = bbl->start();

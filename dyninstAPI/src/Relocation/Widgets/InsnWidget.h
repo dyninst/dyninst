@@ -59,18 +59,18 @@ class InsnWidget : public Widget {
 
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   virtual Address addr() const { return addr_; }
-  virtual unsigned size() const { return insn_->size(); }
+  virtual unsigned size() const;
 
  private:
   InsnWidget(InstructionAPI::Instruction::Ptr insn,
-	    Address addr) : 
-  insn_(insn), addr_(addr) {};
+	    Address addr);
 
   // Pointer to the instruction we represent
   InstructionAPI::Instruction::Ptr insn_;
 
   // Original address of this instruction
   Address addr_;
+
 };
 
 };

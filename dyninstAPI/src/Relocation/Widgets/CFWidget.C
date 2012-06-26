@@ -84,14 +84,30 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    insn_(insn),
    addr_(addr) {
    
+   // HACK to be sure things are parsed...
+   insn->format();
+
+   for (Instruction::cftConstIter iter = insn->cft_begin(); iter != insn->cft_end(); ++iter) {
+      if (iter->isCall) isCall_ = true;
+      if (iter->isIndirect) isIndirect_ = true;
+      if (iter->isConditional) isConditional_ = true;
+   }
+
+#if 0
+   // Old way
    if (insn->getCategory() == c_CallInsn) {
       // Calls have a fallthrough but are not conditional.
       // TODO: conditional calls work how?
-
       isCall_ = true;
    } else if (insn->allowsFallThrough()) {
       isConditional_ = true;
    }
+#endif
+
+   // This whole next section is obsolete, but IAPI's CFT interface doesn't say
+   // what a "return" is (aka, they don't include "indirect"). So I'm using it
+   // so that things work. 
+
 
    // TODO: IAPI is recording all PPC64 instructions as PPC32. However, the
    // registers they use are still PPC64. This is a pain to fix, and therefore
@@ -110,8 +126,11 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
-      isIndirect_ = true;
+      if (!isIndirect_) {
+         isIndirect_ = true;
+      }
    }
+
 }
 
 
@@ -305,7 +324,7 @@ TrackerElement *CFWidget::tracker(const RelocBlock *trace) const {
    return e;
 }
 
-TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
+TrackerElement *CFWidget::destTracker(TargetInt *dest, const RelocBlock *trace) const {
    block_instance *destBlock = NULL;
    func_instance *destFunc = NULL;
    switch (dest->type()) {
@@ -323,7 +342,7 @@ TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
          assert(destBlock);
          break;
       default:
-         assert(0);
+         return new EmulatorTracker(trace->block()->last(), trace->block(), trace->func());
          break;
    }
    EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock, destFunc);
@@ -376,7 +395,7 @@ bool CFWidget::generateBranch(CodeBuffer &buffer,
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, trace->func(), addr_);
 
    if (fallthrough || trace->block() == NULL) {
-      buffer.addPatch(newPatch, destTracker(to));
+      buffer.addPatch(newPatch, destTracker(to, trace));
    }
    else {
       buffer.addPatch(newPatch, tracker(trace));
@@ -391,7 +410,6 @@ bool CFWidget::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
-      // DebugBreak();
       return true;
    }
 
@@ -407,7 +425,6 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
                                        const RelocBlock *trace,
 				       Instruction::Ptr insn) {
    assert(to);
-
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
 
    buffer.addPatch(newPatch, tracker(trace));

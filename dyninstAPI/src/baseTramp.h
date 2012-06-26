@@ -44,12 +44,9 @@
 
 #include <list>
 
-class miniTramp;
 class baseTramp;
 class AddressSpace;
 
-// Encapsulates the code generation techniques for a series
-// of minitramps. 
 
 class baseTramp { 
     baseTramp();
@@ -116,7 +113,6 @@ class baseTramp {
     bool skippedRedZone;
     
     bool validOptimizationInfo() { return optimizationInfo_; }
-    bool hasFuncJump();
 
  public:
     // Code generation methods

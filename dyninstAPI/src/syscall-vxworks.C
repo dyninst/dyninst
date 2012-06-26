@@ -35,7 +35,6 @@
 #define EXEC_FUNC "execve"
 #define EXIT_FUNC "_exit"
 
-#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"

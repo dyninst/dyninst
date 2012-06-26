@@ -32,7 +32,6 @@
 #if !defined(PATCHAPI_ATOM_H_)
 #define PATCHAPI_ATOM_H_
 
-#include "dynptr.h" // shared_ptr
 #include "common/h/Types.h" // Address
 #include "instructionAPI/h/Instruction.h" // Instruction::Ptr
 #include <list> // stl::list

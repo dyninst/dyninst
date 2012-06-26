@@ -96,11 +96,15 @@ class CFWidget : public Widget {
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
   unsigned gap() const { return gap_; };
   void clearIsCall() { isCall_ = false; };
+  void clearIsIndirect() { isIndirect_ = false; };
+  void clearIsConditional() { isConditional_ = false; }
+  bool isCall() const { return isCall_; }
+  bool isIndirect() const { return isIndirect_; }
+  bool isConditional() const { return isConditional_; }
 
  private:
    CFWidget(Address a)
@@ -115,7 +119,7 @@ class CFWidget : public Widget {
           Address addr);
 
    TrackerElement *tracker(const RelocBlock *) const;
-   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *destTracker(TargetInt *dest, const RelocBlock *) const;
    TrackerElement *addrTracker(Address addr, const RelocBlock *) const;
    TrackerElement *padTracker(Address addr, unsigned size, const RelocBlock *) const;
    

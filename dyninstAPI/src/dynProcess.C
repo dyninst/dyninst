@@ -51,6 +51,8 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "symtabAPI/h/SymtabReader.h"
+#include "patchAPI/h/PatchMgr.h"
+#include "patchAPI/h/Point.h"
 
 #include <sstream>
 
@@ -1868,72 +1870,64 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
         }
 
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-            func_instance *func = matchingFuncs[funcIter];
-            if (!func) {
-                inst_printf("%s[%d]: null int_func detected\n",
-                    FILE__,__LINE__);
-                continue;  // probably should have a flag telling us whether errors
-            }
+           func_instance *func = matchingFuncs[funcIter];
+           if (!func) {
+              inst_printf("%s[%d]: null int_func detected\n",
+                          FILE__,__LINE__);
+              continue;  // probably should have a flag telling us whether errors
+           }
             
-            // should be silently handled or not
-            AstNodePtr ast;
-            if ((req->where & FUNC_ARG) && req->args.size()>0) {
-                ast = AstNode::funcCallNode(req->inst, 
-                                            req->args,
-                                            this);
-            }
-            else {
-                pdvector<AstNodePtr> def_args;
-                def_args.push_back(AstNode::operandNode(AstNode::Constant,
-                                                        (void *)0));
-                ast = AstNode::funcCallNode(req->inst,
-                                            def_args);
-            }
-            // We mask to strip off the FUNC_ARG bit...
-            switch ( ( req->where & 0x7) ) {
-               case FUNC_EXIT:
-               {
-                  for (PatchFunction::Blockset::const_iterator iter = func->exitBlocks().begin();
-                       iter != func->exitBlocks().end(); ++iter) {
-                     miniTramp *mt = instPoint::funcExit(func, SCAST_BI(*iter))->insert(req->order, ast, req->useTrampGuard);
-                     if (mt) 
-                        minis.push_back(mt);
-                     else {
-                        fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                     }
-                  }
-               }
-               break;
-               case FUNC_ENTRY:
-               {
-                  miniTramp *mt = instPoint::funcEntry(func)->insert(req->order, ast, req->useTrampGuard);
-                  if (mt) 
-                     minis.push_back(mt);
-                  else {
-                     fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                  }
-               }
-               break;
-               case FUNC_CALL:
-               {
-                  for (PatchFunction::Blockset::const_iterator iter = func->callBlocks().begin();
-                       iter != func->callBlocks().end(); ++iter) {
-                     block_instance* iblk = SCAST_BI(*iter);
-                     miniTramp *mt = instPoint::preCall(func, iblk)->insert(req->order, ast, req->useTrampGuard);
-                     if (mt) 
-                        minis.push_back(mt);
-                     else {
-                        fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
-                     }
-                  }
-               }
-               break;
-               default:
-                  fprintf(stderr, "Unknown where: %d\n",
-                          req->where);
-            } // switch
-            minis.clear();
-        } // matchingFuncs        
+           // should be silently handled or not
+           AstNodePtr ast;
+           if ((req->where & FUNC_ARG) && req->args.size()>0) {
+              ast = AstNode::funcCallNode(req->inst, 
+                                          req->args,
+                                          this);
+           }
+           else {
+              pdvector<AstNodePtr> def_args;
+              def_args.push_back(AstNode::operandNode(AstNode::Constant,
+                                                      (void *)0));
+              ast = AstNode::funcCallNode(req->inst,
+                                          def_args);
+           }
+           // We mask to strip off the FUNC_ARG bit...
+           std::vector<Point *> points;
+           PatchFunction *pfunc = func;
+           switch ( ( req->where & 0x7) ) {
+              case FUNC_EXIT:
+                 mgr()->findPoints(Dyninst::PatchAPI::Scope(func),
+                                   Point::FuncExit,
+                                   std::back_inserter(points));
+                 break;
+              case FUNC_ENTRY:
+                 mgr()->findPoints(Dyninst::PatchAPI::Scope(func),
+                                   Point::FuncEntry,
+                                   std::back_inserter(points));
+                 break;
+              case FUNC_CALL:
+                 mgr()->findPoints(Dyninst::PatchAPI::Scope(func),
+                                   Point::PreCall,
+                                   std::back_inserter(points));
+                 break;
+              default:
+                 fprintf(stderr, "Unknown where: %d\n",
+                         req->where);
+                 break;
+           } // switch
+           for (std::vector<Point *>::iterator iter = points.begin();
+                iter != points.end(); ++iter) {
+              Dyninst::PatchAPI::Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
+                 (*iter)->pushFront(ast) :
+                 (*iter)->pushBack(ast);
+              if (inst) {
+                 if (!req->useTrampGuard) inst->disableRecursiveGuard();
+                 req->instances.push_back(inst);
+              }
+              else {
+                 fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+              }
+           }        } // matchingFuncs        
         
     } // requests
     relocate();

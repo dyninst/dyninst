@@ -174,14 +174,14 @@ bool int_process::waitfor_startup()
    while (getState() != running) {
       if (proc_exited || getState() == exited) {
          pthrd_printf("Error.  Proces exited during create/attach\n");
-         setLastError(err_exited, "Process exited during startup");
+         globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
       pthrd_printf("Waiting for startup to complete for %d\n", pid);
       bool result = waitAndHandleForProc(true, this, proc_exited);
       if (!proc_exited && (!result || getState() == errorstate)) {
          pthrd_printf("Error.  Process %d errored during create/attach\n", pid);
-         setLastError(err_internal, "Process failed to startup");
+         globalSetLastError(err_internal, "Process failed to startup");
          return false;
       }
    }
@@ -1012,6 +1012,13 @@ bool int_process::waitAndHandleEvents(bool block)
             pthrd_printf("Handler thread found nothing to do\n");
             goto done;
          }
+         if (!hasRunningThread) {
+            pthrd_printf("No threads are running to produce events\n");
+            ProcControlAPI::globalSetLastError(err_notrunning, "No threads are running to produce events\n");
+            error = true;
+            goto done;
+         }
+
          ProcControlAPI::globalSetLastError(err_noevents, "Poll failed to find events");
          pthrd_printf("Poll failed to find events\n");
          error = true;

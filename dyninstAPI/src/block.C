@@ -166,3 +166,10 @@ void *block_instance::getPtrToInstruction(Address addr) const {
   return obj()->getPtrToInstruction(addr);
 }
 
+void block_instance::markModified() {
+   std::vector<PatchAPI::PatchFunction *> funcs;
+   getFuncs(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->markModified();
+   }
+}
