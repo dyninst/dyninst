@@ -847,7 +847,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             FILE__,frame.func->addr());
         // prevents recursion of parsing
         frame.func->_parsed = true;
-        cerr << "Setting parsed on " << frame.func->name() << endl;
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());

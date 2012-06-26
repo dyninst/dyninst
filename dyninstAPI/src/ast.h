@@ -50,7 +50,6 @@
 #include "BPatch_snippet.h"
 
 // The great experiment: boost shared_ptr libraries
-#include "dynptr.h"
 #include "BPatch_type.h"
 
 #include "arch-forward-decl.h" // instruction

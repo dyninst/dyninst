@@ -34,7 +34,6 @@
 #define _R_CODE_MOVER_H_
 
 #include "CFG.h"
-#include "dynptr.h"
 #include "common/h/Types.h"
 #include <list>
 #include <map>

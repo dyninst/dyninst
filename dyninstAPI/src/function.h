@@ -45,8 +45,6 @@
 
 #include "bitArray.h"
 
-#include "dynptr.h"
-
 #include "block.h"
 #include "instPoint.h"
 #include "PatchCFG.h"

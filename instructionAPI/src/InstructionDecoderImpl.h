@@ -33,7 +33,6 @@
 #define INSTRUCTION_DECODER_IMPL_H
 
 #include "Expression.h"
-#include "dynptr.h"
 #include "dyn_regs.h"
 #include "Operation.h"
 #include "entryIDs.h"
