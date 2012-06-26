@@ -1012,6 +1012,13 @@ bool int_process::waitAndHandleEvents(bool block)
             pthrd_printf("Handler thread found nothing to do\n");
             goto done;
          }
+         if (!hasRunningThread) {
+            pthrd_printf("No threads are running to produce events\n");
+            ProcControlAPI::globalSetLastError(err_notrunning, "No threads are running to produce events\n");
+            error = true;
+            goto done;
+         }
+
          ProcControlAPI::globalSetLastError(err_noevents, "Poll failed to find events");
          pthrd_printf("Poll failed to find events\n");
          error = true;
