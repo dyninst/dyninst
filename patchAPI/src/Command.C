@@ -70,14 +70,21 @@ bool Patcher::run() {
   Instrumenter* inst = mgr_->instrumenter();
   add(inst);
 
-  // The "common" BatchCommand stuffs
-  for (CommandList::iterator i = to_do_.begin(); i != to_do_.end();) {
-    done_.push_front(*i);
+
+  CommandList::iterator i = to_do_.begin();
+  while (i != to_do_.end()) {
+     done_.push_front(*i);
 
     // Add all commands before instrumenter to instrumenter's user_commans_
-    if (*i != inst) inst->user_commands_.push_back(*i);
-    if (!(*i)->run()) return false;
-    i = to_do_.erase(i);
+    if (*i != inst) {
+       inst->user_commands_.push_back(*i);
+    }
+
+    if (!(*i)->run())  {
+       return false;
+    }
+
+    to_do_.erase(i++);
   }
   return true;
 }

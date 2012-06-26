@@ -57,8 +57,9 @@ namespace boost {
 
 namespace Dyninst {
    namespace PatchAPI {
-      class DynASTSnippet;
-      DynASTSnippet *convert(const BPatch_snippet *);
+      class Snippet;
+      typedef dyn_detail::boost::shared_ptr<Snippet> SnippetPtr;
+      SnippetPtr convert(const BPatch_snippet *);
    }
 }
 
@@ -141,7 +142,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
     friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
-    
+    friend Dyninst::PatchAPI::SnippetPtr convert(const BPatch_snippet *snip);
 
     public:
 
@@ -167,8 +168,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  Returns the type of the underlying AST
     API_EXPORT(Int, (),
     BPatch_type *,getType,());
-
-    operator Dyninst::PatchAPI::DynASTSnippet *() const;
 
   private: 
 

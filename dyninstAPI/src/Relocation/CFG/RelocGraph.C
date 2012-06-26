@@ -31,10 +31,11 @@
 
 #include "RelocGraph.h"
 #include "RelocBlock.h"
-
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Relocation;
+using namespace std;
 
 RelocGraph::~RelocGraph() {
    for (Edges::iterator iter = edges.begin(); iter != edges.end(); ++iter) {

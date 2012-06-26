@@ -4,7 +4,7 @@
 #define _PATCHAPI_DYNINST_CFG_H_
 
 #include "CFG.h"
-//#include "common.h"
+#include "PatchCommon.h"
 #include "PatchObject.h"
 #include "Point.h"
 
@@ -113,6 +113,10 @@ class PatchBlock {
 
    PATCHAPI_EXPORT bool consistency() const;
 
+   PATCHAPI_EXPORT bool wasUserAdded() const;
+
+   PATCHAPI_EXPORT virtual void markModified()  {};
+
   protected:
     typedef enum {
       backwards,
@@ -198,6 +202,8 @@ class PatchFunction {
    PATCHAPI_EXPORT PatchCallback *cb() const;
 
    PATCHAPI_EXPORT bool consistency() const;
+
+   PATCHAPI_EXPORT virtual void markModified() {};
 
    protected:
      // For callbacks from ParseAPI to PatchAPI

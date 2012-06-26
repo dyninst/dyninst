@@ -532,7 +532,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
         // Dynamic case
         if ( !origSymtab->isStaticBinary() ) {
             for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-	      BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+               BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
 
                 if (temp && temp->getAddressWidth() == getAddressWidth()) {
                     retMap.insert(std::make_pair(*pathIter, temp));
@@ -563,17 +563,18 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         for (member_it = members.begin(); member_it != members.end();
                              ++member_it) 
                         {
-                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), (*member_it)->memberName());
-                           
-                           if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                              std::string mapName = *pathIter + string(":") +
-                                 (*member_it)->memberName();
-                              retMap.insert(std::make_pair(mapName, temp));
-                           }else{
-                              if(temp) delete temp;
-                              retMap.clear();
-                              break;
-                           }
+                           BinaryEdit *temp = BinaryEdit::openFile(*pathIter, 
+                                                                   mgr(), patcher(), (*member_it)->memberName());
+
+                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                                std::string mapName = *pathIter + string(":") +
+                                    (*member_it)->memberName();
+                                retMap.insert(std::make_pair(mapName, temp));
+                            }else{
+                                if(temp) delete temp;
+                                retMap.clear();
+                                break;
+                            }
                         }
 
                         if (retMap.size() > 0) {
@@ -586,7 +587,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename,
                         //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
-		  BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr());
+                   BinaryEdit *temp = BinaryEdit::openFile(*pathIter, mgr(), patcher());
 
 
                     if (temp && temp->getAddressWidth() == getAddressWidth()) {

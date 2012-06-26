@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_POINT_H_
 #define PATCHAPI_H_POINT_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "Snippet.h"
 
 namespace Dyninst {
@@ -189,8 +189,8 @@ class Point {
     typedef std::list<InstancePtr>::iterator instance_iter;
     instance_iter begin() { return instanceList_.begin();}
     instance_iter end() { return instanceList_.end();}
-    PATCHAPI_EXPORT InstancePtr pushBack(SnippetPtr);
-    PATCHAPI_EXPORT InstancePtr pushFront(SnippetPtr);
+    PATCHAPI_EXPORT virtual InstancePtr pushBack(SnippetPtr);
+    PATCHAPI_EXPORT virtual InstancePtr pushFront(SnippetPtr);
     PATCHAPI_EXPORT bool remove(InstancePtr);
 
     // Remove all snippets in this point
@@ -210,6 +210,7 @@ class Point {
     PATCHAPI_EXPORT PatchFunction *func() const { return the_func_; }
     PATCHAPI_EXPORT PatchBlock *block() const { return the_block_; }
     PATCHAPI_EXPORT PatchEdge *edge() const { return the_edge_; }
+    PATCHAPI_EXPORT PatchMgrPtr mgr() const { return mgr_; }
 
     // Point type utilities
     
@@ -288,8 +289,10 @@ enum SnippetState {
    particular point */
 class Instance : public boost::enable_shared_from_this<Instance> {
   public:
+   typedef dyn_detail::boost::shared_ptr<Instance> Ptr;
+
   Instance(Point* point, SnippetPtr snippet)
-              : point_(point), snippet_(snippet) { }
+     : point_(point), snippet_(snippet), guarded_(true) { }
     virtual ~Instance() {}
     static InstancePtr create(Point*, SnippetPtr,
                         SnippetType type = SYSTEM, SnippetState state = PENDING);
@@ -301,6 +304,9 @@ class Instance : public boost::enable_shared_from_this<Instance> {
     SnippetPtr snippet() const {return snippet_;}
     void set_state(SnippetState state) { state_ = state; }
 
+    void disableRecursiveGuard() { guarded_ = false; }
+    bool recursiveGuardEnabled() const { return guarded_; }
+
     // Destroy itself
     // return false if this snipet instance is not associated with a point
     bool destroy();
@@ -310,6 +316,7 @@ class Instance : public boost::enable_shared_from_this<Instance> {
     SnippetPtr snippet_;
     SnippetState state_;
     SnippetType type_;
+    bool guarded_;
 };
 
 /* Factory class for creating a point that could be either PatchAPI::Point or

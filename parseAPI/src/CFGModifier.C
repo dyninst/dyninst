@@ -182,8 +182,22 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
    // 4)
    for (std::vector<Function *>::iterator iter = funcs.begin();
         iter != funcs.end(); ++iter) {
-      (*iter)->_cache_valid = false;
-      (*iter)->finalize();
+      // Don't invalidate the entire function, just update in place. 
+      // 1) Extents can't change
+      // 2) Add the block to the function list
+      (*iter)->add_block(ret);
+      // 3) Swap the old block for the new in the return blocks
+      for (unsigned i = 0; i < (*iter)->_return_blocks.size(); ++i) {
+         if ((*iter)->_return_blocks[i] == b) {
+            (*iter)->_return_blocks[i] = ret;
+         }
+      }
+      // 4) Swap the old block for the new in the exit blocks
+      for (unsigned i = 0; i < (*iter)->_exit_blocks.size(); ++i) {
+         if ((*iter)->_exit_blocks[i] == b) {
+            (*iter)->_exit_blocks[i] = ret;
+         }
+      }
       b->obj()->_pcb->addBlock(*iter, ret);
    }
 
@@ -327,7 +341,7 @@ bool CFGModifier::remove(Function *f) {
    return true;
 }
 
-Block *CFGModifier::insert(CodeObject *obj, 
+InsertedRegion *CFGModifier::insert(CodeObject *obj, 
                          Address base, void *data, 
                          unsigned size) {
    cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
@@ -341,9 +355,22 @@ Block *CFGModifier::insert(CodeObject *obj,
    obj->cs()->addRegion(newRegion);
    obj->parse(newRegion, base, true);
 
-   return obj->findBlockByEntry(newRegion, base);
+   // Parsing starting at the base address will create a new function. 
+   // Work around this by looking up and deleting that function when 
+   // we're done parsing. 
+   Function *newFunc = obj->findFuncByEntry(newRegion, base);
+   if (newFunc) {
+      obj->parser->remove_func(newFunc);
+      obj->fact()->destroy_func(newFunc);
+   }
+
+   return newRegion;
 }
 
 InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch) : 
-   base_(b), buf_(d), size_(s), arch_(arch) {};
+   base_(b), buf_(NULL), size_(s), arch_(arch) {
+   buf_ = malloc(s);
+   assert(buf_);
+   memcpy(buf_, d, s);
+};
 

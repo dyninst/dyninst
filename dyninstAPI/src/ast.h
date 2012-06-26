@@ -45,6 +45,7 @@
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 
+#include "Point.h"
 
 #include "BPatch_snippet.h"
 
@@ -142,7 +143,7 @@ public:
 };
 
 class dataReqNode;
-class AstNode {
+class AstNode : public Dyninst::PatchAPI::Snippet {
  public:
    enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t, scrambleRegisters_t};
    enum operandType { Constant, 
@@ -249,6 +250,8 @@ class AstNode {
    static AstNodePtr actualAddrNode();
    static AstNodePtr dynamicTargetNode();
 
+   static AstNodePtr snippetNode(Dyninst::PatchAPI::SnippetPtr snip);
+
    AstNode(AstNodePtr src);
    //virtual AstNode &operator=(const AstNode &src);
         
@@ -301,7 +304,6 @@ class AstNode {
 
 
    virtual bool containsFuncCall() const = 0;
-   virtual cfjRet_t containsFuncJump() const = 0;
    virtual bool usesAppRegister() const = 0;
 
    enum CostStyleType { Min, Avg, Max };
@@ -403,6 +405,10 @@ class AstNode {
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	virtual BPatch_type	  *checkType();
 
+        // PatchAPI compatibility
+        virtual bool generate(Dyninst::PatchAPI::Point *, 
+                              Dyninst::PatchAPI::Buffer &);
+
  private:
    static AstNodePtr originalAddrNode_;
    static AstNodePtr actualAddrNode_;
@@ -417,7 +423,6 @@ class AstNullNode : public AstNode {
 
    virtual std::string format(std::string indent);
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
     
     bool canBeKept() const { return true; }
@@ -432,7 +437,6 @@ class AstLabelNode : public AstNode {
  public:
     AstLabelNode(std::string &label) : AstNode(), label_(label), generatedAddr_(0) {};
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 	bool canBeKept() const { return true; }
@@ -470,7 +474,6 @@ class AstOperatorNode : public AstNode {
     virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -546,7 +549,7 @@ class AstOperandNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
+
     virtual bool usesAppRegister() const;
  
     virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
@@ -599,7 +602,6 @@ class AstCallNode : public AstNode {
 
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const; 
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
     void setConstFunc(bool val) { constFunc_ = val; }
@@ -649,7 +651,6 @@ class AstSequenceNode : public AstNode {
 
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -688,7 +689,6 @@ class AstVariableNode : public AstNode {
     virtual AstNodePtr deepCopy();
 
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -718,7 +718,7 @@ class AstInsnNode : public AstNode {
 
 	bool canBeKept() const { return false; }
    virtual bool containsFuncCall() const;
-   virtual cfjRet_t containsFuncJump() const;
+
    virtual bool usesAppRegister() const;
  
  protected:
@@ -740,7 +740,6 @@ class AstInsnBranchNode : public AstInsnNode {
 
     virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -762,7 +761,6 @@ class AstInsnMemoryNode : public AstInsnNode {
     virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
     virtual void setVariableAST(codeGen &gen);
@@ -803,7 +801,6 @@ class AstMiniTrampNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -824,7 +821,6 @@ class AstMemoryNode : public AstNode {
 
    virtual std::string format(std::string indent);
    virtual bool containsFuncCall() const;
-   virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
  
 
@@ -849,7 +845,6 @@ class AstOriginalAddrNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return true; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
 
@@ -870,7 +865,6 @@ class AstActualAddrNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -890,7 +884,6 @@ class AstDynamicTargetNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -907,7 +900,6 @@ class AstScrambleRegistersNode : public AstNode {
 
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
  
  private:
@@ -917,6 +909,25 @@ class AstScrambleRegistersNode : public AstNode {
                                      Register &retReg);
 };
 
+
+class AstSnippetNode : public AstNode {
+   // This is a little odd, since an AstNode _is_
+   // a Snippet. It's a compatibility interface to 
+   // allow generic PatchAPI snippets to play nice
+   // in our world. 
+  public:
+  AstSnippetNode(Dyninst::PatchAPI::SnippetPtr snip) : snip_(snip) {};
+   bool canBeKept() const { return false; }
+   bool containsFuncCall() const { return false; }
+   bool usesAppRegister() const { return false; }
+   
+  private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+    Dyninst::PatchAPI::SnippetPtr snip_;
+};
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
@@ -928,6 +939,9 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          codeGen &gen,
                                          int size,
                                          bool noCost);
+
+#define SCAST_AST(ast) dyn_detail::boost::static_pointer_cast<AstNode>(ast)
+#define DCAST_AST(ast) dyn_detail::boost::dynamic_pointer_cast<AstNode>(ast)
 
 
 #endif /* AST_HDR */

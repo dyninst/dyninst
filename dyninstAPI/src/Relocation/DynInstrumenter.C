@@ -36,12 +36,14 @@ bool DynInstrumenter::undo() {
 
 DynInsertSnipCommand::DynInsertSnipCommand(instPoint* pt, callOrder order,
                                            AstNodePtr ast, bool recursive) {
-  mini_ = pt->insert(order, ast, recursive);
+   inst_ = (order == orderFirstAtPoint) ? pt->pushFront(ast) : pt->pushBack(ast);
+   if (inst_ && recursive)
+      inst_->disableRecursiveGuard();
 }
 
 DynInsertSnipCommand* DynInsertSnipCommand::create(instPoint* pt, callOrder order,
-                      AstNodePtr ast, bool recursive) {
-  return new DynInsertSnipCommand(pt, order, ast, recursive);
+                                                   AstNodePtr ast, bool recursive) {
+   return new DynInsertSnipCommand(pt, order, ast, recursive);
 }
 
 bool DynInsertSnipCommand::run() {
@@ -54,16 +56,16 @@ bool DynInsertSnipCommand::undo() {
 }
 
 /* Remove Snippet Command */
-DynRemoveSnipCommand::DynRemoveSnipCommand(miniTramp* mini) : mini_(mini) {
+DynRemoveSnipCommand::DynRemoveSnipCommand(Instance::Ptr inst) : inst_(inst) {
 }
 
-DynRemoveSnipCommand* DynRemoveSnipCommand::create(miniTramp* mini) {
-  return new DynRemoveSnipCommand(mini);
+DynRemoveSnipCommand* DynRemoveSnipCommand::create(Instance::Ptr inst) {
+   return new DynRemoveSnipCommand(inst);
 }
 
 bool DynRemoveSnipCommand::run() {
-  mini_->instP()->erase(mini_);
-  return true;
+   uninstrument(inst_);
+   return true;
 }
 
 bool DynRemoveSnipCommand::undo() {

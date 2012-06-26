@@ -144,8 +144,11 @@ Parser::add_hint(Function * f)
 void
 Parser::parse()
 {
-    parsing_printf("[%s:%d] parse() called on Parser with state %d\n",
-        FILE__,__LINE__,_parse_state);
+    parsing_printf("[%s:%d] parse() called on Parser %p with state %d\n",
+                   FILE__,__LINE__,this, _parse_state);
+
+    // For modification: once we've full-parsed once, don't do it again
+    if (_parse_state >= COMPLETE) return;
 
     if(_parse_state == UNPARSEABLE)
         return;
@@ -161,6 +164,7 @@ Parser::parse()
         _parse_state = COMPLETE;
     
     _in_parse = false;
+    parsing_printf("[%s:%d] parsing complete for Parser %p with state %d\n", FILE__, __LINE__, this, _parse_state);
 }
 
 void
@@ -843,6 +847,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             FILE__,frame.func->addr());
         // prevents recursion of parsing
         frame.func->_parsed = true;
+        cerr << "Setting parsed on " << frame.func->name() << endl;
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());

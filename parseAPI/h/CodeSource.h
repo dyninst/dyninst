@@ -79,6 +79,9 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     PARSER_EXPORT Address high() const =0;
 
     PARSER_EXPORT bool contains(Address) const;
+
+    PARSER_EXPORT virtual bool wasUserAdded() const { return false; }
+
 };
 
 /* A starting point for parsing */

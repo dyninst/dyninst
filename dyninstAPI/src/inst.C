@@ -49,6 +49,9 @@
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/addressSpace.h"
 
+using namespace Dyninst;
+using namespace PatchAPI;
+
 /*
  * return the time required to execute the passed primitive.
  *
@@ -109,11 +112,10 @@ instMapping::instMapping(const instMapping *parIM,
     for (unsigned i = 0; i < parIM->args.size(); i++) {
         args.push_back(parIM->args[i]);
     }
-    for (unsigned j = 0; j < parIM->miniTramps.size(); j++) {
-        miniTramp *cMT = NULL;
-        cMT = parIM->miniTramps[j]->getInheritedMiniTramp(child);
-        assert(cMT);
-        miniTramps.push_back(cMT);
+    for (unsigned j = 0; j < parIM->instances.size(); j++) {
+       InstancePtr cMT = getChildInstance(parIM->instances[j], child);
+       assert(cMT);
+       instances.push_back(cMT);
     }
 }
 

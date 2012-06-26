@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_PATCHMGR_H_
 #define PATCHAPI_H_PATCHMGR_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "Point.h"
 #include "Instrumenter.h"
 #include "PatchCFG.h"
@@ -46,6 +46,7 @@ class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
+  typedef dyn_detail::boost::shared_ptr<PatchMgr> Ptr;
     typedef std::pair<Location, Point::Type> Candidate;
     typedef std::vector<Candidate> Candidates;
 

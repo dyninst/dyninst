@@ -1,9 +1,11 @@
 #include "RelocBlock.h"
 #include "RelocTarget.h"
 #include "RelocEdge.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Relocation;
+using namespace std;
 
 RelocEdge::~RelocEdge() { 
    if (src) delete src;
@@ -13,7 +15,9 @@ RelocEdge::~RelocEdge() {
 RelocEdge *RelocEdges::find(ParseAPI::EdgeTypeEnum e) {
    // Returns the first one
    for (iterator iter = begin(); iter != end(); ++iter) {
-      if ((*iter)->type == e) return *iter;
+     if ((*iter)->type == e) {
+       return *iter;
+     }
    }
    return NULL;
 }
