@@ -41,7 +41,6 @@
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "dyninstAPI/src/symtab.h"
 

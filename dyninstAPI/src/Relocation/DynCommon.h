@@ -2,7 +2,7 @@
 #define PATCHAPI_H_DYNINST_DYNCOMMON_H_
 
 // PatchAPI public interface
-#include "common.h"
+#include "PatchCommon.h"
 #include "Instrumenter.h"
 
 // Dyninst Internal

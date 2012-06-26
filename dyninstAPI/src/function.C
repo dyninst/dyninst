@@ -596,7 +596,6 @@ bool func_instance::addSymbolsForCopy() {
    }
    else {
       // I think we just add this to the dynamic symbol table...
-      cerr << "Adding symbol... " << hex << wrapperSym << " " << wrapperSym->getName() << dec << endl;
       wrapperSym->setDynamic(true);
       proc()->edit()->addDyninstSymbol(wrapperSym_);
    }
@@ -821,6 +820,9 @@ void func_instance::add_block_cb(block_instance * /*block*/)
 #endif
 }
 
+void func_instance::markModified() {
+   proc()->addModifiedFunction(this);
+}
 
 // get caller blocks that aren't in deadBlocks
 bool func_instance::getLiveCallerBlocks

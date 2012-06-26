@@ -171,7 +171,6 @@ bool parse_func::writesFPRs(unsigned level) {
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
-#include "miniTramp.h"
 #include "baseTramp.h"
 #include "symtab.h"
 

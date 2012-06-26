@@ -33,7 +33,6 @@
 #include "../h/Dereference.h"
 #include "../h/Register.h"
 #include "../h/Expression.h"
-#include "dynptr.h"
 #include <iostream>
 
 using namespace std;

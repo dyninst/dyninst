@@ -48,8 +48,8 @@ class Command;
 class BatchCommand;
 class Patcher;
 
-typedef boost::shared_ptr<void> VoidPtr;
-typedef VoidPtr SnippetPtr;
+class Snippet;
+typedef boost::shared_ptr<Snippet> SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 typedef std::map<PatchFunction*, std::pair<PatchFunction*, std::string> > FuncWrapMap;
@@ -79,7 +79,7 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
   fprintf(stderr, "\n");  \
   fflush(stderr); \
   } \
-  else ; \
+  else {};                                      \
 } while(0)
 #endif
 

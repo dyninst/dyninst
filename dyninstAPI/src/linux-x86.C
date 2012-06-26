@@ -43,7 +43,6 @@
 #include <elf.h>
 #include <libelf.h>
 
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"

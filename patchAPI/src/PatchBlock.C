@@ -1,6 +1,6 @@
 /* Public Interface */
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"
 #include "PatchObject.h"
@@ -614,3 +614,6 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
    return true;
 }
 
+bool PatchBlock::wasUserAdded() const {
+   return block_->wasUserAdded();
+}

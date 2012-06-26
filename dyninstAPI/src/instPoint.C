@@ -42,7 +42,6 @@
 #include "common/h/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"
@@ -63,8 +62,8 @@ using namespace Dyninst::ParseAPI;
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
-using Dyninst::PatchAPI::Snippet;
-using Dyninst::PatchAPI::SnippetPtr;
+using namespace Dyninst;
+using namespace PatchAPI;
 
 instPoint *instPoint::funcEntry(func_instance *f) {
   return f->funcEntryPoint(true);
@@ -250,8 +249,10 @@ instPoint *instPoint::fork(instPoint *parent, AddressSpace *child) {
           point->size() == parent->size());
    if (point->empty()) {
       for (instance_iter iter = parent->begin(); iter != parent->end(); ++iter) {
-         miniTramp *mini = GET_MINI(*iter);
-         point->push_back(mini->ast(), mini->recursive());
+         InstancePtr inst = point->pushBack((*iter)->snippet());
+         if (!(*iter)->recursiveGuardEnabled()) {
+            inst->disableRecursiveGuard();
+         }
       }
    }
 
@@ -270,7 +271,10 @@ instPoint::~instPoint() {
 
 
 AddressSpace *instPoint::proc() const {
-   return func()->proc();
+   if (func()) return func()->proc();
+   else if (block()) return block()->proc();
+   else if (edge()) return (edge()->proc());
+   assert(0); return NULL;
 }
 
 func_instance *instPoint::func() const {
@@ -283,39 +287,6 @@ block_instance *instPoint::block() const {
 
 edge_instance *instPoint::edge() const {
   return SCAST_EI(the_edge_);
-}
-
-miniTramp *instPoint::push_front(AstNodePtr ast, bool recursive) {
-   miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
-   pushFront(snip);
-   markModified();
-   return newTramp;
-}
-
-miniTramp *instPoint::push_back(AstNodePtr ast, bool recursive) {
-   miniTramp *newTramp = new miniTramp(ast, this, recursive);
-   Snippet<miniTramp*>::Ptr snip = Snippet<miniTramp*>::create(newTramp);
-   pushBack(snip);
-   markModified();
-   return newTramp;
-}
-
-miniTramp *instPoint::insert(callOrder order, AstNodePtr ast, bool recursive) {
-   if (order == orderFirstAtPoint) return push_front(ast, recursive);
-   else return push_back(ast, recursive);
-}
-
-void instPoint::erase(miniTramp *m) {
-   for (instance_iter iter = begin(); iter != end(); ++iter) {
-      miniTramp *mini = GET_MINI(*iter);
-      if (mini == m) {
-         markModified();
-         delete m;
-         remove(*iter);
-         return;
-      }
-   }
 }
 
 bool instPoint::checkInsn(block_instance *b,
@@ -407,10 +378,6 @@ Address instPoint::addr_compat() const {
    }
 }
 
-void instPoint::markModified() {
-   proc()->addModifiedFunction(func());
-}
-
 std::string instPoint::format() const {
    stringstream ret;
    ret << "iP(";
@@ -465,6 +432,53 @@ std::string instPoint::format() const {
    return ret.str();
 }
 
+Dyninst::PatchAPI::InstancePtr getChildInstance(Dyninst::PatchAPI::InstancePtr parentInstance,
+                                                AddressSpace *childProc) {
+   instPoint *pPoint = IPCONV(parentInstance->point());
+   instPoint *cPoint = instPoint::fork(pPoint, childProc);
+   // Find the equivalent miniTramp...
+   assert(pPoint->size() == cPoint->size());
+   instPoint::instance_iter c_iter = cPoint->begin();
+   for (instPoint::instance_iter iter = pPoint->begin();
+        iter != pPoint->end();
+        ++iter) {
+      if (*iter == parentInstance) return *c_iter;
+      ++c_iter;
+   }
+
+   assert(0);
+   return Dyninst::PatchAPI::InstancePtr();
+}
+
+InstancePtr instPoint::pushFront(SnippetPtr snip) {
+   InstancePtr ret = Point::pushFront(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
+InstancePtr instPoint::pushBack(SnippetPtr snip) {
+   InstancePtr ret = Point::pushBack(snip);
+   if (!ret) return ret;
+   markModified();
+   return ret;
+}
+
+void instPoint::markModified() {
+   if (func()) {
+      proc()->addModifiedFunction(func());
+   }
+   else if (block()) {
+      proc()->addModifiedBlock(block());
+   }
+   else if (edge()) {
+      proc()->addModifiedBlock(edge()->src());
+   }
+   else {
+      assert(0);
+   }
+}
+         
 bitArray instPoint::liveRegisters(){
 	stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 	static LivenessAnalyzer live1(4);
@@ -476,31 +490,31 @@ bitArray instPoint::liveRegisters(){
 	}	
 	switch(type()) {
 		case FuncEntry:
-			if (!live->query(Location(EntrySite(func()->function(), func()->function()->entry())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(EntrySite(func()->function(), func()->function()->entry())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case BlockEntry:
-			if (!live->query(Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case BlockExit:
-			if (!live->query(Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(BlockSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		case EdgeDuring:
-			if (!live->query(Location(EdgeLoc(func()->function(), edge()->edge())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(EdgeLoc(func()->function(), edge()->edge())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		case FuncExit:
-			if (!live->query(Location(ExitSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(ExitSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		case PostCall:
-			if (!live->query(Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		case PreCall:
-			if (!live->query(Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(CallSite(func()->function(), block()->block())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case PreInsn:
-			if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
+			if (!live->query(ParseAPI::Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::Before, liveRegs_)) assert(0);
 			break;
 		case PostInsn:
-		        if (!live->query(Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::After, liveRegs_)) assert(0);
+		        if (!live->query(ParseAPI::Location(func()->function(), InsnLoc(block()->block(), insnAddr() - func()->obj()->codeBase(), insn())), LivenessAnalyzer::After, liveRegs_)) assert(0);
 			break;
 		default:
 			assert(0);  

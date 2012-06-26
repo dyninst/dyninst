@@ -42,11 +42,6 @@
 #include "common/h/arch.h"  // for type, instruction
 #include "dyninstAPI/src/frame.h"
 
-// base tramp template
-//#include "dyninstAPI/src/baseTramp.h"
-// minitramp data structure
-//#include "dyninstAPI/src/miniTramp.h"
-
 class baseTramp;
 class miniTramp;
 class AddressSpace;

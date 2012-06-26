@@ -77,6 +77,7 @@ class instPoint : public Dyninst::PatchAPI::Point {
   friend class edge_instance;
   friend class DynPointMaker;
   public:
+
     // The compleat list of instPoint creation methods
     static instPoint *funcEntry(func_instance *);
     static instPoint *funcExit(func_instance *, block_instance *exitPoint);
@@ -138,17 +139,16 @@ class instPoint : public Dyninst::PatchAPI::Point {
     block_instance *block_compat() const;
     Address addr_compat() const;
 
-    miniTramp *push_front(AstNodePtr ast, bool recursive);
-    miniTramp *push_back(AstNodePtr ast, bool recursive);
-    miniTramp *insert(callOrder order, AstNodePtr, bool recursive);
-    void erase(miniTramp *);
-
     bitArray liveRegisters();
 
     std::string format() const;
 
- private:
+    virtual Dyninst::PatchAPI::InstancePtr pushBack(Dyninst::PatchAPI::SnippetPtr);
+    virtual Dyninst::PatchAPI::InstancePtr pushFront(Dyninst::PatchAPI::SnippetPtr);
+
     void markModified();
+
+ private:
 
     bitArray liveRegs_;
     void calcLiveness();
@@ -159,8 +159,12 @@ class instPoint : public Dyninst::PatchAPI::Point {
 
     baseTramp *baseTramp_;
 };
-#define GET_MINI(i) (boost::static_pointer_cast<PatchAPI::Snippet<miniTramp *> >((i)->snippet()))->rep()
 
 #define IPCONV(p) (static_cast<instPoint *>(p))
+
+
+Dyninst::PatchAPI::InstancePtr getChildInstance(Dyninst::PatchAPI::InstancePtr parentInstance,
+                                                AddressSpace *childProc);
+
 
 #endif /* _INST_POINT_H_ */

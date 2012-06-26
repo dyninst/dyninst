@@ -1760,10 +1760,9 @@ void BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExprInt(){
    
 }
 
-#if 0
 // Conversions
-Dyninst::PatchAPI::DynASTSnippet *Dyninst::PatchAPI::convert(const BPatch_snippet *) {
+Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists
-   
+   return snip->ast_wrapper;
 }
-#endif
+

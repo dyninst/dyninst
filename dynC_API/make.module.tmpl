@@ -11,8 +11,8 @@ RELEASE_MAJOR = 7
 RELEASE_MINOR = 0
 DYNCNAME = dynC
 
-CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
-CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h
+CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/patchAPI/h -I$(TO_CORE)/parseAPI/h
+CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/patchAPI/h -I$(TO_CORE)/parseAPI/h
 
 LDFLAGS += -L$(TO_CORE)/dyninstAPI/$(PLATFORM) -L$(TO_CORE)/common/$(PLATFORM)
 LDFLAGS += -L$(TO_CORE)/symtabAPI/$(PLATFORM) -L$(TO_CORE)/instructionAPI/$(PLATFORM) -L$(LIBRARY_DEST)

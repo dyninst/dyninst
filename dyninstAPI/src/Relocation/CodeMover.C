@@ -104,9 +104,11 @@ bool CodeMover::addRelocBlock(block_instance *bbl, func_instance *f) {
    if (!block)
       return false;
    cfg_->addRelocBlock(block);
+   
+   if (!bbl->wasUserAdded()) {
+      priorityMap_[std::make_pair(bbl, f)] = Suggested;
+   }
 
-   priorityMap_[std::make_pair(bbl, f)] = Suggested;
-      
    return true;
 }
 
@@ -219,6 +221,8 @@ SpringboardMap &CodeMover::sBoardMap(AddressSpace *) {
          block_instance *bbl = iter->first.first;
          const Priority &p = iter->second;
          func_instance *func = iter->first.second;
+
+         if (bbl->wasUserAdded()) continue;
 
          // the priority map may include things not in the block
          // map...

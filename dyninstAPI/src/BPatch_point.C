@@ -51,7 +51,6 @@
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "function.h"
 #include "addressSpace.h"
 #include "dynProcess.h"
@@ -78,7 +77,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            AddressSpace *as) :
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(_secondary),
-   pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
+   pointType(_pointType), memacc(NULL),
    edge_(NULL)
 {
    assert(point->func() == _func->lowlevel_func());
@@ -96,9 +95,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    // function/block entry + first insn problem.
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
       BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
+      handle->addInstance(*iter);
       preSnippets.push_back(handle);
     }
 }
@@ -113,7 +110,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
-   dynamic_point_monitor_func(NULL),edge_(_edge)
+   edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -125,9 +122,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
   // And check to see if there's already instrumentation there (from a fork, say)
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
       BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
+      handle->addInstance(*iter);
       preSnippets.push_back(handle);
    }
 }
@@ -474,7 +469,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
 
-  miniTramp *res = point->push_back(ast, true);
+  Dyninst::PatchAPI::InstancePtr res = point->pushBack(ast);
 
   if (addSpace->pendingInsertions == NULL) {
     // Trigger it now
@@ -493,7 +488,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   //  Return pointer to handle as unique id, user does not need to know its a
   //  miniTramp.
 
-  return (void*) res;
+  return (void*) res.get();
 } /* end monitorCalls() */
 
 bool BPatch_point::stopMonitoringInt()
@@ -503,9 +498,9 @@ bool BPatch_point::stopMonitoringInt()
     return false;
   }
   bool ret;
-  ret = dynamic_point_monitor_func->uninstrument();
+  ret = uninstrument(dynamic_point_monitor_func);
 
-  dynamic_point_monitor_func = NULL;
+  dynamic_point_monitor_func = Dyninst::PatchAPI::InstancePtr();
   return ret;
 }
 

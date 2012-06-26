@@ -95,7 +95,7 @@ CFGFactory::_mkfunc(Address addr, FuncSource src, string name,
 
 // And user-overriden create
 Function *
-CFGFactory::mkfunc(Address addr, FuncSource src, string name, 
+CFGFactory::mkfunc(Address addr, FuncSource, string name, 
     CodeObject * obj, CodeRegion * reg, Dyninst::InstructionSource * isrc)
 {
     Function * ret = new Function(addr,name,obj,reg,isrc);

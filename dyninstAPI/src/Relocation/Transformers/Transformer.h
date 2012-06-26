@@ -32,7 +32,6 @@
 #if !defined(_R_T_BASE_H_)
 #define _R_T_BASE_H_
 
-#include "dynptr.h" // shared_ptr
 #include "common/h/Types.h" // Address
 #include <list>
 #include <map>

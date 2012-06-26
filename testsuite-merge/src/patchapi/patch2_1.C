@@ -28,15 +28,19 @@ using Dyninst::PatchAPI::Snippet;
 using Dyninst::PatchAPI::Command;
 using Dyninst::PatchAPI::RemoveSnippetCommand;
 using Dyninst::PatchAPI::InstancePtr;
+using Dyninst::PatchAPI::Buffer;
 
 /* Dummy Snippets */
-struct DummySnippet {
+class DummySnippet : public Dyninst::PatchAPI::Snippet {
+public:
   DummySnippet(int n) : name(n) {}
   int name;
+
+   virtual bool generate(Point *, Buffer &) { return false; }
+   virtual ~DummySnippet() {};
 };
 #define SnippetDef(NAME)  \
-  DummySnippet s ## NAME ( NAME );  \
-  Snippet<DummySnippet*>::Ptr snip ## NAME = Snippet<DummySnippet*>::create(&s ## NAME);
+   Snippet::Ptr snip ## NAME = Snippet::create(new DummySnippet(NAME))
 
 class patch2_1_Mutator : public PatchApiMutator {
   virtual test_results_t executeTest();
@@ -101,7 +105,7 @@ test_results_t patch2_1_Mutator::executeTest() {
   int expected_vals[] = {3};
   int counter = 0;
   for (Point::instance_iter i = pts[0]->begin(); i != pts[0]->end(); i++) {
-    DummySnippet* s = Snippet<DummySnippet*>::get((*i)->snippet())->rep();
+     DummySnippet* s = static_cast<DummySnippet *>((*i)->snippet().get());
 
     if (s->name != expected_vals[counter]) {
       logerror(" expect %d, but in fact %d", s->name, expected_vals[counter]);

@@ -201,6 +201,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          case ParseAPI::COND_NOT_TAKEN:
          case ParseAPI::FALLTHROUGH:
          case ParseAPI::CALL_FT: {
+
             cfg->makeEdge(new Target<RelocBlock *>(this), 
                           new Target<Address>(block_->end()), 
                           type);
@@ -332,12 +333,17 @@ void RelocBlock::createCFWidget() {
 void RelocBlock::preserveBlockGap() {
   /*   const block_instance::edgelist &targets = block_->targets();
        for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   if (block_->wasUserAdded()) return;
    const PatchBlock::edgelist &targets = block_->targets();
    bool hasCall = false;
    bool hasFT = false;
    for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {
          hasCall = true;
+      }
+      if ((*iter)->trg()->wasUserAdded()) {
+         // DO NOT ADD A GAP. 
+         continue;
       }
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
@@ -350,8 +356,8 @@ void RelocBlock::preserveBlockGap() {
             if (target->start() < block_->end()) {
                cerr << "Error: source should precede target; edge type " << ParseAPI::format((*iter)->type()) << hex
                     << " src[" << block_->start() << " " << block_->end()
-                    << " trg[" << target->start() << " " << target->end() << dec << endl;
-                assert(0);
+                    << "] trg[" << target->start() << " " << target->end() << dec << "]" << endl;
+               assert(0);
             }
             cfWidget()->setGap(target->start() - block_->end());
             return;
@@ -489,7 +495,8 @@ std::string RelocBlock::format() const {
   ret << "Out edges:";
   for (RelocEdges::const_iterator iter = outEdges_.begin();
        iter != outEdges_.end(); ++iter) {
-     ret << (*iter)->trg->format() << ", ";
+     ret << (*iter)->trg->format() 
+	 << "<" << ParseAPI::format((*iter)->type) << ">, ";
   }
   ret << endl;
 
@@ -575,4 +582,9 @@ bool RelocBlock::isNecessary(TargetInt *target,
    return false;
 }
 
+void RelocBlock::setCF(CFWidgetPtr cf) {
+   elements_.pop_back();
+   elements_.push_back(cf);
+   cfWidget_ = cf;
+}
 

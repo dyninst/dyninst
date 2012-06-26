@@ -1922,7 +1922,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     syms[i] = *(symbols[i]);
 
   char *str = (char *)malloc(symbolNamesLength);
-  char *tmpfoo = str;
   unsigned cur=0;
   for(i=0;i<symbolStrs.size();i++)
     {

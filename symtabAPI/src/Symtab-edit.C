@@ -50,6 +50,8 @@
 
 #include "symtabAPI/src/Object.h"
 
+#include "boost/tuple/tuple.hpp"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -144,9 +146,6 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
         //  as deleted w/out changing vector
         if ((*iter) == sym) (*iter) = &deletedSymbol;
     }
-
-    // userAddedSymbols
-    userAddedSymbols.erase(sym);
     undefDynSymsByMangledName[sym->getMangledName()].erase(std::remove(undefDynSymsByMangledName[sym->getMangledName()].begin(),
                                                                        undefDynSymsByMangledName[sym->getMangledName()].end(), sym),
                                                            undefDynSymsByMangledName[sym->getMangledName()].end());
@@ -233,10 +232,6 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
 bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
 {
-   if (std::find(userAddedSymbols.begin(), 
-                 userAddedSymbols.end(), 
-                 newSym) != userAddedSymbols.end()) return true;
-
     if (!newSym || !referringSymbol ) return false;
 
     if( !referringSymbol->getSymtab()->isStaticBinary() ) {
@@ -273,10 +268,6 @@ bool Symtab::addSymbol(Symbol *newSym)
    if (!newSym) {
     	return false;
    }
-   if (std::find(userAddedSymbols.begin(), 
-                 userAddedSymbols.end(), 
-                 newSym) != userAddedSymbols.end()) return true;
-
 
    // Expected default behavior: if there is no
    // module use the default.
@@ -294,10 +285,7 @@ bool Symtab::addSymbol(Symbol *newSym)
    
    // And to aggregates
    addSymbolToAggregates(newSym);
-   
-   // And to "new symbols added by user"
-   userAddedSymbols.insert(newSym);
-   
+
    return true;
 }
 

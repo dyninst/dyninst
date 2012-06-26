@@ -39,7 +39,7 @@
 // capabilities such as splitting blocks or redirecting edges. 
 
 #include "PatchMgr.h"
-#include "common.h"
+#include "PatchCommon.h"
 
 
 namespace Dyninst {
@@ -47,6 +47,25 @@ namespace PatchAPI {
    class PatchEdge;
    class PatchBlock;
    class PatchFunction;
+   class PatchModifier;
+
+class InsertedCode {
+   friend class PatchModifier;
+
+  public:
+  InsertedCode() : entry_(NULL) {};
+
+   typedef boost::shared_ptr<InsertedCode> Ptr;
+   PATCHAPI_EXPORT PatchBlock *entry() { return entry_; }
+   PATCHAPI_EXPORT const std::vector<PatchEdge *> &exits() { return exits_;}
+   PATCHAPI_EXPORT const std::set<PatchBlock *> &blocks() { return blocks_; }
+  private:
+   
+   PatchBlock *entry_;
+   std::vector<PatchEdge *> exits_;
+   std::set<PatchBlock *> blocks_;
+};   
+   
 
 class PatchModifier {
   public:
@@ -69,11 +88,11 @@ class PatchModifier {
    // As the above, but for functions. 
    PATCHAPI_EXPORT static bool remove(PatchFunction *);
 
-   // Now for some fun. 
-   PATCHAPI_EXPORT static bool insert(SnippetPtr snippet);
-   // We need a "binary blob" snippet, but SnippetPtrs need to be
-   // fixed first. 
-   PATCHAPI_EXPORT static PatchBlock *insert(PatchObject *, void *start, unsigned size);
+   PATCHAPI_EXPORT static InsertedCode::Ptr insert(PatchObject *, SnippetPtr snip, Point *point);
+   PATCHAPI_EXPORT static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size);
+
+  private:
+   static InsertedCode::Ptr insert(PatchObject *, void *start, unsigned size, Address base);
 
 };
 

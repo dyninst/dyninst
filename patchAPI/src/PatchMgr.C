@@ -341,6 +341,8 @@ void PatchMgr::getBlockInstances(Scope &scope, BlockInstances &blocks) {
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
       const PatchFunction::Blockset &b = (*iter)->blocks();
       for (PatchFunction::Blockset::const_iterator iter2 = b.begin(); iter2 != b.end(); ++iter2) {
+         // TODO FIXME: make this more efficient to avoid iunnecessary iteration
+         if (scope.block && scope.block != *iter2) continue;
          blocks.push_back(BlockInstance(*iter, *iter2));
       }
    }
@@ -353,6 +355,8 @@ void PatchMgr::getInsnInstances(Scope &scope, InsnInstances &insns) {
    for (Functions::iterator iter = funcs.begin(); iter != funcs.end(); ++iter) {
       const PatchFunction::Blockset &b = (*iter)->blocks();
       for (PatchFunction::Blockset::const_iterator iter2 = b.begin(); iter2 != b.end(); ++iter2) {
+         // TODO FIXME: make this more efficient to avoid iunnecessary iteration
+         if (scope.block && scope.block != *iter2) continue;
          PatchBlock::Insns i;
          (*iter2)->getInsns(i);
          for (PatchBlock::Insns::iterator iter3 = i.begin(); iter3 != i.end(); ++iter3) {
@@ -426,3 +430,4 @@ bool PatchMgr::consistency() const {
    if (!as_) return false;
    return (as_->consistency(this));
 }
+

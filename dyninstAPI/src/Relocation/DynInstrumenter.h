@@ -7,8 +7,6 @@
 #include "Command.h"
 
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/miniTramp.h"
-
 
 using Dyninst::PatchAPI::DynAddrSpace;
 using Dyninst::PatchAPI::Command;
@@ -38,27 +36,27 @@ class DynInsertSnipCommand : public Command {
                       AstNodePtr ast, bool recursive);
     virtual ~DynInsertSnipCommand() {}
 
-    miniTramp* mini() { return mini_; }
+    Instance::Ptr inst() { return inst_; }
 
     virtual bool run();
     virtual bool undo();
 
   protected:
-    miniTramp* mini_;
+    Instance::Ptr inst_;
 };
 
 /* Dyninst-specific Remove Snippet Command  */
 class DynRemoveSnipCommand : public Command {
   public:
-    DynRemoveSnipCommand(miniTramp* mini);
-    static DynRemoveSnipCommand* create(miniTramp* mini);
+      DynRemoveSnipCommand(Instance::Ptr inst);
+      static DynRemoveSnipCommand* create(Instance::Ptr inst);
     virtual ~DynRemoveSnipCommand() {}
 
     virtual bool run();
     virtual bool undo();
 
   protected:
-    miniTramp* mini_;
+    Instance::Ptr inst_;
 };
 
 /* Dyninst-specific Function Replacement */
