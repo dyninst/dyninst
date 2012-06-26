@@ -75,7 +75,7 @@ bool adhocMovementTransformer::process(RelocBlock *cur, RelocGraph *cfg) {
     Absloc aloc;
 
     if (isPCDerefCF(*iter, insn, target)) {
-       CFWidget::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFWidget>(*iter);
+       CFWidget::Ptr cf = boost::dynamic_pointer_cast<CFWidget>(*iter);
        assert(cf);
        cf->setOrigTarget(target);
     }

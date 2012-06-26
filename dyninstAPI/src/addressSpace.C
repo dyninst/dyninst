@@ -34,7 +34,6 @@
 #include "dynProcess.h"
 #include "function.h"
 #include "binaryEdit.h"
-#include "miniTramp.h"
 #include "baseTramp.h"
 
 #include "instPoint.h"

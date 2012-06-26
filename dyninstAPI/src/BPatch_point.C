@@ -51,7 +51,6 @@
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "function.h"
 #include "addressSpace.h"
 #include "dynProcess.h"

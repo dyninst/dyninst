@@ -49,7 +49,7 @@ class BatchCommand;
 class Patcher;
 
 class Snippet;
-typedef dyn_detail::boost::shared_ptr<Snippet> SnippetPtr;
+typedef boost::shared_ptr<Snippet> SnippetPtr;
 
 typedef std::map<PatchFunction*, PatchFunction*> FuncModMap;
 typedef std::map<PatchFunction*, std::pair<PatchFunction*, std::string> > FuncWrapMap;

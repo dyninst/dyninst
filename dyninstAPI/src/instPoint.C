@@ -42,7 +42,6 @@
 #include "common/h/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dynThread.h"

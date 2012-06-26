@@ -940,8 +940,8 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          int size,
                                          bool noCost);
 
-#define SCAST_AST(ast) dyn_detail::boost::static_pointer_cast<AstNode>(ast)
-#define DCAST_AST(ast) dyn_detail::boost::dynamic_pointer_cast<AstNode>(ast)
+#define SCAST_AST(ast) boost::static_pointer_cast<AstNode>(ast)
+#define DCAST_AST(ast) boost::dynamic_pointer_cast<AstNode>(ast)
 
 
 #endif /* AST_HDR */

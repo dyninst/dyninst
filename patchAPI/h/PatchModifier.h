@@ -55,7 +55,7 @@ class InsertedCode {
   public:
   InsertedCode() : entry_(NULL) {};
 
-   typedef dyn_detail::boost::shared_ptr<InsertedCode> Ptr;
+   typedef boost::shared_ptr<InsertedCode> Ptr;
    PATCHAPI_EXPORT PatchBlock *entry() { return entry_; }
    PATCHAPI_EXPORT const std::vector<PatchEdge *> &exits() { return exits_;}
    PATCHAPI_EXPORT const std::set<PatchBlock *> &blocks() { return blocks_; }

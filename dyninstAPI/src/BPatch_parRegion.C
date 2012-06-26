@@ -34,7 +34,6 @@
 #include "instPoint.h"
 #include "function.h" // func_instance
 #include "codeRange.h"
-#include "miniTramp.h"
 
 #include "mapped_module.h"
 

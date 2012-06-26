@@ -289,7 +289,7 @@ enum SnippetState {
    particular point */
 class Instance : public boost::enable_shared_from_this<Instance> {
   public:
-   typedef dyn_detail::boost::shared_ptr<Instance> Ptr;
+   typedef boost::shared_ptr<Instance> Ptr;
 
   Instance(Point* point, SnippetPtr snippet)
      : point_(point), snippet_(snippet), guarded_(true) { }
