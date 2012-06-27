@@ -33,7 +33,7 @@
 #define WALKER_H_
 
 #include "basetypes.h"
-#include "proccontrol/h/PCProcess.h"
+#include "PCProcess.h"
 #include <vector>
 #include <list>
 #include <string>

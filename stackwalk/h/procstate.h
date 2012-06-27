@@ -37,7 +37,7 @@
 
 #include "basetypes.h"
 #include "dyn_regs.h"
-#include "proccontrol/h/PCProcess.h"
+#include "PCProcess.h"
 
 #include <vector>
 #include <map>
