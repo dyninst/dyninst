@@ -12,8 +12,8 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
-IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
+LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
