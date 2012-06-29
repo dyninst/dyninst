@@ -64,7 +64,6 @@ int test_thread_6_mutatee() {
    initThreads();
 
    for (i=0; i<NTHRD; i++)  {
-	   fprintf(stderr, "spawning new thread\n");
        threads[i] = spawnNewThread((void *) init_func, (void *) i);
    }
 
