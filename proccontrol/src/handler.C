@@ -2127,8 +2127,6 @@ void HandleCallbacks::getRealEvents(EventType ev, std::vector<EventType> &out_ev
          out_evs.push_back(EventType(ev.time(), EventType::LWPCreate));
          break;
       case EventType::ThreadDestroy:
-         pthrd_printf("%s[%d]: ThreadDestroy handled in getRealEvents, adding UserThreadDestroy and LWPDestroy\n",
-                      FILE__, __LINE__);
          out_evs.push_back(EventType(ev.time(), EventType::UserThreadDestroy));
          out_evs.push_back(EventType(ev.time(), EventType::LWPDestroy));
          break;
