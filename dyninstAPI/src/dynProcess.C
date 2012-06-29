@@ -176,7 +176,10 @@ PCProcess *PCProcess::setupForkedProcess(PCProcess *parent, Process::ptr pcProc)
     ret->copyAddressSpace(parent);
 
     // This requires the AddressSpace be copied from the parent
-    ret->tracedSyscalls_ = new syscallNotification(parent->tracedSyscalls_, ret);
+    if (parent->tracedSyscalls_)
+      ret->tracedSyscalls_ = new syscallNotification(parent->tracedSyscalls_, ret);
+    else
+      ret->tracedSyscalls_ = NULL;
 
     // Check if RT library exists in child
     if( ret->runtime_lib.size() == 0 ) {
@@ -356,12 +359,13 @@ bool PCProcess::bootstrapProcess() {
 
     // Insert a breakpoint at the entry point of main (and possibly __libc_start_main)
     if( !hasPassedMain() ) {
+      startup_printf("%s[%d]: inserting breakpoint at main\n", FILE__, __LINE__);
         if( !insertBreakpointAtMain() ) {
             startup_printf("%s[%d]: bootstrap failed while setting a breakpoint at main\n",
                     FILE__, __LINE__);
             return false;
         }
-
+	startup_printf("%s[%d]: continuing process to breakpoint\n", FILE__, __LINE__);
         if( !continueProcess() ) {
             startup_printf("%s[%d]: bootstrap failed while continuing the process\n",
                     FILE__, __LINE__);
@@ -369,7 +373,9 @@ bool PCProcess::bootstrapProcess() {
         }
 
         while( !hasReachedBootstrapState(bs_readyToLoadRTLib) ) {
+	  startup_printf("%s[%d]: waiting for main() loop\n", FILE__, __LINE__);
             if( isStopped() ) {
+	      startup_printf("%s[%d]: We think the process is stopped, continuing\n", FILE__, __LINE__);
                 if( !continueProcess() ) {
                     startup_printf("%s[%d]: bootstrap failed while continuing the process\n",
                             FILE__, __LINE__);

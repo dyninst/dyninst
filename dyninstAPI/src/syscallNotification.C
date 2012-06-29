@@ -56,25 +56,24 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     // We need to copy over the instMappings and get the new miniTramps from
     // the parent process
     // We don't copy the instMappings, but make new copies.
-    if (parentSN->preForkInst) {
-        preForkInst = new instMapping(parentSN->preForkInst, child);
-    }
-    if (parentSN->postForkInst) {
-        postForkInst = new instMapping(parentSN->postForkInst, child);
-    }
-    if (parentSN->preExecInst) {
-        preExecInst = new instMapping(parentSN->preExecInst, child);
-    }
-    if (parentSN->postExecInst) {
-        postExecInst = new instMapping(parentSN->postExecInst, child);
-    }
-    if (parentSN->preExitInst) {
-        preExitInst = new instMapping(parentSN->preExitInst, child);
-    }
-
-    if (parentSN->preLwpExitInst) {
-        preLwpExitInst = new instMapping(parentSN->preLwpExitInst, child);
-    }
+  if (parentSN->preForkInst) {
+    preForkInst = new instMapping(parentSN->preForkInst, child);
+  }
+  if (parentSN->postForkInst) {
+    postForkInst = new instMapping(parentSN->postForkInst, child);
+  }
+  if (parentSN->preExecInst) {
+    preExecInst = new instMapping(parentSN->preExecInst, child);
+  }
+  if (parentSN->postExecInst) {
+    postExecInst = new instMapping(parentSN->postExecInst, child);
+  }
+  if (parentSN->preExitInst) {
+    preExitInst = new instMapping(parentSN->preExitInst, child);
+  }
+  if (parentSN->preLwpExitInst) {
+    preLwpExitInst = new instMapping(parentSN->preLwpExitInst, child);
+  }
 }
 
 /////////// Prefork instrumentation 

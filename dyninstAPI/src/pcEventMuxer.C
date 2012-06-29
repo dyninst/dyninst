@@ -106,24 +106,33 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          }
       }
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-      EventPtr ev = dequeue(false);
+      bool eventsRecv = false;
+      bool error = false;
+      while (mailbox_.size() > 0) {
+	EventPtr ev = dequeue(false);
 #if defined(os_windows)
-      // Windows does early handling of exit, so if we see an exit come through here
-      // don't call handle(), just return success
-      if (ev->getEventType().code() == EventType::Exit) {
-         return EventsReceived;
-      }
+	// Windows does early handling of exit, so if we see an exit come through here
+	// don't call handle(), just return success
+	if (ev->getEventType().code() == EventType::Exit) {
+	  eventsRecv = true;
+	  continue;
+	}
 #endif
-      if (!ev) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
-         return NoEvents;
+	if (!ev) {
+	  proccontrol_printf("[%s:%u] - PCEventMuxer::wait skipping null event\n", FILE__, __LINE__);
+	  continue;
+	}
+	if (!handle(ev)) {
+	  proccontrol_printf("[%s:%u] - PCEventMuxer::wait failed to handle event\n", FILE__, __LINE__);
+	  error = true;
+	}
       }
-      if (!handle(ev)) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
-         return Error;
-      }
+      if (error) return Error;
+      if (eventsRecv) return EventsReceived;
+      return NoEvents;
    }
-   return EventsReceived;
+   proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
+   return NoEvents;
 }
 
 bool PCEventMuxer::hasPendingEvents(PCProcess *proc) {
@@ -364,8 +373,8 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
     procCount[evProc]++;
     queueCond.broadcast();
 
-    proccontrol_printf("%s[%d]: Added event %s to mailbox\n", FILE__, __LINE__,
-                       ev->name().c_str());
+    proccontrol_printf("%s[%d]: Added event %s to mailbox, size now %d\n", FILE__, __LINE__,
+                       ev->name().c_str(), eventQueue.size());
     
     queueCond.unlock();
 }

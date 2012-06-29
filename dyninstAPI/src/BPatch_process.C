@@ -497,7 +497,6 @@ bool BPatch_process::stopExecutionInt()
 bool BPatch_process::continueExecutionInt() 
 {
     if( NULL == llproc ) return false;
-
     if( !llproc->isBootstrapped() ) return false;
 
     // The user has already indicated they would like the process running
