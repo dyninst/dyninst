@@ -111,6 +111,9 @@ class PC_EXPORT Breakpoint
 
    bool isCtrlTransfer() const;
    Dyninst::Address getToAddress() const;
+
+   void setSuppressCallbacks(bool);
+   bool suppressCallbacks() const;
 };
 
 class PC_EXPORT Library

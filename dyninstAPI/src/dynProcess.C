@@ -1415,15 +1415,14 @@ PCThread *PCProcess::getThread(dynthread_t tid) const {
 }
 
 bool PCProcess::removeThread(dynthread_t tid) {
-    // First, tell the RT library about the removal
-    if( !unregisterThread(tid) ) return false;
-
     map<dynthread_t, PCThread *>::iterator result;
     result = threadsByTid_.find(tid);
 
     if( result == threadsByTid_.end() ) return false;
 
     PCThread *toDelete = result->second;
+
+    if( !unregisterThread(toDelete) ) return false;
 
     threadsByTid_.erase(result);
 
@@ -1438,76 +1437,108 @@ bool PCProcess::removeThread(dynthread_t tid) {
             FILE__, __LINE__, toDelete->getLWP(), getPid());
     return true;
 }
+extern Address getVarAddr(PCProcess *proc, std::string str);
 
-bool PCProcess::unregisterThread(dynthread_t tid) {
-   // FIXME
-   return true;
-
-    pdvector<AstNodePtr> the_args(1);
-    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)tid);
-    AstNodePtr unregisterAST = AstNode::funcCallNode("DYNINSTunregisterThread", the_args);
-
-    map<dynthread_t, PCThread *>::iterator result;
-    result = threadsByTid_.find(tid);
-
-    if( result == threadsByTid_.end() ) return false;
-
-    PCThread *toUnregister = result->second;
-
-    Address retval = 0;
-    if( !postIRPC(unregisterAST, 
-                NULL,  // no user data
-                (getDesiredProcessState() == ps_running), 
-                toUnregister,  
-                true,  // wait for completion
-                (void **)&retval,
-                false) ) // don't deliver callbacks 
-    {
-        proccontrol_printf("%s[%d]: failed to run DYNINSTunregisterThread via iRPC\n", FILE__, __LINE__);
-        return false;
-    }
-
-    if( !retval ) {
-        proccontrol_printf("%s[%d]: failed to unregister thread with RT library\n", FILE__, __LINE__);
-        return false;
-    }
-
-    return true;
-}
-
-#if !defined(os_windows)
-// Windows can't run RPCs on threads in system calls right now, so we set the hash table
-// of tid/index mappings directly. This is a pain and the RPC method is cleaner, but...
 
 bool PCProcess::registerThread(PCThread *thread) {	
-	pdvector<AstNodePtr> the_args(2);
-    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)thread->getTid());
-    the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)thread->getIndex());
-    AstNodePtr registerAST = AstNode::funcCallNode("DYNINSTregisterThread", the_args);
+   Address tid = (Address) thread->getTid();
+   Address index = thread->getIndex();
+   
+   Address tmp = 0;
+   unsigned ptrsize = getAddressWidth();
 
-    Address retval = 0;
-    if( !postIRPC(registerAST, 
-                NULL,  // no user data
-                (getDesiredProcessState() == ps_running), // don't run after it is done
-                NULL,  // doesn't matter which thread
-                true,  // wait for completion
-                (void **)&retval,
-                false) ) // don't deliver callbacks 
-    {
-        proccontrol_printf("%s[%d]: failed to run DYNINSTregisterThread via iRPC\n", FILE__, __LINE__);
-        return false;
-    }
+   if (tid == (Address) -1) return true;
+   if (index == (Address) -1) return true;
 
-    if( !retval ) {
-        proccontrol_printf("%s[%d]: failed to register thread with RT library\n", FILE__, __LINE__);
-        return false;
-    }
+   initializeRegisterThread();
 
-    thread->setTid((dynthread_t)retval);
-
-    return true;
+   // Must match the "hash" algorithm used in the RT lib
+   int working = (tid % thread_hash_size);
+   while(1) {
+      tmp = 0;
+      if (!readDataWord(( void *)(thread_hash_indices + (working * ptrsize)), ptrsize, &tmp, false)) {
+         startup_printf("%s[%d]: Failed to read index slot, base 0x%lx, active 0x%lx\n", FILE__, __LINE__,
+                        thread_hash_indices, thread_hash_indices + (working * ptrsize));
+         return false;
+      }
+      startup_printf("%s[%d]: value of tid in slot %p is 0x%lx\n",
+                     FILE__, __LINE__, thread_hash_indices + (working * ptrsize), tmp);
+      if (ptrsize == 4 && tmp == 0xffffffff) {
+         int index_int = (int) index;
+         int tid_int = (int) tid;
+         startup_printf("%s[%d]: writing %d to %p and 0x%x to %p\n",
+                        FILE__, __LINE__, index_int, thread_hash_indices + (working * ptrsize),
+                        tid_int, thread_hash_tids + (working * ptrsize));
+         writeDataWord(( void *)(thread_hash_indices + (working * ptrsize)), ptrsize, &index_int);
+         writeDataWord(( void *)(thread_hash_tids + (working * ptrsize)), ptrsize, &tid_int);
+         break;
+      }
+      else if (ptrsize == 8 && tmp == (Address)-1)  {
+         writeDataWord(( void *)(thread_hash_indices + (working * ptrsize)), ptrsize, &index);
+         writeDataWord(( void *)(thread_hash_tids + (working * ptrsize)), ptrsize, &tid);
+         break;
+      }
+      working++;
+      if (working == thread_hash_size) working = 0;
+      if (working == (tid % thread_hash_size)) {
+         startup_printf("%s[%d]: Failed to find empty tid slot\n", FILE__, __LINE__);
+         return false;
+      }
+   }
+   return true;
 }
-#endif
+bool PCProcess::unregisterThread(PCThread *thread) {	
+   return true;
+   Address tid = (Address) thread->getTid();
+   Address index = thread->getIndex();
+   Address tmp = 0;
+   
+   unsigned ptrsize = getAddressWidth();
+   if (tid == (Address) -1) return true;
+   if (index == (Address) -1) return true;
+
+   initializeRegisterThread();
+
+   // Must match the "hash" algorithm used in the RT lib
+   int working = tid % thread_hash_size;
+   while(1) {
+      tmp = 0;
+      if (!readDataWord((void *)(thread_hash_tids + (working * ptrsize)), ptrsize, &tmp, false)) return false;
+      if (tmp == tid) {
+         // Zero it out
+         tmp = (Address) -1;
+         writeDataWord(( void *)(thread_hash_indices + (working * ptrsize)), ptrsize, &tmp);
+         break;
+      }
+      working++;
+      if (working == thread_hash_size) working = 0;
+      if (working == (tid % thread_hash_size)) return false;
+   }
+   return true;
+}
+
+bool PCProcess::initializeRegisterThread() {
+   if (thread_hash_tids) return true;
+
+   unsigned ptrsize = getAddressWidth();
+   
+   Address tidPtr = getVarAddr(this, "DYNINST_thread_hash_tids");
+   if (!tidPtr) return false;
+   Address indexPtr = getVarAddr(this, "DYNINST_thread_hash_indices");
+   if (!indexPtr) return false;
+   Address sizePtr = getVarAddr(this, "DYNINST_thread_hash_size");
+   if (!sizePtr) return false;
+   
+   if (!readDataWord((const void *)tidPtr, ptrsize, &thread_hash_tids, false)) return false;
+
+   if (!readDataWord((const void *)indexPtr, ptrsize, &thread_hash_indices, false)) return false;
+
+   if (!readDataWord((const void *)sizePtr, sizeof(int), &thread_hash_size, false)) return false;
+
+   return true;
+}
+
+
 
 void PCProcess::addThread(PCThread *thread) {
     pair<map<dynthread_t, PCThread *>::iterator, bool> result;
@@ -3333,24 +3364,8 @@ Address PCProcess::getRTEventArg3Addr() {
 }
 
 bool PCProcess::hasPendingEvents() {
-    bool retval;
-    eventCountLock_.lock();
-    retval = ( eventCount_ != 0 );
-    eventCountLock_.unlock();
-    return retval;
-}
-
-void PCProcess::incPendingEvents() {
-    eventCountLock_.lock();
-    eventCount_++;
-    eventCountLock_.unlock();
-}
-
-void PCProcess::decPendingEvents() {
-    eventCountLock_.lock();
-    assert(eventCount_ > 0);
-    eventCount_--;
-    eventCountLock_.unlock();
+   // Go to the muxer as a final arbiter
+   return PCEventMuxer::muxer().hasPendingEvents(this);
 }
 
 bool PCProcess::hasRunningSyncRPC() const {
@@ -3390,52 +3405,46 @@ bool PCProcess::continueSyncRPCThreads() {
     return true;
 }
 
-bool PCProcess::registerTrapMapping(Address from, Address to) {
+void PCProcess::addTrap(Address from, Address to, codeGen &) {
     map<Address, Breakpoint::ptr>::iterator breakIter =
-        installedCtrlBrkpts.find(from);
+       installedCtrlBrkpts.find(from);
 
     if( breakIter != installedCtrlBrkpts.end() ) {
         proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
                 "0x%lx to 0x%lx, replacing with new mapping\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
 
         if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
-            proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
-                    "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
-            return false;
+           proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
+                              "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
         }
         installedCtrlBrkpts.erase(breakIter);
     }
-
+    
     Breakpoint::ptr newBreak = Breakpoint::newTransferBreakpoint(to);
+    newBreak->setSuppressCallbacks(true);
 
     if( !pcProc_->addBreakpoint(from, newBreak) ) {
         proccontrol_printf("%s[%d]: failed to add ctrl transfer breakpoint from "
                 "0x%lx to 0x%lx\n", FILE__, __LINE__, from, to);
-        return false;
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
 
     proccontrol_printf("%s[%d]: added ctrl transfer breakpoint from 0x%lx to 0x%lx\n",
             FILE__, __LINE__, from, to);
-
-    return true;
 }
 
-bool PCProcess::unregisterTrapMapping(Address from) {
+void PCProcess::removeTrap(Address from) {
     map<Address, Breakpoint::ptr>::iterator breakIter = 
         installedCtrlBrkpts.find(from);
-    if( breakIter == installedCtrlBrkpts.end() ) return false;
+    if( breakIter == installedCtrlBrkpts.end() ) return;
 
     if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
         proccontrol_printf("%s[%d]: failed to remove ctrl transfer breakpoint from 0x%lx\n",
                 FILE__, __LINE__, from);
-        return false;
     }
 
     installedCtrlBrkpts.erase(breakIter);
-
-    return true;
 }
 
 void PCProcess::invalidateMTCache() {
@@ -3561,4 +3570,5 @@ Dyninst::SymReader* DynSymReaderFactory::openSymbolReader(const char *buffer, un
 {
   return Dyninst::SymtabAPI::SymtabReaderFactory::openSymbolReader(buffer, size);
 }
+
 

@@ -2555,3 +2555,27 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
+void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
+{
+   if (gen) return;
+
+   if (ev->getEventType().code() != EventType::LWPDestroy ||
+       ev->getEventType().time() != EventType::Pre) 
+      return;
+
+   int_thread *thrd = ev->getThread()->llthrd();
+   if (thrd->getGeneratorState().getState() != int_thread::running)
+      return;
+
+   // So we have a pre-LWP destroy and a running generator; this means
+   // that someone continued the thread during decode and it is now
+   // gone. So set the event to async and set the generator state to
+   // exited.
+
+   pthrd_printf("plat_adjustSyncType: thread %d raced with exit, setting event to async\n",
+                thrd->getLWP());
+
+   //thrd->getGeneratorState().setState(int_thread::exited);
+   ev->setSyncType(Event::async);
+   //thrd->getHandlerState().setState(int_thread::exited);
+}

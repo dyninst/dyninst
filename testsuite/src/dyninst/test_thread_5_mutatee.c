@@ -33,7 +33,7 @@
 #include "mutatee_util.h"
 #include "test_thread.h"
 #include "test12.h"
-
+#include <sys/syscall.h>
 /* Externally accessed function prototypes.  These must have globally unique
  * names.  I suggest following the pattern <testname>_<function>
  */
@@ -62,6 +62,8 @@ void *thread_main8(void *arg)
       so actual contention is meaningless */
   Lock_t newmutex;
   arg = NULL;
+  int tid = syscall(SYS_gettid);
+
   if (!createLock(&newmutex)) {
      logerror("%s[%d]:  createLock failed\n", __FILE__, __LINE__);
      return NULL;
@@ -72,17 +74,20 @@ void *thread_main8(void *arg)
      return NULL;
   }
   sleep_ms(100);
+
   if (!unlockLock(&newmutex)) {
      logerror("%s[%d]:  unlockLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
   sleep_ms(100); 
+
   if (!destroyLock(&newmutex)) {
      logerror("%s[%d]:  destroyLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
 
   sleep(1);
+
   return NULL;
 }
 
@@ -97,6 +102,7 @@ void func8_1()
   while (test_thread_5_idle == 0) {
     /* Do nothing */
   }
+
 }
 
 int test_thread_5_mutatee() {

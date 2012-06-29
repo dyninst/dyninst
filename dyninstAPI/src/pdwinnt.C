@@ -1871,45 +1871,4 @@ mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)
 	return false;
 }
 
-extern Address getVarAddr(PCProcess *proc, std::string str);
 
-bool PCProcess::registerThread(PCThread *thread) {	
-	Address tid = (Address) thread->getTid();
-	Address index = thread->getIndex();
-
-	if (tid == (Address) -1) return true;
-	if (index == (Address) -1) return true;
-
-	// Don't use an RPC to set this, since RPCs to threads in system calls are problematic
-	// on Windows. Instead, parse and set the RTlib hash table directly. 
-
-	Address tidPtr = getVarAddr(this, "DYNINST_thread_hash_tids");
-	if (!tidPtr) return false;
-	Address indexPtr = getVarAddr(this, "DYNINST_thread_hash_indices");
-	if (!indexPtr) return false;
-	Address sizePtr = getVarAddr(this, "DYNINST_thread_hash_size");
-	if (!sizePtr) return false;
-
-	Address tmp;
-	if (!readDataWord((const void *)tidPtr, sizeof(int), &tmp, false)) return false;
-	tidPtr = tmp;
-	if (!readDataWord((const void *)indexPtr, sizeof(int), &tmp, false)) return false;
-	indexPtr = tmp;
-	if (!readDataWord((const void *)sizePtr, sizeof(int), &tmp, false)) return false;
-	sizePtr = tmp;
-
-	Address working = tid % sizePtr;
-	while(1) {
-		if (!readDataWord(( void *)(indexPtr + (working * sizeof(int))), sizeof(int), &tmp, false)) return false;
-		if (tmp == (Address) -1) {
-			// Write in our data
-			writeDataWord(( void *)(indexPtr + (working * sizeof(int))), sizeof(int), &index);
-			writeDataWord(( void *)(tidPtr + (working * sizeof(void *))), sizeof(void *), &tid);
-			break;
-		}
-		working++;
-		if (working == sizePtr) working = 0;
-		if (working == tid) return false;
-	}
-	return true;
-}

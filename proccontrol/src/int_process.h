@@ -257,6 +257,8 @@ class int_process
    virtual bool preTerminate();
    bool terminate(bool &needs_sync);
    void updateSyncState(Event::ptr ev, bool gen);
+
+   virtual void plat_adjustSyncType(Event::ptr, bool) {};
    virtual Dyninst::Architecture getTargetArch() = 0;
    virtual unsigned getTargetPageSize() = 0;
    virtual unsigned plat_getRecommendedReadSize();
@@ -645,6 +647,8 @@ public:
 
       std::string getName() const;
       int getID() const;
+      
+      int_thread *debugthr() const { return up_thr; }
    };
 
    //State management, see above comment on states
@@ -979,6 +983,7 @@ class int_breakpoint
    bool onetime_bp;
    bool onetime_bp_hit;
    bool procstopper;
+   bool suppress_callbacks;
    std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
@@ -1004,6 +1009,9 @@ class int_breakpoint
    void setProcessStopper(bool b);
    bool isProcessStopper() const;
 
+   void setSuppressCallbacks(bool);
+   bool suppressCallbacks(void) const;
+   
    bool isHW() const;
    unsigned getHWSize() const;
    unsigned getHWPerms() const;

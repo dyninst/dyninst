@@ -45,6 +45,8 @@
 #include "proccontrol/src/windows_process.h"
 #endif
 
+#include <iostream>
+
 using namespace Dyninst;
 using namespace std;
 
@@ -878,24 +880,28 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    int_thread *inherit_from = (thrd == newthr) ? proc->threadPool()->initialThread() : thrd;
    newthr->getUserState().setState(inherit_from->getUserState().getState());
    
-   pthrd_printf("Initializing new thread states to match rest of process\n");
+   pthrd_printf("Initializing new thread states to match rest of process for %d/%d\n",
+                proc->getPid(), newthr->getLWP());
    map<int, int> &states = proc->getProcDesyncdStates();
    for (map<int, int>::iterator i = states.begin(); i != states.end(); i++) {
-	   if (!i->second)
+      if (!i->second)
          continue;
-      int_thread::StateTracker &statet = thrd->getStateByID(i->first);
+      int_thread::StateTracker &statet = newthr->getStateByID(i->first);
       int_thread::State ns = proc->threadPool()->initialThread()->getStateByID(i->first).getState();
       if (statet.getID() == int_thread::BreakpointResumeStateID) {
          //Special case, new threads always go to stopped for breakpoint resume.
+         pthrd_printf(".... setting state to stopped for BreakpointResumeStateID\n");
          ns = int_thread::stopped;
       }
       for (int j = 0; j < i->second; j++) {
+         pthrd_printf("desyncing state for %d\n", statet.debugthr()->getLWP());
          statet.desyncState(ns);
       }
    }
-
-	int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
-	assert(tmp);
+   pthrd_printf("finished initializing thread %d/%d\n",
+                proc->getPid(), newthr->getLWP());
+   int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
+   assert(tmp);
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
@@ -1307,7 +1313,8 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
     * Breakpoints show up as permanent stops to the user.  If they do a 
     * default cb_ret_t, then the process remains stopped.
     **/
-   if (!int_ebp->cb_bps.empty())
+
+   if (!int_ebp->cb_bps.empty() && !ebp->suppressCB())
    {
       pthrd_printf("BP handler is setting user state to reflect breakpoint\n");
       switch (ebp->getSyncType()) {

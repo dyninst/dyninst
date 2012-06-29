@@ -1855,6 +1855,9 @@ memCache *int_process::getMemCache()
 
 void int_process::updateSyncState(Event::ptr ev, bool gen)
 {
+   // This works around a Linux bug where a continue races with a whole-process exit
+   plat_adjustSyncType(ev, gen);
+
    EventType etype = ev->getEventType();
    switch (ev->getSyncType()) {
 	  case Event::async: {
@@ -4022,7 +4025,8 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
-   procstopper(false)   
+   procstopper(false),
+   suppress_callbacks(false)
 {
 }
 
@@ -4036,7 +4040,8 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
-   procstopper(false)
+   procstopper(false),
+   suppress_callbacks(false)
 {
 }
 
@@ -4050,7 +4055,8 @@ int_breakpoint::int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Br
   hw_size(hw_size_),
   onetime_bp(false),
   onetime_bp_hit(false),
-  procstopper(false)   
+  procstopper(false),
+  suppress_callbacks(false)
 {
 }
 
@@ -4142,6 +4148,16 @@ unsigned int_breakpoint::getHWSize() const
 unsigned int_breakpoint::getHWPerms() const
 {
    return hw_perms;
+}
+
+void int_breakpoint::setSuppressCallbacks(bool b) 
+{
+   suppress_callbacks = b;
+}
+
+bool int_breakpoint::suppressCallbacks() const
+{
+   return suppress_callbacks;
 }
 
 bp_instance::bp_instance(Address addr_) :
@@ -7143,6 +7159,16 @@ bool Breakpoint::isCtrlTransfer() const {
 Dyninst::Address Breakpoint::getToAddress() const
 {
    return llbreakpoint_->toAddr();
+}
+
+void Breakpoint::setSuppressCallbacks(bool b)
+{
+   return llbreakpoint_->setSuppressCallbacks(b);
+}
+
+bool Breakpoint::suppressCallbacks() const
+{
+   return llbreakpoint_->suppressCallbacks();
 }
 
 Mutex Counter::locks[Counter::NumCounterTypes];

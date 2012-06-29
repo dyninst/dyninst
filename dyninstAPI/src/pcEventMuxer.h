@@ -81,8 +81,10 @@ public:
     void enqueue(ProcControlAPI::Event::const_ptr ev);
     ProcControlAPI::Event::const_ptr dequeue(bool block);
     unsigned int size();
+    bool find(PCProcess *proc);
 
 protected:
+    std::map<PCProcess *, int> procCount;
     std::queue<ProcControlAPI::Event::const_ptr> eventQueue;
     CondVar queueCond;
 };
@@ -105,6 +107,8 @@ public:
 	static bool start();
 
 	static WaitResult wait(bool block);
+
+        bool hasPendingEvents(PCProcess *proc);
 
 // Commented out callbacks are handled by the default instead
 	static cb_ret_t defaultCallback(EventPtr);

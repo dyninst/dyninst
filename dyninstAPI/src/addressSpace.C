@@ -1122,8 +1122,6 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
 #if defined(arch_x86) || defined(arch_x86_64)
    from--;
 #endif
-
-   as->registerTrapMapping(from, to);
 }
 
 bool trampTrapMappings::definesTrapMapping(Address from)

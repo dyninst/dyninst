@@ -126,9 +126,13 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
    return EventsReceived;
 }
 
+bool PCEventMuxer::hasPendingEvents(PCProcess *proc) {
+   return mailbox_.find(proc);
+}
+
 bool PCEventMuxer::handle(EventPtr ev) {
-	// Find the correct PCEventHandler and dispatch
-	return PCEventHandler::handle(ev);
+   // Find the correct PCEventHandler and dispatch
+   return PCEventHandler::handle(ev);
 }
 
 DThread::dthread_ret_t PCEventMuxer::main(void *) {
@@ -356,11 +360,13 @@ PCEventMailbox::~PCEventMailbox()
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
     queueCond.lock();
     eventQueue.push(ev);
+    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+    procCount[evProc]++;
     queueCond.broadcast();
 
     proccontrol_printf("%s[%d]: Added event %s to mailbox\n", FILE__, __LINE__,
-            ev->name().c_str());
-
+                       ev->name().c_str());
+    
     queueCond.unlock();
 }
 
@@ -379,6 +385,9 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 
     Event::const_ptr ret = eventQueue.front();
     eventQueue.pop();
+    PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
+    procCount[evProc]--;
+    assert(procCount[evProc] >= 0);
     queueCond.unlock();
 
     proccontrol_printf("%s[%d]: Returning event %s from mailbox\n", FILE__, __LINE__, ret->name().c_str());
@@ -393,3 +402,6 @@ unsigned int PCEventMailbox::size() {
     return result;
 }
 
+bool PCEventMailbox::find(PCProcess *proc) {
+   return (procCount[proc] > 0);
+}
