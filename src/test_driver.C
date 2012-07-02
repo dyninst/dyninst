@@ -862,23 +862,23 @@ int main(int argc, char *argv[]) {
    getGroupList(groups, params);
 
    result = setupLogs(params);
-   if (result)
+   if (result) {
       exit(result);
+   }
 
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
       set_resumelog_name(getenv("RESUMELOG"));
    }
-
    startAllTests(groups, params);
 
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
    fflush(stdout);
-
-   if (!testsRemain(groups) && !params["limited_tests"]->getInt())
+   if (!testsRemain(groups) && !params["limited_tests"]->getInt()) {
       return NOTESTS;
+   }
    return 0;
 }
 
