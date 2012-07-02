@@ -35,6 +35,7 @@
 #include "common/h/debug_common.h"
 #include "dynutil/h/VariableLocation.h"
 #include "dynutil/h/ProcReader.h"
+#include "common/h/Types.h"
 
 using namespace std;
 using namespace Dyninst;

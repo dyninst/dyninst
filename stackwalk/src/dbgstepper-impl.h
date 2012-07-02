@@ -41,6 +41,11 @@ namespace Stackwalker {
 
 class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
  private:
+   Dyninst::Address last_addr_read;
+   unsigned long last_val_read;
+   unsigned addr_width;
+      
+   location_t getLastComputedLocation(unsigned long val);
    DebugStepper *parent_stepper;
    const Frame *cur_frame; //TODO: Thread safety
    const Frame *depth_frame; // Current position in the stackwalk
