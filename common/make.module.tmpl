@@ -11,6 +11,9 @@ RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
+
 DEFINES		     +=  
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
@@ -79,7 +82,9 @@ SRCS	     +=	../../common/src/Ident.C \
 		../../common/src/AST.C \
 		../../common/src/addrtranslate.C \
 		../../common/src/arch-x86.C \
-		../../common/src/arch-power.C
+		../../common/src/arch-power.C \
+                ../../common/src/debug_common.C \
+                ../../common/src/VariableLocation.C
 
 
 #IGEN_GEN_SRCS = 

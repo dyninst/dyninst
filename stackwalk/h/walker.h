@@ -33,7 +33,7 @@
 #define WALKER_H_
 
 #include "basetypes.h"
-#include "proccontrol/h/PCProcess.h"
+#include "PCProcess.h"
 #include <vector>
 #include <list>
 #include <string>
@@ -43,6 +43,9 @@
 #define SW_BETA  0
 
 namespace Dyninst {
+
+class SymbolReaderFactory;
+
 namespace Stackwalker {
 
 class ProcessState;
@@ -141,15 +144,14 @@ class SW_EXPORT Walker {
    //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
 
-
    virtual ~Walker();
  private:
-   static SymbolReaderFactory *symrfact;
    ProcessState *proc;
    SymbolLookup *lookup;
    bool creation_error;
    StepperGroup *group;
    unsigned call_count;
+   static SymbolReaderFactory *symrfact;
 };
 
 }

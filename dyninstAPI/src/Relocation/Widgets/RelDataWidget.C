@@ -31,7 +31,7 @@
 
 #include "RelDataWidget.h"
 #include "instructionAPI/h/Instruction.h"
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 #include "CFG.h"
 #include "../CFG/RelocBlock.h"
 

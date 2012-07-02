@@ -49,7 +49,6 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
@@ -189,74 +188,6 @@ void registerSpace::initialize32() {
     // Create the global register space
     registerSpace::createRegisterSpace(registers);
 
-    // Define:
-    // callRead
-    // callWritten
-    // Fortunately, both are basically zero...
-    
-    // callRead: no change
-    // callWritten: write to the flags
-    // TODO FIXME
-
-    // Define:
-    // callRead - argument registers
-    // callWritten - RAX
-
-    // Can't use numRegisters here because we're depending
-    // on the REGNUM_FOO numbering
-#if defined(cap_liveness)
-    returnRead_ = getBitArray();
-    // Callee-save registers...
-    returnRead_[REGNUM_EBX] = true;
-    returnRead_[REGNUM_ESI] = true;
-    returnRead_[REGNUM_EDI] = true;
-    // And return value
-    returnRead_[REGNUM_EAX] = true;
-    // Return reads no registers
-
-    callRead_ = getBitArray();
-    // CallRead reads no registers
-    // We wish...
-    callRead_[REGNUM_ECX] = true;
-    callRead_[REGNUM_EDX] = true;
-
-    // PLT entries use ebx
-    callRead_[REGNUM_EBX] = true;
-    
-    // TODO: Fix this for platform-specific calling conventions
-
-    // Assume calls write flags
-    callWritten_ = callRead_;
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-        callWritten_[i] = true;
-    // And eax...
-    callWritten_[REGNUM_EAX] = true;
-
-
-    // And assume a syscall reads or writes _everything_
-    syscallRead_ = getBitArray().set();
-    syscallWritten_ = syscallRead_;
-
-#if defined(os_windows)
-    // VERY conservative, but it's safe wrt the ABI.
-    // Let's set everything and unset flags
-    callRead_ = syscallRead_;
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; ++i) {
-       callRead_[i] = false;
-    }
-    callWritten_ = syscallWritten_;
-
-// IF DEFINED KEVIN FUNKY MODE
-	returnRead_ = callRead_;
-	// Doesn't exist, but should
-	//returnWritten_ = callWritten_;
-// ENDIF DEFINED KEVIN FUNKY MODE
-
-
-#endif
-
-    allRegs_ = getBitArray().set();
-#endif
 }
 
 #if defined(cap_32_64)
@@ -573,63 +504,6 @@ void registerSpace::initialize64() {
 
     registerSpace::createRegisterSpace64(registers);
 
-    // Define:
-    // callRead - argument registers
-    // callWritten - RAX
-
-#if defined(cap_liveness)
-    returnRead64_ = getBitArray();
-    returnRead64_[REGNUM_RAX] = true;
-    returnRead64_[REGNUM_RCX] = true; //Not correct, temporary
-    // Returns also "read" any callee-saved registers
-    returnRead64_[REGNUM_RBX] = true;
-    returnRead64_[REGNUM_RDX] = true;
-    returnRead64_[REGNUM_R12] = true;
-    returnRead64_[REGNUM_R13] = true;
-    returnRead64_[REGNUM_R14] = true;
-    returnRead64_[REGNUM_R15] = true;
-    returnRead64_[REGNUM_XMM0] = true;
-    returnRead64_[REGNUM_XMM1] = true;
-
-    //returnRead64_[REGNUM_R10] = true;
-    
-
-    callRead64_ = getBitArray();
-    callRead64_[REGNUM_RCX] = true;
-    callRead64_[REGNUM_RDX] = true;
-    callRead64_[REGNUM_R8] = true;
-    callRead64_[REGNUM_R9] = true;
-    callRead64_[REGNUM_RDI] = true;
-    callRead64_[REGNUM_RSI] = true;
-    
-    callRead64_[REGNUM_XMM0] = true;
-    callRead64_[REGNUM_XMM1] = true;
-    callRead64_[REGNUM_XMM2] = true;
-    callRead64_[REGNUM_XMM3] = true;
-    callRead64_[REGNUM_XMM4] = true;
-    callRead64_[REGNUM_XMM5] = true;
-    callRead64_[REGNUM_XMM6] = true;
-    callRead64_[REGNUM_XMM7] = true;
-
-    // Anything in those four is not preserved across a call...
-    // So we copy this as a shorthand then augment it
-    callWritten64_ = callRead64_;
-
-    // As well as RAX, R10, R11
-    callWritten64_[REGNUM_RAX] = true;
-    callWritten64_[REGNUM_R10] = true;
-    callWritten64_[REGNUM_R11] = true;
-    // And flags
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
-        callWritten64_[i] = true;
-
-
-    // And assume a syscall reads or writes _everything_
-    syscallRead64_ = getBitArray().set();
-    syscallWritten64_ = syscallRead_;
-
-    allRegs64_ = getBitArray().set();
-#endif
 
 }
 #endif
@@ -1724,15 +1598,20 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    }
 
    if (reg.reg() == REGNUM_ESP) {
+      cerr << "Special handling for REGNUM_ESP!" << endl;
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bt() || gen.bt()->alignedStack)
+      if (!gen.bt() || gen.bt()->alignedStack) {
+         cerr << "emitting a movRMtoReg..." << endl;
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
-      else
+      }
+      else {
+         cerr << "Emitting an LEA, no bt or not aligned stack" << endl;
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);
+      }
       return dest;
    }
 
@@ -1786,8 +1665,10 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, in
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      if (!gen.bt() || gen.bt()->alignedStack)
+      if (!gen.bt() || gen.bt()->alignedStack) {
           emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+          if (imm) emitLEA(dest_r, RealRegister(Null_Register), 0, imm, dest_r, gen);
+      }
       else
           emitLEA(loc.reg, RealRegister(Null_Register), 0,
                   loc.offset, dest_r, gen);
@@ -2247,7 +2128,7 @@ int getInsnCost(opCode op)
    } else if (op == getRetValOp) {
       return (1+1);
    } else if (op == getRetAddrOp) { 
-      return (1); //kevintodo: is this right?
+      return (1); 
    } else if (op == getParamOp) {
       return(1+1);
    } else {

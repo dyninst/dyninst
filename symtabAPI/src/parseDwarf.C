@@ -47,6 +47,7 @@
 #include <stdarg.h>
 #include "dynutil/h/Annotatable.h"
 #include "annotations.h"
+#include "debug.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
@@ -72,8 +73,6 @@ int dwarf_get_fde_info_for_cfa_reg3(
 #endif
 
 std::map<Dwarf_Off, fieldListType*> enclosureMap;
-
-int dwarf_printf(const char *format, ...);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1333,8 +1332,15 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
         break;
      }
      
-     assert( locs[0].stClass != storageAddr );
-         
+     //assert( locs[0].stClass != storageAddr );
+       
+     if(locs[0].stClass == storageAddr) 
+     {
+       dwarf_printf("%s[%d]: ignoring formal parameter that appears to be in memory, not on stack/in register\n",
+		    __FILE__, __LINE__);
+       break;
+     }
+     
      /* If the DIE has an _abstract_origin, we'll use that for the
         remainder of our inquiries. */
      Dwarf_Die originEntry = dieEntry;

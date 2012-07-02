@@ -107,6 +107,7 @@ void mapped_module::addFunction(func_instance *func)
 {
    // Just the everything vector... the by-name lists are
    // kept in the mapped_object and filtered if we do a lookup.
+  if (std::find(everyUniqueFunction.begin(), everyUniqueFunction.end(), func) != everyUniqueFunction.end()) return;
    everyUniqueFunction.push_back(func);
 }
 
@@ -116,7 +117,7 @@ void mapped_module::addVariable(int_variable *var)
 }
 
 // We rely on the mapped_object for pretty much everything...
-void mapped_module::removeFunction(func_instance *func) 
+void mapped_module::remove(func_instance *func) 
 {
    for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {
        if (everyUniqueFunction[fIdx] == func) {
@@ -344,9 +345,12 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
     int pageSize = proc()->proc()->getMemoryPageSize();
     const pdvector<func_instance *> funcs = getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
-        const func_instance::BlockSet&
+      /*        const func_instance::BlockSet&
             blocks = funcs[fidx]->blocks();
-        func_instance::BlockSet::const_iterator bIter;
+	    func_instance::BlockSet::const_iterator bIter;*/
+      const PatchFunction::Blockset&
+            blocks = funcs[fidx]->blocks();
+      PatchFunction::Blockset::const_iterator bIter;
         for (bIter = blocks.begin(); 
             bIter != blocks.end(); 
             bIter++) 
@@ -361,7 +365,6 @@ void mapped_module::getAnalyzedCodePages(std::set<Address> & pages)
             }
         }
     }
-    
 }
 
 

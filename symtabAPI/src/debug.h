@@ -34,6 +34,8 @@
 
 #include <string>
 
+#include "common/h/debug_common.h"
+
 extern int sym_debug_parsing;
 extern int sym_debug_aggregates;
 extern int sym_debug_create;

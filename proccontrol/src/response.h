@@ -32,8 +32,6 @@
 #ifndef RESPONSE_H_
 #define RESPONSE_H_
 
-#include "dynptr.h"
-
 #include "proccontrol/h/Event.h"
 #include "common/h/dthread.h"
 #include <map>

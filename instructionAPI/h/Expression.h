@@ -36,7 +36,6 @@
 #include "InstructionAST.h"
 #include "Result.h"
 
-#include "dynptr.h"
 #include <vector>
 #include <sstream>
 

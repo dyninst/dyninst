@@ -20,8 +20,7 @@ SRCS = 	../src/freebsd-swk.C \
 	../src/x86-wanderer.C \
 	../src/linuxbsd-swk.C \
 	../src/linuxbsd-x86-swk.C \
-	../src/freebsd-x86-swk.C \
-	../../common/src/Elf_X.C
+	../src/freebsd-x86-swk.C 
 
 #USE_PARSE_API = true
 

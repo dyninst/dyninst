@@ -5,6 +5,8 @@
 #include "parse-cfg.h"
 #include "parseAPI/h/CFG.h"
 #include "instPoint.h"
+#include "PatchCFG.h"
+#include "mapped_object.h"
 
 class block_instance;
 class func_instance;
@@ -12,32 +14,19 @@ class parse_func;
 class BPatch_edge;
 class mapped_object;
 
-class edge_instance {
-   friend class block_instance;
-   friend class func_instance;
-   friend class mapped_object;
+
+class edge_instance : public Dyninst::PatchAPI::PatchEdge {
+  friend class block_instance;
+  friend class func_instance;
+  friend class mapped_object;
 
   public:
-   ParseAPI::Edge *edge() const { return edge_; }
-   block_instance *src() const { return src_; }
-   block_instance *trg() const { return trg_; }
-   ParseAPI::EdgeTypeEnum type() const { return edge_->type(); }
-   
-   bool sinkEdge() const { return edge_->sinkEdge(); }
-   bool interproc() const { return edge_->interproc() || 
-         (edge_->type() == ParseAPI::CALL) || 
-         (edge_->type() == ParseAPI::RET); }
-
-   AddressSpace *proc();
-
-  private:
-   edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
-   edge_instance(const edge_instance *parent, mapped_object *child);
-   ~edge_instance();
-   
-   ParseAPI::Edge *edge_;
-   block_instance *src_;
-   block_instance *trg_;
+    block_instance *src() const;
+    block_instance *trg() const;
+    AddressSpace *proc();
+    edge_instance(ParseAPI::Edge *edge, block_instance *src, block_instance *trg);
+    edge_instance(const edge_instance *parent, mapped_object *child);
+    ~edge_instance();
 };
 
 // This is somewhat mangled, but allows Dyninst to access the
@@ -61,65 +50,41 @@ class EdgePredicateAdapter
    ParseAPI::EdgePredicate *int_;
 };
 
-class block_instance {
-   friend class mapped_object;
+class block_instance : public Dyninst::PatchAPI::PatchBlock {
+  friend class mapped_object;
 
- public:
-	 typedef std::vector<edge_instance *> edges;
-	 typedef std::vector<edge_instance *> edgelist;
-
+  public:
+  //typedef std::vector<edge_instance *> edges;
+  //typedef std::vector<edge_instance *> edgelist;
 
     block_instance(ParseAPI::Block *ib, mapped_object *obj);
     block_instance(const block_instance *parent, mapped_object *child);
     ~block_instance();
 
-    // "Basic" block stuff
-    Address start() const;
-    Address end() const;
-    Address last() const;
-    unsigned size() const;
-
     // Up-accessors
-    mapped_object *obj() const { return obj_; }
+    mapped_object *obj() const { return SCAST_MO(obj_); }
     AddressSpace *addrSpace() const;
     AddressSpace *proc() const { return addrSpace(); }
 
-    int containingFuncs() const { return llb()->containingFuncs(); }
     template<class OutputIterator> 
        void getFuncs(OutputIterator result);
 
-    bool isShared() const { return block_->isShared(); }
-
     void triggerModified();
+    void setNotAbruptEnd();
+    parse_block * llb() const { return SCAST_PB(block_); }
+    void *getPtrToInstruction(Address addr) const;
 
-    parse_block * llb() const { return block_; }
-    
-    std::string format() const;
-
-    const edgelist &sources();
-    const edgelist &targets();
+    //const edgelist &sources();
+    //const edgelist &targets();
 
     // Shortcuts
     edge_instance *getTarget();
     edge_instance *getFallthrough();
     // NULL if not conclusive
     block_instance *getFallthroughBlock();
-    block_instance *getTargetBlock();
 
     func_instance *callee();
     std::string calleeName();
-
-    // TODO: this should be a map from addr to insn, really
-    typedef std::map<Address, InstructionAPI::Instruction::Ptr> Insns;
-    void getInsns(Insns &instances) const;
-    InstructionAPI::Instruction::Ptr getInsn(Address a) const;
-
-    std::string disassemble() const;
-
-    void *getPtrToInstruction(Address addr) const;
-
-    bool containsCall();
-    bool containsDynamicCall();
 
     int id() const;
 
@@ -128,18 +93,17 @@ class block_instance {
     // lookups, and thus should be avoided. 
     func_instance *entryOfFunc() const;
     bool isFuncExit() const;
+    // static void destroy(block_instance *b); // doesn't need to do anything
+
+    virtual void markModified();
 
  private:
     void updateCallTarget(func_instance *func);
     func_instance *findFunction(ParseAPI::Function *);
 
-    mapped_object *obj_;
-    parse_block *block_;
+    // edges srcs_;
+    // edges trgs_;
 
-    edges srcs_;
-    edges trgs_;
-
-    BlockInstpoints points_;
 };
 
 template <class OutputIterator>

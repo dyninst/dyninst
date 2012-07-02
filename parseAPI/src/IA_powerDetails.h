@@ -35,7 +35,6 @@
 #include "CFG.h"
 #include "dyntypes.h"
 #include "IA_platformDetails.h"
-#include "dynptr.h"
 
 namespace Dyninst
 {

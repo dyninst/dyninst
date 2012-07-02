@@ -71,8 +71,9 @@ void dominatorBB::dominatorPredAndSucc() {
    for (i=0; i<blocks.size(); i++)
    {
       dominatorBB *p = dom_cfg->bpatchToDomBB(blocks[i]);
-      assert(p);
-      pred.push_back(p);
+      if (p) {
+          pred.push_back(p);
+      }
    }
 
    if (bpatchBlock->isEntryBlock() || !blocks.size()) {
@@ -312,7 +313,8 @@ void dominatorCFG::link(dominatorBB *parent, dominatorBB *block) {
 }
 
 dominatorBB *dominatorCFG::bpatchToDomBB(BPatch_basicBlock *bb) {
-   return map[bb->blockNo()];
+   dominatorBB *dbb = map.get(bb->blockNo());
+   return dbb;
 }
 
 void dominatorCFG::depthFirstSearch(dominatorBB *v) {

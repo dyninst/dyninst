@@ -40,6 +40,8 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/addressSpace.h"
 
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/h/BPatch.h"
@@ -50,6 +52,8 @@
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
+#include "liveness.h"
+#include "dyninstAPI/src/RegisterConversion.h"
 #include <map>
 
 #if defined(arch_power)
@@ -62,22 +66,6 @@
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::globalRegSpace64_ = NULL;
-
-#if defined(cap_liveness)
-bitArray registerSpace::callRead_;
-bitArray registerSpace::callWritten_;
-bitArray registerSpace::returnRead_;
-bitArray registerSpace::syscallRead_;
-bitArray registerSpace::syscallWritten_;
-
-bitArray registerSpace::callRead64_;
-bitArray registerSpace::callWritten64_;
-bitArray registerSpace::returnRead64_;
-bitArray registerSpace::syscallRead64_;
-bitArray registerSpace::syscallWritten64_;
-bitArray registerSpace::allRegs_;
-bitArray registerSpace::allRegs64_;
-#endif
 
 bool registerSpace::hasXMM = false;
 
@@ -164,6 +152,10 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
 
 registerSpace *registerSpace::actualRegSpace(instPoint *iP) 
 {
+    // We just can't trust liveness in defensive mode. 
+    if (BPatch_defensiveMode == iP->func()->obj()->hybridMode()) {
+        return conservativeRegSpace(iP->proc());
+    }
 #if defined(cap_liveness)
    if (BPatch::bpatch->livenessAnalysisOn()) {
       assert(iP);
@@ -772,19 +764,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
-                                         unsigned 
-#if !defined(arch_x86) && !defined(arch_power)
-                                         size
-#endif
-) {
-#if !defined(arch_x86) && !defined(arch_power)
-    emitStorePreviousStackFrameRegister((Address) destination,
-                                        source,
-                                        gen,
-                                        size,
-                                        true);
-    return true;
-#else
+                                         unsigned) {
     registerSlot *src = registers_[source];
     assert(source);
     registerSlot *dest = registers_[destination];
@@ -816,7 +796,6 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
         return false;
         break;
     }
-#endif
 }
 
 
@@ -993,85 +972,6 @@ registerSlot *registerSpace::operator[](Register reg) {
     return registers_[reg];
 }
 
-#if defined(cap_liveness)
-const bitArray &registerSpace::getCallReadRegisters() const {
-    if (addr_width == 4)
-        return callRead_;
-    else if (addr_width == 8)
-        return callRead64_;
-    else {
-        assert(0);
-        return callRead_;
-    }
-}
-    
-
-const bitArray &registerSpace::getCallWrittenRegisters() const {
-    if (addr_width == 4)
-        return callWritten_;
-    else if (addr_width == 8)
-        return callWritten64_;
-    else {
-        assert(0);
-        return callWritten_;
-    }
-}
-    
-const bitArray &registerSpace::getReturnReadRegisters() const {
-    if (addr_width == 4)
-        return returnRead_;
-    else if (addr_width == 8)
-        return returnRead64_;
-    else {
-        assert(0);
-        return returnRead_;
-    }
-}
-
-const bitArray &registerSpace::getSyscallReadRegisters() const {
-    if (addr_width == 4)
-        return syscallRead_;
-    else if (addr_width == 8)
-        return syscallRead64_;
-    else {
-        assert(0);
-        return syscallRead_;
-    }
-}
-const bitArray &registerSpace::getSyscallWrittenRegisters() const {
-    if (addr_width == 4)
-        return syscallWritten_;
-    else if (addr_width == 8)
-        return syscallWritten64_;
-    else {
-        assert(0);
-        return syscallWritten_;
-    }
-}
-
-const bitArray &registerSpace::getAllRegs() const
-{
-   if (addr_width == 4)
-      return allRegs_;
-   else if (addr_width == 8)
-      return allRegs64_;
-   else {
-      assert(0);
-      return allRegs_;
-   }   
-}
-
-#endif
-
-bitArray registerSpace::getBitArray()  {
-#if defined(arch_x86) || defined(arch_x86_64)
-    return bitArray(REGNUM_IGNORED+1);
-#elif defined(arch_power)
-    return bitArray(lastReg);
-#else
-    return bitArray();
-#endif
-}
 
 // Big honkin' name->register map
 
@@ -1511,4 +1411,70 @@ int registerSpace::getStackHeight()
 {
    return 0;
 }
+#endif
+
+
+#if defined(cap_liveness)
+void registerSpace::specializeSpace(const bitArray &liveRegs) {
+    // Liveness info is stored as a single bitarray for all registers.
+
+#if defined(arch_x86) || defined(arch_x86_64) 
+    // We use "virtual" registers on the IA-32 platform (or AMD-64 in 
+    // 32-bit mode), and thus the registerSlot objects have _no_ relation
+    // to the liveRegs input set. We handle this as a special case, and
+    // look only for the flags representation (which is used to set
+    // the IA32_FLAG_VIRTUAL_REGISTER "register"
+   if (addr_width == 4) {
+      for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
+         registers_[i]->liveState = registerSlot::dead;
+      }
+      registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::dead;
+      for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
+         if (checkLive(i, liveRegs)) {
+            registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::live;
+            break;
+         }
+      }
+      
+      for (unsigned i = 0; i < realRegisters_.size(); ++i) {
+         if (checkLive(realRegisters_[i]->number, liveRegs))
+	    realRegisters_[i]->liveState = registerSlot::live;
+         else
+	    realRegisters_[i]->liveState = registerSlot::dead;
+      }
+      
+      // All we care about for now.
+      return;
+   }
+#endif
+   for (regDictIter i = registers_.begin(); i != registers_.end(); i++) {
+      if (checkLive(i.currval()->number, liveRegs))
+         i.currval()->liveState = registerSlot::live;
+      else
+      {
+         i.currval()->liveState = registerSlot::dead;
+      }
+   }
+}
+
+bool registerSpace::checkLive(Register reg, const bitArray &liveRegs){
+	static LivenessAnalyzer live1(4);
+	static LivenessAnalyzer live2(8);
+	std::pair<std::multimap<Register, MachRegister>::iterator, std::multimap<Register, MachRegister>::iterator> range;
+	LivenessAnalyzer *live;
+	if (addr_width == 4){
+		range = regToMachReg32.equal_range(reg);
+		live = &live1;
+	}
+	else {
+		range = regToMachReg64.equal_range(reg);
+		live = &live2;
+	}
+	if (range.first == range.second) assert(0);
+	for (std::multimap<Register, MachRegister>::iterator iter = range.first; iter != range.second; ++iter)
+		if (liveRegs[live->getIndex(iter->second)]) return true;
+	
+	return false;
+}
+
 #endif

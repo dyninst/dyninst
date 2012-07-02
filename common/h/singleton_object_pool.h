@@ -34,8 +34,6 @@
 #include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
 
-#include "dynptr.h"
-
 // This is only safe for objects with nothrow constructors...
 template <typename T, typename Alloc = boost::default_user_allocator_new_delete>
 class singleton_object_pool

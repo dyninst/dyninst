@@ -6,13 +6,20 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
 #include "../CodeBuffer.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
+#if defined(cap_mem_emulation)
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#endif
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -94,10 +101,10 @@ bool CFWidget::generateIndirect(CodeBuffer &buffer,
 
 
 bool CFWidget::generateIndirectCall(CodeBuffer &buffer,
-                                  Register reg,
-                                  Instruction::Ptr insn,
-                                  const RelocBlock *trace,
-                                    Address) 
+                                    Register reg,
+                                    Instruction::Ptr insn,
+                                    const RelocBlock *trace,
+                                    Address /*origAddr*/)
 {
    // I'm pretty sure that anything that can get translated will be
    // turned into a push/jump combo already. 
@@ -125,6 +132,7 @@ bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
    // Question 1: are we doing an inter-module static control transfer?
    // If so, things get... complicated
    if (isPLT(gen)) {
+      relocation_cerr << "CFPatch::apply, PLT jump" << endl;
       if (!applyPLT(gen, buf)) {
          cerr << "Failed to apply patch (PLT req'd)" << endl;
          return false;
@@ -218,7 +226,6 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    // However... yeah, right. I'm not that good with x86. So instead
    // I'm copying the code from emitCallInstruction...
    
-   
    if (target->type() != TargetInt::BlockTarget) {
       cerr << "Target type is " << target->type() << ", not block target" << endl;
       return false;
@@ -240,6 +247,8 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
       return false;
    }
 
+   relocation_cerr << "Emitting a PLT jump/call, targeting " << callee->name() << endl;
+
    // We need a registerSpace for this. For now, assume we're at
    // a call boundary (as that's _really_ the only place we can
    // be for now) and set it to the optimistic register space.
@@ -255,3 +264,113 @@ bool CFPatch::applyPLT(codeGen &gen, CodeBuffer *) {
    return true;
 }
 
+
+#if !defined(cap_mem_emulation)
+bool CFWidget::generateAddressTranslator(CodeBuffer &,const codeGen &,Register &,const RelocBlock *) {
+   return true;
+}
+#else
+bool CFWidget::generateAddressTranslator(CodeBuffer &buffer,
+                                       const codeGen &templ,
+                                       Register &reg,
+                                       const RelocBlock *trace) 
+{
+   if (!templ.addrSpace()->isMemoryEmulated() ||
+       BPatch_defensiveMode != trace->block()->obj()->hybridMode())
+      return true;
+
+   if (insn_->getOperation().getID() == e_ret_near ||
+       insn_->getOperation().getID() == e_ret_far) {
+      // Oops!
+      return true;
+   }
+   if (!insn_->readsMemory()) {
+      return true;
+   }
+   
+   BPatch_memoryAccessAdapter converter;
+   BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
+   if (!acc) {
+      reg = Null_Register;
+      return true;
+   }
+   
+   codeGen patch(128);
+   patch.applyTemplate(templ);
+   
+   // TODO: we probably want this in a form that doesn't stomp the stack...
+   // But we can probably get away with this for now. Check that.
+
+   // step 1: create space on the stack. 
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // step 2: save registers that will be affected by the call
+   ::emitPush(RealRegister(REGNUM_ECX), patch);
+   ::emitPush(RealRegister(REGNUM_EDX), patch);
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // Step 3: LEA this sucker into ECX.
+   const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
+   if (start->getReg(0) == REGNUM_ESP ||
+       start->getReg(1) == REGNUM_ESP) {
+      cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
+   }
+
+   int stackShift = -16;
+   // If we are a call _instruction_ but isCall is false, then we've got an extra word
+   // on the stack from an emulated return address
+   if (!isCall_ && insn_->getCategory() == c_CallInsn) stackShift -= 4;
+
+   emitASload(start, REGNUM_ECX, stackShift, patch, true);
+   
+   // Step 4: save flags post-LEA
+   emitSimpleInsn(0x9f, patch);
+   emitSaveO(patch);
+   ::emitPush(RealRegister(REGNUM_EAX), patch);
+   
+   // This might look a lot like a memEmulatorWidget. That's, well, because it
+   // is. 
+   buffer.addPIC(patch, tracker(trace));
+   
+   // Where are we going?
+   func_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
+   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
+   assert(func);
+   
+   // Now we start stealing from memEmulatorWidget. We need to call our translation function,
+   // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
+   // so there we go.
+   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->addr()),
+                   tracker(trace));
+   patch.setIndex(0);
+   
+   // Restore flags
+   ::emitPop(RealRegister(REGNUM_EAX), patch);
+   emitRestoreO(patch);
+   emitSimpleInsn(0x9E, patch);
+   ::emitPop(RealRegister(REGNUM_EAX), patch);
+   ::emitPop(RealRegister(REGNUM_EDX), patch);
+   
+   // ECX now holds the pointer to the destination...
+   // Dereference
+   ::emitMovRMToReg(RealRegister(REGNUM_ECX),
+                    RealRegister(REGNUM_ECX),
+                    0,
+                    patch);
+   
+   // ECX now holds the _actual_ destination, so move it on to the stack. 
+   // We've got ECX saved
+   ::emitMovRegToRM(RealRegister(REGNUM_ESP),
+                    1*4, 
+                    RealRegister(REGNUM_ECX),
+                    patch);
+   ::emitPop(RealRegister(REGNUM_ECX), patch);
+   // And tell our people to use the top of the stack
+   // for their work.
+   // TODO: trust liveness and leave this in a register. 
+
+   buffer.addPIC(patch, tracker(trace));
+   reg = REGNUM_ESP;
+   return true;
+}
+#endif

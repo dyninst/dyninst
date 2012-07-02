@@ -17,7 +17,7 @@ all: world
 include ./make.components
 
 .PHONY: $(Everything) $(Everything_install) $(Everything_tests) $(Everything_tests_install) install world intro comp_intro ready clean distclean depend all
-.PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI
+.PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI PatchAPI
 
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
@@ -107,6 +107,7 @@ ParseAPI: comp_intro parseAPI
 DynC_API: comp_intro dynC_API
 DataflowAPI: comp_intro parseAPI
 ProcControlAPI: comp_intro proccontrol proccontrol_testsuite
+PatchAPI: comp_intro parseAPI
 
 # Testsuite dependencies
 parseThat: $(filter-out parseThat,$(parseThat))

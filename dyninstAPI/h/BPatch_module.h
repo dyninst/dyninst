@@ -58,8 +58,24 @@ class instPoint;
 class AddressSpace;
 class BPatch_snippet;
 class BPatchSnippetHandle;
+class BPatch_module;
 
-namespace Dyninst { namespace ParseAPI { class CodeObject; }}
+namespace Dyninst { 
+   namespace ParseAPI { 
+      class CodeObject; 
+      CodeObject *convert(const BPatch_module *);
+   }
+   namespace PatchAPI {
+      class PatchObject;
+      PatchObject *convert(const BPatch_module *);
+      class PatchFunction;
+      class Point;
+   }
+   namespace SymtabAPI {
+      class Symtab;
+      Symtab *convert(const BPatch_module *);
+   }
+}
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
@@ -79,10 +95,18 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
     friend class BPatch_statement;
+    friend Dyninst::ParseAPI::CodeObject *Dyninst::ParseAPI::convert(const BPatch_module *);
+    friend Dyninst::PatchAPI::PatchObject *Dyninst::PatchAPI::convert(const BPatch_module *);
+    friend Dyninst::SymtabAPI::Symtab *Dyninst::SymtabAPI::convert(const BPatch_module *);
 
-    typedef std::map<func_instance*, BPatch_function*> BPatch_funcMap;
+
+    typedef std::map<Dyninst::PatchAPI::PatchFunction*, 
+       BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
-    typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
+    typedef std::map<Dyninst::PatchAPI::Point *, 
+       BPatch_point*> BPatch_instpMap;
+
+
     
     BPatch_addressSpace *addSpace;
     AddressSpace *lladdSpace;
@@ -110,7 +134,8 @@ public:
     bool isExploratoryModeOn();// true if exploratory or defensive mode is on
     bool setAnalyzedCodeWriteable(bool writeable);//sets write perm's analyzed code pages
     bool isSystemLib();
-    bool removeFunction(BPatch_function*, bool deep_removal);
+    bool remove(BPatch_function*);
+    bool remove(instPoint*);
     // End functions for internal use only
   
     // BPatch_module::getName
@@ -193,6 +218,15 @@ public:
 
     BPatch_function *,findFunctionByMangled,(const char * mangled_name,
                                              bool incUninstrumentable=false));
+
+
+    //  BPatch_module::findPoints
+    //
+    //  Returns a vector of BPatch_points that correspond with the provided address, one
+    //  per function that includes an instruction at that address. Will have one element
+    //  if there is not overlapping code. 
+    API_EXPORT(Int, (addr, points), 
+    bool, findPoints, (Dyninst::Address addr, std::vector<BPatch_point *> &points));
 
 
     // BPatch_module::dumpMangled
@@ -297,10 +331,6 @@ public:
     API_EXPORT(Int, (),
     std::vector<struct BPatch_module::Statement>, getStatements, ());
 #endif
-
-    // Tentative ParseAPI exposure
-    API_EXPORT(Int, (),
-    Dyninst::ParseAPI::CodeObject *, getCodeObject, ());
 
 private:
     // Parse wrapper

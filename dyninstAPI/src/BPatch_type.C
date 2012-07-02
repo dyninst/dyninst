@@ -489,7 +489,7 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 
 	type->incrRefCount();
 
-    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar_->getLocationLists();
+        vector<Dyninst::VariableLocation> &locs = lVar_->getLocationLists();
 
     if (!locs.size())
        storageClass = BPatch_storageFrameOffset;
@@ -505,9 +505,9 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 
 }
 
-BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc)
+BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::VariableLocation *loc)
 {
-	Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
+	Dyninst::storageClass stClass = loc->stClass;
 	storageRefClass refClass = loc->refClass;
 	if((stClass == storageAddr) && (refClass == storageNoRef))
 		return BPatch_storageAddr;
@@ -546,7 +546,7 @@ int BPatch_localVar::getLineNum() {
 //TODO?? - get the first frame offset
 long BPatch_localVar::getFrameOffset() {
 
-   vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+   vector<Dyninst::VariableLocation> &locs = lVar->getLocationLists();
 
    if (locs.size())
       return -1;
@@ -556,7 +556,7 @@ long BPatch_localVar::getFrameOffset() {
 
 int BPatch_localVar::getRegister() {
 
-    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+    vector<Dyninst::VariableLocation> &locs = lVar->getLocationLists();
 
     if (!locs.size())
         return -1;

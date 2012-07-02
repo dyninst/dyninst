@@ -1,5 +1,5 @@
 #Don't add tests to Everything
-Everything = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+Everything = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
 #List of tests
 Everything_tests = testsuite parseThat
@@ -14,6 +14,7 @@ proccontrol = dynutil common proccontrol
 depGraphAPI = dynutil common depGraphAPI
 parseAPI = dynutil common symtabAPI instructionAPI parseAPI
 dataflowAPI = $(parseAPI)
+patchAPI = dynutil common parseAPI
 parseThat = $(dyninstAPI) parseThat
 dynC_API = $(dyninstAPI) dynC_API
 dyner = $(dyninstAPI) dyner
@@ -21,7 +22,7 @@ testsuite = testsuite
 valueAdded = $(dyninstAPI) valueAdded/sharedMem
 
 #List all components with tests here
-test_comps = symtabAPI instructionAPI proccontrol dyninstAPI all
+test_comps = symtabAPI instructionAPI proccontrol dyninstAPI all patchAPI
 
 DEFAULT_COMPONENT ?= default
 ifeq ($(DEFAULT_COMPONENT),default)

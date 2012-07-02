@@ -34,15 +34,16 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/swk_errors.h"
 
+using namespace Dyninst;
+using namespace Stackwalker;
+
+#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 #include "stackwalk/src/sw.h"
 
 #include <assert.h>
-
-
-using namespace Dyninst;
-using namespace Stackwalker;
 
 ProcSelf::ProcSelf(std::string exec_path) :
    ProcessState(getpid(), exec_path)
@@ -102,7 +103,9 @@ void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
    static SymElfFactory symelffact;
-   return &symelffact;
+   if (!Walker::symrfact)
+      Walker::symrfact = (SymbolReaderFactory *) &symelffact;
+   return Walker::symrfact;
 }
 
 bool TrackLibState::updateLibsArch() {

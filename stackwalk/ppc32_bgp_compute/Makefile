@@ -27,7 +27,6 @@ SRCS = ../src/ppc-swk.C \
 		 ../../common/src/addrtranslate.C \
 		 ../../common/src/addrtranslate-sysv.C \
 		 ../../common/src/addrtranslate-bluegenep.C \
-       ../../common/src/Elf_X.C \
 		 ../../common/src/bluegeneKludges.C \
 		 ../../common/src/string-regex.C
 

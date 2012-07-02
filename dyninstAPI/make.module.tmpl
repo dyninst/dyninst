@@ -43,7 +43,7 @@ ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
 		../src/MemoryEmulator/memEmulatorAtom.C 
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol -lstackwalk
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol -lstackwalk -lpatchAPI
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
@@ -51,6 +51,7 @@ LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
 LDFLAGS     += -L../../parseAPI/$(PLATFORM)
 LDFLAGS     += -L../../proccontrol/$(PLATFORM)
 LDFLAGS     += -L../../stackwalk/$(PLATFORM)
+LDFLAGS     += -L../../patchAPI/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -97,6 +98,7 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/BPatch_process.C \
 		../src/BPatch_type.C \
 		../src/BPatch_module.C \
+                ../src/BPatch_object.C \
                 ../src/BPatch_point.C \
                 ../src/BPatch_collections.C \
                 ../src/BPatch_sourceBlock.C \
@@ -119,7 +121,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/inst.C \
                 ../src/instPoint.C \
                 ../src/baseTramp.C \
-                ../src/miniTramp.C \
                 ../src/addressSpace.C \
                 ../src/binaryEdit.C \
                 ../src/infHeap.C \
@@ -138,8 +139,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/BPatch_instruction.C \
                 ../src/BPatch_eventLock.C \
                 ../src/parRegion.C \
-                ../src/liveness.C \
-		../src/InstructionCache.C \
                 ../src/Parsing.C \
                 ../src/Parsing-arch.C \
                 ../src/hybridInstrumentation.C \
@@ -159,6 +158,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Springboard.C \
 		../src/Relocation/Widgets/ASTWidget.C \
 		../src/Relocation/Widgets/CFWidget.C \
+		../src/Relocation/Widgets/CallbackWidget.C \
 		../src/Relocation/Widgets/InsnWidget.C \
 		../src/Relocation/Widgets/InstWidget.C \
 		../src/Relocation/Widgets/PCWidget.C \
@@ -167,9 +167,16 @@ SRCS	     +=	../src/BPatch.C \
 		../src/Relocation/Transformers/Instrumenter.C \
 		../src/Relocation/Transformers/Modification.C \
 		../src/Relocation/Transformers/Movement-adhoc.C \
+		../src/Relocation/Transformers/Movement-analysis.C \
 		../src/Relocation/CodeTracker.C \
                 ../src/Relocation/CodeBuffer.C \
-                ../src/Relocation/patchapi_debug.C 
+                ../src/Relocation/patchapi_debug.C \
+                ../src/Relocation/DynObject.C \
+                ../src/Relocation/DynAddrSpace.C \
+                ../src/Relocation/DynPointMaker.C \
+                ../src/Relocation/DynCFGMaker.C \
+                ../src/Relocation/DynInstrumenter.C \
+                ../src/Patching.C
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
@@ -191,6 +198,7 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_loopTreeNode.h \
            BPatch_memoryAccess_NP.h \
            BPatch_module.h \
+           BPatch_object.h \
            BPatch_parRegion.h \
            BPatch_point.h \
            BPatch_process.h \
@@ -212,9 +220,9 @@ PUBLIC_H = BPatch_addressSpace.h \
 
 IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
 IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
-IFLAGS      += -I../../parseAPI/h
 IFLAGS      += -I../../proccontrol/h
-IFLAGS      += -I../../dataflowAPI/h
+IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
+IFLAGS      += -I../../patchAPI/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)

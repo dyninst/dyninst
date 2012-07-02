@@ -43,7 +43,6 @@
 #include <elf.h>
 #include <libelf.h>
 
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
@@ -204,7 +203,7 @@ bool PCProcess::instrumentLibcStartMain()
        libcIdx++;
     }
     assert(libcIdx != maps_size);
-    //KEVINTODO: address code and data are not always 0,0: need to fix this
+    //TODO: address code and data are not always 0,0: need to fix this
     fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path,0,0,true);
     mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
     addASharedObject(libc);
@@ -249,7 +248,18 @@ bool PCProcess::instrumentLibcStartMain()
    // TODO continueProc(); // signal process to continue
    return true;
 }// end instrumentLibcStartMain
+
 #endif
+
+
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+                           func_instance *, Address target_addr) {
+   // We just want to overwrite the GOT entry with our target address. 
+   Address got_entry = entry.rel_addr() + base_addr;
+   writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
+   return true;
+}
+
 
 bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());

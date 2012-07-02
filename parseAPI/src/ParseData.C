@@ -45,6 +45,23 @@ void ParseFrame::set_status(Status s)
     _pd->setFrameStatus(codereg,func->addr(),s);
 }
 
+ParseWorkElem * ParseFrame::mkWork(
+    ParseWorkBundle * b,
+    Edge * e,
+    Address target,
+    bool resolvable,
+    bool tailcall)
+{
+    if(!b) {
+        b = new ParseWorkBundle();
+        work_bundles.push_back(b); 
+    }
+    ParseWorkElem * ret = new ParseWorkElem(b,e,target,resolvable,tailcall);
+    b->add( ret );
+    return ret;
+}
+
+
 /**** Standard [no overlapping regions] ParseData ****/
 
 StandardParseData::StandardParseData(Parser *p) :
@@ -83,12 +100,19 @@ int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
     int ret = _rdata.findBlocks(addr,blocks);
+#if 0 // old sanity check that discovered blocks at a given address are all 
+      // in the same region, the problem with the check is that it blocks
+      // has to be empty when you call this function, so with the sanity 
+      // check in place you can't call findBlocks on a range of addresses
+      // accumulating the results in the blocks set.  Copying would allow
+      // the sanity check to work, but it seems unnecessary
     CodeRegion *check = 0;
     for (std::set<Block *>::iterator iter = blocks.begin(); iter != blocks.end(); ++iter)
     {
         if (!check) check = (*iter)->region();
         else assert(check == (*iter)->region());
     }
+#endif
     return ret;
 }
 
@@ -108,8 +132,8 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
             snprintf(name,32,"targ%lx",entry);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
-            ret = _parser->factory().mkfunc(
-                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
+            ret = _parser->factory()._mkfunc(
+               entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
             _parser->record_func(ret);
         }
     }
@@ -296,8 +320,8 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
                 snprintf(name,32,"targ%lx",addr);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,addr);
-            ret = _parser->factory().mkfunc(
-                addr,src,name,&_parser->obj(),cr,cr);
+            ret = _parser->factory()._mkfunc(
+               addr,src,name,&_parser->obj(),cr,cr);
             _parser->record_func(ret);
         }
     }

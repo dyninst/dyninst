@@ -486,7 +486,7 @@ Event::ptr thread_db_process::decodeThreadEvent(td_event_msg_t *eventMsg, bool &
          EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Pre));
          new_ev->setProcess(proc());
          new_ev->setThread(thr->thread());
-         new_ev->setSyncType(Event::sync_thread);
+         new_ev->setSyncType(Event::sync_process);
 
          return new_ev;
       }
@@ -854,11 +854,13 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 
    pthrd_printf("Decoded LWP exit without thread exit on %d/%d.  Faking thread exit event\n",
                 db_thread->llproc()->getPid(), db_thread->getLWP());
-   
+
    EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
    new_ev->setProcess(db_thread->llproc()->proc());
    new_ev->setThread(db_thread->thread());
+   new_ev->setSyncType(Event::async);
    lwp_ev->addSubservientEvent(new_ev);
+
    return true;
 }
 
@@ -905,6 +907,8 @@ async_ret_t thread_db_process::decodeTdbBreakpoint(EventBreakpoint::ptr bp)
           ev->setThread(bp->getThread());
        if (!ev->getProcess()) 
           ev->setProcess(proc());
+       if (ev->getSyncType() == Event::unset)
+          ev->setSyncType(Event::sync_process);
        bp->addSubservientEvent(ev);
     }
     bp->setSuppressCB(true);

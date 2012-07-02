@@ -104,6 +104,7 @@ static void* openSO(const char *soname, bool local)
       fprintf(stderr, "%s\n", errmsg);
       return NULL; //Error
    }
+
    return handle;
 }
 

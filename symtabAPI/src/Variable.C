@@ -204,62 +204,6 @@ bool Variable::removeSymbol(Symbol *sym)
     return true;
 }
 
-namespace Dyninst {
-	namespace SymtabAPI {
-const char *storageClass2Str(Dyninst::SymtabAPI::storageClass sc) 
-{
-	switch(sc) {
-		CASE_RETURN_STR(storageAddr);
-		CASE_RETURN_STR(storageReg);
-		CASE_RETURN_STR(storageRegOffset);
-	};
-	return "bad_storage_class";
-}
-
-const char *storageRefClass2Str(Dyninst::SymtabAPI::storageRefClass sc) 
-{
-	switch(sc) {
-		CASE_RETURN_STR(storageRef);
-		CASE_RETURN_STR(storageNoRef);
-	};
-	return "bad_storage_class";
-}
-}
-}
-
-bool VariableLocation::operator==(const VariableLocation &f)
-{
-	if (stClass != f.stClass) return false;
-	if (refClass != f.refClass) return false;
-	if (reg != f.reg) return false;
-	if (frameOffset != f.frameOffset) return false;
-	if (hiPC != f.hiPC) return false;
-	if (lowPC != f.lowPC) return false;
-	return true;
-}
-
-#if !defined(SERIALIZATION_DISABLED)
-Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, stClass, storageClass2Str, "StorageClass");
-	gtranslate(sb, refClass, storageRefClass2Str, "StorageRefClass");
-	gtranslate(sb, reg, "register");
-	gtranslate(sb, frameOffset, "frameOffset");
-	gtranslate(sb, hiPC, "hiPC");
-	gtranslate(sb, lowPC, "lowPC");
-	ifxml_end_element(sb, tag);
-	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
-	return NULL;
-}
-#else
-Serializable *VariableLocation::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
-{
-   return NULL;
-}
-#endif
-
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
 		int lineNum, Function *f, std::vector<VariableLocation> *locs) :
 	Serializable(),
@@ -419,7 +363,7 @@ std::string &localVar::getFileName()
 	return fileName_;
 }
 
-std::vector<Dyninst::SymtabAPI::VariableLocation> &localVar::getLocationLists() 
+std::vector<Dyninst::VariableLocation> &localVar::getLocationLists() 
 {
 	return locs_;
 }

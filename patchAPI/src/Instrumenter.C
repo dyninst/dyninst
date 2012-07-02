@@ -1,0 +1,62 @@
+/* Plugin */
+
+#include "Instrumenter.h"
+#include "PatchCFG.h"
+
+using Dyninst::PatchAPI::Instrumenter;
+using Dyninst::PatchAPI::InstanceSet;
+using Dyninst::PatchAPI::PatchFunction;
+using Dyninst::PatchAPI::PatchBlock;
+using Dyninst::PatchAPI::AddrSpace;
+
+/* Default implementation of Instrumenter */
+
+Instrumenter*
+Instrumenter::create(AddrSpace* as) {
+  Instrumenter* ret = new Instrumenter(as);
+  return ret;
+}
+
+bool
+Instrumenter::replaceFunction(PatchFunction* oldfunc, PatchFunction *newfunc) {
+  functionReplacements_[oldfunc] = newfunc;
+  return true;
+}
+
+bool
+Instrumenter::revertReplacedFunction(PatchFunction* oldfunc) {
+  functionReplacements_.erase(oldfunc);
+  return true;
+}
+
+bool
+Instrumenter::wrapFunction(PatchFunction* oldfunc, PatchFunction *newfunc, std::string name) {
+   functionWraps_[oldfunc] = std::make_pair(newfunc, name);
+   return true;
+}
+
+bool
+Instrumenter::revertWrappedFunction(PatchFunction* oldfunc) {
+  functionWraps_.erase(oldfunc);
+  return true;
+}
+
+bool
+Instrumenter::modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context) {
+  callModifications_[callBlock][context] = newCallee;
+  return true;
+}
+
+bool
+Instrumenter::revertModifiedCall(PatchBlock *callBlock, PatchFunction *context) {
+  if (callModifications_.find(callBlock) != callModifications_.end()) {
+    callModifications_[callBlock].erase(context);
+  }
+  return true;
+}
+
+bool
+Instrumenter::removeCall(PatchBlock *callBlock, PatchFunction *context) {
+  modifyCall(callBlock, NULL, context);
+  return true;
+}

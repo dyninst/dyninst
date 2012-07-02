@@ -31,10 +31,11 @@
 
 #include "RelocGraph.h"
 #include "RelocBlock.h"
-
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Relocation;
+using namespace std;
 
 RelocGraph::~RelocGraph() {
    for (Edges::iterator iter = edges.begin(); iter != edges.end(); ++iter) {
@@ -51,8 +52,8 @@ RelocGraph::~RelocGraph() {
 
 void RelocGraph::addRelocBlock(RelocBlock *t) {
    if (t->type() == RelocBlock::Relocated) {
-      springboards[t->block()] = t;
-      reloc[t->block()] = t;
+      springboards[std::make_pair(t->block(), t->func())] = t;
+      reloc[t->block()][t->func()] = t;
    }
 
    if (head == NULL) {
@@ -70,8 +71,8 @@ void RelocGraph::addRelocBlock(RelocBlock *t) {
 
 void RelocGraph::addRelocBlockBefore(RelocBlock *cur, RelocBlock *t) {
    if (t->type() == RelocBlock::Relocated) {
-      springboards[t->block()] = t;
-      reloc[t->block()] = t;
+      springboards[std::make_pair(t->block(), t->func())] = t;
+      reloc[t->block()][t->func()] = t;
    }
    size++;
    if (cur == head) {
@@ -86,8 +87,8 @@ void RelocGraph::addRelocBlockBefore(RelocBlock *cur, RelocBlock *t) {
 
 void RelocGraph::addRelocBlockAfter(RelocBlock *cur, RelocBlock *t) {
    if (t->type() == RelocBlock::Relocated) {
-      springboards[t->block()] = t;
-      reloc[t->block()] = t;
+      springboards[std::make_pair(t->block(), t->func())] = t;
+      reloc[t->block()][t->func()] = t;
    }
    size++;
   if (cur == tail) {
@@ -101,21 +102,24 @@ void RelocGraph::addRelocBlockAfter(RelocBlock *cur, RelocBlock *t) {
 }
 
    
-RelocBlock *RelocGraph::find(block_instance *b) const {
-   Map::const_iterator iter = reloc.find(b);
+RelocBlock *RelocGraph::find(block_instance *b, func_instance *f) const {
+   InstanceMap::const_iterator iter = reloc.find(b);
    if (iter == reloc.end()) return NULL;
-   return iter->second;
+   SubMap::const_iterator iter2 = iter->second.find(f);
+   if (iter2 == iter->second.end()) return NULL;
+
+   return iter2->second;
 }
 
-RelocBlock *RelocGraph::findSpringboard(block_instance *b) const {
-   Map::const_iterator iter = springboards.find(b);
+RelocBlock *RelocGraph::findSpringboard(block_instance *b, func_instance *f) const {
+   Map::const_iterator iter = springboards.find(std::make_pair(b, f));
    if (iter == springboards.end()) return NULL;
    return iter->second;
 }
 
-bool RelocGraph::setSpringboard(block_instance *from, RelocBlock *to) {
-   if (springboards.find(from) == springboards.end()) return false;
-   springboards[from] = to;
+bool RelocGraph::setSpringboard(block_instance *from, func_instance *func, RelocBlock *to) {
+   if (springboards.find(std::make_pair(from, func)) == springboards.end()) return false;
+   springboards[std::make_pair(from, func)] = to;
    return true;
 }
 
@@ -190,6 +194,11 @@ bool RelocGraph::changeSource(RelocEdge *e, TargetInt *n) {
    e->src = n;
    return true;
 }
+
+bool RelocGraph::changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t) {
+   e->type = t;
+   return true;
+}
    
 bool Predicates::Interprocedural::operator()(RelocEdge *e) {
    return (e->type == ParseAPI::CALL ||
@@ -203,6 +212,14 @@ bool Predicates::Intraprocedural::operator()(RelocEdge *e) {
 
 bool Predicates::Fallthrough::operator()(RelocEdge *e) {
    return (e->type == ParseAPI::FALLTHROUGH);
+}
+
+bool Predicates::Call::operator()(RelocEdge *e) {
+   return (e->type == ParseAPI::CALL);
+}
+
+bool Predicates::NonCall::operator()(RelocEdge *e) {
+   return (e->type != ParseAPI::CALL);
 }
 
 bool Predicates::CallFallthrough::operator()(RelocEdge *e) {

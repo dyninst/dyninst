@@ -486,6 +486,9 @@ def has_multiple_tests(testgroup):
 def print_mutatee_rules(out, mutatees, compiler, module):
 	if(len(mutatees) == 0):
 		return
+	mut_static_mabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '32', mutatees))
+	mut_static_nonmabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '64', mutatees))
+	mut_dynamic = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee', mutatees))
 	mut_names = map(lambda x: mutatee_binary(x), mutatees)
 	out.write("######################################################################\n")
 	out.write("# Mutatees compiled with %s for %s\n" % (mutatees[0]['compiler'], module))
@@ -493,10 +496,37 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 	if compiler['presencevar'] != 'true':
 		out.write("ifdef %s\n" % (compiler['presencevar']))
 		out.write("# We only want to build these targets if the compiler exists\n")
-	out.write("%s_SOLO_MUTATEES_%s = " % (module, compiler['defstring']))
-	for m in mut_names:
+        if ('c++' in compiler['languages']):
+		out.write("ifndef SKIP_TEST_STATIC_32_C++\n")
+		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
+		for m in mut_static_mabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		out.write("endif\n")
+		out.write("ifndef SKIP_TEST_STATIC_64_C++\n")
+		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
+		for m in mut_static_nonmabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		out.write("endif\n")
+        else:
+		out.write("ifndef SKIP_TEST_STATIC_32_NONC++\n")
+		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
+		for m in mut_static_mabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		out.write("endif\n")
+		out.write("ifndef SKIP_TEST_STATIC_64_NONC++\n")
+		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
+		for m in mut_static_nonmabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		out.write("endif\n")
+	out.write("%s_SOLO_MUTATEES_DYNAMIC_%s = " % (module, compiler['defstring']))
+	for m in mut_dynamic:
 		out.write("%s " % (m))
 	out.write('\n')
+	out.write("%s_SOLO_MUTATEES_%s = $(%s_SOLO_MUTATEES_STATIC_32_%s) $(%s_SOLO_MUTATEES_STATIC_64_%s) $(%s_SOLO_MUTATEES_DYNAMIC_%s)\n" % (module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring']))
 	if compiler['presencevar'] != 'true':
 		out.write("endif\n")
 	out.write("\n")
@@ -511,7 +541,6 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 	# Write rules for building the mutatee executables from the object files
 	for (m, n) in zip(mutatees, mut_names):
 		out.write("%s: " % (n))
-
 		group_mutatee_list = filter(has_multiple_tests, groups)
 		group_mutatee_list = filter(lambda g: g['mutatee'] == m['name'], group_mutatee_list)
 		group_boilerplates = uniq(map(lambda g: g['mutatee'] + '_group.c', group_mutatee_list))
@@ -603,7 +632,7 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
 		out.write("\t@echo Linking $@\n");
-		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s"
+		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s "
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 				    compiler['flags']['std'],
 					 ObjSuffix,

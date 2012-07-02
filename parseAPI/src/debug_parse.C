@@ -40,6 +40,11 @@ int Dyninst::ParseAPI::dyn_debug_parsing = 0;
 int Dyninst::ParseAPI::dyn_debug_malware = 0;
 int Dyninst::ParseAPI::dyn_debug_initialized = 0;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable:4996) 
+#endif
+
 int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 {
     if(!dyn_debug_initialized) {
@@ -60,7 +65,7 @@ int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
 
     return ret;
 }
-        
+
 int Dyninst::ParseAPI::malware_printf_int(const char *format, ...)
 {
     if(!dyn_debug_initialized) {
@@ -82,3 +87,6 @@ int Dyninst::ParseAPI::malware_printf_int(const char *format, ...)
     return ret;
 }
         
+#if defined(_MSC_VER)
+#pragma warning(pop)    
+#endif

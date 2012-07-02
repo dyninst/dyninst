@@ -56,7 +56,10 @@ typedef std::list<WidgetPtr> WidgetList;
 
 class RelocGraph {
   public:
-   typedef std::map<block_instance *, RelocBlock *> Map;
+   typedef std::map<func_instance *, RelocBlock *> SubMap;
+   typedef std::map<block_instance *, SubMap> InstanceMap;
+   typedef std::map<std::pair<block_instance *, func_instance *>,
+      RelocBlock *> Map;
    typedef std::vector<RelocEdge *> Edges;
    
    RelocGraph() : head(0), tail(0), size(0) {};
@@ -87,17 +90,18 @@ class RelocGraph {
    Edges edges;
    
    Map springboards;
-   Map reloc;
+   InstanceMap reloc;
 
-   RelocBlock *find(block_instance *) const;
-   bool setSpringboard(block_instance *from, RelocBlock *to);
-   RelocBlock *findSpringboard(block_instance *from) const;
+   RelocBlock *find(block_instance *, func_instance *) const;
+   bool setSpringboard(block_instance *from, func_instance *func, RelocBlock *to);
+   RelocBlock *findSpringboard(block_instance *from, func_instance *to) const;
 
   // Should this go here? Well, it's a transformation on RelocBlocks...
   void link(RelocBlock *s, RelocBlock *t);
   bool interpose(RelocEdge *e, RelocBlock *n);
   bool changeTarget(RelocEdge *e, TargetInt *n);
   bool changeSource(RelocEdge *e, TargetInt *n);
+  bool changeType(RelocEdge *e, ParseAPI::EdgeTypeEnum t);
 
   template <class Predicate> 
   void applyPredicate(Predicate &p, RelocEdges *e, RelocEdges &results);
@@ -109,12 +113,12 @@ class RelocGraph {
      bool interpose(Predicate &p, RelocEdges *e, RelocBlock *t);
   template <class Predicate, class Dest> 
      bool changeTargets(Predicate &p, RelocEdges *e, Dest n);
-#if 0
-  template <class Predicate, class Dest> 
-     bool changeSources(Predicate &p, RelocEdges *e, Dest *n);
-#endif
+  template <class Predicate, class Source> 
+     bool changeSources(Predicate &p, RelocEdges *e, Source n);
   template <class Predicate>
      bool removeEdge(Predicate &p, RelocEdges *e);
+  template <class Predicate>
+     bool changeType(Predicate &p, RelocEdges *e, ParseAPI::EdgeTypeEnum t);
 
 
   struct InterproceduralPredicate {
@@ -139,6 +143,13 @@ struct Predicates {
    struct CallFallthrough {
       bool operator() (RelocEdge *e);
    };
+   struct NonCall {
+      bool operator() (RelocEdge *e);
+   };
+   struct Call {
+      bool operator() (RelocEdge *e);
+   };
+
    struct Edge {
    Edge(edge_instance *e) : e_(e) {};
       bool operator() (RelocEdge *e);
@@ -170,6 +181,17 @@ template <class Predicate, class Dest>
    return true;
 }
 
+template <class Predicate, class Source>
+   bool RelocGraph::changeSources(Predicate &p, RelocEdges *e, Source n) {
+   RelocEdges tmp;
+   applyPredicate(p, e, tmp);
+   for (RelocEdges::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      if (!changeSource(*iter, new Target<Source>(n))) return false;
+   }
+   return true;
+}
+
 template <class Predicate> 
    bool RelocGraph::removeEdge(Predicate &p, RelocEdges *e) {
    RelocEdges tmp;
@@ -188,6 +210,17 @@ template <class Predicate>
    for (RelocEdges::iterator iter = tmp.begin();
         iter != tmp.end(); ++iter) {
       if (!interpose(*iter, t)) return false;
+   }
+   return true;
+}
+
+template <class Predicate>
+   bool RelocGraph::changeType(Predicate &p, RelocEdges *e, ParseAPI::EdgeTypeEnum t) {
+   RelocEdges tmp;
+   applyPredicate(p, e, tmp);
+   for (RelocEdges::iterator iter = tmp.begin();
+        iter != tmp.end(); ++iter) {
+      if (!changeType(*iter, t)) return false;
    }
    return true;
 }

@@ -34,18 +34,23 @@
 #include "../CFG/RelocTarget.h"
 
 #include "instructionAPI/h/Instruction.h"
+#include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
+#include "dyninstAPI/src/emitter.h"
+#include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/debug.h"
 
-#include "../patchapi_debug.h"
-
-#include "../CodeTracker.h"
-#include "../CodeBuffer.h"
-
-
-#if defined(MEMORY_EMULATION_LAYER)
+#if defined(cap_mem_emulation)
+#include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
 #include "dyninstAPI/src/BPatch_memoryAccessAdapter.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h"
+#include "dyninstAPI/src/registerSpace.h"
 #endif
+
+#include "../dyninstAPI/src/debug.h"
+
+#include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -79,14 +84,30 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    insn_(insn),
    addr_(addr) {
    
+   // HACK to be sure things are parsed...
+   insn->format();
+
+   for (Instruction::cftConstIter iter = insn->cft_begin(); iter != insn->cft_end(); ++iter) {
+      if (iter->isCall) isCall_ = true;
+      if (iter->isIndirect) isIndirect_ = true;
+      if (iter->isConditional) isConditional_ = true;
+   }
+
+#if 0
+   // Old way
    if (insn->getCategory() == c_CallInsn) {
       // Calls have a fallthrough but are not conditional.
       // TODO: conditional calls work how?
-
       isCall_ = true;
    } else if (insn->allowsFallThrough()) {
       isConditional_ = true;
    }
+#endif
+
+   // This whole next section is obsolete, but IAPI's CFT interface doesn't say
+   // what a "return" is (aka, they don't include "indirect"). So I'm using it
+   // so that things work. 
+
 
    // TODO: IAPI is recording all PPC64 instructions as PPC32. However, the
    // registers they use are still PPC64. This is a pain to fix, and therefore
@@ -105,8 +126,11 @@ CFWidget::CFWidget(InstructionAPI::Instruction::Ptr insn, Address addr)  :
    exp->bind(thePCFixme.get(), Result(u64, addr_));
    Result res = exp->eval();
    if (!res.defined) {
-      isIndirect_ = true;
+      if (!isIndirect_) {
+         isIndirect_ = true;
+      }
    }
+
 }
 
 
@@ -248,7 +272,7 @@ bool CFWidget::generate(const codeGen &templ,
          Register reg = Null_Register; /* = originalRegister... */
          // Originally for use in helping with jump tables, I'm taking
          // this for the memory emulation effort. Huzzah!
-         if (!generateAddressTranslator(buffer, templ, reg))
+         if (!generateAddressTranslator(buffer, templ, reg, trace))
             return false;
          if (isCall_) {
             if (!generateIndirectCall(buffer, 
@@ -300,7 +324,7 @@ TrackerElement *CFWidget::tracker(const RelocBlock *trace) const {
    return e;
 }
 
-TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
+TrackerElement *CFWidget::destTracker(TargetInt *dest, const RelocBlock *trace) const {
    block_instance *destBlock = NULL;
    func_instance *destFunc = NULL;
    switch (dest->type()) {
@@ -318,7 +342,7 @@ TrackerElement *CFWidget::destTracker(TargetInt *dest) const {
          assert(destBlock);
          break;
       default:
-         assert(0);
+         return new EmulatorTracker(trace->block()->last(), trace->block(), trace->func());
          break;
    }
    EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destBlock, destFunc);
@@ -371,7 +395,7 @@ bool CFWidget::generateBranch(CodeBuffer &buffer,
    CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, trace->func(), addr_);
 
    if (fallthrough || trace->block() == NULL) {
-      buffer.addPatch(newPatch, destTracker(to));
+      buffer.addPatch(newPatch, destTracker(to, trace));
    }
    else {
       buffer.addPatch(newPatch, tracker(trace));
@@ -386,7 +410,6 @@ bool CFWidget::generateCall(CodeBuffer &buffer,
 			  Instruction::Ptr insn) {
    if (!to) {
       // This can mean an inter-module branch...
-      // DebugBreak();
       return true;
    }
 
@@ -402,7 +425,6 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
                                        const RelocBlock *trace,
 				       Instruction::Ptr insn) {
    assert(to);
-
    CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, trace->func(), addr_);
 
    buffer.addPatch(newPatch, tracker(trace));
@@ -410,111 +432,6 @@ bool CFWidget::generateConditionalBranch(CodeBuffer &buffer,
    return true;
 }
 
-bool CFWidget::generateAddressTranslator(CodeBuffer & /*buffer*/,
-                                         const codeGen & /*templ*/,
-                                         Register & /*reg*/) 
-{
-   return true;
-#if 0
-   if (!templ.addrSpace()->isMemoryEmulated() ||
-       BPatch_defensiveMode != block()->func()->obj()->hybridMode())
-      return true;
-
-   if (insn_->getOperation().getID() == e_ret_near ||
-       insn_->getOperation().getID() == e_ret_far) {
-      // Oops!
-      return true;
-   }
-   if (!insn_->readsMemory()) {
-      return true;
-   }
-   
-   BPatch_memoryAccessAdapter converter;
-   BPatch_memoryAccess *acc = converter.convert(insn_, addr_, false);
-   if (!acc) {
-      reg = Null_Register;
-      return true;
-   }
-   
-   codeGen patch(128);
-   patch.applyTemplate(templ);
-   
-   // TODO: we probably want this in a form that doesn't stomp the stack...
-   // But we can probably get away with this for now. Check that.
-
-   // step 1: create space on the stack. 
-   ::emitPush(RealRegister(REGNUM_EAX), patch);
-   
-   // step 2: save registers that will be affected by the call
-   ::emitPush(RealRegister(REGNUM_ECX), patch);
-   ::emitPush(RealRegister(REGNUM_EDX), patch);
-   ::emitPush(RealRegister(REGNUM_EAX), patch);
-   
-   // Step 3: LEA this sucker into ECX.
-   const BPatch_addrSpec_NP *start = acc->getStartAddr(0);
-   if (start->getReg(0) == REGNUM_ESP ||
-       start->getReg(1) == REGNUM_ESP) {
-      cerr << "ERROR: CF insn that uses the stack pointer! " << insn_->format() << endl;
-   }
-
-   int stackShift = -16;
-   // If we are a call _instruction_ but isCall is false, then we've got an extra word
-   // on the stack from an emulated return address
-   if (!isCall_ && insn_->getCategory() == c_CallInsn) stackShift -= 4;
-
-   emitASload(start, REGNUM_ECX, stackShift, patch, true);
-   
-   // Step 4: save flags post-LEA
-   emitSimpleInsn(0x9f, patch);
-   emitSaveO(patch);
-   ::emitPush(RealRegister(REGNUM_EAX), patch);
-   
-   // This might look a lot like a memEmulatorWidget. That's, well, because it
-   // is. 
-   buffer.addPIC(patch, tracker());
-   
-   // Where are we going?
-   block_instance *func = templ.addrSpace()->findOnlyOneFunction("RTtranslateMemory");
-   // FIXME for static rewriting; this is a dynamic-only hack for proof of concept.
-   assert(func);
-   
-   // Now we start stealing from memEmulatorWidget. We need to call our translation function,
-   // which means a non-PIC patch to the CodeBuffer. I don't feel like rewriting everything,
-   // so there we go.
-   buffer.addPatch(new MemEmulatorPatch(REGNUM_ECX, REGNUM_ECX, addr_, func->getAddress()),
-                   tracker());
-   patch.setIndex(0);
-   
-   // Restore flags
-   ::emitPop(RealRegister(REGNUM_EAX), patch);
-   emitRestoreO(patch);
-   emitSimpleInsn(0x9E, patch);
-   ::emitPop(RealRegister(REGNUM_EAX), patch);
-   ::emitPop(RealRegister(REGNUM_EDX), patch);
-   
-   // ECX now holds the pointer to the destination...
-   // Dereference
-   ::emitMovRMToReg(RealRegister(REGNUM_ECX),
-                    RealRegister(REGNUM_ECX),
-                    0,
-                    patch);
-   
-   // ECX now holds the _actual_ destination, so move it on to the stack. 
-   // We've got ECX saved
-   ::emitMovRegToRM(RealRegister(REGNUM_ESP),
-                    1*4, 
-                    RealRegister(REGNUM_ECX),
-                    patch);
-   ::emitPop(RealRegister(REGNUM_ECX), patch);
-   // And tell our people to use the top of the stack
-   // for their work.
-   // TODO: trust liveness and leave this in a register. 
-
-   buffer.addPIC(patch, tracker());
-   reg = REGNUM_ESP;
-   return true;
-#endif
-}
 
 std::string CFWidget::format() const {
    stringstream ret;
@@ -580,9 +497,22 @@ unsigned CFPatch::estimate(codeGen &) {
    return 0;
 }
 
+PaddingPatch::PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b)
+  : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) 
+{
+   //malware_cerr << hex << "PaddingPatch(" << size << "," << registerDefensive << "," << noop << ", [" << b->start() << " " << b->end() << ") )" << dec <<  endl;
+}
+
+
 bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
-   //cerr << "PaddingPatch::apply, current addr " << hex << gen.currAddr() << ", size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
-   if (1 || noop_) {
+   //TODO: find smarter way of telling that we're doing CFG modification, 
+   // in which case we don't want to add padding in between blocks
+   if (BPatch_defensiveMode != block_->obj()->hybridMode()) {
+      bpwarn("WARNING: Disabling post-call block padding %s[%d]\n",FILE__,__LINE__);
+      return true;
+   }
+   //malware_cerr << "PaddingPatch::apply, addr [" << hex << block_->end() << "]["<< gen.currAddr() << "], size " << size_ << ", registerDefensive " << (registerDefensive_ ? "<true>" : "<false>") << dec << endl;
+   if (noop_) {
       gen.fill(size_, codeGen::cgNOP);
    }
    else if ( 0 == (size_ % 2) ) {

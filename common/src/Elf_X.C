@@ -29,7 +29,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/Elf_X.h"
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <libgen.h>
+
+#include <boost/crc.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/assign/std/set.hpp>
+#include <boost/assign/std/vector.hpp>
+
+#include "common/h/headers.h"
+
+using namespace std;
+using boost::crc_32_type;
+using namespace boost::assign;
+
+#define DEBUGLINK_NAME ".gnu_debuglink"
+#define BUILD_ID_NAME ".note.gnu.build-id"
 
 // ------------------------------------------------------------------------
 // Class Elf_X simulates the Elf(32|64)_Ehdr structure.
@@ -1457,4 +1476,109 @@ unsigned long Elf_X_Dyn::count() const
 bool Elf_X_Dyn::isValid() const
 {
     return (dyn32 || dyn64);
+}
+
+static bool loadDebugFileFromDisk(string name, char* &output_buffer, unsigned long &output_buffer_size)
+{
+   struct stat fileStat;
+   int result = stat(name.c_str(), &fileStat);
+   if (result == -1)
+      return false;
+   if (S_ISDIR(fileStat.st_mode))
+      return false;
+   int fd = open(name.c_str(), O_RDONLY);
+   if (fd == -1)
+      return false;
+
+   char *buffer = (char *) mmap(NULL, fileStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+   close(fd);
+   if (!buffer)
+      return false;
+
+   output_buffer = buffer;
+   output_buffer_size = fileStat.st_size;
+
+   return true;
+}
+
+// The standard procedure to look for a separate debug information file
+// is as follows:
+// 1. Lookup build_id from .note.gnu.build-id section and debug-file-name and
+//    crc from .gnu_debuglink section of the original binary.
+// 2. Look for the following files:
+//        /usr/lib/debug/.build-id/<path-obtained-using-build-id>.debug
+//        <debug-file-name> in <directory-of-executable>
+//        <debug-file-name> in <directory-of-executable>/.debug
+//        <debug-file-name> in /usr/lib/debug/<directory-of-executable>
+// Reference: http://sourceware.org/gdb/current/onlinedocs/gdb_16.html#SEC157
+bool Elf_X::findDebugFile(std::string origfilename, string &output_name, char* &output_buffer, unsigned long &output_buffer_size)
+{
+   uint16_t shnames_idx = e_shstrndx();
+   Elf_X_Shdr shnames_hdr = get_shdr(shnames_idx);
+   if (!shnames_hdr.isValid())
+      return false;
+   const char *shnames = (const char *) shnames_hdr.get_data().d_buf();
+   
+  string debugFileFromDebugLink, debugFileFromBuildID;
+  unsigned debugFileCrc = 0;
+
+  for(int i = 0; i < e_shnum(); i++) {
+     Elf_X_Shdr scn = get_shdr(i);
+     if (!scn.isValid()) { // section is malformed
+        continue;
+     }
+
+     const char *name = &shnames[scn.sh_name()];
+     if(strcmp(name, DEBUGLINK_NAME) == 0) {
+        Elf_X_Data data = scn.get_data();
+        debugFileFromDebugLink = (char *) data.d_buf();
+        void *crcLocation = ((char *) data.d_buf() + data.d_size() - 4);
+        debugFileCrc = *(unsigned *) crcLocation;
+     }
+     else if(strcmp(name, BUILD_ID_NAME) == 0) {
+        char *buildId = (char *) scn.get_data().d_buf();
+        string filename = string(buildId + 2) + ".debug";
+        string subdir = string(buildId, 2);
+        debugFileFromBuildID = "/usr/lib/debug/.build-id/" + subdir + "/" + filename;
+     }
+  }
+
+  if (!debugFileFromBuildID.empty()) {
+     bool result = loadDebugFileFromDisk(debugFileFromBuildID, output_buffer, output_buffer_size);
+     if (result) {
+        output_name = debugFileFromBuildID;
+        return true;
+     }
+  }
+
+  if (debugFileFromDebugLink.empty())
+     return false;
+
+  char *mfPathNameCopy = strdup(origfilename.c_str());
+  string objectFileDirName = dirname(mfPathNameCopy);
+
+  vector<string> fnames = list_of
+    (objectFileDirName + "/" + debugFileFromDebugLink)
+    (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
+    ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
+
+  free(mfPathNameCopy);
+
+  for(unsigned i = 0; i < fnames.size(); i++) {
+     bool result = loadDebugFileFromDisk(fnames[i], output_buffer, output_buffer_size);
+     if (!result)
+        continue;
+    
+    boost::crc_32_type crcComputer;
+    crcComputer.process_bytes(output_buffer, output_buffer_size);
+    if(crcComputer.checksum() != debugFileCrc) {
+       munmap(output_buffer, output_buffer_size);
+       continue;
+    }
+
+    output_name = fnames[i];
+    return true;
+  }
+
+  return false;
 }

@@ -43,6 +43,7 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTthread.c \
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \
+		   ../src/RTstatic_ctors_dtors-ppc32.c \
 		   ../src/RTspace.S
 #		   ../src/RTmutatedBinary.c \
 #		   ../src/RTmutatedBinary_ELF.c \

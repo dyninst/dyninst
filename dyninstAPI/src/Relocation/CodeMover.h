@@ -34,7 +34,6 @@
 #define _R_CODE_MOVER_H_
 
 #include "CFG.h"
-#include "dynptr.h"
 #include "common/h/Types.h"
 #include <list>
 #include <map>
@@ -61,7 +60,7 @@ class CodeMover;
 class CodeTracker;
 class RelocGraph;
 
-typedef std::map<block_instance *, Priority> PriorityMap;
+typedef std::map<std::pair<block_instance *, func_instance *>, Priority> PriorityMap;
 
 class CodeMover {
  public:
@@ -136,8 +135,6 @@ class CodeMover {
      bool addRelocBlocks(RelocBlockIter begin, RelocBlockIter end, func_instance *f);
 
   bool addRelocBlock(block_instance *block, func_instance *f);
-
-  void createInstrumentationSpringboards(AddressSpace *as);
 
   void finalizeRelocBlocks();
 

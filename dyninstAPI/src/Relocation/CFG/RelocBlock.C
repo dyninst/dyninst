@@ -32,7 +32,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "../patchapi_debug.h"
+#include "../dyninstAPI/src/debug.h"
 
 #include "../Widgets/Widget.h"
 #include "../Widgets/InsnWidget.h" // Default Widget in each RelocBlock
@@ -100,7 +100,9 @@ RelocBlock *RelocBlock::createReloc(block_instance *block, func_instance *func) 
   // not up front; however, several transformers depend
   // on this behavior
   newRelocBlock->createCFWidget();
-  
+
+  newRelocBlock->preserveBlockGap();
+
   return newRelocBlock;
 }
   
@@ -145,16 +147,18 @@ void RelocBlock::getSuccessors(RelocGraph *cfg) {
    // Edges to a block that does not correspond to a RelocBlock (BlockEdges)
    // Edges to a raw address, caused by representing inter-CodeObject edges
    //   -- this last is a Defensive mode special.
-   const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
-      processEdge(OutEdge, *iter, cfg);
+  /*   const block_instance::edgelist &targets = block_->targets();
+       for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   const PatchBlock::edgelist &targets = block_->targets();
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+     processEdge(OutEdge, SCAST_EI(*iter), cfg);
    }
 }
 
 void RelocBlock::getPredecessors(RelocGraph *cfg) {
-   const block_instance::edgelist &edges = block_->sources();
-   for (block_instance::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
-      processEdge(InEdge, *iter, cfg);
+   const PatchBlock::edgelist &edges = block_->sources();
+   for (PatchBlock::edgelist::const_iterator iter = edges.begin(); iter != edges.end(); ++iter) {
+     processEdge(InEdge, SCAST_EI(*iter), cfg);
    }
 
 }
@@ -197,6 +201,7 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
          case ParseAPI::COND_NOT_TAKEN:
          case ParseAPI::FALLTHROUGH:
          case ParseAPI::CALL_FT: {
+
             cfg->makeEdge(new Target<RelocBlock *>(this), 
                           new Target<Address>(block_->end()), 
                           type);
@@ -209,7 +214,17 @@ void RelocBlock::processEdge(EdgeDirection e, edge_instance *edge, RelocGraph *c
    else {
       block_instance *block = (e == OutEdge) ? edge->trg() : edge->src();
 
-      RelocBlock *t = cfg->find(block);
+      func_instance *f = NULL;
+      // Let's determine the function. If this is a call edge, then block must be
+      // an entry block and we use its function. Otherwise we use ours. 
+      if (type == ParseAPI::CALL) {
+         f = block->entryOfFunc();
+      }
+      else {
+         f = func();
+      }
+
+      RelocBlock *t = cfg->find(block, f);
       if (t) {
          if (e == OutEdge) {
             cfg->makeEdge(new Target<RelocBlock *>(this), 
@@ -246,18 +261,18 @@ bool RelocBlock::determineSpringboards(PriorityMap &p) {
 
    if (func_ &&
        func_->entryBlock() == block_) {
-      p[block_] = Required;
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    if (inEdges_.contains(ParseAPI::INDIRECT)) {
-      p[block_] = Required;
+      p[std::make_pair(block_, func_)] = Required;
       return true;
    }
    // Slow crawl
    for (RelocEdges::const_iterator iter = inEdges_.begin();
         iter != inEdges_.end(); ++iter) {
       if ((*iter)->src->type() != TargetInt::RelocBlockTarget) {
-         p[block_] = Required;
+         p[std::make_pair(block_, func_)] = Required;
          return true;
       }
    }
@@ -316,23 +331,44 @@ void RelocBlock::createCFWidget() {
 #endif
 
 void RelocBlock::preserveBlockGap() {
-   const block_instance::edgelist &targets = block_->targets();
-   for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+  /*   const block_instance::edgelist &targets = block_->targets();
+       for (block_instance::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {*/
+   if (block_->wasUserAdded()) return;
+   const PatchBlock::edgelist &targets = block_->targets();
+   bool hasCall = false;
+   bool hasFT = false;
+   for (PatchBlock::edgelist::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+      if ((*iter)->type() == ParseAPI::CALL) {
+         hasCall = true;
+      }
+      if ((*iter)->trg()->wasUserAdded()) {
+         // DO NOT ADD A GAP. 
+         continue;
+      }
       if ((*iter)->type() == ParseAPI::CALL_FT ||
           (*iter)->type() == ParseAPI::FALLTHROUGH ||
           (*iter)->type() == ParseAPI::COND_NOT_TAKEN) {
          // Okay, I admit - I want to see this code trigger in the
          // fallthrough or cond_not_taken cases...
-         block_instance *target = (*iter)->trg();
-         if (target) {
+         hasFT = true;
+         block_instance *target = SCAST_EI(*iter)->trg();
+         if (target && !(*iter)->sinkEdge()) {
+            if (target->start() < block_->end()) {
+               cerr << "Error: source should precede target; edge type " << ParseAPI::format((*iter)->type()) << hex
+                    << " src[" << block_->start() << " " << block_->end()
+                    << "] trg[" << target->start() << " " << target->end() << dec << "]" << endl;
+               assert(0);
+            }
             cfWidget()->setGap(target->start() - block_->end());
             return;
          }
          else {
-            // No target... very odd
             cfWidget()->setGap(DEFENSIVE_GAP_SIZE);
          }
       }
+   }
+   if (hasCall && !hasFT) {
+      cfWidget()->setGap(DEFENSIVE_GAP_SIZE);
    }
 }
 
@@ -412,18 +448,25 @@ void RelocBlock::determineNecessaryBranches(RelocBlock *successor) {
 
 
 bool RelocBlock::generate(const codeGen &templ,
-                     CodeBuffer &buffer) {
+			  CodeBuffer &buffer) {
    relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
    relocation_cerr << "\t" << elements_.size() << " elements" << endl;
    
    // Register ourselves with the CodeBuffer and get a label
    label_ = buffer.getLabel();
 
+   codeGen ourTemplate;
+   ourTemplate.applyTemplate(templ);
+   ourTemplate.setFunction(func());
+
+   relocation_cerr << "\t With function " << (func() ? func()->name() : "<NULL>") << endl;
+
    // Simple form: iterate over every Widget, in order, and generate it.
    for (WidgetList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-      if (!(*iter)->generate(templ, 
+      if (!(*iter)->generate(ourTemplate, 
                              this,
                              buffer)) {
+         cerr << "Failed to generate widget: " << (*iter)->format() << endl;
          return false;
          // This leaves the block in an inconsistent state and should only be used
          // for fatal failures.
@@ -452,7 +495,8 @@ std::string RelocBlock::format() const {
   ret << "Out edges:";
   for (RelocEdges::const_iterator iter = outEdges_.begin();
        iter != outEdges_.end(); ++iter) {
-     ret << (*iter)->trg->format() << ", ";
+     ret << (*iter)->trg->format() 
+	 << "<" << ParseAPI::format((*iter)->type) << ">, ";
   }
   ret << endl;
 
@@ -469,287 +513,16 @@ RelocBlock::Label RelocBlock::getLabel() const {
    return label_;
 }
 
-#if 0
-// Logic: interpose the new provided target along all edges
-// of the provided type. 
-bool RelocBlock::interposeTarget(ParseAPI::EdgeTypeEnum type,
-                            RelocBlock *newRelocBlock) {
-   assert(newRelocBlock);
-
-   TargetInt *newTarget = new Target<RelocBlock *>(newRelocBlock.get());
-
-   std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator oe_iter = outEdges_.find(type);
-   if (oe_iter == outEdges_.end()) return true;
-
-   newRelocBlock->outEdges_[ParseAPI::FALLTHROUGH] = oe_iter->second;
-
-   // Fix up in-edges as necessary
-   for (Targets::iterator iter = oe_iter->second.begin();
-        iter != oe_iter->second.end(); ++iter) {
-      // If we're pointing to a RelocBlock, fix its in-edge
-      if ((*iter)->type() == TargetInt::RelocBlockTarget) {
-         Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter);
-         t->t()->replaceInEdge(type, this, newTarget);
-      }
-   }
-
-   // And replace our out-edge
-   oe_iter->second.clear();
-   oe_iter->second.push_back(newTarget);
-   return true;
-}
-
-bool RelocBlock::moveSources(ParseAPI::EdgeTypeEnum type,
-                        RelocBlock *newRelocBlock) {
-   // Move all the in-edges of a particular type to
-   // newRelocBlock. Like interposition, but does not
-   // create an edge from newSource to us. 
-
-   assert(newRelocBlock);
-
-   TargetInt *newTarget = new Target<RelocBlock *>(newRelocBlock.get());
-   
-   std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator ie_iter = inEdges_.find(type);
-   if (ie_iter == inEdges_.end()) return true;
-
-   // Fix up in-edges as necessary
-   for (Targets::iterator iter = ie_iter->second.begin();
-        iter != ie_iter->second.end(); ++iter) {
-      // If we're pointing to a RelocBlock, fix its out-edge
-      // For that matter, we can probably assert trace-ness...
-      assert((*iter)->type() == TargetInt::RelocBlockTarget); 
-      Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter);
-      t->t()->replaceOutEdge(type, this, newTarget);
-   }
-   return true;
-}
-
-bool RelocBlock::interposeTarget(edge_instance *edge, 
-                     RelocBlock *newRelocBlock) {
-   assert(edge->src() == block());
-   // Like interposeTarget /w/ a type, but for a
-   // specific element...
-   assert(newRelocBlock);
-
-   TargetInt *newTarget = new Target<RelocBlock *>(newRelocBlock.get());
-   
-   std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator oe_iter = outEdges_.find(edge->type());
-   if (oe_iter == outEdges_.end()) return true;
-
-   // Fix up in-edges as necessary
-   for (Targets::iterator iter = oe_iter->second.begin();
-        iter != oe_iter->second.end(); ++iter) {
-      // If we're pointing to a RelocBlock, fix its in-edge
-      if ((*iter)->type() == TargetInt::RelocBlockTarget) {
-         Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter);
-         if (t->t()->block() != edge->trg()) continue;
-
-         t->t()->replaceInEdge(edge->type(), this, newTarget);
-         newRelocBlock->outEdges_[ParseAPI::DIRECT].push_back(*iter);
-         oe_iter->second.erase(iter);
-         oe_iter->second.push_back(newTarget);
-         return true;
-      }
-      else if ((*iter)->type() == TargetInt::BlockTarget) {
-         Target<block_instance *> *t = static_cast<Target<block_instance *> *>(*iter);
-         if (t->t() != edge->trg()) continue;
-
-         newRelocBlock->outEdges_[ParseAPI::DIRECT].push_back(*iter);
-         oe_iter->second.erase(iter);
-         oe_iter->second.push_back(newTarget);
-         return true;
-      }
-   }
-
-   return true;
-}
-
-RelocBlock::Targets &RelocBlock::getTargets(ParseAPI::EdgeTypeEnum type) {
-   return outEdges_[type];
-}
-
-bool RelocBlock::removeTargets() {
-   cerr << "removeTargets in " << id() << endl;
-#if 0
-   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator iter = outEdges_.begin();
-        iter != outEdges_.end(); ++iter) {
-      for (Targets::iterator iter2 = iter->second.begin(); 
-           iter2 != iter->second.end(); ++iter2) {
-         cerr << "Deleting " << (*iter2)->format() << endl;
-         delete *iter2;
-      }
-   }
-#endif
-   outEdges_.clear();
-   cerr << "Cleared all edges" << endl;
-   return true;
-}
-
-bool RelocBlock::removeTargets(ParseAPI::EdgeTypeEnum type) {
-   Targets &t = outEdges_[type];
-   for (Targets::iterator iter = t.begin(); iter != t.end(); ++iter) {
-      delete *iter;
-   }
-   
-   outEdges_.erase(type);
-   return true;
-}
-
-
-bool RelocBlock::replaceTarget(RelocBlock *oldRelocBlock, RelocBlock *newRelocBlock) {
-   cerr << "Replacing target in trace" << endl;
-   cerr << format();
-   for (Edges::iterator iter = outEdges_.begin(); iter != outEdges_.end(); ++iter) {
-      Targets newTargs;
-      for (Targets::iterator t_iter = iter->second.begin(); t_iter != iter->second.end(); ++t_iter) {
-         if ((*t_iter)->type() != TargetInt::RelocBlockTarget) {
-            newTargs.push_back(*t_iter);
-            continue;
-         }
-         Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*t_iter);
-         if (t->t() != oldRelocBlock.get()) {
-            newTargs.push_back(*t_iter);
-            continue;
-         }
-         delete t;
-         newTargs.push_back(new Target<RelocBlock *>(newRelocBlock.get()));
-      }
-      iter->second = newTargs;
-   }
-   cerr << "Replaced target" << endl;
-   cerr << format(); 
-   return true;
-}
-
-
-void RelocBlock::replaceInEdge(ParseAPI::EdgeTypeEnum type,
-                   RelocBlock *oldSource,
-                   TargetInt *newSource) {
-   std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator ie_iter = inEdges_.find(type);
-   if (ie_iter == inEdges_.end()) return;
-
-   // Fix up in-edges as necessary
-   for (Targets::iterator iter = ie_iter->second.begin();
-        iter != ie_iter->second.end(); ++iter) {
-      // If we're pointing to a RelocBlock, fix its in-edge
-      if ((*iter)->type() == TargetInt::RelocBlockTarget) {
-         Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter);
-         if (t->t() == oldSource) {
-            // Got it!
-            ie_iter->second.erase(iter);
-            ie_iter->second.push_back(newSource);
-            return;
-         }
-      }
-   }
-   return;
-}
-
-void RelocBlock::replaceOutEdge(ParseAPI::EdgeTypeEnum type,
-                           RelocBlock *oldTarget,
-                           TargetInt *newTarget) {
-   std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator oe_iter = outEdges_.find(type);
-   if (oe_iter == outEdges_.end()) return;
-
-   // Fix up in-edges as necessary
-   for (Targets::iterator iter = oe_iter->second.begin();
-        iter != oe_iter->second.end(); ++iter) {
-      // If we're pointing to a RelocBlock, fix its in-edge
-      if ((*iter)->type() == TargetInt::RelocBlockTarget) {
-         Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter);
-         if (t->t() == oldTarget) {
-            // Got it!
-            oe_iter->second.erase(iter);
-            oe_iter->second.push_back(newTarget);
-            return;
-         }
-      }
-   }
-   return;
-}
-
-
-void RelocBlock::setAsInstrumentationRelocBlock() {
-   origRelocBlock_ = false;
-}
-
-RelocBlock *RelocBlock::split(WidgetList::iterator where) {
-   // Create a new trace and move where and everything
-   // after it to the new trace. 
-   // Don't use block creation because it pulls in
-   // all the Widgets in the block...
-   RelocBlock *newRelocBlock = new RelocBlock(block(), func());
-
-   TargetInt *newTarget = new Target<RelocBlock *>(newRelocBlock.get());
-
-   // This isn't necessarily bad, it just raises questions
-   // I don't want to answer right now. Forex, do we move
-   // the CFWidget or leave a trace with no CFWidget?
-   assert(where != elements_.end());
-
-   // Tell all our targets they have a replacement source
-   for (std::map<ParseAPI::EdgeTypeEnum, Targets>::iterator iter = outEdges_.begin();
-        iter != outEdges_.end(); ++iter) {
-      for (Targets::iterator iter2 = iter->second.begin(); 
-           iter2 != iter->second.end(); ++iter2) {
-         if ((*iter2)->type() == TargetInt::RelocBlockTarget) {
-            Target<RelocBlock *> *t = static_cast<Target<RelocBlock *> *>(*iter2);
-            t->t()->replaceInEdge(iter->first, this, newTarget);
-         }
-      }
-   }
-
-   // Move all our targets to the new block
-   newRelocBlock->outEdges_ = outEdges_;
-   outEdges_.clear();
-
-   // And drop in a fallthrough
-   outEdges_[ParseAPI::FALLTHROUGH].push_back(newTarget);
-   newRelocBlock->inEdges_[ParseAPI::FALLTHROUGH].push_back(newTarget);
-
-   unsigned count = elements_.size();
-   {
-      relocation_cerr << "Starting with " << count << " elements..." << endl;
-      relocation_cerr << "\t And the new trace has " << newRelocBlock->elements_.size() << endl;
-      for (WidgetList::iterator d = elements_.begin(); d != elements_.end(); ++d) {
-         relocation_cerr << "\t" << (*d)->format() << endl;
-         if (*d == *where) relocation_cerr << "\t\t Split point" << endl;
-      }
-   }
-   // Now, move over the Widgets that we want to. 
-   newRelocBlock->elements_.splice(newRelocBlock->elements_.begin(),
-                              elements_, where, elements_.end());
-   {
-      relocation_cerr << "Post splice, we have " << elements_.size() << endl;
-      for (WidgetList::iterator d = elements_.begin(); d != elements_.end(); ++d) {
-         relocation_cerr << "\t" << (*d)->format() << endl;
-      }
-      relocation_cerr << "And the new trace has " << newRelocBlock->elements_.size() << endl;
-      for (WidgetList::iterator d = newRelocBlock->elements_.begin(); d != newRelocBlock->elements_.end(); ++d) {
-         relocation_cerr << "\t" << (*d)->format() << endl;
-      }
-   }
-
-   assert((elements_.size() + newRelocBlock->elements_.size()) == count);
-
-
-   // Fix up CFWidgets; move the one we have to newRelocBlock and create a
-   // new one
-   // We need to do this post-assert (above) as it might create a new atom
-   newRelocBlock->cfWidget_ = cfWidget_;
-   
-   createCFWidget();
-
-   return newRelocBlock;
-}
-
-#endif
-
 bool RelocBlock::finalizeCF() {
    if (!cfWidget_) {
       cerr << "Warning: trace has no CFWidget!" << endl;
       cerr << format() << endl;
       assert(0);
+   }
+   bool debug = false;
+   if (origAddr() == 0x68e750) {
+      debug = true;
+      cerr << "Debugging finalizeCF for last snippet block" << endl;
    }
 
    // We've had people munging our out-edges; now
@@ -772,6 +545,9 @@ bool RelocBlock::finalizeCF() {
       else {
          assert((*iter)->type == ParseAPI::INDIRECT);
          index = (*iter)->trg->origAddr();
+      }
+      if (debug) {
+         cerr << "Adding destination /w/ index " << index << " and target " << hex << (*iter)->trg->origAddr() << dec << endl;
       }
       cfWidget_->addDestination(index, (*iter)->trg);
       (*iter)->trg->setNecessary(isNecessary((*iter)->trg, (*iter)->type));
@@ -806,4 +582,9 @@ bool RelocBlock::isNecessary(TargetInt *target,
    return false;
 }
 
+void RelocBlock::setCF(CFWidgetPtr cf) {
+   elements_.pop_back();
+   elements_.push_back(cf);
+   cfWidget_ = cf;
+}
 

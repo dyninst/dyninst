@@ -101,7 +101,7 @@ class emitElf64{
  
     //text & data segment ends
     Elf64_Off dataSegEnd, textSegEnd;
-    Elf64_Off dynSegOff, dynSegAddr;
+	 Elf64_Off dynSegOff, dynSegAddr, phdrSegOff, phdrSegAddr;
     unsigned dynSegSize;
 
     //Section Names for all sections
@@ -119,7 +119,8 @@ class emitElf64{
     bool BSSExpandFlag;
     bool movePHdrsFirst;
     bool createNewPhdr;
-    unsigned loadSecTotalSize;
+    bool replaceNOTE;
+    unsigned loadSecTotalSize; 
 
     bool isStripped;
     int library_adjust;
@@ -134,7 +135,8 @@ class emitElf64{
     void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
     bool createNonLoadableSections(Elf64_Shdr *& shdr);
-    bool createLoadableSections( Symtab * obj, Elf64_Shdr* &shdr, unsigned &extraAlignSize,
+    bool createLoadableSections( Symtab * obj,
+			 Elf64_Shdr* &shdr, unsigned &extraAlignSize,
                        dyn_hash_map<std::string, unsigned>& newIndexMapping, 
                        unsigned &sectionNumber);
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned long> &dynSymNameMapping);
@@ -151,10 +153,11 @@ class emitElf64{
     void createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
 
+    void addDTNeeded(std::string s);
+
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
     bool cannotRelocatePhdrs();
-
 };
 
 } // namespace SymtabAPI

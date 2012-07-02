@@ -48,12 +48,18 @@
 #include <unistd.h>
 #include <signal.h>
 
+#define ELF_X_NAMESPACE Stackwalker
+#include "common/h/Elf_X.h"
+
+using namespace Dyninst;
+using namespace Dyninst::Stackwalker;
+
+#include "common/src/Elf_X.C"
+
 #include "common/h/SymLite-elf.h"
 #include "symtabAPI/h/SymtabReader.h"
 #include "linuxbsd-swk.h"
 
-using namespace Dyninst;
-using namespace Dyninst::Stackwalker;
 
 extern int P_gettid();
 
@@ -78,7 +84,7 @@ bool getDwarfDebug(std::string s, Dwarf_Debug *d)
    SymtabAPI::SymtabReader *symtabReader = dynamic_cast<SymtabAPI::SymtabReader *>(reader);
    if (symelf)
    {
-     Elf_X *elfx = symelf->getElfHandle();
+      Elf_X *elfx = (Elf_X *) symelf->getElfHandle();
      Elf *elf = elfx->e_elfp();
      int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, d, NULL);
      if (status != DW_DLV_OK)

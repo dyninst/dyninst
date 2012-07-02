@@ -39,7 +39,7 @@
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
 #include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 #include "dataflowAPI/h/SymEval.h" // Variable class
-#include "dynutil/h/AST.h"
+#include "dynutil/h/DynAST.h"
 #include "parseAPI/h/CFG.h"
 
 

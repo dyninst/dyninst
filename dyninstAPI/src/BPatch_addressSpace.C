@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -34,10 +34,8 @@
 #include "binaryEdit.h"
 #include "inst.h"
 #include "instP.h"
-#include "instPoint.h"
-#include "function.h" // func_instance
+#include "function.h" // Dyninst::PatchAPI::PatchFunction
 #include "codeRange.h"
-#include "miniTramp.h"
 #include "addressSpace.h"
 #include "dynProcess.h"
 #include "debug.h"
@@ -63,6 +61,17 @@
 #include <sstream>
 #include "Parsing.h"
 
+#include "Command.h"
+#include "Relocation/DynInstrumenter.h"
+
+#include "PatchMgr.h"
+
+using Dyninst::PatchAPI::Patcher;
+using Dyninst::PatchAPI::DynInsertSnipCommand;
+using Dyninst::PatchAPI::DynReplaceFuncCommand;
+using Dyninst::PatchAPI::DynModifyCallCommand;
+using Dyninst::PatchAPI::DynRemoveCallCommand;
+
 BPatch_addressSpace::BPatch_addressSpace() :
    image(NULL)
 {
@@ -72,11 +81,12 @@ BPatch_addressSpace::~BPatch_addressSpace()
 {}
 
 
-BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
+BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(Dyninst::PatchAPI::PatchFunction* ifunc,
                                                          BPatch_module *bpmod)
 {
+   func_instance *fi = static_cast<func_instance *>(ifunc);
    if (!bpmod)
-      bpmod = image->findOrCreateModule(ifunc->mod());
+      bpmod = image->findOrCreateModule(fi->mod());
    assert(bpmod);
    if (bpmod->func_map.count(ifunc)) {
       BPatch_function *bpf = bpmod->func_map[ifunc];
@@ -86,8 +96,8 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
    }
 
    // Find the module that contains the function
-   if (bpmod == NULL && ifunc->mod() != NULL) {
-      bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
+   if (bpmod == NULL && fi->mod() != NULL) {
+      bpmod = getImage()->findModule(fi->mod()->fileName().c_str());
    }
 
    // findModule has a tendency to make new function objects... so
@@ -99,7 +109,7 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
       return bpf;
    }
 
-   BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
+   BPatch_function *ret = new BPatch_function(this, fi, bpmod);
    assert( ret != NULL );
    assert(ret->func == ifunc);
    return ret;
@@ -109,15 +119,18 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(func_instance* ifunc,
 
 
 BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
-                                                       instPoint *ip, 
+                                                       Dyninst::PatchAPI::Point *p,
                                                        BPatch_procedureLocation pointType)
 {
+   instPoint *ip = static_cast<instPoint *>(p);
    assert(ip);
-   
-   BPatch_module *mod = image->findOrCreateModule(ip->func()->mod());
+   func_instance *fi = static_cast<func_instance *>(ip->func());
+   if (!fi) return NULL; // PatchAPI can create function-less points, but we can't represent them as BPatch_points
+
+   BPatch_module *mod = image->findOrCreateModule(fi->mod());
    assert(mod);
-   
-   if (mod->instp_map.count(ip)) 
+
+   if (mod->instp_map.count(ip))
       return mod->instp_map[ip];
 
    if (pointType == BPatch_locUnknownLocation) {
@@ -126,14 +139,14 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
       return NULL;
    }
 
-   AddressSpace *lladdrSpace = ip->func()->proc();
-   if (!bpfunc) 
-      bpfunc = findOrCreateBPFunc(ip->func(), mod);
+   AddressSpace *lladdrSpace = fi->proc();
+   if (!bpfunc)
+      bpfunc = findOrCreateBPFunc(fi, mod);
 
    assert(bpfunc->func == ip->func());
    std::pair<instPoint *, instPoint *> pointsToUse = instPoint::getInstpointPair(ip);
 
-   BPatch_point *pt = new BPatch_point(this, bpfunc, 
+   BPatch_point *pt = new BPatch_point(this, bpfunc,
                                        pointsToUse.first, pointsToUse.second,
                                        pointType, lladdrSpace);
    mod->instp_map[ip] = pt;
@@ -155,37 +168,39 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
       if (stype){
          type = BPatch_type::findOrCreateType(stype);
       }else{
-         type = BPatch::bpatch->type_Untyped;	
+         type = BPatch::bpatch->type_Untyped;
       }
    }
-   
+
    BPatch_variableExpr *var = BPatch_variableExpr::makeVariableExpr(this, v, type);
    mod->var_map[v] = var;
    return var;
 }
-                                                               
 
 
-BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, func_instance *f)
+
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
    return aS->findOrCreateBPFunc(f, NULL);
 }
 
-BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, 
-                                                   func_instance *f, 
-                                                   instPoint *ip, int type)
+BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a,
+                                                   Dyninst::PatchAPI::PatchFunction *pf,
+                                                   Dyninst::PatchAPI::Point *p, int type)
 {
+   func_instance *fi = static_cast<func_instance *>(pf);
+   instPoint *ip  = static_cast<instPoint *>(p);
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
 
-   BPatch_module *bpmod = aS->getImageInt()->findOrCreateModule(f->mod());
+   BPatch_module *bpmod = aS->getImageInt()->findOrCreateModule(fi->mod());
    assert(bpmod);
 
-   BPatch_function *func = aS->findOrCreateBPFunc(f, bpmod);
+   BPatch_function *func = aS->findOrCreateBPFunc(fi, bpmod);
    assert(func);
-   
+
    return aS->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
@@ -238,6 +253,17 @@ bool BPatchSnippetHandle::usesTrapInt() {
     return false;
 }
 
+BPatch_function * BPatchSnippetHandle::getFuncInt()
+{
+    if (!instances_.empty()) {
+       Dyninst::PatchAPI::PatchFunction *func = instances_.back()->point()->func();
+       BPatch_function *bpfunc = addSpace_->findOrCreateBPFunc(func,NULL);
+       return bpfunc;
+    }
+    return NULL;
+}
+
+
 BPatch_image * BPatch_addressSpace::getImageInt()
 {
    return image;
@@ -246,15 +272,15 @@ BPatch_image * BPatch_addressSpace::getImageInt()
 
 /*
  * BPatch_addressSpace::deleteSnippet
- * 
+ *
  * Deletes an instance of a snippet.
  *
- * handle	The handle returned by insertSnippet when the instance to
- *		deleted was created.
+ * handle       The handle returned by insertSnippet when the instance to
+ *              deleted was created.
  */
 
 bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
-{   
+{
    if (getTerminated()) return true;
 
    if (handle == NULL) {
@@ -267,38 +293,45 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      return false;
    }
 
+   mal_printf("deleting snippet handle from func at %lx, point at %lx of type %d\n",
+              (Address)handle->getFunc()->getBaseAddr(), 
+              handle->instances_.empty() ? 0 : handle->instances_[0]->point()->addr(),
+              handle->instances_.empty() ? -1 : handle->instances_[0]->point()->type());
+
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
-   if ( handle->getProcess() && handle->mtHandles_.size() > 0 && 
-       BPatch_normalMode != 
-        handle->mtHandles_[0]->instP()->func()->obj()->hybridMode())
+   instPoint *ip = static_cast<instPoint *>(handle->instances_[0]->point());
+
+   if ( handle->getProcess() && handle->instances_.size() > 0 &&
+       BPatch_normalMode !=
+        ip->func()->obj()->hybridMode())
    {
-       if (handle->mtHandles_.size() > 1) {
+       if (handle->instances_.size() > 1) {
            mal_printf("ERROR: Removing snippet that is installed in "
-	            	  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
+                          "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
      }
    }
-   
+
    // uninstrument and remove snippet handle from point datastructures
-   for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+   for (unsigned int i=0; i < handle->instances_.size(); i++)
      {
-       instPoint *iPoint = handle->mtHandles_[i]->instP();
-       handle->mtHandles_[i]->uninstrument();
-       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint, 
-                                                  BPatch_point::convertInstPointType_t(iPoint->type()));
-       assert(bPoint);
-       bPoint->removeSnippet(handle);
+        uninstrument(handle->instances_[i]);
+        Dyninst::PatchAPI::Point *iPoint = handle->instances_[i]->point();
+        BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint,
+                                                   BPatch_point::convertInstPointType_t(iPoint->type()));
+        assert(bPoint);
+        bPoint->removeSnippet(handle);
      }
-   
-   //delete handle; //KEVINTODO: fix this, add instrumentation-removal callback
-   handle->mtHandles_.clear();
-   
+
+   handle->instances_.clear();
+
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
      finalizeInsertionSet(false, &tmp);
    }
 
+   //delete handle;
    return true;
 }
 
@@ -312,10 +345,10 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
  */
 
 bool BPatch_addressSpace::replaceCodeInt(BPatch_point * /*point*/,
-      BPatch_snippet * /*snippet*/) 
+                                         BPatch_snippet * /*snippet*/)
 {
    // Need to reevaluate how this code works. I don't think it should be
-   // point-based, though. 
+   // point-based, though.
 
    assert(0);
    return false;
@@ -326,9 +359,9 @@ bool BPatch_addressSpace::replaceCodeInt(BPatch_point * /*point*/,
  *
  * Replace a function call with a call to a different function.  Returns true
  * upon success, false upon failure.
- * 
- * point	The call site that is to be changed.
- * newFunc	The function that the call site will now call.
+ *
+ * point        The call site that is to be changed.
+ * newFunc      The function that the call site will now call.
  */
 bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
       BPatch_function &newFunc)
@@ -342,9 +375,12 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-   point.getAS()->modifyCall(point.point->block(), 
-                             newFunc.lowlevel_func(),
-                             point.point->func());
+  /* PatchAPI stuffs */
+   AddressSpace* addr_space = point.getAS();
+   DynModifyCallCommand* rep_call = DynModifyCallCommand::create(addr_space,
+      point.point->block(), newFunc.lowlevel_func(), point.point->func());
+  addr_space->patcher()->add(rep_call);
+  /* End of PatchAPI */
 
    if (pendingInsertions == NULL) {
      // Trigger it now
@@ -359,25 +395,30 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
  *
  * Replace a function call with a NOOP.  Returns true upon success, false upon
  * failure.
- * 
- * point	The call site that is to be NOOPed out.
+ *
+ * point        The call site that is to be NOOPed out.
  */
 bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 {
    // Can't make changes to code when mutations are not active.
    if (!getMutationsActive())
-      return false;   
+      return false;
 
    assert(point.point);
 
-   point.getAS()->removeCall(point.point->block(), point.point->func());
+  /* PatchAPI stuffs */
+   AddressSpace* addr_space = point.getAS();
+   DynRemoveCallCommand* remove_call = DynRemoveCallCommand::create(addr_space,
+      point.point->block(), point.point->func());
+  addr_space->patcher()->add(remove_call);
+  /* End of PatchAPI */
 
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
      finalizeInsertionSet(false, &tmp);
    }
-   
+
    return true;
 }
 
@@ -387,8 +428,8 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
  *
  * Replace all calls to function OLDFUNC with calls to NEWFUNC.
  * Returns true upon success, false upon failure.
- * 
- * oldFunc	The function to replace
+ *
+ * oldFunc      The function to replace
  * newFunc      The replacement function
  */
 bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
@@ -397,14 +438,19 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
   assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
   if (!getMutationsActive())
     return false;
-  
+
   // Self replacement is a nop
   // We should just test direct equivalence here...
   if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
     return true;
   }
-  
-  oldFunc.lowlevel_func()->proc()->replaceFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func());
+
+  /* PatchAPI stuffs */
+  AddressSpace* addr_space = oldFunc.lowlevel_func()->proc();
+  DynReplaceFuncCommand* rep_func = DynReplaceFuncCommand::create(addr_space,
+     oldFunc.lowlevel_func(), newFunc.lowlevel_func());
+  addr_space->patcher()->add(rep_func);
+  /* End of PatchAPI */
 
   if (pendingInsertions == NULL) {
     // Trigger it now
@@ -414,21 +460,64 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
   return true;
 }
 
-bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &oldFunc,
-                                          BPatch_function &newFunc)
+/*
+ * BPatch_addressSpace::revertReplaceFunction
+ *
+ * Undoes a replaceFunction operation
+ */
+bool BPatch_addressSpace::revertReplaceFunctionInt(BPatch_function &oldFunc)
 {
-   assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
+  assert(oldFunc.lowlevel_func());
+  if (!getMutationsActive())
+    return false;
+
+  func_instance *func = oldFunc.lowlevel_func();
+
+  func->proc()->revertReplacedFunction(func);
+
+  if (pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    finalizeInsertionSet(false, &tmp);
+  }
+  return true;
+}
+
+bool BPatch_addressSpace::wrapFunctionInt(BPatch_function *original,
+                                          BPatch_function *wrapper,
+                                          Dyninst::SymtabAPI::Symbol *clone)
+{
+   assert(original->lowlevel_func() && wrapper->lowlevel_func());
    if (!getMutationsActive())
       return false;
-   
+
    // Self replacement is a nop
    // We should just test direct equivalence here...
-   if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
+   if (original->lowlevel_func() == wrapper->lowlevel_func()) {
       return true;
    }
-   
-   if (!oldFunc.lowlevel_func()->proc()->wrapFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func()))
+
+   if (!original->lowlevel_func()->proc()->wrapFunction(original->lowlevel_func(), 
+                                                      wrapper->lowlevel_func(),
+                                                      clone))
       return false;
+
+   if (pendingInsertions == NULL) {
+      // Trigger it now
+      bool tmp;
+      finalizeInsertionSet(false, &tmp);
+   }
+   return true;
+}
+
+bool BPatch_addressSpace::revertWrapFunctionInt(BPatch_function *original)
+{
+   assert(original->lowlevel_func());
+
+   func_instance *func = original->lowlevel_func();
+   assert(func);
+
+   func->proc()->revertWrapFunction(func);
    
    if (pendingInsertions == NULL) {
       // Trigger it now
@@ -439,9 +528,9 @@ bool BPatch_addressSpace::wrapFunctionInt(BPatch_function &oldFunc,
 }
 
 
-bool BPatch_addressSpace::getAddressRangesInt( const char * fileName, 
-      unsigned int lineNo, 
-      std::vector< std::pair< unsigned long, unsigned long > > & ranges ) 
+bool BPatch_addressSpace::getAddressRangesInt( const char * fileName,
+      unsigned int lineNo,
+      std::vector< std::pair< unsigned long, unsigned long > > & ranges )
 {
    unsigned int originalSize = ranges.size();
    BPatch_Vector< BPatch_module * > * modules = image->getModules();
@@ -457,8 +546,8 @@ bool BPatch_addressSpace::getAddressRangesInt( const char * fileName,
    return false;
 } /* end getAddressRangesInt() */
 
-bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr, 
-      BPatch_Vector< BPatch_statement > & lines ) 
+bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr,
+      BPatch_Vector< BPatch_statement > & lines )
 {
    return image->getSourceLinesInt(addr, lines);
 } /* end getLineAndFile() */
@@ -469,10 +558,10 @@ bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr,
  *
  * Allocate memory in the thread's address space.
  *
- * n	The number of bytes to allocate.
+ * n    The number of bytes to allocate.
  *
  * Returns:
- * 	A pointer to a BPatch_variableExpr representing the memory.
+ *      A pointer to a BPatch_variableExpr representing the memory.
  *
  * If otherwise unspecified when binary rewriting, then the allocation
  * happens in the original object.
@@ -504,10 +593,10 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n, std::string name)
  * Allocate memory in the thread's address space for a variable of the given
  * type.
  *
- * type		The type of variable for which to allocate space.
+ * type         The type of variable for which to allocate space.
  *
  * Returns:
- * 	A pointer to a BPatch_variableExpr representing the memory.
+ *      A pointer to a BPatch_variableExpr representing the memory.
  *
  * XXX Should return NULL on failure, but the function which it calls,
  *     inferiorMalloc, calls exit rather than returning an error, so this
@@ -537,7 +626,7 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type, 
  *
  * Free memory that was allocated with BPatch_process::malloc.
  *
- * ptr		A BPatch_variableExpr representing the memory to free.
+ * ptr          A BPatch_variableExpr representing the memory to free.
  */
 
 bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
@@ -545,9 +634,9 @@ bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
   if(ptr.intvar)
   {
     // kill the symbols
-    
+
   }
-  
+
    ptr.getAS()->inferiorFree((Address)ptr.getBaseAddr());
    return true;
 }
@@ -571,10 +660,10 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
        return varExpr;
     }
 
-    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, 
+    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this,
                                                  as[0],
                                                  name,
-                                                 (void *)addr, 
+                                                 (void *)addr,
                                                  type);
 
     return varExpr;
@@ -586,7 +675,7 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
  * Returns the function that contains the specified address, or NULL if the
  * address is not within a function.
  *
- * addr		The address to use for the lookup.
+ * addr         The address to use for the lookup.
  */
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
@@ -596,7 +685,7 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
    assert(as.size());
    std::set<func_instance *> funcs;
    if (!as[0]->findFuncsByAddr((Address) addr, funcs)) {
-      // if it's a mapped_object that has yet to be analyzed, 
+      // if it's a mapped_object that has yet to be analyzed,
       // trigger analysis and re-invoke this function
        mapped_object *obj = as[0]->findObject((Address) addr);
        if (obj &&
@@ -620,7 +709,7 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 
 /*
  *  BPatch_addressSpace::findFunctionByEntry
- *  
+ *
  *  Returns the function starting at the given address, or NULL if the
  *  address is not within a function.
  *
@@ -665,10 +754,10 @@ bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
  * BPatch_addressSpace::findFunctionsByAddr
  *
  * Returns the functions that contain the specified address, or NULL if the
- * address is not within a function. (there could be multiple functions 
+ * address is not within a function. (there could be multiple functions
  * because of the possibility of shared code)
  *
- * addr		The address to use for the lookup.
+ * addr         The address to use for the lookup.
  * returns false if there were no functions that matched the address
  */
 bool BPatch_addressSpace::findFunctionsByAddrInt
@@ -684,8 +773,8 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
         return false;
     }
     // convert to BPatch_functions
-    for (std::set<func_instance*>::iterator fiter=intfuncs.begin(); 
-         fiter != intfuncs.end(); fiter++) 
+    for (std::set<func_instance *>::iterator fiter=intfuncs.begin();
+         fiter != intfuncs.end(); fiter++)
     {
         funcs.push_back(findOrCreateBPFunc(*fiter, NULL));
     }
@@ -699,7 +788,7 @@ bool BPatch_addressSpace::findFunctionsByAddrInt
  * Returns the module that contains the specified address, or NULL if the
  * address is not within a module.  Does NOT trigger parsing
  *
- * addr		The address to use for the lookup.
+ * addr         The address to use for the lookup.
  */
 BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
 {
@@ -708,7 +797,7 @@ BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
    assert(as.size());
 
    mapped_object *obj = as[0]->findObject(addr);
-   if ( ! obj ) 
+   if ( ! obj )
        return NULL;
 
    const pdvector<mapped_module*> mods = obj->getModules();
@@ -726,12 +815,12 @@ BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
  * returns a handle to the created instance of the snippet, which can be used
  * to delete it.  Otherwise returns NULL.
  *
- * expr		The snippet to insert.
- * point	The point at which to insert it.
+ * expr         The snippet to insert.
+ * point        The point at which to insert it.
  */
 
-BPatchSnippetHandle *BPatch_addressSpace::insertSnippetInt(const BPatch_snippet &expr, 
-      BPatch_point &point, 
+BPatchSnippetHandle *BPatch_addressSpace::insertSnippetInt(const BPatch_snippet &expr,
+      BPatch_point &point,
       BPatch_snippetOrder order)
 {
    BPatch_callWhen when;
@@ -750,8 +839,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetInt(const BPatch_snippet 
  * returns a handle to the created instance of the snippet, which can be used
  * to delete it.  Otherwise returns NULL.
  *
- * expr		The snippet to insert.
- * point	The point at which to insert it.
+ * expr         The snippet to insert.
+ * point        The point at which to insert it.
  */
 
 // This handles conversion without requiring inst.h in a header file...
@@ -775,7 +864,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet
          order);
 }
 
-extern int dyn_debug_ast;   
+extern int dyn_debug_ast;
 
 /*
  * BPatch_addressSpace::insertSnippet
@@ -784,15 +873,15 @@ extern int dyn_debug_ast;
  * success, Returns a handle to the created instances of the snippet, which
  * can be used to delete them (as a unit).  Otherwise returns NULL.
  *
- * expr		The snippet to insert.
- * points	The list of points at which to insert it.
+ * expr         The snippet to insert.
+ * points       The list of points at which to insert it.
  */
 
 // A lot duplicated from the single-point version. This is unfortunate.
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
-								    const BPatch_Vector<BPatch_point *> &points,
-								    BPatch_callWhen when,
-								    BPatch_snippetOrder order)
+                                                                    const BPatch_Vector<BPatch_point *> &points,
+                                                                    BPatch_callWhen when,
+                                                                    BPatch_snippetOrder order)
 {
   BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
@@ -813,7 +902,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
 	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
 		FILE__, __LINE__);
-         expr.ast_wrapper->debugPrint();
+        //expr.ast_wrapper->debugPrint();
          return NULL;
       }
    }
@@ -834,30 +923,37 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (dynamic_cast<BPatch_addressSpace *>(bppoint->addSpace) != this) {
          fprintf(stderr, "Error: attempt to use point specific to a different process\n");
          continue;
-      }        
+      }
 
       callWhen ipWhen;
       callOrder ipOrder;
 
       if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
-	fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+        fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
          return retHandle;
       }
 
-      miniTramp *mini = bppoint->getPoint(when)->insert(ipOrder, expr.ast_wrapper, BPatch::bpatch->isTrampRecursive());
-
-      if (mini) {
-	retHandle->mtHandles_.push_back(mini);
-	bppoint->recordSnippet(when, order, retHandle);
+      /* PatchAPI stuffs */
+      instPoint *ipoint = static_cast<instPoint *>(bppoint->getPoint(when));
+      Dyninst::PatchAPI::InstancePtr instance = (ipOrder == orderFirstAtPoint) ?
+         ipoint->pushFront(expr.ast_wrapper) :
+         ipoint->pushBack(expr.ast_wrapper);
+      /* End of PatchAPI stuffs */
+      if (instance) {
+         if (BPatch::bpatch->isTrampRecursive()) {
+            instance->disableRecursiveGuard();
+         }
+         retHandle->addInstance(instance);
+         bppoint->recordSnippet(when, order, retHandle);
       }
    }
-
    if (pendingInsertions == NULL) {
-     // Trigger it now
+     // There's no insertion set, instrument now
      bool tmp;
-     finalizeInsertionSet(false, &tmp); //KEVINTODO: do we really want this?
+     finalizeInsertionSet(false, &tmp);
    }   
+
    return retHandle;
 }
 
@@ -869,8 +965,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
  * success, Returns a handle to the created instances of the snippet, which
  * can be used to delete them (as a unit).  Otherwise returns NULL.
  *
- * expr		The snippet to insert.
- * points	The list of points at which to insert it.
+ * expr         The snippet to insert.
+ * points       The list of points at which to insert it.
  */
 
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
@@ -912,9 +1008,9 @@ bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
 
    getAS(as);
    assert(as.size());
-          
+
    registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
-   
+
    for (unsigned i = 0; i < rs->realRegs().size(); i++) {
        // Let's do just GPRs for now
        registerSlot *regslot = rs->realRegs()[i];
@@ -948,22 +1044,22 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
 }
 #else
 bool BPatch_addressSpace::createRegister_NPInt(std::string,
-                                               BPatch_register &) 
+                                               BPatch_register &)
 {
    return false;
 }
 #endif
 
-bool BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
+BPatch_module *BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
 {
-	return false;
+        return NULL;
 }
 
 void BPatch_addressSpace::allowTrapsInt(bool allowtraps)
 {
    std::vector<AddressSpace *> as;
    getAS(as);
-   
+
    for (std::vector<AddressSpace *>::iterator i = as.begin(); i != as.end(); i++)
    {
       (*i)->setUseTraps(allowtraps);
@@ -981,15 +1077,15 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(
       return NULL;
    }
    if (!type) {
-      //Required for size information.  
+      //Required for size information.
       return NULL;
    }
    AddressSpace *ll_addressSpace = NULL;
-   
+
    std::vector<AddressSpace *> as;
    getAS(as);
    if (binEdit) {
-      std::vector<AddressSpace *>::iterator as_i;      
+      std::vector<AddressSpace *>::iterator as_i;
       for (as_i = as.begin(); as_i != as.end(); as_i++)
       {
          BinaryEdit *b = dynamic_cast<BinaryEdit *>(*as_i);
@@ -1015,8 +1111,19 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(
       namestream << "dyninst_var_" << std::hex << at_addr;
       var_name = namestream.str();
    }
-   
+
    return BPatch_variableExpr::makeVariableExpr(this, ll_addressSpace, var_name,
                                                 (void *) at_addr, type);
 }
-                                    
+
+Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *a) {
+   const BPatch_binaryEdit *edit = dynamic_cast<const BPatch_binaryEdit *>(a);
+   if (edit) {
+      return edit->lowlevel_edit()->mgr();
+   }
+   else {
+      const BPatch_process *proc = dynamic_cast<const BPatch_process *>(a);
+      return proc->lowlevel_process()->mgr();
+   }
+}
+

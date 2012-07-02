@@ -304,36 +304,64 @@ void insnCodeGen::generateAddReg (codeGen & gen, int op, Register rt,
   insnCodeGen::generate (gen,insn);
 }
 
-void insnCodeGen::generateLoadReg (codeGen & gen, int op, Register rt, 
-				   Register ra, Register rb)
+void insnCodeGen::generateLoadReg(codeGen &gen, Register rt,
+                                  Register ra, Register rb)
 {
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, LXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, LXxop);
+    XFORM_RC_SET(insn, 0);
 
-  instruction insn;
-  insn.clear();
-  XOFORM_OP_SET(insn, op);
-  XOFORM_RT_SET(insn, rt);
-  XOFORM_RA_SET(insn, ra);
-  XOFORM_RB_SET(insn, rb);
-  XOFORM_XO_SET(insn, 23);
-  XOFORM_RC_SET(insn, 0);
-
-  insnCodeGen::generate (gen,insn);
+    insnCodeGen::generate (gen,insn);
 }
 
-void insnCodeGen::generateStoreReg (codeGen & gen, int op, Register rt,
+void insnCodeGen::generateStoreReg(codeGen &gen, Register rt,
                                    Register ra, Register rb)
 {
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, STXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, STXxop);
+    XFORM_RC_SET(insn, 0);
 
-  instruction insn;
-  insn.clear();
-  XOFORM_OP_SET(insn, op);
-  XOFORM_RT_SET(insn, rt);
-  XOFORM_RA_SET(insn, ra);
-  XOFORM_RB_SET(insn, rb);
-  XOFORM_XO_SET(insn, 151);
-  XOFORM_RC_SET(insn, 0);
+    insnCodeGen::generate (gen,insn);
+}
 
-  insnCodeGen::generate (gen,insn);
+void insnCodeGen::generateLoadReg64(codeGen &gen, Register rt,
+                                    Register ra, Register rb)
+{
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, LXop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, LDXxop);
+    XFORM_RC_SET(insn, 0);
+
+    insnCodeGen::generate(gen, insn);
+}
+
+void insnCodeGen::generateStoreReg64(codeGen &gen, Register rs,
+                                     Register ra, Register rb)
+{
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, STXop);
+    XFORM_RT_SET(insn, rs);
+    XFORM_RA_SET(insn, ra);
+    XFORM_RB_SET(insn, rb);
+    XFORM_XO_SET(insn, STXxop);
+    XFORM_RC_SET(insn, 0);
+
+    insnCodeGen::generate(gen, insn);
 }
 
 void insnCodeGen::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
@@ -539,8 +567,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
    // Writing a full 64 bits takes 5 instructions in the worst case.
    // Let's see if we use sign-extention to cheat.
    if (MIN_IMM16 <= value && value <= MAX_IMM16) {
-      insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));
-      
+      insnCodeGen::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));      
    } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
       insnCodeGen::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
       insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
@@ -555,6 +582,7 @@ void insnCodeGen::loadImmIntoReg(codeGen &gen, Register rt, long value)
          insnCodeGen::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
       
    } else {
+
       insnCodeGen::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
       if (TOP_LO(value))
          insnCodeGen::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
@@ -775,10 +803,14 @@ bool insnCodeGen::modifyJump(Address target,
 bool insnCodeGen::modifyJcc(Address target,
 			    NS_power::instruction &insn,
 			    codeGen &gen) {
+  // We can be handed a conditional call or return instruction here. In these cases,
+  // "fake" a conditional branch with the same condition code and then pass that
+  // through. 
+
   long disp = target - gen.currAddr();
 
   if (ABS(disp) >= MAX_CBRANCH) {
-    if ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond) {
+    if ((BFORM_OP(insn) == BCop) && ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond)) {
       // Make sure to use the (to, from) version of generateBranch()
       // in case the branch is too far, and trap-based instrumentation
       // is needed.
@@ -807,23 +839,30 @@ bool insnCodeGen::modifyJcc(Address target,
       // Get the old flags (includes the predict bit)
       int flags = BFORM_BO(insn);
       
-      if (BFORM_BD(insn) < 0) {
+      if ((BFORM_OP(insn) == BCop) && (BFORM_BD(insn) < 0)) {
 	// Flip the bit.
 	// xor operator
 	flags ^= BPREDICTbit;
       }
       
       instruction newCondBranch(insn);
-      BFORM_LK_SET(newCondBranch, 0); // This one is non-linking for sure
       
+      // Reset the opcode to 16 (BCop, branch conditional)
+      BFORM_OP_SET(newCondBranch, BCop);
+
       // Set up the flags
       BFORM_BO_SET(newCondBranch, flags);
-      
+
+      // And condition register
+      BFORM_BI_SET(newCondBranch, BFORM_BI(insn));
+
       // Change the branch to move one instruction ahead
       BFORM_BD_SET(newCondBranch, 2);
-      
+
+      BFORM_LK_SET(newCondBranch, 0); // This one is non-linking for sure      
+
       generate(gen,newCondBranch);
-      
+
       // We don't "relocate" the fallthrough target of a conditional
       // branch; instead relying on a third party to make sure
       // we go back to where we want to. So in this case we 
@@ -847,7 +886,13 @@ bool insnCodeGen::modifyJcc(Address target,
     }
   } else {
     instruction newInsn(insn);
+
+    // Reset the opcode to 16 (BCop, branch conditional)
+    BFORM_OP_SET(newInsn, BCop);
+
     BFORM_BD_SET(newInsn, disp >> 2);
+    BFORM_AA_SET(newInsn, 0);
+    
     generate(gen,newInsn);
     return true;
   }

@@ -31,7 +31,7 @@
 
 #include "CFG.h"
 #include "Springboard.h"
-#include "patchapi_debug.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/codegen.h"
 
 #include "dyninstAPI/src/addressSpace.h"
@@ -39,6 +39,8 @@
 
 using namespace Dyninst;
 using namespace Relocation;
+
+extern int dyn_debug_trap;
 
 const int SpringboardBuilder::Allocated(0);
 const int SpringboardBuilder::UnallocatedStart(1);
@@ -64,6 +66,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator b
   int id = UnallocatedStart;
   for (; begin != end; ++begin) {
      func_instance *func = *begin;
+     //if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
      if (!ret->addBlocks(func->blocks().begin(), func->blocks().end(), func, id++)) {
         return Ptr();
      }
@@ -112,12 +115,6 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   // Currently we use a greedy algorithm rather than some sort of scheduling thing.
   // It's a heck of a lot easier that way. 
 
-   if (patch_debug_springboard) {
-      cerr << "SPRINGBOARD GENERATION" << endl;
-      debugRanges();
-   }
-
-
    if (!generateInt(springboards, input, Required))
       return false;
 
@@ -138,15 +135,29 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   // TODO: map these addresses to relocated blocks as well so we 
   // can do our thang.
   for (; begin != end; ++begin) {
-    block_instance *bbl = (*begin);
+     block_instance *bbl = SCAST_BI(*begin);
+
+     if (bbl->wasUserAdded()) continue;
+     // Don't try to springboard a user-added block...
 
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
-    Address lastRangeStart = bbl->start();
-    for (Address lookup = bbl->start(); lookup < bbl->end(); ) 
+    Address start = bbl->start();
+    Address end = bbl->end();
+
+#if 0
+    // HACK for small, aligned functions
+    if ((f->blocks().size() == 1) &&
+        (start % 16 == 0) &&
+        ((end - start) < 16)) {
+       end = start + 16;
+    }
+#endif
+
+    for (Address lookup = start; lookup < end; ) 
     {/* there may be more than one range that overlaps with bbl, 
-      * so we update lookup and lastRangeStart to after each conflict
-      * to match UB, and loop until lookup >= bbl->end()
+      * so we update lookup and start to after each conflict
+      * to match UB, and loop until lookup >= end
       */
        if (validRanges_.find(lookup, LB, UB, id)) 
        {
@@ -157,51 +168,41 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
            * [LB UB)                     already in validRanges_, remove if it gets split
            * [LB bbl->start())
            * [bbl->start() LB)
-           * [lastRangeStart LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
+           * [start LB)         when bbl overlaps multiple ranges and LB is for an N>1 range
            * [bbl->start() UB)           possible if LB < bbl->start()
-           * [lastRangeStart UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
-           * [LB bbl->end())             if last existing range includes bbl->end()
-           * [bbl->end() UB)             if last existing range includes bbl->end()
-           * [UB bbl->end())             don't add until after loop exits as there might be more overlapping ranges
+           * [start UB)         possible if LB < bbl->start() and bbl overlaps multiple ranges
+           * [LB end)             if last existing range includes end
+           * [end UB)             if last existing range includes end
+           * [UB end)             don't add until after loop exits as there might be more overlapping ranges
            */
-          if (LB < bbl->start()) { 
+          if (LB < start) { 
              validRanges_.remove(LB); // replace [LB UB)...
-             validRanges_.insert(LB, bbl->start(), funcID); // with  [LB bbl->start())
-             if (UB <= bbl->end()) { // [bbl->start() UB)
-                validRanges_.insert(bbl->start(), UB, funcID);
-             } else { // [bbl->start() bbl->end()) or [lastRangeStart bbl->end()) and [bbl->end() UB) 
-                validRanges_.insert(bbl->start(), bbl->end(), funcID);
-                validRanges_.insert(bbl->end(), UB, funcID);
+             validRanges_.insert(LB, start, funcID); // with  [LB start)
+             if (UB <= end) { // [start UB)
+                validRanges_.insert(start, UB, funcID);
+             } else { // [start end) or [start end) and [end UB) 
+                validRanges_.insert(start, end, funcID);
+                validRanges_.insert(end, UB, funcID);
              }
           } 
           else {
-             if (lastRangeStart < LB) { // add [bbl->start() LB) or [lastRangeStart LB)
-                validRanges_.insert(lastRangeStart, LB, funcID);
+             if (start < LB) { // add [start LB) or [start LB)
+                validRanges_.insert(start, LB, funcID);
              }
-             if (UB > bbl->end()) { // [LB bbl->end()) and [bbl->end() UB) 
-                validRanges_.insert(LB, bbl->end(), funcID);
-                validRanges_.insert(bbl->end(), UB, funcID);
+             if (UB > end) { // [LB end) and [end UB) 
+                validRanges_.insert(LB, end, funcID);
+                validRanges_.insert(end, UB, funcID);
              } // otherwise [LB UB) is already in validRanges_
           }
           lookup = UB;
-          lastRangeStart = UB;
+          start = UB;
        }
        else {
           lookup++;
        }
     }
-    if (lastRangeStart < bbl->end()) { // [bbl->start() bbl->end()) or [UB bbl->end())
-       if (lastRangeStart == bbl->start() &&
-           (bbl->end() - bbl->start()) < 5 &&
-           f &&
-           *begin == f->entryBlock() &&
-           f->blocks().size() == 1) {
-          //cerr << "Overriding small function of size " << bbl->end() - bbl->start() << " to 5 bytes" << endl;
-          validRanges_.insert(bbl->start(), bbl->start() + 5, funcID);
-       }
-       else {
-          validRanges_.insert(lastRangeStart, bbl->end(), funcID);
-       }
+    if (start < end) { // [start end) or [UB end)
+        validRanges_.insert(start, end, funcID);
     }
   }
   return true;
@@ -212,8 +213,10 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 					const SpringboardReq &r,
                                         SpringboardMap &input) {
    codeGen gen;
-   
+
    bool usedTrap = false;
+   unsigned size;
+   // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
    if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
@@ -221,22 +224,26 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
+      if (conflict(r.from, r.from + 1, r.fromRelocatedCode)) return Failed;
+
       generateTrap(r.from, r.destinations.begin()->second, gen);
-	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
-	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
-         // Someone could already be there; omit the trap. 
-         return Failed;
-      }
+      size = 1;
    }
 
    if (r.includeRelocatedCopies) {
       createRelocSpringboards(r, usedTrap, input);
    }
+   
+   if (!usedTrap) {
+      registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
+      springboards.push_back(gen);
+   }
+   else {
+      // Assume trap has size 1
+      registerBranch(r.from, r.from + 1, r.destinations, r.fromRelocatedCode);
+   }
 
-  registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
-  springboards.push_back(gen);
-
-  return Succeeded;
+   return Succeeded;
 }
 
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
@@ -354,8 +361,12 @@ void SpringboardBuilder::registerBranch
       validRanges_.remove(lb);
 
       if (idToUse == -1) idToUse = state;
-        else assert(idToUse = state);
-
+      else {
+         if (idToUse != state) {
+            cerr << "Error: idToUse " << idToUse << " and state " << state << endl;
+         }
+         assert(idToUse == state);
+      }
       if (LB == 0) LB = lb;
       working = ub;
    }
@@ -407,29 +418,31 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
-	//cerr << "Springboard: generateTrap " << hex << from << " -> " << to << dec << endl;
-	gen.invalidate();
-  gen.allocate(4);
-  gen.setAddrSpace(addrSpace_);
-  gen.setAddr(from);
-  springboard_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
-  addrSpace_->trapMapping.addTrapMapping(from, to, true);
-  insnCodeGen::generateTrap(gen);
+   // This has to be an AddressSpace method, since we use trap instructions
+   // for the rewriter and ProcControl methods for dynamic mode.
+   addrSpace_->addTrap(from, to, gen);
 }
 
-bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq & /*req*/, bool /*useTrap*/, SpringboardMap &/*input*/) {
-#if TODO
+bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, 
+                                                 bool useTrap, SpringboardMap &input) {
    assert(!req.fromRelocatedCode);
+
    // Just the requests for now.
-   //cerr << "\t createRelocSpringboards for " << hex << req.from << dec << endl;
+   springboard_cerr << "createRelocSpringboards for " << hex << req.from << dec << endl;
    std::list<Address> relocAddrs;
+   block_instance *bbl = req.block;
    for (SpringboardReq::Destinations::const_iterator b_iter = req.destinations.begin(); 
        b_iter != req.destinations.end(); ++b_iter) {
+      func_instance *func = b_iter->first;
+      Address addr = b_iter->second;
+      springboard_cerr << "Looking for addr " << hex << addr << " in function " << func->name() << dec << endl;
 
-      addrSpace_->getRelocAddrs(req.from, b_iter->first->func(), relocAddrs, true);
-      for (std::list<Address>::const_reverse_iterator addr = relocAddrs.rbegin(); 
-           addr != relocAddrs.rend(); ++addr) { 
-         if (*addr == b_iter->second) continue;
+      addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, true);
+      addrSpace_->getRelocAddrs(req.from, bbl, func, relocAddrs, false);
+      for (std::list<Address>::const_reverse_iterator a_iter = relocAddrs.rbegin(); 
+           a_iter != relocAddrs.rend(); ++a_iter) { 
+         //springboard_cerr << "\t Mapped address " << hex << *a_iter << dec << endl;
+         if (*a_iter == addr) continue;
          Priority newPriority;
          switch(req.priority) {
             case Suggested:
@@ -443,23 +456,22 @@ bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq & /*req*/,
                break;
          }
          bool curUseTrap = useTrap;
-         if ( !useTrap && relocTraps_.end() != relocTraps_.find(*addr)) {
+         if ( !useTrap && relocTraps_.end() != relocTraps_.find(*a_iter)) {
             springboard_cerr << "Springboard conflict for " << hex 
-                             << req.from << "[" << (*addr) 
+                             << req.from << "[" << (*a_iter) 
                              << "] our previous springboard here needed a trap, "
                              << "but due to overwrites we may (erroneously) think "
                              << "a branch can fit" << dec << endl;
             curUseTrap = true;
          }
-         
-         input.addRaw(*addr, b_iter->second, 
-                      newPriority, b_iter->first,
+         springboard_cerr << "Adding springboard from " << hex << *a_iter << " to " << addr << dec << endl;
+         input.addRaw(*a_iter, addr, 
+                      newPriority, func, bbl,
                       req.checkConflicts, 
                       false, true, curUseTrap);
          
       }
    }
-#endif         
    return true;
 }
 

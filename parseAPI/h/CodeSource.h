@@ -42,8 +42,12 @@
 
 #include "InstructionSource.h"
 
+class StatContainer;
+
 namespace Dyninst {
 namespace ParseAPI {
+
+class CFGModifier;
 
 /** A CodeSource is a very simple contract that allows a
     CodeObject to get the information it needs to pull code
@@ -75,6 +79,9 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     PARSER_EXPORT Address high() const =0;
 
     PARSER_EXPORT bool contains(Address) const;
+
+    PARSER_EXPORT virtual bool wasUserAdded() const { return false; }
+
 };
 
 /* A starting point for parsing */
@@ -89,9 +96,10 @@ struct Hint {
 };
 
 class CodeSource : public Dyninst::InstructionSource {
+   friend class CFGModifier;
  private:
     bool _regions_overlap;
-
+    
  protected:
     /*
      * Imelmentors of CodeSource can fill the following
@@ -129,6 +137,7 @@ class CodeSource : public Dyninst::InstructionSource {
      * without hints.
      */
     std::vector<Hint> _hints;
+    
 
  public:
     /* Returns true if the function at an address is known to be
@@ -158,12 +167,26 @@ class CodeSource : public Dyninst::InstructionSource {
      */
     PARSER_EXPORT virtual Address getTOC(Address) const { return _table_of_contents; }
 
+    // statistics accessor
+    PARSER_EXPORT virtual void print_stats() const { return; }
+    PARSER_EXPORT virtual bool have_stats() const { return false; }
+
+    // manage statistics
+    virtual void incrementCounter(std::string /*name*/) const { return; } 
+    virtual void addCounter(std::string /*name*/, int /*num*/) const { return; }
+    virtual void decrementCounter(std::string /*name*/) const { return; }
+    
  protected:
     CodeSource() : _regions_overlap(false),
                    _table_of_contents(0) {}
     virtual ~CodeSource() {}
 
     void addRegion(CodeRegion *);
+   
+ private: 
+    // statistics
+    virtual bool init_stats() { return false; }
+
 };
 
 /** SymtabCodeRegion and SymtabCodeSource implement CodeSource for program
@@ -206,6 +229,11 @@ class SymtabCodeSource : public CodeSource {
     mutable CodeRegion * _lookup_cache;
 
     static dyn_hash_map<std::string, bool> non_returning_funcs;
+    
+    // Stats information
+    StatContainer * stats_parse;
+    bool _have_stats;
+    
  public:
     struct hint_filt {
         virtual ~hint_filt() { }
@@ -244,6 +272,16 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT void removeHint(Hint);
 
     PARSER_EXPORT static void addNonReturning(std::string func_name);
+    
+    // statistics accessor
+    PARSER_EXPORT void print_stats() const;
+    PARSER_EXPORT bool have_stats() const { return _have_stats; }
+
+    // manage statistics
+    void incrementCounter(std::string name) const;
+    void addCounter(std::string name, int num) const; 
+    void decrementCounter(std::string name) const;
+
  private:
     void init(hint_filt *, bool);
     void init_regions(hint_filt *, bool);
@@ -254,6 +292,10 @@ class SymtabCodeSource : public CodeSource {
     void removeRegion(CodeRegion &); // removes from region tree
 
     void overlapping_warn(const char * file, unsigned line) const;
+    
+    // statistics
+    bool init_stats();
+ 
 };
 
 inline bool CodeRegion::contains(const Address addr) const

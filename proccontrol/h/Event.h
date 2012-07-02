@@ -38,8 +38,6 @@
 #include "PCProcess.h"
 #include "util.h"
 
-#include "dynptr.h"
-
 class HandlerPool;
 class HandleCallbacks;
 

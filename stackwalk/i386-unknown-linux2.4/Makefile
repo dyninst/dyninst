@@ -26,8 +26,7 @@ SRCS += 	../src/linux-swk.C \
 			../src/dbginfo-stepper.C \
 			../src/x86-wanderer.C \
 			../src/linuxbsd-swk.C \
-			../src/linux-x86-swk.C \
-			../../common/src/Elf_X.C
+			../src/linux-x86-swk.C 
 
 #USE_PARSE_API = true
 

@@ -174,14 +174,14 @@ bool int_process::waitfor_startup()
    while (getState() != running) {
       if (proc_exited || getState() == exited) {
          pthrd_printf("Error.  Proces exited during create/attach\n");
-         setLastError(err_exited, "Process exited during startup");
+         globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
       pthrd_printf("Waiting for startup to complete for %d\n", pid);
       bool result = waitAndHandleForProc(true, this, proc_exited);
       if (!proc_exited && (!result || getState() == errorstate)) {
          pthrd_printf("Error.  Process %d errored during create/attach\n", pid);
-         setLastError(err_internal, "Process failed to startup");
+         globalSetLastError(err_internal, "Process failed to startup");
          return false;
       }
    }
@@ -1012,6 +1012,13 @@ bool int_process::waitAndHandleEvents(bool block)
             pthrd_printf("Handler thread found nothing to do\n");
             goto done;
          }
+         if (!hasRunningThread) {
+            pthrd_printf("No threads are running to produce events\n");
+            ProcControlAPI::globalSetLastError(err_notrunning, "No threads are running to produce events\n");
+            error = true;
+            goto done;
+         }
+
          ProcControlAPI::globalSetLastError(err_noevents, "Poll failed to find events");
          pthrd_printf("Poll failed to find events\n");
          error = true;
@@ -1848,6 +1855,9 @@ memCache *int_process::getMemCache()
 
 void int_process::updateSyncState(Event::ptr ev, bool gen)
 {
+   // This works around a Linux bug where a continue races with a whole-process exit
+   plat_adjustSyncType(ev, gen);
+
    EventType etype = ev->getEventType();
    switch (ev->getSyncType()) {
 	  case Event::async: {
@@ -4015,7 +4025,8 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
-   procstopper(false)   
+   procstopper(false),
+   suppress_callbacks(false)
 {
 }
 
@@ -4029,7 +4040,8 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    hw_size(0),
    onetime_bp(false),
    onetime_bp_hit(false),
-   procstopper(false)
+   procstopper(false),
+   suppress_callbacks(false)
 {
 }
 
@@ -4043,7 +4055,8 @@ int_breakpoint::int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Br
   hw_size(hw_size_),
   onetime_bp(false),
   onetime_bp_hit(false),
-  procstopper(false)   
+  procstopper(false),
+  suppress_callbacks(false)
 {
 }
 
@@ -4135,6 +4148,16 @@ unsigned int_breakpoint::getHWSize() const
 unsigned int_breakpoint::getHWPerms() const
 {
    return hw_perms;
+}
+
+void int_breakpoint::setSuppressCallbacks(bool b) 
+{
+   suppress_callbacks = b;
+}
+
+bool int_breakpoint::suppressCallbacks() const
+{
+   return suppress_callbacks;
 }
 
 bp_instance::bp_instance(Address addr_) :
@@ -4710,6 +4733,7 @@ int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Add
    marked(false),
    user_data(NULL)
 {
+   assert(n != "");
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
 }
@@ -7135,6 +7159,16 @@ bool Breakpoint::isCtrlTransfer() const {
 Dyninst::Address Breakpoint::getToAddress() const
 {
    return llbreakpoint_->toAddr();
+}
+
+void Breakpoint::setSuppressCallbacks(bool b)
+{
+   return llbreakpoint_->setSuppressCallbacks(b);
+}
+
+bool Breakpoint::suppressCallbacks() const
+{
+   return llbreakpoint_->suppressCallbacks();
 }
 
 Mutex Counter::locks[Counter::NumCounterTypes];

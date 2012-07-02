@@ -232,11 +232,11 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // default
   createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
 
-  bool isBlueGene = obj_->isBlueGene();
+  bool isBlueGeneP = obj_->isBlueGeneP();
   bool hasNoteSection = obj_->hasNoteSection();
 
   // for now, bluegene is the only system which uses the following mechanism for updating program header
-  if(isBlueGene){
+  if(isBlueGeneP){
 	createNewPhdr = false;
         if(hasNoteSection) {
                 replaceNOTE = true;
@@ -544,9 +544,9 @@ bool emitElf::driver(Symtab *obj, string fName){
   /* flag the file for no auto-layout */
   elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);
     
-  Elf_Scn *scn = NULL, *newscn;
+  Elf_Scn *scn = NULL, *newscn = NULL;
   Elf_Data *newdata = NULL, *olddata = NULL;
-  Elf32_Shdr *newshdr, *shdr = NULL;
+  Elf32_Shdr *newshdr = NULL, *shdr = NULL;
   dyn_hash_map<unsigned, unsigned> secLinkMapping;
   dyn_hash_map<unsigned, unsigned> secInfoMapping;
   dyn_hash_map<unsigned, unsigned> changeMapping;
@@ -559,17 +559,18 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   bool startMovingSections = false;
   for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    //copy sections from oldElf to newElf
+   //copy sections from oldElf to newElf
     shdr = elf32_getshdr(scn);
 
     // resolve section name
     Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    if (!result) {
-      result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
-      result = obj->findRegion(foundSec, name);
+    // You know, what happens if we expanded the section we're looking for above
+    // so the size doesn't match, but we expanded a different section to have
+    // the same size as the one we're looking for...
+    if (!result || foundSec->isDirty()) {
+       result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end
@@ -605,13 +606,14 @@ bool emitElf::driver(Symtab *obj, string fName){
        memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
        newdata->d_size = foundSec->getDiskSize();
        newshdr->sh_size = foundSec->getDiskSize();
+
     }
     else if(olddata->d_buf)     //copy the data buffer from oldElf
     {
        //printf("  SYMTAB: copy from old data [%s]\n", name);
        newdata->d_buf = (char *)malloc(olddata->d_size);
        memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-      }
+    }
 
     if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
     {
@@ -634,9 +636,9 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    NOBITSstartPoint = scncount;
 	  NOBITStotalsize += shdr->sh_size; 
 	}
-    }
-
-    vector <vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
+    }    
+      
+    std::vector <std::vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
 
     for (unsigned i = 0 ; i != moveSecAddrRange.size(); i++) {
       if ( (moveSecAddrRange[i][0] == shdr->sh_addr) ||
@@ -652,7 +654,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     if((obj->getObject()->getStrtabAddr() != 0 &&
        obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
-       !strcmp(name, STRTAB_NAME) )
+       !strcmp(name, STRTAB_NAME))
       {
 	symStrData = newdata;
 	updateSymbols(symTabData, symStrData, loadSecTotalSize);
@@ -855,7 +857,6 @@ bool emitElf::driver(Symtab *obj, string fName){
 	
   }
 
-
   newEhdr->e_shstrndx = (Elf32_Half) scncount;
 
   // Move the section header to the end
@@ -932,6 +933,9 @@ void emitElf::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIn
    newshdr->sh_info = 0;
    newshdr->sh_addralign = 4;
    newshdr->sh_entsize = newEhdr->e_phentsize;
+	phdrSegOff = newshdr->sh_offset;
+	phdrSegAddr = newshdr->sh_addr;
+	
 }
 
 void emitElf::fixPhdrs(unsigned &extraAlignSize)
@@ -1006,8 +1010,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
             newPhdr++;
         }
     }
-   
-      if(insert_phdr) 
+
+      if(insert_phdr)
       {
          newSeg.p_type = PT_LOAD;
          newSeg.p_offset = firstNewLoadSec->sh_offset;
@@ -1035,7 +1039,9 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
-     	if (movePHdrsFirst)
+	if(createNewPhdr && !movePHdrsFirst)
+        	newPhdr->p_vaddr = phdrSegAddr;
+     	else if (createNewPhdr && movePHdrsFirst)
 	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	else
 	        newPhdr->p_vaddr = old->p_vaddr;
@@ -1810,14 +1816,14 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     // .dynstr
     sec = foundRegion->second;
     olddynStrData = (char *)(sec->getPtrToRawData());
-    olddynStrSize = sec->getRegionSize();
+    olddynStrSize = sec->getDiskSize();
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
-     DT_NEEDEDEntries.push_back(*i);
+     addDTNeeded(*i);
   }
   new_dynamic_entries = obj->getObject()->new_dynamic_entries;
   Object *object = obj->getObject();
@@ -1926,10 +1932,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   if(!isStripped)
     {
       Region *sec;
-      if (obj->findRegion(sec,".symtab"))
-	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym));
-      else
-              obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
+      if (obj->findRegion(sec,".symtab")) {
+	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym)); 
+      }
+      else {
+         obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
+      }
     }
   else
     obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
@@ -1938,10 +1946,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   if(!isStripped)
     {
       Region *sec;
-      if (obj->findRegion(sec,".strtab"))
-	      sec->setPtrToRawData(str, symbolNamesLength);
-      else
-    	      obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
+      if (obj->findRegion(sec,".strtab")) {
+         sec->setPtrToRawData(str, symbolNamesLength);
+      }
+      else {
+         obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
+      }
     }
   else
     obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
@@ -2110,9 +2120,10 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           {
               if( (*newRegIter)->getRegionAddr() > lastRegionAddr ) {
                   lastRegionAddr = (*newRegIter)->getRegionAddr();
-                  lastRegionSize = (*newRegIter)->getRegionSize();
+                  lastRegionSize = (*newRegIter)->getMemSize();
               }
           }
+
           if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
               return false;
           }
@@ -2142,7 +2153,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    Elf32_Rela *relas = (Elf32_Rela *)malloc(sizeof(Elf32_Rela) * (relocation_table.size()+newRels.size()));
    j=0; k=0; l=0; m=0;
    //reconstruct .rel
-   for(i=0;i<relocation_table.size();i++) 
+   for(i=0; i<relocation_table.size(); i++) 
    {
       if (relocation_table[i].regionType() == Region::RT_REL) {
           if( library_adjust && !isDynRelocs) {
@@ -2155,9 +2166,22 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
           }
 
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
-         if(relocation_table[i].name().length() && 
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned int>::iterator n = dynSymNameMapping.find(sym_name);
+            if (n != dynSymNameMapping.end())
+               sym_offset = n->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym)
+                  sym_offset = sym->getIndex();
+            }
+         }
+
+         if (sym_offset) {
+            rels[j].r_info = ELF32_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             rels[j].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
          }
@@ -2167,9 +2191,21 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
          relas[k].r_addend = relocation_table[i].addend();
          if (relas[k].r_addend)
             relas[k].r_addend += library_adjust;
-         if(relocation_table[i].name().length() && 
-            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         unsigned long sym_offset = 0;
+         std::string sym_name = relocation_table[i].name();
+         if (!sym_name.empty()) {
+            dyn_hash_map<string, unsigned int>::iterator n = dynSymNameMapping.find(sym_name);
+            if (n != dynSymNameMapping.end())
+               sym_offset = n->second;
+            else {
+               Symbol *sym = relocation_table[i].getDynSym();
+               if (sym)
+                  sym_offset = sym->getIndex();
+            }
+         }
+
+         if (sym_offset) {
+            relas[k].r_info = ELF32_R_INFO(sym_offset, relocation_table[i].getRelType());
          } else {
             relas[k].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
          }
@@ -2311,8 +2347,7 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
       versionNames[name] = dynSymbolNamesLength;
       dynStrs.push_back(name);
       dynSymbolNamesLength+= (name).size()+1;
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
-	DT_NEEDEDEntries.push_back(name);
+      addDTNeeded(name);
     }
   }
   for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
@@ -2324,8 +2359,7 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
     versionNames[it->first] = dynSymbolNamesLength;
     dynStrs.push_back(it->first);
     dynSymbolNamesLength+= it->first.size()+1;
-    if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
-      DT_NEEDEDEntries.push_back(it->first);
+    addDTNeeded(it->first);
     verneed->vn_aux = sizeof(Elf32_Verneed);
     verneed->vn_next = sizeof(Elf32_Verneed) + it->second.size()*sizeof(Elf32_Vernaux);
     if(curpos + verneed->vn_next == verneedSecSize)
@@ -2467,6 +2501,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   dynamicSecData.clear();
   Elf32_Dyn *dyns = (Elf32_Dyn *)dynData;
   unsigned count = size/sizeof(Elf32_Dyn);
+  vector<string> &libs_rmd = object->libsRMd();
   dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf32_Dyn *)malloc(dynsecSize*sizeof(Elf32_Dyn));
   unsigned curpos = 0;
@@ -2499,7 +2534,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
       if (!foundHashSection) {
       	dynsecData[curpos].d_tag = DT_HASH;
       	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-	dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
+         dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
       	curpos++;
       	foundHashSection = true;
       }
@@ -2516,8 +2551,11 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
       break;
     case DT_NEEDED:
       rpathstr = &olddynStrData[dyns[i].d_un.d_val];
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end())
-	break;
+      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end()) {
+         break;
+      }
+      if (find(libs_rmd.begin(), libs_rmd.end(), rpathstr) != libs_rmd.end())
+         break;
       dynsecData[curpos].d_tag = dyns[i].d_tag;
       dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
       dynStrs.push_back(rpathstr);
@@ -2569,4 +2607,14 @@ void emitElf::log_elferror(void (*err_func)(const char *), const char* msg) {
   err = err ? err: "(bad elf error)";
   string str = string(err)+string(msg);
   err_func(str.c_str());
+}
+
+void emitElf::addDTNeeded(string s)
+{
+   if (find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), s) != DT_NEEDEDEntries.end())
+      return;
+   vector<string> &libs_rmd = object->libsRMd();
+   if (find(libs_rmd.begin(), libs_rmd.end(), s) != libs_rmd.end())
+      return;
+   DT_NEEDEDEntries.push_back(s);
 }

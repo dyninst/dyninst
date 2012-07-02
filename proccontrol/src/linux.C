@@ -40,10 +40,11 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <iostream>
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
-#include "common/h/SymLite-elf.h"
+
 #include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -53,16 +54,22 @@
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
+#include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/linux.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_event.h"
-#include "proccontrol/src/int_thread_db.h"
 
 #include "proccontrol/src/snippets.h"
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
+#define ELF_X_NAMESPACE ProcControlAPI
+#include "common/h/SymLite-elf.h"
+#include "common/src/Elf_X.C"
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS
@@ -2198,6 +2205,7 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
 
 linux_x86_thread::linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
+   thread_db_thread(p, t, l),
    linux_thread(p, t, l),
    x86_thread(p, t, l)
 {
@@ -2209,6 +2217,7 @@ linux_x86_thread::~linux_x86_thread()
 
 linux_ppc_thread::linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
+   thread_db_thread(p, t, l),
    linux_thread(p, t, l),
    ppc_thread(p, t, l)
 {
@@ -2546,3 +2555,27 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
+void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
+{
+   if (gen) return;
+
+   if (ev->getEventType().code() != EventType::LWPDestroy ||
+       ev->getEventType().time() != EventType::Pre) 
+      return;
+
+   int_thread *thrd = ev->getThread()->llthrd();
+   if (thrd->getGeneratorState().getState() != int_thread::running)
+      return;
+
+   // So we have a pre-LWP destroy and a running generator; this means
+   // that someone continued the thread during decode and it is now
+   // gone. So set the event to async and set the generator state to
+   // exited.
+
+   pthrd_printf("plat_adjustSyncType: thread %d raced with exit, setting event to async\n",
+                thrd->getLWP());
+
+   //thrd->getGeneratorState().setState(int_thread::exited);
+   ev->setSyncType(Event::async);
+   //thrd->getHandlerState().setState(int_thread::exited);
+}

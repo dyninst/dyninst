@@ -610,7 +610,7 @@ struct ia32_operand {  // operand as given in Intel book tables
 
 // An instruction table entry
 struct ia32_entry {
-  const char* name(ia32_locations* locs = NULL);
+  COMMON_EXPORT const char* name(ia32_locations* locs = NULL);
   COMMON_EXPORT entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
   COMMON_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>& flagsWritten,

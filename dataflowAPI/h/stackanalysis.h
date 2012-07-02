@@ -49,10 +49,8 @@
 // for blockSet...
 //#include "dyninstAPI/src/image-func.h"
 
-#include "dynptr.h"
-
 // To define StackAST
-#include "AST.h"
+#include "DynAST.h"
 
 #if defined(os_aix) 
 // AIX is missing a MINLONG...

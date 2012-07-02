@@ -267,7 +267,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
 #endif
     dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
     if (!appProc->loadLibrary(libname)) {
-      logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
+      logerror("TERMINATE: %s[%d]:  failed to load library %s, cannot proceed\n", 
 	      __FILE__, __LINE__, libname);
       appThread->getProcess()->terminateExecution();
       return FAILED;
@@ -312,7 +312,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
   BPatchUserEventCallback cb = test8cb;
   if (!bpatch->registerUserEventCallback(cb)) {
     FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
+    logerror("TERMINATE: %s[%d]: could not register callback\n", __FILE__, __LINE__);
     appThread->getProcess()->terminateExecution();
     return FAILED;
   }
@@ -337,15 +337,16 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
   int one = 1;
   // I need to check the return value for this function call
+  logerror("TERMINATE: setting exit variable\n");
   if (setVar("test_thread_5_idle", (void *) &one, TESTNO, TESTDESC)) {
-    logerror("Unable to set variable test_thread_5_idle\n");
+    logerror("TERMINATE: Unable to set variable test_thread_5_idle\n");
     appThread->getProcess()->terminateExecution();
     return FAILED;
   }
 
   if (!bpatch->removeUserEventCallback(test8cb)) {
     FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]:  failed to remove callback\n",
+    logerror("TERMINATE: %s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
     appThread->getProcess()->terminateExecution();
     return FAILED;

@@ -53,7 +53,7 @@ BPatch_snippet *SnippetGenerator::findOrCreateVariable(const char * name, const 
    BPatch_type *bptype = image->findType(type);
    
    if(bptype == NULL){
-      lastError << "Unable to find type:" << type;
+      lastError << "Unable to find type: " << type;
       lastErrorInfo.type = SG_LookUpFailure;
       lastErrorInfo.fatal = true;
       return NULL;
@@ -118,12 +118,26 @@ BPatch_snippet *SnippetGenerator::findOrCreateArray(const char * name, const cha
         return varExpr;
 
 }
-BPatch_snippet *SnippetGenerator::findOrCreateStruct(){
+
+BPatch_snippet *SnippetGenerator::findRegister(const char *name){
+   lastError.str() = "";
+
+   if(!addSpace->getRegisters(registers)){
+      lastError << "Could not retrive registers. Register access may not be available on this platform.";
+      return NULL;
+   }
+   
+   for(unsigned int i = 0; i < registers.size(); i++){
+      BPatch_register r = registers[i];
+      if(r.name() == name){
+         return new BPatch_registerExpr(r);
+      }
+   }
+   
+   lastError << "Register " << name << " not found";
    return NULL;
 }
-BPatch_snippet *SnippetGenerator::findOrCreateUnion(){
-   return NULL;
-}
+
 
 BPatch_snippet *SnippetGenerator::findAppVariable(const char * name, bool global, bool local){
    lastError.str() = "";

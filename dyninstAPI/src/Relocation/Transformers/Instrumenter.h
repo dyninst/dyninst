@@ -35,6 +35,8 @@
 #include "Transformer.h"
 #include "dyninstAPI/src/instPoint.h"
 
+class edge_instance;
+
 namespace Dyninst {
 namespace Relocation {
 
@@ -43,7 +45,7 @@ class Instrumenter : public Transformer {
 
   virtual bool process(RelocBlock *cur, RelocGraph *);
   
-  Instrumenter() {};
+     Instrumenter() : skip(NULL) {};
   
   virtual ~Instrumenter() {};
   
@@ -61,24 +63,27 @@ class Instrumenter : public Transformer {
   bool funcEntryInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg);
   bool postCallInstrumentation(RelocBlock *trace, RelocGraph *cfg);
+  bool funcExitInstrumentation(RelocBlock *trace, RelocGraph *cfg);
 
-  bool funcExitInstrumentation(RelocBlock *trace);
   bool blockEntryInstrumentation(RelocBlock *trace);
+  bool blockExitInstrumentation(RelocBlock *trace);
   bool preCallInstrumentation(RelocBlock *trace);
   bool insnInstrumentation(RelocBlock *trace);
 
-  WidgetPtr makeInstrumentation(instPoint *point);
+  WidgetPtr makeInstrumentation(PatchAPI::Point *point);
 
   struct CallFallthroughPredicate {
      bool operator()(RelocEdge *e);
   };
 
   struct EdgePredicate {
-  EdgePredicate(edge_instance *e) : e_(e) {};
-     bool operator()(RelocEdge *e);
 
-     edge_instance *e_;
+	EdgePredicate(edge_instance *e) : e_(e) {}
+    bool operator()(RelocEdge *e);
+    edge_instance *e_;
   };
+
+  RelocBlock *skip;
 
 };
 

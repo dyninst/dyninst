@@ -40,12 +40,18 @@ class AddressSpace;
 
 
 namespace Dyninst {
+   namespace InstructionAPI {
+      class Instruction;
+   };
+
 namespace Relocation {
 class RelocInsn;
 // Identify PC-relative memory accesses and replace
 // them with a dedicated Widget
 class adhocMovementTransformer : public Transformer {
   typedef boost::shared_ptr<RelocInsn> RelocInsnPtr;
+  typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
+
  public:
   virtual bool process(RelocBlock *, RelocGraph *);
 
@@ -55,11 +61,14 @@ class adhocMovementTransformer : public Transformer {
 
  private:
   bool isPCDerefCF(WidgetPtr ptr,
+                   InsnPtr insn,
                    Address &destPtr);
   bool isPCRelData(WidgetPtr ptr,
+                   InsnPtr insn,
 		   Address &target);
   // Records where PC was stored
   bool isGetPC(WidgetPtr ptr,
+               InsnPtr insn,
 	       Absloc &aloc,
 	       Address &thunkAddr);
 

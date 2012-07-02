@@ -47,6 +47,10 @@
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
 #include "Relocation/CodeTracker.h"
+#include "Patching.h"
+
+#include "PatchMgr.h"
+#include "Command.h"
 
 class codeRange;
 class replacedFunctionCall;
@@ -81,7 +85,6 @@ class Dyn_Symbol;
 class BinaryEdit;
 class PCProcess;
 class trampTrapMappings;
-
 class baseTramp;
 
 namespace Dyninst {
@@ -90,7 +93,6 @@ namespace Dyninst {
    namespace InstructionAPI {
       class Instruction;
    }
-   
 };
 
 // This file serves to define an "address space", a set of routines that 
@@ -117,8 +119,8 @@ class AddressSpace : public InstructionSource {
    //   ... if F_c is not specified, we use NULL
    // F specifies the replacement callee; if we want to remove the call entirely,
    // also use NULL
-   typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
-   typedef std::map<func_instance *, func_instance *> FuncModMap;
+   //typedef std::map<block_instance *, std::map<func_instance *, func_instance *> > CallModMap;
+   //typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
     PCProcess *proc();
@@ -157,6 +159,12 @@ class AddressSpace : public InstructionSource {
                                 u_int amount,
                                 const void *inSelf) = 0;
 
+    // this is only used on aix so far - naim
+    // And should really be defined in a arch-dependent place, not process.h - bernat
+    Address getTOCoffsetInfo(Address);
+    Address getTOCoffsetInfo(func_instance *);
+    Address getTOCoffsetInfo(mapped_object *);
+
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
     // that you ask for an allocation "near" a point, where "near" has an
@@ -179,8 +187,8 @@ class AddressSpace : public InstructionSource {
 
     // Allow the AddressSpace to update any extra bookkeeping for trap-based
     // instrumentation
-    virtual bool registerTrapMapping(Address from, Address to) = 0;
-    virtual bool unregisterTrapMapping(Address from) = 0;
+    virtual void addTrap(Address from, Address to, codeGen &gen) = 0;
+    virtual void removeTrap(Address from) = 0;
 
     bool getDyninstRTLibName();
 
@@ -251,6 +259,7 @@ class AddressSpace : public InstructionSource {
     func_instance *findOneFuncByAddr(Address addr);
     // And the one thing that is unique: entry address!
     func_instance *findFuncByEntry(Address addr);
+    block_instance *findBlockByEntry(Address addr);
 
     // And a lookup by "internal" function to find clones during fork...
     func_instance *findFunction(parse_func *ifunc);
@@ -278,7 +287,7 @@ class AddressSpace : public InstructionSource {
     mapped_module *findModule(const std::string &mod_name, bool wildcard = false);
     // And the same for objects
     // Wildcard: handles "*" and "?"
-    mapped_object *findObject(const std::string &obj_name, bool wildcard = false) const;
+    mapped_object *findObject(std::string obj_name, bool wildcard = false) const;
     mapped_object *findObject(Address addr) const;
     mapped_object *findObject(fileDescriptor desc) const;
     mapped_object *findObject(const ParseAPI::CodeObject *co) const;
@@ -317,12 +326,19 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
+
     void modifyCall(block_instance *callBlock, func_instance *newCallee, func_instance *context = NULL);
     void revertCall(block_instance *callBlock, func_instance *context = NULL);
     void replaceFunction(func_instance *oldfunc, func_instance *newfunc);
-    bool wrapFunction(func_instance *oldfunc, func_instance *newfunc);
+    bool wrapFunction(func_instance *original, 
+                      func_instance *wrapper, 
+                      SymtabAPI::Symbol *clone);
+    void wrapFunctionPostPatch(func_instance *wrapped, Dyninst::SymtabAPI::Symbol *);
+
+    void revertWrapFunction(func_instance *original);                      
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
+    const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
     typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
@@ -334,6 +350,10 @@ class AddressSpace : public InstructionSource {
     virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               func_instance *&, 
                               Address) { return false; }
+    virtual bool bindPLTEntry(const SymtabAPI::relocationEntry & /*entry*/,
+                              Address /*base_addr*/, 
+                              func_instance * /*target_func*/,
+                              Address /*target_addr*/) { return false; }
     
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
@@ -356,22 +376,25 @@ class AddressSpace : public InstructionSource {
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
  private:
-    BPatch_function *(*new_func_cb)(AddressSpace *a, func_instance *f);
-    BPatch_point *(*new_instp_cb)(AddressSpace *a, func_instance *f, instPoint *ip, 
+    BPatch_function *(*new_func_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f);
+    BPatch_point *(*new_instp_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f, 
+                                  Dyninst::PatchAPI::Point *ip, 
                                   int type);
  public:
     //Trigger the callbacks from a lower level
-    BPatch_function *newFunctionCB(func_instance *f) 
+    BPatch_function *newFunctionCB(Dyninst::PatchAPI::PatchFunction *f) 
         { assert(new_func_cb); return new_func_cb(this, f); }
-    BPatch_point *newInstPointCB(func_instance *f, instPoint *pt, int type)
+    BPatch_point *newInstPointCB(Dyninst::PatchAPI::PatchFunction *f, 
+                                 Dyninst::PatchAPI::Point *pt, int type)
         { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
     
     //Register callbacks from the higher level
     void registerFunctionCallback(BPatch_function *(*f)(AddressSpace *p, 
-                                                        func_instance *f))
+                                                        Dyninst::PatchAPI::PatchFunction *f))
         { new_func_cb = f; };
-    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, func_instance *f,
-                                                      instPoint *ip, int type))
+    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, 
+                                                      Dyninst::PatchAPI::PatchFunction *f,
+                                                      Dyninst::PatchAPI::Point *ip, int type))
         { new_instp_cb = f; }
     
     
@@ -433,7 +456,7 @@ class AddressSpace : public InstructionSource {
 
 
     bool getAddrInfo(Address relocAddr,//input
-					  Address &origAddr,
+                     Address &origAddr,
                      std::vector<func_instance *> &origFuncs,
                      baseTramp *&baseTramp);
     typedef Relocation::CodeTracker::RelocInfo RelocInfo;
@@ -451,7 +474,8 @@ class AddressSpace : public InstructionSource {
              const std::set<block_instance*> &delBBIs,
              const std::list<func_instance*> &deadFuncs);
 
-    void addDefensivePad(block_instance *callBlock, Address padStart, unsigned size);
+    void addDefensivePad(block_instance *callBlock, func_instance *callFunc,
+                         Address padStart, unsigned size);
 
     void getPreviousInstrumentationInstances(baseTramp *bt,
 					     std::set<Address>::iterator &b,
@@ -465,8 +489,8 @@ class AddressSpace : public InstructionSource {
     bool isMemoryEmulated() { return emulateMem_; }
     bool emulatingPC() { return emulatePC_; }
     MemoryEmulator *getMemEm();
-    void invalidateMemory(Address base, Address size);
 
+    bool delayRelocation() const;
  protected:
 
     // inferior malloc support functions
@@ -510,16 +534,16 @@ class AddressSpace : public InstructionSource {
 
     // defensive mode code
     typedef std::pair<Address, unsigned> DefensivePad;
-    std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
-    IntervalTree<Address, instPoint *> reverseDefensiveMap_;
+    std::map<Address, std::map<func_instance*,std::set<DefensivePad> > > forwardDefensiveMap_;
+    IntervalTree<Address, std::pair<func_instance*,Address> > reverseDefensiveMap_;
 
     // Tracking instrumentation for fast removal
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
-    CallModMap callModifications_;
-    FuncModMap functionReplacements_;
-    FuncModMap functionWraps_;
+    // CallModMap callModifications_;
+    // FuncModMap functionReplacements_;
+    // FuncModMap functionWraps_;
 
     void addAllocatedRegion(Address start, unsigned size);
     void addModifiedRegion(mapped_object *obj);
@@ -529,9 +553,26 @@ class AddressSpace : public InstructionSource {
     bool emulateMem_;
     bool emulatePC_;
 
+    bool delayRelocation_;
+
+    std::map<func_instance *, Dyninst::SymtabAPI::Symbol *> wrappedFunctionWorklist_;
+
+  // PatchAPI stuffs
+  public:
+    Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
+    void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
+    void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
+    void initPatchAPI(mapped_object* aout);
+    void addMappedObject(mapped_object* obj);
+    Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
+    static bool patch(AddressSpace*);
+  protected:
+    Dyninst::PatchAPI::PatchMgrPtr mgr_;
+    Dyninst::PatchAPI::Patcher* patcher_;
 };
 
 
+bool uninstrument(Dyninst::PatchAPI::Instance::Ptr);
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 
 #endif // ADDRESS_SPACE_H

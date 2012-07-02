@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -38,7 +38,6 @@
 #include "instPoint.h"
 #include "function.h" // func_instance
 #include "codeRange.h"
-#include "miniTramp.h"
 #include "dynProcess.h"
 #include "dynThread.h"
 #include "pcEventHandler.h"
@@ -63,11 +62,24 @@
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 
+#include "PatchMgr.h"
+#include "PatchModifier.h"
+#include "Command.h"
+#include "Relocation/DynAddrSpace.h"
+#include "Relocation/DynPointMaker.h"
+#include "Relocation/DynObject.h"
+
+#include "Point.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+using PatchAPI::DynObject;
+using PatchAPI::DynAddrSpace;
+using PatchAPI::PatchMgr;
+using PatchAPI::Patcher;
 
 int BPatch_process::getAddressWidthInt(){
-	return llproc->getAddressWidth();
+        return llproc->getAddressWidth();
 }
 
 /*
@@ -87,14 +99,14 @@ int BPatch_process::getPidInt()
  * constructed.  The new process is placed into a stopped state before
  * executing any code.
  *
- * path		Pathname of the executable to start.
- * argv		A list of pointers to character strings which are the
+ * path         Pathname of the executable to start.
+ * argv         A list of pointers to character strings which are the
  *              arguments for the new process, terminated by a NULL pointer.
- * envp		A list of pointers to character strings which are the
+ * envp         A list of pointers to character strings which are the
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_process::BPatch_process(const char *path, const char *argv[], 
+BPatch_process::BPatch_process(const char *path, const char *argv[],
                                BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
    : llproc(NULL), lastSignal(-1), exitCode(-1), 
@@ -113,13 +125,13 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
       for(int i = 0; argv[i] != NULL; i++)
          argv_vec.push_back(argv[i]);
    }
-    
+
    // Construct a vector out of the contents of envp
    if(envp) {
       for(int i = 0; envp[i] != NULL; ++i)
          envp_vec.push_back(envp[i]);
    }
-   
+
    std::string directoryName = "";
 
  #if !defined(os_windows)
@@ -137,12 +149,12 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
       char *nextpath = strtok_r(pathenv_copy, ":", &ptrptr);
       while (nextpath) {
          struct stat statbuf;
-         
+
          char *fullpath = new char[strlen(nextpath)+strlen(path)+2];
          strcpy(fullpath,nextpath);
          strcat(fullpath,"/");
          strcat(fullpath,path);
-         
+
          if (!stat(fullpath,&statbuf)) {
             directoryName = nextpath;
             delete[] fullpath;
@@ -172,7 +184,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
            }
        }
    }
-   
+
    std::string spath(path);
    llproc = PCProcess::createProcess(spath, argv_vec, mode, envp_vec,
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
@@ -181,9 +193,11 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
            "Dyninst was unable to create the specified process");
       return;
    }
+
    startup_cerr << "Registering function callback..." << endl;
    llproc->registerFunctionCallback(createBPFuncCB);
-   
+
+
    startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
    llproc->set_up_ptr(this);
@@ -223,7 +237,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    (namely, with a single process having spawned the mutator and the
    mutatee) are susceptible to a kernel bug that will cause a panic
    if the mutator exits before the mutatee. See the comment above
-   class ForkNewProcessCallback : public DBICallbackBase in 
+   class ForkNewProcessCallback : public DBICallbackBase in
    debuggerinterface.h for details.
 */
 bool LinuxConsideredHarmful(pid_t pid) // PUSH
@@ -234,14 +248,14 @@ bool LinuxConsideredHarmful(pid_t pid) // PUSH
     char buf[1024];
     char filename[64];
 
-    get_linux_version(major,minor,sub,subsub); 
+    get_linux_version(major,minor,sub,subsub);
 
     if( major == 2 && minor == 6 &&
         (sub < 11 || (sub == 11 && subsub <= 11)) )
     {
         my_ppid = getppid();
         my_pid = getpid();
-        // If anybody knows a better way to get the parent pid, be my 
+        // If anybody knows a better way to get the parent pid, be my
         // guest to change this.
         snprintf(filename, 64, "/proc/%d/status", pid);
         fd = fopen(filename, "r");
@@ -250,7 +264,7 @@ bool LinuxConsideredHarmful(pid_t pid) // PUSH
                             filename);
             return false;
         }
-        while (fgets(buf, 1024, fd)) { 
+        while (fgets(buf, 1024, fd)) {
             if (strncmp(buf, "PPid", 4) == 0) {
                 sscanf(buf, "%*s %d", &mutatee_ppid);
                 break;
@@ -272,8 +286,8 @@ bool LinuxConsideredHarmful(pid_t pid) // PUSH
  * Constructs a new BPatch_process and associates it with a running process.
  * Stops execution of the process.
  *
- * path		Pathname of the executable file for the process.
- * pid		Process ID of the target process.
+ * path         Pathname of the executable file for the process.
+ * pid          Process ID of the target process.
  */
 BPatch_process::BPatch_process
 (const char *path, int pid, BPatch_hybridMode mode)
@@ -309,13 +323,14 @@ BPatch_process::BPatch_process
    image = new BPatch_image(this);
     startup_printf("%s[%d]:  created new BPatch_image...\n", FILE__, __LINE__);
    std::string spath = path ? std::string(path) : std::string();
-    startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__, 
+    startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__,
           path ? path : "no_path", pid);
 
    llproc = PCProcess::attachProcess(spath, pid, mode);
    if (!llproc) {
-      BPatch_reportError(BPatchFatal, 68, 
-             "Dyninst was unable to attach to the specified process");
+      BPatch_reportError(BPatchFatal, 68, "Dyninst was unable to attach to the specified process");
+      BPatch::bpatch->unRegisterProcess(pid, this);
+
       return;
    }
 
@@ -356,7 +371,7 @@ BPatch_process::BPatch_process
  */
 BPatch_process::BPatch_process(PCProcess *nProc)
    : llproc(nProc), lastSignal(-1), exitCode(-1),
-     exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
+     exitedNormally(false), exitedViaSignal(false), mutationsActive(true),
      createdViaAttach(true), detached(false),
      terminated(false),
      reportedExit(false), hybridAnalysis_(NULL)
@@ -420,19 +435,20 @@ void BPatch_process::BPatch_process_dtor()
    }
 
    if (image) delete image;
+
    image = NULL;
 
-   if (pendingInsertions) 
+   if (pendingInsertions)
    {
-       for (unsigned f = 0; f < pendingInsertions->size(); f++) 
-	   {
+       for (unsigned f = 0; f < pendingInsertions->size(); f++)
+           {
            delete (*pendingInsertions)[f];
        }
 
        delete pendingInsertions;
        pendingInsertions = NULL;
    }
-   
+
    if (NULL != hybridAnalysis_) {
        delete hybridAnalysis_;
    }
@@ -584,7 +600,7 @@ BPatch_exitType BPatch_process::terminationStatusInt() {
    if(exitedNormally)
       return ExitedNormally;
    else if(exitedViaSignal)
-      return ExitedViaSignal;   
+      return ExitedViaSignal;
    return NoExit;
 }
 
@@ -594,7 +610,7 @@ BPatch_exitType BPatch_process::terminationStatusInt() {
  * Returns exit code of applications
  *
  */
-int BPatch_process::getExitCodeInt() 
+int BPatch_process::getExitCodeInt()
 {
    return exitCode;
 }
@@ -621,8 +637,8 @@ bool BPatch_process::wasRunningWhenAttachedInt()
  *
  * Detach from the thread represented by this object.
  *
- * cont		True if the thread should be continued as the result of the
- * 		detach, false if it should not.
+ * cont         True if the thread should be continued as the result of the
+ *              detach, false if it should not.
  */
 bool BPatch_process::detachInt(bool cont)
 {
@@ -650,10 +666,10 @@ bool BPatch_process::isDetachedInt()
  * Causes the process to dump its state to a file, and optionally to terminate.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the state should be written.
- * terminate	Indicates whether or not the thread should be terminated after
- *		dumping core.  True indicates that it should, false that is
- *		should not.
+ * file         The name of the file to which the state should be written.
+ * terminate    Indicates whether or not the thread should be terminated after
+ *              dumping core.  True indicates that it should, false that is
+ *              should not.
  */
 bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
 {
@@ -667,7 +683,7 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
    } else if (!was_stopped) {
       continueExecutionInt();
    }
-    
+
    return ret;
 }
 
@@ -677,7 +693,7 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
  * Writes the contents of memory into a file.
  * Returns true upon success, and false upon failure.
  *
- * file		The name of the file to which the image should be written.
+ * file         The name of the file to which the image should be written.
  */
 bool BPatch_process::dumpImageInt(const char *file)
 {
@@ -698,9 +714,9 @@ bool BPatch_process::dumpImageInt(const char *file)
 /*
  * BPatch_process::getInheritedVariable
  *
- * Allows one to retrieve a variable which exists in a child process that 
+ * Allows one to retrieve a variable which exists in a child process that
  * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in 
+ * Function is invoked on the child BPatch_process (created from a fork in
  * the application).
  *
  * parentVar   A BPatch_variableExpr created in the parent thread
@@ -717,7 +733,7 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
       // parent process
       return NULL;
    }
-   
+
    return new BPatch_variableExpr(this, llproc, parentVar.getBaseAddr(), Null_Register,
                                   const_cast<BPatch_type *>(parentVar.getType()));
 }
@@ -726,9 +742,9 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
 /*
  * BPatch_process::getInheritedSnippet
  *
- * Allows one to retrieve a snippet which exists in a child process which 
+ * Allows one to retrieve a snippet which exists in a child process which
  * was inherited from and originally created in the parent process.
- * Function is invoked on the child BPatch_process (created from a fork in 
+ * Function is invoked on the child BPatch_process (created from a fork in
  * the application).
  *
  * Allows one to retrieve a snippet which exists in a child process which
@@ -746,30 +762,25 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
 {
     // a BPatchSnippetHandle has an miniTramp for each point that
     // the instrumentation is inserted at
-    const BPatch_Vector<miniTramp *> &parent_mtHandles = parentSnippet.mtHandles_;
+   const BPatch_Vector<Dyninst::PatchAPI::Instance::Ptr> &instances = parentSnippet.instances_;
 
-    BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
-    for(unsigned i=0; i<parent_mtHandles.size(); i++) {
-        miniTramp *childMT = NULL;
-        childMT = parent_mtHandles[i]->getInheritedMiniTramp(llproc);
-        if (!childMT) {
-            fprintf(stderr, "Failed to get inherited mini tramp\n");
-            return NULL;
-        }
-        childSnippet->addMiniTramp(childMT);
-    }
-    return childSnippet;
+   BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
+   for(unsigned i=0; i<instances.size(); i++) {
+      Dyninst::PatchAPI::Instance::Ptr child = getChildInstance(instances[0], llproc);
+      if (child) childSnippet->addInstance(child);
+   }
+   return childSnippet;
 }
 
 /*
  * BPatch_addressSpace::beginInsertionSet
- * 
+ *
  * Starts a batch insertion set; that is, all calls to insertSnippet until
  * finalizeInsertionSet are delayed.
  *
  */
 
-void BPatch_process::beginInsertionSetInt() 
+void BPatch_process::beginInsertionSetInt()
 {
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
@@ -779,7 +790,7 @@ void BPatch_process::beginInsertionSetInt()
 
 /*
  * BPatch_process::finalizeInsertionSet
- * 
+ *
  * Installs all instrumentation specified since the last beginInsertionSet call.
  *
  * modified gets set as a result of the catchup/fixup logic and is helpful in
@@ -788,8 +799,7 @@ void BPatch_process::beginInsertionSetInt()
  * we go thru the trouble to modify the process state to make everything work
  * then the function really should work.
  */
-
-bool BPatch_process::finalizeInsertionSetInt(bool, bool *) 
+bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 {
   // Can't insert code when mutations are not active.
   bool shouldContinue = false;
@@ -801,14 +811,16 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
     shouldContinue = true;
     stopExecutionInt();
   }
-  
-  bool ret = llproc->relocate();
-  
+
+  /* PatchAPI stuffs */
+  bool ret = AddressSpace::patch(llproc);
+  /* End of PatchAPI stuffs */
+
   llproc->trapMapping.flush();
-  
-  if (shouldContinue) 
+
+  if (shouldContinue)
     continueExecutionInt();
-  
+
   if (pendingInsertions) {
     delete pendingInsertions;
     pendingInsertions = NULL;
@@ -818,8 +830,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 }
 
 
-bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *, 
-							BPatch_Vector<BPatch_catchupInfo> &)
+bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
+                                                        BPatch_Vector<BPatch_catchupInfo> &)
 {
    return false;
 }
@@ -828,21 +840,21 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
  * BPatch_process::setMutationsActive
  *
  * Enable or disable the execution of all snippets for the thread.
- * 
- * activate	If set to true, execution of snippets is enabled.  If false,
- *		execution is disabled.
+ *
+ * activate     If set to true, execution of snippets is enabled.  If false,
+ *              execution is disabled.
  */
 bool BPatch_process::setMutationsActiveInt(bool activate)
 {
    // If not activating or deactivating, just return.
    if ((activate && mutationsActive) || (!activate && !mutationsActive))
       return true;
-   
+
    if (activate)
       llproc->reinstallMutations();
    else
       llproc->uninstallMutations();
-   
+
    mutationsActive = activate;
    return true;
 }
@@ -926,15 +938,15 @@ int BPatch_process::oneTimeCodeCallbackDispatch(PCProcess *theProc,
  * when the snippet has executed in the mutatee, and can wait until the
  * snippet has executed to return.
  *
- * expr		The snippet to evaluate.
- * userData	This value is given to the callback function along with the
- *		return value for the snippet.  Can be used by the caller to
- *		store per-oneTimeCode information.
- * synchronous	True means wait until the snippet has executed, false means
- *		return immediately.
+ * expr         The snippet to evaluate.
+ * userData     This value is given to the callback function along with the
+ *              return value for the snippet.  Can be used by the caller to
+ *              store per-oneTimeCode information.
+ * synchronous  True means wait until the snippet has executed, false means
+ *              return immediately.
  */
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
-                                          BPatch_thread *thread, 
+                                          BPatch_thread *thread,
                                           void *userData,
                                           BPatchOneTimeCodeCallback cb,
                                           bool synchronous,
@@ -968,7 +980,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
         return NULL;
     }
 
-
     if( !synchronous ) return NULL;
 
     assert( info->isCompleted() );
@@ -985,10 +996,10 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 
 //  BPatch_process::oneTimeCodeAsync
 //
-//  Have the specified code be executed by the mutatee once.  Don't wait 
+//  Have the specified code be executed by the mutatee once.  Don't wait
 //  until done.
-bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
-                                         void *userData, BPatchOneTimeCodeCallback cb) 
+bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
+                                         void *userData, BPatchOneTimeCodeCallback cb)
 {
    bool err = false;
    oneTimeCodeInternal(expr, NULL, userData,  cb, false, &err, true);
@@ -1002,14 +1013,14 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * Load a dynamically linked library into the address space of the mutatee.
  *
- * libname	The name of the library to load.
+ * libname      The name of the library to load.
  */
-bool BPatch_process::loadLibraryInt(const char *libname, bool)
+BPatch_module *BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    if (!libname) {
-      BPatch_reportError(BPatchWarning, 0, 
-              "loadLibrary called with NULL library name");
-      return false;
+      fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
+              __FILE__, __LINE__);
+      return NULL;
    }
 
    bool wasStopped = isStoppedInt();
@@ -1021,81 +1032,77 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
        }
    }
 
-   bool error = false;
-   do {
-       /**
-        * Find the DYNINSTloadLibrary function
-        **/
-       BPatch_Vector<BPatch_function *> bpfv;
-       BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
-       if(dyn_rt_lib == NULL)
-       {
-          BPatch_reportError(BPatchFatal, 0, 
-                   "FATAL: Cannot find module for DyninstAPI Runtime Library");
-          error = true;
-          break;
-       }
+   /**
+    * Find the DYNINSTloadLibrary function
+    **/
+   BPatch_Vector<BPatch_function *> bpfv;
+   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
+   if(dyn_rt_lib == NULL)
+   {
+      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
+           << "DyninstAPI Runtime Library" << endl;
+      return NULL;
+   }
+   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
+   if (!bpfv.size()) {
+      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
+           << "Function DYNINSTloadLibrary" << endl;
+      return NULL;
+   }
+   if (bpfv.size() > 1) {
+      std::string msg = std::string("Found ") + utos(bpfv.size()) +
+         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
+   BPatch_function *dlopen_func = bpfv[0];
+   if (dlopen_func == NULL) return false;
 
-       dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
-       if (!bpfv.size() || bpfv[0] == NULL) {
-          BPatch_reportError(BPatchFatal, 0,
-                  "FATAL: Cannot find Internal Function DYNINSTloadLibrary");
-          error = true;
-          break;
-       }
+   /**
+    * Generate a call to DYNINSTloadLibrary, and then run the generated code.
+    **/
+   BPatch_Vector<BPatch_snippet *> args;
+   BPatch_constExpr nameArg(libname);
+   args.push_back(&nameArg);
+   BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
 
-       if (bpfv.size() > 1) {
-          std::string msg = std::string("Found ") + utos(bpfv.size()) + 
-             std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
-          BPatch_reportError(BPatchSerious, 100, msg.c_str());
-          error = true;
-          break;
-       }
+   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
+      BPatch_variableExpr *dlerror_str_var =
+         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
+      assert(NULL != dlerror_str_var);
+      char dlerror_str[256];
+      dlerror_str_var->readValue((void *)dlerror_str, 256);
+      BPatch_reportError(BPatchSerious, 124, dlerror_str);
+      return NULL;
+   }
+   /* Find the new mapped_object, map it to a BPatch_module, and return it */
 
-       BPatch_function *dlopen_func = bpfv[0]; 
-
-       /**
-        * Generate a call to DYNINSTloadLibrary, and then run the generated code.
-        **/
-       BPatch_Vector<BPatch_snippet *> args;   
-       BPatch_constExpr nameArg(libname);
-       args.push_back(&nameArg);   
-       BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
-        
-       if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true, false)) {
-          BPatch_variableExpr *dlerror_str_var = 
-             dyn_rt_lib->findVariable("gLoadLibraryErrorString");
-          assert(NULL != dlerror_str_var);      
-          char dlerror_str[256];
-          dlerror_str_var->readValue((void *)dlerror_str, 256);
-          BPatch_reportError(BPatchSerious, 124, dlerror_str);
-          error = true;
-          break;
-       }
-   }while(0);
-
-   if( !wasStopped ) {
-       if( !continueExecutionInt() ) {
-          BPatch_reportError(BPatchWarning, 0, 
-                  "Failed to continue process after loadLibrary");
-          error = true;
-       }
+   mapped_object* plib = llproc->findObject(libname);
+   if (!plib) {
+     std::string wildcard(libname);
+     wildcard += "*";
+     plib = llproc->findObject(wildcard, true);
+   }
+   if (!plib) {
+      // Best effort; take the latest added mapped_object
+      plib = llproc->mappedObjects().back();
    }
 
-   return !error;
+   dynamic_cast<DynAddrSpace*>(llproc->mgr()->as())->loadLibrary(plib);
+   return getImage()->findOrCreateModule(plib->getDefaultModule());
 }
+
 
 void BPatch_process::enableDumpPatchedImageInt(){
     // deprecated; saveTheWorld is dead. Do nothing for now; kill later.
 }
 
-void BPatch_process::setExitedViaSignal(int signalnumber) 
+void BPatch_process::setExitedViaSignal(int signalnumber)
 {
    exitedViaSignal = true;
    lastSignal = signalnumber;
 }
 
-void BPatch_process::setExitedNormally() 
+void BPatch_process::setExitedNormally()
 {
    exitedNormally = true;
 }
@@ -1149,10 +1156,10 @@ void BPatch_process::getAS(std::vector<AddressSpace *> &as)
  **/
 void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 {
-   if (!thrd || !thrd->getBPatchID()) 
+   if (!thrd || !thrd->getBPatchID())
    {
       //Don't delete if this is the initial thread.  Some Dyninst programs
-      // may use the initial BPatch_thread as a handle instead of the 
+      // may use the initial BPatch_thread as a handle instead of the
       // BPatch_process, and we don't want to delete that handle out from
       // under the users.
       return;
@@ -1182,10 +1189,10 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 #ifdef IBM_BPATCH_COMPAT
 /**
  * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
- * which is in turn a wrapper for creating a new 
+ * which is in turn a wrapper for creating a new
  * ibmBpatchElf32Teader(name, addr)
  **/
-bool BPatch_process::addSharedObjectInt(const char *name, 
+bool BPatch_process::addSharedObjectInt(const char *name,
                                         const unsigned long loadaddr)
 {
    return loadLibraryInt(name);
@@ -1197,7 +1204,7 @@ bool BPatch_process::addSharedObjectInt(const char *name,
  * and printing the current instruction as it executes.
  **/
 
-void BPatch_process::debugSuicideInt() 
+void BPatch_process::debugSuicideInt()
 {
     llproc->debugSuicide();
 }
@@ -1205,7 +1212,6 @@ void BPatch_process::debugSuicideInt()
 void BPatch_process::triggerThreadCreate(PCThread *thread) {
   BPatch_thread *newthr = BPatch_thread::createNewThread(this, thread);
   threads.push_back(newthr);
-
   BPatch::bpatch->registerThreadCreate(this, newthr);
 }
 
@@ -1213,7 +1219,7 @@ void BPatch_process::triggerThreadCreate(PCThread *thread) {
  *
  * Causes the execution of a callback in the mutator that was
  * triggered for the evtStopThread event. As BPatch_stopThreadExpr
- * snippets allow a different callback to be triggered to each
+ * snippets allow a different callback to be triggered for each
  * snippet instance, the cb_ID is used to find the right callback to
  * trigger. This code had to be in a BPatch-level class so that we
  * could utilize the findOrCreateBPFunc and findOrCreateBPPoint
@@ -1221,26 +1227,26 @@ void BPatch_process::triggerThreadCreate(PCThread *thread) {
  *
  * @intPoint: the instPoint at which the event occurred, will be
  *    wrapped in a BPatch_point and sent to the callback as a parameter
- * @intFunc: the function in which the event occurred, will be wrapped 
+ * @intFunc: the function in which the event occurred, will be wrapped
  *    in a BPatch_function and sent to the callback as a parameter
  * @proc: the process is needed for the creation of BPatch level objects
  * @cb_ID: helps us identify the correct call
- * @retVal: the return value of a parameter snippet that gets passed 
- *    down in the stopThread snippet and evaluated.  
+ * @retVal: the return value of a parameter snippet that gets passed
+ *    down in the stopThread snippet and evaluated.
  *
  * Return Value: Will always be true if code unless an error occurs, a
  *    callback is triggered for every stopThread snippet instance.
  */
-bool BPatch_process::triggerStopThread(instPoint *intPoint, 
+bool BPatch_process::triggerStopThread(instPoint *intPoint,
          func_instance *intFunc, int cb_ID, void *retVal)
 {
     // find the BPatch_point corresponding to the instrumentation point
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_procedureLocation bpPointType = 
+    BPatch_procedureLocation bpPointType =
         BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
-    if (!bpPoint) { 
-        return false; 
+    if (!bpPoint) {
+        return false;
     }
 
     // Trigger all the callbacks matching this snippet
@@ -1266,14 +1272,14 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
  * wrapped in a BPatch_function and sent to the callback as a parameter
  *
  * Return Value: true if a matching callback was found and no error occurred
- * 
+ *
  */
-bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint, 
+bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
         func_instance *intFunc, long signum, BPatch_Vector<Address> *handlers)
 {
     // find the BPatch_point corresponding to the exception-raising instruction
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_procedureLocation bpPointType = 
+    BPatch_procedureLocation bpPointType =
         BPatch_point::convertInstPointType_t(intPoint->type());
     BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { return false; }
@@ -1291,14 +1297,14 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
 /* BPatch::triggerCodeOverwriteCB
  *
  * Grabs BPatch level objects for the instPoint and enclosing function
- * and triggers a registered callback if there is one 
+ * and triggers a registered callback if there is one
  *
  * @intPoint: the instPoint at which the event occurred, will be
  * wrapped in a BPatch_point and sent to the callback as a parameter
  *
  * Return Value: true if a matching callback was found and no error occurred
  */
-bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint, 
+bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
                                             Address faultTarget)
 {
     BPatch_function *bpFunc = findOrCreateBPFunc
@@ -1324,7 +1330,7 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
  * being debugged.  The debugging process will still have debug
  * access, but system calls that ask if the process is being debugged
  * will say that it is not because they merely return the value of the
- * user-space beingDebugged flag. 
+ * user-space beingDebugged flag.
  */
 bool BPatch_process::hideDebuggerInt()
 {
@@ -1409,7 +1415,7 @@ bool BPatch_process::hideDebuggerInt()
                                 funcs[0],repfuncs[0]));
     }
 
-    if (kern) { 
+    if (kern) {
         // CheckRemoteDebuggerPresent
         vector<BPatch_function*> funcs;
         kern->findFunction(
@@ -1426,14 +1432,14 @@ bool BPatch_process::hideDebuggerInt()
                                 funcs[0],repfuncs[0]));
     }
 
-    if (kern && user) { 
+    if (kern && user) {
         // OutputDebugStringA
         vector<BPatch_function*> funcs;
         kern->findFunction("OutputDebugStringA",
             funcs, false, false, true);
         assert(funcs.size());
         vector<BPatch_function*> sle_funcs;
-        user->findFunction("SetLastErrorEx", sle_funcs, 
+        user->findFunction("SetLastErrorEx", sle_funcs,
                            false, false, true, true);
         assert(!sle_funcs.empty());
         vector<BPatch_snippet*> args;
@@ -1446,8 +1452,8 @@ bool BPatch_process::hideDebuggerInt()
         for (unsigned i=0; i < exitPoints->size(); i++) {
             insertSnippet( callSLE, *((*exitPoints)[i]) );
         }
-    } 
-    
+    }
+
     if (NULL != hybridAnalysis_) {
         hybridAnalysis_->addReplacedFuncs(disabledFuncs);
     }
@@ -1500,41 +1506,33 @@ unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddr)
 }
 
 // is the first instruction: [00 00] add byte ptr ds:[eax],al ? 
-/* commented out to squash warnings
 static bool hasWeirdEntryBytes(func_instance *func)
 {
     using namespace SymtabAPI;
     Symtab *sym = func->obj()->parse_img()->getObject();
-    if (sym->findEnclosingRegion(func->addr()) 
-        != 
-        sym->findEnclosingRegion(func->addr()+1)) 
+    if (sym->findEnclosingRegion(func->addr())
+        !=
+        sym->findEnclosingRegion(func->addr()+1))
     {
         return false;
     }
     unsigned short ebytes;
     memcpy(&ebytes,func->obj()->getPtrToInstruction(func->addr()),2);
-    //proc()->readDataSpace((void*)func->addr(), sizeof(short), &ebytes, false);
 
     if (0 == ebytes) {
+        mal_printf("funct at %lx hasWeirdEntryBytes, 0x0000\n", func->addr());
         return true;
     }
     return false;
 }
-*/
 
-// return true if the analysis changed
-// 
 void BPatch_process::overwriteAnalysisUpdate
-    ( std::map<Dyninst::Address,unsigned char*>& /* owPages */, //input
-      std::vector<Dyninst::Address>& /* deadBlockAddrs */, //output
-      std::vector<BPatch_function*>& /* owFuncs */, //output: overwritten & modified
-      std::set<BPatch_function *> & /* monitorFuncs */, // output: those that call overwritten or modified funcs
-      bool & /*changedPages*/, bool & /* changedCode */) //output
+    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
+      std::vector<std::pair<Dyninst::Address,int> >& deadBlocks, //output
+      std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
+      std::set<BPatch_function *> &monitorFuncs, // output: those that call overwritten or modified funcs
+      bool &changedPages, bool &changedCode) //output
 {
-   assert(0 && "FIXME!");
-
-#if 0
-
     //1.  get the overwritten blocks and regions
     std::list<std::pair<Address,Address> > owRegions;
     std::list<block_instance *> owBBIs;
@@ -1542,267 +1540,222 @@ void BPatch_process::overwriteAnalysisUpdate
     changedPages = ! owRegions.empty();
     changedCode = ! owBBIs.empty();
 
-    /*2. remove dead code from the analysis */
-
     if ( !changedCode ) {
         // update the mapped data for the overwritten ranges
         llproc->updateCodeBytes(owRegions);
         return;
     }
 
-    // identify the dead code 
-    std::set<block_instance*> delBBIs;
-    std::map<func_instance*,set<block_instance*> > elimMap;
-    std::list<func_instance*> deadFuncs;
-    std::map<func_instance*,block_instance*> newFuncEntries;
-    llproc->getDeadCode(owBBIs,delBBIs,elimMap,deadFuncs,newFuncEntries); 
+    /*2. remove dead code from the analysis */
+
+    // identify the dead code (see getDeadCode for its parameter definitions)
+    std::set<block_instance*> delBlocks; 
+    std::map<func_instance*,set<block_instance*> > elimMap; 
+    std::list<func_instance*> deadFuncs; 
+    std::map<func_instance*,block_instance*> newFuncEntries; 
+    llproc->getDeadCode(owBBIs,delBlocks,elimMap,deadFuncs,newFuncEntries);
 
     // remove instrumentation from affected funcs
     beginInsertionSet();
     for(std::map<func_instance*,set<block_instance*> >::iterator fIter = elimMap.begin();
-        fIter != elimMap.end(); 
-        fIter++) 
+        fIter != elimMap.end();
+        fIter++)
     {
         BPatch_function *bpfunc = findOrCreateBPFunc(fIter->first,NULL);
+        //hybridAnalysis_->removeInstrumentation(bpfunc,false,false);
         bpfunc->removeInstrumentation(false);
     }
 
     //remove instrumentation from dead functions
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
-        // remove instrumentation 
+        // remove instrumentation
         findOrCreateBPFunc(*fit,NULL)->removeInstrumentation(true);
     }
+
+    finalizeInsertionSet(false);
 
     // update the mapped data for the overwritten ranges
     llproc->updateCodeBytes(owRegions);
 
-    finalizeInsertionSet(false);
-
-    // create stub edge set which is: all edges such that: 
+    // create stub edge set which is: all edges such that:
     //     e->trg() in owBBIs and
-    //     while e->src() in delBlocks try e->src()->sources()
-    std::map<func_instance*,vector<edgeStub> > stubs = 
-       llproc->getStubs(owBBIs,delBBIs,deadFuncs);
+    //     while e->src() in delBlocks choose stub from among e->src()->sources()
+    std::map<func_instance*,vector<edgeStub> > stubs =
+       llproc->getStubs(owBBIs,delBlocks,deadFuncs);
 
-    // remove dead springboards
-    for(set<block_instance*>::iterator bit = delBBIs.begin(); 
-        bit != delBBIs.end();
-        bit++) 
-    {
-        llproc->getMemEm()->removeSpringboards(*bit);
-    }
-    for(list<func_instance*>::iterator fit = deadFuncs.begin(); 
+    // get stubs for dead funcs
+    map<Address,vector<block_instance*> > deadFuncCallers;
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
         fit != deadFuncs.end();
-        fit++) 
+        fit++)
     {
-        malware_cerr << "Removing instrumentation from dead func at " 
-            << (*fit)->addr() << endl;
-        llproc->getMemEm()->removeSpringboards(*fit);
+       if ((*fit)->getLiveCallerBlocks(delBlocks, deadFuncs, deadFuncCallers) &&
+           ((*fit)->ifunc()->hasWeirdInsns() || hasWeirdEntryBytes(*fit))) 
+       {
+          // don't reparse the function if it's likely a garbage function, 
+          // but mark the caller point as unresolved so we'll re-parse
+          // if we actually call into the garbage func
+          Address funcAddr = (*fit)->addr();
+          vector<block_instance*>::iterator sit = deadFuncCallers[funcAddr].begin();
+          for ( ; sit != deadFuncCallers[funcAddr].end(); sit++) {
+             (*sit)->llb()->setUnresolvedCF(true);
+             vector<func_instance*> cfuncs;
+             (*sit)->getFuncs(std::back_inserter(cfuncs));
+             for (unsigned i=0; i < cfuncs.size(); i++) {
+                cfuncs[i]->ifunc()->setPrevBlocksUnresolvedCF(0); // force rebuild of unresolved list
+                cfuncs[i]->preCallPoint(*sit, true); // create point
+                monitorFuncs.insert(findOrCreateBPFunc(cfuncs[i], NULL));
+             }
+          }
+          deadFuncCallers.erase(deadFuncCallers.find(funcAddr));
+       }
     }
 
-    // delete delBlocks
-    std::set<func_instance*> modFuncs;
-    for(set<block_instance*>::iterator bit = delBBIs.begin(); 
-        bit != delBBIs.end();
-        bit++) 
+    // set new entry points for functions with NewF blocks, the active blocks
+    // in newFuncEntries serve as suggested entry points, but will not be 
+    // chosen if there are other blocks in the function with no incoming edges
+    for (map<func_instance*,block_instance*>::iterator nit = newFuncEntries.begin();
+         nit != newFuncEntries.end();
+         nit++)
     {
-        mal_printf("Deleting block [%lx %lx) from func at %lx\n",
-                   (*bit)->start(),(*bit)->end(),(*bit)->func()->addr());
-        func_instance *bFunc = (*bit)->func();
-        modFuncs.insert(bFunc);
-        if ((*bit)->getHighLevelBlock()) {
-            ((BPatch_basicBlock*)(*bit)->getHighLevelBlock())
-                ->setlowlevel_block(NULL);
-        }
-        deadBlockAddrs.push_back((*bit)->start());
-        vector<ParseAPI::Block*> bSet; 
-        bSet.push_back((*bit)->llb());
-        bFunc->deleteBlock((*bit));
-        ParseAPI::Block *newEntry = NULL;
-        if (newFuncEntries.end() != newFuncEntries.find(bFunc)) {
-            newEntry = newFuncEntries[bFunc]->llb();
-            bFunc->ifunc()->setEntryBlock(newEntry);
-        }
-        bFunc->ifunc()->destroyBlocks(bSet); //KEVINTODO: doing this one by one is highly inefficient
+        nit->first->setNewEntry(nit->second,delBlocks);
+    }
+    
+    // delete delBlocks and set new function entry points, if necessary
+    vector<PatchBlock*> delVector;
+    for(set<block_instance*>::reverse_iterator bit = delBlocks.rbegin(); 
+        bit != delBlocks.rend();
+        bit++)
+    {
+        mal_printf("Deleting block [%lx %lx)\n", (*bit)->start(),(*bit)->end());
+        deadBlocks.push_back(pair<Address,int>((*bit)->start(),(*bit)->size()));
+        delVector.push_back(*bit);
+    }
+    if (!delVector.empty() && ! PatchAPI::PatchModifier::remove(delVector,true)) {
+        assert(0);
     }
     mal_printf("Done deleting blocks\n"); 
-    // delete completely dead functions
-    map<block_instance*,Address> deadFuncCallers; // build up list of live callers
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+    // delete completely dead functions // 
+
+    // save deadFunc block addresses in deadBlocks
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
-        using namespace ParseAPI;
-        Address funcAddr = (*fit)->addr();
-
-        // grab callers that aren't also dead
-        Block::edgelist &callEdges = (*fit)->ifunc()->entryBlock()->sources();
-        Block::edgelist::iterator eit = callEdges.begin();
-        for( ; eit != callEdges.end(); ++eit) {
-            if (CALL == (*eit)->type()) {// includes tail calls
-                parse_block *cBlk = (parse_block*)((*eit)->src());
-                vector<ParseAPI::Function*> cFuncs;
-                cBlk->getFuncs(cFuncs);
-                for (unsigned fix=0; fix < cFuncs.size(); fix++) {
-                    func_instance *cfunc = llproc->findFunction(
-                        (parse_func*)(cFuncs[fix]));
-                    block_instance *cbbi = cfunc->findBlock(cBlk);
-                    if (delBBIs.end() != delBBIs.find(cbbi)) {
-                        continue;
-                    }
-                    bool isFuncDead = false;
-                    for (std::list<func_instance*>::iterator dfit = deadFuncs.begin();
-                         dfit != deadFuncs.end(); 
-                         dfit++) 
-                    {
-                        if (cfunc == *dfit) {
-                            isFuncDead = true;
-                            break;
-                        }
-                    }
-                    if (isFuncDead) {
-                        continue;
-                    }
-                    if ( (*fit)->ifunc()->hasWeirdInsns() || 
-                         hasWeirdEntryBytes(*fit) ) 
-                    {
-                       instPoint *cPoint = cbbi->preCallPoint();
-                       
-                       monitorFuncs.insert(findOrCreateBPFunc(cfunc, NULL));
-                    } else {
-                        // parse right away
-                        deadFuncCallers[cbbi] = funcAddr;
-                    }
-                }
-            }
-        }
- 
-        // add blocks to deadBlockAddrs 
-
-        const func_instance::BlockSet& 
-            deadBlocks = (*fit)->blocks();
-        set<block_instance* ,block_instance::compare>::const_iterator
-                bIter= deadBlocks.begin();
-        for (; bIter != deadBlocks.end(); bIter++) {
-            deadBlockAddrs.push_back((*bIter)->start());
+        const PatchFunction::Blockset& deadBs = (*fit)->blocks();
+        PatchFunction::Blockset::const_iterator bIter= deadBs.begin();
+        for (; bIter != deadBs.end(); bIter++) {
+            deadBlocks.push_back(pair<Address,int>((*bIter)->start(),
+                                                   (*bIter)->size()));
         }
     }
-    mal_printf("Done deleting func-blocks\n");
-    //remove dead functions
-    for(std::list<func_instance*>::iterator fit = deadFuncs.begin(); 
-        fit != deadFuncs.end(); 
-        fit++) 
+
+    // now actually delete the dead functions and redirect call edges to sink 
+    // block (if there already is an edge to the sink block, redirect 
+    // doesn't duplicate the edge)
+    for(std::list<func_instance*>::iterator fit = deadFuncs.begin();
+        fit != deadFuncs.end();
+        fit++)
     {
-        BPatch_function *bpfunc = findOrCreateBPFunc(*fit,NULL);
-        bpfunc->getModule()->removeFunction(bpfunc,false);
-        (*fit)->removeFromAll();
+        const PatchBlock::edgelist & srcs = (*fit)->entry()->sources();
+        vector<PatchEdge*> srcVec; // can't operate off edgelist, since we'll be deleting edges
+        std::copy(srcs.begin(), srcs.end(), back_inserter(srcVec));
+        for (vector<PatchEdge*>::const_iterator sit = srcVec.begin();
+             sit != srcVec.end();
+             sit++)
+        {
+           if ((*sit)->type() == ParseAPI::CALL) {
+              PatchAPI::PatchModifier::redirect(*sit, NULL);
+           }
+        }
+
+        if (false == PatchAPI::PatchModifier::remove(*fit)) {
+            assert(0);
+        }
     }
     mal_printf("Done deleting functions\n");
 
-    // set up datastructures for re-parsing dead function entries with valid call edges
+
+    // set up data structures for re-parsing dead functions from stubs
     map<mapped_object*,vector<edgeStub> > dfstubs;
-    set<Address> reParsedFuncs;
-    vector<BPatch_module*> dontcare; 
-    vector<Address> targVec; 
-    for (map<block_instance*,Address>::iterator bit = deadFuncCallers.begin();
-         bit != deadFuncCallers.end();
-         bit++) 
+    for (map<Address, vector<block_instance*> >::iterator sit = deadFuncCallers.begin();
+         sit != deadFuncCallers.end();
+         sit++)
     {
-        // the function is still reachable, reparse it
-        if (reParsedFuncs.end() == reParsedFuncs.find(bit->second)) {
-            reParsedFuncs.insert(bit->second);
-            targVec.push_back(bit->second);
-        }
-        // re-instate call edges to the function
-        dfstubs[bit->first->func()->obj()].push_back(edgeStub(bit->first,bit->second,ParseAPI::CALL));
-    }
+       for (vector<block_instance*>::iterator bit = sit->second.begin();
+            bit != sit->second.end();
+            bit++) 
+       {
+          // re-instate call edges to the function
+          dfstubs[(*bit)->obj()].push_back(edgeStub(*bit,
+                                                    sit->first,
+                                                    ParseAPI::CALL));
+       }
+   }
 
     // re-parse the functions
     for (map<mapped_object*,vector<edgeStub> >::iterator mit= dfstubs.begin();
          mit != dfstubs.end(); mit++)
     {
-        if (getImage()->parseNewFunctions(dontcare, targVec)) {
-            // add function to output vector
-            for (unsigned tidx=0; tidx < targVec.size(); tidx++) {
-                BPatch_function *bpfunc = findFunctionByEntry(targVec[tidx]);
-                if (!bpfunc) {
-                    owFuncs.push_back(bpfunc);
-                } else {
-                    // couldn't reparse
-                    mal_printf("WARNING: Couldn't re-parse some of the overwritten "
-                               "functions\n", targVec[tidx], FILE__,__LINE__);
-                }
+        mit->first->setCodeBytesUpdated(false);
+        if (mit->first->parseNewEdges(mit->second)) {
+            // add functions to output vector
+            for (unsigned fidx=0; fidx < mit->second.size(); fidx++) {
+               BPatch_function *bpfunc = findFunctionByEntry(mit->second[fidx].trg);
+               if (bpfunc) {
+                  owFuncs.push_back(bpfunc);
+               } else {
+                  // couldn't reparse
+                  mal_printf("WARNING: Couldn't re-parse an overwritten "
+                             "function at %lx %s[%d]\n", mit->second[fidx].trg, 
+                             FILE__,__LINE__);
+               }
             }
-        }
-        mit->first->parseNewEdges(mit->second);
-    }
-
-    // set new entry points for functions with NewF blocks
-    for (std::map<func_instance*,block_instance*>::iterator nit = newFuncEntries.begin();
-         nit != newFuncEntries.end();
-         nit++)
-    {
-        block_instance *entry = nit->first->setNewEntryPoint();
-        if (entry != nit->second) {
-            mal_printf("For overwritten executing func chose entry "
-                       "block %lx rather than active block %lx %s %d\n",
-                       entry->start(), 
-                       nit->second->start(),FILE__,__LINE__);
+        } else {
+            mal_printf("ERROR: Couldn't re-parse overwritten "
+                       "functions %s[%d]\n", FILE__,__LINE__);
         }
     }
 
     //3. parse new code, one overwritten function at a time
-    for(std::map<func_instance*,set<block_instance*> >::iterator 
+    for(std::map<func_instance*,set<block_instance*> >::iterator
         fit = elimMap.begin();
         fit != elimMap.end();
-        fit++) 
+        fit++)
     {
         // parse new edges in the function
-        if (stubs[fit->first].size()) 
-        {
-            fit->first->obj()->parseNewEdges(stubs[fit->first]);
-            modFuncs.insert(fit->first);
-        } 
-        else if (newFuncEntries.end() == newFuncEntries.find(fit->first)) 
-        {
-            mal_printf("WARNING: didn't have any stub edges for overwritten "
-                       "func %lx\n", fit->first->addr());
-            vector<edgeStub> svec;
-            svec.push_back(edgeStub(
-                NULL, fit->first->addr(), ParseAPI::NOEDGE));
-		    fit->first->obj()->parseNewEdges(svec);
-            assert(0);
-        }
-        // else, this is the entry point of the function, do nothing, 
-        // we'll parse this anyway through recursive traversal if there's
-        // code at this address
-
+       if (!stubs[fit->first].empty()) {
+          fit->first->obj()->parseNewEdges(stubs[fit->first]);
+       } else {
+          // stubs may have been shared with another function and parsed in 
+          // the other function's context.  
+          mal_printf("WARNING: didn't have any stub edges for overwritten "
+                     "func %lx\n", fit->first->addr());
+          //KEVINTEST: we used to wind up here with deleted functions, hopefully we do not anymore
+       }
         // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
         BPatch_function *bpfunc = findOrCreateBPFunc(fit->first,NULL);
         bpfunc->removeCFG();
         owFuncs.push_back(bpfunc);
     }
-        
+
     // do a consistency check
-    for (set<func_instance*>::iterator fit = modFuncs.begin(); 
-        fit != modFuncs.end(); 
+    for(std::map<func_instance*,set<block_instance*> >::iterator 
+        fit = elimMap.begin();
+        fit != elimMap.end();
         fit++) 
     {
-        (*fit)->ifunc()->blocks(); // force ParseAPI func finalization
-        (*fit)->addMissingBlocks();
-        assert((*fit)->consistency());
+        assert(fit->first->consistency());
     }
-#endif
 }
 
-
-/* Protect analyzed code without protecting relocated code in the 
+/* Protect analyzed code without protecting relocated code in the
  * runtime library and for now only protect code in the aOut,
  * also don't protect code that hasn't been analyzed
- */ 
+ */
 bool BPatch_process::protectAnalyzedCode()
 {
     bool ret = true;

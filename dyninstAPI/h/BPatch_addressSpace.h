@@ -32,12 +32,12 @@
 #ifndef _BPatch_addressSpace_h_
 #define _BPatch_addressSpace_h_
 
+#include "boost/shared_ptr.hpp"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_enums.h"
 #include "BPatch_instruction.h" // for register type
-
 #include "BPatch_callbacks.h"
 
 #include <vector>
@@ -45,18 +45,44 @@
 #include <stdio.h>
 #include <signal.h>
 
+// PatchAPI stuffs
+//#include "Command.h"
+
+class BPatch_addressSpace;
+
+namespace Dyninst {
+namespace PatchAPI { 
+   class PatchMgr;
+   class DynAddrSpace;
+   class Patcher;
+   class Instance;
+   class PatchFunction;
+   class Point;
+   typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
+   typedef boost::shared_ptr<DynAddrSpace> DynAddrSpacePtr;
+   typedef boost::shared_ptr<Instance> InstancePtr;
+   PatchMgrPtr convert(const BPatch_addressSpace *);
+};
+namespace SymtabAPI {
+   class Symbol;
+};
+}
+
+
 class BPatch_statement;
 class BPatch_snippet;
 class BPatch_point;
 class BPatch_variableExpr;
+class BPatch_type;
 class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
 class BPatch_image;
 
-class func_instance;
 struct batchInsertionRecord;
+class instPoint;
+class int_variable;
 
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
@@ -79,15 +105,8 @@ private:
     // Address Space snippet belogns to
     BPatch_addressSpace *addSpace_;
 
-#if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable:4251) 
-#endif
     // low-level mappings for removal
-    BPatch_Vector<miniTramp *> mtHandles_;
-#if defined(_MSC_VER)
-#pragma warning(pop)    
-#endif
+    std::vector<Dyninst::PatchAPI::InstancePtr> instances_;
 
     //  a flag for catchup
     bool catchupNeeded;
@@ -96,7 +115,7 @@ private:
     
     BPatchSnippetHandle(BPatch_addressSpace * addSpace);
 
-    void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
+    void addInstance(Dyninst::PatchAPI::InstancePtr p) { instances_.push_back(p); }
     
 public:
  
@@ -108,6 +127,11 @@ public:
     // have multiple instances of instrumentation due to function
     // relocation.
     API_EXPORT(Int, (), bool, usesTrap, ());
+
+    // mtHandles_ is not empty, , returns the function that the 
+    // instrumentation was added to 
+    API_EXPORT(Int, (),
+    BPatch_function *, getFunc, ());
 
     API_EXPORT(Int, (),
     BPatch_addressSpace *, getAddressSpace, ());
@@ -138,15 +162,16 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
     friend class BPatch_instruction;
+    friend Dyninst::PatchAPI::PatchMgrPtr Dyninst::PatchAPI::convert(const BPatch_addressSpace *);
   
  public:
     
-  BPatch_function *findOrCreateBPFunc(func_instance *ifunc, 
+  BPatch_function *findOrCreateBPFunc(Dyninst::PatchAPI::PatchFunction *ifunc, 
                                       BPatch_module *bpmod);
 
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
-                                    instPoint *ip,
-                                    BPatch_procedureLocation pointType = BPatch_locUnknownLocation);
+                                    Dyninst::PatchAPI::Point *ip,
+                                    BPatch_procedureLocation pointType);
 
   BPatch_variableExpr *findOrCreateVariable(int_variable *v,
                                             BPatch_type *type = NULL);
@@ -156,9 +181,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   // These callbacks are triggered by lower-level code and forward
   // calls up to the findOrCreate functions.
-  static BPatch_function *createBPFuncCB(AddressSpace *p, func_instance *f);
-  static BPatch_point *createBPPointCB(AddressSpace *p, func_instance *f,
-				       instPoint *ip, int type);
+  static BPatch_function *createBPFuncCB(AddressSpace *p,
+                                         Dyninst::PatchAPI::PatchFunction *f);
+  static BPatch_point *createBPPointCB(AddressSpace *p,
+                                       Dyninst::PatchAPI::PatchFunction *f,
+				       Dyninst::PatchAPI::Point *ip, 
+                                       int type);
 
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
 
@@ -170,7 +198,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-  
+
  public:
 
   BPatch_addressSpace();
@@ -236,7 +264,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   virtual void beginInsertionSet() = 0;
 
-  virtual bool finalizeInsertionSet(bool atomic, bool *modified) = 0;
+  virtual bool finalizeInsertionSet(bool atomic, bool *modified = NULL) = 0;
  
 
   //  BPatch_addressSpace::deleteSnippet
@@ -274,10 +302,27 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
-    // Look, ma, I rock
+    // BPatch_addressSpace::revertReplaceFunction
+    //
+    // Undo the operation of a replace function
+    API_EXPORT(Int, (oldFunc),
+               bool, revertReplaceFunction, (BPatch_function &oldFunc));
 
-    API_EXPORT(Int, (oldFunc, newFunc),
-    bool,wrapFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
+    // BPatch_addressSpace::wrapFunction
+    //
+    // Replace oldFunc with newFunc as above; however, also rename oldFunc
+    // to the provided name so it can still be reached. 
+
+    API_EXPORT(Int, (oldFunc, newFunc, clone),
+               bool,wrapFunction,(BPatch_function *oldFunc, BPatch_function *newFunc, Dyninst::SymtabAPI::Symbol *clone));
+
+    // BPatch_addressSpace::revertWrapFunction
+    //
+    // Undo the operations of a wrapFunction, restoring the original
+    // functionality
+
+    API_EXPORT(Int, (wrappedFunc),
+               bool,revertWrapFunction,(BPatch_function *wrappedFunc));
 
     //  BPatch_addressSpace::getSourceLines
     //  
@@ -384,7 +429,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     //  function by redefining a function  
 
     API_EXPORT_VIRT(Int, (libname, reload),
-    bool, loadLibrary,(const char *libname, bool reload = false));
+    BPatch_module *, loadLibrary,(const char *libname, bool reload = false));
 
     // BPatch_addressSpace::isStaticExecutable
     //
@@ -393,5 +438,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (),
             bool, isStaticExecutable,());
 };
+
 
 #endif 

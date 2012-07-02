@@ -43,6 +43,8 @@
 
 #include "ProcReader.h"
 
+#include "boost/shared_ptr.hpp"
+
 class MappedFile;
 
 #define SYM_MAJOR 6
@@ -134,7 +136,9 @@ class Symtab : public LookupInterface,
                                          Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
                                          NameType nameType = anyName,
                                          bool isRegex = false, 
-                                         bool checkCase = false);
+                                         bool checkCase = false,
+                                         bool includeUndefined = false);
+
    SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
@@ -242,6 +246,9 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addType(Type *typ);
 
+   static boost::shared_ptr<builtInTypeCollection> builtInTypes();
+   static boost::shared_ptr<typeCollection> stdTypes();
+
    SYMTAB_EXPORT static std::vector<Type *> *getAllstdTypes();
    SYMTAB_EXPORT static std::vector<Type *> *getAllbuiltInTypes();
 
@@ -291,6 +298,9 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool getLinkingResources(std::vector<Archive *> &libs);
 
    SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
+   SYMTAB_EXPORT bool addTrapHeader_win(Address ptr);
+
+   SYMTAB_EXPORT bool updateRelocations(Address start, Address end, Symbol *oldsym, Symbol *newsym);
 
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
@@ -317,6 +327,9 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getTOCoffset() const;
    SYMTAB_EXPORT Address getLoadAddress();
    SYMTAB_EXPORT bool isDefensiveBinary() const; 
+   SYMTAB_EXPORT Offset fileToDiskOffset(Dyninst::Offset) const;
+   SYMTAB_EXPORT Offset fileToMemOffset(Dyninst::Offset) const;
+
 
    SYMTAB_EXPORT std::string getDefaultNamespacePrefix() const;
 
@@ -324,6 +337,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT unsigned getNumberofSymbols() const;
 
    SYMTAB_EXPORT std::vector<std::string> &getDependencies();
+   SYMTAB_EXPORT bool removeLibraryDependency(std::string lib);
 
    SYMTAB_EXPORT Archive *getParentArchive() const;
 
@@ -336,9 +350,6 @@ class Symtab : public LookupInterface,
    bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
    bool deleteSymbol(Symbol *sym); 
 
-   static builtInTypeCollection *builtInTypes;
-   static typeCollection *stdTypes;
-
    Symbol *getSymbolByIndex(unsigned);
    protected:
    Symtab(std::string filename, std::string member_name, Offset offset, bool &err, void *base = NULL);
@@ -346,6 +357,7 @@ class Symtab : public LookupInterface,
 
    /***** Private Member Functions *****/
    private:
+
    SYMTAB_EXPORT Symtab(std::string filename, bool defensive_bin, bool &err);
 
    SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
@@ -355,21 +367,18 @@ class Symtab : public LookupInterface,
    bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
    bool fixSymModules(std::vector<Symbol *> &raw_syms);
    bool demangleSymbols(std::vector<Symbol *> &rawsyms);
-   bool createIndices(std::vector<Symbol *> &raw_syms);
+   bool createIndices(std::vector<Symbol *> &raw_syms, bool undefined);
    bool createAggregates();
 
    bool fixSymModule(Symbol *&sym);
    bool demangleSymbol(Symbol *&sym);
-   bool addSymbolToIndices(Symbol *&sym);
+   bool addSymbolToIndices(Symbol *&sym, bool undefined);
    bool addSymbolToAggregates(Symbol *&sym);
    bool doNotAggregate(Symbol *&sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-
-   void setupTypes();
-   static void setupStdTypes();
 
    bool buildDemangledName( const std::string &mangled, 
          std::string &pretty,
@@ -419,6 +428,11 @@ class Symtab : public LookupInterface,
 
    /***** Private Data Members *****/
    private:
+
+   static boost::shared_ptr<typeCollection> setupStdTypes();
+   static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
+
+
    std::string member_name_;
    Offset member_offset_;
    Archive * parentArchive_;
@@ -469,13 +483,15 @@ class Symtab : public LookupInterface,
    // Indices
 
    std::vector<Symbol *> everyDefinedSymbol;
-   // Subset of the above
-   std::vector<Symbol *> userAddedSymbols;
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
-   std::map <std::string, std::vector<Symbol *> > undefDynSyms;
+   std::vector<Symbol *> undefDynSyms;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByMangledName;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByPrettyName;
+   std::map <std::string, std::vector<Symbol *> > undefDynSymsByTypedName;
 
+   
    // Symbols by offsets in the symbol table
    dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
 
@@ -583,8 +599,8 @@ class Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   static Type *type_Error;
-   static Type *type_Untyped;
+   static boost::shared_ptr<Type> type_Error();
+   static boost::shared_ptr<Type> type_Untyped();
 
  private:
     unsigned _ref_cnt;

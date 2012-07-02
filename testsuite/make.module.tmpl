@@ -12,8 +12,8 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
-IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
+LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -451,8 +451,8 @@ endif
 
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : %.c $(DEPENDDIR)/%.dep
 	@echo Compiling $@
-	$(HIDE_COMP)$(TESTLIB_CC) -c $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(HIDE_COMP)$(AR) rcs $@ $*.o
+	$(HIDE_COMP)$(TESTLIB_CC) -c $(M_ABI_FLAG) $(CFLAGS) $(LDFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*_$(M_ABI).o
+	$(HIDE_COMP)$(AR) rcs $@ $*_$(M_ABI).o
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C

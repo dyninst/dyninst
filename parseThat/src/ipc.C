@@ -31,10 +31,12 @@
 #include <iostream>
 #include <csignal>
 #include <cassert>
-#include <unistd.h>
 #include <errno.h>
+#if ! defined (MSC_VER)
 #include <sys/wait.h>
+#endif
 
+#include "unistd.h"
 #include "ipc.h"
 #include "log.h"
 #include "utils.h"

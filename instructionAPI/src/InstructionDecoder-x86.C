@@ -417,7 +417,10 @@ namespace Dyninst
         b_tr,
         b_amd64ext,
         b_8bitWithREX,
-        b_fpstack
+        b_fpstack,
+	amd64_ext_8,
+	amd64_ext_16,
+	amd64_ext_32
     };
     static MachRegister IntelRegTable32[][8] = {
         {
@@ -506,7 +509,16 @@ namespace Dyninst
         },
         {
             x86_64::st0, x86_64::st1, x86_64::st2, x86_64::st3, x86_64::st4, x86_64::st5, x86_64::st6, x86_64::st7
-        }
+        },
+	{
+	    x86_64::r8b, x86_64::r9b, x86_64::r10b, x86_64::r11b, x86_64::r12b, x86_64::r13b, x86_64::r14b, x86_64::r15b 
+	},
+	{
+	    x86_64::r8w, x86_64::r9w, x86_64::r10w, x86_64::r11w, x86_64::r12w, x86_64::r13w, x86_64::r14w, x86_64::r15w 
+	},
+	{
+	    x86_64::r8d, x86_64::r9d, x86_64::r10d, x86_64::r11d, x86_64::r12d, x86_64::r13d, x86_64::r14d, x86_64::r15d 
+	}
 
     };
 
@@ -539,7 +551,40 @@ namespace Dyninst
 
         if(isExtendedReg)
         {
-            retVal = IntelRegTable(m_Arch,b_amd64ext,intelReg);
+	    switch(opType)
+	    {
+	        case op_q:  
+		    retVal = IntelRegTable(m_Arch,b_amd64ext,intelReg);
+		    break;
+		case op_d:
+		    retVal = IntelRegTable(m_Arch,amd64_ext_32,intelReg);
+		    break;
+		case op_w:
+		    retVal = IntelRegTable(m_Arch,amd64_ext_16,intelReg);
+		    break;
+		case op_b:
+		    retVal = IntelRegTable(m_Arch,amd64_ext_8,intelReg);
+	            break;
+		case op_v:
+		    if (locs->rex_w)
+		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
+	            else if (!sizePrefixPresent)
+		        retVal = IntelRegTable(m_Arch, b_amd64ext, intelReg);
+		    else
+		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
+		    break;	
+		case op_p:
+		case op_z:
+		    if (!sizePrefixPresent)
+		        retVal = IntelRegTable(m_Arch, amd64_ext_32, intelReg);
+		    else
+		        retVal = IntelRegTable(m_Arch, amd64_ext_16, intelReg);
+		    break;
+		default:
+		    fprintf(stderr, "%d\n", opType);
+		    fprintf(stderr, "%s\n",  decodedInstruction->getEntry()->name(locs));
+		    assert(0 && "opType=" && opType);
+	    }
         }
         /* Promotion to 64-bit only applies to the operand types
            that are varible (c,v,z). Ignoring c and z because they
@@ -967,11 +1012,13 @@ namespace Dyninst
                     case am_reg:
                     {
                         MachRegister r(optype);
-                        r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
-                        if(locs->rex_b && insn_to_complete->m_Operands.empty())
+                        r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
+			entryID entryid = decodedInstruction->getEntry()->getID(locs);
+                        if(locs->rex_b && insn_to_complete->m_Operands.empty() && 
+			    (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
                         {
                             // FP stack registers are not affected by the rex_b bit in AM_REG.
-                           if((signed int) r.regClass() != x86::MMX)
+                           if(r.regClass() != (unsigned) x86::MMX)
                             {
                                 r = MachRegister((r.val()) | x86_64::r8.val());
                             }
@@ -1059,6 +1106,7 @@ namespace Dyninst
         if(decodedInstruction->getEntry()) {
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
                                     decodedInstruction->getPrefix(), locs, m_Arch));
+            
         }
         else
         {
@@ -1079,7 +1127,14 @@ namespace Dyninst
         if(!decodedInstruction) return false;
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
 	InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-	
+
+        if (decodedInstruction->getEntry()->getID() == e_ret_near ||
+            decodedInstruction->getEntry()->getID() == e_ret_far) {
+           Expression::Ptr ret_addr = makeDereferenceExpression(makeRegisterExpression(ia32_is_mode_64() ? x86_64::rsp : x86::esp), 
+                                                                ia32_is_mode_64() ? u64 : u32);
+           insn_to_complete->addSuccessor(ret_addr, false, true, false, false);
+	}
+
         for(unsigned i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && 

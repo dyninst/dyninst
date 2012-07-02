@@ -33,10 +33,12 @@
 #define _R_T_MODIFICATION_H_
 
 #include "Transformer.h"
+#include "../Widgets/Widget.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include <list>
 #include <set>
 #include <map>
+#include "../DynInstrumenter.h"
 
 class block_instance;
 class instPoint;
@@ -53,15 +55,16 @@ class Modification : public Transformer {
     //typedef std::map<Address, RelocBlockList> RelocBlockMap;
 
     // Block (IDing a call site) -> func
-    typedef AddressSpace::CallModMap CallModMap;
+    typedef Dyninst::PatchAPI::CallModMap CallModMap;
     // func -> func
-    typedef AddressSpace::FuncModMap FuncModMap;
+    typedef Dyninst::PatchAPI::FuncModMap FuncModMap;
+    typedef Dyninst::PatchAPI::FuncWrapMap FuncWrapMap;
 
     virtual bool process(RelocBlock *cur, RelocGraph *);
 
     Modification(const CallModMap &callRepl,
-		 const FuncModMap &funcRepl,
-                 const FuncModMap &funcWrap);
+                 const FuncModMap &funcRepl,
+                 const FuncWrapMap &funcWrap);
 
     virtual ~Modification() {};
 
@@ -71,18 +74,33 @@ class Modification : public Transformer {
     bool replaceFunction(RelocBlock *trace, RelocGraph *);
     bool wrapFunction(RelocBlock *trace, RelocGraph *);
 
-    RelocBlock *makeRelocBlock(block_instance *block, func_instance *func, RelocGraph *cfg);
+    RelocBlock *makeRelocBlock(block_instance *block, 
+			       func_instance *func, 
+			       RelocBlock *cur,
+			       RelocGraph *cfg);
 
     const CallModMap &callMods_;
     const FuncModMap &funcReps_;
-    const FuncModMap &funcWraps_;
+    const FuncWrapMap &funcWraps_;
 
     struct WrapperPredicate {
        WrapperPredicate(func_instance *f);
        func_instance *f_;
        bool operator()(RelocEdge *e);
     };
+
+    struct WrapperPatch : public Patch {
+      WrapperPatch(func_instance *func, std::string name) : func_(func), name_(name) {};
+       virtual bool apply(codeGen &gen, CodeBuffer *buf);
+       virtual unsigned estimate(codeGen &) { return 0; }
+       virtual ~WrapperPatch() {};
+
+       func_instance *func_;
+       std::string name_;
+    };
+    
   };
+   
 };
 };
 

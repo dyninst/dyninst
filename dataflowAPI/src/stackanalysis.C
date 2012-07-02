@@ -151,9 +151,9 @@ void StackAnalysis::summarizeBlocks() {
       else {
 		  next = block->end();
       }
-
       // Fills in insnEffects[off]
       TransferFuncs &xferFuncs = insnEffects[block][off];
+
       computeInsnEffects(block, insn, off,
                          xferFuncs);
       bFunc.add(xferFuncs);
@@ -220,7 +220,7 @@ void StackAnalysis::fixpoint() {
     
     // Step 4: push all children on the worklist.
     
-    Block::edgelist & outEdges = block->targets();
+    const Block::edgelist & outEdges = block->targets();
     Block::edgelist::iterator eit = outEdges.begin(&epred2);
     for( ; eit != outEdges.end(); ++eit) {
        if ((*eit)->type() == CALL) continue;
@@ -250,14 +250,13 @@ void StackAnalysis::summarize() {
 			// TODO: try to collapse these in some intelligent fashion
 			(*intervals_)[block][off] = input;
 
-			RegisterState old = input;
 			for (TransferFuncs::iterator iter2 = xferFuncs.begin();
 				iter2 != xferFuncs.end(); ++iter2) {
-					input[iter2->target] = iter2->apply(old);
+					input[iter2->target] = iter2->apply(input);
 			}
 		}
 		(*intervals_)[block][block->end()] = input;
-		assert(input == blockOutputs[block]);
+        assert(input == blockOutputs[block]);
 	}
 }
 
@@ -377,11 +376,11 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(Function *func) {
       int val;
       std::vector<Operand> ops;
       insn->getOperands(ops);
-      if (ops.size() == 0) {
+      if (ops.size() == 1) {
 	val = 0;
       }
       else {      
-	Result imm = ops[0].getValue()->eval();
+	Result imm = ops[1].getValue()->eval();
 	assert(imm.defined);
 	val = (int) imm.val.s16val;
       }
@@ -526,9 +525,10 @@ void StackAnalysis::handlePushPop(Instruction::Ptr insn, int sign, TransferFuncs
    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), delta));
 
    // Let's get whatever was popped (if it was)
-   if (insn->getOperation().getID() == e_pop) {
+   if (insn->getOperation().getID() == e_pop &&
+       !insn->writesMemory()) {
       MachRegister reg = sp();
-      
+
       std::set<RegisterAST::Ptr> written;
       insn->getWriteSet(written);
       for (std::set<RegisterAST::Ptr>::iterator iter = written.begin(); 
@@ -662,10 +662,11 @@ void StackAnalysis::handleLeave(TransferFuncs &xferFuncs) {
    // This is... mov esp, ebp; pop ebp.
    // Handle it as such.
 
-   xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
-
-   // And pop
-   xferFuncs.back().delta = word_size;
+   // mov esp, ebp;
+    xferFuncs.push_back(TransferFunc::aliasFunc(fp(), sp()));
+    
+   // pop ebp
+    xferFuncs.push_back(TransferFunc::deltaFunc(sp(), word_size)); 
    xferFuncs.push_back(TransferFunc::bottomFunc(fp()));
 }
 
@@ -802,7 +803,7 @@ bool StackAnalysis::handleNormalCall(Instruction::Ptr insn, Block *block, Offset
    // Must be a thunk based on parsing.
    if (off != block->lastInsnAddr()) return false;
    
-   Block::edgelist & outs = block->targets();  
+   const Block::edgelist & outs = block->targets();  
    Block::edgelist::iterator eit = outs.begin();
    for( ; eit != outs.end(); ++eit) {
       Edge *cur_edge = (Edge*)*eit;
@@ -883,7 +884,7 @@ void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
    Intraproc epred; // ignore calls, returns in edge iteration
    NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
    
-   Block::edgelist & inEdges = block->sources();
+   const Block::edgelist & inEdges = block->sources();
    Block::edgelist::iterator eit = inEdges.begin(&epred2);
    for( ; eit != inEdges.end(); ++eit) {
       Edge *edge = (Edge*)*eit;
@@ -1035,6 +1036,12 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
          assert(!alias.isAbs());
          input = alias;
 		 assert(input.target.isValid());
+                   
+                 // if the input was also a delta, apply this also 
+                 if (isDelta()) {
+                    input.delta += delta;
+                 }
+      
          return;
       }
 
@@ -1049,6 +1056,12 @@ void StackAnalysis::TransferFunc::accumulate(std::map<MachRegister, TransferFunc
 	  else {
 		  input.delta = Height::top;
 	  }
+
+          // if the input was also a delta, apply this also 
+          if (isDelta()) {
+            input.delta += delta;
+          }
+
 	  return;
    }
    if (isDelta()) {

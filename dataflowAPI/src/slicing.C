@@ -593,7 +593,7 @@ Slicer::getSuccessors(
         // will not transform any of them (besides changing
         // the location)
 
-        Block::edgelist & targets = cand.loc.block->targets();
+        const Block::edgelist & targets = cand.loc.block->targets();
         Block::edgelist::iterator eit = targets.begin();
         for( ; eit != targets.end(); ++eit) {
             if((*eit)->sinkEdge()) {
@@ -675,7 +675,7 @@ Slicer::getPredecessors(
     
     SingleContextOrInterproc epred(cand.loc.func, true, true);
 
-    Block::edgelist & sources = cand.loc.block->sources();
+    const Block::edgelist & sources = cand.loc.block->sources();
     Block::edgelist::iterator eit = sources.begin(&epred);
     for( ; eit != sources.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
@@ -728,7 +728,7 @@ Slicer::handleCall(
     ParseAPI::Edge * funlink = NULL;
     bool widen = false;
 
-    Block::edgelist & targets = cur.loc.block->targets();
+    const Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::iterator eit = targets.begin();
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
@@ -923,7 +923,7 @@ Slicer::handleReturn(
     // Find successor
     ParseAPI::Block * retBlock = NULL;
     
-    Block::edgelist & targets = cur.loc.block->targets();
+    const Block::edgelist & targets = cur.loc.block->targets();
     Block::edgelist::iterator eit = targets.begin();
     for(; eit != targets.end(); ++eit) {
         if((*eit)->type() == CALL_FT) {

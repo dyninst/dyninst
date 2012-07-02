@@ -35,7 +35,6 @@
 #include "ast.h"
 #include "Expression.h"
 #include "Visitor.h"
-#include "dynptr.h"
 #include <deque>
 
 namespace Dyninst

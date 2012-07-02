@@ -77,57 +77,62 @@ PCEventMuxer::WaitResult PCEventMuxer::wait(bool block) {
 }
 
 PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
-	proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
-			FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
-	if (!block) {
-		Process::handleEvents(false);
-		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-		while (mailbox_.size()) {
-			EventPtr ev = dequeue(false);
+   proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
+                      FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
+   if (!block) {
+      Process::handleEvents(false);
+      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+      if (mailbox_.size() == 0) return NoEvents;
+      while (mailbox_.size()) {
+         EventPtr ev = dequeue(false);
 #if defined(os_windows)
-			// Windows does early handling of exit, so if we see an exit come through here
-			// don't call handle(), just return success
-			if (ev->getEventType().code() == EventType::Exit) {
-				continue;
-			}
+         // Windows does early handling of exit, so if we see an exit come through here
+         // don't call handle(), just return success
+         if (ev->getEventType().code() == EventType::Exit) {
+            continue;
+         }
 #endif
-			if (!ev) return NoEvents;
-			if (!handle(ev)) return Error;
-		}
-	}
-	else {
-		// It's really annoying from a user design POV that ProcControl methods can
-		// trigger callbacks; it means that we can't just block here, because we may
-		// have _already_ gotten a callback and just not finished processing...
-		while (mailbox_.size() == 0) {
-			if (!Process::handleEvents(true)) {
-				return Error;
-			}
-		}
-		proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-		EventPtr ev = dequeue(false);
+         if (!ev) return NoEvents;
+         if (!handle(ev)) return Error;
+      }
+   }
+   else {
+      // It's really annoying from a user design POV that ProcControl methods can
+      // trigger callbacks; it means that we can't just block here, because we may
+      // have _already_ gotten a callback and just not finished processing...
+      while (mailbox_.size() == 0) {
+         if (!Process::handleEvents(true)) {
+            return Error;
+         }
+      }
+      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+      EventPtr ev = dequeue(false);
 #if defined(os_windows)
-		// Windows does early handling of exit, so if we see an exit come through here
-		// don't call handle(), just return success
-		if (ev->getEventType().code() == EventType::Exit) {
-			return EventsReceived;
-		}
+      // Windows does early handling of exit, so if we see an exit come through here
+      // don't call handle(), just return success
+      if (ev->getEventType().code() == EventType::Exit) {
+         return EventsReceived;
+      }
 #endif
-		if (!ev) {
-           proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
-           return NoEvents;
-        }
-        if (!handle(ev)) {
-           proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
-           return Error;
-        }
-	}
-	return EventsReceived;
+      if (!ev) {
+         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
+         return NoEvents;
+      }
+      if (!handle(ev)) {
+         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
+         return Error;
+      }
+   }
+   return EventsReceived;
+}
+
+bool PCEventMuxer::hasPendingEvents(PCProcess *proc) {
+   return mailbox_.find(proc);
 }
 
 bool PCEventMuxer::handle(EventPtr ev) {
-	// Find the correct PCEventHandler and dispatch
-	return PCEventHandler::handle(ev);
+   // Find the correct PCEventHandler and dispatch
+   return PCEventHandler::handle(ev);
 }
 
 DThread::dthread_ret_t PCEventMuxer::main(void *) {
@@ -355,11 +360,13 @@ PCEventMailbox::~PCEventMailbox()
 void PCEventMailbox::enqueue(Event::const_ptr ev) {
     queueCond.lock();
     eventQueue.push(ev);
+    PCProcess *evProc = static_cast<PCProcess *>(ev->getProcess()->getData());
+    procCount[evProc]++;
     queueCond.broadcast();
 
     proccontrol_printf("%s[%d]: Added event %s to mailbox\n", FILE__, __LINE__,
-            ev->name().c_str());
-
+                       ev->name().c_str());
+    
     queueCond.unlock();
 }
 
@@ -378,6 +385,9 @@ Event::const_ptr PCEventMailbox::dequeue(bool block) {
 
     Event::const_ptr ret = eventQueue.front();
     eventQueue.pop();
+    PCProcess *evProc = static_cast<PCProcess *>(ret->getProcess()->getData());
+    procCount[evProc]--;
+    assert(procCount[evProc] >= 0);
     queueCond.unlock();
 
     proccontrol_printf("%s[%d]: Returning event %s from mailbox\n", FILE__, __LINE__, ret->name().c_str());
@@ -392,3 +402,6 @@ unsigned int PCEventMailbox::size() {
     return result;
 }
 
+bool PCEventMailbox::find(PCProcess *proc) {
+   return (procCount[proc] > 0);
+}

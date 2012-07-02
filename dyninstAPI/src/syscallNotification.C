@@ -31,7 +31,6 @@
 
 // $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
-#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
@@ -40,7 +39,11 @@
 
 #include "proccontrol/h/EventType.h"
 #include "dyninstAPI/src/pcEventMuxer.h"
+#include "patchAPI/h/PatchMgr.h"
+#include "patchAPI/h/Point.h"
+
 using namespace ProcControlAPI;
+using namespace PatchAPI;
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          PCProcess *child) : preForkInst(NULL),
@@ -176,18 +179,23 @@ bool syscallNotification::removePreFork() {
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < preForkInst->miniTramps.size(); i++) {
-        handle = preForkInst->miniTramps[i];
+    
+    InstancePtr handle;
+    for (unsigned i = 0; i < preForkInst->instances.size(); i++) {
+       handle = preForkInst->instances[i];
         
-        bool removed = handle->uninstrument();
-        // At some point we should handle a negative return... but I
-        // have no idea how.
-        assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
-        // we don't have to.
+       bool removed = uninstrument(handle);
+       // At some point we should handle a negative return... but I
+       // have no idea how.
+       assert(removed);
+       // The instance is deleted when the instance is freed, so
+       // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
+
 
     delete preForkInst;
     preForkInst = NULL;
@@ -208,19 +216,22 @@ bool syscallNotification::removePostFork() {
         postForkInst = NULL;
         return true;
     }
-    
-    miniTramp *handle;
-    for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
-        handle = postForkInst->miniTramps[i];
+
+    InstancePtr handle;
+    for (unsigned i = 0; i < postForkInst->instances.size(); i++) {
+       handle = postForkInst->instances[i];
         
-        bool removed = handle->uninstrument();
-        // At some point we should handle a negative return... but I
-        // have no idea how.
-        assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
-        // we don't have to.
+       bool removed = uninstrument(handle);
+       // At some point we should handle a negative return... but I
+       // have no idea how.
+       assert(removed);
+       // The instance is deleted when the instance is freed, so
+       // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete postForkInst;
     postForkInst = NULL;
@@ -239,19 +250,22 @@ bool syscallNotification::removePreExec() {
         preExecInst = NULL;
         return true;
     }
-    
-    miniTramp *handle;
-    for (unsigned i = 0; i < preExecInst->miniTramps.size(); i++) {
-        handle = preExecInst->miniTramps[i];
+
+    InstancePtr handle;
+    for (unsigned i = 0; i < preExecInst->instances.size(); i++) {
+       handle = preExecInst->instances[i];
         
-        bool removed = handle->uninstrument();
-        // At some point we should handle a negative return... but I
-        // have no idea how.
-        assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
-        // we don't have to.
+       bool removed = uninstrument(handle);
+       // At some point we should handle a negative return... but I
+       // have no idea how.
+       assert(removed);
+       // The instance is deleted when the instance is freed, so
+       // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete preExecInst;
     preExecInst = NULL;
@@ -278,18 +292,21 @@ bool syscallNotification::removePreExit() {
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < preExitInst->miniTramps.size(); i++) {
-        handle = preExitInst->miniTramps[i];
+    InstancePtr handle;
+    for (unsigned i = 0; i < preExitInst->instances.size(); i++) {
+       handle = preExitInst->instances[i];
         
-        bool removed = handle->uninstrument();
-        // At some point we should handle a negative return... but I
-        // have no idea how.
-        assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
-        // we don't have to.
+       bool removed = uninstrument(handle);
+       // At some point we should handle a negative return... but I
+       // have no idea how.
+       assert(removed);
+       // The instance is deleted when the instance is freed, so
+       // we don't have to.
     }
-    proc->relocate();
+    //proc->relocate();
+    /* PatchAPI stuffs */
+    AddressSpace::patch(proc);
+    /* End of PatchAPI stuffs */
 
     delete preExitInst;
     preExitInst = NULL;

@@ -79,42 +79,42 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
 
 
     if( !(   ev->getEventType().code() == EventType::ForceTerminate 
-          || ev->getEventType().code() == EventType::Crash
-          || (ev->getEventType().code() == EventType::Exit 
+             || ev->getEventType().code() == EventType::Crash
+             || (ev->getEventType().code() == EventType::Exit 
 #if !defined(os_windows)
-		  && ev->getEventType().time() == EventType::Pre)
+                 && ev->getEventType().time() == EventType::Pre)
 #else
-		  )
+           )
 #endif
-		  ) ) 
+       ) ) 
     {
         // This means we already saw the entry to exit event and we can no longer
         // operate on the process, so ignore the event
-        if( evProc->isTerminated() ) {
-            proccontrol_printf("%s[%d]: process already marked terminated, ignoring event\n",
-                    FILE__, __LINE__);
-            // Still need to make sure ProcControl runs the process until it exits
-            if( !ev->getProcess()->isTerminated() ) {
-                Process::ptr tmpProc(pc_const_cast<Process>(ev->getProcess()));
-
-                if( !tmpProc->continueProc() ) {
-                    proccontrol_printf("%s[%d]: failed to continue exiting process\n",
-                            FILE__, __LINE__);
-                }
-            }
-            return true;
-        }
-
-        // The process needs to be stopped so we can operate on it
-        if( !evProc->isStopped() ) {
-            proccontrol_printf("%s[%d]: stopping process for event handling\n", FILE__,
-                    __LINE__);
-            if( !evProc->stopProcess() ) {
-                proccontrol_printf("%s[%d]: failed to stop process for event handling\n", FILE__,
-                        __LINE__);
-                return false;
-            }
-        }
+       if( evProc->isTerminated() ) {
+          proccontrol_printf("%s[%d]: process already marked terminated, ignoring event\n",
+                             FILE__, __LINE__);
+          // Still need to make sure ProcControl runs the process until it exits
+          if( !ev->getProcess()->isTerminated() ) {
+             Process::ptr tmpProc(pc_const_cast<Process>(ev->getProcess()));
+             
+             if( !tmpProc->continueProc() ) {
+                proccontrol_printf("%s[%d]: failed to continue exiting process\n",
+                                   FILE__, __LINE__);
+             }
+          }
+          return true;
+       }
+       
+       // The process needs to be stopped so we can operate on it
+       if( !evProc->isStopped() ) {
+          proccontrol_printf("%s[%d]: stopping process for event handling\n", FILE__,
+                             __LINE__);
+          if( !evProc->stopProcess() ) {
+             proccontrol_printf("%s[%d]: failed to stop process for event handling\n", FILE__,
+                                __LINE__);
+             return false;
+          }
+       }
     }
 
     // Need to save state because we could be called recursively
@@ -196,30 +196,42 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
                 (int) !evProc->hasPendingEvents());
     }
 
-    if(    ret // there were no errors
-        && evProc->getDesiredProcessState() == PCProcess::ps_running // the user wants the process running
-        && evProc->isStopped() // the process is stopped
-        && !evProc->hasReportedEvent() // we aren't in the middle of processing an event that we reported to ProcControl
-        && !evProc->isTerminated() // If one of the handling routines has marked the process exited
-        && !evProc->hasPendingEvents() // Can't continue the process until all pending events handled for all threads
-      )
+    if(ret // there were no errors
+       && evProc->getDesiredProcessState() == PCProcess::ps_running // the user wants the process running
+       && evProc->isStopped() // the process is stopped
+       && !evProc->hasReportedEvent() // we aren't in the middle of processing an event that we reported to ProcControl
+       && !evProc->isTerminated() // If one of the handling routines has marked the process exited
+       && !evProc->hasPendingEvents() // Can't continue the process until all pending events handled for all threads
+       )
     {
-        proccontrol_printf("%s[%d]: user wants process running after event handling\n",
-                FILE__, __LINE__);
-        if( evProc->hasRunningSyncRPC() ) {
-            if( !evProc->continueSyncRPCThreads() ) {
-                proccontrol_printf("%s[%d]: failed to continue thread after event handling\n",
-                        FILE__, __LINE__);
-                ret = false;
-            }
-        }else{
-            if( !evProc->continueProcess() ) {
-                proccontrol_printf("%s[%d]: failed to continue process after event handling\n",
-                        FILE__, __LINE__);
-                ret = false;
-            }
-        }
+       proccontrol_printf("%s[%d]: user wants process running after event handling\n",
+                          FILE__, __LINE__);
+       if( evProc->hasRunningSyncRPC() ) {
+          if( !evProc->continueSyncRPCThreads() ) {
+             proccontrol_printf("%s[%d]: failed to continue thread after event handling\n",
+                                FILE__, __LINE__);
+             ret = false;
+          }
+       }else{
+          proccontrol_printf("%s[%d]: continuing entire process\n", FILE__, __LINE__);
+          if( !evProc->continueProcess() ) {
+             proccontrol_printf("%s[%d]: failed to continue process after event handling\n",
+                                FILE__, __LINE__);
+             ret = false;
+          }
+       }
     }
+    else {
+       proccontrol_printf("%s[%d]: delaying process continue: %s %s %s %s %s %s\n",
+                          FILE__, __LINE__,
+                          (ret ? "<return failure>" : "<return success>"),
+                          ((evProc->getDesiredProcessState() == PCProcess::ps_running) ? "<desired running>" : "<desired stop>"),
+                          (evProc->isStopped() ? "<stopped>" : "<running>"),
+                          (evProc->hasReportedEvent() ? "<reported event>" : "<no reported event>"),
+                          (evProc->isTerminated() ? "<terminated>" : "<not terminated>"),
+                          (evProc->hasPendingEvents() ? "<pending events>" : "<no pending events>"));
+    }
+                           
 
     if( evProc->isExiting() ) {
         proccontrol_printf("%s[%d]: pending exit reported to BPatch-level, marking process exited\n",
@@ -820,6 +832,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 
     // Create new mapped objects for all the new loaded libraries
     const set<Library::ptr> &added = ev->libsAdded();
+
     for(set<Library::ptr>::const_iterator i = added.begin(); i != added.end(); ++i) {
         Address dataAddress = (*i)->getLoadAddress();
         if( evProc->usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();

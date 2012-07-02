@@ -1411,7 +1411,8 @@ bool process::hasBeenBound(const SymtabAPI::relocationEntry &,
 // bool process::detachForDebugger(const EventRecord &/*crash_event*/) { assert(0); return false; }
 
 #if defined(cap_binary_rewriter)
-std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) { assert(0); }
+mapped_object *BinaryEdit::openResolvedLibraryName(std::string, 
+                                                   std::map<std::string, BinaryEdit *> &) { assert(0); }
 #endif
 
 void emitCallRel32(unsigned /*disp32*/, unsigned char *& /*insn*/) { assert(0); return; }
@@ -1899,7 +1900,6 @@ int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair /*ev*/, SignalGenerator * /
 #include "dyninstAPI/src/inst-power.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/registerSpace.h"
 

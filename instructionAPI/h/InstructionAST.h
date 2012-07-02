@@ -41,7 +41,6 @@
 #include "util.h"
 #include <vector>
 #include <set>
-#include "dynptr.h"
 #include <iostream>
 #include "Result.h"
 #include "boost/enable_shared_from_this.hpp"

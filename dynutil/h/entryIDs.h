@@ -311,6 +311,7 @@ enum entryID {
   e_movq2dq,
   e_movsb,
   e_movsd,
+  e_movsd_sse,
   e_movshdup,
   e_movsldup,
   e_movss,

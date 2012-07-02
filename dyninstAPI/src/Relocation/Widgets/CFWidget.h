@@ -66,8 +66,8 @@ class CFWidget : public Widget {
   friend class Transformer;
   friend class LocalizeCF;
   friend class Instrumenter; // For rewiring edge instrumentation
-  friend class adhocMovementTransformer; // Also
-  friend class PCSensitiveTransformer;
+  //friend class adhocMovementTransformer; // Also
+  //friend class PCSensitiveTransformer;
   friend class Modification;
   friend class RelocBlock;
  public:
@@ -96,10 +96,15 @@ class CFWidget : public Widget {
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
 
-
   void setGap(unsigned gap) { gap_ = gap; }
   void setOrigTarget(Address a) { origTarget_ = a; }
   unsigned gap() const { return gap_; };
+  void clearIsCall() { isCall_ = false; };
+  void clearIsIndirect() { isIndirect_ = false; };
+  void clearIsConditional() { isConditional_ = false; }
+  bool isCall() const { return isCall_; }
+  bool isIndirect() const { return isIndirect_; }
+  bool isConditional() const { return isConditional_; }
 
  private:
    CFWidget(Address a)
@@ -114,7 +119,7 @@ class CFWidget : public Widget {
           Address addr);
 
    TrackerElement *tracker(const RelocBlock *) const;
-   TrackerElement *destTracker(TargetInt *dest) const;
+   TrackerElement *destTracker(TargetInt *dest, const RelocBlock *) const;
    TrackerElement *addrTracker(Address addr, const RelocBlock *) const;
    TrackerElement *padTracker(Address addr, unsigned size, const RelocBlock *) const;
    
@@ -178,7 +183,8 @@ class CFWidget : public Widget {
   
   bool generateAddressTranslator(CodeBuffer &buffer,
                                  const codeGen &templ,
-				 Register &reg);  
+                                 Register &reg, 
+                                 const RelocBlock *trace);
 
 };
 
@@ -213,8 +219,8 @@ struct CFPatch : public Patch {
   // 64-bit PPC/Linux has a TOC register we need
   // to maintain. That puts it in "special case"
   // territory...
-  bool isSpecialCase();
-  bool handleSpecialCase(codeGen &gen);
+  bool needsTOCUpdate();
+  bool handleTOCUpdate(codeGen &gen);
 #endif
 
   private:
@@ -234,8 +240,7 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
-  PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b) 
-     : size_(size), registerDefensive_(registerDefensive), noop_(noop), block_(b) {};
+   PaddingPatch(unsigned size, bool registerDefensive, bool noop, block_instance *b);
    virtual bool apply(codeGen &gen, CodeBuffer *buf);
    virtual unsigned estimate(codeGen &templ);
    virtual ~PaddingPatch() {};

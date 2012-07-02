@@ -39,7 +39,6 @@
 #include "function.h"
 #include "instPoint.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "debug.h"
 
 #include "stackwalk/h/framestepper.h"
