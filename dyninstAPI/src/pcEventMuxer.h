@@ -101,7 +101,7 @@ public:
     } WaitResult;
 	typedef Dyninst::ProcControlAPI::Process::cb_ret_t cb_ret_t;
 	typedef Dyninst::ProcControlAPI::Event::const_ptr EventPtr;
-
+        
 	static PCEventMuxer &muxer() { return muxer_; }
 
 	static bool start();
@@ -109,6 +109,8 @@ public:
 	static WaitResult wait(bool block);
 
         bool hasPendingEvents(PCProcess *proc);
+
+        static bool handle(PCProcess *proc = NULL);
 
 // Commented out callbacks are handled by the default instead
 	static cb_ret_t defaultCallback(EventPtr);
@@ -173,6 +175,7 @@ private:
 	static DThread::dthread_ret_t WINAPI main(void *);
 	bool registerCallbacks();
 	WaitResult wait_internal(bool block);
+        bool handle_internal(PCProcess *proc);
 
 	PCEventMuxer();
 	bool callbacksRegistered_;

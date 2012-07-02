@@ -1486,7 +1486,7 @@ bool PCProcess::registerThread(PCThread *thread) {
       }
       working++;
       if (working == thread_hash_size) working = 0;
-      if (working == (tid % thread_hash_size)) {
+      if (working == (int) (tid % thread_hash_size)) {
          startup_printf("%s[%d]: Failed to find empty tid slot\n", FILE__, __LINE__);
          return false;
       }
@@ -1518,7 +1518,7 @@ bool PCProcess::unregisterThread(PCThread *thread) {
       }
       working++;
       if (working == thread_hash_size) working = 0;
-      if (working == (tid % thread_hash_size)) return false;
+      if (working == (int) (tid % thread_hash_size)) return false;
    }
    return true;
 }
@@ -1972,241 +1972,65 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
 
 static const unsigned MAX_IRPC_SIZE = 0x100000;
 
-bool PCProcess::commonIRPCSetup(PCThread* thread, bool& tempStop)
-{
-    if( isTerminated() ) {
-        proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
-                FILE__, __LINE__, getpid());
-        return false;
-    }
-
-    if( thread && !thread->isLive() ) {
-        proccontrol_printf("%s[%d]: attempted to post RPC to dead thread %d\n",
-                FILE__, __LINE__, thread->getLWP());
-        return false;
-    }
-	// The process needs to be stopped for code gen because memory may be
-    // read or written
-    if( !isStopped() ) {
-        tempStop = true;
-        if( !stopProcess() ) {
-            proccontrol_printf("%s[%d]: failed to stop process for code gen\n",
-                    FILE__, __LINE__);
-            return false;
-        }
-    }
-	return true;
-}
 
 bool PCProcess::postIRPC(void* buffer, int size, void* userData, bool runProcessWhenDone,
                          PCThread* thread, bool synchronous, void** result,
                          bool userRPC, bool isMemAlloc, Address addr)
 {
-	bool tempStop = false;
-	if(!commonIRPCSetup(thread, tempStop))
-	{
-		return false;
-	}
-
-
-    // Default to initial thread
-    if( thread == NULL ) thread = initialThread_;
-
-    inferiorRPCinProgress *newRPC = new inferiorRPCinProgress;
-    newRPC->runProcWhenDone = runProcessWhenDone;
-    newRPC->deliverCallbacks = userRPC;
-    newRPC->userData = userData;
-    newRPC->synchronous = synchronous;
-
-
-    // Create the iRPC at the ProcControl level
-    if( addr == 0 ) {
-        bool err = false;
-        if( isMemAlloc ) {
-            // This assumes that there will always be space
-            addr = inferiorMalloc(size, lowmemHeap, 0, &err);
-        }else{
-            // recursive RPCs are okay when this isn't an inferiorMalloc RPC
-            addr = inferiorMalloc(size, anyHeap, 0, &err);
-        }
-
-        if( err ) {
-            proccontrol_printf("%s[%d]: failed to allocate memory for RPC\n",
-                    FILE__, __LINE__);
-            delete newRPC;
-            return false;
-        }
-        newRPC->memoryAllocated = true;
-    }
-    newRPC->rpc = IRPC::createIRPC(buffer, size, addr, !synchronous);
-
-    newRPC->rpc->setData(newRPC);
-
-    // sync RPCs posted from a callback (or while doing event handling) require
-    // special handling to avoid problems with recursive event handling
-    if( synchronous && isInEventHandling() ) {
-		cerr << "TODO: UNHANDLED CASE @ file/line " << __FILE__ << "/" << __LINE__ << endl;
-		//eventHandler_->registerCallbackRPC(newRPC);
-    }
-
-    newRPC->thread = thread->pcThr_;
-
-    // Fill in the rest of inferiorRPCinProgress, now that the address of the RPC is known
-    newRPC->rpcStartAddr = newRPC->get_address();
-    newRPC->rpcCompletionAddr = newRPC->get_address() + size;
-
-#if defined(bug_syscall_changepc_rewind)
-    // Some Linux kernels have the following behavior:
-    // Process is in a system call;
-    // We interrupt the system call;
-    // We say "change PC to address N"
-    // The kernel helpfully changes it to (N - address width)
-    // The program crashes
-    // See a more complete comment above.
-    // For now, we pad the start of our code with NOOPS and change to just
-    // after those; if we hit rewind behavior, then we're executing safe code.
-    newRPC->rpcStartAddr += proc()->getAddressWidth();
-#endif
-
-    newRPC->rpc->setStartOffset(newRPC->rpcStartAddr - newRPC->get_address());
-    
-    proccontrol_printf("%s[%d]: created iRPC %lu on thread %d/%d, base = 0x%lx, start = 0x%lx, complete = 0x%lx\n",
-            FILE__, __LINE__, newRPC->rpc->getID(), getPid(), thread->getLWP(),
-            newRPC->get_address(), newRPC->rpcStartAddr,
-            newRPC->rpcCompletionAddr);
-
-    if( tempStop ) {
-        if( !continueProcess() ) {
-            proccontrol_printf("%s[%d]: failed to continue process after code gen\n",
-                    FILE__, __LINE__);
-            delete newRPC;
-            return false;
-        }
-    }
-
-    bool res = false;
-    if (synchronous) {
-       // We have an interesting problem here. ProcControl allows callbacks to specify whether the 
-       // process should stop or run; however, that allows us to stop a process in the middle of an
-       // inferior RPC. If that happens, manually execute a continue and wait for completion ourselves.
-       res = pcProc_->runIRPCSync(newRPC->rpc);
-       if (!res) {
-          bool done = false;
-          while (!done) {
-            if (ProcControlAPI::getLastError() != ProcControlAPI::err_notrunning) {
-                // Something went wrong
-                proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-                                   FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-                delete newRPC;
-                return false;
-             }
-             else {
-                newRPC->rpc->continueStoppedIRPC();
-                res = pcProc_->handleEvents(true);
-                if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
-                   done = true;
-                }
-             }
-          }
-       }
-    }
-    else {
-       res = pcProc_->runIRPCAsync(newRPC->rpc);
-    }
-    if(!res) {
-       proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-                          FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
-       delete newRPC;
-       return false;
-    }
-    // Make sure Dyninst has worked everything out
-    PCEventMuxer::muxer().wait(false);
-    
-    if( result ) {
-       *result = newRPC->returnValue;
-    }
-    
-    // Handle callbacks on our side
-    PCEventMuxer::wait(false);
-    
-    return true;
-
+   return postIRPC_internal(buffer,
+                            size,
+                            size,
+                            REG_NULL,
+                            addr,
+                            userData,
+                            runProcessWhenDone,
+                            thread,
+                            synchronous,
+                            userRPC,
+                            isMemAlloc,
+                            result);    
 }
 
 bool PCProcess::postIRPC(AstNodePtr action, void *userData, 
-        bool runProcessWhenDone, PCThread *thread, bool synchronous,
-        void **result, bool userRPC, bool isMemAlloc, Address addr)
-{
-    if( isTerminated() ) {
-        proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
-                FILE__, __LINE__, getpid());
-        return false;
-    }
-
-    if( thread && !thread->isLive() ) {
-        proccontrol_printf("%s[%d]: attempted to post RPC to dead thread %d\n",
-                FILE__, __LINE__, thread->getLWP());
-        return false;
-    }
-
-    // The process needs to be stopped for code gen because memory may be
-    // read or written
-    bool tempStop = false;
-    if( !isStopped() ) {
-        tempStop = true;
-        if( !stopProcess() ) {
-            proccontrol_printf("%s[%d]: failed to stop process for code gen\n",
-                    FILE__, __LINE__);
-            return false;
-        }
-    }
-
-    inferiorRPCinProgress *newRPC = new inferiorRPCinProgress;
-    newRPC->runProcWhenDone = runProcessWhenDone;
-    newRPC->deliverCallbacks = userRPC;
-    newRPC->userData = userData;
-    newRPC->synchronous = synchronous;
-
-    // Generate the code for the iRPC
-    codeGen irpcBuf(MAX_IRPC_SIZE);
-    irpcBuf.setAddrSpace(this);
-    irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
-    irpcBuf.beginTrackRegDefs();
-    irpcBuf.setThread(thread);
-
-    // Emit the header for the iRPC, if necessary
-
+                         bool runProcessWhenDone, PCThread *thread, bool synchronous,
+                         void **result, bool userRPC, bool isMemAlloc, Address addr)
+{   
+   // Generate the code for the iRPC
+   codeGen irpcBuf(MAX_IRPC_SIZE);
+   irpcBuf.setAddrSpace(this);
+   irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
+   irpcBuf.beginTrackRegDefs();
+   irpcBuf.setThread(thread);
+   
 #if defined(bug_syscall_changepc_rewind)
-    // Reported by SGI, during attach to a process in a system call:
-
-    // Insert eight NOP instructions before the actual call to dlopen(). Loading
-    // the runtime library when the mutatee was in a system call will sometimes
-    // cause the process to (on IA32 anyway) execute the instruction four bytes
-    // PREVIOUS to the PC we actually set here. No idea why. Prepending the
-    // actual dlopen() call with eight NOP instructions insures this doesn't
-    // really matter. Eight was selected rather than four because I don't know
-    // if x86-64 does the same thing (and jumps eight bytes instead of four).
-
-    // We will put in <addr width> rather than always 8; this will be 4 on x86 and
-    // 32-bit AMD64, and 8 on 64-bit AMD64.
-    irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
+   // Reported by SGI, during attach to a process in a system call:
+   
+   // Insert eight NOP instructions before the actual call to dlopen(). Loading
+   // the runtime library when the mutatee was in a system call will sometimes
+   // cause the process to (on IA32 anyway) execute the instruction four bytes
+   // PREVIOUS to the PC we actually set here. No idea why. Prepending the
+   // actual dlopen() call with eight NOP instructions insures this doesn't
+   // really matter. Eight was selected rather than four because I don't know
+   // if x86-64 does the same thing (and jumps eight bytes instead of four).
+   
+   // We will put in <addr width> rather than always 8; this will be 4 on x86 and
+   // 32-bit AMD64, and 8 on 64-bit AMD64.
+   irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
 #endif
-
-    // Create a stack frame for the RPC
-    if( !irpcTramp_->generateSaves(irpcBuf, irpcBuf.rs()) ) {
-        proccontrol_printf("%s[%d]: failed to generate saves via baseTramp\n",
-                FILE__, __LINE__);
-        delete newRPC;
-        return false;
-    }
-
-    newRPC->resultRegister = REG_NULL;
-    if( !action->generateCode(irpcBuf, false, newRPC->resultRegister) ) {
-        proccontrol_printf("%s[%d]: failed to generate code from AST\n",
-                FILE__, __LINE__);
-        delete newRPC;
-        return false;
-    }
+   
+   // Create a stack frame for the RPC
+   if( !irpcTramp_->generateSaves(irpcBuf, irpcBuf.rs()) ) {
+      proccontrol_printf("%s[%d]: failed to generate saves via baseTramp\n",
+                         FILE__, __LINE__);
+      return false;
+   }
+   
+   Register resultReg = REG_NULL;
+   if( !action->generateCode(irpcBuf, false, resultReg) ) {
+      proccontrol_printf("%s[%d]: failed to generate code from AST\n",
+                         FILE__, __LINE__);
+      return false;
+   }
 
     // Note: we should not do a corresponding baseTramp restore here:
     // 1) It isn't necessary because ProcControl will restore the
@@ -2223,30 +2047,78 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
     irpcBuf.endTrackRegDefs();
 
-    // Create the iRPC at the ProcControl level
-    if( addr == 0 ) {
-        bool err = false;
-        if( isMemAlloc ) {
-            // This assumes that there will always be space
-            addr = inferiorMalloc(irpcBuf.used(), lowmemHeap, 0, &err);
-        }else{
-            // recursive RPCs are okay when this isn't an inferiorMalloc RPC
-            addr = inferiorMalloc(irpcBuf.used(), anyHeap, 0, &err);
-        }
+    return postIRPC_internal(irpcBuf.start_ptr(),
+                             irpcBuf.used(),
+                             breakOffset,
+                             resultReg,
+                             addr,
+                             userData,
+                             runProcessWhenDone,
+                             thread,
+                             synchronous,
+                             userRPC,
+                             isMemAlloc,
+                             result);    
+}
 
-        if( err ) {
-            proccontrol_printf("%s[%d]: failed to allocate memory for RPC\n",
-                    FILE__, __LINE__);
-            delete newRPC;
-            return false;
-        }
-        newRPC->memoryAllocated = true;
-    }
+bool PCProcess::postIRPC_internal(void *buf,
+                                  unsigned size,
+                                  unsigned breakOffset,
+                                  Register resultReg,
+                                  Address addr,
+                                  void *userData,
+                                  bool runProcessWhenDone,
+                                  PCThread *thread,
+                                  bool synchronous,
+                                  bool userRPC,
+                                  bool isMemAlloc,
+                                  void **result) {
+   assert(pcProc_);
+   if( isTerminated() ) {
+      proccontrol_printf("%s[%d]: cannot post RPC to exited or terminated process %d\n",
+                         FILE__, __LINE__, getpid());
+      return false;
+   }
+   
+   if( thread && !thread->isLive() ) {
+      proccontrol_printf("%s[%d]: attempted to post RPC to dead thread %d\n",
+                         FILE__, __LINE__, thread->getLWP());
+      return false;
+   }
 
+
+   inferiorRPCinProgress *newRPC = new inferiorRPCinProgress;
+   newRPC->runProcWhenDone = runProcessWhenDone;
+   newRPC->deliverCallbacks = userRPC;
+   newRPC->userData = userData;
+   newRPC->synchronous = synchronous;
+
+   newRPC->resultRegister = resultReg;
+   
+   // Create the iRPC at the ProcControl level
+   if( addr == 0 ) {
+      bool err = false;
+      if( isMemAlloc ) {
+         // This assumes that there will always be space
+         addr = inferiorMalloc(size, lowmemHeap, 0, &err);
+      }else{
+         // recursive RPCs are okay when this isn't an inferiorMalloc RPC
+         addr = inferiorMalloc(size, anyHeap, 0, &err);
+      }
+      
+      if( err ) {
+         proccontrol_printf("%s[%d]: failed to allocate memory for RPC\n",
+                            FILE__, __LINE__);
+         delete newRPC;
+         return false;
+      }
+      newRPC->memoryAllocated = true;
+   }
+   
     if (addr)
-       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used(), addr);
+       newRPC->rpc = IRPC::createIRPC(buf, size, addr);
     else
-       newRPC->rpc = IRPC::createIRPC(irpcBuf.start_ptr(), irpcBuf.used());
+       newRPC->rpc = IRPC::createIRPC(buf, size);
 
     newRPC->rpc->setData(newRPC);
 
@@ -2270,16 +2142,8 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     newRPC->rpcStartAddr += start_offset;
 #endif
 
-	newRPC->rpc->setStartOffset(start_offset);
+    newRPC->rpc->setStartOffset(start_offset);
     newRPC->rpcCompletionAddr = addr + breakOffset;
-
-    if( tempStop ) {
-       if (!continueProcess()) {
-          proccontrol_printf("%s[%d]: failed to stop process for code gen\n",
-                             FILE__, __LINE__);
-          return false;
-       }
-    }
 
     // Post the iRPC
     Thread::ptr t;
@@ -2289,6 +2153,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
     newRPC->thread = t;
     
     bool res = false;
+    proccontrol_printf("%s[%d]: Launching IRPC\n", FILE__, __LINE__);
     if (synchronous) {
        // We have an interesting problem here. ProcControl allows callbacks to specify whether the 
        // process should stop or run; however, that allows us to stop a process in the middle of an
@@ -2300,20 +2165,33 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
        if (!res) {
           bool done = false;
           while (!done) {
-             if (ProcControlAPI::getLastError() != ProcControlAPI::err_notrunning) {
-                // Something went wrong
-                proccontrol_printf("%s[%d]: failed to post %s RPC to %s\n",
-                                   FILE__, __LINE__, (synchronous ? "sync" : "async"), ((thread == NULL) ? "thread" : "process"));
+             proccontrol_printf("%s[%d]: Iterating in loop waiting for IRPC to complete\n", FILE__, __LINE__);
+             if (isTerminated()) {
+                fprintf(stderr, "IRPC on terminated process, ret false!\n");
                 delete newRPC;
                 return false;
              }
-             else {
-                newRPC->rpc->continueStoppedIRPC();
-                res = pcProc_->handleEvents(true);
-                if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
-                   done = true;
-                }
-             }
+
+            if (ProcControlAPI::getLastError() != ProcControlAPI::err_notrunning) {
+                // Something went wrong
+               proccontrol_printf("%s[%d]: failed to post %s RPC to %s, error %s\n",
+                                  FILE__, __LINE__, (synchronous ? "sync" : "async"), 
+                                  ((thread == NULL) ? "thread" : "process"),
+                                  ProcControlAPI::getLastErrorMsg());
+               delete newRPC;
+               return false;
+            }
+            else {
+               proccontrol_printf("%s[%d]: ProcControl reported IRPC thread stopped, continuing and consuming events\n", FILE__, __LINE__);
+               newRPC->rpc->continueStoppedIRPC();
+               proccontrol_printf("%s[%d]: handling events in ProcControl\n", FILE__, __LINE__);
+               res = pcProc_->handleEvents(true);
+               PCEventMuxer::muxer().handle(NULL);
+               if (newRPC->rpc->state() == ProcControlAPI::IRPC::Done) {
+                  proccontrol_printf("%s[%d]: IRPC complete\n", FILE__, __LINE__);
+                  done = true;
+               }
+            }
           }
        }
     }
@@ -2339,6 +2217,7 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
 
    return true;
 }
+
 
 BPatch_hybridMode PCProcess::getHybridMode() {
     return BPatch_normalMode;

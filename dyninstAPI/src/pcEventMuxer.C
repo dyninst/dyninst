@@ -76,6 +76,10 @@ PCEventMuxer::WaitResult PCEventMuxer::wait(bool block) {
 	return muxer().wait_internal(block);
 }
 
+bool PCEventMuxer::handle(PCProcess *proc) {
+   return muxer().handle_internal(proc);
+}
+
 PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
    proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
                       FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
@@ -83,18 +87,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       Process::handleEvents(false);
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
       if (mailbox_.size() == 0) return NoEvents;
-      while (mailbox_.size()) {
-         EventPtr ev = dequeue(false);
-#if defined(os_windows)
-         // Windows does early handling of exit, so if we see an exit come through here
-         // don't call handle(), just return success
-         if (ev->getEventType().code() == EventType::Exit) {
-            continue;
-         }
-#endif
-         if (!ev) return NoEvents;
-         if (!handle(ev)) return Error;
-      }
+      if (!handle(NULL)) return Error;
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -108,32 +101,31 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
       bool eventsRecv = false;
       bool error = false;
-      while (mailbox_.size() > 0) {
-	EventPtr ev = dequeue(false);
-#if defined(os_windows)
-	// Windows does early handling of exit, so if we see an exit come through here
-	// don't call handle(), just return success
-	if (ev->getEventType().code() == EventType::Exit) {
-	  eventsRecv = true;
-	  continue;
-	}
-#endif
-	if (!ev) {
-	  proccontrol_printf("[%s:%u] - PCEventMuxer::wait skipping null event\n", FILE__, __LINE__);
-	  continue;
-	}
-	if (!handle(ev)) {
-	  proccontrol_printf("[%s:%u] - PCEventMuxer::wait failed to handle event\n", FILE__, __LINE__);
-	  error = true;
-	}
-      }
-      if (error) return Error;
-      if (eventsRecv) return EventsReceived;
-      return NoEvents;
+      if (!handle(NULL)) return Error;
+      return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
    return NoEvents;
 }
+
+bool PCEventMuxer::handle_internal(PCProcess *proc) {
+   assert(proc == NULL); // not implemented yet
+   bool ret = true;
+   while (mailbox_.size()) {
+      EventPtr ev = dequeue(false);
+#if defined(os_windows)
+      // Windows does early handling of exit, so if we see an exit come through here
+      // don't call handle(), just return success
+      if (ev->getEventType().code() == EventType::Exit) {
+         continue;
+      }
+#endif
+      if (!ev) continue;
+      if (!handle(ev)) ret = false;
+   }
+   return ret;
+}
+   
 
 bool PCEventMuxer::hasPendingEvents(PCProcess *proc) {
    return mailbox_.find(proc);
