@@ -82,8 +82,6 @@ void test1_30_call1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsi
 #endif
 
 int test1_30_mutatee() {
-  /* kludge = 1; /* Here so that the following function call isn't the first
-                    instruction */
   int passed, retval;
 
 #if defined(i386_unknown_linux2_0_test) \

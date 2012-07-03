@@ -678,7 +678,7 @@ void init_test_data()
       eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
 
   // duplicate stream for CC (except the second-to-last item)
-  for(i=0; i<accessExp; ++i) {
+  for(i=0; i<(int)accessExp; ++i) {
       eaExpCC[i] = eaExp[i];
       bcExpCC[i] = bcExp[i];
   }

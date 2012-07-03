@@ -71,9 +71,6 @@ static int verifyValue(const char *name, int *a, int index, int value,
  * group.
  */
 
-static int dummy;
-static int foo;
-
 static int test_failed = FALSE;
 
 /* Function definitions follow */

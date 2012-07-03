@@ -682,7 +682,11 @@ void log_testresult(int passed)
 /* high precision timer */
 
 #if defined(os_linux_test) || defined(os_freebsd_test)
+#if defined(_POSIX_C_SOURCE)
+#undef _POSIX_C_SOURCE
+#endif
 #define _POSIX_C_SOURCE 199309 
+
 #include <time.h>
 #include <errno.h>
 #elif defined(os_bg_test)
@@ -707,7 +711,7 @@ int precisionSleep(int milliseconds) {
         if (req.tv_nsec == rem.tv_nsec) {
            //Buggy kernel - rem never set.  Just decrement it by 1/10th
            unsigned long decrement = milliseconds*1000*100;
-           if (decrement >= req.tv_nsec)
+           if (decrement >= (unsigned long) req.tv_nsec)
               break;
            else {
               req.tv_nsec -= decrement;

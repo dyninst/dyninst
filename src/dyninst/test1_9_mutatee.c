@@ -86,7 +86,7 @@ int test1_9_call1(int p1, int p2, int p3, int p4, int p5)
       if (p5 != 95) {
 	logerror("    test1_9_call1 parameter 5 is %d not 95\n", p5);
       }
-      /* exit(-1); /* FIXME Shouldn't quit the whole mutatee */
+
       test_failed = 1; /* Set flag that test has failed */
     }
     dprintf("inside test1_9_call1\n");

@@ -62,7 +62,6 @@ void *thread_main8(void *arg)
       so actual contention is meaningless */
   Lock_t newmutex;
   arg = NULL;
-  int tid = syscall(SYS_gettid);
 
   if (!createLock(&newmutex)) {
      logerror("%s[%d]:  createLock failed\n", __FILE__, __LINE__);
