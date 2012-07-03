@@ -187,8 +187,8 @@ class AddressSpace : public InstructionSource {
 
     // Allow the AddressSpace to update any extra bookkeeping for trap-based
     // instrumentation
-    virtual bool registerTrapMapping(Address from, Address to) = 0;
-    virtual bool unregisterTrapMapping(Address from) = 0;
+    virtual void addTrap(Address from, Address to, codeGen &gen) = 0;
+    virtual void removeTrap(Address from) = 0;
 
     bool getDyninstRTLibName();
 

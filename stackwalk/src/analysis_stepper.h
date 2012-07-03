@@ -41,21 +41,27 @@ namespace Dyninst {
 namespace ParseAPI {
 class CodeObject;
 class CodeSource;
+ class CodeRegion;
+ 
 }
 }
 
 namespace Dyninst {
 namespace Stackwalker {
 
+class CallChecker;
 class AnalysisStepperImpl : public FrameStepper
 {
   private:
    AnalysisStepper *parent;
+   CallChecker * callchecker;
   public:
    AnalysisStepperImpl(Walker *w, AnalysisStepper *p);
    virtual ~AnalysisStepperImpl();
 
    typedef std::pair<StackAnalysis::Height, StackAnalysis::Height> height_pair_t;
+   typedef std::pair<MachRegister, StackAnalysis::Height> registerState_t;
+   
    static const height_pair_t err_height_pair;
 
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
@@ -69,8 +75,18 @@ class AnalysisStepperImpl : public FrameStepper
    static ParseAPI::CodeObject *getCodeObject(std::string name);
    static ParseAPI::CodeSource *getCodeSource(std::string name);
 
-   height_pair_t analyzeFunction(std::string name, Offset off);
-   virtual gcframe_ret_t getCallerFrameArch(height_pair_t height, const Frame &in, Frame &out);
+   std::set<height_pair_t> analyzeFunction(std::string name, Offset off);
+   std::vector<registerState_t> fullAnalyzeFunction(std::string name, Offset off);
+   
+   virtual bool isPrevInstrACall(Address addr, Address & target);
+   virtual gcframe_ret_t getCallerFrameArch(std::set<height_pair_t> height, const Frame &in, Frame &out);
+   gcframe_ret_t getFirstCallerFrameArch(const std::vector<registerState_t>& heights, const Frame& in, Frame& out);
+   gcframe_ret_t checkResult(bool result);
+   bool validateRA(Address candidateRA);
+   ParseAPI::CodeRegion* getCodeRegion(std::string name, Offset off);
+   bool getOutRA(Address out_sp, Address& out_ra, location_t& out_ra_loc, ProcessState* proc);
+   
+   
 };
 
 }

@@ -242,7 +242,7 @@ unsigned FrameFuncStepperImpl::getPriority() const
  * Look at the first few bytes in the function and see if they contain
  * the standard set to allocate a stack frame.
  **/
-#define FUNCTION_PROLOG_TOCHECK 12
+#define FUNCTION_PROLOG_TOCHECK 16
 static unsigned char push_ebp = 0x55;
 static unsigned char mov_esp_ebp[2][2] = { { 0x89, 0xe5 },
                                            { 0x8b, 0xec } };
@@ -327,16 +327,16 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
       }
    }
 
-   if (push_ebp_pos != -1 && mov_esp_ebp_pos != -1)
+   if ((push_ebp_pos != -1) && (mov_esp_ebp_pos != -1))
       res.first = standard_frame;
-   else if (push_ebp_pos != -1 && mov_esp_ebp_pos == -1)
+   else if ((push_ebp_pos != -1) && (mov_esp_ebp_pos == -1))
       res.first = savefp_only_frame;
    else 
       res.first = no_frame;
    
-   if (push_ebp_pos != -1 && addr <= func_addr + push_ebp_pos)
+   if ((push_ebp_pos != -1) && (addr <= func_addr + push_ebp_pos))
       res.second = unset_frame;
-   else if (mov_esp_ebp_pos != -1 && addr <= func_addr + mov_esp_ebp_pos)
+   else if ((mov_esp_ebp_pos != -1) && (addr <= func_addr + mov_esp_ebp_pos))
       res.second = halfset_frame;
    else
       res.second = set_frame;
@@ -383,85 +383,6 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame
   return gcf_success;
 }
 
-#include "analysis_stepper.h"
-gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
-                                                      const Frame &in, Frame &out)
-{
-   Address in_sp = in.getSP(),
-           in_fp = in.getFP(),
-           out_sp = 0,
-           out_ra = 0,
-           out_ra_addr = 0,
-           out_fp = 0,
-           out_fp_addr = 0;
-   StackAnalysis::Height sp_height = height.first;
-   StackAnalysis::Height fp_height = height.second;
-   location_t out_ra_loc, out_fp_loc;
-
-   ProcessState *proc = getProcessState();
-
-   if (sp_height == StackAnalysis::Height::bottom) {
-      sw_printf("[%s:%u] - Analysis didn't find a stack height\n", 
-                __FILE__, __LINE__);
-      return gcf_not_me;
-   }
-
-   // SP height is the distance from the last SP of the previous frame
-   // to the SP in this frame at the current offset.
-   // Since we are walking to the previous frame,
-   // we subtract this height to get the outgoing SP
-   out_sp = in_sp - sp_height.height();
-
-   // Since we know the outgoing SP,
-   // the outgoing RA must be located just below it
-   out_ra_addr = out_sp - proc->getAddressWidth();
-   out_ra_loc.location = loc_address;
-   out_ra_loc.val.addr = out_ra_addr;
-
-   bool result = proc->readMem(&out_ra, out_ra_addr, proc->getAddressWidth());
-   if (!result) {
-      sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
-                __FILE__, __LINE__, out_ra_addr);
-      return gcf_not_me;
-   }
-
-   if (fp_height != StackAnalysis::Height::bottom) {
-      // FP height is the distance from the last SP of the previous frame
-      // to the FP in this frame at the current offset.
-      // If analysis finds this height,
-      // then out SP + FP height should equal in FP.
-      // We then assume that in FP points to out FP.
-      out_fp_addr = out_sp + fp_height.height();
-
-      if (out_fp_addr != in_fp) {
-         sw_printf(
-            "[%s:%u] - Warning - current FP %lx does not point to next FP located at %lx\n",
-            __FILE__, __LINE__, in_fp, out_fp_addr);
-      }
-
-      result = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
-      if (result) {
-         out_fp_loc.location = loc_address;
-         out_fp_loc.val.addr = out_fp_addr;
-
-         out.setFPLocation(out_fp_loc);
-         out.setFP(out_fp);
-      }
-      else {
-         sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
-      }
-   }
-   else {
-      sw_printf("[%s:%u] - Did not find frame pointer in analysis\n",
-                __FILE__, __LINE__);
-   }
-
-   out.setSP(out_sp);
-   out.setRALocation(out_ra_loc);
-   out.setRA(out_ra);
-
-   return gcf_success;
-}
 
 gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
                                                             Address /*base*/, Address lib_base,

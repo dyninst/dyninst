@@ -436,6 +436,35 @@ std::string StackAnalysis::SummaryFunc::format() const {
    }
    return ret.str();
 }
+void StackAnalysis::findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<MachRegister, Height> >& heights)
+{
+  if (func == NULL) return;
+  
+  if (!intervals_) {
+    // Check annotation
+    func->getAnnotation(intervals_, Stack_Anno);
+  }
+  if (!intervals_) {
+    // Analyze?
+    if (!analyze()) return;
+  }
+  assert(intervals_);
+  for(RegisterState::iterator i = (*intervals_)[b][addr].begin();
+      i != (*intervals_)[b][addr].end();
+      ++i)
+  {
+    if(i->second.isTop() || i->second.isBottom())
+    {
+      continue;
+    }
+    stackanalysis_printf("\t\tAdding %s:%s to defined heights at 0x%lx\n",
+			 i->first.name().c_str(),
+			 i->second.format().c_str(),
+			 addr);
+    
+    heights.push_back(*i);
+  }
+}
 
 StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister reg) {
 
@@ -550,9 +579,6 @@ void StackAnalysis::handleAddSub(Instruction::Ptr insn, int sign, TransferFuncs 
    Operand arg = insn->getOperand(1);
    Result res = arg.getValue()->eval();
    if(res.defined) {
-	   // FIXME: IAPI is treating the operand as unsigned, and thus a <long> conversion
-	   // comes out as a small positive number if the offset is negative. 
-	   // This should fix it...
      long delta = 0;
      // Size is in bytes... 
      switch(res.size()) {

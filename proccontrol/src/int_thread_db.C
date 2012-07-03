@@ -854,12 +854,13 @@ bool thread_db_process::decodeTdbLWPExit(EventLWPDestroy::ptr lwp_ev)
 
    pthrd_printf("Decoded LWP exit without thread exit on %d/%d.  Faking thread exit event\n",
                 db_thread->llproc()->getPid(), db_thread->getLWP());
-   
+
    EventUserThreadDestroy::ptr new_ev = EventUserThreadDestroy::ptr(new EventUserThreadDestroy(EventType::Post));
    new_ev->setProcess(db_thread->llproc()->proc());
    new_ev->setThread(db_thread->thread());
    new_ev->setSyncType(Event::async);
    lwp_ev->addSubservientEvent(new_ev);
+
    return true;
 }
 

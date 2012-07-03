@@ -193,9 +193,8 @@ class BinaryEdit : public AddressSpace {
 
    void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
 
-   // Not needed for binary rewriting
-   virtual bool registerTrapMapping(Address, Address) { return true; };
-   virtual bool unregisterTrapMapping(Address) { return true; };
+   virtual void addTrap(Address from, Address to, codeGen &gen);
+   virtual void removeTrap(Address /*from*/) {};
 
  private:
     Address highWaterMark_;

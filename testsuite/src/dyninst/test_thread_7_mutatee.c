@@ -185,7 +185,7 @@ int test_thread_7_mutatee() {
    for (i=1; i<NTHRD; i++)
    {
       thrds[i].is_in_instr = 0;
-      thrds[i].tid = spawnNewThread((void *) init_func, (void *) i);
+      thrds[i].tid = spawnNewThread((void *)init_func, (void *) (long) i);
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();

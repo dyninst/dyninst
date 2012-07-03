@@ -75,9 +75,6 @@ int test1_17_func1() {
     int retval;
     int ret17_1;
 
-    /* kludge = 1; /* Here so that the following function call isn't the first
-    		      instruction */
-
     ret17_1 = test1_17_func2();
     func17_3();
 

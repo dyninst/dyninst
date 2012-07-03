@@ -332,6 +332,8 @@ class StackAnalysis {
     // And a commonly used shortcut
     DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
     DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
+    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<MachRegister, Height> >& heights);
+    
     
     DATAFLOW_EXPORT void debug();
     

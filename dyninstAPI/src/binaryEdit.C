@@ -1039,3 +1039,13 @@ bool BinaryEdit::needsPIC()
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
 }
+
+void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
+   gen.invalidate();
+   gen.allocate(4);
+   gen.setAddrSpace(this);
+   gen.setAddr(from);
+   insnCodeGen::generateTrap(gen);
+   trapMapping.addTrapMapping(from, to, true);
+}
+

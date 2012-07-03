@@ -12,8 +12,8 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
-IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
+LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -125,6 +125,7 @@ ALL_COMP_DIRS += $(TO_CORE)/proccontrol/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/dyninstAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/symtabAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/instructionAPI/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/patchAPI/$(PLATFORM)
 
 #######################################################
 # Dyninst infrastructure components
@@ -144,7 +145,7 @@ SRCS_DYNINSTTESTLIB = libtestA.c \
 #                      dyninst/libInstMe.c \
 #                      dyninst/libLoadMe.c \
 
-dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI 
+dyninst_MUTATOR_FLAGS = -L. -ltestdyninst
 
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
 DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
@@ -170,7 +171,7 @@ dyninst_COMPONENT_LIB = $(LIBDYNINSTCOMP)
 #######################################################
 SRCS_SYMTABCOMP_LIB = symtab/symtab_comp.C
 OBJS_SYMTABCOMP_LIB = $(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.o))
-symtab_MUTATOR_FLAGS = -L. -ltestsymtab -lcommon
+symtab_MUTATOR_FLAGS = -L. -ltestsymtab 
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBSYMTABCOMP = libtestsymtab.a
@@ -186,7 +187,7 @@ symtab_COMPONENT_LIB = $(LIBSYMTABCOMP)
 #######################################################
 SRCS_INSTRUCTIONCOMP_LIB = instruction/instruction_comp.C
 OBJS_INSTRUCTIONCOMP_LIB = $(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.o))
-instruction_MUTATOR_FLAGS = -L. -ltestinstruction -linstructionAPI -lcommon
+instruction_MUTATOR_FLAGS = -L. -ltestinstruction 
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBINSTRUCTIONCOMP = libtestinstruction.a
@@ -202,7 +203,7 @@ instruction_COMPONENT_LIB = $(LIBINSTRUCTIONCOMP)
 #######################################################
 SRCS_PROCCONTROLCOMP_LIB = proccontrol/proccontrol_comp.C
 OBJS_PROCCONTROLCOMP_LIB = $(notdir $(SRCS_PROCCONTROLCOMP_LIB:%.C=%.o))
-proccontrol_MUTATOR_FLAGS += -L. -ltestproccontrol 
+proccontrol_MUTATOR_FLAGS += -L. -ltestproccontrol
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBPROCCONTROLCOMP = libtestproccontrol.a

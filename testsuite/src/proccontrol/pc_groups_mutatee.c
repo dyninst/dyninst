@@ -52,9 +52,11 @@ static void *findUnallocatedMemory() {
 }
 #elif !defined(os_windows_test)
 /* Need this for MAP_ANONYMOUS on ppc32-linux */
+#if !defined(__USE_MISC)
 #define __USE_MISC
+#endif
+
 #include <sys/mman.h>
-#undef __USE_MISC
 static void *findUnallocatedMemory() {
    //Return something the mutator can pass to mallocMemory
    void *result;

@@ -54,6 +54,8 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+#define USE_PARSE_API
+
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;
@@ -100,15 +102,14 @@ bool Walker::createDefaultSteppers()
   sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
             __FILE__, __LINE__, stepper);
 
-  /*
-   *  Disable AnalysisStepper until finished
+#ifdef USE_PARSE_API 
   stepper = new AnalysisStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
             __FILE__, __LINE__, stepper);
-   */
+#endif
 
   return true;
  error:

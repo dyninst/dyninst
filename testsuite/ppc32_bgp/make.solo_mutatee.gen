@@ -9,7 +9,14 @@ M_bg_CC ?= bgxlc++
 # Mutatees compiled with bg_g++ for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_gnu_xx = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_C++
+symtab_SOLO_MUTATEES_STATIC_32_gnu_xx = 
+endif
+ifndef SKIP_TEST_STATIC_64_C++
+symtab_SOLO_MUTATEES_STATIC_64_gnu_xx = 
+endif
+symtab_SOLO_MUTATEES_DYNAMIC_gnu_xx = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
+symtab_SOLO_MUTATEES_gnu_xx = $(symtab_SOLO_MUTATEES_STATIC_32_gnu_xx) $(symtab_SOLO_MUTATEES_STATIC_64_gnu_xx) $(symtab_SOLO_MUTATEES_DYNAMIC_gnu_xx)
 
 # Now a list of rules for compiling the mutatees with bg_g++
 
@@ -41,7 +48,14 @@ symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none: symtab
 # Mutatees compiled with bg_g++ for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_C++
+proccontrol_SOLO_MUTATEES_STATIC_32_gnu_xx = 
+endif
+ifndef SKIP_TEST_STATIC_64_C++
+proccontrol_SOLO_MUTATEES_STATIC_64_gnu_xx = 
+endif
+proccontrol_SOLO_MUTATEES_DYNAMIC_gnu_xx = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-g++_32_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_xx = $(proccontrol_SOLO_MUTATEES_STATIC_32_gnu_xx) $(proccontrol_SOLO_MUTATEES_STATIC_64_gnu_xx) $(proccontrol_SOLO_MUTATEES_DYNAMIC_gnu_xx)
 
 # Now a list of rules for compiling the mutatees with bg_g++
 
@@ -826,7 +840,14 @@ mutatee_util_powerpc-bgp-linux-g++_32.o: ../src/mutatee_util.c
 # Mutatees compiled with bg_gcc for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_NONC++
+symtab_SOLO_MUTATEES_STATIC_32_gnu_cc = 
+endif
+ifndef SKIP_TEST_STATIC_64_NONC++
+symtab_SOLO_MUTATEES_STATIC_64_gnu_cc = 
+endif
+symtab_SOLO_MUTATEES_DYNAMIC_gnu_cc = symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_high symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_low symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_max symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
+symtab_SOLO_MUTATEES_gnu_cc = $(symtab_SOLO_MUTATEES_STATIC_32_gnu_cc) $(symtab_SOLO_MUTATEES_STATIC_64_gnu_cc) $(symtab_SOLO_MUTATEES_DYNAMIC_gnu_cc)
 
 # Now a list of rules for compiling the mutatees with bg_gcc
 
@@ -858,7 +879,14 @@ symtab_group_test.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none: symtab
 # Mutatees compiled with bg_gcc for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_NONC++
+proccontrol_SOLO_MUTATEES_STATIC_32_gnu_cc = 
+endif
+ifndef SKIP_TEST_STATIC_64_NONC++
+proccontrol_SOLO_MUTATEES_STATIC_64_gnu_cc = 
+endif
+proccontrol_SOLO_MUTATEES_DYNAMIC_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_breakpoint.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_detach.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_groups.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_irpc.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_launch.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_library.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_singlestep.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_terminate_stopped.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_none_none pc_thread.mutatee_solo_dynamic_powerpc-bgp-linux-gcc_32_pic_none 
+proccontrol_SOLO_MUTATEES_gnu_cc = $(proccontrol_SOLO_MUTATEES_STATIC_32_gnu_cc) $(proccontrol_SOLO_MUTATEES_STATIC_64_gnu_cc) $(proccontrol_SOLO_MUTATEES_DYNAMIC_gnu_cc)
 
 # Now a list of rules for compiling the mutatees with bg_gcc
 
@@ -1547,7 +1575,14 @@ mutatee_util_powerpc-bgp-linux-gcc_32.o: ../src/mutatee_util.c
 # Mutatees compiled with bgxlc for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_bg_cc = symtab_group_test.mutatee_solo_dynamic_bgxlc_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_NONC++
+symtab_SOLO_MUTATEES_STATIC_32_bg_cc = 
+endif
+ifndef SKIP_TEST_STATIC_64_NONC++
+symtab_SOLO_MUTATEES_STATIC_64_bg_cc = 
+endif
+symtab_SOLO_MUTATEES_DYNAMIC_bg_cc = symtab_group_test.mutatee_solo_dynamic_bgxlc_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc_32_pic_none 
+symtab_SOLO_MUTATEES_bg_cc = $(symtab_SOLO_MUTATEES_STATIC_32_bg_cc) $(symtab_SOLO_MUTATEES_STATIC_64_bg_cc) $(symtab_SOLO_MUTATEES_DYNAMIC_bg_cc)
 
 # Now a list of rules for compiling the mutatees with bgxlc
 
@@ -1732,7 +1767,14 @@ mutatee_util_bgxlc_32.o: ../src/mutatee_util.c
 # Mutatees compiled with bgxlc++ for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_bg_CC = symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none 
+ifndef SKIP_TEST_STATIC_32_C++
+symtab_SOLO_MUTATEES_STATIC_32_bg_CC = 
+endif
+ifndef SKIP_TEST_STATIC_64_C++
+symtab_SOLO_MUTATEES_STATIC_64_bg_CC = 
+endif
+symtab_SOLO_MUTATEES_DYNAMIC_bg_CC = symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_none_none symtab_group_test.mutatee_solo_dynamic_bgxlc++_32_pic_none 
+symtab_SOLO_MUTATEES_bg_CC = $(symtab_SOLO_MUTATEES_STATIC_32_bg_CC) $(symtab_SOLO_MUTATEES_STATIC_64_bg_CC) $(symtab_SOLO_MUTATEES_DYNAMIC_bg_CC)
 
 # Now a list of rules for compiling the mutatees with bgxlc++
 

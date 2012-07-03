@@ -27,6 +27,16 @@ SRCS = 	../src/linux-swk.C \
 	../src/linuxbsd-swk.C \
 	../src/linux-x86-swk.C
 
+USE_PARSE_API = true
+
+ifdef USE_PARSE_API
+	SRCS += ../src/analysis_stepper.C \
+		../src/callchecker-IAPI.C
+else
+	SRCS += ../src/callchecker.C
+endif
+
+
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

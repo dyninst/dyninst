@@ -192,7 +192,20 @@ public:
 		bool isMemAlloc = false, 
 		Address addr = 0);
 private:
-	bool commonIRPCSetup(PCThread* thread, bool& tempStop);
+        bool postIRPC_internal(void *buffer,
+                               unsigned size,
+                               unsigned breakOffset,
+                               Register resultReg,
+                               Address addr,
+                               void *userData,
+                               bool runProcessWhenDone,
+                               PCThread *thread,
+                               bool synchronous,
+                               bool userRPC,
+                               bool isMemAlloc,
+                               void **result);
+                               
+
 public:
     /////////////////////////////////////////////
     // Begin Exploratory and Defensive mode stuff
@@ -274,8 +287,9 @@ public:
     virtual bool multithread_capable(bool ignoreIfMtNotSet = false); // platform-specific
     virtual bool multithread_ready(bool ignoreIfMtNotSet = false);
     virtual bool needsPIC();
-    virtual bool registerTrapMapping(Address from, Address to);
-    virtual bool unregisterTrapMapping(Address from);
+    //virtual bool unregisterTrapMapping(Address from);
+    virtual void addTrap(Address from, Address to, codeGen &gen);
+    virtual void removeTrap(Address from);
 
     // Miscellaneuous
     void debugSuicide();
@@ -337,6 +351,9 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
+       thread_hash_tids(0),
+       thread_hash_indices(0),
+       thread_hash_size(0),
           eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
@@ -374,6 +391,9 @@ protected:
           sync_event_arg2_addr_(0),
           sync_event_arg3_addr_(0),
           sync_event_breakpoint_addr_(0),
+       thread_hash_tids(0),
+       thread_hash_indices(0),
+       thread_hash_size(0),
           eventCount_(0),
           tracedSyscalls_(NULL),
           rtLibLoadHeap_(0),
@@ -415,6 +435,9 @@ protected:
           sync_event_arg2_addr_(parent->sync_event_arg2_addr_),
           sync_event_arg3_addr_(parent->sync_event_arg3_addr_),
           sync_event_breakpoint_addr_(parent->sync_event_breakpoint_addr_),
+       thread_hash_tids(parent->thread_hash_tids),
+       thread_hash_indices(parent->thread_hash_indices),
+       thread_hash_size(parent->thread_hash_size),
           eventHandler_(parent->eventHandler_),
           eventCount_(0),
           tracedSyscalls_(NULL), // filled after construction
@@ -465,7 +488,9 @@ protected:
     bool extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record);
     bool iRPCDyninstInit();
     bool registerThread(PCThread *thread);
-    bool unregisterThread(dynthread_t tid);
+    bool unregisterThread(PCThread *thread);
+    bool initializeRegisterThread();
+
 
     Address getRTEventBreakpointAddr();
     Address getRTEventIdAddr();
@@ -515,8 +540,6 @@ protected:
     void setExiting(bool b);
     bool isExiting() const;
     bool hasPendingEvents();
-    void incPendingEvents();
-    void decPendingEvents();
     bool hasRunningSyncRPC() const;
 	void addSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
     void removeSyncRPCThread(Dyninst::ProcControlAPI::Thread::ptr thr);
@@ -579,6 +602,9 @@ protected:
     Address sync_event_arg2_addr_;
     Address sync_event_arg3_addr_;
     Address sync_event_breakpoint_addr_;
+    Address thread_hash_tids;
+    Address thread_hash_indices;
+    int thread_hash_size;
 
     // The same PCEventHandler held by the BPatch layer
     PCEventHandler *eventHandler_;

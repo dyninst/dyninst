@@ -347,7 +347,12 @@ bool EventBreakpoint::suppressCB() const
    if (Event::suppressCB())
       return true;
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
-   return ibp->hl_bps.empty();
+   if (ibp->hl_bps.empty()) return true;
+   for (bp_instance::iterator iter = ibp->begin();
+        iter != ibp->end(); ++iter) {
+      if (!(*iter)->suppressCallbacks()) return false;
+   }
+   return true;
 }
 
 int_eventBreakpoint *EventBreakpoint::getInternal() const
@@ -503,6 +508,9 @@ Dyninst::LWP EventNewLWP::getLWP() const
 Thread::const_ptr EventNewLWP::getNewThread() const
 {
    int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
+   if (!thr) {
+      fprintf(stderr, "ERROR: LWP not found, %d\n", lwp);
+   }
    assert(thr);
    return thr->thread();
 }

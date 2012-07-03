@@ -60,8 +60,6 @@ static volatile int globalVariable12_1 = 0;
 
 int test1_12_mutatee() {
   int retval;
-  /* kludge = 1; /* Here so that the following function call isn't the first
-                    instruction */
   test1_12_func2();
   stop_process_();
   test1_12_func2();

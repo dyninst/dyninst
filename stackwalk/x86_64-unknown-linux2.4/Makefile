@@ -19,9 +19,17 @@ SRCS = 	../src/linux-swk.C \
 	../src/symtab-swk.C \
 	../src/dbginfo-stepper.C \
 	../src/x86-wanderer.C \
-	../src/analysis_stepper.C \
 	../src/linuxbsd-swk.C \
 	../src/linux-x86-swk.C 
+
+USE_PARSE_API = true
+
+ifdef USE_PARSE_API
+	SRCS += ../src/analysis_stepper.C \
+		../src/callchecker-IAPI.C
+else
+	SRCS += ../src/callchecker.C
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -35,7 +43,28 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
-MYFLAGS 	+= -I../../parseAPI/h -I../../symtabAPI/h -I../../symEval/h
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+
+ifdef LIBELF_LIB
+LDFLAGS += -L$(LIBELF_LIB) -lelf
+endif
+ifdef LIBDWARF_LIB
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+endif
+
+ifdef USE_PARSE_API
+	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
+	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	
+endif
+
+MYFLAGS += -I../../symtabAPI/h
+LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
+
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
