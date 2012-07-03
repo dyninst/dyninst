@@ -106,42 +106,42 @@ int test1_40_mutatee(void) {
     if (test1_40_addr_of_call1 != gv40_call40_1_addr) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_addr_of_call1, (void *)gv40_call40_1_addr);
+                (void *)(long)test1_40_addr_of_call1, (void *)(long)gv40_call40_1_addr);
       failed = TRUE;
     }
 
     if (test1_40_addr_of_call2 != gv40_call40_2_addr) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_addr_of_call2, (void *)gv40_call40_2_addr);
+              (void *)(long)test1_40_addr_of_call2, (void *)(long)gv40_call40_2_addr);
       failed = TRUE;
     }
 
     if (test1_40_addr_of_call3 != gv40_call40_3_addr) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_addr_of_call3, (void *)gv40_call40_3_addr);
+              (void *)(long)test1_40_addr_of_call3, (void *)(long)gv40_call40_3_addr);
       failed = TRUE;
     }
 
     if (test1_40_callsite5_addr != gv40_call40_5_addr1) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_callsite5_addr, (void *)gv40_call40_5_addr1);
+              (void *)(long)test1_40_callsite5_addr, (void *)(long)gv40_call40_5_addr1);
       failed = TRUE;
     }
 
     if (test1_40_callsite5_addr != gv40_call40_5_addr2) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_callsite5_addr, (void *)gv40_call40_5_addr2);
+              (void *)(long)test1_40_callsite5_addr, (void *)(long)gv40_call40_5_addr2);
       failed = TRUE;
     }
 
     if (test1_40_callsite5_addr != gv40_call40_5_addr3) {
       logerror( "Failed test #40 (monitor dynamic call site)\n" );
       logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
-              (void *)test1_40_callsite5_addr, (void *)gv40_call40_5_addr3);
+              (void *)(long)test1_40_callsite5_addr, (void *)(long)gv40_call40_5_addr3);
       failed = TRUE;
     }
 

@@ -62,10 +62,6 @@ static void func4_2() {
 int test1_4_func1() {
   int retval;
 
-  /* kludge = 1; /* Here so that the following function call isn't the first
-                  * instruction
-		  */
-
   func4_2();
 
   if (test1_4_globalVariable4_1 == 41) {

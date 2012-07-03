@@ -248,13 +248,12 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 	var = img->findVariable("proc_current_state");
 	dprintf(stderr, "%s[%d]: upgrade_mutatee_state: stopping for read...\n", __FILE__, __LINE__);
    proc->stopExecution();
-   int* val;
-   *val = 0;
-   var->readValue(val);
-   (*val)++;
-   var->writeValue(val);
+   int val = 0;
+   var->readValue(&val);
+   val++;
+   var->writeValue(&val);
    proc->continueExecution();
-   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: continued after write, val = %d\n", __FILE__, __LINE__, *val);
+   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: continued after write, val = %d\n", __FILE__, __LINE__, val);
 }
 
 #define MAX_ARGS 32

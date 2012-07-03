@@ -63,7 +63,7 @@ void test4_3_func1() {
 
 int test4_3_mutatee() {
     int i;
-    char *ch;
+/*    char *ch;*/
     char **newArgv;
     /* gargc and gargv are declared as extern in solo_mutatee_boilerplate.c and
      * defined in mutatee_driver.c
