@@ -174,8 +174,8 @@ int func1_1()
   RTlib = dlopen(libname, RTLD_NOW);
   if (!RTlib) {
     logerror("%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
-    /* FIXME Don't exit()! */
-    /* exit(1); */
+    char *ld = getenv("LD_LIBRARY_PATH");
+    logerror("%s[%d]:  with LD_LIBRARY_PATH of: %s\n", __FILE__, __LINE__, (ld ? ld : "<NULL>"));
     return -1;
   }
 

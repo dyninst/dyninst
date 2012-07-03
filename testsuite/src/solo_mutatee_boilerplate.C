@@ -77,6 +77,13 @@ static const char *testname = QUOTE(TEST_NAME);
  */
 static int groupable_mutatee = GROUPABLE;
 
+const char * CONCAT(kill_compiler_warnings_, TEST_NAME) ()
+{
+   int foo = groupable_mutatee;
+   const char *bar = testname;
+   return (bar + foo);
+}
+
 /* The macro SOLO_MUTATEE(<testname>) (from solo_mutatee.h) defines a few
  * variables that are required by the mutatee driver.  This macro needs to be
  * called *after* the declaration of the main mutatee function.

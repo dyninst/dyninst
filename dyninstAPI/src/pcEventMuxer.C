@@ -76,6 +76,10 @@ PCEventMuxer::WaitResult PCEventMuxer::wait(bool block) {
 	return muxer().wait_internal(block);
 }
 
+bool PCEventMuxer::handle(PCProcess *proc) {
+   return muxer().handle_internal(proc);
+}
+
 PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
    proccontrol_printf("[%s/%d]: PCEventMuxer waiting for events, %s\n",
                       FILE__, __LINE__, (block ? "blocking" : "non-blocking"));
@@ -83,18 +87,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       Process::handleEvents(false);
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
       if (mailbox_.size() == 0) return NoEvents;
-      while (mailbox_.size()) {
-         EventPtr ev = dequeue(false);
-#if defined(os_windows)
-         // Windows does early handling of exit, so if we see an exit come through here
-         // don't call handle(), just return success
-         if (ev->getEventType().code() == EventType::Exit) {
-            continue;
-         }
-#endif
-         if (!ev) return NoEvents;
-         if (!handle(ev)) return Error;
-      }
+      if (!handle(NULL)) return Error;
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -106,25 +99,31 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          }
       }
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+      if (!handle(NULL)) return Error;
+      return EventsReceived;
+   }
+   proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
+   return NoEvents;
+}
+
+bool PCEventMuxer::handle_internal(PCProcess *proc) {
+   assert(proc == NULL); // not implemented yet
+   bool ret = true;
+   while (mailbox_.size()) {
       EventPtr ev = dequeue(false);
 #if defined(os_windows)
       // Windows does early handling of exit, so if we see an exit come through here
       // don't call handle(), just return success
       if (ev->getEventType().code() == EventType::Exit) {
-         return EventsReceived;
+         continue;
       }
 #endif
-      if (!ev) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning NoEvents\n", FILE__, __LINE__);
-         return NoEvents;
-      }
-      if (!handle(ev)) {
-         proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning error after event handling\n", FILE__, __LINE__);
-         return Error;
-      }
+      if (!ev) continue;
+      if (!handle(ev)) ret = false;
    }
-   return EventsReceived;
+   return ret;
 }
+   
 
 bool PCEventMuxer::hasPendingEvents(PCProcess *proc) {
    return mailbox_.find(proc);
@@ -243,6 +242,39 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
+        // DEBUG
+#if 0
+        if (evSignal->getSignal() == 11) {
+           unsigned int esp;
+           ProcControlAPI::RegisterPool regs;
+           evSignal->getThread()->getAllRegisters(regs);
+           for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
+              cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
+              if ((*iter).first == x86::esp) {
+                 esp = (*iter).second;
+              }
+           }
+
+           std::vector<std::vector<Frame> > stacks;
+           process->walkStacks(stacks);
+           for (unsigned i = 0; i < stacks.size(); ++i) {
+              for (unsigned j = 0; j < stacks[i].size(); ++j) {
+                 cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
+              }
+              cerr << endl << endl;
+           }
+           for (unsigned i = 0; i < 20; ++i) {
+              unsigned tmp = 0;
+              process->readDataSpace((void *) (esp + (i * 4)),
+                                     4, 
+                                     &tmp,
+                                     false);
+              cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
+           }
+
+           while(1) sleep(100);
+        }
+#endif
 	if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
 		evSignal->clearThreadSignal();
 	}
@@ -364,8 +396,8 @@ void PCEventMailbox::enqueue(Event::const_ptr ev) {
     procCount[evProc]++;
     queueCond.broadcast();
 
-    proccontrol_printf("%s[%d]: Added event %s to mailbox\n", FILE__, __LINE__,
-                       ev->name().c_str());
+    proccontrol_printf("%s[%d]: Added event %s to mailbox, size now %d\n", FILE__, __LINE__,
+                       ev->name().c_str(), eventQueue.size());
     
     queueCond.unlock();
 }

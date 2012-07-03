@@ -224,7 +224,7 @@ bool PCEventHandler::handle_internal(EventPtr ev) {
     else {
        proccontrol_printf("%s[%d]: delaying process continue: %s %s %s %s %s %s\n",
                           FILE__, __LINE__,
-                          (ret ? "<return failure>" : "<return success>"),
+                          (ret ? "<return success>" : "<return failure>"),
                           ((evProc->getDesiredProcessState() == PCProcess::ps_running) ? "<desired running>" : "<desired stop>"),
                           (evProc->isStopped() ? "<stopped>" : "<running>"),
                           (evProc->hasReportedEvent() ? "<reported event>" : "<no reported event>"),

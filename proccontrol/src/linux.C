@@ -1767,7 +1767,8 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       else {
          assert(0);
       }
-      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
+
+     pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
       regpool.regs[reg] = val;
    }
    return true;
@@ -1836,6 +1837,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
        return false;
    }
 #endif
+   
 
    if (have_setregs)
    {

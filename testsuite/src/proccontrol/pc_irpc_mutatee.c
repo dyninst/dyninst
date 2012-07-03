@@ -69,7 +69,6 @@ int pc_irpc_mutatee()
    int result;
    send_addr addr_msg;
    syncloc msg;
-   int i;
    myerror = 0;
    initLock(&init_lock);
    testLock(&init_lock);

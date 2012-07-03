@@ -86,7 +86,6 @@ int test_fork_5_mutatee() {
   } else if(pid < 0) {
     logerror("error on fork\n");
     return -1;
-    /* exit(pid);  /* error case */
   }
 
   /* Check for success */

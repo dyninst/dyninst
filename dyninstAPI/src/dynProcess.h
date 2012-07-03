@@ -192,7 +192,20 @@ public:
 		bool isMemAlloc = false, 
 		Address addr = 0);
 private:
-	bool commonIRPCSetup(PCThread* thread, bool& tempStop);
+        bool postIRPC_internal(void *buffer,
+                               unsigned size,
+                               unsigned breakOffset,
+                               Register resultReg,
+                               Address addr,
+                               void *userData,
+                               bool runProcessWhenDone,
+                               PCThread *thread,
+                               bool synchronous,
+                               bool userRPC,
+                               bool isMemAlloc,
+                               void **result);
+                               
+
 public:
     /////////////////////////////////////////////
     // Begin Exploratory and Defensive mode stuff
