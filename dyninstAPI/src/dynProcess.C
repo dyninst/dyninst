@@ -426,7 +426,6 @@ bool PCProcess::bootstrapProcess() {
         return false;
     }
 
-    bootstrapState_ = bs_loadedRTLib;
 
     pdvector<int_variable *> obsCostVec;
     if( !findVarsByAll("DYNINSTobsCostLow", obsCostVec) ) {
@@ -857,45 +856,50 @@ static const unsigned MAX_THREADS = 32; // Should match MAX_THREADS in RTcommon.
 
 bool PCProcess::loadRTLib() {
     // Check if the RT library has already been loaded
-    if( runtime_lib.size() != 0 ) {
-        startup_printf("%s[%d]: RT library already loaded\n",
+   if( runtime_lib.size() != 0 ) {
+      startup_printf("%s[%d]: RT library already loaded\n",
+                     FILE__, __LINE__);
+
+      bootstrapState_ = bs_loadedRTLib;
+
+      if( !wasCreatedViaFork() ) {
+         // Need to still initialize the library
+         if( !iRPCDyninstInit() ) return false;
+      }
+      
+      return true;
+   }
+   
+   // If not, load it using a iRPC
+   
+   if(!postRTLoadRPC())
+   {
+      return false;
+   }
+
+   bootstrapState_ = bs_loadedRTLib;
+
+   if( runtime_lib.size() == 0 ) {
+      startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
+                     __LINE__);
+      return false;
+   }
+
+   startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
+   
+   if( !postRTLoadCleanup() ) {
+      startup_printf("%s[%d]: failed to perform cleanup after RT library loaded\n",
+                     FILE__, __LINE__);
+      return false;
+   }
+   
+   // Initialize some variables in the RT lib
+   DYNINST_bootstrapStruct bs_record;
+   
+   if( !extractBootstrapStruct(&bs_record) || bs_record.event == 0 ) {
+      startup_printf("%s[%d]: RT library not initialized, using RPC to initialize\n",
                 FILE__, __LINE__);
-        if( !wasCreatedViaFork() ) {
-            // Need to still initialize the library
-            if( !iRPCDyninstInit() ) return false;
-        }
-
-        return true;
-    }
-
-    // If not, load it using a iRPC
-
-	if(!postRTLoadRPC())
-	{
-		return false;
-	}
-
-	if( runtime_lib.size() == 0 ) {
-        startup_printf("%s[%d]: failed to load RT lib\n", FILE__,
-                __LINE__);
-        return false;
-    }
-
-    startup_printf("%s[%d]: finished running RPC to load RT library\n", FILE__, __LINE__);
-
-    if( !postRTLoadCleanup() ) {
-        startup_printf("%s[%d]: failed to perform cleanup after RT library loaded\n",
-                FILE__, __LINE__);
-        return false;
-    }
-
-    // Initialize some variables in the RT lib
-    DYNINST_bootstrapStruct bs_record;
-
-    if( !extractBootstrapStruct(&bs_record) || bs_record.event == 0 ) {
-        startup_printf("%s[%d]: RT library not initialized, using RPC to initialize\n",
-                FILE__, __LINE__);
-        if( !iRPCDyninstInit() ) return false;
+      if( !iRPCDyninstInit() ) return false;
     }
 
     return setRTLibInitParams();
@@ -1028,7 +1032,7 @@ bool PCProcess::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record) {
 
 bool PCProcess::iRPCDyninstInit() {
     startup_printf("%s[%d]: running DYNINSTinit via iRPC\n", FILE__, __LINE__);
-
+    
     extern int dyn_debug_rtlib;
     int pid = P_getpid();
     unsigned maxthreads = MAX_THREADS;
@@ -1047,7 +1051,6 @@ bool PCProcess::iRPCDyninstInit() {
     the_args[2] = AstNode::operandNode(AstNode::Constant, (void*)(Address)maxthreads);
     the_args[3] = AstNode::operandNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
     AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
-
 
     if( !postIRPC(dynInit, 
                 NULL,  // no user data
@@ -2061,6 +2064,9 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
                              result);    
 }
 
+// DEBUG
+#include "instructionAPI/h/InstructionDecoder.h"
+
 bool PCProcess::postIRPC_internal(void *buf,
                                   unsigned size,
                                   unsigned breakOffset,
@@ -2120,6 +2126,18 @@ bool PCProcess::postIRPC_internal(void *buf,
     else
        newRPC->rpc = IRPC::createIRPC(buf, size);
 
+#if 0
+   // DEBUG
+   InstructionAPI::InstructionDecoder d(buf,size,getArch());
+   Address foo = addr;
+   InstructionAPI::Instruction::Ptr insn = d.decode();
+   while(insn) {
+      cerr << "\t" << hex << foo << ": " << insn->format(foo) << dec << endl;
+      foo += insn->size();
+      insn = d.decode();
+   }
+#endif
+
     newRPC->rpc->setData(newRPC);
 
     unsigned int start_offset = 0;
@@ -2141,7 +2159,6 @@ bool PCProcess::postIRPC_internal(void *buf,
     start_offset = proc()->getAddressWidth();
     newRPC->rpcStartAddr += start_offset;
 #endif
-
     newRPC->rpc->setStartOffset(start_offset);
     newRPC->rpcCompletionAddr = addr + breakOffset;
 
@@ -3339,30 +3356,30 @@ void PCProcess::invalidateMTCache() {
 #if !defined(os_windows)
 bool PCProcess::postRTLoadRPC()
 {
-	// First, generate the code to load the RT lib
-	AstNodePtr loadRTAst = createLoadRTAST();
-	if( loadRTAst == AstNodePtr() ) {
-		startup_printf("%s[%d]: failed to generate code to load RT lib\n", FILE__,
-			__LINE__);
-		return false;
-	}
-
-	// on some platforms, this RPC needs to be run from a specific address range
-	Address execAddress = findFunctionToHijack();
-	if( !postIRPC(loadRTAst, 
-		NULL,  // no user data
-		false, // don't run after it is done
-		NULL,  // doesn't matter which thread
-		true,  // wait for completion
-		NULL,  // don't need to check result directly
-		false, // internal RPC
-		false, // is not a memory allocation RPC
-		execAddress) ) 
-	{
-		startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
-			__LINE__);
-		return false;
-	}
+   // First, generate the code to load the RT lib
+   AstNodePtr loadRTAst = createLoadRTAST();
+   if( loadRTAst == AstNodePtr() ) {
+      startup_printf("%s[%d]: failed to generate code to load RT lib\n", FILE__,
+                     __LINE__);
+      return false;
+   }
+   
+   // on some platforms, this RPC needs to be run from a specific address range
+   Address execAddress = findFunctionToHijack();
+   if( !postIRPC(loadRTAst, 
+                 NULL,  // no user data
+                 false, // don't run after it is done
+                 NULL,  // doesn't matter which thread
+                 true,  // wait for completion
+                 NULL,  // don't need to check result directly
+                 false, // internal RPC
+                 false, // is not a memory allocation RPC
+                 execAddress) ) 
+   {
+      startup_printf("%s[%d]: rpc failed to load RT lib\n", FILE__,
+                     __LINE__);
+      return false;
+   }
    return true;
 }
 #endif

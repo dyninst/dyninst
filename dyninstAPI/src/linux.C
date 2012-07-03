@@ -360,9 +360,11 @@ AstNodePtr PCProcess::createLoadRTAST() {
         if( getAddressWidth() == 4 ) {
             args32.namePtr = (uint32_t)rtLibLoadHeap_;
             args32.mode = mode;
+            args32.linkMapPtr = 0;
         }else{
             args64.namePtr = (uint64_t)rtLibLoadHeap_;
             args64.mode = mode;
+            args64.linkMapPtr = 0;
         }
 
         Address argsAddr = rtLibLoadHeap_ + dyninstRT_name.length()+1;

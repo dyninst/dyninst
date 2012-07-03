@@ -99,8 +99,6 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
          }
       }
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-      bool eventsRecv = false;
-      bool error = false;
       if (!handle(NULL)) return Error;
       return EventsReceived;
    }
@@ -244,6 +242,39 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
+        // DEBUG
+#if 0
+        if (evSignal->getSignal() == 11) {
+           unsigned int esp;
+           ProcControlAPI::RegisterPool regs;
+           evSignal->getThread()->getAllRegisters(regs);
+           for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
+              cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
+              if ((*iter).first == x86::esp) {
+                 esp = (*iter).second;
+              }
+           }
+
+           std::vector<std::vector<Frame> > stacks;
+           process->walkStacks(stacks);
+           for (unsigned i = 0; i < stacks.size(); ++i) {
+              for (unsigned j = 0; j < stacks[i].size(); ++j) {
+                 cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
+              }
+              cerr << endl << endl;
+           }
+           for (unsigned i = 0; i < 20; ++i) {
+              unsigned tmp = 0;
+              process->readDataSpace((void *) (esp + (i * 4)),
+                                     4, 
+                                     &tmp,
+                                     false);
+              cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
+           }
+
+           while(1) sleep(100);
+        }
+#endif
 	if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
 		evSignal->clearThreadSignal();
 	}

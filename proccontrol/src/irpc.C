@@ -375,9 +375,9 @@ bool iRPCMgr::postRPCToThread(int_thread *thread, int_iRPC::ptr rpc)
 {
    pthrd_printf("Posting iRPC %lu to thread %d\n", rpc->id(), thread->getLWP());
 
-   	if(thread->notAvailableForRPC()) {
-	  cerr << "Skipping thread that is marked as system - in thread-specific RPC" << endl;
-	  
+   if(thread->notAvailableForRPC()) {
+      cerr << "Skipping thread that is marked as system - in thread-specific RPC" << endl;
+      return false;
   }
 
    if (thread->getGeneratorState().getState() != int_thread::running && 
@@ -769,7 +769,8 @@ bool int_iRPC::writeToProc()
    int_thread *thr = thread();
    pthrd_printf("Writing rpc %lu memory to %lx->%lx\n", id(), addr(),
                 addr()+binarySize());
-   
+
+
    if (!rpcwrite_result) {
       rpcwrite_result = result_response::createResultResponse();
 	  bool result = thr->llproc()->writeMem(binaryBlob(), addr(), binarySize(), rpcwrite_result, (thr->isRPCEphemeral() ? thr : NULL));
@@ -913,7 +914,6 @@ bool iRPCMgr::isRPCTrap(int_thread *thr, Dyninst::Address addr)
    int_iRPC::ptr rpc;
    Dyninst::Address start, end;
    unsigned long size;
-
    rpc = thr->runningRPC();
    if (!rpc) {
       pthrd_printf("%d/%d is not running any iRPCs, trap is not RPC completion\n",
@@ -957,7 +957,8 @@ int_iRPC::ptr iRPCMgr::createInfMallocRPC(int_process *proc, unsigned long size,
    irpc->setBinarySize(binary_size);
    irpc->setStartOffset(start_offset);
    irpc->setAllocSize(binary_size);
-   
+
+
    if (!result)
       return int_iRPC::ptr();
    irpc->allocation()->addr = proc->mallocExecMemory(binary_size);
@@ -979,7 +980,7 @@ int_iRPC::ptr iRPCMgr::createInfFreeRPC(int_process *proc, unsigned long size,
    irpc->setStartOffset(start_offset);
    irpc->setAllocSize(binary_size);
    irpc->inffree_target = addr;
-   
+
    if (!result)
       return int_iRPC::ptr();
    irpc->allocation()->addr = proc->mallocExecMemory(binary_size);
@@ -1053,31 +1054,31 @@ Handler::handler_ret_t iRPCHandler::handleEvent(Event::ptr ev)
 	   thr->llproc()->direct_infFree(rpc->addr());
    }
    if (ephemeral) {
-	   // Don't restore registers; instead, kill the thread if there
-	   // aren't any other pending iRPCs for it. 
-		// We count as an active iRPC...
-	   assert(mgr->numActiveRPCs(thr) > 0);
-	   if (mgr->numActiveRPCs(thr) == 1) {
-	      pthrd_printf("Terminating RPC thread %d\n",
-			  thr->getLWP());
-			thr->terminate();
-			// CLEANUP on aisle 1
+      // Don't restore registers; instead, kill the thread if there
+      // aren't any other pending iRPCs for it. 
+      // We count as an active iRPC...
+      assert(mgr->numActiveRPCs(thr) > 0);
+      if (mgr->numActiveRPCs(thr) == 1) {
+         pthrd_printf("Terminating RPC thread %d\n",
+                      thr->getLWP());
+         thr->terminate();
+         // CLEANUP on aisle 1
 #if defined(os_windows)
-			windows_process *winproc = dynamic_cast<windows_process *>(thr->llproc());
-			if (winproc) {
-		      pthrd_printf("Destroying RPC thread %d\n",
-				  thr->getLWP());
-				winproc->destroyRPCThread();
-			}
+         windows_process *winproc = dynamic_cast<windows_process *>(thr->llproc());
+         if (winproc) {
+            pthrd_printf("Destroying RPC thread %d\n",
+                         thr->getLWP());
+            winproc->destroyRPCThread();
+         }
 #endif
-	   } else {
-	      pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
-			  thr->getLWP(), mgr->numActiveRPCs(thr));
-			// don't do an extra desync here, it's handled by throwEventsBeforeContinue()
-	   }
+      } else {
+         pthrd_printf("RPC thread %d has %d active RPCs, parking thread\n",
+                      thr->getLWP(), mgr->numActiveRPCs(thr));
+         // don't do an extra desync here, it's handled by throwEventsBeforeContinue()
+      }
    }
    else if (!ievent->regrestore_response && 
-       (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))
+            (!ievent->alloc_regresult || ievent->alloc_regresult->isReady()))
    {
       //Restore the registers--need to wait for above getreg first
       ievent->regrestore_response = result_response::createResultResponse();

@@ -3417,12 +3417,15 @@ bool int_thread::saveRegsForRPC(allreg_response::ptr response)
 {
    assert(!rpc_regs.full);
    response->setRegPool(&rpc_regs);
-   return getAllRegisters(response);
+   bool ret = getAllRegisters(response);
+   
+   return ret;
 }
 
 bool int_thread::restoreRegsForRPC(bool clear, result_response::ptr response)
 {
    assert(rpc_regs.full);
+
    bool result = setAllRegisters(rpc_regs, response);
    if (clear && result) {
       rpc_regs.regs.clear();
