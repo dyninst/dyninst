@@ -806,6 +806,25 @@ void updateSearchPaths(const char *filename) {
 #endif
 }
 
+extern std::string getRTLibDir();
+
+bool setRTLibEnvVars() {
+   std::string rtlib = getRTLibDir();
+
+   std::string ldpath = getenv("LD_LIBRARY_PATH");
+   
+   std::string newldpath = rtlib;
+   newldpath += ":";
+   newldpath += ldpath;
+   setenv("LD_LIBRARY_PATH", newldpath.c_str(), 1);
+
+   rtlib += "/libdyninstAPI_RT.so";
+   // 1 - overwrite existing
+   setenv("DYNINSTAPI_RT_LIB", rtlib.c_str(), 1);
+
+   return true;
+}
+
 bool testsRemain(std::vector<RunGroup *> &groups)
 {
    for (unsigned  i = 0; i < groups.size(); i++) {
@@ -844,6 +863,8 @@ int main(int argc, char *argv[]) {
 
    updateSearchPaths(argv[0]);
    setOutput(new StdOutputDriver(NULL));
+   // Use local RT libs
+   setRTLibEnvVars();
 
    ParameterDict params;
    int result = parseArgs(argc, argv, params);

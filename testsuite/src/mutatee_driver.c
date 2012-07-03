@@ -267,7 +267,6 @@ int main(int iargc, char *argv[])
    char *mutatee_name = NULL;
    unsigned int label_count = 0;
    int print_labels = FALSE;
-   int has_pidfile = 0;
    FILE* f;
 
 #if defined(os_bgq_test)

@@ -67,14 +67,6 @@ static int test_failed = 0;
 int test1_25_mutatee() {
   int retval;
 
-/* MIPS is no longer supported, so this test isn't necessary
- * #if defined(mips_sgi_irix6_4_test)
- *   logerror("Skipped test #25 (unary operators)\n");
- *   logerror("\t- not implemented on this platform\n");
- *   passedTest[25] = TRUE;
- * #else
- */
-
     test1_25_globalVariable1 = 25000001;
     test1_25_globalVariable2 = (int *) 25000002;
     test1_25_globalVariable3 = 25000003;
@@ -137,7 +129,6 @@ int test1_25_mutatee() {
       retval = -1; /* Test failed */
     }
     return retval;
-/* #endif /* !MIPS */
 }
 
 void test1_25_call1() {

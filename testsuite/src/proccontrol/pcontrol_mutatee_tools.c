@@ -413,6 +413,7 @@ static void createNamedPipes()
    }
 #else
    id = getpid();
+   result = 0;
 #endif
 
    snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);

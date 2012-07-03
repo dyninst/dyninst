@@ -48,7 +48,6 @@ void test1_15_call3();
  * keyword static so they don't interfere with other mutatees in the group.
  */
 
-static void call15_2();
 static void check15result(const char *varname, int value, int expected,
 			  const char *errstr, int *failed);
 
@@ -58,7 +57,7 @@ static void check15result(const char *varname, int value, int expected,
  */
 
 static int globalVariable15_1 = 0;
-static int globalVariable15_2 = 0;
+//static int globalVariable15_2 = 0;
 static int globalVariable15_3 = 0;
 static int globalVariable15_4 = 0;
 
@@ -95,10 +94,6 @@ void test1_15_func3()
 
 void test1_15_func4()
 {
-    /* int localkludge = 1;
-    /* kludge = localkludge; /* Here so that the following function call isn't
-                                the first instruction */
-
     test1_15_func3();
 }
 
@@ -151,10 +146,6 @@ void test1_15_call1() {
     globalVariable15_1++;
 }
 
-/* It looks like this function is unused. */
-void call15_2() {
-    globalVariable15_2++;
-}
 
 void test1_15_call3() {
     globalVariable15_3++;

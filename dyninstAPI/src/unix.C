@@ -334,6 +334,7 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
     if (access(rt_lib_name, R_OK)) {
         std::string msg = std::string("Runtime library ") + std::string(rt_lib_name) +
                           std::string(" does not exist or cannot be accessed!");
+        cerr << msg << endl;
         showErrorCallback(ERROR_CODE, msg);
         return false;
     }
