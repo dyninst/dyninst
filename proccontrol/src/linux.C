@@ -67,9 +67,7 @@
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
-#define ELF_X_NAMESPACE ProcControlAPI
 #include "common/h/SymLite-elf.h"
-#include "common/src/Elf_X.C"
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS

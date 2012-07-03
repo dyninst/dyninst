@@ -39,6 +39,7 @@
 #include "stackwalk/src/linuxbsd-swk.h"
 #include "stackwalk/src/libstate.h"
 #include "dynutil/h/dyntypes.h"
+#include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -48,36 +49,11 @@ using namespace Stackwalker;
 
 static std::map<std::string, DwarfSW *> dwarf_info;
 
-typedef enum {
-   storageAddr,
-   storageReg,
-   storageRegOffset
-} storageClass;
-
-typedef enum {
-   storageRef,
-   storageNoRef
-} storageRefClass;
-
-class VariableLocation {
-public:
-   storageClass stClass;
-   storageRefClass refClass;
-   int reg;
-   MachRegister mr_reg;
-   long frameOffset;
-   Address lowPC;
-   Address hiPC;
-};
-
 #include <stdarg.h>
 #include "dwarf.h"
 #include "libdwarf.h"
-#include "common/h/dwarfExpr.h"
-#include "common/h/dwarfSW.h"
-
-#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/Elf_X.h"
+#include "common/h/dwarfSW.h"
 
 static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
 {
@@ -101,8 +77,14 @@ static DwarfSW *getDwarfInfo(std::string s)
    std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())
       return i->second;
-   
-   Elf_X *elfx = getElfHandle(s);
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(s);
+   if (!reader) {
+      sw_printf("[%s:%u] - Error opening default symbol reader %s\n",
+                __FILE__, __LINE__, s.c_str());
+      return NULL;
+   }
+   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
    DwarfSW *result = ll_getDwarfInfo(elfx);
    dwarf_info[s] = result;
    return result;
@@ -116,7 +98,15 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
    if (i != dwarf_aux_info.end())
       return i->second;
    
-   Elf_X *orig_elf = getElfHandle(s);
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+
+   SymReader *orig_reader = fact->openSymbolReader(s);
+   if (!orig_reader) {
+      sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
+                __FILE__, __LINE__, s.c_str());
+      return NULL;
+   }
+   Elf_X *orig_elf = (Elf_X *) orig_reader->getElfHandle();
    if (!orig_elf) {
       sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
                 __FILE__, __LINE__, s.c_str());
@@ -135,7 +125,6 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
       return NULL;
    }
    
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
    SymReader *reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
    if (!reader) {
       sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",

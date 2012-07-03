@@ -64,6 +64,16 @@ SRCS	     +=	../src/frame.C \
 		../src/sw_c.C \
 		../src/sw_pcontrol.C
 
+ifdef LIBELF_PLATFORM
+SRCS  +=  ../../common/src/Elf_X.C \
+          ../../common/src/SymLite-elf.C
+endif
+ifdef USES_DWARF_DEBUG
+SRCS  +=  ../../common/src/dwarfSW.C \
+          ../../common/src/dwarfExpr.C
+
+endif
+
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h
 
 # All that, and we finally get a target...

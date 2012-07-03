@@ -11,9 +11,6 @@ RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
-
 DEFINES		     +=  
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
@@ -41,6 +38,8 @@ endif
 ifndef STATIC_COMPS
 MYFLAGS += -fPIC
 endif
+
+MYFLAGS += -Dlibcommon
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC

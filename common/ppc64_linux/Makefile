@@ -24,8 +24,7 @@ SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/parseauxv.C \
 		../../common/src/addrtranslate-sysv.C \
 		../../common/src/addrtranslate-auxv.C \
-		../../common/src/addrtranslate-linux.C \
-		../../common/src/dwarfExpr.C
+		../../common/src/addrtranslate-linux.C
 
 
 #MYFLAGS	+= -DNO_MDL_PRINT

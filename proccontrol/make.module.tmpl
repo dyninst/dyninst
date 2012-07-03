@@ -6,7 +6,7 @@
 # $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
 #
 
-SUITE_NAME	= ProcessControl
+SUITE_NAME	= ProcControlAPI
 RELEASE_MAJOR	= 0
 RELEASE_MINOR = 1
 
@@ -76,6 +76,11 @@ SRCS	     +=	../src/event.C \
 		../src/ppc_process.C \
 		../src/mmapalloc.C \
 		../src/procset.C
+
+ifdef LIBELF_PLATFORM
+SRCS  +=  ../../common/src/Elf_X.C \
+          ../../common/src/SymLite-elf.C
+endif
 
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)

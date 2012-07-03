@@ -540,7 +540,6 @@ bool emitElf64::driver(Symtab *obj, string fName){
     shdr = elf64_getshdr(scn);
 
     // resolve section name
-    Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result || foundSec->isDirty()) {

@@ -69,6 +69,4 @@ class Elf_X;
 }
 }
 
-Dyninst::Stackwalker::Elf_X *getElfHandle(std::string s);
-
 #endif

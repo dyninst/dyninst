@@ -85,8 +85,6 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "common/src/Elf_X.C"
-
 using namespace boost::assign;
 
 #include <libgen.h>
@@ -5293,7 +5291,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
         Elf_X_Shdr *strtab_scnp) {
 
-  const char *shnames = pdelf_get_shnames(elfHdr);
+   //const char *shnames = pdelf_get_shnames(elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;    

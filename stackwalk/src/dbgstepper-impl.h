@@ -35,9 +35,9 @@
 #include "stackwalk/h/framestepper.h"
 #include "dynutil/h/ProcReader.h"
 
-class DwarfSW;
 namespace Dyninst {
 namespace Stackwalker {
+class DwarfSW;
 
 class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
  private:

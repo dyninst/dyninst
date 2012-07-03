@@ -48,13 +48,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/Elf_X.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
-
-#include "common/src/Elf_X.C"
 
 #include "common/h/SymLite-elf.h"
 #include "symtabAPI/h/SymtabReader.h"

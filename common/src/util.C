@@ -34,7 +34,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <map>
 #include "dynutil/h/dyntypes.h"
+
+using namespace std;
 
 namespace Dyninst {
 
@@ -214,4 +217,15 @@ const char *platform_string()
 #endif
 	return "bad_platform";
 }
+
+
+//SymElf code is exclusively linked in each component, but we still want to share
+//the cache information.  Thus the cache will live in libcommon.
+class SymElf;
+
+map<string, SymElf *> *getSymelfCache() {
+   static map<string, SymElf *> elfmap;
+   return &elfmap;
+}
+
 } // namespace Dyninst

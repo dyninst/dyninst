@@ -34,20 +34,23 @@
 
 #include <stack>
 #include "dynutil/h/dyn_regs.h"
-#include "dwarf.h"
-#include "libdwarf.h"
 
-using namespace std;
-using namespace Dyninst;
+namespace Dyninst {
 
+class VariableLocation;
+class ProcessReader;
 
 #if defined(arch_x86_64)
 
+extern int Register_DWARFtoMachineEnc32(int n);
+extern int Register_DWARFtoMachineEnc64(int n);
 
+#endif
 
-int Register_DWARFtoMachineEnc32(int n);
+extern MachRegister DwarfToDynReg(signed long reg, Dyninst::Architecture arch);
+extern signed long DynToDwarfReg(Dyninst::MachRegister reg);
 
-int Register_DWARFtoMachineEnc64(int n);
+}
 
 #define DWARF_TO_MACHINE_ENC(n, proc)					\
   ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32((int) n) : Register_DWARFtoMachineEnc64((int) n))
@@ -70,15 +73,13 @@ int Register_DWARFtoMachineEnc64(int n);
 #define DWARF_NEXT_IF(condition, ...)					\
   if (condition) { if (depth != 1) { return false; } else {walk_error = true; break; } }
 
+#if defined(COMPONENT_NAME) && !defined(libcommon)
 
-Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, Dyninst::Architecture arch);
-
-Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg);
+#include "libdwarf.h"
+#include "dwarf.h"
 
 namespace Dyninst {
-class VariableLocation;
-class ProcessReader;
-};
+namespace COMPONENT_NAME {
 
 bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
@@ -87,4 +88,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            Dyninst::Architecture arch,
                            long int &end_result);
 
+}
+}
 #endif
+
