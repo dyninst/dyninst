@@ -5372,6 +5372,15 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         Elf_X_Shdr *curSymHdr = allRegionHdrsByShndx[shdr->sh_link()];
 
+        // Check whether curSymHdr actually points to something intellegible
+        if ((!dynstr || curSymHdr->sh_offset() != dynsym_offset) &&
+            (!strtab || curSymHdr->sh_offset() != symtab_offset)) {
+           // Warning: there is no valid relocation data here since there
+           // aren't any symbols
+           fprintf(stderr, "%s[%d]: warning: possibly erroneous relocation section %d does not have a elf link field (%d) to either symtab or dynsymtab\n", FILE__, __LINE__, i, shdr->sh_link());
+           continue;
+        }
+
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
             Offset relOff, addend = 0;
@@ -5400,8 +5409,9 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
             // Determine which symbol table to use
             Symbol *sym = NULL;
-            if( curSymHdr->sh_offset() == dynsym_offset ) {
-                name = string( &dynstr[dynsym.st_name(symbol_index)] );
+            // Use dynstr to ensure we've initialized dynsym...
+            if( dynstr && curSymHdr->sh_offset() == dynsym_offset ) {
+               name = string( &dynstr[dynsym.st_name(symbol_index)] );
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
@@ -5411,7 +5421,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 			name = sym->getSec()->getRegionName().c_str();
 	            }		 
                 }
-            }else if( curSymHdr->sh_offset() == symtab_offset ) {
+            }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
@@ -5423,10 +5433,10 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 		    }
                 }
             }else{
-                fprintf(stderr, "%s[%d]: warning: unknown symbol table "
-                        "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
-                        "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
-                        symtab_offset, dynsym_offset);
+               fprintf(stderr, "%s[%d]: warning: unknown symbol table "
+                       "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
+                       "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
+                       symtab_offset, dynsym_offset);
                 continue;
             }
 
