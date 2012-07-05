@@ -33,6 +33,7 @@
 #include "common/h/dwarfExpr.h"
 #include "common/h/Types.h"
 #include "libdwarf.h"
+#include <stdio.h>
 
 using namespace Dyninst;
 using namespace COMPONENT_NAME;
@@ -74,7 +75,7 @@ bool DwarfSW::getRegValueAtFrame(Address pc,
 	Dwarf_Addr lowpc, hipc;
 	Dwarf_Error err;
 
-        err_result = FE_No_Error;
+   err_result = FE_No_Error;
 
 	/**
 	 * Initialize the FDE and CIE data.  This is only really done once, 
@@ -85,7 +86,6 @@ bool DwarfSW::getRegValueAtFrame(Address pc,
       err_result = FE_Bad_Frame_Data;
       return false;
    }
-
 
    /**
     * Get the FDE at this PC.  The FDE contains the rules for getting
@@ -172,6 +172,7 @@ bool DwarfSW::getRegValueAtFrame(Address pc,
     **/
    unsigned word_size = addr_width;
 
+   bool calcd_res_addr = false;
    Dyninst::Address res_addr = 0;
    Dyninst::MachRegisterVal register_val;
    
@@ -212,6 +213,7 @@ bool DwarfSW::getRegValueAtFrame(Address pc,
       return true;
    }
    else if (value_type == DW_EXPR_OFFSET && offset_relevant) {
+      calcd_res_addr = true;
       res_addr = (Dyninst::Address) (register_val + offset_or_block_len);
    }
    else if (value_type == DW_EXPR_OFFSET && !offset_relevant)
@@ -260,7 +262,7 @@ bool DwarfSW::getRegValueAtFrame(Address pc,
       return false;
    }
    
-   assert(res_addr);
+   assert(calcd_res_addr);
    bool bresult = false;
    if (word_size == 4) {
       uint32_t i;
