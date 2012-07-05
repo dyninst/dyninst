@@ -153,6 +153,11 @@ def mutatee_binary(mutatee):
                            mutatee_bto_component(mutatee),
                            es)
 
+# Returns the command used to invoke the compiler
+def compiler_command(compiler, platform, abi):
+   return compiler['abiflags'][platform['name']][abi]['command']
+
+
 #
 ######################################################################
 
@@ -505,7 +510,7 @@ def print_mutatee_rules(out, mutatees, compiler, module, platform):
         if ('c++' in compiler['languages']):
 		out.write("ifndef SKIP_TEST_STATIC_32_C++\n")
 		if ifdef_32:
- 			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
+ 			out.write("ifdef M_%s\n" % (compiler_command(compiler,platform,'32')))
 		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
 		for m in mut_static_mabi:
  			out.write("%s " % (m))
@@ -817,7 +822,7 @@ def print_patterns(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t@echo Compiling $@\n")
 				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
-						% (compiler['defstring'], module,
+						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 						   module,
 						   basename, module, sourcefile))
@@ -830,7 +835,7 @@ def print_patterns(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t@echo Compiling $@\n")
 				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
-						% (compiler['defstring'], module,
+						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 
 						   module,
@@ -849,7 +854,7 @@ def print_patterns(c, out, module):
                                     out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
                                     out.write("\t@echo Compling $@\n")
                                     out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
-                                                            % (compiler['defstring'], module,
+                                                            % (compiler_command(compiler, platform, abi), module,
                                                                     object_flag_string(platform, compiler, abi, o, p)))
 
 	out.write("\n")
@@ -880,7 +885,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# compiler tuple (output file parameter flag)
 					out.write("\t@echo Compiling $@\n")
 					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
-							  % (comp['defstring'],
+							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
 					if (module != None):
@@ -895,7 +900,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# compiler tuple (output file parameter flag)
 					out.write("\t@echo Compiling $@\n")
 					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
-							  % (comp['defstring'],
+							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
 
@@ -1015,7 +1020,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 				out.write("mutatee_driver_solo_%s_%s%s: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi, ObjSuffix))
 				out.write("\t@echo Compiling $@\n")
 				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n"
-						  % (compilers[c]['defstring'],
+						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
 							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
@@ -1024,7 +1029,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 							 abi, ObjSuffix))
 				out.write("\t@echo Compiling $@\n")
 				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n\n"
-						  % (compilers[c]['defstring'],
+						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
 							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
