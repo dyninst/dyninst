@@ -483,50 +483,84 @@ def has_multiple_tests(testgroup):
       print t
       raise
 
-def print_mutatee_rules(out, mutatees, compiler, module):
+def print_mutatee_rules(out, mutatees, compiler, module, platform):
 	if(len(mutatees) == 0):
 		return
 	mut_static_mabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '32', mutatees))
 	mut_static_nonmabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '64', mutatees))
-	mut_dynamic = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee', mutatees))
+	mut_dynamic_mabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee' and y['abi'] == '32', mutatees))
+	mut_dynamic_nonmabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee' and y['abi'] == '64', mutatees))
 	mut_names = map(lambda x: mutatee_binary(x), mutatees)
 	out.write("######################################################################\n")
 	out.write("# Mutatees compiled with %s for %s\n" % (mutatees[0]['compiler'], module))
 	out.write("######################################################################\n\n")
-	if compiler['presencevar'] != 'true':
+        ifdef_comp = (compiler['presencevar'] != 'true')
+        exists_32 = '32' in compiler['abiflags'][platform['name']]
+        exists_64 = '64' in compiler['abiflags'][platform['name']]
+        ifdef_32 = ifdef_comp and exists_32
+        ifdef_64 = ifdef_comp and exists_64
+	if ifdef_comp:
 		out.write("ifdef %s\n" % (compiler['presencevar']))
 		out.write("# We only want to build these targets if the compiler exists\n")
         if ('c++' in compiler['languages']):
 		out.write("ifndef SKIP_TEST_STATIC_32_C++\n")
+		if ifdef_32:
+ 			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
 		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
 		for m in mut_static_mabi:
  			out.write("%s " % (m))
 		out.write('\n')
+		if ifdef_32:
+ 			out.write("endif\n")
 		out.write("endif\n")
 		out.write("ifndef SKIP_TEST_STATIC_64_C++\n")
+		if ifdef_64:
+ 			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
 		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
 		for m in mut_static_nonmabi:
- 			out.write("%s " % (m))
+			out.write("%s " % (m))
 		out.write('\n')
+		if ifdef_64:
+ 			out.write("endif\n")
 		out.write("endif\n")
         else:
 		out.write("ifndef SKIP_TEST_STATIC_32_NONC++\n")
+		if ifdef_32:
+			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
 		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
 		for m in mut_static_mabi:
  			out.write("%s " % (m))
 		out.write('\n')
+		if ifdef_32:
+ 			out.write("endif\n")
 		out.write("endif\n")
 		out.write("ifndef SKIP_TEST_STATIC_64_NONC++\n")
+		if ifdef_64:
+			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
 		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
 		for m in mut_static_nonmabi:
  			out.write("%s " % (m))
 		out.write('\n')
+		if ifdef_64:
+ 			out.write("endif\n")
 		out.write("endif\n")
-	out.write("%s_SOLO_MUTATEES_DYNAMIC_%s = " % (module, compiler['defstring']))
-	for m in mut_dynamic:
+	if ifdef_32:
+		out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
+	out.write("%s_SOLO_MUTATEES_DYNAMIC_32_%s = " % (module, compiler['defstring']))
+	for m in mut_dynamic_mabi:
 		out.write("%s " % (m))
 	out.write('\n')
-	out.write("%s_SOLO_MUTATEES_%s = $(%s_SOLO_MUTATEES_STATIC_32_%s) $(%s_SOLO_MUTATEES_STATIC_64_%s) $(%s_SOLO_MUTATEES_DYNAMIC_%s)\n" % (module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring']))
+	if ifdef_32:
+		out.write("endif\n")
+	if ifdef_64:
+		out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
+	out.write("%s_SOLO_MUTATEES_DYNAMIC_64_%s = " % (module, compiler['defstring']))
+	for m in mut_dynamic_nonmabi:
+		out.write("%s " % (m))
+	out.write('\n')
+	if ifdef_64:
+		out.write("endif\n")
+	out.write("%s_SOLO_MUTATEES_%s = $(%s_SOLO_MUTATEES_STATIC_32_%s) $(%s_SOLO_MUTATEES_STATIC_64_%s) $(%s_SOLO_MUTATEES_DYNAMIC_32_%s) $(%s_SOLO_MUTATEES_DYNAMIC_64_%s)\n" % (module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring']))
 	if compiler['presencevar'] != 'true':
 		out.write("endif\n")
 	out.write("\n")
@@ -633,11 +667,11 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 		# Print the actions used to link the mutatee executable
 		out.write("\t@echo Linking $@\n");
 		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s "
-				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
+				  % (platform['linker'] or "$(M_%s)" % compiler['abiflags'][platform['name']][m['abi']]['command'],
 				    compiler['flags']['std'],
 					 ObjSuffix,
 					 compiler['flags']['link'],
-					 compiler['abiflags'][platform['name']][m['abi']]))
+					 compiler['abiflags'][platform['name']][m['abi']]['flags']))
                 if m['format'] == 'staticMutatee':
                     linkage = compiler['staticlink']
                 else:
@@ -697,7 +731,7 @@ def object_flag_string(platform, compiler, abi, optimization, pic):
    return "%s %s %s %s %s %s" % (compiler['flags']['std'],
                         compiler['flags']['mutatee'],
                         compiler['parameters']['partial_compile'],
-                        compiler['abiflags'][platform['name']][abi],
+                        compiler['abiflags'][platform['name']][abi]['flags'],
                         compiler['optimization'][optimization],
                         compiler['pic'][pic])
 
@@ -722,7 +756,7 @@ def print_patterns_wildcards(c, out, module):
                                     % (cto, ObjSuffix, module, e))
                     out.write("\t@echo Compiling $@\n");
                     out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
-                                % (compiler['defstring'],
+                                % (compiler['abiflags'][platform['name']][abi]['command'],
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
 def is_valid_test(mutatee):
@@ -964,7 +998,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		for m in modules:
 			muts = filter(lambda x: x['compiler'] == c and is_valid_test(x) == 'true' and get_module(x) == m, mutatees)
 			if(len(muts) != 0):
-				print_mutatee_rules(out, muts, compilers[c], m)
+				print_mutatee_rules(out, muts, compilers[c], m, platform)
 		# Print rules for exceptional object files
 		print_special_object_rules(c, out)
 
@@ -984,7 +1018,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 						  % (compilers[c]['defstring'],
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
+							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 				out.write("mutatee_util_%s_%s%s: ../src/mutatee_util.c\n"
 						  % (info['compilers'][c]['executable'],
 							 abi, ObjSuffix))
@@ -993,7 +1027,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 						  % (compilers[c]['defstring'],
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
+							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 		else:
 			out.write("# (Skipped: driver and utility objects cannot be compiled with this compiler\n")
 
@@ -1507,7 +1541,7 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 		out.write("\t%s %s -out:$@ $** %s "
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 					 compiler['flags']['link'],
-					 compiler['abiflags'][platform['name']][m['abi']]))
+					 compiler['abiflags'][platform['name']][m['abi']]['flags']))
 		# TODO: libraries
 		#for l in m['libraries']:
 		# Need to include the required libraries on the command line
@@ -1646,7 +1680,7 @@ def write_make_solo_mutatee_gen_nt(filename, tuplefile):
 								 compilers[c]['flags']['std'],
 								 compilers[c]['flags']['mutatee'],
 								 opt_flag,
-								 compilers[c]['abiflags'][platform['name']][abi]))
+								 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 					# TODO: find where these files live in our data structures
 					# and remove the hardcoding!
 
