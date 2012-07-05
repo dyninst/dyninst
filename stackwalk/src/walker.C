@@ -74,7 +74,7 @@ Walker::Walker(ProcessState *p,
    group = grp ? grp : createDefaultStepperGroup();
    if (default_steppers) {
       result = createDefaultSteppers();
-      if (result) {
+      if (!result) {
          sw_printf("[%s:%u] - Error creating default steppers\n",
                    __FILE__, __LINE__);
          creation_error = true;

@@ -49,9 +49,18 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+static volatile int always_zero = 0;
+
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-  unsigned long *frame_pointer;
+  unsigned long *frame_pointer = NULL;
+
+  if (always_zero) {
+     //Generate some (skipped) code involving frame_pointer before
+     // the assembly snippet.  This keeps gcc from optimizing 
+     // the below snippet by pulling it up into the function prolog.
+     sw_printf("%p%p\n", frame_pointer, &frame_pointer);
+  }
 
 #if defined(arch_x86_64) && (defined(os_linux) || defined(os_freebsd))
   __asm__("mov %%rbp, %0\n"
