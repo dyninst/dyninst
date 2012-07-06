@@ -85,12 +85,15 @@ AddressSpace::AddressSpace () :
     emulatePC_(false),
     delayRelocation_(false)
 {
+#if 0
+   // Disabled for now; used by defensive mode
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
        memEmulator_ = new MemoryEmulator(this);
        emulateMem_ = true;
        emulatePC_ = true;
    }
+#endif
 }
 
 AddressSpace::~AddressSpace() {
