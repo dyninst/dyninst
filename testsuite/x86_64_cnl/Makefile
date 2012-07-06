@@ -7,6 +7,7 @@ TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 DEBUG_FLAG = -g 
+SUITE_NAME = testsuite
 
 CC = gcc
 CXX = g++

@@ -20,8 +20,7 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -100,7 +99,4 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
 

@@ -35,10 +35,6 @@ TARGET      = libcommon.a
 endif
 endif
 
-ifndef STATIC_COMPS
-MYFLAGS += -fPIC
-endif
-
 MYFLAGS += -Dlibcommon
 
 LDFLAGS     += $(LIBDIR)
@@ -100,5 +96,3 @@ else
 IFLAGS	     += -I/usr/include/libxml2
 endif
 
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

@@ -24,7 +24,6 @@ STATIC_LIBRARY = true
 TARGET = libstackwalk.a
 else
 TARGET = libstackwalk.so
-MYFLAGS += -fPIC
 endif
 endif
 
@@ -74,10 +73,7 @@ SRCS  +=  ../../common/src/dwarfSW.C \
 
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
 
 ifdef WRAPPER_LIBS
 all: libstackwalk_c.so

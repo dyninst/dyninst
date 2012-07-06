@@ -23,8 +23,7 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -63,9 +62,6 @@ YACCFLAGS += -v
 endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src -I. 
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS) 
 
 # We use a separate target for regenerating Lex and Yacc source files because of 
 # inconsistent Lex and Yacc availability across platforms.

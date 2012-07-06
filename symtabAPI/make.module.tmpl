@@ -37,10 +37,6 @@ CFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
 CXXFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
 endif
 
-ifndef STATIC_COMPS
-MYFLAGS += -fPIC
-endif
-
 ifndef TARGET
 ifndef STATIC_COMPS
 TARGET		= libsymtabAPI.so
@@ -134,6 +130,3 @@ IFLAGS       += -I$(LIBXML2_INC)
 else
 IFLAGS	     += -I/usr/include/libxml2
 endif
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

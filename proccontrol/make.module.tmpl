@@ -20,7 +20,6 @@ STATIC_LIBRARY = true
 TARGET = libpcontrol.a
 else
 TARGET = libpcontrol.so
-MYFLAGS += -fPIC
 endif
 
 ifdef HAVE_THREAD_DB
@@ -85,5 +84,3 @@ endif
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)
 
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

@@ -49,6 +49,12 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
+
+ifdef USE_PARSE_API
+	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
+endif
+MYFLAGS += -I../../symtabAPI/h
+
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as

@@ -38,7 +38,7 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 endif
 
 ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
-      	SRCS += ../src/MemoryEmulator/memEmulator.C \
+	SRCS += ../src/MemoryEmulator/memEmulator.C \
 	        ../src/MemoryEmulator/memEmulatorTransformer.C \
 		../src/MemoryEmulator/memEmulatorAtom.C 
 endif
@@ -56,14 +56,15 @@ LDFLAGS     += -L../../patchAPI/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD) 
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
 endif #sparc
 endif #USES_NATIVE
+ifndef STATIC_COMPS
 TFLAGS		+= -fPIC
+endif
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
                 ../../common/src:../../paradyn/h
@@ -223,10 +224,6 @@ IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
 IFLAGS      += -I../../proccontrol/h
 IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
 IFLAGS      += -I../../patchAPI/h
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
-
 
 # I couldn't figure out how to explicitly instantiate a templated
 # function whose template arguments are protected members of

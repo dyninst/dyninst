@@ -20,8 +20,7 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 endif #USES_NATIVE
 
@@ -60,7 +59,4 @@ SRCS +=	../src/AddrSpace.C \
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../parseAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../h
 
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
 
