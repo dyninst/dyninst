@@ -1094,15 +1094,15 @@ static int const amd64_register_map[] =
 
 int Dyninst::Register_DWARFtoMachineEnc32(int n)
 {
-   assert(n <= IA32_MAX_MAP);
    return n;
 }
 
 
 int Dyninst::Register_DWARFtoMachineEnc64(int n)
 {
-   assert(n <= AMD64_MAX_MAP);
-   return amd64_register_map[n];
+   if (n <= AMD64_MAX_MAP)
+      return amd64_register_map[n];
+   return n;
 }
 
 #endif

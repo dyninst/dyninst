@@ -446,6 +446,8 @@ class Object : public AObject {
 
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
+    
+    Elf_X * getElfHandle() { return &elfHdr; }
 
   private:
   static void log_elferror (void (*)(const char *), const char *);

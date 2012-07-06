@@ -863,29 +863,29 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
           We want to concatenate them and search for BGP to determine
           if the binary is built for BGP compute nodes */
 
-	Elf_X_Data data = scnp->get_data();
+       Elf_X_Data data = scnp->get_data();
         
-	unsigned int index = 0;
-	size_t size = data.d_size();
-	char *buf = (char *) data.d_buf();
-        while (index < size)
-        {
-                string comment = buf+index;
-                size_t pos_p = comment.find("BGP");
-                size_t pos_q = comment.find("BGQ");
-                if (pos_p !=string::npos) {
-                        isBlueGeneP_ = true;
-                        break;
-                } else if (pos_q !=string::npos) {
-					         isBlueGeneQ_ = true;
-								break;
-					}
-                index += comment.size();
-                if (comment.size() == 0) { // Skip NULL characters in the comment section
-                        index ++;
-                }
-        }
-     }
+       unsigned int index = 0;
+       size_t size = data.d_size();
+       char *buf = (char *) data.d_buf();
+       while (buf && (index < size))
+       {
+          string comment = buf+index;
+          size_t pos_p = comment.find("BGP");
+          size_t pos_q = comment.find("BGQ");
+          if (pos_p !=string::npos) {
+             isBlueGeneP_ = true;
+             break;
+          } else if (pos_q !=string::npos) {
+             isBlueGeneQ_ = true;
+             break;
+          }
+          index += comment.size();
+          if (comment.size() == 0) { // Skip NULL characters in the comment section
+             index ++;
+          }
+       }
+    }
 
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) &&
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {

@@ -272,6 +272,16 @@ void *SymtabReader::getDebugInfo()
 #endif
 }
 
+void *SymtabReader::getElfHandle()
+{
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+   Object *obj = symtab->getObject();
+   return obj->getElfHandle();
+#else
+   return NULL;
+#endif
+}
+
 SymtabReaderFactory::SymtabReaderFactory()
 {
 }
