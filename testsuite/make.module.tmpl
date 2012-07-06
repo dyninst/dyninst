@@ -223,15 +223,17 @@ SPACE +=
 #COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl,--enable-new-dtags$(ALL_COMP_DIRS:%=,-rpath,%))
 COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl$(ALL_COMP_DIRS:%=,-rpath,%))
 
+all: default
+
 default: testlibs mutators mutatees_minimum drivers output_drivers components
 	@echo "**********************************************************"
 	@echo "* Build complete."
 	@echo "*"
-	@echo "* High optimization mutatees were not built, use 'make all'"
+	@echo "* High optimization mutatees were not built, use 'make full'"
 	@echo "* to build them."
 	@echo "**********************************************************"
 
-all: testlibs mutators mutatees drivers output_drivers components
+full: testlibs mutators mutatees drivers output_drivers components
 
 #######################################################################
 ###  A list of all the targets we're building, for install purposes
