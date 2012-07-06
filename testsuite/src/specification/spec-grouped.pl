@@ -32,7 +32,7 @@
                   spec_object_file/6, fortran_c_component/1,
                   whitelist/1, parameter/1, parameter_values/2,
                   mutatee_abi/1, platform_abi/2,
-                  compiler_platform_abi_s/4, test_platform_abi/3,
+                  compiler_platform_abi_s/5, test_platform_abi/3,
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
                   compiler_static_link/3, compiler_dynamic_link/3,
@@ -3010,6 +3010,8 @@ compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
 compiler_define_string('iCC', 'intel_CC').
+compiler_define_string_32('icc', 'intel_cc_32').
+compiler_define_string_32('iCC', 'intel_CC_32').
 compiler_define_string('bg_gcc', 'gnu_cc').
 compiler_define_string('bg_g++', 'gnu_xx').
 compiler_define_string('bg_gfortran', 'gnu_fc').
@@ -3147,7 +3149,8 @@ compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(
 compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
 compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
 compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
-
+compiler_dynamic_link('icc', _, '-Xlinker -export-dynamic').
+compiler_dynamic_link('iCC', _, '-Xlinker -export-dynamic').
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
@@ -3239,14 +3242,15 @@ optimization_level('max').
 % compiler_platform_abi_s_default(FlagString)
 % The flags string for a platform's default ABI (Do we want this?)
 compiler_platform_abi_s_default('').
-% compiler_platform_abi_s(Compiler, Platform, ABI, FlagString)
-compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
+% compiler_platform_abi_s(Compiler, Platform, ABI, FlagString, CompilerString)
+compiler_platform_abi_s(Compiler, Platform, ABI, '', CompilerString) :-
     mutatee_comp(Compiler),
     Compiler \= '',
     platform(Platform),
     compiler_platform(Compiler, Platform),
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
+    compiler_define_string(Compiler, CompilerString),
     \+ ((member(Compiler, ['gcc', 'g++', 'icc', 'iCC', 'pgcc', 'pgCC']),
          Platform = 'x86_64-unknown-linux2.4',
          ABI = 32);
@@ -3254,11 +3258,17 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
          Platform = 'ppc64_linux')).
 
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
-                        '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
-    member(Compiler, ['gcc', 'g++', 'icc', 'iCC']).
+                        '-m32 -Di386_unknown_linux2_4 -Dm32_test', CompilerString) :-
+    member(Compiler, ['gcc', 'g++']),
+    compiler_define_string(Compiler, CompilerString).
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
-                        '-tp px -Di386_unknown_linux2_4 -Dm32_test') :-
-    member(Compiler, ['pgcc', 'pgCC']).
+                        '-tp px -m32 -Di386_unknown_linux2_4 -Dm32_test', CompilerString) :-
+    member(Compiler, ['pgcc', 'pgCC']),
+    compiler_define_string(Compiler, CompilerString).
+compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
+                        '-Di386_unknown_linux2_4 -Dm32_test', CompilerString) :-
+    member(Compiler, ['icc', 'iCC']),
+    compiler_define_string_32(Compiler, CompilerString).
 %
 % PPC64 platform doesn't support 32-bit mutatees (yet).
 %
@@ -3266,20 +3276,20 @@ compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
 %                        '-m32 -Dppc32_linux -Dm32_test') :-
 %    member(Compiler, ['gcc', 'g++']).
 compiler_platform_abi_s(Compiler, 'ppc64_linux', 64,
-                        '-m64') :-
-    member(Compiler, ['gcc', 'g++']).
-
+                        '-m64', CompilerString) :-
+    member(Compiler, ['gcc', 'g++']),
+    compiler_define_string(Compiler, CompilerString).
 
 compiler_platform_abi(Compiler, Platform, ABI) :-
    mutatee_comp(Compiler),
    platform(Platform),
    compiler_platform(Compiler, Platform),
-   mutatee_abi(ABI),
-   \+ (
-      member(Platform, ['x86_64-unknown-linux2.4']),
-      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
-      member(ABI, [32])
-   ).
+   mutatee_abi(ABI).
+%   \+ (
+%      member(Platform, ['x86_64-unknown-linux2.4']),
+%      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
+%      member(ABI, [32])
+%   ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE

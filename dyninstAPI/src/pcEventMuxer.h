@@ -120,10 +120,10 @@ public:
     static cb_ret_t breakpointCallback(EventPtr);
     static cb_ret_t RPCCallback(EventPtr);
     static cb_ret_t threadCreateCallback(EventPtr);
-	static cb_ret_t forkCallback(EventPtr);
+    static cb_ret_t threadDestroyCallback(EventPtr);
+    static cb_ret_t forkCallback(EventPtr);
     static cb_ret_t execCallback(EventPtr);
 //    static cb_ret_t forceTerminateCallback(EventPtr);
-//    static cb_ret_t threadDestroyCallback(EventPtr);
 //    static cb_ret_t libraryCallback(EventPtr);
 //    static cb_ret_t singlestepCallback(EventPtr);
 

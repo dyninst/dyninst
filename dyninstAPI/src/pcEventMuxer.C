@@ -158,7 +158,7 @@ bool PCEventMuxer::registerCallbacks() {
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Crash), defaultCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::ForceTerminate), defaultCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadCreate), threadCreateCallback);
-	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadDestroy), defaultCallback);
+	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::ThreadDestroy), threadDestroyCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Signal), signalCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Library), defaultCallback);
 	ret &= Process::registerEventCallback(EventType(EventType::Any, EventType::Breakpoint), breakpointCallback);
@@ -368,6 +368,15 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
 	ret = ret_default;
+
+	DEFAULT_RETURN;
+}
+
+
+PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
+	INITIAL_MUXING;
+
+	ret = Process::cb_ret_t(Process::cbThreadStop);
 
 	DEFAULT_RETURN;
 }

@@ -125,7 +125,7 @@ def parse_compilers(tuplestring):
 			abis = filter(lambda af: af[0] == p, compiler_dict[c]['abiflags'])
 			abidict = {}
 			for a in abis:
-				abidict[a[1]] = a[2]
+				abidict[a[1]] = dict(zip(('flags','command'),(a[2],a[3])))
 			abiflags[p] = abidict
 		compiler_dict[c]['abiflags'] = abiflags
 	return compiler_dict
