@@ -11065,14 +11065,10 @@ mutatee_util_gcc_64.o: ../src/mutatee_util.c
 .PHONY: dyninst_solo_mutatees
 dyninst_solo_mutatees: $(dyninstSOLO_MUTATEES_gnu_cxx) $(dyninstSOLO_MUTATEES_gnu_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: dyninst_clean_solo_mutatees
 dyninst_clean_solo_mutatees:
-	-$(RM) $(dyninst_SOLO_MUTATEES_gnu_cxx)
-	-$(RM) $(dyninst_SOLO_MUTATEES_gnu_cc)
-	-$(RM) *_none.o
-	-$(RM) *_low.o
-	-$(RM) *_high.o
-	-$(RM) *_max.o
+	$(HIDE_COMP)-$(RM) $(dyninst_SOLO_MUTATEES_gnu_cxx)
+	$(HIDE_COMP)-$(RM) $(dyninst_SOLO_MUTATEES_gnu_cc)
 
 
 dyninst_SOLO_MUTATEES = $(dyninst_SOLO_MUTATEES_gnu_cxx) $(dyninst_SOLO_MUTATEES_gnu_cc)
@@ -11085,14 +11081,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: symtab_solo_mutatees
 symtab_solo_mutatees: $(symtabSOLO_MUTATEES_gnu_cxx) $(symtabSOLO_MUTATEES_gnu_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: symtab_clean_solo_mutatees
 symtab_clean_solo_mutatees:
-	-$(RM) $(symtab_SOLO_MUTATEES_gnu_cxx)
-	-$(RM) $(symtab_SOLO_MUTATEES_gnu_cc)
-	-$(RM) *_none.o
-	-$(RM) *_low.o
-	-$(RM) *_high.o
-	-$(RM) *_max.o
+	$(HIDE_COMP)-$(RM) $(symtab_SOLO_MUTATEES_gnu_cxx)
+	$(HIDE_COMP)-$(RM) $(symtab_SOLO_MUTATEES_gnu_cc)
 
 
 symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_gnu_cxx) $(symtab_SOLO_MUTATEES_gnu_cc)
@@ -11105,14 +11097,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: instruction_solo_mutatees
 instruction_solo_mutatees: $(instructionSOLO_MUTATEES_gnu_cxx) $(instructionSOLO_MUTATEES_gnu_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: instruction_clean_solo_mutatees
 instruction_clean_solo_mutatees:
-	-$(RM) $(instruction_SOLO_MUTATEES_gnu_cxx)
-	-$(RM) $(instruction_SOLO_MUTATEES_gnu_cc)
-	-$(RM) *_none.o
-	-$(RM) *_low.o
-	-$(RM) *_high.o
-	-$(RM) *_max.o
+	$(HIDE_COMP)-$(RM) $(instruction_SOLO_MUTATEES_gnu_cxx)
+	$(HIDE_COMP)-$(RM) $(instruction_SOLO_MUTATEES_gnu_cc)
 
 
 instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_gnu_cxx) $(instruction_SOLO_MUTATEES_gnu_cc)
@@ -11125,14 +11113,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: proccontrol_solo_mutatees
 proccontrol_solo_mutatees: $(proccontrolSOLO_MUTATEES_gnu_cxx) $(proccontrolSOLO_MUTATEES_gnu_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: proccontrol_clean_solo_mutatees
 proccontrol_clean_solo_mutatees:
-	-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cxx)
-	-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cc)
-	-$(RM) *_none.o
-	-$(RM) *_low.o
-	-$(RM) *_high.o
-	-$(RM) *_max.o
+	$(HIDE_COMP)-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cxx)
+	$(HIDE_COMP)-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cc)
 
 
 proccontrol_SOLO_MUTATEES = $(proccontrol_SOLO_MUTATEES_gnu_cxx) $(proccontrol_SOLO_MUTATEES_gnu_cc)
