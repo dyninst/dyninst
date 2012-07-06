@@ -52,6 +52,7 @@ extern signed long DynToDwarfReg(Dyninst::MachRegister reg);
 
 }
 
+#if defined(arch_x86_64)
 #define DWARF_TO_MACHINE_ENC(n, proc)					\
   ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32((int) n) : Register_DWARFtoMachineEnc64((int) n))
 #define DWARF_TO_MACHINE_ENC_W(n, w) \
@@ -92,3 +93,4 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
 }
 #endif
 
+#endif
