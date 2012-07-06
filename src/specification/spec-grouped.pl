@@ -3149,7 +3149,8 @@ compiler_dynamic_link('bgq_g++', P, '-dynamic -Wl,-export-dynamic') :- platform(
 compiler_dynamic_link('bgq_gcc', P, '-dynamic -Wl,-export-dynamic') :- platform(_, _, 'bluegeneq', P).
 compiler_dynamic_link('g++', _, '-Wl,-export-dynamic').
 compiler_dynamic_link('gcc', _, '-Wl,-export-dynamic').
-
+compiler_dynamic_link('icc', _, '-Xlinker -export-dynamic').
+compiler_dynamic_link('iCC', _, '-Xlinker -export-dynamic').
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
@@ -3283,12 +3284,12 @@ compiler_platform_abi(Compiler, Platform, ABI) :-
    mutatee_comp(Compiler),
    platform(Platform),
    compiler_platform(Compiler, Platform),
-   mutatee_abi(ABI),
-   \+ (
-      member(Platform, ['x86_64-unknown-linux2.4']),
-      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
-      member(ABI, [32])
-   ).
+   mutatee_abi(ABI).
+%   \+ (
+%      member(Platform, ['x86_64-unknown-linux2.4']),
+%      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
+%      member(ABI, [32])
+%   ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE
