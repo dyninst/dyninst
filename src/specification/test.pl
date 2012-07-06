@@ -106,7 +106,7 @@ compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings, 
     StdFlags = [StdFlagsStr, MutFlagsStr, LinkFlagsStr],
     % Need ABIFlags
     % [Platform, ABI, ABIFlagStr]
-    findall([P, A, F], compiler_platform_abi_s(Name, P, A, F), ABIFlags),
+    findall([P, A, F, CS], compiler_platform_abi_s(Name, P, A, F, CS), ABIFlags),
     (
         \+ compiler_presence_def(Name, _) -> PresenceVar = 'true';
         compiler_presence_def(Name, PresenceVar)
