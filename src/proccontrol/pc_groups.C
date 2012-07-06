@@ -146,15 +146,15 @@ bool pc_groupsMutator::readMemoryTest(uint64_t value, AddressSet::ptr aset)
 
    //Read from uniform size data
    {
-      multimap<Process::const_ptr, void *> mem_results;
+      multimap<Process::ptr, void *> mem_results;
       bool result = pset->readMemory(aset, mem_results, data_size);
       if (!result) {
          logerror("Failed to read memory\n");
          return false;
       }
       ProcessSet::ptr temp_pset = ProcessSet::newProcessSet();
-      for (multimap<Process::const_ptr, void *>::iterator i = mem_results.begin(); i != mem_results.end(); i++) {
-         Process::const_ptr proc = i->first;
+      for (multimap<Process::ptr, void *>::iterator i = mem_results.begin(); i != mem_results.end(); i++) {
+         Process::ptr proc = i->first;
          uint64_t val = *((uint64_t *) i->second);
          
          if (val != value) {

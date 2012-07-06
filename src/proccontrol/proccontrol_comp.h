@@ -68,6 +68,7 @@ public:
    int sockfd;
    char *sockname;
    int notification_fd;
+   bool check_threads_on_startup;
 
    std::map<Process::ptr, int> w_pipe;
    std::map<Process::ptr, int> r_pipe;
@@ -113,7 +114,7 @@ public:
    bool registerEventCounter(EventType et);
 
    bool checkThread(const Thread &thread);
-
+   void setupStatTest(std::string exec_name);
    virtual test_results_t program_setup(ParameterDict &params);
    virtual test_results_t program_teardown(ParameterDict &params);
    virtual test_results_t group_setup(RunGroup *group, ParameterDict &params);

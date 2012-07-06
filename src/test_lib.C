@@ -616,7 +616,7 @@ int getNumProcs(const ParameterDict &dict)
          base = result;
    }
    int mult = 1;
-#if defined(os_bg_test)
+#if defined(os_bgp_test)
    i = dict.find("platmode");
    int max_threads = bg_maxThreadsPerProcess(i->second->getString());
    mult = 4 / max_threads;

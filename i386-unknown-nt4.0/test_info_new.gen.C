@@ -1828,6 +1828,22 @@ struct {
  {"pc_groups_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_groups_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_groups_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
+ {"pc_stat_mutatee_solo_VC++_32_none.exe", SELFATTACH, USEATTACH, true, true, "proccontrol", "VC++", "none", "32", nonPIC},
  {"pc_irpc_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
  {"pc_irpc_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
  {"pc_irpc_mutatee_solo_VC_32_none.exe", SELFATTACH, CREATE, true, true, "proccontrol", "VC", "none", "32", nonPIC},
@@ -2028,6 +2044,22 @@ struct {
  {true, "pc_groups", "pc_groups", "pc_groups.dll", false, "{test: pc_groups, mutator: pc_groups, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_groups, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_groups", "pc_groups", "pc_groups.dll", false, "{test: pc_groups, mutator: pc_groups, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_groups, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_groups", "pc_groups", "pc_groups.dll", false, "{test: pc_groups, mutator: pc_groups, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_groups, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
+ {true, "pc_stat", "pc_stat", "pc_stat.dll", false, "{test: pc_stat, mutator: pc_stat, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_stat, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
  {true, "pc_irpc", "pc_irpc", "pc_irpc.dll", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_irpc, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
  {true, "pc_irpc", "pc_irpc", "pc_irpc.dll", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_irpc, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
  {true, "pc_irpc", "pc_irpc", "pc_irpc.dll", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: no_launch, platmode: NONE, mutatee: pc_irpc, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
@@ -2110,7 +2142,7 @@ struct {
  {true, "pc_terminate_stopped", "pc_terminate_stopped", "pc_terminate_stopped.dll", false, "{test: pc_terminate_stopped, mutator: pc_terminate_stopped, grouped: false, pic: none, start_state: selfattach, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutateeruntime: pre, platmode: NONE, mutatee: pc_terminate_stopped, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 192; i++) {
+  for (int i = 0; i < 208; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
@@ -2119,7 +2151,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 192 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 208 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);
