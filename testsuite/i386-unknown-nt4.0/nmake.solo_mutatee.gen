@@ -2439,14 +2439,10 @@ mutatee_driver_solo_VC_32_low.obj: ../src/mutatee_driver.c
 .PHONY: dyninst_solo_mutatees
 dyninst_solo_mutatees: $(dyninstSOLO_MUTATEES_native_cxx) $(dyninstSOLO_MUTATEES_native_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: dyninst_clean_solo_mutatees
 dyninst_clean_solo_mutatees:
-	-$(RM) $(dyninst_SOLO_MUTATEES_native_cxx)
-	-$(RM) $(dyninst_SOLO_MUTATEES_native_cc)
-	-$(RM) *_none.obj
-	-$(RM) *_low.obj
-	-$(RM) *_high.obj
-	-$(RM) *_max.obj
+	$(HIDE_COMP)-$(RM) $(dyninst_SOLO_MUTATEES_native_cxx)
+	$(HIDE_COMP)-$(RM) $(dyninst_SOLO_MUTATEES_native_cc)
 
 
 dyninst_SOLO_MUTATEES = $(dyninst_SOLO_MUTATEES_native_cxx) $(dyninst_SOLO_MUTATEES_native_cc)
@@ -2459,14 +2455,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: symtab_solo_mutatees
 symtab_solo_mutatees: $(symtabSOLO_MUTATEES_native_cxx) $(symtabSOLO_MUTATEES_native_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: symtab_clean_solo_mutatees
 symtab_clean_solo_mutatees:
-	-$(RM) $(symtab_SOLO_MUTATEES_native_cxx)
-	-$(RM) $(symtab_SOLO_MUTATEES_native_cc)
-	-$(RM) *_none.obj
-	-$(RM) *_low.obj
-	-$(RM) *_high.obj
-	-$(RM) *_max.obj
+	$(HIDE_COMP)-$(RM) $(symtab_SOLO_MUTATEES_native_cxx)
+	$(HIDE_COMP)-$(RM) $(symtab_SOLO_MUTATEES_native_cc)
 
 
 symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_native_cxx) $(symtab_SOLO_MUTATEES_native_cc)
@@ -2479,14 +2471,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: instruction_solo_mutatees
 instruction_solo_mutatees: $(instructionSOLO_MUTATEES_native_cxx) $(instructionSOLO_MUTATEES_native_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: instruction_clean_solo_mutatees
 instruction_clean_solo_mutatees:
-	-$(RM) $(instruction_SOLO_MUTATEES_native_cxx)
-	-$(RM) $(instruction_SOLO_MUTATEES_native_cc)
-	-$(RM) *_none.obj
-	-$(RM) *_low.obj
-	-$(RM) *_high.obj
-	-$(RM) *_max.obj
+	$(HIDE_COMP)-$(RM) $(instruction_SOLO_MUTATEES_native_cxx)
+	$(HIDE_COMP)-$(RM) $(instruction_SOLO_MUTATEES_native_cc)
 
 
 instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_native_cxx) $(instruction_SOLO_MUTATEES_native_cc)
@@ -2499,14 +2487,10 @@ COMPILER_CONTROL_DEFS =
 .PHONY: proccontrol_solo_mutatees
 proccontrol_solo_mutatees: $(proccontrolSOLO_MUTATEES_native_cxx) $(proccontrolSOLO_MUTATEES_native_cc) 
 
-.PHONY: clean_solo_mutatees
+.PHONY: proccontrol_clean_solo_mutatees
 proccontrol_clean_solo_mutatees:
-	-$(RM) $(proccontrol_SOLO_MUTATEES_native_cxx)
-	-$(RM) $(proccontrol_SOLO_MUTATEES_native_cc)
-	-$(RM) *_none.obj
-	-$(RM) *_low.obj
-	-$(RM) *_high.obj
-	-$(RM) *_max.obj
+	$(HIDE_COMP)-$(RM) $(proccontrol_SOLO_MUTATEES_native_cxx)
+	$(HIDE_COMP)-$(RM) $(proccontrol_SOLO_MUTATEES_native_cc)
 
 
 proccontrol_SOLO_MUTATEES = $(proccontrol_SOLO_MUTATEES_native_cxx) $(proccontrol_SOLO_MUTATEES_native_cc)
