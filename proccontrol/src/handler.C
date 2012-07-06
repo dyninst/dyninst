@@ -450,6 +450,12 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
          mbox()->enqueue_user(orig_ev);
          return true;
       }
+      if (result == Handler::ret_again) {
+         pthrd_printf("Handler %s throwing event again\n",
+                      handler->getName().c_str());
+         mbox()->enqueue(orig_ev);
+         return true;
+      }
       event->handled_by.insert(handler);
       if (result == Handler::ret_error) {
          pthrd_printf("Error handling event %s with %s\n", etype.name().c_str(),
@@ -1720,6 +1726,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 
    if (!removed_bps) 
    {
+      proc->setForceGeneratorBlock(true);
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
@@ -1774,6 +1781,14 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->handlerPool()->notifyOfPendingAsyncs(detach_response, ev);
       return ret_async;
    }
+      
+   if (!proc->plat_detachDone()) {
+      //Currently used on BG/Q.  Its plat_detach is a multi-stage operation,
+      // and will cause itself to be reinvoked until plat_detachDone is finished
+      pthrd_printf("Not finishing detach because plat_detachDone reported false on %d\n",
+                   proc->getPid());
+      return ret_success;
+   }
 
    if (temporary) {
       proc->setState(int_process::detached);
@@ -1792,6 +1807,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    err = false;
   done:
    int_detach_ev->done = true;
+   proc->setForceGeneratorBlock(false);
    proc->getStartupTeardownProcs().dec();
    return err ? ret_error : ret_success;
 }

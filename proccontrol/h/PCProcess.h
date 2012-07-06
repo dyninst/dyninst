@@ -81,6 +81,8 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
+
+class PlatformFeatures;
 class ExecFileInfo;
 
 class PC_EXPORT Breakpoint 
@@ -413,6 +415,12 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     * Symbol access
     **/
    SymbolReaderFactory *getDefaultSymbolReader();
+
+   /**
+    * Perform platform specific operations
+    **/
+   PlatformFeatures *getPlatformFeatures();
+   const PlatformFeatures *getPlatformFeatures() const;
 
    /**
     * Errors that occured on this process

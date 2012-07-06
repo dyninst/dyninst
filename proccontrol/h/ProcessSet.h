@@ -162,6 +162,7 @@ class PC_EXPORT ProcessSet
 
    friend void boost::checked_delete<ProcessSet>(ProcessSet *);
  public:
+   int_processSet *getIntProcessSet(); //Not for public use
    typedef boost::shared_ptr<ProcessSet> ptr;
    typedef boost::shared_ptr<const ProcessSet> const_ptr;
 
@@ -187,14 +188,16 @@ class PC_EXPORT ProcessSet
       std::vector<std::string> argv;
       std::vector<std::string> envp;
       std::map<int, int> fds;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo);
 
    struct AttachInfo {
       Dyninst::PID pid;
       std::string executable;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
 
@@ -333,7 +336,7 @@ class PC_EXPORT ProcessSet
       bool operator<(const read_t &w) { return (addr < w.addr) && (size < w.size) && (buffer < w.buffer); }
    };
 
-   bool readMemory(AddressSet::ptr addr, std::multimap<Process::const_ptr, void *> &result, size_t size) const;
+   bool readMemory(AddressSet::ptr addr, std::multimap<Process::ptr, void *> &result, size_t size) const;
    bool readMemory(AddressSet::ptr addr, std::map<void *, ProcessSet::ptr> &result, size_t size, bool use_checksum = true) const;
    bool readMemory(std::multimap<Process::const_ptr, read_t> &addrs) const;
 
@@ -375,11 +378,13 @@ class ThreadSet {
   public:
    typedef boost::shared_ptr<ThreadSet> ptr;
    typedef boost::shared_ptr<const ThreadSet> const_ptr;
+   int_threadSet *getIntThreadSet() const;
 
    /**
     * Create a new ThreadSet given existing threads
     **/
    static ThreadSet::ptr newThreadSet();
+   static ThreadSet::ptr newThreadSet(Thread::ptr thr);
    static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
    static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &threads);
    static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps);

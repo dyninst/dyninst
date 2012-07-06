@@ -41,6 +41,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/ProcessSet.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
@@ -1030,6 +1031,7 @@ bool int_process::waitAndHandleEvents(bool block)
          pthrd_printf("Clearing event from pipe after dequeue\n");
          notify()->clearEvent();
       }
+
       gotEvent = true;
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
@@ -1039,15 +1041,23 @@ bool int_process::waitAndHandleEvents(bool block)
 
       int_process* llp = ev->getProcess()->llproc();
       if(!llp) {
-
          error = true;
          goto done;
       }
 
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
+      if (!llproc) {
+         //Seen on Linux--a event comes in on an exited process because the kernel
+         // doesn't synchronize events across threads.  We thus get a thread exit
+         // event after a process exit event.  Just drop this event on the
+         // floor.
+         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
+                      ev->getEventType().name().c_str(), proc->getPid());
+         continue;
+      }
       HandlerPool *hpool = llproc->handlerpool;
-      
+
       if (!ev->handling_started) {
          llproc->updateSyncState(ev, false);
          llproc->noteNewDequeuedEvent(ev);
@@ -1100,6 +1110,10 @@ void int_process::throwDetachEvent(bool temporary)
    threadPool()->initialThread()->getDetachState().desyncStateProc(int_thread::stopped);
    
    mbox()->enqueue(detach_ev);
+}
+
+bool int_process::plat_detachDone() {
+   return true;
 }
 
 bool int_process::terminate(bool &needs_sync)
@@ -1173,7 +1187,8 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL)
+   user_data(NULL),
+   plat_process(NULL)
 {
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
@@ -1200,7 +1215,8 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL)
+   user_data(NULL),
+   plat_process(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -2004,6 +2020,56 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
+bool int_process::plat_getStackInfo(int_thread *, stack_response::ptr)
+{
+   setLastError(err_unsupported, "Collecting call stacks not supported\n");
+   perr_printf("Called plat_getStackInfo on unsupported platform\n");
+   return false;
+}
+
+bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
+{
+   assert(0);
+   return false;
+}
+
+PlatformFeatures *int_process::getPlatformFeatures()
+{
+   if (plat_process)
+      return plat_process;
+   plat_process = plat_getPlatformFeatures();
+   plat_process->proc = proc();
+   return plat_process;
+}
+
+bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::sysv_isTrackingLibraries()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_isTrackingThreads()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2034,6 +2100,11 @@ int_process::~int_process()
       delete mem;
    }
    mem = NULL;
+
+   if (plat_process) {
+      delete plat_process;
+      plat_process = NULL;
+   }
    if(ProcPool()->findProcByPid(getPid())) ProcPool()->rmProcess(this);
 }
 
@@ -2234,6 +2305,9 @@ hybrid_lwp_control_process::~hybrid_lwp_control_process()
 
 bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 {
+   if (thr->isSuspended())
+      return true;
+
    bool result = plat_suspendThread(thr);
    if (!result) 
       return false;
@@ -2243,6 +2317,9 @@ bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 
 bool hybrid_lwp_control_process::resumeThread(int_thread *thr)
 {
+   if (!thr->isSuspended())
+      return true;
+
    bool result = plat_resumeThread(thr);
    if (!result) 
       return false;
@@ -6214,6 +6291,30 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    }
 
    return llproc()->plat_defaultSymReader();
+}
+
+PlatformFeatures *Process::getPlatformFeatures()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc_->getPlatformFeatures();
+}
+
+const PlatformFeatures *Process::getPlatformFeatures() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc_->getPlatformFeatures();
 }
 
 err_t Process::getLastError() const {

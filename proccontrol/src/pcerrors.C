@@ -136,6 +136,33 @@ void Dyninst::ProcControlAPI::setDebug(bool enable)
    dyninst_debug_proccontrol = enable; 
 }
 
+#define STR_RET(C, S) case C: return S
+const char *Dyninst::ProcControlAPI::getGenericErrorMsg(err_t e) {
+   switch (e) {
+      STR_RET(err_none, "None");
+      STR_RET(err_badparam, "Bad Parameter");
+      STR_RET(err_procread, "Bad Address");
+      STR_RET(err_internal, "Internal Error");
+      STR_RET(err_prem, "Premission Denied");
+      STR_RET(err_noproc, "No such process");
+      STR_RET(err_interrupt, "Operation Interrupted");
+      STR_RET(err_exited, "Process or Thread is Exited");
+      STR_RET(err_nofile, "No such file or directory");
+      STR_RET(err_unsupported, "Unsupported feature on this platform");
+      STR_RET(err_symtab, "Error during symbol table reading");
+      STR_RET(err_nothrd, "No such thread");
+      STR_RET(err_notstopped, "Process or Thread is not stopped");
+      STR_RET(err_notrunning, "Process or Thread is not running");
+      STR_RET(err_noevents, "No events were available to be handled");
+      STR_RET(err_incallback, "Illegal operation issued from callback");
+      STR_RET(err_nouserthrd, "User thread information is not avaiable");
+      STR_RET(err_detached, "Process is detached");
+      STR_RET(err_attached, "Process is already attached");
+      STR_RET(err_pendingirpcs, "IRPCs are pending");
+      default: return "Unknown";
+   }
+}
+
 class init_debug_channel
 {
 public:

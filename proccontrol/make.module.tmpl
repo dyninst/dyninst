@@ -57,6 +57,7 @@ PUBLIC_H   = Decoder.h \
 				 PCErrors.h \
 				 PCProcess.h \
              ProcessSet.h \
+				 PlatFeatures.h \
 				 EventType.h
 
 SRCS	     +=	../src/event.C \
@@ -74,7 +75,8 @@ SRCS	     +=	../src/event.C \
 		../src/x86_process.C \
 		../src/ppc_process.C \
 		../src/mmapalloc.C \
-		../src/procset.C
+		../src/procset.C \
+		../src/processplat.C
 
 ifdef LIBELF_PLATFORM
 SRCS  +=  ../../common/src/Elf_X.C \

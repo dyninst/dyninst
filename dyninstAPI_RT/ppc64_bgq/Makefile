@@ -41,11 +41,7 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
 		   ../src/RTheap-linux.c \
 		   ../src/RTthread.c \
-<<<<<<< HEAD:dyninstAPI_RT/ppc32-unknown-vxworks6.x/Makefile
-		   ../src/RTvxworks.c \
-=======
 		   ../src/RTthread-index.c \
->>>>>>> master:dyninstAPI_RT/ppc64_bgq/Makefile
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \
 		   ../src/RTstatic_ctors_dtors-ppc64.c \

@@ -51,6 +51,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
@@ -1384,6 +1385,11 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     assert(found_result);
     free(maps);
     return result;
+}
+
+PlatformFeatures *linux_process::plat_getPlatformFeatures()
+{
+   return dynamic_cast<PlatformFeatures *>(new LinuxFeatures());
 }
 
 #if !defined(OFFSETOF)
