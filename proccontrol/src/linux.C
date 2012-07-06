@@ -493,6 +493,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    else if (WIFEXITED(status) && proc->getPid() != thread->getLWP())
    {
       int exitcode = WEXITSTATUS(status);
+
       pthrd_printf("Decoded exit of thread %d/%d with code %d\n",
                    proc->getPid(), thread->getLWP(), exitcode);
       EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
