@@ -1034,7 +1034,11 @@ bool int_process::waitAndHandleEvents(bool block)
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
       // thread events after a process has exited.
-      if (ev->getProcess()->isTerminated()) continue;
+      if (ev->getProcess()->isTerminated()) {
+         // Since the user will never handle this one...
+         notify()->clearEvent();
+         continue;
+      }
 #endif
 
       int_process* llp = ev->getProcess()->llproc();
