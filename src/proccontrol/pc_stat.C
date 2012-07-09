@@ -203,7 +203,7 @@ bool pc_statMutator::takeSample()
    MachRegister stack_pointer = MachRegister::getStackPointer(a_proc->getArchitecture());
 
 
-   LibraryTracking *libtracker = a_proc->getPlatformFeatures()->getLibraryTracking();
+   LibraryTracking *libtracker = a_proc->getLibraryTracking();
    if (libtracker) {
       result = LibraryTracking::refreshLibraries(pset);
       if (!result) {
@@ -213,10 +213,10 @@ bool pc_statMutator::takeSample()
    }
    
    all_threads = ThreadSet::newThreadSet(pset);
-   BlueGeneQFeatures *bgqproc = a_proc->getPlatformFeatures()->getBlueGeneQFeatures();
+   CallStackUnwinding *bgqproc = a_proc->getCallStackUnwinding();      
    if (bgqproc) {
       StackCallbackTest cb_test;
-      result = BlueGeneQFeatures::walkStack(all_threads, &cb_test);
+      result = CallStackUnwinding::walkStack(all_threads, &cb_test);
       if (!result) {
          logerror("Failue to collect stackwalks\n");
          return false;
