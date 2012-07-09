@@ -1117,6 +1117,11 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
        child_proc = int_process::createProcess(child_pid, parent_proc);
    }
 
+   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+      //Silence this event.  Child will be detached.
+      ev->setSuppressCB(true);
+   }
+
    assert(child_proc);
    return child_proc->forked() ? ret_success : ret_error;
 }
@@ -1140,12 +1145,18 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
    int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   int_process *parent_proc = ev->getProcess()->llproc();
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
 
-   //We need syncRunState to run for the new process to continue it.
-   // do so by throwing a NOP event on the new process.
-   child_proc->throwNopEvent();
+   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+      child_proc->throwDetachEvent(false);
+   }
+   else {
+      //We need syncRunState to run for the new process to continue it.
+      // do so by throwing a NOP event on the new process.
+      child_proc->throwNopEvent();
+   }
    return ret_success;
 }
 

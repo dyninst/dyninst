@@ -717,7 +717,7 @@ bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
    ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
 
    Process::ptr a_proc = *(pset->begin());
-   if (!a_proc->getPlatformFeatures()->getCallStackUnwinding()) {
+   if (!a_proc->getCallStackUnwinding()) {
       bad_plat = true;
       return false;
    }

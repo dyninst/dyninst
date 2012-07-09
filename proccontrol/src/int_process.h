@@ -420,6 +420,9 @@ class int_process
                                          bool &add_bp);
    virtual bool threaddb_isTrackingThreads();
 
+   virtual bool fork_setTracking(FollowFork::follow_t b);
+   virtual FollowFork::follow_t fork_isTracking();
+   
    PlatformFeatures *getPlatformFeatures();
    virtual PlatformFeatures *plat_getPlatformFeatures() = 0;
    
@@ -454,8 +457,9 @@ class int_process
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
+   FollowFork::follow_t fork_tracking;
+   PlatformFeatures *plat_features;
    void *user_data;
-   PlatformFeatures *plat_process;
    err_t last_error;
    const char *last_error_string;
 };

@@ -1240,7 +1240,8 @@ void linux_thread::setOptions()
    options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXIT;
    options |= PTRACE_O_TRACEEXEC;
-   options |= PTRACE_O_TRACEFORK;
+   if (llproc()->fork_isTracking() != FollowFork::ImmediateDetach)
+      options |= PTRACE_O_TRACEFORK;
 
    if (options) {
       int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
@@ -1387,9 +1388,43 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     return result;
 }
 
-PlatformFeatures *linux_process::plat_getPlatformFeatures()
+bool linux_process::fork_setTracking(FollowFork::follow_t f)
 {
-   return dynamic_cast<PlatformFeatures *>(new LinuxFeatures());
+   int_threadPool::iterator i;      
+   for (i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thrd = *i;
+      if (thrd->getUserState().getState() != int_thread::stopped) {
+         perr_printf("Could not set fork tracking because thread %d/%d was not stopped\n", 
+                     getPid(), thrd->getLWP());
+         setLastError(err_notstopped, "All threads must be stopped to change fork tracking\n");
+         return false;
+      }
+   }
+   if (f == FollowFork::None) {
+      perr_printf("Could not set fork tracking on %d to None\n", getPid());
+      setLastError(err_badparam, "Cannot set fork tracking to None");
+      return false;
+   }
+
+   if (f == fork_tracking) {
+      pthrd_printf("Leaving fork tracking for %d in state %d\n",
+                   getPid(), (int) f);
+      return true;
+   }
+
+   for (i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thrd = *i;
+      linux_thread *lthrd = dynamic_cast<linux_thread *>(thrd);
+      pthrd_printf("Changing fork tracking for thread %d/%d to %d\n",
+                   getPid(), lthrd->getLWP(), (int) f);
+      lthrd->setOptions();
+   }
+   return true;
+}
+
+FollowFork::follow_t linux_process::fork_isTracking()
+{
+   return fork_tracking;
 }
 
 #if !defined(OFFSETOF)
@@ -2399,6 +2434,19 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 bool ProcessPool::LWPIDsAreUnique()
 {
    return true;
+}
+
+PlatformFeatures *linux_process::plat_getPlatformFeatures()
+{
+   return dynamic_cast<PlatformFeatures *>(new LinuxFeatures());
+}
+
+LinuxFeatures::LinuxFeatures()
+{
+}
+
+LinuxFeatures::~LinuxFeatures()
+{
 }
 
 LinuxPtrace *LinuxPtrace::linuxptrace = NULL;

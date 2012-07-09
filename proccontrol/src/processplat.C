@@ -40,74 +40,6 @@ PlatformFeatures::~PlatformFeatures()
 {
 }
 
-LibraryTracking *PlatformFeatures::getLibraryTracking()
-{
-   return dynamic_cast<LibraryTracking *>(this);
-}
-
-const LibraryTracking *PlatformFeatures::getLibraryTracking() const
-{
-   return dynamic_cast<const LibraryTracking *>(this);
-}
-
-ThreadTracking *PlatformFeatures::getThreadTracking()
-{
-   return dynamic_cast<ThreadTracking *>(this);
-}
-
-const ThreadTracking *PlatformFeatures::getThreadTracking() const
-{
-   return dynamic_cast<const ThreadTracking *>(this);
-}
-
-CallStackUnwinding *PlatformFeatures::getCallStackUnwinding()
-{
-   return dynamic_cast<CallStackUnwinding *>(this);
-}
-
-const CallStackUnwinding *PlatformFeatures::getCallStackUnwinding() const
-{
-   return dynamic_cast<const CallStackUnwinding *>(this);
-}
-
-LinuxFeatures *PlatformFeatures::getLinuxFeatures()
-{
-   return dynamic_cast<LinuxFeatures *>(this);
-}
-
-const LinuxFeatures *PlatformFeatures::getLinuxFeatures() const
-{
-   return dynamic_cast<const LinuxFeatures *>(this);
-}
-
-FreeBSDFeatures *PlatformFeatures::getFreeBSDFeatures()
-{
-   return dynamic_cast<FreeBSDFeatures *>(this);
-}
-
-const FreeBSDFeatures *PlatformFeatures::getFreeBSDFeatures() const
-{
-   return dynamic_cast<const FreeBSDFeatures *>(this);
-}
-
-BlueGeneQFeatures *PlatformFeatures::getBlueGeneQFeatures()
-{
-   return dynamic_cast<BlueGeneQFeatures *>(this);
-}
-
-const BlueGeneQFeatures *PlatformFeatures::getBlueGeneQFeatures() const
-{
-   return dynamic_cast<const BlueGeneQFeatures *>(this);
-}
-
-LibraryTracking::LibraryTracking()
-{
-}
-
-LibraryTracking::~LibraryTracking()
-{
-}
-
 static bool default_track_libs = true;
 
 void LibraryTracking::setDefaultTrackLibraries(bool b)
@@ -182,30 +114,6 @@ bool ThreadTracking::refreshThreads()
    return ThreadTracking::refreshThreads(pset);
 }
 
-LinuxFeatures::LinuxFeatures()
-{
-}
-
-LinuxFeatures::~LinuxFeatures()
-{
-}
-
-FreeBSDFeatures::FreeBSDFeatures()
-{
-}
-
-FreeBSDFeatures::~FreeBSDFeatures()
-{
-}
-
-BlueGeneQFeatures::BlueGeneQFeatures()
-{
-}
-
-BlueGeneQFeatures::~BlueGeneQFeatures()
-{
-}
-
 CallStackUnwinding::CallStackUnwinding()
 {
 }
@@ -214,7 +122,7 @@ CallStackUnwinding::~CallStackUnwinding()
 {
 }
 
-bool CallStackUnwinding::walkStack(Thread::ptr thr, CallStackCallback *stk_cb)
+bool CallStackUnwinding::walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const
 {
    ThreadSet::ptr thrset = ThreadSet::newThreadSet(thr);
    return CallStackUnwinding::walkStack(thrset, stk_cb);
@@ -237,56 +145,92 @@ FollowFork::~FollowFork()
 {
 }
 
-static bool default_should_follow_fork;
-void FollowFork::setDefaultFollowFork(bool b)
-{
-   default_should_follow_fork = b;
+static FollowFork::follow_t default_should_follow_fork = FollowFork::Follow;
+void FollowFork::setDefaultFollowFork(FollowFork::follow_t f) {
+   default_should_follow_fork = f;
 }
 
-bool FollowFork::getDefaultFollowFork()
+FollowFork::follow_t FollowFork::getDefaultFollowFork()
 {
    return default_should_follow_fork;
 }
 
-void FollowFork::setFollowFork(bool b)
+bool FollowFork::setFollowFork(FollowFork::follow_t f) const
 {
+   MTLock lock_this_func;
+   int_process *llproc = proc->llproc();
+   if (!llproc) {
+      perr_printf("setFollowFork attempted on exited process\n");
+      llproc->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   return llproc->fork_setTracking(f);
 }
 
-bool FollowFork::getFollowFork()
+FollowFork::follow_t FollowFork::getFollowFork() const
 {
+   MTLock lock_this_func;
+   int_process *llproc = proc->llproc();
+   if (!llproc) {
+      perr_printf("getFollowFork attempted on exited process\n");
+      llproc->setLastError(err_exited, "Process is exited\n");
+      return None;
+   }
+
+   return llproc->fork_isTracking();
 }
 
-bool RemoteIO::getFileNames(std::vector<std::string> &filenames)
+#if 0
+//TO BE IMPLEMENTED
+bool RemoteIO::getFileNames(std::vector<std::string> &/*filenames*/)
 {
+   assert(0);
+   return false;
 }
 
-bool RemoteIO::getFileNames(ProcessSet::ptr pset, std::map<Process::ptr, std::vector<std::string> > &all_filenames)
+bool RemoteIO::getFileNames(ProcessSet::ptr /*pset*/, std::map<Process::ptr, std::vector<std::string> > &/*all_filenames*/)
 {
+   assert(0);
+   return false;
 }
 
-bool RemoteIO::getFileStatData(std::string filename, stat_ret_t &stat_results)
+bool RemoteIO::getFileStatData(std::string /*filename*/, stat_ret_t &/*stat_results*/)
 {
+   assert(0);
+   return false;
 }
 
-bool RemoteIO::getFileStatData(ProcessSet::ptr pset, std::string filename, 
-                               std::map<Process::ptr, stat_ret_t> &stat_results)
+bool RemoteIO::getFileStatData(ProcessSet::ptr /*pset*/, std::string /*filename*/, 
+                               std::map<Process::ptr, stat_ret_t> &/*stat_results*/)
 {
+   assert(0);
+   return false;
 }
 
 //Results of these two calls should be 'free()'d by the user
-bool RemoteIO::readFileContents(std::string filename, size_t offset, size_t numbytes, unsigned char* &result)
+bool RemoteIO::readFileContents(std::string /*filename*/, size_t /*offset*/,
+                                size_t /*numbytes*/, unsigned char* &/*result*/)
 {
+   assert(0);
+   return false;
 }
    
-bool RemoteIO::readFileContents(std::vector<ReadT> &targets)
+bool RemoteIO::readFileContents(std::vector<ReadT>& /*targets*/)
 {
+   assert(0);
+   return false;
 }
 
 RemoteIO::RemoteIO()
 {
+   assert(0);
+   return false;
 }
 
 RemoteIO::~RemoteIO()
 {
+   assert(0);
+   return false;
 }
-
+#endif

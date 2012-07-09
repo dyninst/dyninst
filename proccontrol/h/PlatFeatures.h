@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Process.h"
+#include "PCProcess.h"
 #include "ProcessSet.h"
 
 #include <list>
@@ -49,37 +49,16 @@ class ThreadTracking;
 class CallStackUnwinding;
 class RemoteIO;
 class FollowFork;
-class FreeBSDFeatures;
-class LinuxFeatures;
-class BlueGeneQFeatures;
 
-class PlatformFeatures
+class PC_EXPORT PlatformFeatures
 {
    friend class ::int_process;
   protected:
    Process::ptr proc;
    virtual ~PlatformFeatures();
-  public:
-   LibraryTracking *getLibraryTracking();
-   ThreadTracking *getThreadTracking();
-   CallStackUnwinding *getCallStackUnwinding();
-   RemoteIO *getRemoteIO();
-   FollowFork *getFollowFork();
-   LinuxFeatures *getLinuxFeatures();
-   FreeBSDFeatures *getFreeBSDFeatures();
-   BlueGeneQFeatures *getBlueGeneQFeatures();
-
-   const LibraryTracking *getLibraryTracking() const;
-   const ThreadTracking *getThreadTracking() const;
-   const CallStackUnwinding *getCallStackUnwinding() const;
-   const RemoteIO *getRemoteIO() const;
-   const FollowFork *getFollowFork() const;
-   const LinuxFeatures *getLinuxFeatures() const;
-   const FreeBSDFeatures *getFreeBSDFeatures() const;
-   const BlueGeneQFeatures *getBlueGeneQFeatures() const;
 };
 
-class LibraryTracking : virtual public PlatformFeatures
+class PC_EXPORT LibraryTracking : virtual public PlatformFeatures
 {
   protected:
    LibraryTracking();
@@ -96,7 +75,7 @@ class LibraryTracking : virtual public PlatformFeatures
    static bool refreshLibraries(ProcessSet::ptr ps);
 };
 
-class ThreadTracking : virtual public PlatformFeatures
+class PC_EXPORT ThreadTracking : virtual public PlatformFeatures
 {
   protected:
    ThreadTracking();
@@ -113,7 +92,7 @@ class ThreadTracking : virtual public PlatformFeatures
    static bool refreshThreads(ProcessSet::ptr ps);
 };
 
-class CallStackCallback : virtual public PlatformFeatures
+class PC_EXPORT CallStackCallback : virtual public PlatformFeatures
 {
   private:
    static const bool top_first_default_value = false;
@@ -126,29 +105,39 @@ class CallStackCallback : virtual public PlatformFeatures
    virtual ~CallStackCallback();
 };
 
-class CallStackUnwinding : virtual public PlatformFeatures
+class PC_EXPORT CallStackUnwinding : virtual public PlatformFeatures
 {
   public:
    CallStackUnwinding();
    virtual ~CallStackUnwinding();
-   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb);
+   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const;
    static bool walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb);
 };
 
-class FollowFork : virtual public PlatformFeatures
+class PC_EXPORT FollowFork : virtual public PlatformFeatures
 {
   public:
    FollowFork();
    virtual ~FollowFork();
 
-   static void setDefaultFollowFork(bool b);
-   static bool getDefaultFollowFork();
+   typedef enum {
+      None,                      //Fork tracking not available on this platform.
+      ImmediateDetach,           //Do not even attach to forked children.
+      DisableBreakpointsDetach,  //Remove inherited breakpoints from children, then detach.
+      Follow                     //Default. Attach and full control of forked children.
+   } follow_t;
 
-   void setFollowFork(bool b);
-   bool getFollowFork();
+   static void setDefaultFollowFork(follow_t f);
+   static follow_t getDefaultFollowFork();
+
+   bool setFollowFork(follow_t b) const;
+   follow_t getFollowFork() const;
 };
 
-#if !defined(_MSC_VER)
+#if 0
+//TO BE IMPLEMENTED
+
+#if defined(_MSC_VER)
 typedef void* stat_ret_t;
 #else
 #include <sys/types.h>
@@ -157,7 +146,7 @@ typedef void* stat_ret_t;
 typedef struct stat stat_ret_t;
 #endif
 
-class RemoteIO : virtual public PlatformFeatures
+class PC_EXPORT RemoteIO : virtual public PlatformFeatures
 {
   public:
 
@@ -183,30 +172,7 @@ class RemoteIO : virtual public PlatformFeatures
    RemoteIO();
    virtual ~RemoteIO();
 };
-
-class LinuxFeatures : public LibraryTracking, public ThreadTracking, public FollowFork
-{
-  public:
-   LinuxFeatures();
-   virtual ~LinuxFeatures();
-};
-
-class FreeBSDFeatures : public LibraryTracking, public ThreadTracking
-{
-  public:
-   FreeBSDFeatures();
-   virtual ~FreeBSDFeatures();
-};
-
-class BlueGeneQFeatures : public LibraryTracking, public ThreadTracking, public CallStackUnwinding, public RemoteIO
-{
-  public:
-   BlueGeneQFeatures();
-   virtual ~BlueGeneQFeatures();
-
-   static void setToolName(std::string str);
-   static void setToolPriority(unsigned int priority);
-};
+#endif
 
 }
 }

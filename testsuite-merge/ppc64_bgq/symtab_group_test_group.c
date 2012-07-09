@@ -28,38 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-<<<<<<< HEAD:dyninstAPI/src/Relocation/patchapi_debug.h
-
-#ifndef SHOWERROR_H
-#define SHOWERROR_H
-
-#include <string>
-extern int dyn_debug_crash;
-
-extern int patch_debug_relocation;
-extern int patch_debug_springboard;
-
-#define relocation_cerr   if (patch_debug_relocation) std::cerr
-#define springboard_cerr  if (patch_debug_springboard) std::cerr
-
-extern int relocation_printf_int(const char *format, ...);
-extern int springboard_printf_int(const char *format, ...);
-
-
-#if defined(__GNUC__)
-
-#define relocation_printf(format, args...) do { if (patch_debug_relocation) relocation_printf_int(format, ## args); } while(0)
-#define springboard_printf(format, args...) do { if (patch_debug_springboard) springboard_printf_int(format, ## args); } while(0)
-
-#else
-// Non-GCC doesn't have the ## macro
-#define relocation_printf relocation_printf_int
-#define springboard_printf springboard_printf_int
-
-=======
 #ifdef __cplusplus
 extern "C" {
->>>>>>> master:testsuite/ppc64_bgq/symtab_group_test_group.c
 #endif
 #include "../src/mutatee_call_info.h"
 

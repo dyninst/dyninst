@@ -139,6 +139,8 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_supportLWPPostDestroy();
    virtual void plat_adjustSyncType(Event::ptr ev, bool gen);
    virtual PlatformFeatures *plat_getPlatformFeatures();
+   virtual bool fork_setTracking(FollowFork::follow_t b);
+   virtual FollowFork::follow_t fork_isTracking();
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
 };
@@ -213,6 +215,13 @@ class linux_ppc_thread : virtual public linux_thread, virtual public ppc_thread
   public:
    linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~linux_ppc_thread();
+};
+
+class LinuxFeatures : public LibraryTracking, public ThreadTracking, FollowFork
+{
+  public:
+   LinuxFeatures();
+   ~LinuxFeatures();
 };
 
 class LinuxPtrace

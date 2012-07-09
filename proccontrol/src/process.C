@@ -1187,8 +1187,9 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL),
-   plat_process(NULL)
+   fork_tracking(FollowFork::getDefaultFollowFork()),
+   plat_features(NULL),
+   user_data(NULL)
 {
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
@@ -1215,8 +1216,9 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
-   user_data(NULL),
-   plat_process(NULL)
+   fork_tracking(p->fork_tracking),
+   plat_features(NULL),
+   user_data(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -2035,11 +2037,11 @@ bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
 
 PlatformFeatures *int_process::getPlatformFeatures()
 {
-   if (plat_process)
-      return plat_process;
-   plat_process = plat_getPlatformFeatures();
-   plat_process->proc = proc();
-   return plat_process;
+   if (!plat_features) {
+      plat_features = plat_getPlatformFeatures();
+      plat_features->proc = proc();
+   }
+   return plat_features;
 }
 
 bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
@@ -2068,6 +2070,20 @@ bool int_process::threaddb_isTrackingThreads()
    perr_printf("Unsupported operation\n");
    setLastError(err_unsupported, "Not supported on this platform");
    return false;
+}
+
+bool int_process::fork_setTracking(FollowFork::follow_t)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+FollowFork::follow_t int_process::fork_isTracking() 
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return FollowFork::None;
 }
 
 int_process::~int_process()
@@ -2101,9 +2117,9 @@ int_process::~int_process()
    }
    mem = NULL;
 
-   if (plat_process) {
-      delete plat_process;
-      plat_process = NULL;
+   if (plat_features) {
+      delete plat_features;
+      plat_features = NULL;
    }
    if(ProcPool()->findProcByPid(getPid())) ProcPool()->rmProcess(this);
 }
@@ -6293,7 +6309,7 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
    return llproc()->plat_defaultSymReader();
 }
 
-PlatformFeatures *Process::getPlatformFeatures()
+LibraryTracking *Process::getLibraryTracking()
 {
    MTLock lock_this_func;
    if (!llproc_) {
@@ -6301,11 +6317,10 @@ PlatformFeatures *Process::getPlatformFeatures()
       setLastError(err_exited, "Process is exited\n");
       return NULL;
    }
-
-   return llproc_->getPlatformFeatures();
+   return dynamic_cast<LibraryTracking *>(llproc_->getPlatformFeatures());
 }
 
-const PlatformFeatures *Process::getPlatformFeatures() const
+ThreadTracking *Process::getThreadTracking()
 {
    MTLock lock_this_func;
    if (!llproc_) {
@@ -6313,8 +6328,73 @@ const PlatformFeatures *Process::getPlatformFeatures() const
       setLastError(err_exited, "Process is exited\n");
       return NULL;
    }
+   return dynamic_cast<ThreadTracking *>(llproc_->getPlatformFeatures());
+}
 
-   return llproc_->getPlatformFeatures();
+CallStackUnwinding *Process::getCallStackUnwinding()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<CallStackUnwinding *>(llproc_->getPlatformFeatures());
+}
+
+FollowFork *Process::getFollowFork()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<FollowFork *>(llproc_->getPlatformFeatures());
+}
+
+const LibraryTracking *Process::getLibraryTracking() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<LibraryTracking *>(llproc_->getPlatformFeatures());
+}
+
+const ThreadTracking *Process::getThreadTracking() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<ThreadTracking *>(llproc_->getPlatformFeatures());
+}
+
+const CallStackUnwinding *Process::getCallStackUnwinding() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<CallStackUnwinding *>(llproc_->getPlatformFeatures());
+}
+
+const FollowFork *Process::getFollowFork() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return dynamic_cast<FollowFork *>(llproc_->getPlatformFeatures());
 }
 
 err_t Process::getLastError() const {

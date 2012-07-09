@@ -81,8 +81,11 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
+class LibraryTracking;
+class ThreadTracking;
+class CallStackUnwinding;
+class FollowFork;
 
-class PlatformFeatures;
 class ExecFileInfo;
 
 class PC_EXPORT Breakpoint 
@@ -417,11 +420,18 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    SymbolReaderFactory *getDefaultSymbolReader();
 
    /**
-    * Perform platform specific operations
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
     **/
-   PlatformFeatures *getPlatformFeatures();
-   const PlatformFeatures *getPlatformFeatures() const;
-
+   LibraryTracking *getLibraryTracking();
+   ThreadTracking *getThreadTracking();
+   CallStackUnwinding *getCallStackUnwinding();
+   FollowFork *getFollowFork();
+   const LibraryTracking *getLibraryTracking() const;
+   const ThreadTracking *getThreadTracking() const;
+   const CallStackUnwinding *getCallStackUnwinding() const;
+   const FollowFork *getFollowFork() const;
+   
    /**
     * Errors that occured on this process
     **/
