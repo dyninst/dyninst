@@ -1281,7 +1281,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    else {
       pthrd_printf("Async read from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(), 
-                   getPid(), thr->getLWP());
+                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       getResponses().lock();
       bresult = plat_readMemAsync(thr, remote, result);
@@ -1321,7 +1321,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
    else {
       pthrd_printf("Async writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
-                   getPid(), thr->getLWP());
+                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       getResponses().lock();
       bresult = plat_writeMemAsync(thr, local, remote, size, result);
@@ -1501,7 +1501,11 @@ bool int_process::infFree(int_addressSet *aset)
       assert(rpc);
       pthrd_printf("Process %d is freeing memory of size %lu at 0x%lx with rpc %lu\n", proc->getPid(),
                    size, addr, rpc->id());
-      rpcMgr()->postRPCToProc(proc, rpc);
+      bool result = rpcMgr()->postRPCToProc(proc, rpc);
+      if (!result) {
+         had_error = true;
+         continue;
+      }
 
       int_thread *thr = rpc->thread();
       assert(thr);

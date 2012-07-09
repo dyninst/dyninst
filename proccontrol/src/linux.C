@@ -325,8 +325,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                         return true;
                      }
                      unsigned long cpid_l = 0x0;
-                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
-                               NULL, &cpid_l);
+                     int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
+                                            NULL, &cpid_l);
+                     if (result == -1) {
+                        perr_printf("Error getting event message from fork/clone\n");
+                        return false;
+                     }
                      pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
                      archevent->event_ext = ext;
