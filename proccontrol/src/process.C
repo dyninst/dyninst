@@ -2076,6 +2076,13 @@ bool int_process::threaddb_isTrackingThreads()
    return false;
 }
 
+bool int_process::threaddb_refreshThreads()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
 bool int_process::fork_setTracking(FollowFork::follow_t)
 {
    perr_printf("Unsupported operation\n");

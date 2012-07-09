@@ -3013,13 +3013,79 @@ bool CallStackUnwinding::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk
    return !had_error;
 }
 
-bool ThreadTracking::setTrackThreads(ProcessSet::ptr, bool )
+bool ThreadTracking::setTrackThreads(ProcessSet::ptr ps, bool b)
 {
-#warning TODO: Implement thread tracking
-   return false;
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   int_processSet *procset = ps->getIntProcessSet();
+
+   set<pair<int_process *, bp_install_state *> > bps_to_install;
+   set<response::ptr> all_responses;
+
+   procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      Process::ptr p = *i;
+      int_process *proc = p->llproc();
+
+      pthrd_printf("Changing sysv track threads to %s for %d\n",
+                   b ? "true" : "false", proc->getPid());
+
+      bool add_bp;
+      set<pair<int_breakpoint *, Address> > bps;
+      bool result = proc->threaddb_setTrackThreads(b, bps, add_bp);
+      if (!result) {
+         had_error = true;
+         continue;
+      }
+      if (add_bp) {
+         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
+            bp_install_state *is = new bp_install_state();
+            is->addr = j->second;
+            is->bp = j->first;
+            is->do_install = true;
+            bps_to_install.insert(make_pair(proc, is));
+         }
+      }
+      else {
+         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
+            result = proc->removeBreakpoint(j->second, j->first, all_responses);
+            if (!result) {
+               pthrd_printf("Error removing breakpoint in setTrackLibraries\n");
+               had_error = true;
+               continue;
+            }
+         }
+      }
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for bp removals in setTrackLibraries\n");
+      had_error = true;
+   }
+   if (bps_to_install.empty())
+      return !had_error;
+   
+   return addBreakpointWorker(bps_to_install) && !had_error;
 }
 
-bool ThreadTracking::refreshThreads(ProcessSet::ptr)
+bool ThreadTracking::refreshThreads(ProcessSet::ptr ps)
 {
-   return false;
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_process *proc = (*i)->llproc();
+      if (!proc->threaddb_refreshThreads()) {
+         had_error = true;
+         continue;
+      }
+   }
+   
+   int_process::waitAndHandleEvents(false);
+   return !had_error;
 }
+

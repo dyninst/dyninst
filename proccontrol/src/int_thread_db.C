@@ -44,6 +44,7 @@ using namespace std;
 #include "common/h/dthread.h"
 #include "dynutil/h/SymReader.h"
 #include "proccontrol/src/int_event.h"
+#include "proccontrol/h/Mailbox.h"
 
 #if defined(cap_thread_db)
 
@@ -509,9 +510,11 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
+  hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
-  completed_post(false)
+  completed_post(false),
+  track_threads(ThreadTracking::getDefaultTrackThreads())
 {
    if (!loadedThreadDBLibrary())
       return;
@@ -527,9 +530,11 @@ thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
+  hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
-  completed_post(false)
+  completed_post(false),
+  track_threads(ThreadTracking::getDefaultTrackThreads())
 {
    if (!loadedThreadDBLibrary())
       return;
@@ -612,6 +617,9 @@ async_ret_t thread_db_process::initThreadDB() {
     // A: This function depends on the corresponding thread library being loaded
     // and this event occurs some time after process creation.
 
+   if (!track_threads) {
+      return aret_success;
+   }
     // Make sure thread_db is initialized - only once for all instances
    if( !thread_db_initialized ) {
       pthrd_printf("Initializing thread_db library\n");
@@ -1502,6 +1510,42 @@ async_ret_t thread_db_process::getEventForThread(set<Event::ptr> &new_ev_set) {
    return aret_success;
 }
 
+bool thread_db_process::threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+                                                 bool &add_bp)
+{
+   if (b == track_threads) {
+      pthrd_printf("User wants to %s thread_db on %d, which is already done.  Leaving in same state\n",
+                   b ? "enable" : "disable", getPid());
+      return true;
+   }
+   track_threads = b;
+   
+   std::map<Address, pair<int_breakpoint *, EventType> >::iterator i;
+   for (i = addr2Event.begin(); i != addr2Event.end(); i++) {
+      Address addr = i->first;
+      int_breakpoint *bp = i->second.first;
+      bps.insert(make_pair(bp, addr));
+   }
+
+   add_bp = b;
+   return true;
+}
+
+bool thread_db_process::threaddb_isTrackingThreads()
+{
+   return track_threads;
+}
+
+bool thread_db_process::threaddb_refreshThreads()
+{
+   EventThreadDB::ptr ev = EventThreadDB::ptr(new EventThreadDB());
+   ev->setSyncType(Event::async);
+   ev->setProcess(proc());
+   ev->setThread(threadPool()->initialThread()->thread());
+   mbox()->enqueue(ev);
+   return true;
+}
+
 async_ret_t thread_db_thread::setEventReporting(bool on) {
     if( !initThreadHandle() ) return aret_error;
     if (enabled_event_reporting == on) return aret_success;
@@ -1632,7 +1676,7 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &addr)
 
 #else
 
-//Empty place holder functions in-case we're built on a machine wihtout libthread_db.so
+//Empty place holder functions in-case we're built on a machine without libthread_db.so
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) : 
    int_process(p, e, a, envp, f)
@@ -1759,5 +1803,21 @@ bool thread_db_process::plat_supportThreadEvents() {
 bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
    return true;
 }
+
+bool thread_db_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &,
+                                                 bool &)
+{
+   perr_printf("Error. thread_db not installed on this platform.\n");
+   setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");
+   return false;
+}
+
+bool thread_db_process::threaddb_isTrackingThreads()
+{
+   perr_printf("Error. thread_db not installed on this platform.\n");
+   setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");
+   return false;
+}
+
 
 #endif

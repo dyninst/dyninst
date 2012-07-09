@@ -107,8 +107,12 @@ public:
     virtual const char *getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(std::string libName);
     int_thread *triggerThread() const;
-
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
+
+    virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+                                          bool &add_bp);
+    virtual bool threaddb_isTrackingThreads();
+    virtual bool threaddb_refreshThreads();
     
     //The types for thread_db functions we will call
     typedef td_err_e (*td_init_t)(void);
@@ -167,6 +171,7 @@ protected:
     bool initialThreadEventCreated;
     bool setEventSet;
     bool completed_post;
+    bool track_threads;
 private:
     static bool tdb_loaded;
     static bool tdb_loaded_result;

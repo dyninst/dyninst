@@ -419,6 +419,7 @@ class int_process
    virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
                                          bool &add_bp);
    virtual bool threaddb_isTrackingThreads();
+   virtual bool threaddb_refreshThreads();
 
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
