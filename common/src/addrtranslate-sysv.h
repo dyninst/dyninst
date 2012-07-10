@@ -141,6 +141,12 @@ private:
    bool setAddressSize();
    bool setInterpreterBase();
    LoadedLib *getAOut();
+
+   // PPC64-Linux uses an AIX-style function pointer, so the trap addr
+   // we're provided is a pointer to the actual address.
+
+   bool plat_getTrapAddr();
+   Address real_trap_addr;
 };
 
 }
