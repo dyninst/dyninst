@@ -47,8 +47,13 @@ volatile uint32_t rw_bp;
 volatile uint32_t r_bp;
 volatile uint32_t w_bp;
 volatile uint32_t rwx_bp[512];
+#if defined(arch_64bit_test)
 volatile uint64_t r2_bp;
 volatile uint64_t w2_bp;
+#else
+volatile uint32_t r2_bp;
+volatile uint32_t w2_bp;
+#endif
 
 static testbarrier_t *barrier;
 static int had_error = 0;
@@ -138,14 +143,14 @@ static int threadFunc(int myid, void *data)
   post_op(myid);
 
   pre_op(myid);
-  volatile unsigned char *end_of_r2 = ((unsigned char *) &r2_bp) + 7;
+  volatile unsigned char *end_of_r2 = ((unsigned char *) &r2_bp) + sizeof(r2_bp) - 1;
   for (i=0; i<NUM_BREAKPOINT_SPINS; i++) {
      local += *end_of_r2 + 1;
   }
   post_op(myid);
 
   pre_op(myid);
-  volatile unsigned char *end_of_w2 = ((unsigned char *) &w2_bp) + 7;
+  volatile unsigned char *end_of_w2 = ((unsigned char *) &w2_bp) + sizeof(w2_bp) - 1;
   for (i=0; i<NUM_BREAKPOINT_SPINS; i++) {
      *end_of_w2 = (unsigned char) 1;
      local += w2_bp;
@@ -218,33 +223,41 @@ int pc_hw_breakpoint_mutatee()
 
    bp_addr_msg.code = (uint32_t) SENDADDR_CODE;
    bp_addr_msg.addr = (uint64_t) &rw_bp;
+/* bp 0 */
    result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    if (result == 0) {
      bp_addr_msg.addr = (uint64_t) &r_bp;
+/* bp 1 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
      bp_addr_msg.addr = (uint64_t) &w_bp;
+/* bp 2 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr)); 
    }
    if (result == 0) {
      bp_addr_msg.addr = getFunctionPtr((unsigned long *) x_bp);
+/* bp 3 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
      bp_addr_msg.addr = getFunctionPtr((unsigned long *) rwx_bp);
+/* bp 4 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
      bp_addr_msg.addr = getFunctionPtr((unsigned long *) &r2_bp);
+/* bp 5 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
      bp_addr_msg.addr = getFunctionPtr((unsigned long *) &w2_bp);
+/* bp 6 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result == 0) {
      bp_addr_msg.addr = getFunctionPtr((unsigned long *) x2_bp);
+/* bp 7 */
      result = send_message((unsigned char *) &bp_addr_msg, sizeof(send_addr));
    }
    if (result != 0) {
