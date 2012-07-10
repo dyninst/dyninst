@@ -383,7 +383,8 @@ AddressTranslateSysV::AddressTranslateSysV() :
    previous_r_state(0),
    current_r_state(0),
    r_debug_addr(0),
-   trap_addr(0)
+   trap_addr(0),
+   real_trap_addr(0)
 {
 }
 
@@ -399,7 +400,8 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_,
    previous_r_state(0),
    current_r_state(0),
    r_debug_addr(0),
-   trap_addr(0)
+   trap_addr(0),
+   real_trap_addr(0)
 {
    bool result;
    if (interp_base != (Address) -1) {
@@ -407,10 +409,12 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_,
       set_interp_base = true;
    }
    if (!reader) {
-      if (pid == getpid())
+     if (pid == getpid()) {
          reader = new ProcessReaderSelf();
-      else
-         reader = createDefaultDebugger(pid);
+     }
+     else {
+       reader = createDefaultDebugger(pid);
+     }
    }
    symfactory = reader_fact;
    result = init();
@@ -571,34 +575,6 @@ bool AddressTranslateSysV::parseInterpreter() {
         r_debug_addr = 0;
         trap_addr = 0;
     }
-
-#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
-    // On ppc64_linux, the trap addr is actually a pointer to the address to
-    // set the trap -- so the current trap addr needs to be dereferenced
-    if( trap_addr != 0 ) {
-
-        // Only need to do this for 64-bit mutatees
-        if( address_size == sizeof(void *) ) {
-            if( !reader->start() ) {
-                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
-                return false;
-            }
-
-                if( !reader->ReadMem(trap_addr, &trap_addr, sizeof(trap_addr)) ) {
-                    translate_printf("[%s:%u] - Failed to dereference trap addr\n", __FILE__, __LINE__);
-                    return false;
-                }
-
-                // Depending on the state of the process, the trap_addr may already be relocated
-                // Only add the interpreter base when the trap_addr hasn't been relocated
-                if( trap_addr < interpreter_base ) trap_addr += interpreter_base;
-            if( !reader->done() ) {
-                translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
-                return false; 
-            }
-        }
-    }
-#endif
 
     return true;
 }
@@ -1018,5 +994,41 @@ FileCache::FileCache()
 }
 
 Address AddressTranslateSysV::getLibraryTrapAddrSysV() {
-  return trap_addr;
+  if (real_trap_addr == 0)
+    plat_getTrapAddr();
+  return real_trap_addr;
+}
+
+bool AddressTranslateSysV::plat_getTrapAddr() {
+#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+    // On ppc64_linux, the trap addr is actually a pointer to the address to
+    // set the trap -- so the current trap addr needs to be dereferenced
+    if( trap_addr != 0 ) {
+      translate_printf("[%s:%u]: trap addr is 0x%lx, reading addr from mutatee\n",
+		       __FILE__, __LINE__, trap_addr);
+        // Only need to do this for 64-bit mutatees
+        if( address_size == sizeof(void *) ) {
+            if( !reader->start() ) {
+                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
+	    if( !reader->ReadMem(trap_addr, &real_trap_addr, sizeof(trap_addr)) ) {
+	      translate_printf("[%s:%u] - Failed to dereference trap addr\n", __FILE__, __LINE__);
+	      return false;
+	    }
+	    
+	    // Depending on the state of the process, the real_trap_addr may already be relocated
+	    // Only add the interpreter base when the real_trap_addr hasn't been relocated
+	    if( real_trap_addr < interpreter_base ) real_trap_addr += interpreter_base;
+            if( !reader->done() ) {
+	      translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
+	      return false; 
+            }
+        }
+    }
+#else
+  real_trap_addr = trap_addr;
+#endif
+  return true;
 }
