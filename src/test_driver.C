@@ -619,7 +619,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
    // Begin setting up test parameters
    unsigned i;
    bool aborted_group = false;
-
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
 #if !defined(os_windows_test)
@@ -644,9 +643,9 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
    RunGroup *lastGroup = groups[0];
 
    for (i = 0; i < groups.size(); i++) {
-      if (groups[i]->disabled)
+      if (groups[i]->disabled) {
          continue;
-
+      }
       //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
 
@@ -660,14 +659,14 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       if (!before_group)
          continue;
 
+      executeGroup(groups[i], groups, param);
+      int after_group = numUnreportedTests(groups[i]);
+
       // Run program teardown once the module changes
       if( groups[i]->mod != currentMod ) {
         teardownModule(currentMod, lastGroup, param);
         currentMod = groups[i]->mod;
       }
-
-      executeGroup(groups[i], groups, param);
-      int after_group = numUnreportedTests(groups[i]);
    
       if (after_group) {
          if (before_group == after_group) {
