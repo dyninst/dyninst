@@ -262,6 +262,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
  public:
    typedef boost::shared_ptr<Process> ptr;
    typedef boost::shared_ptr<const Process> const_ptr;
+   typedef boost::weak_ptr<Process> weak_ptr;
+   typedef boost::weak_ptr<const Process> const_weak_ptr;
+
    static void version(int& major, int& minor, int& maintenance);
 
    //These four functions are not for end-users.  

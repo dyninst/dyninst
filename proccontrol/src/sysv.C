@@ -61,7 +61,8 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<st
    translator(NULL),
    lib_initialized(false),
    procreader(NULL),
-   aout(NULL)
+   aout(NULL),
+   libtracking(NULL)
 {
    track_libraries = LibraryTracking::getDefaultTrackLibraries();
 }
@@ -80,6 +81,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    translator = NULL;
    if (sp->translator)
       translator = constructTranslator(pid_);
+   libtracking = NULL;
 }
 
 sysv_process::~sysv_process()
@@ -91,6 +93,10 @@ sysv_process::~sysv_process()
    if (procreader) {
       delete procreader;
       procreader = NULL;
+   }
+   if (libtracking) {
+      delete libtracking;
+      libtracking = NULL;
    }
 }
 
@@ -375,4 +381,12 @@ bool sysv_process::sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &
 bool sysv_process::sysv_isTrackingLibraries()
 {
    return track_libraries;
+}
+
+LibraryTracking *sysv_process::sysv_getLibraryTracking()
+{
+   if (!libtracking) {
+      libtracking = new LibraryTracking(proc());
+   }
+   return libtracking;
 }

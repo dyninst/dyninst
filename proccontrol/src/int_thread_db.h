@@ -109,6 +109,7 @@ public:
     int_thread *triggerThread() const;
     async_ret_t initThreadWithHandle(td_thrhandle_t *thr, td_thrinfo_t *info, Dyninst::LWP lwp);
 
+    virtual ThreadTracking *threaddb_getThreadTracking();
     virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
                                           bool &add_bp);
     virtual bool threaddb_isTrackingThreads();
@@ -166,6 +167,7 @@ protected:
     std::set<mem_response::ptr> resps;
     std::set<result_response::ptr> res_resps;
     EventThreadDB::ptr dispatch_event;
+    ThreadTracking *threadtracking;
 
     bool hasAsyncPending;
     bool initialThreadEventCreated;

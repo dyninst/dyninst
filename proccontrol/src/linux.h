@@ -138,11 +138,12 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_supportLWPPreDestroy();
    virtual bool plat_supportLWPPostDestroy();
    virtual void plat_adjustSyncType(Event::ptr ev, bool gen);
-   virtual PlatformFeatures *plat_getPlatformFeatures();
    virtual bool fork_setTracking(FollowFork::follow_t b);
+   virtual FollowFork *getForkTracking();
    virtual FollowFork::follow_t fork_isTracking();
   protected:
    int computeAddrWidth(Dyninst::Architecture me);
+   FollowFork *fork_tracker;
 };
 
 class linux_x86_process : virtual public linux_process, virtual public x86_process

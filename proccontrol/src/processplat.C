@@ -36,11 +36,17 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-PlatformFeatures::~PlatformFeatures()
+bool LibraryTracking::default_track_libs = true;
+
+LibraryTracking::LibraryTracking(Process::ptr proc_) :
+   proc(proc_)
 {
 }
 
-static bool default_track_libs = true;
+LibraryTracking::~LibraryTracking()
+{
+   proc = Process::weak_ptr();
+}
 
 void LibraryTracking::setDefaultTrackLibraries(bool b)
 {
@@ -54,38 +60,43 @@ bool LibraryTracking::getDefaultTrackLibraries()
 
 bool LibraryTracking::setTrackLibraries(bool b) const
 {
-   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return LibraryTracking::setTrackLibraries(pset, b);
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   assert(p);
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(p);
+   return pset->getLibraryTracking()->setTrackLibraries(b);
 }
 
 bool LibraryTracking::getTrackLibraries() const
 {
    MTLock lock_this_func;
-   int_process *llproc = proc->llproc();
-   if (!llproc) {
-      perr_printf("setTrackLibraries attempted on exited process\n");
-      llproc->setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
+   Process::ptr p = proc.lock();
+   assert(p);
+   int_process *llproc = p->llproc();
+   assert(llproc);
    return llproc->sysv_isTrackingLibraries();
 }
 
 bool LibraryTracking::refreshLibraries()
 {
-   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return LibraryTracking::refreshLibraries(pset);
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   assert(p);
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(p);
+   return pset->getLibraryTracking()->refreshLibraries();
 }
 
-ThreadTracking::ThreadTracking()
+bool ThreadTracking::default_track_threads = true;
+
+ThreadTracking::ThreadTracking(Process::ptr proc_) :
+   proc(proc_)
 {
 }
 
 ThreadTracking::~ThreadTracking()
 {
+   proc = Process::weak_ptr();
 }
-
-static bool default_track_threads = true;
 
 void ThreadTracking::setDefaultTrackThreads(bool b) 
 {
@@ -99,19 +110,79 @@ bool ThreadTracking::getDefaultTrackThreads()
 
 bool ThreadTracking::setTrackThreads(bool b) const
 {
-   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return ThreadTracking::setTrackThreads(pset, b);
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   assert(p);
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(p);
+   return pset->getThreadTracking()->setTrackThreads(b);
 }
 
 bool ThreadTracking::getTrackThreads() const
 {
-   return proc->llproc()->threaddb_isTrackingThreads();
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   assert(p);
+   int_process *llproc = p->llproc();
+   assert(llproc);
+   return llproc->threaddb_isTrackingThreads();
 }
 
 bool ThreadTracking::refreshThreads()
 {
-   ProcessSet::ptr pset = ProcessSet::newProcessSet(proc);
-   return ThreadTracking::refreshThreads(pset);
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   assert(p);
+   ProcessSet::ptr pset = ProcessSet::newProcessSet(p);
+   return pset->getThreadTracking()->refreshThreads();
+}
+
+FollowFork::FollowFork(Process::ptr proc_) :
+   proc(proc_)
+{
+}
+
+FollowFork::~FollowFork()
+{
+   proc = Process::weak_ptr();
+}
+
+FollowFork::follow_t FollowFork::default_should_follow_fork = FollowFork::Follow;
+
+void FollowFork::setDefaultFollowFork(FollowFork::follow_t f) {
+   default_should_follow_fork = f;
+}
+
+FollowFork::follow_t FollowFork::getDefaultFollowFork()
+{
+   return default_should_follow_fork;
+}
+
+bool FollowFork::setFollowFork(FollowFork::follow_t f) const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("setFollowFork attempted on exited process\n");
+      llproc->setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   return llproc->fork_setTracking(f);
+}
+
+FollowFork::follow_t FollowFork::getFollowFork() const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p->llproc();
+   if (!llproc) {
+      perr_printf("getFollowFork attempted on exited process\n");
+      llproc->setLastError(err_exited, "Process is exited\n");
+      return None;
+   }
+
+   return llproc->fork_isTracking();
 }
 
 CallStackUnwinding::CallStackUnwinding()
@@ -135,50 +206,6 @@ CallStackCallback::CallStackCallback() :
 
 CallStackCallback::~CallStackCallback()
 {
-}
-
-FollowFork::FollowFork()
-{
-}
-
-FollowFork::~FollowFork()
-{
-}
-
-static FollowFork::follow_t default_should_follow_fork = FollowFork::Follow;
-void FollowFork::setDefaultFollowFork(FollowFork::follow_t f) {
-   default_should_follow_fork = f;
-}
-
-FollowFork::follow_t FollowFork::getDefaultFollowFork()
-{
-   return default_should_follow_fork;
-}
-
-bool FollowFork::setFollowFork(FollowFork::follow_t f) const
-{
-   MTLock lock_this_func;
-   int_process *llproc = proc->llproc();
-   if (!llproc) {
-      perr_printf("setFollowFork attempted on exited process\n");
-      llproc->setLastError(err_exited, "Process is exited\n");
-      return false;
-   }
-
-   return llproc->fork_setTracking(f);
-}
-
-FollowFork::follow_t FollowFork::getFollowFork() const
-{
-   MTLock lock_this_func;
-   int_process *llproc = proc->llproc();
-   if (!llproc) {
-      perr_printf("getFollowFork attempted on exited process\n");
-      llproc->setLastError(err_exited, "Process is exited\n");
-      return None;
-   }
-
-   return llproc->fork_isTracking();
 }
 
 #if 0

@@ -670,7 +670,8 @@ linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::str
    unix_process(p, e, a, envp, f),
    thread_db_process(p, e, a, envp, f),
    indep_lwp_control_process(p, e, a, envp, f),
-   mmap_alloc_process(p, e, a, envp, f)
+   mmap_alloc_process(p, e, a, envp, f),
+   fork_tracker(NULL)
 {
 }
 
@@ -680,12 +681,17 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    unix_process(pid_, p),
    thread_db_process(pid_, p),
    indep_lwp_control_process(pid_, p),
-   mmap_alloc_process(pid_, p)
+   mmap_alloc_process(pid_, p),
+   fork_tracker(NULL)
 {
 }
 
 linux_process::~linux_process()
 {
+   if (fork_tracker) {
+      delete fork_tracker;
+      fork_tracker = NULL;
+   }
 }
 
 bool linux_process::plat_create()
@@ -1426,10 +1432,18 @@ bool linux_process::fork_setTracking(FollowFork::follow_t f)
    return true;
 }
 
-FollowFork::follow_t linux_process::fork_isTracking()
+FollowFork *linux_process::getForkTracking()
 {
+   if (!fork_tracker) {
+      fork_tracker = new FollowFork(proc());
+   }
+   return fork_tracker;
+}
+
+FollowFork::follow_t linux_process::fork_isTracking() {
    return fork_tracking;
 }
+
 
 #if !defined(OFFSETOF)
 #define OFFSETOF(STR, FLD) (unsigned long) (&(((STR *) 0x0)->FLD))
@@ -2438,19 +2452,6 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 bool ProcessPool::LWPIDsAreUnique()
 {
    return true;
-}
-
-PlatformFeatures *linux_process::plat_getPlatformFeatures()
-{
-   return dynamic_cast<PlatformFeatures *>(new LinuxFeatures());
-}
-
-LinuxFeatures::LinuxFeatures()
-{
-}
-
-LinuxFeatures::~LinuxFeatures()
-{
 }
 
 LinuxPtrace *LinuxPtrace::linuxptrace = NULL;

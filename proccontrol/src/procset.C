@@ -55,6 +55,42 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
+namespace Dyninst {
+namespace ProcControlAPI {
+class PSetFeatures {
+   friend class ProcessSet;
+  private:
+   PSetFeatures();
+   ~PSetFeatures();
+   LibraryTrackingSet *libset;
+   ThreadTrackingSet *thrdset;
+   FollowForkSet *forkset;
+};
+}
+}
+
+PSetFeatures::PSetFeatures() :
+   libset(NULL),
+   thrdset(NULL),
+   forkset(NULL)
+{
+}
+
+PSetFeatures::~PSetFeatures()
+{
+   if (libset) {
+      delete libset;
+      libset = NULL;
+   }
+   if (thrdset) {
+      delete thrdset;
+      thrdset = NULL;
+   }
+   if (forkset) {
+      delete forkset;
+      forkset = NULL;
+   }
+}
 
 /**
  * AddressSet implementation follows.  This is essentially a std::multimap of Address -> Process::ptr
@@ -609,7 +645,8 @@ typedef iter_t<int_threadSet *, int_threadSet::iterator> thrset_iter;
 typedef iter_t<const map<Thread::const_ptr, Dyninst::MachRegisterVal> *, map<Thread::const_ptr, Dyninst::MachRegisterVal>::const_iterator> setreg_iter;
 typedef iter_t<const map<Thread::const_ptr, RegisterPool> *, map<Thread::const_ptr, RegisterPool>::const_iterator> setallreg_iter;
 
-ProcessSet::ProcessSet()
+ProcessSet::ProcessSet() :
+   features(NULL)
 {
    procset = new int_processSet;
 }
@@ -619,6 +656,10 @@ ProcessSet::~ProcessSet()
    if (procset) {
       delete procset;
       procset = NULL;
+   }
+   if (features) {
+      delete features;
+      features = NULL;
    }
 }
 
@@ -904,6 +945,87 @@ size_t ProcessSet::erase(Process::const_ptr p)
 void ProcessSet::clear()
 {
    procset->clear();
+}
+
+LibraryTrackingSet *ProcessSet::getLibraryTracking()
+{
+   if (features && features->libset)
+      return features->libset;
+
+   MTLock lock_this_func;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   if (!procset)
+      return NULL;
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getLibraryTracking()) {
+         features->libset = new LibraryTrackingSet(shared_from_this());
+         return features->libset;
+      }
+   }
+
+   return NULL;
+}
+
+ThreadTrackingSet *ProcessSet::getThreadTracking()
+{
+   if (features && features->thrdset)
+      return features->thrdset;
+
+   MTLock lock_this_func;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   if (!procset)
+      return NULL;
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getThreadTracking()) {
+         features->thrdset = new ThreadTrackingSet(shared_from_this());
+         return features->thrdset;
+      }
+   }
+
+   return NULL;
+}
+
+FollowForkSet *ProcessSet::getFollowFork()
+{
+   if (features && features->forkset)
+      return features->forkset;
+
+   MTLock lock_this_func;
+   if (!features) {
+      features = new PSetFeatures();
+   }
+   if (!procset)
+      return NULL;
+   for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
+      Process::ptr p = *i;
+      if (p->getFollowFork()) {
+         features->forkset = new FollowForkSet(shared_from_this());
+         return features->forkset;
+      }
+   }
+
+   return NULL;
+}
+
+const LibraryTrackingSet *ProcessSet::getLibraryTracking() const
+{
+   return const_cast<ProcessSet *>(this)->getLibraryTracking();
+}
+
+const ThreadTrackingSet *ProcessSet::getThreadTracking() const
+{
+   return const_cast<ProcessSet *>(this)->getThreadTracking();
+}
+
+const FollowForkSet *ProcessSet::getFollowFork() const
+{
+   return const_cast<ProcessSet *>(this)->getFollowFork();
 }
 
 ProcessSet::ptr ProcessSet::getErrorSubset() const
@@ -2822,11 +2944,27 @@ ThreadSet::const_iterator ThreadSet::const_iterator::operator++(int)
    return ThreadSet::const_iterator(int_iter++);
 }
 
-bool LibraryTracking::setTrackLibraries(ProcessSet::ptr ps, bool b)
+LibraryTrackingSet::LibraryTrackingSet(ProcessSet::ptr ps_) :
+   wps(ps_)
+{
+}
+
+LibraryTrackingSet::~LibraryTrackingSet()
+{
+   wps = ProcessSet::weak_ptr();
+}
+
+bool LibraryTrackingSet::setTrackLibraries(bool b) const
 {
    MTLock lock_this_func;
    bool had_error = false;
 
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("setTrackLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "setTrackLibraries attempted on deleted ProcessSet object");
+      return false;
+   }
    int_processSet *procset = ps->getIntProcessSet();
 
    set<pair<int_process *, bp_install_state *> > bps_to_install;
@@ -2877,18 +3015,24 @@ bool LibraryTracking::setTrackLibraries(ProcessSet::ptr ps, bool b)
    return addBreakpointWorker(bps_to_install) && !had_error;
 }
 
-bool LibraryTracking::refreshLibraries(ProcessSet::ptr ps)
+bool LibraryTrackingSet::refreshLibraries() const
 {
    MTLock lock_this_scope;
    bool had_error = false;
    set<int_process *> procs;
-      
+    
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("refreshLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "refreshLibraries attempted on deleted ProcessSet object");
+      return false;
+   }  
    if (int_process::isInCB()) {
       perr_printf("User attempted refreshLibraries in CB, erroring.");
       for_each(ps->begin(), ps->end(), setError(err_incallback, "Cannot refreshLibraries from callback\n"));
       return false;
    }
-      
+
    procset_iter iter("refreshLibraries", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(ps->getIntProcessSet()); i != iter.end(); i = iter.inc()) {
       procs.insert((*i)->llproc());
@@ -2941,6 +3085,141 @@ bool LibraryTracking::refreshLibraries(ProcessSet::ptr ps)
    }
 
    int_process::waitAndHandleEvents(false);
+   return !had_error;
+}
+
+ThreadTrackingSet::ThreadTrackingSet(ProcessSet::ptr ps_) :
+   wps(ps_)
+{
+}
+
+ThreadTrackingSet::~ThreadTrackingSet()
+{
+}
+
+bool ThreadTrackingSet::setTrackThreads(bool b) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   set<pair<int_process *, bp_install_state *> > bps_to_install;
+   set<response::ptr> all_responses;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("refreshLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "refreshLibraries attempted on deleted ProcessSet object");
+      return false;
+   }  
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      Process::ptr p = *i;
+      int_process *proc = p->llproc();
+
+      pthrd_printf("Changing sysv track threads to %s for %d\n",
+                   b ? "true" : "false", proc->getPid());
+
+      bool add_bp;
+      set<pair<int_breakpoint *, Address> > bps;
+      bool result = proc->threaddb_setTrackThreads(b, bps, add_bp);
+      if (!result) {
+         had_error = true;
+         continue;
+      }
+      if (add_bp) {
+         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
+            bp_install_state *is = new bp_install_state();
+            is->addr = j->second;
+            is->bp = j->first;
+            is->do_install = true;
+            bps_to_install.insert(make_pair(proc, is));
+         }
+      }
+      else {
+         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
+            result = proc->removeBreakpoint(j->second, j->first, all_responses);
+            if (!result) {
+               pthrd_printf("Error removing breakpoint in setTrackLibraries\n");
+               had_error = true;
+               continue;
+            }
+         }
+      }
+   }
+
+   bool result = int_process::waitForAsyncEvent(all_responses);
+   if (!result) {
+      pthrd_printf("Error waiting for bp removals in setTrackLibraries\n");
+      had_error = true;
+   }
+   if (bps_to_install.empty())
+      return !had_error;
+   
+   return addBreakpointWorker(bps_to_install) && !had_error;
+}
+
+bool ThreadTrackingSet::refreshThreads() const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("refreshLibraries on deleted process set\n");
+      globalSetLastError(err_badparam, "refreshLibraries attempted on deleted ProcessSet object");
+      return false;
+   }
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      int_process *proc = (*i)->llproc();
+      if (!proc->threaddb_refreshThreads()) {
+         had_error = true;
+         continue;
+      }
+   }
+   
+   int_process::waitAndHandleEvents(false);
+   return !had_error;
+}
+
+FollowForkSet::FollowForkSet(ProcessSet::ptr ps_) :
+   wps(ps_)
+{
+}
+
+FollowForkSet::~FollowForkSet()
+{
+   wps = ProcessSet::weak_ptr();
+}
+
+bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
+{
+   MTLock lock_this_func;
+   bool had_error = false;
+
+   ProcessSet::ptr ps = wps.lock();
+   if (!ps) {
+      perr_printf("setFollowFork on deleted process set\n");
+      globalSetLastError(err_badparam, "setFollowFork attempted on deleted ProcessSet object");
+      return false;
+   }  
+   int_processSet *procset = ps->getIntProcessSet();
+   procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
+   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
+      Process::ptr proc = *i;
+      int_process *llproc = proc->llproc();
+      if (!llproc) {
+         perr_printf("setFollowFork attempted on deleted process %d\n", proc->getPid());
+         proc->setLastError(err_exited, "Process was exited");
+         had_error = true;
+         continue;
+      }
+
+      llproc->fork_setTracking(f);
+   }
+
    return !had_error;
 }
 
@@ -3010,82 +3289,6 @@ bool CallStackUnwinding::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk
          int_process::waitForAsyncEvent(a_resp);
    }
 
-   return !had_error;
-}
-
-bool ThreadTracking::setTrackThreads(ProcessSet::ptr ps, bool b)
-{
-   MTLock lock_this_func;
-   bool had_error = false;
-
-   int_processSet *procset = ps->getIntProcessSet();
-
-   set<pair<int_process *, bp_install_state *> > bps_to_install;
-   set<response::ptr> all_responses;
-
-   procset_iter iter("setTrackThreads", had_error, ERR_CHCK_ALL);
-   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      Process::ptr p = *i;
-      int_process *proc = p->llproc();
-
-      pthrd_printf("Changing sysv track threads to %s for %d\n",
-                   b ? "true" : "false", proc->getPid());
-
-      bool add_bp;
-      set<pair<int_breakpoint *, Address> > bps;
-      bool result = proc->threaddb_setTrackThreads(b, bps, add_bp);
-      if (!result) {
-         had_error = true;
-         continue;
-      }
-      if (add_bp) {
-         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
-            bp_install_state *is = new bp_install_state();
-            is->addr = j->second;
-            is->bp = j->first;
-            is->do_install = true;
-            bps_to_install.insert(make_pair(proc, is));
-         }
-      }
-      else {
-         for (set<pair<int_breakpoint *, Address> >::iterator j = bps.begin(); j != bps.end(); j++) {
-            result = proc->removeBreakpoint(j->second, j->first, all_responses);
-            if (!result) {
-               pthrd_printf("Error removing breakpoint in setTrackLibraries\n");
-               had_error = true;
-               continue;
-            }
-         }
-      }
-   }
-
-   bool result = int_process::waitForAsyncEvent(all_responses);
-   if (!result) {
-      pthrd_printf("Error waiting for bp removals in setTrackLibraries\n");
-      had_error = true;
-   }
-   if (bps_to_install.empty())
-      return !had_error;
-   
-   return addBreakpointWorker(bps_to_install) && !had_error;
-}
-
-bool ThreadTracking::refreshThreads(ProcessSet::ptr ps)
-{
-   MTLock lock_this_func;
-   bool had_error = false;
-
-   int_processSet *procset = ps->getIntProcessSet();
-   procset_iter iter("refreshThreads", had_error, ERR_CHCK_ALL);
-   for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
-      int_process *proc = (*i)->llproc();
-      if (!proc->threaddb_refreshThreads()) {
-         had_error = true;
-         continue;
-      }
-   }
-   
-   int_process::waitAndHandleEvents(false);
    return !had_error;
 }
 

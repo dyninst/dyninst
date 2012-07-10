@@ -48,6 +48,12 @@ namespace ProcControlAPI {
 
 class ProcessSet;
 class ThreadSet;
+class LibraryTrackingSet;
+class ThreadTrackingSet;
+class CallStackUnwindingSet;
+class FollowForkSet;
+class PSetFeatures;
+
 typedef boost::shared_ptr<ProcessSet> ProcessSet_ptr;
 typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
 typedef boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
@@ -151,11 +157,12 @@ class PC_EXPORT AddressSet
  * perform collective operations on the entire set, which may be more effecient
  * than the equivalent sequential operations.
  **/
-class PC_EXPORT ProcessSet
+class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 {
    friend class ThreadSet;
   private:
    int_processSet *procset;
+   PSetFeatures *features;
 
    ProcessSet();
    ~ProcessSet();
@@ -165,6 +172,8 @@ class PC_EXPORT ProcessSet
    int_processSet *getIntProcessSet(); //Not for public use
    typedef boost::shared_ptr<ProcessSet> ptr;
    typedef boost::shared_ptr<const ProcessSet> const_ptr;
+   typedef boost::weak_ptr<ProcessSet> weak_ptr;
+   typedef boost::weak_ptr<const ProcessSet> const_weak_ptr;
 
    /**
     * Create new ProcessSets from existing Process objects
@@ -359,6 +368,17 @@ class PC_EXPORT ProcessSet
    bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
    bool postIRPC(IRPC::ptr irpc, AddressSet::ptr addrs, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
+
+   /**
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
+    **/
+   LibraryTrackingSet *getLibraryTracking();
+   ThreadTrackingSet *getThreadTracking();
+   FollowForkSet *getFollowFork();
+   const LibraryTrackingSet *getLibraryTracking() const;
+   const ThreadTrackingSet *getThreadTracking() const;
+   const FollowForkSet *getFollowFork() const;
 };
 
 /**
@@ -378,6 +398,9 @@ class ThreadSet {
   public:
    typedef boost::shared_ptr<ThreadSet> ptr;
    typedef boost::shared_ptr<const ThreadSet> const_ptr;
+   typedef boost::weak_ptr<ThreadSet> weak_ptr;
+   typedef boost::weak_ptr<const ThreadSet> const_weak_ptr;
+
    int_threadSet *getIntThreadSet() const;
 
    /**

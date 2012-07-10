@@ -40,29 +40,21 @@
 #define PROCESSPLAT_H_
 
 class int_process;
+class sysv_process;
+class thread_db_process;
+class linux_process;
 
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class LibraryTracking;
-class ThreadTracking;
-class CallStackUnwinding;
-class RemoteIO;
-class FollowFork;
-
-class PC_EXPORT PlatformFeatures
+class PC_EXPORT LibraryTracking
 {
-   friend class ::int_process;
+   friend class ::sysv_process;
   protected:
-   Process::ptr proc;
-   virtual ~PlatformFeatures();
-};
-
-class PC_EXPORT LibraryTracking : virtual public PlatformFeatures
-{
-  protected:
-   LibraryTracking();
-   virtual ~LibraryTracking();
+   LibraryTracking(Process::ptr proc_);
+   ~LibraryTracking();
+   Process::weak_ptr proc;
+   static bool default_track_libs;
   public:
    static void setDefaultTrackLibraries(bool b);
    static bool getDefaultTrackLibraries();
@@ -70,16 +62,29 @@ class PC_EXPORT LibraryTracking : virtual public PlatformFeatures
    bool setTrackLibraries(bool b) const;
    bool getTrackLibraries() const;
    bool refreshLibraries();
-
-   static bool setTrackLibraries(ProcessSet::ptr ps, bool b);
-   static bool refreshLibraries(ProcessSet::ptr ps);
 };
 
-class PC_EXPORT ThreadTracking : virtual public PlatformFeatures
+class PC_EXPORT LibraryTrackingSet
 {
+   friend class ProcessSet;
+   friend class PSetFeatures;
   protected:
-   ThreadTracking();
-   virtual ~ThreadTracking();
+   LibraryTrackingSet(ProcessSet::ptr ps_);
+   ~LibraryTrackingSet();
+   ProcessSet::weak_ptr wps;
+  public:
+   bool setTrackLibraries(bool b) const;
+   bool refreshLibraries() const;
+};
+
+class PC_EXPORT ThreadTracking
+{
+   friend class ::thread_db_process;
+  protected:
+   ThreadTracking(Process::ptr proc_);
+   ~ThreadTracking();
+   Process::weak_ptr proc;
+   static bool default_track_threads;
   public:
    static void setDefaultTrackThreads(bool b);
    static bool getDefaultTrackThreads();
@@ -87,38 +92,29 @@ class PC_EXPORT ThreadTracking : virtual public PlatformFeatures
    bool setTrackThreads(bool b) const;
    bool getTrackThreads() const;
    bool refreshThreads();
-
-   static bool setTrackThreads(ProcessSet::ptr ps, bool b);
-   static bool refreshThreads(ProcessSet::ptr ps);
 };
 
-class PC_EXPORT CallStackCallback : virtual public PlatformFeatures
+class PC_EXPORT ThreadTrackingSet
 {
-  private:
-   static const bool top_first_default_value = false;
+   friend class ProcessSet;
+   friend class PSetFeatures;
+  protected:
+   ThreadTrackingSet(ProcessSet::ptr ps_);
+   ~ThreadTrackingSet();
+   ProcessSet::weak_ptr wps;
   public:
-   bool top_first;
-   CallStackCallback();
-   virtual bool beginStackWalk(Thread::ptr thr) = 0;
-   virtual bool addStackFrame(Thread::ptr thr, Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp) = 0;
-   virtual void endStackWalk(Thread::ptr thr) = 0;
-   virtual ~CallStackCallback();
+   bool setTrackThreads(bool b) const;
+   bool refreshThreads() const;
 };
 
-class PC_EXPORT CallStackUnwinding : virtual public PlatformFeatures
+class PC_EXPORT FollowFork
 {
+   friend class ::linux_process;
+  protected:
+   FollowFork(Process::ptr proc_);
+   ~FollowFork();
+   Process::weak_ptr proc;
   public:
-   CallStackUnwinding();
-   virtual ~CallStackUnwinding();
-   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const;
-   static bool walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb);
-};
-
-class PC_EXPORT FollowFork : virtual public PlatformFeatures
-{
-  public:
-   FollowFork();
-   virtual ~FollowFork();
 
    typedef enum {
       None,                      //Fork tracking not available on this platform.
@@ -132,6 +128,42 @@ class PC_EXPORT FollowFork : virtual public PlatformFeatures
 
    bool setFollowFork(follow_t b) const;
    follow_t getFollowFork() const;
+  protected:
+   static follow_t default_should_follow_fork;
+};
+
+class PC_EXPORT FollowForkSet
+{
+   friend class ProcessSet;
+   friend class PSetFeatures;
+  protected:
+   FollowForkSet(ProcessSet::ptr ps_);
+   ~FollowForkSet();
+   ProcessSet::weak_ptr wps;
+  public:
+   bool setFollowFork(FollowFork::follow_t f) const;
+};
+
+class PC_EXPORT CallStackCallback
+{
+  private:
+   static const bool top_first_default_value = false;
+  public:
+   bool top_first;
+   CallStackCallback();
+   virtual bool beginStackWalk(Thread::ptr thr) = 0;
+   virtual bool addStackFrame(Thread::ptr thr, Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp) = 0;
+   virtual void endStackWalk(Thread::ptr thr) = 0;
+   virtual ~CallStackCallback();
+};
+
+class PC_EXPORT CallStackUnwinding
+{
+  public:
+   CallStackUnwinding();
+   virtual ~CallStackUnwinding();
+   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const;
+   static bool walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb);
 };
 
 #if 0

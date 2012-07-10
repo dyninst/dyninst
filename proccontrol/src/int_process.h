@@ -413,19 +413,19 @@ class int_process
    void setRunningSilent(bool b);
 
    //Interfaces used by the PlatformSpecific classes
+   virtual LibraryTracking *sysv_getLibraryTracking();
    virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
    virtual bool sysv_isTrackingLibraries();
 
+   virtual ThreadTracking *threaddb_getThreadTracking();
    virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
                                          bool &add_bp);
    virtual bool threaddb_isTrackingThreads();
    virtual bool threaddb_refreshThreads();
 
+   virtual FollowFork *getForkTracking();
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
-   
-   PlatformFeatures *getPlatformFeatures();
-   virtual PlatformFeatures *plat_getPlatformFeatures() = 0;
    
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
  protected:
@@ -459,7 +459,6 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    FollowFork::follow_t fork_tracking;
-   PlatformFeatures *plat_features;
    void *user_data;
    err_t last_error;
    const char *last_error_string;

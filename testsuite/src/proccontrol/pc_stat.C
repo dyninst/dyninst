@@ -203,9 +203,8 @@ bool pc_statMutator::takeSample()
    MachRegister stack_pointer = MachRegister::getStackPointer(a_proc->getArchitecture());
 
 
-   LibraryTracking *libtracker = a_proc->getLibraryTracking();
-   if (libtracker) {
-      result = LibraryTracking::refreshLibraries(pset);
+   if (pset->getLibraryTracking()) {
+      pset->getLibraryTracking()->refreshLibraries();
       if (!result) {
          logerror("Failure refreshing libraries\n");
          return false;

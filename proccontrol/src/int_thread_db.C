@@ -510,6 +510,7 @@ thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
+  threadtracking(NULL),
   hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
@@ -530,6 +531,7 @@ thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
   createdThreadAgent(false),
   self(NULL),
   trigger_thread(NULL),
+  threadtracking(NULL),
   hasAsyncPending(false),
   initialThreadEventCreated(false),
   setEventSet(false),
@@ -549,6 +551,11 @@ thread_db_process::~thread_db_process()
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator brkptIter;
     for(brkptIter = addr2Event.begin(); brkptIter != addr2Event.end(); ++brkptIter) {
         delete brkptIter->second.first;
+    }
+
+    if (threadtracking) {
+       delete threadtracking;
+       threadtracking = NULL;
     }
 
     delete self;
@@ -1536,6 +1543,14 @@ bool thread_db_process::threaddb_isTrackingThreads()
    return track_threads;
 }
 
+ThreadTracking *thread_db_process::threaddb_getThreadTracking() 
+{
+   if (!threadtracking) {
+      threadtracking = new ThreadTracking(proc());
+   }
+   return threadtracking;
+}
+
 bool thread_db_process::threaddb_refreshThreads()
 {
    EventThreadDB::ptr ev = EventThreadDB::ptr(new EventThreadDB());
@@ -1819,5 +1834,11 @@ bool thread_db_process::threaddb_isTrackingThreads()
    return false;
 }
 
+ThreadTracking *thread_db_process::threaddb_getThreadTracking() 
+{
+   perr_printf("Error. thread_db not installed on this platform.\n");
+   setLastError(err_unsupported, "Cannot perform thread operations without thread_db\n");
+   return NULL;
+}
 
 #endif
