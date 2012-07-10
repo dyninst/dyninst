@@ -282,14 +282,12 @@ std::string extract_pathname_tail(const std::string &path)
 {
 	if (!path.length())
 	{
-		fprintf(stderr, "%s[%d]:  extract_pathname_tail:  bad parameter\n", FILE__, __LINE__);
 		return std::string("");
 	}
 
    const char *path_str = path.c_str();
    if (!path_str)
 	{
-		fprintf(stderr, "%s[%d]:  extract_pathname_tail:  bad parameter\n", FILE__, __LINE__);
 		return std::string("");
 	}
 

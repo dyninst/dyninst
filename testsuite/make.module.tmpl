@@ -517,7 +517,7 @@ $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 
 $(LIBTESTLAUNCH) : $(OBJS_LIBTESTLAUNCH) test_info_new.gen.o
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) -o $@ $^
+	$(HIDE_COMP)$(CXX) -shared $(TESTUITE_FLAGS) $(LIBDIR) -o $@ $^
 #
 # Native Fortran mutatees
 # 
@@ -629,7 +629,7 @@ test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o tes
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@
-	$(HIDE_COMP)$(CXX) -o $@ connection.o testdriver_wrapper.o $(TESTSUITE_FLAGS) $(LAUNCHMON_BE_LINK)
+	$(HIDE_COMP)$(CXX) -o $@ connection.o testdriver_wrapper.o $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers
