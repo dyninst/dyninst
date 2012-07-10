@@ -164,7 +164,7 @@ bool FollowFork::setFollowFork(FollowFork::follow_t f) const
    int_process *llproc = p->llproc();
    if (!llproc) {
       perr_printf("setFollowFork attempted on exited process\n");
-      llproc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return false;
    }
 
@@ -178,14 +178,15 @@ FollowFork::follow_t FollowFork::getFollowFork() const
    int_process *llproc = p->llproc();
    if (!llproc) {
       perr_printf("getFollowFork attempted on exited process\n");
-      llproc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return None;
    }
 
    return llproc->fork_isTracking();
 }
 
-CallStackUnwinding::CallStackUnwinding()
+CallStackUnwinding::CallStackUnwinding(Thread::ptr t) :
+   wt(t)
 {
 }
 
@@ -193,10 +194,16 @@ CallStackUnwinding::~CallStackUnwinding()
 {
 }
 
-bool CallStackUnwinding::walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const
+bool CallStackUnwinding::walkStack(CallStackCallback *stk_cb) const
 {
+   Thread::ptr thr = wt.lock();
+   if (!thr) {
+      perr_printf("CallStackUnwinding called on exited thread\n");
+      globalSetLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
    ThreadSet::ptr thrset = ThreadSet::newThreadSet(thr);
-   return CallStackUnwinding::walkStack(thrset, stk_cb);
+   return thrset->getCallStackUnwinding()->walkStack(stk_cb);
 }
 
 CallStackCallback::CallStackCallback() :

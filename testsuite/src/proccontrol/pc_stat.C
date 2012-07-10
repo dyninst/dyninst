@@ -212,10 +212,10 @@ bool pc_statMutator::takeSample()
    }
    
    all_threads = ThreadSet::newThreadSet(pset);
-   CallStackUnwinding *bgqproc = a_proc->getCallStackUnwinding();      
-   if (bgqproc) {
+   CallStackUnwindingSet *stkset = all_threads->getCallStackUnwinding();
+   if (stkset) {
       StackCallbackTest cb_test;
-      result = CallStackUnwinding::walkStack(all_threads, &cb_test);
+      result = stkset->walkStack(&cb_test);
       if (!result) {
          logerror("Failue to collect stackwalks\n");
          return false;

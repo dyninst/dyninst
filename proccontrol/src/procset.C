@@ -57,15 +57,25 @@ using namespace std;
 
 namespace Dyninst {
 namespace ProcControlAPI {
+
 class PSetFeatures {
    friend class ProcessSet;
-  private:
+private:
    PSetFeatures();
    ~PSetFeatures();
    LibraryTrackingSet *libset;
    ThreadTrackingSet *thrdset;
    FollowForkSet *forkset;
 };
+
+class TSetFeatures {
+   friend class ThreadSet;
+private:
+   TSetFeatures();
+   ~TSetFeatures();
+   CallStackUnwindingSet *stkset;
+};
+
 }
 }
 
@@ -89,6 +99,19 @@ PSetFeatures::~PSetFeatures()
    if (forkset) {
       delete forkset;
       forkset = NULL;
+   }
+}
+
+TSetFeatures::TSetFeatures() :
+   stkset(NULL)
+{
+}
+
+TSetFeatures::~TSetFeatures()
+{
+   if (stkset) {
+      delete stkset;
+      stkset = NULL;
    }
 }
 
@@ -1027,6 +1050,7 @@ const FollowForkSet *ProcessSet::getFollowFork() const
 {
    return const_cast<ProcessSet *>(this)->getFollowFork();
 }
+
 
 ProcessSet::ptr ProcessSet::getErrorSubset() const
 {
@@ -2130,7 +2154,8 @@ struct thread_strip_const {
 };
 
 
-ThreadSet::ThreadSet()
+ThreadSet::ThreadSet() :
+   features(NULL)
 {
    ithrset = new int_threadSet;
 }
@@ -2140,6 +2165,10 @@ ThreadSet::~ThreadSet()
    if (ithrset) {
       delete ithrset;
       ithrset = NULL;
+   }
+   if (features) {
+      delete features;
+      features = NULL;
    }
 }
 
@@ -2868,6 +2897,33 @@ bool ThreadSet::postIRPC(IRPC::ptr irpc, multimap<Thread::ptr, IRPC::ptr> *resul
    return !had_error;
 }
 
+CallStackUnwindingSet *ThreadSet::getCallStackUnwinding()
+{
+   if (features && features->stkset)
+      return features->stkset;
+
+   MTLock lock_this_func;
+   if (!features) {
+      features = new TSetFeatures();
+   }
+   if (!ithrset)
+      return NULL;
+   for (int_threadSet::iterator i = ithrset->begin(); i != ithrset->end(); i++) {
+      Thread::ptr t = *i;
+      if (t->getCallStackUnwinding()) {
+         features->stkset = new CallStackUnwindingSet(shared_from_this());
+         return features->stkset;
+      }
+   }
+
+   return NULL;
+}
+
+const CallStackUnwindingSet *ThreadSet::getCallStackUnwinding() const
+{
+   return const_cast<ThreadSet *>(this)->getCallStackUnwinding();
+}
+
 ThreadSet::iterator::iterator(int_threadSet::iterator i)
 {
    int_iter = i;
@@ -2975,6 +3031,12 @@ bool LibraryTrackingSet::setTrackLibraries(bool b) const
       Process::ptr p = *i;
       int_process *proc = p->llproc();
 
+      if (!p->getLibraryTracking()) {
+         perr_printf("Library tracking not supported on process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "No library tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
       pthrd_printf("Changing sysv track libraries to %s for %d\n",
                    b ? "true" : "false", proc->getPid());
 
@@ -3117,6 +3179,13 @@ bool ThreadTrackingSet::setTrackThreads(bool b) const
       Process::ptr p = *i;
       int_process *proc = p->llproc();
 
+      if (!p->getThreadTracking()) {
+         perr_printf("Thread tracking not supported on process %d\n", p->getPid());
+         p->setLastError(err_unsupported, "No thread tracking on this platform\n");
+         had_error = true;
+         continue;
+      }
+
       pthrd_printf("Changing sysv track threads to %s for %d\n",
                    b ? "true" : "false", proc->getPid());
 
@@ -3209,6 +3278,13 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    procset_iter iter("setFollowFork", had_error, ERR_CHCK_ALL);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr proc = *i;
+      if (!proc->getFollowFork()) {
+         perr_printf("Fork control not supported on process %d\n", proc->getPid());
+         proc->setLastError(err_unsupported, "No fork control on this platform\n");
+         had_error = true;
+         continue;
+      }
+
       int_process *llproc = proc->llproc();
       if (!llproc) {
          perr_printf("setFollowFork attempted on deleted process %d\n", proc->getPid());
@@ -3223,10 +3299,27 @@ bool FollowForkSet::setFollowFork(FollowFork::follow_t f) const
    return !had_error;
 }
 
-bool CallStackUnwinding::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb)
+CallStackUnwindingSet::CallStackUnwindingSet(ThreadSet::ptr ts) :
+   wts(ts)
+{
+}
+
+CallStackUnwindingSet::~CallStackUnwindingSet()
+{
+   wts = ThreadSet::weak_ptr();
+}
+
+bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
 {
    MTLock lock_this_func;
    bool had_error = false;
+
+   ThreadSet::ptr thrset = wts.lock();
+   if (!thrset) {
+      perr_printf("walkStack was given an exited thread set\n");
+      globalSetLastError(err_exited, "Exited threads passed to walkStack\n");
+      return false;
+   }
 
    thrset_iter iter("walkStack", had_error, ERR_CHCK_STOPPED);
    set<response::ptr> all_responses;
@@ -3236,7 +3329,14 @@ bool CallStackUnwinding::walkStack(ThreadSet::ptr thrset, CallStackCallback *stk
    pthrd_printf("Sending requests for callstack\n");
    getResponses().lock();
    for (thrset_iter::i_t i = iter.begin(ithrset); i != iter.end(); i = iter.inc()) {
-      int_thread *thr = (*i)->llthrd();
+      Thread::ptr t = *i;
+      if (!t->getCallStackUnwinding()) {
+         perr_printf("Stack unwinding not supported on process %d\n", t->getProcess()->getPid());
+         t->setLastError(err_unsupported, "No stack unwinding on this platform\n");
+         had_error = true;
+         continue;
+      }
+      int_thread *thr = t->llthrd();
       int_process *proc = thr->llproc();
       stack_response::ptr stk_resp = stack_response::createStackResponse(thr);
       stk_resp->markSyncHandled();

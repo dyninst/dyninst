@@ -159,11 +159,22 @@ class PC_EXPORT CallStackCallback
 
 class PC_EXPORT CallStackUnwinding
 {
+  private:
+   Thread::weak_ptr wt;
   public:
-   CallStackUnwinding();
+   CallStackUnwinding(Thread::ptr t);
    virtual ~CallStackUnwinding();
-   bool walkStack(Thread::ptr thr, CallStackCallback *stk_cb) const;
-   static bool walkStack(ThreadSet::ptr thrset, CallStackCallback *stk_cb);
+   bool walkStack(CallStackCallback *stk_cb) const;
+};
+
+class PC_EXPORT CallStackUnwindingSet
+{
+  private:
+   ThreadSet::weak_ptr wts;
+  public:
+   CallStackUnwindingSet(ThreadSet::ptr ts);
+   ~CallStackUnwindingSet();
+   bool walkStack(CallStackCallback *stk_cb);
 };
 
 #if 0

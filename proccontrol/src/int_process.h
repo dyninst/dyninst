@@ -360,6 +360,7 @@ class int_process
    
    virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
    virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
+   virtual CallStackUnwinding *getStackUnwinder(int_thread *thrd);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -850,6 +851,9 @@ public:
    void setLastError(err_t ec, const char *es);
 
    hw_breakpoint *getHWBreakpoint(Address addr);
+
+   CallStackUnwinding *getStackUnwinder();
+   void setStackUnwinder(CallStackUnwinding *unw);
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -904,6 +908,7 @@ public:
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;
 
+   CallStackUnwinding *stack_unwinder;
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
    void *user_data;

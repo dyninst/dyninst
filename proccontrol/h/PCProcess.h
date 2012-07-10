@@ -428,11 +428,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
     **/
    LibraryTracking *getLibraryTracking();
    ThreadTracking *getThreadTracking();
-   CallStackUnwinding *getCallStackUnwinding();
    FollowFork *getFollowFork();
    const LibraryTracking *getLibraryTracking() const;
    const ThreadTracking *getThreadTracking() const;
-   const CallStackUnwinding *getCallStackUnwinding() const;
    const FollowFork *getFollowFork() const;
    
    /**
@@ -459,11 +457,13 @@ class PC_EXPORT Thread
    friend void boost::checked_delete<Thread>(Thread *);
    friend void boost::checked_delete<const Thread>(const Thread *);
 
-   void setLastError(err_t ec, const char *es) const;
  public:
    typedef boost::shared_ptr<Thread> ptr;
    typedef boost::shared_ptr<const Thread> const_ptr;
+   typedef boost::weak_ptr<Thread> weak_ptr;
+   typedef boost::weak_ptr<const Thread> const_weak_ptr;
    int_thread *llthrd() const;
+   void setLastError(err_t ec, const char *es) const;
 
    Dyninst::LWP getLWP() const;
    Process::ptr getProcess();
@@ -510,6 +510,12 @@ class PC_EXPORT Thread
 
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
+
+   /**
+    * Returns a stack unwinder on supported platforms (BlueGene/Q).
+    * Returns NULL on unsupported platforms
+    **/
+   CallStackUnwinding *getCallStackUnwinding();
 
    void *getData() const;
    void setData(void *p) const;

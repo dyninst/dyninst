@@ -53,6 +53,7 @@ class ThreadTrackingSet;
 class CallStackUnwindingSet;
 class FollowForkSet;
 class PSetFeatures;
+class TSetFeatures;
 
 typedef boost::shared_ptr<ProcessSet> ProcessSet_ptr;
 typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
@@ -388,9 +389,10 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
  **/
 ProcessSet::const_ptr getAllProcs();
 
-class ThreadSet {
+class ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;
+   TSetFeatures *features;
    
    ThreadSet();
    ~ThreadSet();
@@ -528,6 +530,13 @@ class ThreadSet {
     **/
    bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
+
+   /**
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
+    **/
+   CallStackUnwindingSet *getCallStackUnwinding();
+   const CallStackUnwindingSet *getCallStackUnwinding() const;
 };
 
 }

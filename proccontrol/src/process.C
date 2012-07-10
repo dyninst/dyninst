@@ -2043,6 +2043,11 @@ bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
    return false;
 }
 
+CallStackUnwinding *int_process::getStackUnwinder(int_thread *)
+{
+   return NULL;
+}
+
 bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
 {
    perr_printf("Unsupported operation\n");
@@ -2508,6 +2513,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
+   stack_unwinder(NULL),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL)
@@ -3939,6 +3945,16 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
          return *i;
    }
    return NULL;
+}
+
+CallStackUnwinding *int_thread::getStackUnwinder()
+{
+   return stack_unwinder;
+}
+
+void int_thread::setStackUnwinder(CallStackUnwinding *unw)
+{
+   stack_unwinder = unw;
 }
 
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
@@ -6348,15 +6364,17 @@ ThreadTracking *Process::getThreadTracking()
    return llproc_->threaddb_getThreadTracking();
 }
 
-CallStackUnwinding *Process::getCallStackUnwinding()
+CallStackUnwinding *Thread::getCallStackUnwinding()
 {
    MTLock lock_this_func;
-   if (!llproc_) {
-      perr_printf("getPlatformFeatures on deleted process\n");
-      setLastError(err_exited, "Process is exited\n");
+   if (!llthread_) {
+      perr_printf("getCallStackUnwinding on exited thread\n");
+      setLastError(err_exited, "Thread is exited\n");
       return NULL;
    }
-
+   int_process *proc = llthread_->llproc();
+   assert(proc);
+   return proc->getStackUnwinder(llthread_);
 }
 
 FollowFork *Process::getFollowFork()
