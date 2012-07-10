@@ -131,8 +131,13 @@ test_results_t pc_hw_breakpointMutator::executeTest()
    bp_sizes[2] = 4;
    bp_sizes[3] = 4;
    bp_sizes[4] = 4;
+#if defined(arch_64bit_test)
    bp_sizes[5] = 8;
    bp_sizes[6] = 8;
+#else
+   bp_sizes[5] = 4;
+   bp_sizes[6] = 4;
+#endif
    bp_sizes[7] = 1;
 
    for (unsigned j=0; j<NUM_BPS; j++) {

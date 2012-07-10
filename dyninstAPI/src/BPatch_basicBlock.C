@@ -88,11 +88,14 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
     delete (*eIter);
     eIter++;
   }
+/* Don't delete outgoing edges; the target block will get them. */
+#if 0
   eIter = outgoingEdges.begin();
   while (eIter != outgoingEdges.end()) {
     delete (*eIter);
     eIter++;
   }
+#endif
   return;
 }
 
