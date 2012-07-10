@@ -1031,11 +1031,24 @@ bool int_process::waitAndHandleEvents(bool block)
          notify()->clearEvent();
       }
       gotEvent = true;
-	  int_process* llp = ev->getProcess()->llproc();
-	  if(!llp) {
-		  error = true;
-		  goto done;
-	  }
+#if defined(os_linux)
+      // Linux is bad about enforcing event ordering, and so we will get 
+      // thread events after a process has exited.
+      if (ev->getProcess()->isTerminated() &&
+          (ev->getEventType().time() != EventType::Post) &&
+          (ev->getEventType().code() != EventType::Exit)) {
+         // Since the user will never handle this one...
+         if (!isHandlerThread()) notify()->clearEvent();
+         continue;
+      }
+#endif
+
+      int_process* llp = ev->getProcess()->llproc();
+      if(!llp) {
+
+         error = true;
+         goto done;
+      }
 
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
@@ -1097,9 +1110,9 @@ void int_process::throwDetachEvent(bool temporary)
 
 bool int_process::terminate(bool &needs_sync)
 {
+   
    //Should be called with the ProcPool lock held.
    pthrd_printf("Terminate requested on process %d\n", getPid());
-
    getStartupTeardownProcs().inc();
 
    bool result = plat_terminate(needs_sync);
@@ -1131,7 +1144,6 @@ bool int_process::terminate(bool &needs_sync)
    // Do it all the time
    setForceGeneratorBlock(true);
 #endif
-
    return true;
 }
 
@@ -5705,10 +5717,10 @@ bool Process::reAttach()
 
 bool Process::terminate()
 {
-	if (!llproc_) return true; // Already terminated
+   if (!llproc_) return true; // Already terminated
    ProcessSet::ptr ps = ProcessSet::newProcessSet(shared_from_this());
    bool ret = ps->terminate();
-	return ret;
+   return ret;
 }
 
 bool Process::isTerminated() const
