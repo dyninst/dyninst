@@ -211,24 +211,26 @@ CodeRegion* AnalysisStepperImpl::getCodeRegion(std::string name, Offset off)
 std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunction(string name,
                                                                         Offset off)
 {
+    /* Look up by callsite, rather than return address */
+    Offset callSite = off - 1;
     set<height_pair_t> err_heights_pair;
     err_heights_pair.insert(err_height_pair);
-    CodeRegion* region = getCodeRegion(name, off);
+    CodeRegion* region = getCodeRegion(name, callSite);
     CodeObject* obj = getCodeObject(name);
     
     if(!obj || !region) return err_heights_pair;
 
    set<ParseAPI::Function*> funcs;
-   obj->findFuncs(region, off, funcs);
+   obj->findFuncs(region, callSite, funcs);
    if (funcs.empty()) {
       sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
-                __LINE__, off);
+                __LINE__, callSite);
       return err_heights_pair;
    }
 
    //Since there is only one region, there is only one block with the offset
    set<ParseAPI::Block*> blocks;
-   obj->findBlocks(region, off, blocks);
+   obj->findBlocks(region, callSite, blocks);
    assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 
@@ -315,11 +317,13 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
      return heights;
    }
 
+   /* Look up by callsite, rather than return address */
+   Offset callSite = off - 1;
    set<CodeRegion *> regions;
-   obj->cs()->findRegions(off, regions);
+   obj->cs()->findRegions(callSite, regions);
    
    if (regions.empty()) {
-      sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, off);
+      sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, callSite);
       return heights;
    }
    //We shouldn't be dealing with overlapping regions in a live process
@@ -327,16 +331,16 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
    CodeRegion *region = *(regions.begin());
    
    set<ParseAPI::Function*> funcs;
-   obj->findFuncs(region, off, funcs);
+   obj->findFuncs(region, callSite, funcs);
    if (funcs.empty()) {
       sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
-                __LINE__, off);
+                __LINE__, callSite);
       return heights;
    }
 
    //Since there is only one region, there is only one block with the offset
    set<ParseAPI::Block*> blocks;
-   obj->findBlocks(region, off, blocks);
+   obj->findBlocks(region, callSite, blocks);
    assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 
