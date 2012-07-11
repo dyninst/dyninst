@@ -1201,6 +1201,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    fork_tracking(FollowFork::getDefaultFollowFork()),
    user_data(NULL)
 {
+   clearLastError();
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -1230,6 +1231,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    user_data(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
+   clearLastError();
    mem = new mem_state(*p->mem, this);
    initializeProcess(hlproc);
 }
@@ -1794,6 +1796,7 @@ err_t int_process::getLastError() {
 const char *int_process::getLastErrorMsg() {
    return last_error_string;
 }
+
 void int_process::clearLastError() {
    last_error = err_none;
    last_error_string = "ok";
