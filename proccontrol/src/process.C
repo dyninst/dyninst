@@ -1045,7 +1045,7 @@ bool int_process::waitAndHandleEvents(bool block)
           (ev->getEventType().time() != EventType::Post) &&
           (ev->getEventType().code() != EventType::Exit)) {
          // Since the user will never handle this one...
-         if (!isHandlerThread()) notify()->clearEvent();
+         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
          continue;
       }
 #endif
