@@ -155,9 +155,17 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
      return gcf_not_me;
   }
 
+  location_t ra_loc, fp_loc;
+  ra_loc.location = loc_address;
+  fp_loc.location = loc_address;
+  ra_loc.val.addr = in_fp + addr_width;
+  fp_loc.val.addr = in_fp + addr_width*2;
+
   out.setFP(ra_fp_pair.out_fp);
   out.setRA(ra_fp_pair.out_ra);
   out.setSP(out_sp);
+  out.setFPLocation(fp_loc);
+  out.setRALocation(ra_loc);
 
   return gcf_success;
 }
