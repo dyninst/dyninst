@@ -185,6 +185,11 @@ bool int_process::waitfor_startup()
          globalSetLastError(err_internal, "Process failed to startup");
          return false;
       }
+      if (proc_exited || getState() == exited) {
+         pthrd_printf("Error.  Proces exited during create/attach\n");
+         globalSetLastError(err_exited, "Process exited during startup");
+         return false;
+      }
    }
    return true;
 }
@@ -1285,7 +1290,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    else {
       pthrd_printf("Async read from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(), 
-                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
+                   getPid(), thr->getLWP());
 
       getResponses().lock();
       bresult = plat_readMemAsync(thr, remote, result);
@@ -1325,7 +1330,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
    else {
       pthrd_printf("Async writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
-                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
+                   getPid(), thr->getLWP());
 
       getResponses().lock();
       bresult = plat_writeMemAsync(thr, local, remote, size, result);
@@ -1507,6 +1512,7 @@ bool int_process::infFree(int_addressSet *aset)
                    size, addr, rpc->id());
       bool result = rpcMgr()->postRPCToProc(proc, rpc);
       if (!result) {
+         pthrd_printf("Failed to post free rpc to process\n");
          had_error = true;
          continue;
       }
@@ -5357,7 +5363,7 @@ size_t LibraryPool::size() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return -1;
    }
    return proc->numLibs();
@@ -5368,7 +5374,7 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -5383,7 +5389,7 @@ Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -5398,7 +5404,7 @@ Library::ptr LibraryPool::getExecutable()
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;
@@ -5409,7 +5415,7 @@ Library::const_ptr LibraryPool::getExecutable() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;

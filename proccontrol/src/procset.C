@@ -1400,7 +1400,7 @@ bool ProcessSet::stopProcs() const
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       int_process *proc = (*i)->llproc();
       if (!proc) {
-         perr_printf("Process %d exited while waiting for user stop, erroring\n", (*i)->getPid());
+         perr_printf("Process %d exited while waiting for user stop, erroring\n", proc->getPid());
          (*i)->setLastError(err_exited, "Process exited while being stopped.\n");
          had_error = true;
          continue;

@@ -5155,7 +5155,7 @@ void Object::parseStabTypes(Symtab *obj)
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
 	  ptr2 =  const_cast<char *>(stabptr->name(i+1));
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2) + 1);
 	  strcpy(ptr3, ptr);
 	  ptr3[strlen(ptr)-1] = '\0';
 	  strcat(ptr3, ptr2);

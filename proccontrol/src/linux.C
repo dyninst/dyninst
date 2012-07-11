@@ -754,6 +754,7 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
         if (sfile == NULL) {
             pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
             setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            fclose(sfile);
             return false;
         }
         if( fread(sstat, 1, 256, sfile) == 0 ) {

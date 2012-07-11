@@ -51,6 +51,7 @@ using namespace Dyninst;
 using namespace std;
 
 #include <assert.h>
+#include <cstring>
 
 Handler::Handler(std::string name_) :
    name(name_)
@@ -1271,13 +1272,12 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
       pthrd_printf("Breakpoint shifted PC.  Moving PC to %lx\n", changePCTo);
    }
 
-   bool reg_result = true;
    if (changePC && !int_ebp->pc_regset) {
       int_ebp->pc_regset = result_response::createResultResponse();
       MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
-      reg_result = thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
+      thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
    }
-   if (int_ebp->pc_regset && (int_ebp->pc_regset->hasError() || !reg_result)) {
+   if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {
       pthrd_printf("Error setting pc register on breakpoint\n");
       ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
       return ret_error;
@@ -2250,6 +2250,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
             bool result3 = removeCallback_int(EventType(EventType::None,et.code()), func);
             if (result1 || result2 || result3)
                removed_cb = true;
+            break;
          }
       }
    }
