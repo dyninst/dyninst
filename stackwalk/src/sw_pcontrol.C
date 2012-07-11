@@ -715,15 +715,12 @@ void StackCallback::endStackWalk(Thread::ptr thr) {
 bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
 {
    ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset);
+   StackCallback cbs(tree);
 
-   Process::ptr a_proc = *(pset->begin());
-   if (!a_proc->getCallStackUnwinding()) {
+   if (!all_threads->getCallStackUnwinding()) {
       bad_plat = true;
       return false;
    }
-   bad_plat = false;
-
-   StackCallback cbs(tree);
-   ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset);
-   return CallStackUnwinding::walkStack(all_threads, &cbs);
+   return all_threads->getCallStackUnwinding()->walkStack(&cbs);
 }
