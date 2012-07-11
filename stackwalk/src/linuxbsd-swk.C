@@ -70,37 +70,6 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
    return Walker::getSymbolReader();
 }
 
-#if !defined(os_bgq)
-bool getDwarfDebug(std::string s, Dwarf_Debug *d)
-{
-   SymReader *reader = LibraryWrapper::getLibrary(s);
-   if (!reader) {
-      SymbolReaderFactory *fact = getDefaultSymbolReader();
-      reader = fact->openSymbolReader(s);
-   }
-   SymElf *symelf = dynamic_cast<SymElf *>(reader);
-   SymtabAPI::SymtabReader *symtabReader = dynamic_cast<SymtabAPI::SymtabReader *>(reader);
-   if (symelf)
-   {
-      Elf_X *elfx = (Elf_X *) symelf->getElfHandle();
-     Elf *elf = elfx->e_elfp();
-     int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, d, NULL);
-     if (status != DW_DLV_OK)
-       return false;
-     else
-       return true;
-   }
-   else if (symtabReader)
-   {
-     Dwarf_Debug result = (Dwarf_Debug) symtabReader->getDebugInfo();
-     *d = result;
-     return true;
-   }
-
-   return false;
-}
-#endif
-
 static void registerLibSpotterSelf(ProcSelf *pself);
 
 ProcSelf::ProcSelf(std::string exe_path) :

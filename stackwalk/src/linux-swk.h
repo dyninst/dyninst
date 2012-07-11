@@ -50,6 +50,7 @@ struct vsys_info {
    Dyninst::Address start;
    Dyninst::Address end;
    Dyninst::SymReader *syms;
+   std::string name;
    vsys_info() :
       vsys_mem(NULL),
       start(0),

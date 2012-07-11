@@ -41,11 +41,6 @@
 
 #define MAX_TRAP_LEN 8
 
-#if !defined(os_bgq)
-#include "libdwarf.h"
-bool getDwarfDebug(std::string s, Dwarf_Debug *d);
-#endif
-
 namespace Dyninst {
 namespace Stackwalker {
 

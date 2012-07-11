@@ -77,8 +77,8 @@ static DwarfSW *getDwarfInfo(std::string s)
    std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())
       return i->second;
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
-   SymReader *reader = fact->openSymbolReader(s);
+   
+   SymReader *reader = LibraryWrapper::getLibrary(s);
    if (!reader) {
       sw_printf("[%s:%u] - Error opening default symbol reader %s\n",
                 __FILE__, __LINE__, s.c_str());
@@ -98,9 +98,7 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
    if (i != dwarf_aux_info.end())
       return i->second;
    
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
-
-   SymReader *orig_reader = fact->openSymbolReader(s);
+   SymReader *orig_reader = LibraryWrapper::getLibrary(s);
    if (!orig_reader) {
       sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
                 __FILE__, __LINE__, s.c_str());
@@ -124,13 +122,18 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
       dwarf_aux_info[s] = NULL;
       return NULL;
    }
-   
-   SymReader *reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
+
+   SymReader *reader = LibraryWrapper::testLibrary(dbg_name);
    if (!reader) {
-      sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
-                __FILE__, __LINE__, dbg_name.c_str());
-      dwarf_aux_info[s] = NULL;
-      return NULL;
+      SymbolReaderFactory *fact = getDefaultSymbolReader();
+      reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
+      if (!reader) {
+         sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
+                   __FILE__, __LINE__, dbg_name.c_str());
+         dwarf_aux_info[s] = NULL;
+         return NULL;
+      }
+      LibraryWrapper::registerLibrary(reader, dbg_name);
    }
    
    Elf_X *elfx = (Elf_X *) reader->getElfHandle();
