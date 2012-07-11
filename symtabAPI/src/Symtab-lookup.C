@@ -347,17 +347,19 @@ bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
    dyn_hash_map<std::string, Module *>::iterator loc;
-   loc = modsByFileName.find(name);
+   loc = modsByFullName.find(name);
 
-   if (loc != modsByFileName.end()) 
+   if (loc != modsByFullName.end()) 
    {
       ret = loc->second;
       return true;
    }
 
-   loc = modsByFullName.find(name);
+   std::string tmp = extract_pathname_tail(name);
 
-   if (loc != modsByFullName.end()) 
+   loc = modsByFileName.find(tmp);
+
+   if (loc != modsByFileName.end()) 
    {
       ret = loc->second;
       return true;

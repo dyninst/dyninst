@@ -28,7 +28,7 @@ CFLAGS		+= -O2
 CC              = $(GCC)
 LD              = $(GCC)
 STATIC_CFLAGS  := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
-CFLAGS          += -I. -I../.. -fpic
+CFLAGS          += -I. -I../..
 
 LIBS 		+= -ldl
 

@@ -1034,9 +1034,11 @@ bool int_process::waitAndHandleEvents(bool block)
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
       // thread events after a process has exited.
-      if (ev->getProcess()->isTerminated()) {
+      if (ev->getProcess()->isTerminated() &&
+          (ev->getEventType().time() != EventType::Post) &&
+          (ev->getEventType().code() != EventType::Exit)) {
          // Since the user will never handle this one...
-         notify()->clearEvent();
+         if (!isHandlerThread()) notify()->clearEvent();
          continue;
       }
 #endif
