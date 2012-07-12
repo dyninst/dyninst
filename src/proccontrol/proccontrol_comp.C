@@ -34,6 +34,8 @@
 #include "MutateeStart.h"
 #include "SymReader.h"
 #include "PCErrors.h"
+#include "PlatFeatures.h"
+
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -351,6 +353,19 @@ bool ProcControlComponent::waitForSignalFD(int signal_fd)
    return true;
 }
 
+void ProcControlComponent::setupStatTest(std::string exec_name)
+{
+   //Bad hack, but would have required significant
+   //changes to testsuite otherwise
+   if (strstr(exec_name.c_str(), "pc_stat")) {
+      LibraryTracking::setDefaultTrackLibraries(false);
+      check_threads_on_startup = false;
+   }
+   else {
+      LibraryTracking::setDefaultTrackLibraries(true);
+   }
+}
+
 ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, ParameterDict &params)
 {
    ProcessSet::ptr procset;
@@ -367,6 +382,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          getMutateeParams(group, params, ci.executable, ci.argv);
          ci.error_ret = err_none;
          cinfo.push_back(ci);
+         setupStatTest(ci.executable);
       }
       procset = ProcessSet::createProcessSet(cinfo);
       if (!procset) {
@@ -380,6 +396,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          ProcessSet::AttachInfo ai;
          vector<string> argv;
          getMutateeParams(group, params, ai.executable, argv);
+         setupStatTest(ai.executable);
          ai.pid = getMutateePid(group);
 
          if (ai.pid == NULL_PID) {
@@ -433,7 +450,8 @@ Process::ptr ProcControlComponent::startMutatee(RunGroup *group, ParameterDict &
    vector<string> vargs;
    string exec_name;
    getMutateeParams(group, params, exec_name, vargs);
-   
+   setupStatTest(exec_name);
+
    Process::ptr proc = Process::ptr();
    if (group->createmode == CREATE) {
 #if defined(os_bg_test)
@@ -587,6 +605,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if !defined(os_bg_test) && !defined(os_windows_test)
    setupSignalFD(param);
 #endif
+   check_threads_on_startup = true;
    Process::ptr a_proc;
    if (num_processes > 1) {
       pset = startMutateeSet(group, param);
@@ -664,7 +683,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
       assert(support_user_threads || support_lwps);
 
-      if (support_lwps)
+      if (support_lwps && check_threads_on_startup)
       {
          while (eventsRecieved[EventType(EventType::None, EventType::LWPCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
@@ -675,7 +694,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          }
       }
 
-      if (support_user_threads)
+      if (support_user_threads && check_threads_on_startup)
       {
          while (eventsRecieved[EventType(EventType::None, EventType::UserThreadCreate)].size() < num_procs*num_threads) {
             bool result = Process::handleEvents(true);
@@ -726,7 +745,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }   
 #endif
 
-   if (group->state != RUNNING) {
+   if (group->state != RUNNING && check_threads_on_startup) {
       std::map<Process::ptr, int>::iterator i;
       for (i = process_socks.begin(); i != process_socks.end(); i++) {
          bool result = i->first->stopProc();
@@ -995,6 +1014,7 @@ bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &para
    string pid_str(pid_cstr);
 
    string basename_r = "/tmp/dynpcpipe_r." + pid_str;
+   unlink(basename_r.c_str());
    int result = mkfifo(basename_r.c_str(), 0600);
    if (result == -1) {
       int error = errno;
@@ -1004,6 +1024,7 @@ bool ProcControlComponent::setupNamedPipe(Process::ptr proc, ParameterDict &para
    pipe_read_names.insert(make_pair(proc, basename_r));
 
    string basename_w = "/tmp/dynpcpipe_w." + pid_str;
+   unlink(basename_w.c_str());
    result = mkfifo(basename_w.c_str(), 0600);
    if (result == -1) {
       int error = errno;
@@ -1448,7 +1469,7 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
       uint32_t ready = 0;
       int result = 0;
       do {
-         printf("[%s:%u] - Initial pipe read\n", __FILE__, __LINE__);
+         printf("[%s:%u] - Initial pipe read of fd %d\n", __FILE__, __LINE__, fd);
          result = read(fd, &ready, 4);
          printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
          if (result == -1) {

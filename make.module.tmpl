@@ -223,15 +223,17 @@ SPACE +=
 #COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl,--enable-new-dtags$(ALL_COMP_DIRS:%=,-rpath,%))
 COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl$(ALL_COMP_DIRS:%=,-rpath,%))
 
+all: default
+
 default: testlibs mutators mutatees_minimum drivers output_drivers components
 	@echo "**********************************************************"
 	@echo "* Build complete."
 	@echo "*"
-	@echo "* High optimization mutatees were not built, use 'make all'"
+	@echo "* High optimization mutatees were not built, use 'make full'"
 	@echo "* to build them."
 	@echo "**********************************************************"
 
-all: testlibs mutators mutatees drivers output_drivers components
+full: testlibs mutators mutatees drivers output_drivers components
 
 #######################################################################
 ###  A list of all the targets we're building, for install purposes
@@ -357,29 +359,33 @@ install: default
 
 symlink: all
 
-clean: clean_solo_mutatees dyninst_clean_solo_mutatees
-	@$(RM) *.da *.bb. *.bbg 
-	@$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so testdriver_wrapper
-	@$(RM) $(dyninst_MUTATORS_SO)
-	@$(RM) $(symtab_MUTATORS_SO)
-	@$(RM) $(symtab_SOLO_MUTATEES)
-	@$(RM) $(instruction_MUTATORS_SO)
-	@$(RM) $(instruction_SOLO_MUTATEES)
-	@$(RM) $(proccontrol_MUTATORS_SO)
-	@$(RM) $(proccontrol_SOLO_MUTATEES)
-	@$(RM) $(OUTPUT_DRIVERS)
-	@$(RM) $(LIBDYNINSTCOMP)
-	@$(RM) $(LIBSYMTABCOMP)
-	@$(RM) $(LIBINSTRUCTIONCOMP)
-	@$(RM) $(LIBPROCCONTROLCOMP)
-	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
-	@$(RM) *.o
-	@$(RM) test11
-	@$(RM) imagefile
-	@$(RM) core core.*
-	@$(RM) -r _dyninstsaved*
-	@$(RM) *.ii *.ti
-	@$(RM) .__afs*
+clean_solo_mutatees: dyninst_clean_solo_mutatees symtab_clean_solo_mutatees instruction_clean_solo_mutatees proccontrol_clean_solo_mutatees
+
+clean: clean_solo_mutatees
+	@echo Cleaning testsuite
+	$(HIDE_COMP)$(RM) *.da *.bb. *.bbg 
+	$(HIDE_COMP)$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so testdriver_wrapper
+	$(HIDE_COMP)$(RM) $(dyninst_MUTATORS_SO)
+	$(HIDE_COMP)$(RM) $(symtab_MUTATORS_SO)
+	$(HIDE_COMP)$(RM) $(symtab_SOLO_MUTATEES)
+	$(HIDE_COMP)$(RM) $(instruction_MUTATORS_SO)
+	$(HIDE_COMP)$(RM) $(instruction_SOLO_MUTATEES)
+	$(HIDE_COMP)$(RM) $(proccontrol_MUTATORS_SO)
+	$(HIDE_COMP)$(RM) $(proccontrol_SOLO_MUTATEES)
+	$(HIDE_COMP)$(RM) $(OUTPUT_DRIVERS)
+	$(HIDE_COMP)$(RM) $(LIBDYNINSTCOMP)
+	$(HIDE_COMP)$(RM) $(LIBSYMTABCOMP)
+	$(HIDE_COMP)$(RM) $(LIBINSTRUCTIONCOMP)
+	$(HIDE_COMP)$(RM) $(LIBPROCCONTROLCOMP)
+	$(HIDE_COMP)$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI) $(LIBTESTLAUNCH)
+	$(HIDE_COMP)$(RM) *.o
+	$(HIDE_COMP)$(RM) test11
+	$(HIDE_COMP)$(RM) imagefile
+	$(HIDE_COMP)$(RM) core core.* *.core
+	$(HIDE_COMP)$(RM) -r _dyninstsaved*
+	$(HIDE_COMP)$(RM) *.ii *.ti
+	$(HIDE_COMP)$(RM) .__afs*
+	$(HIDE_COMP)$(RM) -r binaries
  
 
 distclean: clean

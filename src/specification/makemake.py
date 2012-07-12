@@ -913,17 +913,11 @@ def print_make_solo_mutatee_gen_footer(out, comps, platform, module):
    for c in comps:
       out.write("$(%sSOLO_MUTATEES_%s) " % (module, compilers[c]['defstring']))
    out.write("\n\n")
-   out.write(".PHONY: clean_solo_mutatees\n")
+   out.write(".PHONY: %s_clean_solo_mutatees\n" % (module))
    out.write("%s_clean_solo_mutatees:\n" % (module))
    for c in comps:
-      out.write("\t-$(RM) $(%s_SOLO_MUTATEES_%s)\n"
+      out.write("\t$(HIDE_COMP)-$(RM) $(%s_SOLO_MUTATEES_%s)\n"
               % (module, compilers[c]['defstring']))
-   # Get a list of optimization levels we're using and delete the mutatee
-   # objects for each of them individually
-   objExt = platform['filename_conventions']['object_suffix']
-   # FIXME Get the actual list of optimization levels we support
-   for o in ['none', 'low', 'high', 'max']:
-      out.write("\t-$(RM) *_%s%s\n" % (o, objExt))
    out.write("\n\n")
    out.write("%s_SOLO_MUTATEES =" % (module))
    for c in comps:
