@@ -19,8 +19,7 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -54,7 +53,6 @@ DOCDIR	= ../doc
 
 
 # All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
 
 PUBLIC_H =      Absloc.h \
                 DepGraphNode.h \

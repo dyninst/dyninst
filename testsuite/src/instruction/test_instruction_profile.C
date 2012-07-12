@@ -61,7 +61,11 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
   Symtab *s;
-  const char *libcPath = "/lib/libc.so.6";
+  const char *libcPath;
+  if (sizeof(void *) == 8)
+     libcPath = "/lib64/libc.so.6";
+  else
+     libcPath = "/lib/libc.so.6";
 
 #if defined(os_freebsd_test)
   libcPath = "/usr/lib/libc.so";

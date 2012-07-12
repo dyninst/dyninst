@@ -30,10 +30,10 @@
  */
 
 /* Functions of the relocationEntry class specific to PPC64 ELF */
+#include <elf.h>
 #include "Symtab.h"
 #include "Serialization.h"
 #include "annotations.h"
-#include <elf.h>
 
 const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidth*/) {
     switch(r) {
@@ -141,7 +141,9 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_PPC64_DTPREL16_HIGHERA);
         CASE_RETURN_STR(R_PPC64_DTPREL16_HIGHEST);
         CASE_RETURN_STR(R_PPC64_DTPREL16_HIGHESTA);
+#if defined(R_PPC64_NUM)
         CASE_RETURN_STR(R_PPC64_NUM);
+#endif
         default:
             return "?";
     }

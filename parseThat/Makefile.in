@@ -108,7 +108,9 @@ endif
 
 all: ready parseThat
 
-install: parseThat
+install: $(prefix)/parseThat
+
+$(prefix)/parseThat: parseThat
 	@if [ $(prefix) != "." ]; then                           \
 		echo "$(INSTALL) -d $(prefix)";                  \
 		$(INSTALL) -d $(prefix);                         \

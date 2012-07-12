@@ -85,8 +85,6 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "common/src/Elf_X.C"
-
 using namespace boost::assign;
 
 #include <libgen.h>
@@ -865,29 +863,29 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
           We want to concatenate them and search for BGP to determine
           if the binary is built for BGP compute nodes */
 
-	Elf_X_Data data = scnp->get_data();
+       Elf_X_Data data = scnp->get_data();
         
-	unsigned int index = 0;
-	size_t size = data.d_size();
-	char *buf = (char *) data.d_buf();
-        while (index < size)
-        {
-                string comment = buf+index;
-                size_t pos_p = comment.find("BGP");
-                size_t pos_q = comment.find("BGQ");
-                if (pos_p !=string::npos) {
-                        isBlueGeneP_ = true;
-                        break;
-                } else if (pos_q !=string::npos) {
-					         isBlueGeneQ_ = true;
-								break;
-					}
-                index += comment.size();
-                if (comment.size() == 0) { // Skip NULL characters in the comment section
-                        index ++;
-                }
-        }
-     }
+       unsigned int index = 0;
+       size_t size = data.d_size();
+       char *buf = (char *) data.d_buf();
+       while (buf && (index < size))
+       {
+          string comment = buf+index;
+          size_t pos_p = comment.find("BGP");
+          size_t pos_q = comment.find("BGQ");
+          if (pos_p !=string::npos) {
+             isBlueGeneP_ = true;
+             break;
+          } else if (pos_q !=string::npos) {
+             isBlueGeneQ_ = true;
+             break;
+          }
+          index += comment.size();
+          if (comment.size() == 0) { // Skip NULL characters in the comment section
+             index ++;
+          }
+       }
+    }
 
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) &&
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
@@ -5157,7 +5155,7 @@ void Object::parseStabTypes(Symtab *obj)
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
 	  ptr2 =  const_cast<char *>(stabptr->name(i+1));
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2) + 1);
 	  strcpy(ptr3, ptr);
 	  ptr3[strlen(ptr)-1] = '\0';
 	  strcat(ptr3, ptr2);
@@ -5293,7 +5291,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
         Elf_X_Shdr *strtab_scnp) {
 
-  const char *shnames = pdelf_get_shnames(elfHdr);
+   //const char *shnames = pdelf_get_shnames(elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;    

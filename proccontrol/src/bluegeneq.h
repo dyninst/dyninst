@@ -56,6 +56,7 @@ namespace bgq
 class bgq_process;
 class bgq_thread;
 class ComputeNode;
+class ArchEventBGQ;
 
 template <class CmdType, class AckType> class Transaction;
 
@@ -93,6 +94,7 @@ class bgq_process :
    virtual bool plat_attach(bool all_stopped, bool &needsSync);
    virtual bool plat_forked();
    virtual bool plat_detach(result_response::ptr resp);
+   virtual bool plat_detachDone();
    virtual bool plat_terminate(bool &needs_sync);
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
@@ -107,6 +109,10 @@ class bgq_process :
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual void noteNewDequeuedEvent(Event::ptr ev);
 
+   void getStackInfo(bgq_thread *thr, CallStackCallback *cbs);
+   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
+   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
+
    virtual bool plat_waitAndHandleForProc();
    virtual bool plat_readMem(int_thread *thr, void *local, Dyninst::Address addr, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, Dyninst::Address addr, size_t size);
@@ -119,6 +125,8 @@ class bgq_process :
                          mem_response::ptr resp, int_thread *thr);
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr);
+
+   virtual PlatformFeatures *plat_getPlatformFeatures();
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
@@ -156,7 +164,7 @@ class bgq_process :
    bool page_size_set;
    bool debugger_suspended;
    bool decoder_pending_stop;
-   bool have_pending_message;
+   bool is_doing_temp_detach;
 
    uint32_t rank;
 
@@ -166,8 +174,6 @@ class bgq_process :
    GetProcessDataAckCmd get_procdata_result;
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *initial_thread_list;
-
-   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
 
    enum {
       issue_attach = 0,
@@ -183,16 +189,32 @@ class bgq_process :
       startup_done
    } startup_state;
 
+   enum {
+      no_detach_issued,
+      issue_control_release,
+      control_release_sent,
+      choose_detach_mechanism,
+      issued_all_detach,
+      issued_detach,
+      waitfor_all_detach,
+      detach_cleanup,
+      detach_done
+   } detach_state;
+
    static const char *tooltag;
    static uint64_t jobid;
    static uint32_t toolid;
    static bool set_ids;
    static bool do_all_attach;
    static uint8_t priority;
+
+   static set<void *> held_msgs;
+   static unsigned int num_pending_stackwalks;
 };
 
 class bgq_thread : public thread_db_thread, ppc_thread
 {
+   friend class bgq_process;
   private:
    bool last_signaled;
   public:
@@ -246,11 +268,13 @@ class ComputeNode
 
    bool writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced);
    bool writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced);
-   bool flushNextMessage(bgq_process *proc);
-   bool handleMessageAck(bgq_process *proc);
+   bool flushNextMessage();
+   bool handleMessageAck();
 
    bool reliableWrite(void *buffer, size_t buffer_size);
+   void removeNode(bgq_process *proc);
 
+   const std::set<bgq_process *> &getProcs() const { return procs; }
    ~ComputeNode();
 
    static const std::set<ComputeNode *> &allNodes();
@@ -259,12 +283,14 @@ class ComputeNode
    int fd;
    int cn_id;
    Mutex send_lock;
-
    Mutex attach_lock;
+   Mutex detach_lock;
    bool do_all_attach;
    bool issued_all_attach;
    bool all_attach_done;
    bool all_attach_error;
+   bool have_pending_message;
+   std::queue<std::pair<void *, size_t> > queued_pending_msgs;
 };
 
 class HandleBGQStartup : public Handler
@@ -296,7 +322,7 @@ class GeneratorBGQ : public GeneratorMT
    virtual bool initialize();
    virtual bool canFastHandle();
    virtual ArchEvent *getEvent(bool block);
-   virtual bool getEvent(bool block, vector<ArchEvent *> &events);
+   virtual bool getMultiEvent(bool block, vector<ArchEvent *> &events);
    virtual bool plat_skipGeneratorBlock();
    void kick();
    void shutdown();
@@ -340,8 +366,10 @@ class DecoderBlueGeneQ : public Decoder
                    std::vector<Event::ptr> &events);
    bool decodeExit(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeControlNotify(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
+   bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
+   bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
 
-
+   Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:
    DecoderBlueGeneQ();
    virtual ~DecoderBlueGeneQ();

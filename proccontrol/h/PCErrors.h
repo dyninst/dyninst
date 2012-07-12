@@ -116,7 +116,7 @@ PC_EXPORT const char* getLastErrorMsg();
 PC_EXPORT void globalSetLastError(err_t err, const char *msg = NULL);
 PC_EXPORT void setDebugChannel(FILE *f);
 PC_EXPORT void setDebug(bool enable);
-
+PC_EXPORT const char *getGenericErrorMsg(err_t e);
 PC_EXPORT FILE *getDebugChannel();
 
 }

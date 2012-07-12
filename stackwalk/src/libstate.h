@@ -96,6 +96,7 @@ class LibraryWrapper {
   private:
    std::map<std::string, SymReader *> file_map;
   public:
+   static SymReader *testLibrary(std::string filename);
    static SymReader *getLibrary(std::string filename);
    static void registerLibrary(SymReader *reader, std::string filename);
 };

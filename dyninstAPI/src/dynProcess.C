@@ -1333,7 +1333,9 @@ bool PCProcess::writeDataWord(void *inTracedProcess,
     if( isTerminated() ) return false;
 
     // XXX ProcControlAPI should support word writes in the future
-    return pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+    bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
+    if( result && dyn_debug_write ) writeDebugDataSpace(inTracedProcess, amount, inSelf);
+    return result;
 }
 
 bool PCProcess::readDataSpace(const void *inTracedProcess, u_int amount,

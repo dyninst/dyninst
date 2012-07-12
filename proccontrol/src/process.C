@@ -41,6 +41,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/ProcessSet.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
@@ -182,6 +183,11 @@ bool int_process::waitfor_startup()
       if (!proc_exited && (!result || getState() == errorstate)) {
          pthrd_printf("Error.  Process %d errored during create/attach\n", pid);
          globalSetLastError(err_internal, "Process failed to startup");
+         return false;
+      }
+      if (proc_exited || getState() == exited) {
+         pthrd_printf("Error.  Proces exited during create/attach\n");
+         globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
    }
@@ -1030,6 +1036,7 @@ bool int_process::waitAndHandleEvents(bool block)
          pthrd_printf("Clearing event from pipe after dequeue\n");
          notify()->clearEvent();
       }
+
       gotEvent = true;
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
@@ -1038,22 +1045,30 @@ bool int_process::waitAndHandleEvents(bool block)
           (ev->getEventType().time() != EventType::Post) &&
           (ev->getEventType().code() != EventType::Exit)) {
          // Since the user will never handle this one...
-         if (!isHandlerThread()) notify()->clearEvent();
+         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
          continue;
       }
 #endif
 
       int_process* llp = ev->getProcess()->llproc();
       if(!llp) {
-
          error = true;
          goto done;
       }
 
       Process::const_ptr proc = ev->getProcess();
       int_process *llproc = proc->llproc();
+      if (!llproc) {
+         //Seen on Linux--a event comes in on an exited process because the kernel
+         // doesn't synchronize events across threads.  We thus get a thread exit
+         // event after a process exit event.  Just drop this event on the
+         // floor.
+         pthrd_printf("Dropping %s event from process %d due to process already exited\n",
+                      ev->getEventType().name().c_str(), proc->getPid());
+         continue;
+      }
       HandlerPool *hpool = llproc->handlerpool;
-      
+
       if (!ev->handling_started) {
          llproc->updateSyncState(ev, false);
          llproc->noteNewDequeuedEvent(ev);
@@ -1106,6 +1121,10 @@ void int_process::throwDetachEvent(bool temporary)
    threadPool()->initialThread()->getDetachState().desyncStateProc(int_thread::stopped);
    
    mbox()->enqueue(detach_ev);
+}
+
+bool int_process::plat_detachDone() {
+   return true;
 }
 
 bool int_process::terminate(bool &needs_sync)
@@ -1179,8 +1198,10 @@ int_process::int_process(Dyninst::PID p, std::string e,
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
+   fork_tracking(FollowFork::getDefaultFollowFork()),
    user_data(NULL)
 {
+   clearLastError();
 	wasCreatedViaAttach(pid == 0);
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -1206,9 +1227,11 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    force_generator_block_count(Counter::ForceGeneratorBlock),
    startupteardown_procs(Counter::StartupTeardownProcesses),
    proc_stop_manager(this),
+   fork_tracking(p->fork_tracking),
    user_data(NULL)
 {
    Process::ptr hlproc = Process::ptr(new Process());
+   clearLastError();
    mem = new mem_state(*p->mem, this);
    initializeProcess(hlproc);
 }
@@ -1489,7 +1512,12 @@ bool int_process::infFree(int_addressSet *aset)
       assert(rpc);
       pthrd_printf("Process %d is freeing memory of size %lu at 0x%lx with rpc %lu\n", proc->getPid(),
                    size, addr, rpc->id());
-      rpcMgr()->postRPCToProc(proc, rpc);
+      bool result = rpcMgr()->postRPCToProc(proc, rpc);
+      if (!result) {
+         pthrd_printf("Failed to post free rpc to process\n");
+         had_error = true;
+         continue;
+      }
 
       int_thread *thr = rpc->thread();
       assert(thr);
@@ -1768,6 +1796,7 @@ err_t int_process::getLastError() {
 const char *int_process::getLastErrorMsg() {
    return last_error_string;
 }
+
 void int_process::clearLastError() {
    last_error = err_none;
    last_error_string = "ok";
@@ -2010,6 +2039,88 @@ bool int_process::plat_preAsyncWait()
   return true;
 }
 
+bool int_process::plat_getStackInfo(int_thread *, stack_response::ptr)
+{
+   setLastError(err_unsupported, "Collecting call stacks not supported\n");
+   perr_printf("Called plat_getStackInfo on unsupported platform\n");
+   return false;
+}
+
+bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
+{
+   assert(0);
+   return false;
+}
+
+CallStackUnwinding *int_process::getStackUnwinder(int_thread *)
+{
+   return NULL;
+}
+
+bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::sysv_isTrackingLibraries()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+LibraryTracking *int_process::sysv_getLibraryTracking()
+{
+   return NULL;
+}
+
+bool int_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &, bool &)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_isTrackingThreads()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+bool int_process::threaddb_refreshThreads()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+ThreadTracking *int_process::threaddb_getThreadTracking()
+{
+   return NULL;
+}
+
+FollowFork *int_process::getForkTracking()
+{
+   return NULL;
+}
+
+bool int_process::fork_setTracking(FollowFork::follow_t)
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return false;
+}
+
+FollowFork::follow_t int_process::fork_isTracking() 
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return FollowFork::None;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2040,6 +2151,7 @@ int_process::~int_process()
       delete mem;
    }
    mem = NULL;
+
    if(ProcPool()->findProcByPid(getPid())) ProcPool()->rmProcess(this);
 }
 
@@ -2240,6 +2352,9 @@ hybrid_lwp_control_process::~hybrid_lwp_control_process()
 
 bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 {
+   if (thr->isSuspended())
+      return true;
+
    bool result = plat_suspendThread(thr);
    if (!result) 
       return false;
@@ -2249,6 +2364,9 @@ bool hybrid_lwp_control_process::suspendThread(int_thread *thr)
 
 bool hybrid_lwp_control_process::resumeThread(int_thread *thr)
 {
+   if (!thr->isSuspended())
+      return true;
+
    bool result = plat_resumeThread(thr);
    if (!result) 
       return false;
@@ -2404,6 +2522,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
+   stack_unwinder(NULL),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL)
@@ -3837,6 +3956,16 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
    return NULL;
 }
 
+CallStackUnwinding *int_thread::getStackUnwinder()
+{
+   return stack_unwinder;
+}
+
+void int_thread::setStackUnwinder(CallStackUnwinding *unw)
+{
+   stack_unwinder = unw;
+}
+
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
 {
    std::map<Dyninst::LWP, int_thread *>::iterator i = thrds_by_lwp.find(lwp);
@@ -5237,7 +5366,7 @@ size_t LibraryPool::size() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return -1;
    }
    return proc->numLibs();
@@ -5248,7 +5377,7 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -5263,7 +5392,7 @@ Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getLibraryByName on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
 
@@ -5278,7 +5407,7 @@ Library::ptr LibraryPool::getExecutable()
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;
@@ -5289,7 +5418,7 @@ Library::const_ptr LibraryPool::getExecutable() const
    MTLock lock_this_func;
    if (!proc) {
       perr_printf("getExecutable on deleted process\n");
-      proc->setLastError(err_exited, "Process is exited\n");
+      globalSetLastError(err_exited, "Process is exited\n");
       return Library::ptr();
    }
    return proc->plat_getExecutable()->up_lib;
@@ -6221,6 +6350,75 @@ SymbolReaderFactory *Process::getDefaultSymbolReader()
 
    return llproc()->plat_defaultSymReader();
 }
+
+LibraryTracking *Process::getLibraryTracking()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->sysv_getLibraryTracking();
+}
+
+ThreadTracking *Process::getThreadTracking()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->threaddb_getThreadTracking();
+}
+
+CallStackUnwinding *Thread::getCallStackUnwinding()
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getCallStackUnwinding on exited thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return NULL;
+   }
+   int_process *proc = llthread_->llproc();
+   assert(proc);
+   return proc->getStackUnwinder(llthread_);
+}
+
+FollowFork *Process::getFollowFork()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->getForkTracking();
+}
+
+const LibraryTracking *Process::getLibraryTracking() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->sysv_getLibraryTracking();
+}
+
+const ThreadTracking *Process::getThreadTracking() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getPlatformFeatures on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->threaddb_getThreadTracking();
+}
+
 
 err_t Process::getLastError() const {
    MTLock lock_this_func;

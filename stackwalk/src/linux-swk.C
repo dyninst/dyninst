@@ -110,6 +110,7 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    SymReader *reader = NULL;
    SymbolReaderFactory *fact = NULL;
    bool result;
+   std::stringstream ss;
 
    std::map<ProcessState *, vsys_info *>::iterator i = vsysmap.find(ps);
    if (i != vsysmap.end())
@@ -163,6 +164,10 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    }
    ret->syms = reader;
 
+   ss << "[vsyscall-" << ps->getProcessId() << "]";
+   ret->name = ss.str();
+   LibraryWrapper::registerLibrary(reader, ret->name);
+
   done:
    vsysmap[ps] = ret;
    return ret;
@@ -178,18 +183,10 @@ bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned in
    if (!vsys) {
       return false;
    }
-   std::stringstream ss;
-   ss << "[vsyscall-" << procstate->getProcessId() << "]";
-   LibAddrPair vsyscall_page;
-   vsyscall_page.first = ss.str();
-   vsyscall_page.second = vsys->start;
-   
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
-   SymReader *reader = fact->openSymbolReader((char *) vsys->vsys_mem,
-                                              vsys->end - vsys->start);
-   if (reader)
-      LibraryWrapper::registerLibrary(reader, vsyscall_page.first);
 
+   LibAddrPair vsyscall_page;
+   vsyscall_page.first = vsys->name;
+   vsyscall_page.second = vsys->start;
    std::pair<LibAddrPair, unsigned int> vsyscall_lib_pair;
    vsyscall_lib_pair.first = vsyscall_page;
    vsyscall_lib_pair.second = static_cast<unsigned int>(vsys->end - vsys->start);

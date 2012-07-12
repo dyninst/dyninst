@@ -351,6 +351,15 @@ void LibraryWrapper::registerLibrary(SymReader *reader, std::string filename)
    libs.file_map[filename] = reader;
 }
  
+SymReader *LibraryWrapper::testLibrary(std::string filename)
+{
+   std::map<std::string, SymReader *>::iterator i = libs.file_map.find(filename);
+   if (i != libs.file_map.end()) {
+      return i->second;
+   }
+   return NULL;
+}
+
 StaticBinaryLibState::StaticBinaryLibState(ProcessState *parent, std::string executable) :
    LibraryState(parent)
 {

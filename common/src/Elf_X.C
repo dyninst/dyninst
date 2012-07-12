@@ -42,10 +42,14 @@
 #include <boost/assign/std/vector.hpp>
 
 #include "common/h/headers.h"
+#include "common/h/Elf_X.h"
 
 using namespace std;
 using boost::crc_32_type;
 using namespace boost::assign;
+
+using namespace Dyninst;
+using namespace COMPONENT_NAME;
 
 #define DEBUGLINK_NAME ".gnu_debuglink"
 #define BUILD_ID_NAME ".note.gnu.build-id"

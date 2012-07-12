@@ -49,12 +49,8 @@ SRCS =		../src/linux.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-<<<<<<< HEAD:dyninstAPI/ppc32-unknown-vxworks6.x/Makefile
 MYFLAGS         += -I$(WIND_FOUNDATION_PATH)/include -DHOST
-=======
 MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS         += -I$(LIBELF_INC)
->>>>>>> master:dyninstAPI/ppc64_bgq/Makefile
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -64,21 +60,6 @@ TFLAGS          += $(MYFLAGS)
 #TFLAGS		+= -g
 
 SYSLIBS		= -ldl 
-<<<<<<< HEAD:dyninstAPI/ppc32-unknown-vxworks6.x/Makefile
-=======
-
-LIBS      +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
->>>>>>> master:dyninstAPI/ppc64_bgq/Makefile
 LIBS    += -lgcc
 
 # AS		= /usr/bin/as

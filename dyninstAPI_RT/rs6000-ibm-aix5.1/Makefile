@@ -36,7 +36,6 @@ SRCS  += ../src/RTposix.c \
 
 # Build and link the library text heap
 ifdef USES_LIB_TEXT_HEAP
-EXTRA_LIBS = libDyninstText.a
 CFLAGS	+= -DUSES_LIB_TEXT_HEAP
 LDFLAGS += -L. -lDyninstText
 endif

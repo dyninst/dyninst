@@ -14,6 +14,12 @@ VOUCHER	= V_$(XTARGET)
 
 VPATH		+= ../src
 
+ifdef STATIC_COMPS
+ifneq ($(SUITE_NAME),DyninstRT)
+TARGET := $(TARGET:.so=.a)
+endif
+endif
+
 ifndef NO_STD_OBJS
 
 OBJS +=		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
@@ -62,13 +68,13 @@ $(TARGET): $(TARGET).$(RELEASE_NUM)
 	@echo Making symlink $(TARGET).$(RELEASE_NUM) to $(TARGET)
 	$(HIDE_COMP)-$(LN) -f $(TARGET).$(RELEASE_NUM) $(TARGET)
 
-$(TARGET).$(RELEASE_NUM): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
+$(TARGET).$(RELEASE_NUM): $(OBJS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET) $(TARGET).$(RELEASE_NUM)
 	@echo Linking $@
 	$(HIDE_COMP)$(LD) $(LIBDIR) $(SONAME_FLAGS) $(LDFLAGS) -o $(TARGET).$(RELEASE_NUM) $(VOUCHER).o $(OBJS) $(LIBS)
 
 else # build a static lib
-$(TARGET): $(OBJS) $(EXTRA_LIBS) $(VOUCHER).o
+$(TARGET): $(OBJS) $(VOUCHER).o
 	$(HIDE_COMP)$(RM) $(TARGET)
 	@echo Linking $@
 	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
@@ -288,4 +294,8 @@ MYFLAGS += $(LIBDWARF_INC_FLAGS)
 endif
 endif
 
+ifdef SUITE_NAME
+MYFLAGS += -DCOMPONENT_NAME=$(SUITE_NAME)
+endif
 
+all: $(TARGET)

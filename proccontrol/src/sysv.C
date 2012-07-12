@@ -38,9 +38,11 @@
 #include "common/h/freebsdKludges.h"
 #endif
 
+#include "proccontrol/h/Handler.h"
+#include "proccontrol/h/PlatFeatures.h"
+
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/response.h"
-#include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_handler.h"
 
 #include <algorithm>
@@ -59,8 +61,10 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<st
    translator(NULL),
    lib_initialized(false),
    procreader(NULL),
-   aout(NULL)
+   aout(NULL),
+   libtracking(NULL)
 {
+   track_libraries = LibraryTracking::getDefaultTrackLibraries();
 }
 
 sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
@@ -69,6 +73,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
+   track_libraries = sp->track_libraries;
    aout = sp->aout;
    procreader = NULL;
    if (sp->procreader)
@@ -76,6 +81,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    translator = NULL;
    if (sp->translator)
       translator = constructTranslator(pid_);
+   libtracking = NULL;
 }
 
 sysv_process::~sysv_process()
@@ -87,6 +93,10 @@ sysv_process::~sysv_process()
    if (procreader) {
       delete procreader;
       procreader = NULL;
+   }
+   if (libtracking) {
+      delete libtracking;
+      libtracking = NULL;
    }
 }
 
@@ -212,10 +222,12 @@ bool sysv_process::initLibraryMechanism()
    }
 
    breakpoint_addr = translator->getLibraryTrapAddrSysV();
-   pthrd_printf("Installing library breakpoint at %lx\n", breakpoint_addr);
-   bool result = false;
-   if (breakpoint_addr) {
-      result = addBreakpoint(breakpoint_addr, lib_trap);
+   if (track_libraries) {
+      pthrd_printf("Installing library breakpoint at %lx\n", breakpoint_addr);
+      bool result = false;
+      if (breakpoint_addr) {
+         result = addBreakpoint(breakpoint_addr, lib_trap);
+      }
    }
 
    return true;
@@ -351,4 +363,30 @@ bool sysv_process::addSysVHandlers(HandlerPool *) {
 bool sysv_process::plat_getInterpreterBase(Address &)
 {
    return false;
+}
+
+bool sysv_process::sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp)
+{
+   if (b == track_libraries) {
+      bp = NULL;
+      return true;
+   }
+   track_libraries = b;
+   add_bp = track_libraries;
+   bp = lib_trap;
+   addr = breakpoint_addr;
+   return true;
+}
+
+bool sysv_process::sysv_isTrackingLibraries()
+{
+   return track_libraries;
+}
+
+LibraryTracking *sysv_process::sysv_getLibraryTracking()
+{
+   if (!libtracking) {
+      libtracking = new LibraryTracking(proc());
+   }
+   return libtracking;
 }

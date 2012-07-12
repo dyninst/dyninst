@@ -563,7 +563,6 @@ bool emitElf::driver(Symtab *obj, string fName){
     shdr = elf32_getshdr(scn);
 
     // resolve section name
-    Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     // You know, what happens if we expanded the section we're looking for above

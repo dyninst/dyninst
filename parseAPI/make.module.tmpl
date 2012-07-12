@@ -6,10 +6,24 @@
 # $Id: make.module.tmpl,v 1.4 2008/09/15 17:38:17 jaw Exp $
 #
 
-SUITE_NAME	= Dyninst
+SUITE_NAME	= ParseAPI
 RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+ifndef TARGET
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libparseAPI.a
+else
+TARGET = libparseAPI.so
+endif
+endif
+
+ifndef STATIC_COMPS
+CFLAGS += -fPIC
+CXXFLAGS += -fPIC
+endif
 
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
@@ -20,8 +34,7 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -62,11 +75,11 @@ SRCS +=	../src/ParserDetails.C \
         ../src/IA_powerDetails.C \
         ../src/IA_platformDetailsFactory.C \
         ../src/CFGModifier.C
-        
+
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/ABI.C \
 	../../dataflowAPI/src/Absloc.C \
-     	../../dataflowAPI/src/AbslocInterface.C \
+	../../dataflowAPI/src/AbslocInterface.C \
 	../../dataflowAPI/src/convertOpcodes.C \
 	../../dataflowAPI/src/debug_dataflow.C \
 	../../dataflowAPI/src/ExpressionConversionVisitor.C \
@@ -100,7 +113,4 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
 

@@ -48,6 +48,13 @@ namespace ProcControlAPI {
 
 class ProcessSet;
 class ThreadSet;
+class LibraryTrackingSet;
+class ThreadTrackingSet;
+class CallStackUnwindingSet;
+class FollowForkSet;
+class PSetFeatures;
+class TSetFeatures;
+
 typedef boost::shared_ptr<ProcessSet> ProcessSet_ptr;
 typedef boost::shared_ptr<ThreadSet> ThreadSet_ptr;
 typedef boost::shared_ptr<const ProcessSet> ProcessSet_const_ptr;
@@ -151,19 +158,23 @@ class PC_EXPORT AddressSet
  * perform collective operations on the entire set, which may be more effecient
  * than the equivalent sequential operations.
  **/
-class PC_EXPORT ProcessSet
+class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
 {
    friend class ThreadSet;
   private:
    int_processSet *procset;
+   PSetFeatures *features;
 
    ProcessSet();
    ~ProcessSet();
 
    friend void boost::checked_delete<ProcessSet>(ProcessSet *);
  public:
+   int_processSet *getIntProcessSet(); //Not for public use
    typedef boost::shared_ptr<ProcessSet> ptr;
    typedef boost::shared_ptr<const ProcessSet> const_ptr;
+   typedef boost::weak_ptr<ProcessSet> weak_ptr;
+   typedef boost::weak_ptr<const ProcessSet> const_weak_ptr;
 
    /**
     * Create new ProcessSets from existing Process objects
@@ -187,14 +198,16 @@ class PC_EXPORT ProcessSet
       std::vector<std::string> argv;
       std::vector<std::string> envp;
       std::map<int, int> fds;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr createProcessSet(std::vector<CreateInfo> &cinfo);
 
    struct AttachInfo {
       Dyninst::PID pid;
       std::string executable;
-      ProcControlAPI::err_t error_ret;
+      ProcControlAPI::err_t error_ret; //Set on return
+      Process::ptr proc;               //Set on return
    };
    static ProcessSet::ptr attachProcessSet(std::vector<AttachInfo> &ainfo);
 
@@ -333,7 +346,7 @@ class PC_EXPORT ProcessSet
       bool operator<(const read_t &w) { return (addr < w.addr) && (size < w.size) && (buffer < w.buffer); }
    };
 
-   bool readMemory(AddressSet::ptr addr, std::multimap<Process::const_ptr, void *> &result, size_t size) const;
+   bool readMemory(AddressSet::ptr addr, std::multimap<Process::ptr, void *> &result, size_t size) const;
    bool readMemory(AddressSet::ptr addr, std::map<void *, ProcessSet::ptr> &result, size_t size, bool use_checksum = true) const;
    bool readMemory(std::multimap<Process::const_ptr, read_t> &addrs) const;
 
@@ -356,6 +369,17 @@ class PC_EXPORT ProcessSet
    bool postIRPC(const std::multimap<Process::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
    bool postIRPC(IRPC::ptr irpc, AddressSet::ptr addrs, std::multimap<Process::ptr, IRPC::ptr> *result = NULL) const;
+
+   /**
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
+    **/
+   LibraryTrackingSet *getLibraryTracking();
+   ThreadTrackingSet *getThreadTracking();
+   FollowForkSet *getFollowFork();
+   const LibraryTrackingSet *getLibraryTracking() const;
+   const ThreadTrackingSet *getThreadTracking() const;
+   const FollowForkSet *getFollowFork() const;
 };
 
 /**
@@ -365,9 +389,10 @@ class PC_EXPORT ProcessSet
  **/
 ProcessSet::const_ptr getAllProcs();
 
-class ThreadSet {
+class ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;
+   TSetFeatures *features;
    
    ThreadSet();
    ~ThreadSet();
@@ -375,11 +400,16 @@ class ThreadSet {
   public:
    typedef boost::shared_ptr<ThreadSet> ptr;
    typedef boost::shared_ptr<const ThreadSet> const_ptr;
+   typedef boost::weak_ptr<ThreadSet> weak_ptr;
+   typedef boost::weak_ptr<const ThreadSet> const_weak_ptr;
+
+   int_threadSet *getIntThreadSet() const;
 
    /**
     * Create a new ThreadSet given existing threads
     **/
    static ThreadSet::ptr newThreadSet();
+   static ThreadSet::ptr newThreadSet(Thread::ptr thr);
    static ThreadSet::ptr newThreadSet(const ThreadPool &threadp);
    static ThreadSet::ptr newThreadSet(const std::set<Thread::const_ptr> &threads);
    static ThreadSet::ptr newThreadSet(ProcessSet::ptr ps);
@@ -500,6 +530,13 @@ class ThreadSet {
     **/
    bool postIRPC(const std::multimap<Thread::const_ptr, IRPC::ptr> &rpcs) const;
    bool postIRPC(IRPC::ptr irpc, std::multimap<Thread::ptr, IRPC::ptr> *result = NULL) const;
+
+   /**
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
+    **/
+   CallStackUnwindingSet *getCallStackUnwinding();
+   const CallStackUnwindingSet *getCallStackUnwinding() const;
 };
 
 }

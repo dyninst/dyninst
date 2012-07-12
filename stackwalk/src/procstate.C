@@ -132,6 +132,13 @@ ProcessState::~ProcessState()
    proc_map.erase(pid);
 }
 
+ProcessState *ProcessState::getProcessStateByPid(Dyninst::PID pid) {
+   map<PID, ProcessState *>::iterator i = proc_map.find(pid);
+   if (i == proc_map.end())
+      return NULL;
+   return i->second;
+}
+
 unsigned ProcSelf::getAddressWidth()
 {
    return sizeof(void *);
