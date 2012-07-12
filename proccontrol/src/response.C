@@ -146,6 +146,8 @@ string response::name() const
          return "Mem Response";
       case rt_set:
          return "Set Response";
+      case rt_stack:
+         return "Stack Response";
    }
    assert(0);
    return "";
@@ -226,6 +228,13 @@ allreg_response::ptr response::getAllRegResponse()
    return resp_type == rt_allreg ? 
       boost::static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
+}
+
+stack_response::ptr response::getStackResponse()
+{
+   return resp_type == rt_stack ?
+      boost::static_pointer_cast<stack_response>(shared_from_this()) :
+      stack_response::ptr();
 }
 
 response::ptr responses_pending::rmResponse(unsigned int id)
@@ -591,7 +600,38 @@ unsigned mem_response::getSize() const
 {
    return size;
 }
+
+stack_response::ptr stack_response::createStackResponse(int_thread *t)
+{
+   return stack_response::ptr(new stack_response(t));
+}
+
+stack_response::stack_response(int_thread *t) :
+   data(NULL),
+   thr(t)
+{
+   resp_type = rt_stack;
+}
  
+stack_response::~stack_response()
+{
+}
+
+void *stack_response::getData()
+{
+   return data;
+}
+
+int_thread *stack_response::getThread()
+{
+   return thr;
+}
+
+void stack_response::postResponse(void *d)
+{
+   data = d;
+}
+
 unsigned int ResponseSet::next_id = 1;
 Mutex ResponseSet::id_lock;
 std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;

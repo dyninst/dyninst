@@ -35,12 +35,15 @@
 #include "stackwalk/h/steppergroup.h"
 
 #include "proccontrol/h/PCProcess.h"
+#include "proccontrol/h/ProcessSet.h"
+#include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/SymReader.h"
 
 #include "stackwalk/src/libstate.h"
+#include "stackwalk/src/sw.h"
 
 #include <vector>
 
@@ -608,4 +611,116 @@ bool PCLibraryState::getAOut(LibAddrPair &ao)
    }
    ao = LibAddrPair(lib->getName(), lib->getLoadAddress());
    return true;
+}
+
+void int_walkerSet::addToProcSet(ProcDebug *pd)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   Process::ptr proc = pd->getProc();
+   pset->insert(proc);
+}
+
+void int_walkerSet::eraseFromProcSet(ProcDebug *pd)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   Process::ptr proc = pd->getProc();
+
+   ProcessSet::iterator i = pset->find(proc);
+   assert(i != pset->end());
+   pset->erase(i);
+}
+
+void int_walkerSet::clearProcSet()
+{
+   ProcessSet::ptr *pset = (ProcessSet::ptr *) procset;
+   (*pset)->clear();
+   delete pset;
+   procset = NULL;
+}
+
+void int_walkerSet::initProcSet()
+{
+   ProcessSet::ptr *p = new ProcessSet::ptr();
+   *p = ProcessSet::newProcessSet();
+   procset = (void *) p;
+}
+
+class StackCallback : public Dyninst::ProcControlAPI::CallStackCallback
+{
+private:
+   CallTree &tree;
+   FrameNode *cur;
+   Walker *cur_walker;
+public:
+   StackCallback(CallTree &t);
+   virtual ~StackCallback();
+   
+   virtual bool beginStackWalk(Thread::ptr thr);
+   virtual bool addStackFrame(Thread::ptr thr, Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp);
+   virtual void endStackWalk(Thread::ptr thr);
+};
+
+StackCallback::StackCallback(CallTree &t) :
+   tree(t),
+   cur(NULL)
+{
+   top_first = true;
+}
+
+StackCallback::~StackCallback()
+{
+}
+
+bool StackCallback::beginStackWalk(Thread::ptr thr)
+{
+   assert(!cur);
+   Process::ptr proc = thr->getProcess();
+   ProcessState *pstate = ProcessState::getProcessStateByPid(proc->getPid());
+   if (!pstate) {
+      sw_printf("[%s:%u] - Error, unknown process state for %d while starting stackwalk\n", 
+                __FILE__, __LINE__, proc->getPid());
+      return false;
+   }
+
+   cur_walker = pstate->getWalker();
+   cur = tree.getHead();
+
+   return true;
+}
+
+bool StackCallback::addStackFrame(Thread::ptr thr,
+                                  Dyninst::Address ra, Dyninst::Address sp, Dyninst::Address fp)
+{
+   Frame f(cur_walker);
+   f.setRA(ra);
+   f.setSP(sp);
+   f.setFP(fp);
+   f.setThread(thr->getLWP());
+   
+   cur = tree.addFrame(f, cur);
+   return true;
+}
+
+void StackCallback::endStackWalk(Thread::ptr thr) {
+   THR_ID thrd_lwp = thr->getLWP();
+   Frame *last_frame = cur->getFrame();
+   if (last_frame) {
+      last_frame->markTopFrame();
+   }
+   tree.addThread(thrd_lwp, cur, cur_walker, false);
+   cur = NULL;
+   cur_walker = NULL;
+}
+
+bool int_walkerSet::walkStacksProcSet(CallTree &tree, bool &bad_plat)
+{
+   ProcessSet::ptr &pset = *((ProcessSet::ptr *) procset);
+   ThreadSet::ptr all_threads = ThreadSet::newThreadSet(pset);
+   StackCallback cbs(tree);
+
+   if (!all_threads->getCallStackUnwinding()) {
+      bad_plat = true;
+      return false;
+   }
+   return all_threads->getCallStackUnwinding()->walkStack(&cbs);
 }

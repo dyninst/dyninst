@@ -59,7 +59,6 @@
 #include <libelf.h>
 #include <string>
 
-#define ELF_X_NAMESPACE SymtabAPI
 #include "common/h/Elf_X.h"
 
 #include <fcntl.h>
@@ -447,6 +446,8 @@ class Object : public AObject {
 
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
+    
+    Elf_X * getElfHandle() { return &elfHdr; }
 
   private:
   static void log_elferror (void (*)(const char *), const char *);

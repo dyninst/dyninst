@@ -68,8 +68,9 @@ struct sigframe_offsets {
    int frame_size;
 };
 
-int frames_32_size = 1;
-sigframe_offsets frames_32[] = { {28, 60, 32, 728} };
+int frames_32_size = 3;
+sigframe_offsets frames_32[] = { {28, 60, 32, 728}, {28, 60, 32, 736}, 
+                                 {28, 60, 32, 0} };
 
 int frames_64_size = 6;
 sigframe_offsets frames_64[] = { {120, 168, 160, 568}, {120, 168, 160, 1096}, 

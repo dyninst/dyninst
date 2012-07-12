@@ -38,7 +38,9 @@
 #include "stackwalk/src/symtab-swk.h"
 
 #include <assert.h>
+#include <string>
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -353,4 +355,140 @@ THR_ID Frame::getThread() const
 void Frame::setThread(THR_ID t)
 {
    originating_thread = t;
+}
+
+FrameNode::FrameNode(frame_cmp_wrapper f) :
+   children(f),
+   parent(NULL),
+   walker(NULL),
+   had_error(false)
+{
+}
+
+FrameNode::~FrameNode()
+{
+}
+
+inline bool frame_cmp_wrapper::operator()(const FrameNode *a, const FrameNode *b) { 
+   if (a->frame_type == FrameNode::FTThread && b->frame_type == FrameNode::FTThread) {
+      Dyninst::PID a_pid = a->getWalker()->getProcessState()->getProcessId();
+      Dyninst::PID b_pid = b->getWalker()->getProcessState()->getProcessId();
+      if (a_pid != b_pid)
+         return a_pid < b_pid;
+      return a->thrd < b->thrd;
+   }
+   else if (a->frame_type == FrameNode::FTThread)
+      return false;
+   else if (b->frame_type == FrameNode::FTThread)
+      return true;
+   else
+      return f(a->frame, b->frame);
+}
+
+CallTree::CallTree(frame_cmp_t cmpf)
+{
+   cmp_wrapper.f = cmpf;
+   head = new FrameNode(cmp_wrapper);
+   head->frame_type = FrameNode::FTHead;
+   head->parent = NULL;
+}
+
+static void deleteTree(FrameNode *node) {
+   frame_set_t &children = node->getChildren();
+   for (frame_set_t::iterator i = children.begin(); i != children.end(); i++)
+      deleteTree(*i);
+   delete(node);
+}
+
+CallTree::~CallTree() 
+{
+   deleteTree(head);
+   head = NULL;
+}
+
+FrameNode *CallTree::addFrame(const Frame &f, FrameNode *parent)
+{
+   FrameNode search_node(cmp_wrapper);
+   search_node.frame_type = FrameNode::FTFrame;
+   search_node.frame = f;
+
+   pair<frame_set_t::iterator, frame_set_t::iterator> is = parent->children.equal_range(&search_node);
+   bool found = (is.first != is.second);
+   if (found) {
+      //Common case, already have this node in tree, don't create a new one.
+      FrameNode *n = *is.first;
+      return n;
+   }
+
+   //Create and insert a new node at position i
+   FrameNode *new_node = new FrameNode(cmp_wrapper);
+   new_node->frame_type = FrameNode::FTFrame;
+   new_node->frame = f;
+   new_node->walker = f.getWalker();
+   parent->children.insert(is.first, new_node);
+
+   return new_node;
+}
+
+FrameNode *CallTree::addThread(THR_ID thrd, FrameNode *parent, Walker *walker, bool err_stack)
+{
+   FrameNode *new_node = new FrameNode(cmp_wrapper);
+   assert(walker);
+   new_node->frame_type = FrameNode::FTThread;
+   new_node->thrd = thrd;
+   new_node->walker = walker;
+   new_node->had_error = err_stack;
+
+   pair<frame_set_t::iterator, bool> i = parent->children.insert(new_node);
+   if (!i.second) {
+      //Element already existed.
+      delete new_node;
+      return *(i.first);
+   }
+
+   return new_node;
+}
+
+void CallTree::addCallStack(const vector<Frame> &stk, THR_ID thrd, Walker *walker, bool err_stack)
+{
+   FrameNode *cur = head;
+   for (vector<Frame>::const_reverse_iterator i = stk.rbegin(); i != stk.rend(); i++) {
+      cur = addFrame(*i, cur);
+   }
+   addThread(thrd, cur, walker, err_stack);
+}
+ 
+bool Dyninst::Stackwalker::frame_addr_cmp(const Frame &a, const Frame &b)
+{
+   return a.getRA() < b.getRA();
+}
+
+bool Dyninst::Stackwalker::frame_lib_offset_cmp(const Frame &a, const Frame &b)
+{
+   string a_lib, b_lib;
+   Offset a_off = 0, b_off = 0;
+   void *a_ignore, *b_ignore;
+   a.getLibOffset(a_lib, a_off, a_ignore);
+   b.getLibOffset(b_lib, b_off, b_ignore);
+   int str_cmp = a_lib.compare(b_lib);
+   if (str_cmp < 0)
+      return true;
+   else if (str_cmp > 0)
+      return false;
+   else
+      return a_off < b_off;
+}
+
+bool Dyninst::Stackwalker::frame_symname_cmp(const Frame &a, const Frame &b)
+{
+   string a_name, b_name;
+   a.getName(a_name);
+   b.getName(b_name);
+   return a_name < b_name;
+}
+
+bool Dyninst::Stackwalker::frame_lineno_cmp(const Frame &, const Frame &)
+{
+#warning TODO: Implement frame_lineno_cmp
+   assert(0 && "frame_lineno_cmp unimplemented");
 }

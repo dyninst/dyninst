@@ -776,6 +776,9 @@ bool EventDetach::procStopper() const
    if (!handled_by.empty())
       return false;
 
+   if (getInternal()->removed_bps)
+      return false;
+
    int_process *proc = getProcess()->llproc();
    return !proc->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
 }
@@ -961,7 +964,8 @@ int_eventThreadDB::~int_eventThreadDB()
 int_eventDetach::int_eventDetach() :
    temporary_detach(false),
    removed_bps(false),
-   done(false)
+   done(false),
+   had_error(false)
 {
 }
 

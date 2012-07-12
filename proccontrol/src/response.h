@@ -44,6 +44,7 @@ class mem_response;
 class result_response;
 class reg_response;
 class allreg_response;
+class stack_response;
 class HandlerPool;
 
 class response : public boost::enable_shared_from_this<response> {
@@ -76,6 +77,7 @@ class response : public boost::enable_shared_from_this<response> {
       rt_reg,
       rt_allreg,
       rt_mem,
+      rt_stack,
       rt_set
    } resp_type_t;
    resp_type_t resp_type;
@@ -97,6 +99,7 @@ class response : public boost::enable_shared_from_this<response> {
    boost::shared_ptr<mem_response> getMemResponse();
    boost::shared_ptr<reg_response> getRegResponse();
    boost::shared_ptr<allreg_response> getAllRegResponse();
+   boost::shared_ptr<stack_response> getStackResponse();
    
    bool isReady() const;
    bool isPosted() const;
@@ -252,6 +255,28 @@ class mem_response : public response
    void postResponse();
    void setLastBase(Address a);
    Address lastBase();
+};
+
+class stack_response : public response
+{
+   friend void boost::checked_delete<stack_response>(stack_response *);
+   friend void boost::checked_delete<const stack_response>(const stack_response *);
+  private:
+   void *data;
+   int_thread *thr;
+   stack_response(int_thread *t);
+
+  public:
+   typedef boost::shared_ptr<stack_response> ptr;
+   typedef boost::shared_ptr<const stack_response> const_ptr;
+
+   static stack_response::ptr createStackResponse(int_thread *t);
+
+   virtual ~stack_response();
+
+   void *getData();
+   int_thread *getThread();
+   void postResponse(void *d);
 };
 
 class ResponseSet {

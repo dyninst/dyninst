@@ -37,7 +37,9 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/linuxbsd-swk.h"
+#include "stackwalk/src/libstate.h"
 #include "dynutil/h/dyntypes.h"
+#include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -47,58 +49,104 @@ using namespace Stackwalker;
 
 static std::map<std::string, DwarfSW *> dwarf_info;
 
-typedef enum {
-   storageAddr,
-   storageReg,
-   storageRegOffset
-} storageClass;
-
-typedef enum {
-   storageRef,
-   storageNoRef
-} storageRefClass;
-
-class VariableLocation {
-public:
-   storageClass stClass;
-   storageRefClass refClass;
-   int reg;
-   MachRegister mr_reg;
-   long frameOffset;
-   Address lowPC;
-   Address hiPC;
-};
-
 #include <stdarg.h>
 #include "dwarf.h"
 #include "libdwarf.h"
-#include "common/h/dwarfExpr.h"
+#include "common/h/Elf_X.h"
 #include "common/h/dwarfSW.h"
 
-#define ELF_X_NAMESPACE Stackwalker
-#include "common/h/Elf_X.h"
-
-DwarfSW *getDwarfInfo(std::string s, unsigned addr_width)
+static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
 {
+   Elf *elf = elfx->e_elfp();
    Dwarf_Debug dbg;
-   DwarfSW *ret = NULL;
+   Dwarf_Error err;
+   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, &err);
+   if (status != DW_DLV_OK) {
+      sw_printf("Error opening dwarf information %u (0x%x): %s\n",
+                (unsigned) dwarf_errno(err), (unsigned) dwarf_errno(err),
+                dwarf_errmsg(err));
+      return NULL;
+   }
+   return new DwarfSW(dbg, elfx->wordSize());
+}
+
+static DwarfSW *getDwarfInfo(std::string s)
+{
    static std::map<std::string, DwarfSW *> dwarf_info;
+   
    std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())
       return i->second;
-
-   bool result = getDwarfDebug(s, &dbg);
-   if (!result) goto done;
-
-   ret = new DwarfSW(dbg, addr_width);
-
-  done:
-   dwarf_info[s] = ret;
-   return ret;
+   
+   SymReader *reader = LibraryWrapper::getLibrary(s);
+   if (!reader) {
+      sw_printf("[%s:%u] - Error opening default symbol reader %s\n",
+                __FILE__, __LINE__, s.c_str());
+      return NULL;
+   }
+   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
+   DwarfSW *result = ll_getDwarfInfo(elfx);
+   dwarf_info[s] = result;
+   return result;
 }
+
+static DwarfSW *getAuxDwarfInfo(std::string s)
+{
+   static std::map<std::string, DwarfSW *> dwarf_aux_info;
+   
+   std::map<std::string, DwarfSW *>::iterator i = dwarf_aux_info.find(s);
+   if (i != dwarf_aux_info.end())
+      return i->second;
+   
+   SymReader *orig_reader = LibraryWrapper::getLibrary(s);
+   if (!orig_reader) {
+      sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
+                __FILE__, __LINE__, s.c_str());
+      return NULL;
+   }
+   Elf_X *orig_elf = (Elf_X *) orig_reader->getElfHandle();
+   if (!orig_elf) {
+      sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
+                __FILE__, __LINE__, s.c_str());
+      dwarf_aux_info[s] = NULL;
+      return NULL;
+   }
+   
+   string dbg_name;
+   char *dbg_buffer;
+   unsigned long dbg_buffer_size;
+   bool result = orig_elf->findDebugFile(s, dbg_name, dbg_buffer, dbg_buffer_size);
+   if (!result) {
+      sw_printf("[%s:%u] - No separate debug file associated with %s\n",
+                __FILE__, __LINE__, s.c_str());
+      dwarf_aux_info[s] = NULL;
+      return NULL;
+   }
+
+   SymReader *reader = LibraryWrapper::testLibrary(dbg_name);
+   if (!reader) {
+      SymbolReaderFactory *fact = getDefaultSymbolReader();
+      reader = fact->openSymbolReader(dbg_buffer, dbg_buffer_size);
+      if (!reader) {
+         sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
+                   __FILE__, __LINE__, dbg_name.c_str());
+         dwarf_aux_info[s] = NULL;
+         return NULL;
+      }
+      LibraryWrapper::registerLibrary(reader, dbg_name);
+   }
+   
+   Elf_X *elfx = (Elf_X *) reader->getElfHandle();
+   DwarfSW *dresult = ll_getDwarfInfo(elfx);
+   dwarf_aux_info[s] = dresult;
+   return dresult;
+}
+
 
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
+   last_addr_read(0),
+   last_val_read(0),
    parent_stepper(parent),
    cur_frame(NULL),
    depth_frame(NULL)
@@ -107,7 +155,46 @@ DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
 
 bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 {
-   return getProcessState()->readMem(buffer, addr, size);
+   bool result = getProcessState()->readMem(buffer, addr, size);
+   if (!result)
+      return true;
+   
+   last_addr_read = 0;
+   if (!result)
+      return false;
+   if (size != addr_width)
+      return true;
+   
+   last_addr_read = addr;
+   if (addr_width == 4) {
+      uint32_t v = *((uint32_t *) buffer);
+      last_val_read = v;
+   }
+   else if (addr_width == 8) {
+      uint64_t v = *((uint64_t *) buffer);
+      last_val_read = v;
+   }
+   else {
+      assert(0); //Unknown size
+   }
+
+   return true;
+}
+
+location_t DebugStepperImpl::getLastComputedLocation(unsigned long value)
+{
+   location_t loc;
+   if (last_addr_read && last_val_read == value) {
+      loc.val.addr = last_addr_read;
+      loc.location = loc_address;
+   }
+   else {
+      loc.val.addr = 0;
+      loc.location = loc_unknown;
+   }
+   last_addr_read = 0;
+   last_val_read = 0;
+   return loc;
 }
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
@@ -166,8 +253,58 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
                 __FILE__, __LINE__, in.getRA());
       return gcf_stackbottom;
    }
+
+   Address pc = in.getRA() - lib.second;
+   if (in.getRALocation().location != loc_register) {
+      /**
+       * If we're here, then our in.getRA() should be pointed at the
+       * instruction following a call.  We could either use the
+       * call instruction's debug info (pc - 1) or the following
+       * instruction's debug info (pc) to continue the stackwalk.
+       *
+       * In most cases it doesn't matter.  Because of how DWARF debug
+       * info is defined, the stack doesn't change between these two points.
+       *
+       * However, if the call is a non-returning call (e.g, a call to exit)
+       * then the next instruction may not exist or may be part of a separate
+       * block with different debug info.  In these cases we want to use the
+       * debug info associated with the call.  So, we subtract 1 from the
+       * pc to get at the call instruction.
+       **/
+      pc = pc - 1;
+   }
+
+   bool isVsyscallPage = false;
+#if defined(os_linux)
+   isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
+#endif
+
+   if (!isVsyscallPage)
+   {
+      /**
+       * Some system libraries on some systems have their debug info split
+       * into separate files, usually in /usr/lib/debug/.  Check these 
+       * for DWARF debug info
+       **/
+      DwarfSW *dauxinfo = getAuxDwarfInfo(lib.first);
+      if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
+         sw_printf("[%s:%u] - Using separate DWARF debug file for %s", 
+                   __FILE__, __LINE__, lib.first.c_str());
+         cur_frame = &in;
+         gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dauxinfo, false);
+         cur_frame = NULL;
+         if (gcresult == gcf_success) {
+            sw_printf("[%s:%u] - Success walking with DWARF aux file\n",
+                      __FILE__, __LINE__);
+            return gcf_success;
+         }
+      }
+   }
    
-   DwarfSW *dinfo = getDwarfInfo(lib.first, walker->getProcessState()->getAddressWidth());
+   /**
+    * Check the actual file for DWARF stackwalking data
+    **/
+   DwarfSW *dinfo = getDwarfInfo(lib.first);
    if (!dinfo) {
       sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
                 __FILE__, __LINE__, lib.first.c_str());
@@ -179,13 +316,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
       sw_printf("[%s:%u] - Library %s does not have stackwalking debug info\n",
                  __FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
-   }   
-   Address pc = in.getRA() - lib.second;
-
-   bool isVsyscallPage = false;
-#if defined(os_linux)
-   isVsyscallPage = (strstr(lib.first.c_str(), "[vsyscall-") != NULL);
-#endif
+   }
 
    cur_frame = &in;
    gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo, isVsyscallPage);
@@ -195,7 +326,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 
 void DebugStepperImpl::registerStepperGroup(StepperGroup *group)
 {
-   unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+   addr_width = group->getWalker()->getProcessState()->getAddressWidth();
    if (addr_width == 4)
       group->addStepper(parent_stepper, 0, 0xffffffff);
 #if defined(arch_64bit)
@@ -225,7 +356,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    FrameErrors_t frame_error = FE_No_Error;
 
    Dyninst::Architecture arch;
-   unsigned addr_width = getProcessState()->getAddressWidth();
+   addr_width = getProcessState()->getAddressWidth();
    if (addr_width == 4)
       arch = Dyninst::Arch_x86;
    else
@@ -251,8 +382,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                 __FILE__, __LINE__, in.getRA(), frame_error);
       return gcf_not_me;
    }
-
- 
+   location_t ra_loc = getLastComputedLocation(ret_value);
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
@@ -267,6 +397,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
+   location_t fp_loc = getLastComputedLocation(frame_value);
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                       stack_value, arch, this, frame_error);
@@ -275,10 +406,14 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
                  __FILE__, __LINE__, in.getRA());
       return gcf_not_me;
    }
+   location_t sp_loc = getLastComputedLocation(stack_value);   
 
    out.setRA(ret_value);
    out.setFP(frame_value);
    out.setSP(stack_value);
+   out.setRALocation(ra_loc);
+   out.setFPLocation(fp_loc);
+   out.setSPLocation(sp_loc);
 
    return gcf_success;
 }

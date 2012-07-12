@@ -51,6 +51,7 @@ using namespace Dyninst;
 using namespace std;
 
 #include <assert.h>
+#include <cstring>
 
 Handler::Handler(std::string name_) :
    name(name_)
@@ -448,6 +449,12 @@ bool HandlerPool::handleEvent(Event::ptr orig_ev)
          pthrd_printf("Handler %s delaying for user thread\n",
                       handler->getName().c_str());
          mbox()->enqueue_user(orig_ev);
+         return true;
+      }
+      if (result == Handler::ret_again) {
+         pthrd_printf("Handler %s throwing event again\n",
+                      handler->getName().c_str());
+         mbox()->enqueue(orig_ev);
          return true;
       }
       event->handled_by.insert(handler);
@@ -1111,6 +1118,11 @@ Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
        child_proc = int_process::createProcess(child_pid, parent_proc);
    }
 
+   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+      //Silence this event.  Child will be detached.
+      ev->setSuppressCB(true);
+   }
+
    assert(child_proc);
    return child_proc->forked() ? ret_success : ret_error;
 }
@@ -1134,12 +1146,18 @@ Handler::handler_ret_t HandlePostForkCont::handleEvent(Event::ptr ev)
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
    int_process *child_proc = ProcPool()->findProcByPid(child_pid);
+   int_process *parent_proc = ev->getProcess()->llproc();
    pthrd_printf("Handling post-fork continue for child %d\n", child_pid);
    assert(child_proc);
 
-   //We need syncRunState to run for the new process to continue it.
-   // do so by throwing a NOP event on the new process.
-   child_proc->throwNopEvent();
+   if (parent_proc->fork_isTracking() == FollowFork::DisableBreakpointsDetach) {
+      child_proc->throwDetachEvent(false);
+   }
+   else {
+      //We need syncRunState to run for the new process to continue it.
+      // do so by throwing a NOP event on the new process.
+      child_proc->throwNopEvent();
+   }
    return ret_success;
 }
 
@@ -1720,6 +1738,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
 
    if (!removed_bps) 
    {
+      proc->setForceGeneratorBlock(true);
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
@@ -1774,6 +1793,14 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
       proc->handlerPool()->notifyOfPendingAsyncs(detach_response, ev);
       return ret_async;
    }
+      
+   if (!proc->plat_detachDone()) {
+      //Currently used on BG/Q.  Its plat_detach is a multi-stage operation,
+      // and will cause itself to be reinvoked until plat_detachDone is finished
+      pthrd_printf("Not finishing detach because plat_detachDone reported false on %d\n",
+                   proc->getPid());
+      return ret_success;
+   }
 
    if (temporary) {
       proc->setState(int_process::detached);
@@ -1792,6 +1819,7 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    err = false;
   done:
    int_detach_ev->done = true;
+   proc->setForceGeneratorBlock(false);
    proc->getStartupTeardownProcs().dec();
    return err ? ret_error : ret_success;
 }
@@ -2222,6 +2250,7 @@ bool HandleCallbacks::removeCallback(EventType oet, Process::cb_func_t func)
             bool result3 = removeCallback_int(EventType(EventType::None,et.code()), func);
             if (result1 || result2 || result3)
                removed_cb = true;
+            break;
          }
       }
    }

@@ -81,6 +81,11 @@ class RegisterPool;
 class Breakpoint;
 class ProcessSet;
 class ThreadSet;
+class LibraryTracking;
+class ThreadTracking;
+class CallStackUnwinding;
+class FollowFork;
+
 class ExecFileInfo;
 
 class PC_EXPORT Breakpoint 
@@ -257,6 +262,9 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
  public:
    typedef boost::shared_ptr<Process> ptr;
    typedef boost::shared_ptr<const Process> const_ptr;
+   typedef boost::weak_ptr<Process> weak_ptr;
+   typedef boost::weak_ptr<const Process> const_weak_ptr;
+
    static void version(int& major, int& minor, int& maintenance);
 
    //These four functions are not for end-users.  
@@ -415,6 +423,17 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    SymbolReaderFactory *getDefaultSymbolReader();
 
    /**
+    * Perform specific operations.  Interface objects will only be returned
+    * on appropriately supported platforms, others will return NULL.
+    **/
+   LibraryTracking *getLibraryTracking();
+   ThreadTracking *getThreadTracking();
+   FollowFork *getFollowFork();
+   const LibraryTracking *getLibraryTracking() const;
+   const ThreadTracking *getThreadTracking() const;
+   const FollowFork *getFollowFork() const;
+   
+   /**
     * Errors that occured on this process
     **/
    ProcControlAPI::err_t getLastError() const;
@@ -438,11 +457,13 @@ class PC_EXPORT Thread
    friend void boost::checked_delete<Thread>(Thread *);
    friend void boost::checked_delete<const Thread>(const Thread *);
 
-   void setLastError(err_t ec, const char *es) const;
  public:
    typedef boost::shared_ptr<Thread> ptr;
    typedef boost::shared_ptr<const Thread> const_ptr;
+   typedef boost::weak_ptr<Thread> weak_ptr;
+   typedef boost::weak_ptr<const Thread> const_weak_ptr;
    int_thread *llthrd() const;
+   void setLastError(err_t ec, const char *es) const;
 
    Dyninst::LWP getLWP() const;
    Process::ptr getProcess();
@@ -489,6 +510,12 @@ class PC_EXPORT Thread
 
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
    IRPC::const_ptr getRunningIRPC() const;
+
+   /**
+    * Returns a stack unwinder on supported platforms (BlueGene/Q).
+    * Returns NULL on unsupported platforms
+    **/
+   CallStackUnwinding *getCallStackUnwinding();
 
    void *getData() const;
    void setData(void *p) const;

@@ -38,20 +38,6 @@ else
 	SRCS += ../src/callchecker.C
 endif
 
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-ifdef LIBDWARF_INC
-MYFLAGS += -I$(LIBDWARF_INC)
-endif
-
-ifdef LIBELF_LIB
-LDFLAGS += -L$(LIBELF_LIB) -lelf
-endif
-ifdef LIBDWARF_LIB
-LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
-endif
-
 ifdef USE_PARSE_API
 	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
 	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	

@@ -48,13 +48,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define ELF_X_NAMESPACE Stackwalker
 #include "common/h/Elf_X.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
-
-#include "common/src/Elf_X.C"
 
 #include "common/h/SymLite-elf.h"
 #include "symtabAPI/h/SymtabReader.h"
@@ -71,35 +68,6 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
       Walker::setSymbolReader(&symelffact);
    }
    return Walker::getSymbolReader();
-}
-
-bool getDwarfDebug(std::string s, Dwarf_Debug *d)
-{
-   SymReader *reader = LibraryWrapper::getLibrary(s);
-   if (!reader) {
-      SymbolReaderFactory *fact = getDefaultSymbolReader();
-      reader = fact->openSymbolReader(s);
-   }
-   SymElf *symelf = dynamic_cast<SymElf *>(reader);
-   SymtabAPI::SymtabReader *symtabReader = dynamic_cast<SymtabAPI::SymtabReader *>(reader);
-   if (symelf)
-   {
-      Elf_X *elfx = (Elf_X *) symelf->getElfHandle();
-     Elf *elf = elfx->e_elfp();
-     int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, d, NULL);
-     if (status != DW_DLV_OK)
-       return false;
-     else
-       return true;
-   }
-   else if (symtabReader)
-   {
-     Dwarf_Debug result = (Dwarf_Debug) symtabReader->getDebugInfo();
-     *d = result;
-     return true;
-   }
-
-   return false;
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);
@@ -205,6 +173,7 @@ static void lib_trap_handler(int /*sig*/)
    local_lib_state->notifyOfUpdate();
 }
 
+#if !defined(os_bgq)
 static Address lib_trap_addr_self = 0x0;
 static bool lib_trap_addr_self_err = false;
 static void registerLibSpotterSelf(ProcSelf *pself)
@@ -287,6 +256,11 @@ static void registerLibSpotterSelf(ProcSelf *pself)
    sw_printf("[%s:%u] - Successfully install lib tracker at 0x%lx\n",
             __FILE__, __LINE__, lib_trap_addr_self);
 }
+#else
+static void registerLibSpotterSelf(ProcSelf *)
+{
+}
+#endif
 
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
 {

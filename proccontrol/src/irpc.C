@@ -338,20 +338,20 @@ bool iRPCMgr::postRPCToProc(int_process *proc, int_iRPC::ptr rpc)
       {
          continue;
       }
-	  if(thr->notAvailableForRPC()) {
-		  pthrd_printf("Skipping thread that is marked as system\n");
-		  continue;
-	  }
-	  if (thr->getUserState().getState() == int_thread::running) {
-		  found_user_running_thread = true;
-	  }
+      if(thr->notAvailableForRPC()) {
+         pthrd_printf("Skipping thread that is marked as system\n");
+         continue;
+      }
+      if (thr->getUserState().getState() == int_thread::running) {
+         found_user_running_thread = true;
+      }
 
       // Don't post RPCs to threads that are in the middle of exiting
       if(thr->isExiting()) continue;
 
 
       int rpc_count = numActiveRPCs(thr);
-	  if (!proc->plat_supportDirectAllocation() && !findAllocationForRPC(thr, rpc)) {
+      if (!proc->plat_supportDirectAllocation() && !findAllocationForRPC(thr, rpc)) {
          //We'll need to run an allocation and deallocation on this thread.
          // two more iRPCs.
          rpc_count += 2;

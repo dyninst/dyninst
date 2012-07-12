@@ -663,3 +663,142 @@ StepperGroup *Walker::getStepperGroup() const
    return group;
 }
 
+int_walkerSet::int_walkerSet() :
+   non_pd_walkers(0)
+{
+   initProcSet();
+}
+
+int_walkerSet::~int_walkerSet()
+{
+   clearProcSet();
+}
+
+pair<set<Walker *>::iterator, bool> int_walkerSet::insert(Walker *w)
+{
+   ProcDebug *pd = dynamic_cast<ProcDebug *>(w->getProcessState());
+   if (!pd) {
+      non_pd_walkers++;
+   }
+   else {
+      addToProcSet(pd);
+   }
+
+   return walkers.insert(w);
+}
+
+void int_walkerSet::erase(set<Walker *>::iterator i)
+{
+   ProcDebug *pd = dynamic_cast<ProcDebug *>((*i)->getProcessState());
+   if (!pd) {
+      non_pd_walkers--;
+   }
+   else {
+      eraseFromProcSet(pd);
+   }
+   
+   walkers.erase(i);
+}
+
+WalkerSet *WalkerSet::newWalkerSet()
+{
+   return new WalkerSet();
+}
+
+WalkerSet::WalkerSet() :
+   iwalkerset(new int_walkerSet())
+{
+}
+
+WalkerSet::~WalkerSet()
+{
+   delete iwalkerset;
+}
+
+WalkerSet::iterator WalkerSet::begin() {
+   return iwalkerset->walkers.begin();
+}
+
+WalkerSet::iterator WalkerSet::end() {
+   return iwalkerset->walkers.end();
+}
+
+WalkerSet::iterator WalkerSet::find(Walker *w) {
+   return iwalkerset->walkers.find(w);
+}
+
+WalkerSet::const_iterator WalkerSet::begin() const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.begin();
+}
+
+WalkerSet::const_iterator WalkerSet::end() const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.end();
+}
+
+WalkerSet::const_iterator WalkerSet::find(Walker *w) const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.find(w);
+}
+
+pair<WalkerSet::iterator, bool> WalkerSet::insert(Walker *walker) {
+   return iwalkerset->insert(walker);
+}
+
+void WalkerSet::erase(WalkerSet::iterator i) {
+   iwalkerset->erase(i);
+}
+
+bool WalkerSet::empty() const {
+   return iwalkerset->walkers.empty();
+}
+
+size_t WalkerSet::size() const {
+   return iwalkerset->walkers.size();
+}
+
+bool WalkerSet::walkStacks(CallTree &tree) const {
+   if (empty()) {
+      sw_printf("[%s:%u] - Attempt to walk stacks of empty process set\n", __FILE__, __LINE__);
+      return false;
+   }
+   if (!iwalkerset->non_pd_walkers) {
+      bool bad_plat = false;
+      bool result = iwalkerset->walkStacksProcSet(tree, bad_plat);
+      if (result) {
+         //Success
+         return true;
+      }
+      if (!bad_plat) {
+         //Error
+         return false;
+      }
+      sw_printf("[%s:%u] - Platform does not have OS supported unwinding\n", __FILE__, __LINE__);
+   }
+   
+   bool had_error = false;
+   for (iterator i = begin(); i != end(); i++) {
+      vector<THR_ID> threads;
+      Walker *walker = *i;
+      bool result = walker->getAvailableThreads(threads);
+      if (!result) {
+         sw_printf("[%s:%u] - Error getting threads for process %d\n", __FILE__, __LINE__, 
+                   walker->getProcessState()->getProcessId());
+         had_error = true;
+         continue;
+      }
+
+      for (vector<THR_ID>::iterator j = threads.begin(); j != threads.end(); j++) {
+         std::vector<Frame> swalk;
+         THR_ID thr = *j;
+
+         bool result = walker->walkStack(swalk, thr);
+         if (!result && swalk.empty()) {
+            sw_printf("[%s:%u] - Error walking stack for %d/%d\n", __FILE__, __LINE__,
+                      walker->getProcessState()->getProcessId(), thr);
+            had_error = true;
+            continue;
+         }
+         tree.addCallStack(swalk, thr, walker, !result);
+      }
+   }
+   return !had_error;
+}

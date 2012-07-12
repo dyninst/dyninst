@@ -33,6 +33,7 @@
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/h/Process.h"
+#include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Mailbox.h"
 
@@ -54,7 +55,10 @@ using namespace std;
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <signal.h>
+#include <ucontext.h>
 #include <elf.h>
+#include <link.h>
+#include <execinfo.h>
 
 #define DEFAULT_TOOL_TAG "pcontrl"
 #define DEFAULT_TOOL_PRIORITY 99
@@ -62,14 +66,13 @@ using namespace std;
 using namespace bgq;
 using namespace std;
 
-static void on_crash(int sig);
 static void registerSignalHandlers(bool enable);
 
 const char *bgq_process::tooltag = DEFAULT_TOOL_TAG;
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
 bool bgq_process::set_ids = false;
-bool bgq_process::do_all_attach = false;
+bool bgq_process::do_all_attach = true;
 uint8_t bgq_process::priority = DEFAULT_TOOL_PRIORITY;
 
 static const char *getCommandName(uint16_t cmd_type);
@@ -106,13 +109,13 @@ static void printMessage(ToolMessage *msg, const char *str)
    switch (msg->header.type) {
       case ControlAck: {
          ControlAckMessage *cak = static_cast<ControlAckMessage *>(msg);
-         pclean_printf("ControlAckMessage: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
+         pclean_printf("ControlAck: controllingToolId - %u, toolTag - %.8s, priority - %u\n", 
                        (unsigned) cak->controllingToolId, cak->toolTag, (unsigned) cak->priority);
          break;
       }
       case AttachAck: {
          AttachAckMessage *aak = static_cast<AttachAckMessage *>(msg);
-         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) aak->numProcess);
+         pclean_printf("AttachAck: numProcess - %u, rank = [", (unsigned) aak->numProcess);
          for (unsigned i=0; i<aak->numProcess; i++) {
             pclean_printf("%u,", aak->rank[i]);
          }
@@ -121,7 +124,7 @@ static void printMessage(ToolMessage *msg, const char *str)
       }
       case DetachAck: {
          DetachAckMessage *dak = static_cast<DetachAckMessage *>(msg);
-         pclean_printf("AckMessage: numProcess - %u, rank = [", (unsigned) dak->numProcess);
+         pclean_printf("DetachAck: numProcess - %u, rank = [", (unsigned) dak->numProcess);
          for (unsigned i=0; i<dak->numProcess; i++) {
             pclean_printf("%u, ", dak->rank[i]);
          }
@@ -266,7 +269,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    page_size_set(false),
    debugger_suspended(false),
    decoder_pending_stop(false),
-   have_pending_message(false),
+   is_doing_temp_detach(false),
    rank(pid),
    page_size(0),
    interp_base(0),
@@ -331,10 +334,137 @@ bool bgq_process::plat_forked()
    assert(0); //No fork on BG/Q
 }
 
-bool bgq_process::plat_detach(result_response::ptr /*resp*/)
+bool bgq_process::plat_detach(result_response::ptr)
 {
-#warning TODO implement detach
+   if (detach_state == no_detach_issued) {
+      pthrd_printf("plat_detach for %d is resuming all threads\n", getPid());
+      int_threadPool *tp = threadPool();
+      for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+         resumeThread(*i);
+      }
+      
+      //Record whether this is a temporary detach so that we can maintain
+      // the state if we throw a new detach event.
+      Event::ptr cur_event = handlerPool()->curEvent();
+      assert(cur_event);
+      EventDetach::ptr ev_detach = cur_event->getEventDetach();
+      assert(ev_detach);
+      is_doing_temp_detach = ev_detach->getInternal()->temporary_detach;
+
+      detach_state = issue_control_release;
+   }
+
+   if (detach_state == issue_control_release && !hasControlAuthority) {
+      pthrd_printf("plat_detach: Process %d doesn't have control authority, skipping release.\n", getPid());
+      detach_state = choose_detach_mechanism;
+   }
+
+   if (detach_state == issue_control_release) {
+      pthrd_printf("Releasing control of process %d\n", getPid());
+      detach_state = control_release_sent;
+
+      ReleaseControlCmd release;
+      release.notify = ReleaseControlNotify_Inactive;
+      release.threadID = 0;
+      bool result = sendCommand(release, ReleaseControl);
+      if (!result) {
+         perr_printf("Error writing release control tool message\n");
+         return false;
+      }
+
+      return true;
+   }
+
+   if (detach_state == control_release_sent) {
+      pthrd_printf("Handling release control ack to %d.\n", getPid());
+      hasControlAuthority = false;
+      detach_state = choose_detach_mechanism;
+   }
+
+   if (detach_state == choose_detach_mechanism) {
+      bool everyone_detaching = true;
+      bool is_last_detacher = true;
+      
+      { 
+         ScopeLock lock_this_scope(cn->detach_lock);
+         
+         for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
+            bgq_process *peer_proc = *i;
+            if (peer_proc == this)
+               continue;
+            
+            int_thread *peer_thread = peer_proc->threadPool()->initialThread();
+            if (!peer_thread->getDetachState().isDesynced()) {
+               pthrd_printf("Process %d is not detaching.  %d not doing group detach\n", 
+                            peer_proc->getPid(), getPid());
+               everyone_detaching = false;
+            }
+            if (peer_proc->detach_state != waitfor_all_detach) {
+               pthrd_printf("Process %d hasn't yet completed detach.  Postponing any group detach from %d\n",
+                            peer_proc->getPid(), getPid());
+               is_last_detacher = false;
+            }
+         }
+      }
+
+      if (everyone_detaching && !is_last_detacher) {
+         pthrd_printf("Process %d will wait for another proc to do all detach\n", getPid());
+         detach_state = waitfor_all_detach;
+         return true;
+      }
+
+      DetachMessage detach;
+      if (everyone_detaching) {
+         pthrd_printf("Process %d issuing all-detach for compute node %d\n",
+                      getPid(), cn->getID());
+         detach_state = issued_all_detach;
+         detach.procSelect = RanksInNode;
+      }
+      else {
+         pthrd_printf("Issuing targeted detach to process %d\n", getPid());
+         detach_state = issued_detach;
+         detach.procSelect = RankInHeader;
+      }
+      fillInToolMessage(detach, Detach);
+      bool result = cn->writeToolMessage(this, &detach, false);
+      if (!result) {
+         perr_printf("Error writing detach tool message\n");
+         return false;
+      }       
+   
+      return true;
+   }
+
+   if (detach_state == issued_all_detach || detach_state == issued_detach) {
+      pthrd_printf("Handling detach response to %d.\n", getPid());
+      detach_state = detach_cleanup;
+   }
+   else if (detach_state == waitfor_all_detach) {
+      pthrd_printf("Finished waiting for all detach on %d\n", getPid());
+      detach_state = detach_cleanup;
+   }
+
+   if (detach_state == detach_cleanup) {
+      getComputeNode()->removeNode(this);
+      detach_state = detach_done;
+      return true;
+   }
+
+   perr_printf("Unreachable code.  Bad detach state on %d: %lu\n",
+               getPid(), (unsigned long) detach_state);
+   assert(0);
    return false;
+}
+
+bool bgq_process::plat_detachDone()
+{
+   if (detach_state != detach_done)
+      return false;
+
+   //We're done.  Reset the detach states
+   detach_state = no_detach_issued;
+   is_doing_temp_detach = false;
+   return true;
 }
 
 bool bgq_process::plat_terminate(bool & /*needs_sync*/)
@@ -368,7 +498,7 @@ bool bgq_process::plat_getInterpreterBase(Address &base)
       return true;
    }
       
-   uint32_t len = get_auxvectors_result.length / 2;
+   uint32_t len = get_auxvectors_result.length;
    Elf64_auxv_t *auxvs = (Elf64_auxv_t *) get_auxvectors_result.data;
 
    for (uint32_t i = 0; i < len; i++) {
@@ -379,10 +509,10 @@ bool bgq_process::plat_getInterpreterBase(Address &base)
       }
    }
    
-   perr_printf("Failed to find interpreter base for %d\n", getPid());
+   pthrd_printf("Didn't find interpreter base for %d. Statically linked\n", getPid());
    pthrd_printf("%u auxv elements\n", len);
-   for (uint32_t i = 0; i < len; i++) {
-      pthrd_printf("%lx\n", get_auxvectors_result.data[i]);
+   for (uint32_t i = 0; i < len; i += 2) {
+      pclean_printf("\t%lu - 0x%lx\n", get_auxvectors_result.data[i], get_auxvectors_result.data[i+1]);
    }
    base = 0;
    return false;
@@ -409,7 +539,7 @@ unsigned int bgq_process::getTargetPageSize()
       return page_size;
    }
 
-   uint32_t len = get_auxvectors_result.length / 2;
+   uint32_t len = get_auxvectors_result.length;
    Elf64_auxv_t *auxvs = (Elf64_auxv_t *) get_auxvectors_result.data;
    
    for (uint32_t i = 0; i < len; i++) {
@@ -723,6 +853,7 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       else {
          ScopeLock lock(cn->attach_lock);
+         pthrd_printf("Doing all attach\n");
          if (cn->all_attach_error) {
             pthrd_printf("CN attach left us in an error state, failng attach to %d\n", getPid());
             setState(int_process::errorstate);
@@ -779,27 +910,24 @@ bool bgq_process::handleStartupEvent(void *data)
 
    if (startup_state == waitfor_attach) {
       AttachAckMessage *attach_ack = static_cast<AttachAckMessage *>(data);
+      bool attach_retcode = attach_ack->header.returnCode;
+      free(attach_ack);
+      attach_ack = NULL;
+      
       if (cn->issued_all_attach) {
          ScopeLock lock(cn->attach_lock);
          cn->all_attach_done = true;
          set<ToolMessage *>::iterator i;
-
-         if (attach_ack->header.returnCode != Success) {
-            perr_printf("Group attach returned error %d: %s\n", (int) attach_ack->header.returnCode,
-                        bgq_process::bgqErrorMessage(attach_ack->header.returnCode));
+         
+         if (attach_retcode != Success) {
+            perr_printf("Group attach returned error %d: %s\n", (int) attach_retcode,
+                        bgq_process::bgqErrorMessage(attach_retcode));
             setState(int_process::errorstate);
             cn->all_attach_error = true;
             for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
                (*i)->setState(int_process::errorstate);
             }
             return false;
-         }
-         for (set<bgq_process *>::iterator i = cn->procs.begin(); i != cn->procs.end(); i++) {
-            bool result = cn->flushNextMessage(*i);
-            if (!result) {
-               pthrd_printf("Error flushing startup messages after group attach\n");
-               return false;
-            }
          }
       }
       else {
@@ -837,30 +965,38 @@ bool bgq_process::handleStartupEvent(void *data)
    
    if (startup_state == waitfor_control_request_ack) {
       ControlAckMessage *ctrl_ack = static_cast<ControlAckMessage *>(data);
-      if (ctrl_ack->header.returnCode != Success) {
+      uint16_t controllingToolId = ctrl_ack->controllingToolId;
+      char toolTag[ToolTagSize];
+      memcpy(toolTag, ctrl_ack->toolTag, ToolTagSize);
+      uint8_t tool_priority = ctrl_ack->priority;
+      uint32_t ctrl_retcode = ctrl_ack->header.returnCode;
+      free(ctrl_ack);
+      ctrl_ack = NULL;
+
+      if (ctrl_retcode != Success) {
          perr_printf("Error return in ControlAckMessage: %s\n",
-                     bgqErrorMessage(ctrl_ack->header.returnCode));
+                     bgqErrorMessage(ctrl_retcode));
          setLastError(err_internal, "Could not send ControlMessage\n");
          return false;                     
       }
-      
-      if (ctrl_ack->controllingToolId != bgq_process::getToolID()) {
+      if (controllingToolId != bgq_process::getToolID()) {
          pthrd_printf("Tool '%s' with ID %d has authority at priority %d\n", 
-                      ctrl_ack->toolTag, ctrl_ack->controllingToolId, ctrl_ack->priority);
-         if (ctrl_ack->priority > priority) {
+                      toolTag, controllingToolId, tool_priority);
+         if (tool_priority > priority) {
             pthrd_printf("WARNING: Tool %s has higher priority (%d > %d), running in Query-Only mode\n",
-                         ctrl_ack->toolTag, ctrl_ack->priority, priority);
+                         toolTag, tool_priority, priority);
             startup_state = issue_data_collection;
          }
          else {
             pthrd_printf("Waiting for control priority release from %s (%d < %d)\n",
-                         ctrl_ack->toolTag, ctrl_ack->priority, priority);
+                         toolTag, tool_priority, priority);
             startup_state = waitfor_control_request_notice;
             return true;
          }
       }
       else {
          pthrd_printf("ProcControlAPI is only tool, taking control authority\n");
+         hasControlAuthority = true;
          startup_state = waitfor_control_request_signal;
          return true;
       }
@@ -874,6 +1010,7 @@ bool bgq_process::handleStartupEvent(void *data)
       NotifyMessage *notify_msg = static_cast<NotifyMessage *>(data);
       if (notify_msg->type.control.reason == NotifyControl_Available) {
          pthrd_printf("Successfully took control, waiting for control request signal\n");
+         hasControlAuthority = true;
          startup_state = waitfor_control_request_signal;
       }
       else if (notify_msg->type.control.reason == NotifyControl_Conflict) {
@@ -886,6 +1023,7 @@ bool bgq_process::handleStartupEvent(void *data)
       }
       else
          assert(0);
+      free(notify_msg);
    }
 
    if (startup_state == waitfor_control_request_signal) {
@@ -899,6 +1037,7 @@ bool bgq_process::handleStartupEvent(void *data)
       thrd->getStartupState().desyncStateProc(int_thread::stopped);
       
       startup_state = issue_data_collection;
+      free(notify_msg);
    }
    if (startup_state == skip_control_request_signal) {
       int_thread *thrd = threadPool()->initialThread();
@@ -983,7 +1122,14 @@ void bgq_process::fillInToolMessage(ToolMessage &msg, uint16_t msg_type, respons
    msg.header.version = ProtocolVersion;
    msg.header.type = msg_type;
    msg.header.rank = getRank();
-   msg.header.sequenceId = resp ? resp->getID() : 0;
+   if (resp) {
+      ResponseSet *resp_set = new ResponseSet();
+      msg.header.sequenceId = resp_set->getID();
+      resp_set->addID(resp->getID(), 0);
+   }
+   else {
+      msg.header.sequenceId = 0;
+   }
    msg.header.returnCode = 0;
    msg.header.errorCode = 0;
    msg.header.length = bgq_process::getMessageLength(msg);
@@ -1041,6 +1187,11 @@ bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, respons
       assert(0); //Are we trying to send an Ack?
    }
    return false;
+}
+
+PlatformFeatures *bgq_process::plat_getPlatformFeatures()
+{
+   return dynamic_cast<PlatformFeatures *>(new BlueGeneQFeatures());
 }
 
 #define CMD_RET_SIZE(X) case X: return sizeof(X ## Cmd)
@@ -1353,6 +1504,88 @@ bool bgq_process::isActionCommand(uint16_t cmd_type)
    return false;
 }
 
+bool bgq_process::plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp)
+{
+   GetThreadDataCmd thr_cmd;
+
+   thr_cmd.threadID = thr->getLWP();
+
+   bool result = sendCommand(thr_cmd, GetThreadData, stk_resp);
+   if (!result) {
+      setLastError(err_internal, "Error while asking for thread data\n");
+      perr_printf("Could not send GetThreadData to %d/%d\n", 
+                  thr->llproc()->getPid(), thr->getLWP());
+      return false;
+   }
+   
+   //Needed to track to know when to free the ArchEventBGQ objects
+   // associated with the stackwalks.
+   num_pending_stackwalks++;
+   return true;
+}
+
+bool bgq_process::plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs)
+{
+   GetThreadDataAckCmd *thrdata = static_cast<GetThreadDataAckCmd *>(stk_resp->getData());
+   int_thread *t = stk_resp->getThread();
+   assert(stk_resp);
+   assert(t);
+   Thread::ptr thr = t->thread();
+   bool had_error = false, result;
+   
+   assert(num_pending_stackwalks > 0);
+   num_pending_stackwalks--;
+
+   if (stk_resp->hasError()) {
+      perr_printf("Error getting thread data on %d/%d", t->llproc()->getPid(), thr->getLWP());
+      setLastError(err_internal, "Error receiving thread data\n");
+      had_error = true;
+      goto done;
+   }
+
+   pthrd_printf("Handling response with call stack %d/%d\n", t->llproc()->getPid(), t->getLWP());
+
+   result = cbs->beginStackWalk(thr);
+   if (!result) {
+      pthrd_printf("User choose not to receive call stack data for %d/%d\n",
+                   t->llproc()->getPid(), t->getLWP());
+      goto done;
+   }
+
+   if (cbs->top_first) {
+      for (signed int i=thrdata->numStackFrames-1; i >= 0; i--) {
+         result = cbs->addStackFrame(thr, thrdata->stackInfo[i].savedLR, thrdata->stackInfo[i].frameAddr, 0);
+         if (!result)
+            break;
+      }
+   }
+   else {
+      for (unsigned int i=0; i < thrdata->numStackFrames; i++) {
+         result = cbs->addStackFrame(thr, thrdata->stackInfo[i].savedLR, thrdata->stackInfo[i].frameAddr, 0);
+         if (!result)
+            break;
+      }
+   }
+   if (!result) {
+      pthrd_printf("User choose not to continue receive call stack data for %d/%d\n",
+                   t->llproc()->getPid(), t->getLWP());
+      goto done;
+   }
+
+   cbs->endStackWalk(thr);
+  done:
+   if (!num_pending_stackwalks) {
+      for (set<void *>::iterator i = held_msgs.begin(); i != held_msgs.end(); i++) {
+         free(*i);
+      }
+      held_msgs.clear();
+   }
+   return !had_error;
+}
+
+set<void *> bgq_process::held_msgs;
+unsigned int bgq_process::num_pending_stackwalks = 0;
+
 int_thread *int_thread::createThreadPlat(int_process *proc, 
                                          Dyninst::THR_ID thr_id, 
                                          Dyninst::LWP lwp_id,
@@ -1360,13 +1593,25 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
 {
    bgq_thread *qthrd = new bgq_thread(proc, thr_id, lwp_id);
    assert(qthrd);
+
+   map<int, int> &states = proc->getProcDesyncdStates();
+   int myid = StartupStateID;
+   map<int, int>::iterator i = states.find(myid);
+   if (i != states.end()) {
+      int_thread::State ns = proc->threadPool()->initialThread()->getStartupState().getState();      
+      for (int j = 0; j < i->second; j++) {
+         qthrd->getStartupState().desyncState(ns);
+      }
+   }
+
    return static_cast<int_thread *>(qthrd);
 }
 
 bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
-   ppc_thread(p, t, l)
+   ppc_thread(p, t, l),
+   last_signaled(false)
 {
 }
 
@@ -1843,7 +2088,12 @@ ComputeNode *ComputeNode::getComputeNodeByRank(uint32_t rank)
 }
 
 ComputeNode::ComputeNode(int cid) :
-   cn_id(cid)
+   cn_id(cid),
+   do_all_attach(bgq_process::do_all_attach),
+   issued_all_attach(false),
+   all_attach_done(false),
+   all_attach_error(false),
+   have_pending_message(false)
 {
    sockaddr_un saddr;
    int result;
@@ -1903,8 +2153,6 @@ int ComputeNode::getID() const
 
 bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 {
-   ScopeLock lock(send_lock);
-
    size_t bytes_written = 0;
    while (bytes_written < buffer_size) {
       int result = write(fd, ((char *) buffer) + bytes_written, buffer_size - bytes_written);
@@ -1922,7 +2170,9 @@ bool ComputeNode::reliableWrite(void *buffer, size_t buffer_size)
 
 bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
 {
-   if (proc->have_pending_message) {
+   ScopeLock lock(send_lock);
+
+   if (have_pending_message) {
       pthrd_printf("Enqueuing message while another is pending\n");
       pair<void *, size_t> newmsg;
       newmsg.second = msg->header.length;
@@ -1933,7 +2183,7 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
          newmsg.first = malloc(newmsg.second);
          memcpy(newmsg.first, msg, newmsg.second);
       }
-      proc->queued_pending_msgs.push(newmsg);
+      queued_pending_msgs.push(newmsg);
       return true;
    }
 
@@ -1949,35 +2199,41 @@ bool ComputeNode::writeToolMessage(bgq_process *proc, ToolMessage *msg, bool hea
       return false;
    }
    
-   proc->have_pending_message = true;
+   have_pending_message = true;
    return true;
 }
 
-bool ComputeNode::flushNextMessage(bgq_process *proc)
+bool ComputeNode::flushNextMessage()
 {
-   if (proc->queued_pending_msgs.empty()) {
-      proc->have_pending_message = false;
+   ScopeLock lock(send_lock);
+   assert(have_pending_message);
+
+   if (queued_pending_msgs.empty()) {
+      have_pending_message = false;
       return true;
    }
 
-   pair<void *, size_t> buffer = proc->queued_pending_msgs.front();
-   proc->queued_pending_msgs.pop();
+   pair<void *, size_t> buffer = queued_pending_msgs.front();
+   queued_pending_msgs.pop();
 
-   bool result = reliableWrite(buffer.first, buffer.second);
+   
+   ToolMessage *msg = (ToolMessage *) buffer.first;
+   printMessage(msg, "Writing");
+   bool result = reliableWrite(msg, buffer.second);
+   pthrd_printf("Flush wrote message of size %u to FD %d, result is %s\n", msg->header.length,
+                fd, result ? "true" : "false");
    free(buffer.first);
    if (!result) {
-      pthrd_printf("Failed to flush message to %d\n", proc->getPid());
-      proc->have_pending_message = false;
+      pthrd_printf("Failed to flush message to compute-node %d\n", cn_id);
+      have_pending_message = false;
       return false;
    }
-   proc->have_pending_message = true;
    return true;
 }
 
-bool ComputeNode::handleMessageAck(bgq_process *proc)
+bool ComputeNode::handleMessageAck()
 {
-   assert(proc->have_pending_message);
-   return flushNextMessage(proc);
+   return flushNextMessage();
 }
 
 bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bool heap_alloced)
@@ -1989,9 +2245,15 @@ bool ComputeNode::writeToolAttachMessage(bgq_process *proc, ToolMessage *msg, bo
    ScopeLock lock(attach_lock);
 
    if (!all_attach_done) {
-      proc->have_pending_message = true;
+      have_pending_message = true;
    }
    return writeToolMessage(proc, msg, heap_alloced);
+}
+
+void ComputeNode::removeNode(bgq_process *proc) {
+   set<bgq_process *>::iterator i = procs.find(proc);
+   assert(i != procs.end());
+   procs.erase(i);
 }
 
 const std::set<ComputeNode *> &ComputeNode::allNodes()
@@ -2126,6 +2388,7 @@ GeneratorBGQ::GeneratorBGQ() :
 
 GeneratorBGQ::~GeneratorBGQ()
 {
+   kick();
 }
 
 bool GeneratorBGQ::initialize()
@@ -2148,7 +2411,7 @@ ArchEvent *GeneratorBGQ::getEvent(bool)
    return NULL;
 }
 
-bool GeneratorBGQ::getEvent(bool block, vector<ArchEvent *> &events)
+bool GeneratorBGQ::getMultiEvent(bool block, vector<ArchEvent *> &events)
 {
    bool have_fd = false;
    int max_fd = kick_pipe[0];
@@ -2375,8 +2638,9 @@ ArchEventBGQ::ArchEventBGQ(ToolMessage *m) :
 
 ArchEventBGQ::~ArchEventBGQ()
 {
-   if (msg && free_msg)
+   if (msg && free_msg) {
       free(msg);
+   }
    msg = NULL;
 }
 
@@ -2387,7 +2651,7 @@ ToolMessage *ArchEventBGQ::getMsg() const
 
 void ArchEventBGQ::dontFreeMsg()
 {
-   free_msg = true;
+   free_msg = false;
 }
 
 DecoderBlueGeneQ::DecoderBlueGeneQ()
@@ -2452,6 +2716,32 @@ bool DecoderBlueGeneQ::decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, v
    ae->dontFreeMsg();
    events.push_back(new_ev);
    return true;
+}
+
+Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
+{
+   EventDetach::ptr new_ev = EventDetach::ptr(new EventDetach());
+   new_ev->setProcess(proc->proc());
+   new_ev->setThread(Thread::ptr());
+   new_ev->setSyncType(Event::async);
+   new_ev->getInternal()->temporary_detach = proc->is_doing_temp_detach;
+   new_ev->getInternal()->removed_bps = true;
+   new_ev->getInternal()->done = false;
+   new_ev->getInternal()->had_error = err;
+   return new_ev;
+}
+
+bool DecoderBlueGeneQ::decodeReleaseControlAck(ArchEventBGQ *, bgq_process *proc, 
+                                               int err_code, std::vector<Event::ptr> &events)
+{
+   if (proc->detach_state == bgq_process::control_release_sent) {
+      pthrd_printf("This ControlReleaseAck is part of a detach\n");
+      Event::ptr new_ev = createEventDetach(proc, err_code != 0);
+      events.push_back(new_ev);
+      return true;
+   }
+   assert(0);
+   return false;
 }
 
 bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_process *proc,
@@ -2549,6 +2839,27 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             getResponses().unlock();
             break;
          }
+         case GetThreadDataAck: {
+            pthrd_printf("Decoded new event on %d to GetThreadDataAck message\n", proc->getPid());
+            stack_response::ptr stkresp = cur_resp->getStackResponse();
+            GetThreadDataAckCmd *cmd = static_cast<GetThreadDataAckCmd *>(base_cmd);
+            assert(stkresp);
+            assert(cmd);
+            archevent->dontFreeMsg();
+            bgq_process::held_msgs.insert(msg);
+            stkresp->postResponse((void *) cmd);
+            if (desc->returnCode) 
+               stkresp->markError(desc->returnCode);
+            
+            Event::ptr new_ev = decodeCompletedResponse(stkresp, async_ev_map);
+            if (new_ev)
+               events.push_back(new_ev);
+            
+            resp_lock_held = false;
+            getResponses().signal();
+            getResponses().unlock();
+            break;
+         }
          case GetThreadListAck:
             pthrd_printf("Decoded GetThreadListAck on %d/%d. Dropping\n",
                          proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
@@ -2562,7 +2873,6 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             decodeStartupEvent(archevent, proc, msg, Event::async, events);
             break;
          }
-         case GetThreadDataAck:
          case GetPreferencesAck:
          case GetFilenamesAck:
          case GetFileStatDataAck:
@@ -2638,7 +2948,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             assert(0); //Currently unused
             break;
          case ReleaseControlAck:
-            pthrd_printf("Decoded ReleaseControlAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Decoded ReleaseControlAck on %d\n", proc->getPid());
+            decodeReleaseControlAck(archevent, proc, desc->returnCode, events);
             break;
          case SetContinuationSignalAck:
             pthrd_printf("Decoded SetContinuationSignalAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
@@ -2648,6 +2959,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
       }
       assert(!resp_lock_held);
    }
+
+   delete archevent;
 
    if (resp_set)
       delete resp_set;
@@ -2852,6 +3165,46 @@ bool DecoderBlueGeneQ::decodeControlNotify(ArchEventBGQ *archevent, bgq_process 
    }
 }
 
+bool DecoderBlueGeneQ::decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events)
+{
+   DetachAckMessage *msg = static_cast<DetachAckMessage *>(archevent->getMsg());
+
+   assert(proc->detach_state == bgq_process::issued_detach || proc->detach_state == bgq_process::issued_all_detach);
+
+   //Create a set 'procs' that contains all the processes we're detaching from.  
+   // For an all_detach, that's everything on the compute node.  Otherwise it's just 'proc'
+   set<bgq_process *> me_set;
+   me_set.insert(proc);
+   const set<bgq_process *> &procs = (proc->detach_state == bgq_process::issued_detach) ? 
+      me_set : 
+      proc->getComputeNode()->getProcs();
+
+   bool has_error = false;
+   if (msg->header.errorCode != 0) {
+      perr_printf("detachAck on process %d had error return %d", proc->getPid(), (int) msg->header.errorCode);
+      has_error = true;
+   }
+   else if (msg->numProcess != procs.size()) {
+      perr_printf("detachAck on process %d had wrong number of procs: %u != %u.  Had: ",
+                  proc->getPid(), (unsigned) msg->numProcess, (unsigned) procs.size());
+      assert(msg->numProcess < MaxRanksPerNode);
+      for (unsigned i=0; i<msg->numProcess; i++) {
+         pclean_printf("%u, ", (unsigned int) msg->rank[i]);
+      }
+      pclean_printf("\n");
+      has_error = true;
+   }
+
+   //Throw a detach event for each process that may have been waiting for this detach
+   for (set<bgq_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
+      bgq_process *qproc = *i;
+      Event::ptr new_ev = createEventDetach(qproc, has_error);
+      events.push_back(new_ev);
+   }
+   
+   return true;
+}
+
 bool DecoderBlueGeneQ::decodeNotifyMessage(ArchEventBGQ *archevent, bgq_process *proc,
                                            vector<Event::ptr> &events)
 {
@@ -2887,7 +3240,7 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
    assert(proc);
 
    if (proc && header->type != Notify) {
-      qproc->getComputeNode()->handleMessageAck(qproc);
+      qproc->getComputeNode()->handleMessageAck();
    }
 
    switch (header->type) {
@@ -2898,9 +3251,8 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
          pthrd_printf("Decoding AttachAck on %d\n", proc->getPid());
          return decodeStartupEvent(archevent, qproc, msg, Event::async, events);
       case DetachAck:
-         //TODO: Implement
-         assert(0);
-         break;
+         pthrd_printf("Decoding DetachAck on %d\n", proc->getPid());
+         return decodeDetachAck(archevent, qproc, events);
       case QueryAck: {
          QueryAckMessage *qack = static_cast<QueryAckMessage *>(msg);
          uint16_t num_commands = qack->numCommands;
@@ -3064,10 +3416,37 @@ DebugThread *DebugThread::getDebugThread()
    return me;
 }
 
-static void on_crash(int sig)
+static const unsigned int max_stack_size = 256;
+
+static void on_crash(int sig, siginfo_t *, void *context)
 {
    registerSignalHandlers(false);
-   pthrd_printf("Caught signal %d, issuing emergency shutdown procedures\n", sig);
+   if (dyninst_debug_proccontrol) {
+      pthrd_printf("Caught signal %d, issuing emergency shutdown procedures\n", sig);
+
+      pthrd_printf("Register dump:\n");
+      ucontext_t *u_context = (ucontext_t *) context;
+      for (unsigned i=0; i<NGREG; i++) {
+         pclean_printf("r%u=0x%lx", i, u_context->uc_mcontext.gp_regs[i]);
+         if (i % 4 == 3)
+            pclean_printf("\n");
+         else
+            pclean_printf("\t");
+      }
+
+      pthrd_printf("Library List:\n");
+      for (struct link_map *i = _r_debug.r_map; i; i = i->l_next) {
+         pthrd_printf("\t0x%lx (%p) - %s\n", i->l_addr, i->l_ld, i->l_name);
+      }
+   
+      pthrd_printf("Stack trace:\n");
+      void *stack_size[max_stack_size];
+      int addr_list_size = backtrace(stack_size, max_stack_size);
+      int fd = fileno(pctrl_err_out);
+      fflush(pctrl_err_out);
+      backtrace_symbols_fd(stack_size, addr_list_size, fd);
+   }
+
    ComputeNode::emergencyShutdown();
    pthrd_printf("Calling abort\n");
    abort();
@@ -3075,14 +3454,21 @@ static void on_crash(int sig)
 
 static void registerSignalHandlers(bool enable)
 {
-   sighandler_t handler = enable ? on_crash : SIG_DFL;
+   struct sigaction action;
+   bzero(&action, sizeof(struct sigaction));
+   if (!enable)
+      action.sa_handler = SIG_DFL;
+   else {
+      action.sa_sigaction = on_crash;
+      action.sa_flags = SA_SIGINFO;
+   }
 
-   signal(SIGSEGV, handler);
-   signal(SIGBUS, handler);
-   signal(SIGABRT, handler);
-   signal(SIGILL, handler);
-   signal(SIGQUIT, handler);
-   signal(SIGTERM, handler);
+   sigaction(SIGSEGV, &action, NULL);
+   sigaction(SIGBUS, &action, NULL);
+   sigaction(SIGABRT, &action, NULL);
+   sigaction(SIGILL, &action, NULL);
+   sigaction(SIGQUIT, &action, NULL);
+   sigaction(SIGTERM, &action, NULL);
 }
 
 void ComputeNode::emergencyShutdown()

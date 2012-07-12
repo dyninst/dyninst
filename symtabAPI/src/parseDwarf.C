@@ -34,6 +34,8 @@
 #include "libelf.h"
 #include "dwarf.h"
 #include "libdwarf.h"
+#include "common/h/dwarfExpr.h"
+#include "common/h/dwarfSW.h"
 
 #include "Symtab.h"
 #include "Type.h"
@@ -78,24 +80,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 void setSymtabError(SymtabError new_err);
-
-/* For location decode. */
-#include <stack>
-
-// on 64-bit x86_64 targets, the DWARF register number does not
-// correspond to the machine encoding. See the AMD-64 ABI.
-
-
-/*
-  #define DWARF_FALSE_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return false; }
-  #define DWARF_RETURN_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return; }
-  #define DWARF_NULL_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return NULL; }
-*/
-
-#include "common/h/dwarfExpr.h"
 
 std::string convertCharToString(char *ptr)
 {

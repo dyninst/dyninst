@@ -98,6 +98,8 @@ class SYMTAB_EXPORT SymtabReader : public SymReader {
    virtual Dyninst::Offset imageOffset();
    virtual Dyninst::Offset dataOffset();  
 
+   virtual void *getElfHandle();
+
    void *getDebugInfo();
 };
 

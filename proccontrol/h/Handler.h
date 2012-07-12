@@ -50,8 +50,9 @@ class PC_EXPORT Handler
 
    typedef enum {
       ret_success,
-      ret_async,
+      ret_async,      
       ret_cbdelay,
+      ret_again,
       ret_error
    } handler_ret_t;
 

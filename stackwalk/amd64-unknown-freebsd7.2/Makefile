@@ -20,13 +20,13 @@ SRCS = 	../src/freebsd-swk.C \
 	../src/x86-wanderer.C \
 	../src/linuxbsd-swk.C \
 	../src/linuxbsd-x86-swk.C \
-        ../src/freebsd-x86-swk.C 
+   ../src/freebsd-x86-swk.C
 
 #USE_PARSE_API = true
 
 ifdef USE_PARSE_API
 	SRCS += ../src/analysis_stepper.C \
-		../src/callchecker-IAPI.C
+           ../src/callchecker-IAPI.C
 else
 	SRCS += ../src/callchecker.C
 endif

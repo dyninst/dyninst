@@ -79,6 +79,10 @@ class sysv_process : virtual public int_process
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
    static bool addSysVHandlers(HandlerPool *hpool);
+
+   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool sysv_isTrackingLibraries();
+   virtual LibraryTracking *sysv_getLibraryTracking();
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
@@ -94,8 +98,10 @@ class sysv_process : virtual public int_process
    bool lib_initialized;
    PCProcReader *procreader;
   private:
+   bool track_libraries;
    int_library *aout;
-   static SymbolReaderFactory *symreader_factory;   
+   LibraryTracking *libtracking;
+   static SymbolReaderFactory *symreader_factory;
 };
 
 #endif

@@ -35,6 +35,7 @@
 #include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Event.h"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/memcache.h"
@@ -54,6 +55,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 class ProcessSet;
+class CallStackCallback;
 }
 }
 
@@ -67,6 +69,7 @@ class int_iRPC;
 
 typedef std::multimap<Dyninst::Address, Dyninst::ProcControlAPI::Process::ptr> int_addressSet;
 typedef std::set<Dyninst::ProcControlAPI::Process::ptr> int_processSet;
+typedef std::set<Dyninst::ProcControlAPI::Thread::ptr> int_threadSet;
 
 typedef boost::shared_ptr<int_iRPC> int_iRPC_ptr;
 typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
@@ -214,6 +217,7 @@ class int_process
   public:
    bool execed();
    virtual bool plat_detach(result_response::ptr resp) = 0;
+   virtual bool plat_detachDone();
   protected:
    virtual bool plat_execed();
    virtual bool plat_terminate(bool &needs_sync) = 0;
@@ -352,6 +356,11 @@ class int_process
    static void setInCB(bool b);
 
    void throwNopEvent();
+   void throwRPCPostEvent();
+   
+   virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
+   virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
+   virtual CallStackUnwinding *getStackUnwinder(int_thread *thrd);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -403,6 +412,22 @@ class int_process
 
    bool isRunningSilent(); //No callbacks
    void setRunningSilent(bool b);
+
+   //Interfaces used by the PlatformSpecific classes
+   virtual LibraryTracking *sysv_getLibraryTracking();
+   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool sysv_isTrackingLibraries();
+
+   virtual ThreadTracking *threaddb_getThreadTracking();
+   virtual bool threaddb_setTrackThreads(bool b, std::set<std::pair<int_breakpoint *, Address> > &bps,
+                                         bool &add_bp);
+   virtual bool threaddb_isTrackingThreads();
+   virtual bool threaddb_refreshThreads();
+
+   virtual FollowFork *getForkTracking();
+   virtual bool fork_setTracking(FollowFork::follow_t b);
+   virtual FollowFork::follow_t fork_isTracking();
+   
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
  protected:
    State state;
@@ -434,6 +459,7 @@ class int_process
    Counter startupteardown_procs;
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
+   FollowFork::follow_t fork_tracking;
    void *user_data;
    err_t last_error;
    const char *last_error_string;
@@ -639,7 +665,7 @@ public:
 
       bool setState(State ns = int_thread::none);
       bool setStateProc(State ns = int_thread::none);
-
+      
       void restoreState();
       void restoreStateProc();
       State getState() const;
@@ -735,6 +761,7 @@ public:
    void decSyncRPCCount();
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
+
    int_iRPC_ptr hasRunningProcStopperRPC() const;
    virtual bool notAvailableForRPC() {
 		return false;
@@ -824,6 +851,9 @@ public:
    void setLastError(err_t ec, const char *es);
 
    hw_breakpoint *getHWBreakpoint(Address addr);
+
+   CallStackUnwinding *getStackUnwinder();
+   void setStackUnwinder(CallStackUnwinding *unw);
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -878,6 +908,7 @@ public:
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;
 
+   CallStackUnwinding *stack_unwinder;
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
    void *user_data;

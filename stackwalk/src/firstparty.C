@@ -81,3 +81,26 @@ Dyninst::Architecture ProcDebug::getArchitecture()
    return Dyninst::Arch_none;
 }
 
+void int_walkerSet::addToProcSet(ProcDebug *)
+{
+}
+
+void int_walkerSet::eraseFromProcSet(ProcDebug *)
+{
+}
+
+void int_walkerSet::clearProcSet()
+{
+}
+
+void int_walkerSet::initProcSet()
+{
+   procset = NULL;
+}
+
+bool int_walkerSet::walkStacksProcSet(CallTree &, bool &bad_plat)
+{
+   bad_plat = true;
+   return false;
+}
+

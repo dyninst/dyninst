@@ -6,7 +6,7 @@
 # $Id: make.module.tmpl,v 1.17 2008/09/20 03:56:10 jaw Exp $
 #
 
-SUITE_NAME	= symtabAPI 
+SUITE_NAME	= SymtabAPI 
 RELEASE_MAJOR = 7
 RELEASE_MINOR = 0
 USES_DWARF_DEBUG = true
@@ -35,10 +35,6 @@ CXXFLAGS += -Dcap_libelf_so_0
 else
 CFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
 CXXFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
-endif
-
-ifndef STATIC_COMPS
-MYFLAGS += -fPIC
 endif
 
 ifndef TARGET
@@ -87,8 +83,16 @@ SRCS	     +=	../src/Object.C \
                 ../src/annotations.C \
                 ../src/debug.C \
       ../src/SymtabReader.C 
-#		../src/serialize-bin.C \
-#		../src/serialize-xml.C 
+
+ifdef LIBELF_PLATFORM
+SRCS  +=  ../../common/src/Elf_X.C \
+          ../../common/src/SymLite-elf.C
+endif
+ifdef USES_DWARF_DEBUG
+SRCS  +=  ../../common/src/dwarfSW.C \
+          ../../common/src/dwarfExpr.C
+endif
+
 
 TO_INC     = ../h
 PUBLIC_H   = AddrLookup.h \
@@ -126,6 +130,3 @@ IFLAGS       += -I$(LIBXML2_INC)
 else
 IFLAGS	     += -I/usr/include/libxml2
 endif
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

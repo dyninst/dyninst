@@ -41,10 +41,6 @@
 
 #define MAX_TRAP_LEN 8
 
-#include "libdwarf.h"
-
-bool getDwarfDebug(std::string s, Dwarf_Debug *d);
-
 namespace Dyninst {
 namespace Stackwalker {
 
@@ -71,6 +67,8 @@ public:
 #include "stackwalk/src/linux-swk.h"
 #elif defined(os_freebsd)
 #include "stackwalk/src/freebsd-swk.h"
+#elif defined(os_bgq)
+#include "stackwalk/src/bluegeneq-swk.h"
 #else
 #error "Invalid OS inclusion"
 #endif
