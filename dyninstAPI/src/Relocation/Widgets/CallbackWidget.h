@@ -38,7 +38,7 @@
 namespace Dyninst {
 namespace Relocation {
 
-class Patch;
+struct Patch;
 
 class CallbackWidget : public Widget {
  public:

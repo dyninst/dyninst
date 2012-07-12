@@ -113,7 +113,7 @@ bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&
     return false;
 }
 
-bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance *, Address target_addr) {
    return false;
 }
@@ -141,7 +141,7 @@ bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	if (cFunc == NULL) return false;
 
 	// 1)
-	if (cFunc->getAllBlocks().size() > 1) return false;
+	if (cFunc->blocks().size() > 1) return false;
 
 	// 2)
 	block_instance *cBlock = cFunc->entryBlock();

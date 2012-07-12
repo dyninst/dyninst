@@ -140,8 +140,6 @@ class fileDescriptor {
         pid_(0),
         loadAddr_(0)
 #if defined (os_windows)
-        ,procHandle_(0)
-        ,fileHandle_(0)
         ,length_(0)
         ,rawPtr_(0)
 #endif
@@ -186,16 +184,12 @@ class fileDescriptor {
      unsigned char* rawPtr();                   //only for non-files
 
 #if defined(os_windows)
-     // Windows gives you file handles. Since I collapsed the fileDescriptors
-     // to avoid having to track allocated/deallocated memory, these moved here.
-     fileDescriptor(string name, Address baseAddr, HANDLE procH, HANDLE fileH,
-                    bool isShared, Address loadAddr, 
-                    Address len=0, unsigned char* raw=NULL) :
-         file_(name), code_(baseAddr), data_(baseAddr),
-         procHandle_(procH), fileHandle_(fileH),
-         length_(len), rawPtr_(raw),
-         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
-     HANDLE procHandle() const { return procHandle_; }
+	 void setHandles(HANDLE proc, HANDLE file) {
+		 procHandle_ = proc;
+		 fileHandle_ = file;
+	 }
+
+	 HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
      Address length() const { return length_; }  //only for non-files

@@ -99,7 +99,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\include&#x0D;&#x0A;echo xcopy /s /c /y $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;xcopy /s /c /y $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
+				CommandLine="mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -715,6 +715,18 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\VariableLocation.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -742,11 +754,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\dynutil\h\dyn_regs.h"
+				RelativePath=".\h\dthread.h"
 				>
 			</File>
 			<File
-				RelativePath=".\h\dthread.h"
+				RelativePath="..\dynutil\h\dyn_regs.h"
 				>
 			</File>
 			<File
@@ -887,6 +899,10 @@
 			</File>
 			<File
 				RelativePath="..\dynutil\h\util.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dynutil\h\VariableLocation.h"
 				>
 			</File>
 			<Filter

@@ -155,7 +155,7 @@ bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
     fprintf(stderr, " %s @ %llx\n", name, addr);
     return true;
 }
-
+#if 0
 static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_active)
 {
     bool ret = false;
@@ -1442,38 +1442,6 @@ func_instance *dyn_thread::map_initial_func(func_instance *ifunc) {
 }
 #endif
 
-bool PCProcess::instrumentThreadInitialFunc(func_instance *f) {
-    if (!f)
-        return false;
-
-    for (unsigned i=0; i<initial_thread_functions.size(); i++) {
-		if (initial_thread_functions[i] == f) {
-            return true;
-    }
-    }
-    func_instance *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
-    if (!dummy_create)
-    {
-		return false;
-    } 
-
-    pdvector<AstNodePtr> args;
-    AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
-	instPoint *entry = instPoint::funcEntry(f);
-	miniTramp *mt = entry->push_front(call_dummy_create, false);
-	//	relocate();
-    /* PatchAPI stuffs */
-    AddressSpace::patch(this);
-    /* End of PatchAPI stuffs */
-
-    if (!mt) {
-      fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-              __FILE__, __LINE__);
-	}
-    initial_thread_functions.push_back(f);
-    return true;
-}
-
 
 bool PCProcess::hasPassedMain() 
 {
@@ -1766,12 +1734,9 @@ bool PCProcess::getExecFileDescriptor(std::string filename, bool waitForTrap, fi
 	Address mainFileBase = 0;
 	Dyninst::ProcControlAPI::ExecFileInfo* efi = pcProc_->getExecutableInfo();
 
-	desc = fileDescriptor(filename.c_str(),
-			(Address)(0),
-			efi->processHandle,
-			efi->fileHandle,
-			false,
-			efi->fileBase);
+	desc = fileDescriptor(filename, efi->fileBase, efi->fileBase, false);
+	desc.setHandles(efi->processHandle, efi->fileHandle);
+
 	delete efi;
 	return true;
 }
@@ -1872,3 +1837,7 @@ mapped_object* PCProcess::createObjectNoFile(Dyninst::Address addr)
 }
 
 
+void OS::get_sigaction_names(std::vector<std::string> &)
+{
+	assert(0 && "Unimplemented");
+}

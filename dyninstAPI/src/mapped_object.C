@@ -81,11 +81,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,
       BPatch_hybridMode mode):
-#if defined(os_windows)
-  DynObject(img->codeObject(), proc, fileDesc.loadAddr()),
-#else
   DynObject(img->codeObject(), proc, fileDesc.code()),
-#endif
   desc_(fileDesc),
   fullName_(img->getObject()->file()),
   everyUniqueVariable(imgVarHash),
@@ -105,12 +101,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   memEnd_(-1),
   memoryImg_(false)
 {
-   
 // Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
-#if defined(os_windows)
-   dataBase_ = fileDesc.loadAddr();
-#endif
 #if 0
    fprintf(stderr, "Creating new mapped_object %s/%s\n",
          fullName_.c_str(), getFileDesc().member().c_str());
@@ -977,10 +969,12 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 
     // We have a bunch of offsets, now add in the base addresses
     for (unsigned i = 0; i < code_heaps.size(); i++) {
-        foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
+		cerr << "Adding code heap " << code_heaps[i].first << " @ " << hex << code_heaps[i].second << " + " << codeBase() << dec << endl;
+		foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
                                                   code_heaps[i].second + codeBase()));
     }
     for (unsigned i = 0; i < data_heaps.size(); i++) {
+		cerr << "Adding data heap " << data_heaps[i].first << " @ " << hex << data_heaps[i].second << " + " << dataBase() << dec << endl;
         foundHeaps.push_back(pair<string,Address>(data_heaps[i].first,
                                                   data_heaps[i].second + dataBase()));
     }
