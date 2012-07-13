@@ -126,8 +126,6 @@ class bgq_process :
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr);
 
-   virtual PlatformFeatures *plat_getPlatformFeatures();
-
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
    virtual bool plat_preAsyncWait();

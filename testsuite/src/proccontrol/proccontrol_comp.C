@@ -782,14 +782,18 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 
 test_results_t ProcControlComponent::program_setup(ParameterDict &params)
 {
+#if defined(USE_SOCKETS)
 	setupServerSocket(params);
+#endif
 	return PASSED;
 }
 
 test_results_t ProcControlComponent::program_teardown(ParameterDict &params)
 {
 
+#if defined(USE_SOCKETS)
 	cleanSocket();
+#endif
    return PASSED;
 }
 

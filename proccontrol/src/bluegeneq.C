@@ -32,7 +32,7 @@
 #include "proccontrol/src/bluegeneq.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/irpc.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Mailbox.h"
@@ -41,9 +41,7 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-#define ELF_X_NAMESPACE ProcControlAPI
 #include "common/h/SymLite-elf.h"
-#include "common/src/Elf_X.C"
 
 #include <dirent.h>
 #include <limits.h>
@@ -2356,7 +2354,7 @@ const char *bgq_process::bgqErrorMessage(uint32_t rc, bool long_form)
       STR_CASE(PrologPgmError, "Job prolog program failed. ");
       STR_CASE(EpilogPgmStartError, "Starting job epilog program process failed.");
       STR_CASE(EpilogPgmError, "Job epilog program failed. ");
-      STR_CASE(RequestInProgress, "Requested operation is currently in progress.");
+      STR_CASE(ReturnCodeReserved1, "Formerly request in progress.");
       STR_CASE(ToolControlConflict, "Control authority conflict with another tool.");
       STR_CASE(NodesInJobError, "No compute nodes matched job specifications.");
       STR_CASE(ToolConflictingCmds, "An invalid combination of commands was specifed in the command list.");
@@ -3159,7 +3157,7 @@ bool DecoderBlueGeneQ::decodeControlNotify(ArchEventBGQ *archevent, bgq_process 
       return decodeStartupEvent(archevent, proc, archevent->getMsg(), Event::async, events);
    }
    else {
-#warning TODO implement notify
+#warning TODO implement control notify
       assert(0); //Not yet implemented
       return false;
    }
