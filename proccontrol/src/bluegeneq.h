@@ -80,7 +80,9 @@ class bgq_process :
   public:
    static uint32_t getCommandLength(uint16_t cmd_type, const ToolCommand &cmd);
    static uint32_t getMessageLength(const ToolMessage &msg);
+   static uint32_t getCommandAckLength(uint16_t cmd_type, const ToolCommand &cmd);
    static uint16_t getCommandMsgType(uint16_t cmd_id);
+   static uint16_t getCommandExpectedAck(uint16_t cmd_id);
    static const char *bgqErrorMessage(uint32_t retcode, bool long_form = true);
    static bool isActionCommand(uint16_t cmd_type);
    static uint64_t getJobID();
