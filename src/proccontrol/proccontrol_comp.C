@@ -592,7 +592,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       num_processes = getNumProcs(param);
    else
       num_processes = 1;
-   
+
 #if defined(USE_SOCKETS)
 #if 0
    result = setupServerSocket(param);
@@ -616,10 +616,8 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       a_proc = startMutatee(group, param);
       pset = ProcessSet::newProcessSet(a_proc);
    }
-
    factory = a_proc->getDefaultSymbolReader();
    assert(factory);
-
 #if defined(USE_PIPES)
    for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
       Process::ptr proc = *i;
@@ -641,7 +639,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
                param["socket_name"]->getString());
    }
    cur_group = group;
-
    for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
       bool result = initializeConnectionInfo(*j);
       if (!result) 
@@ -650,7 +647,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if defined(os_bg_test)
    Process::registerEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
-
 
    EventType thread_create(EventType::None, EventType::ThreadCreate);
    registerEventCounter(thread_create);
@@ -722,7 +718,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          }
 #endif
       }
-
       if (eventsRecieved[thread_create].size()) {
          logerror("Recieved unexpected thread creation events on process\n");
          error = true;
@@ -765,7 +760,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
    }
 #endif
 #endif
-
    handshake shake;
    shake.code = HANDSHAKE_CODE;
    result = send_broadcast((unsigned char *) &shake, sizeof(handshake));
@@ -773,7 +767,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       logerror("Failed to send handshake message to processes\n");
       error = true;
    }
-
 
    return !error;
 }
@@ -1279,7 +1272,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 {
    unsigned char *cur_pos = msg;
    for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
-      bool result = recv_message(cur_pos, msg_size, i->second);
+      bool result = recv_message(cur_pos, msg_size, i->first);
       if (!result) 
          return false;
       cur_pos += msg_size;
@@ -1303,7 +1296,7 @@ bool ProcControlComponent::send_broadcast(unsigned char *msg, unsigned msg_size)
 {
    unsigned char *cur_pos = msg;
    for (std::map<Process::ptr, int>::iterator i = process_socks.begin(); i != process_socks.end(); i++) {
-      bool result = send_message(msg, msg_size, i->second);
+      bool result = send_message(msg, msg_size, i->first);
       if (!result) 
          return false;
    }
@@ -1382,9 +1375,7 @@ bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_si
 
    unsigned int bytes_read = 0, num_retries = 10;
    do {
-     printf("[%s:%u] - mutator read(%d, msg, %u)\n", __FILE__, __LINE__, fd, msg_size);
       int result = read(fd, msg + bytes_read, msg_size - bytes_read);
-      printf("[%s:%u] - mutator read result = %d\n", __FILE__, __LINE__, result);
       if (result == -1) {
          perror("Failed to read message from mutator");
          return false;
@@ -1410,7 +1401,6 @@ bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_si
    int fd = i->second;
 
    int result = write(fd, msg, msg_size);
-   printf("[%s:%u] - mutator write(%d, msg, %u) = %d\n", __FILE__, __LINE__, fd, (unsigned) msg_size, result);
    if (result == -1) {
       perror("Failed to write message from mutator");
       return false;
@@ -1473,15 +1463,26 @@ bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
       uint32_t ready = 0;
       int result = 0;
       do {
-         printf("[%s:%u] - Initial pipe read of fd %d\n", __FILE__, __LINE__, fd);
          result = read(fd, &ready, 4);
-         printf("[%s:%u] - Initial pipe read result = %d\n", __FILE__, __LINE__, result);
          if (result == -1) {
             perror("Mutator could not read from pipe\n");
             return false;
          }
       } while (result == 0);
       assert(ready == 0x42);
+   }
+
+   i = w_pipe.find(p);
+   if (r_pipe.find(p) != r_pipe.end() && i != w_pipe.end()) {
+      uint32_t ready = 0x42;
+      fd = i->second;
+      int result = write(fd, &ready, 4);
+      int error = errno;
+      if (result == -1) {
+         fprintf(stderr, "Mutator could not write to pipe: %s (%d)\n", strerror(error), error);
+         return false;
+      }
+      process_socks.insert(make_pair(p, 0));
    }
 
    return true;

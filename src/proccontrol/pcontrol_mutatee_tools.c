@@ -214,9 +214,9 @@ int handshakeWithServer()
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
-  //fprintf(stderr, "got handshake message, checking\n");
+   //fprintf(stderr, "got handshake message, checking\n");
    if (shake.code != HANDSHAKE_CODE) {
-      fprintf(stderr, "Recieved unexpected message\n");
+      fprintf(stderr, "Recieved unexpected message.  %lx (%p) is no %lx\n", (unsigned long) shake.code, &shake, (unsigned long) HANDSHAKE_CODE);
       return -1;
    }
   //fprintf(stderr, "got handshake message OK\n");
@@ -233,7 +233,6 @@ void pingSignalFD(int sfd)
    }
    write(sfd, &c, sizeof(char));
 #else
-//	assert(!"really, matt?");
 	return;
 #endif
 }
@@ -262,7 +261,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 	   return -1;
    }
 #endif
-
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
    }
@@ -271,7 +269,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       return -1;
    }
    pingSignalFD(signal_fd);
-
    getSocketInfo();
 
    result = initMutatorConnection();
@@ -284,8 +281,11 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Could not handshake with server\n");
       return -1;
    }
+
    result = releaseThreads();
+
    if (result != 0) {
+
       fprintf(stderr, "Could not release threads\n");
       return -1;
    }
@@ -420,7 +420,6 @@ static void createNamedPipes()
    do {
      r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
    } while (r_pipe == -1 && errno == ENXIO);
-   printf("[%s:%u] - mutatee open(%s, O_RDONLY) = %d\n", __FILE__, __LINE__, rd_socketname, r_pipe);
    if (r_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
@@ -429,7 +428,6 @@ static void createNamedPipes()
 
    snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
    w_pipe = open(wr_socketname, O_WRONLY);
-   printf("[%s:%u] - mutatee open(%s, O_WRONLY) = %d\n", __FILE__, __LINE__, wr_socketname, w_pipe);
    if (w_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
@@ -441,14 +439,23 @@ static void createNamedPipes()
    free(rd_socketname);
    free(wr_socketname);
 
-   write(w_pipe, &ready, 4);
+   result = write(w_pipe, &ready, 4);
+   if (result == -1) {
+      int error = errno;
+      fprintf(stderr, "Failed to write to pipe during setup: %s (%d)\n", strerror(error), error);
+   }
+   result = read(r_pipe, &ready, 4);
+   if (result == -1) {
+      int error = errno;
+      fprintf(stderr, "Failed to read from pipe during setup: %s (%d)\n", strerror(error), error);
+   }
 
-   int fdflags = fcntl(r_pipe, F_GETFL);
+/*   int fdflags = fcntl(r_pipe, F_GETFL);
    if (fdflags < 0 || errno) {
       logerror("Failed to set fcntl flags\n");
       return;
    }
-   fcntl(r_pipe, F_SETFL, fdflags & O_NONBLOCK);
+   fcntl(r_pipe, F_SETFL, fdflags & O_NONBLOCK);*/
 }
 
 int initMutatorConnection()
@@ -487,7 +494,6 @@ int send_message(unsigned char *msg, size_t msg_size)
    else if (strcmp(socket_type, "named_pipe") == 0) {
       assert(created_named_pipes);
       result = write(w_pipe, msg, msg_size);
-      printf("[%s:%u] - mutatee write(%d, msg, %u) = %d\n", __FILE__, __LINE__, w_pipe, (unsigned) msg_size, result);
    }
    if (result == -1) {
       perror("Mutatee unable to send message");
@@ -565,12 +571,13 @@ int recv_message(unsigned char *msg, size_t msg_size)
 
      assert(created_named_pipes);
       
-     printf("[%s:%u] - Starting mutatee read\n", __FILE__, __LINE__);
      do {
          int result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
          int error = errno;
-         if (result == 0 || (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO))) {
-	   printf("[%s:%u] - Mutatee read loop\n", __FILE__, __LINE__);
+
+         if (result == 0 || 
+             (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR))) 
+         {
             usleep(100000); //.1 seconds
             if (--num_retries == 0) {
                fprintf(stderr, "Failed to read message from read pipe\n");
