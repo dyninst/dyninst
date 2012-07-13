@@ -852,8 +852,7 @@ public:
 
    hw_breakpoint *getHWBreakpoint(Address addr);
 
-   CallStackUnwinding *getStackUnwinder();
-   void setStackUnwinder(CallStackUnwinding *unw);
+   virtual CallStackUnwinding *getStackUnwinder();
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -908,7 +907,6 @@ public:
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;
 
-   CallStackUnwinding *stack_unwinder;
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
    void *user_data;

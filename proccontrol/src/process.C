@@ -2052,11 +2052,6 @@ bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
    return false;
 }
 
-CallStackUnwinding *int_process::getStackUnwinder(int_thread *)
-{
-   return NULL;
-}
-
 bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
 {
    perr_printf("Unsupported operation\n");
@@ -2522,7 +2517,6 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
-   stack_unwinder(NULL),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL)
@@ -3958,12 +3952,7 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
 
 CallStackUnwinding *int_thread::getStackUnwinder()
 {
-   return stack_unwinder;
-}
-
-void int_thread::setStackUnwinder(CallStackUnwinding *unw)
-{
-   stack_unwinder = unw;
+   return NULL;
 }
 
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
@@ -6383,7 +6372,8 @@ CallStackUnwinding *Thread::getCallStackUnwinding()
    }
    int_process *proc = llthread_->llproc();
    assert(proc);
-   return proc->getStackUnwinder(llthread_);
+   
+   return llthread_->getStackUnwinder();
 }
 
 FollowFork *Process::getFollowFork()

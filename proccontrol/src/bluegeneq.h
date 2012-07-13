@@ -148,6 +148,7 @@ class bgq_process :
 
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
+
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -215,6 +216,7 @@ class bgq_thread : public thread_db_thread, ppc_thread
    friend class bgq_process;
   private:
    bool last_signaled;
+   CallStackUnwinding *unwinder;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();
@@ -236,6 +238,8 @@ class bgq_thread : public thread_db_thread, ppc_thread
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+
+   virtual CallStackUnwinding *getStackUnwinder();
 
    static void regBufferToPool(BG_Reg_t *gprs, BG_Special_Regs *sregs, int_registerPool &reg);
    static void regPoolToBuffer(int_registerPool &reg, BG_Reg_t *gprs, BG_Special_Regs *sregs);

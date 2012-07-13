@@ -271,7 +271,9 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
-   initial_thread_list(NULL)
+   initial_thread_list(NULL),
+   startup_state(issue_attach),
+   detach_state(no_detach_issued)
 {
    if (!set_ids) {
       ScopeLock lock(id_init_lock);
@@ -1187,11 +1189,6 @@ bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, respons
    return false;
 }
 
-PlatformFeatures *bgq_process::plat_getPlatformFeatures()
-{
-   return dynamic_cast<PlatformFeatures *>(new BlueGeneQFeatures());
-}
-
 #define CMD_RET_SIZE(X) case X: return sizeof(X ## Cmd)
 
 #define CMD_RET_VAR_SIZE(X, F) case X: return sizeof(X ## Cmd) + static_cast<const X ## Cmd &>(cmd).F
@@ -1609,12 +1606,17 @@ bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
    ppc_thread(p, t, l),
-   last_signaled(false)
+   last_signaled(false),
+   unwinder(NULL)
 {
 }
 
 bgq_thread::~bgq_thread()
 {
+   if (unwinder) {
+      delete unwinder;
+      unwinder = NULL;
+   }
 }
 
 bool bgq_thread::plat_cont()
@@ -1979,6 +1981,14 @@ bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned
 {
    bgq_thread::regPoolToUser(pool, output_buffer);
    return true;
+}
+
+CallStackUnwinding *bgq_thread::getStackUnwinder()
+{
+   if (!unwinder) {
+      unwinder = new CallStackUnwinding(thread());
+   }
+   return unwinder;
 }
 
 map<int, ComputeNode *> ComputeNode::id_to_cn;
