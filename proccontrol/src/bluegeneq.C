@@ -58,20 +58,15 @@ using namespace std;
 #include <link.h>
 #include <execinfo.h>
 
-#define DEFAULT_TOOL_TAG "pcontrl"
-#define DEFAULT_TOOL_PRIORITY 99
-
 using namespace bgq;
 using namespace std;
 
 static void registerSignalHandlers(bool enable);
 
-const char *bgq_process::tooltag = DEFAULT_TOOL_TAG;
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
 bool bgq_process::set_ids = false;
 bool bgq_process::do_all_attach = true;
-uint8_t bgq_process::priority = DEFAULT_TOOL_PRIORITY;
 
 const char *getCommandName(uint16_t cmd_type);
 
@@ -272,6 +267,8 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    page_size(0),
    interp_base(0),
    initial_thread_list(NULL),
+   priority(0),
+   mtool(NULL),
    startup_state(issue_attach),
    detach_state(no_detach_issued)
 {
@@ -307,6 +304,10 @@ bgq_process::~bgq_process()
    if (update_transaction) {
       delete update_transaction;
       update_transaction = NULL;
+   }
+   if (mtool) {
+      delete mtool;
+      mtool = NULL;
    }
 }
 
@@ -873,6 +874,8 @@ bool bgq_process::handleStartupEvent(void *data)
       setForceGeneratorBlock(true);
       query_transaction->beginTransaction();
       update_transaction->beginTransaction();
+      tooltag = MultiToolControl::getDefaultToolName();
+      priority = (uint8_t) MultiToolControl::getDefaultToolPriority();
    }
 
    /**
@@ -887,8 +890,9 @@ bool bgq_process::handleStartupEvent(void *data)
 
    if (attach_action == do_lone_attach || attach_action == do_group_attach) {
       AttachMessage attach;
-      strncpy(attach.toolTag, tooltag, sizeof(attach.toolTag));
+      strncpy(attach.toolTag, tooltag.c_str(), sizeof(attach.toolTag));
       attach.priority = priority;
+      pthrd_printf("Sending attach with name %s, priority %u\n", tooltag.c_str(), attach.priority);
       fillInToolMessage(attach, Attach);
       if (attach_action == do_lone_attach) {
          pthrd_printf("Sending attach message to rank %d\n", getPid());
@@ -1165,6 +1169,24 @@ uint64_t bgq_process::getJobID()
 uint32_t bgq_process::getToolID()
 {
    return toolid;
+}
+
+std::string bgq_process::mtool_getName()
+{
+   return tooltag;
+}
+
+MultiToolControl::priority_t bgq_process::mtool_getPriority()
+{
+   return priority;
+}
+
+MultiToolControl *bgq_process::mtool_getMultiToolControl()
+{
+   if (!mtool) {
+      mtool = new MultiToolControl(proc());
+   }
+   return mtool;
 }
 
 bool bgq_process::plat_waitAndHandleForProc()

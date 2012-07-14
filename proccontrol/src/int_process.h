@@ -360,7 +360,6 @@ class int_process
    
    virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
    virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
-   virtual CallStackUnwinding *getStackUnwinder(int_thread *thrd);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -428,6 +427,10 @@ class int_process
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
    
+   virtual std::string mtool_getName();
+   virtual MultiToolControl::priority_t mtool_getPriority();
+   virtual MultiToolControl *mtool_getMultiToolControl();
+
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
  protected:
    State state;

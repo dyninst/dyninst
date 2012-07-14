@@ -907,8 +907,6 @@ Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
    }
    pthrd_printf("finished initializing thread %d/%d\n",
                 proc->getPid(), newthr->getLWP());
-   int_thread* tmp = ProcPool()->findThread(threadev->getLWP());
-   assert(tmp);
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();

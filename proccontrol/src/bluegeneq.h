@@ -151,6 +151,10 @@ class bgq_process :
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
 
+   virtual std::string mtool_getName();
+   virtual MultiToolControl::priority_t mtool_getPriority();
+   virtual MultiToolControl *mtool_getMultiToolControl();
+
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -176,6 +180,9 @@ class bgq_process :
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *initial_thread_list;
 
+   string tooltag;
+   uint8_t priority;
+   MultiToolControl *mtool;
    enum {
       issue_attach = 0,
       waitfor_attach,
@@ -202,12 +209,10 @@ class bgq_process :
       detach_done
    } detach_state;
 
-   static const char *tooltag;
    static uint64_t jobid;
    static uint32_t toolid;
    static bool set_ids;
    static bool do_all_attach;
-   static uint8_t priority;
 
    static set<void *> held_msgs;
    static unsigned int num_pending_stackwalks;

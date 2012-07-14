@@ -2116,6 +2116,25 @@ FollowFork::follow_t int_process::fork_isTracking()
    return FollowFork::None;
 }
 
+std::string int_process::mtool_getName() 
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return string();
+}
+
+MultiToolControl::priority_t int_process::mtool_getPriority()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return 0;
+}
+
+MultiToolControl *int_process::mtool_getMultiToolControl()
+{
+   return NULL;
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
