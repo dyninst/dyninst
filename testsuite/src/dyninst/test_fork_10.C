@@ -89,7 +89,18 @@ static void prepareTestCase6(procType proc_type, BPatch_thread *thread, forkWhen
 
       BPatch_arithExpr a_expr7_6p(BPatch_plus, *var7_6p, BPatch_constExpr(5));
       BPatch_arithExpr b_expr7_6p(BPatch_assign, *var7_6p, a_expr7_6p);
-      thread->oneTimeCode(b_expr7_6p);
+
+      // Synchronous oneTimeCode's require that the process be stopped
+      if(doError(&passedTest, (!thread->getProcess()->stopExecution()),
+                  "Failed to stop process\n")) return;
+
+      bool err = false;
+      thread->oneTimeCode(b_expr7_6p, &err);
+      if(doError(&passedTest, (err),
+                  "Failed to run oneTimeCode\n")) return;
+
+      if(doError(&passedTest, (!thread->getProcess()->continueExecution()),
+                  "Failed to continue process\n")) return;
       
    } else if(proc_type == Child_p  &&  when == PostFork) {
        BPatch_image *childImage = thread->getProcess()->getImage();
@@ -101,7 +112,18 @@ static void prepareTestCase6(procType proc_type, BPatch_thread *thread, forkWhen
 
       BPatch_arithExpr a_expr7_6c(BPatch_plus, *var7_6c, BPatch_constExpr(9));
       BPatch_arithExpr b_expr7_6c(BPatch_assign, *var7_6c, a_expr7_6c);
-      thread->oneTimeCode(b_expr7_6c);
+
+      // Synchronous oneTimeCode's require that the process be stopped
+      if(doError(&passedTest, (!thread->getProcess()->stopExecution()),
+                  "Failed to stop process\n")) return;
+
+      bool err = false;
+      thread->oneTimeCode(b_expr7_6c, &err);
+      if(doError(&passedTest, (err),
+                  "Failed to run oneTimeCode\n")) return;
+
+      if(doError(&passedTest, (!thread->getProcess()->continueExecution()),
+                  "Failed to continue process\n")) return;
    }
 }
 

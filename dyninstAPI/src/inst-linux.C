@@ -38,12 +38,12 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "common/h/stats.h"
+#include "dyninstAPI/src/frame.h"
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.

@@ -18,7 +18,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="i386-unknown-nt4.0"
+			OutputDirectory="..\..\i386-unknown-nt4.0\lib"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -45,12 +45,13 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories=".."
-				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;cap_mutatee_traps;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
+				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4251;4503"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -65,7 +66,7 @@
 				Name="VCLinkerTool"
 				AdditionalOptions="/SECTION:.bss,RWE"
 				AdditionalDependencies="Ws2_32.lib dbghelp.lib psapi.lib"
-				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				AssemblyDebug="1"
@@ -93,7 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;"
+				CommandLine="mkdir $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -242,19 +243,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\RTthread-index.c"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\RTthread-x86.c"
 				>
 				<FileConfiguration
@@ -283,15 +271,6 @@
 			<File
 				RelativePath=".\src\RTwinnt.c"
 				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="1"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter

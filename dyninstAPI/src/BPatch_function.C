@@ -36,7 +36,6 @@
 #include <string.h>
 #include <string>
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "ast.h"
 
@@ -53,7 +52,9 @@
 #include "BPatch_statement.h"
 #include "mapped_module.h"
 #include "mapped_object.h"
+#include "debug.h"
 #include "hybridAnalysis.h"
+#include "addressSpace.h"
 
 #include "common/h/Types.h"
 

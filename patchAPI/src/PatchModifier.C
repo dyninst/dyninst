@@ -34,12 +34,16 @@
 #include "PatchMgr.h"
 #include "CFGModifier.h"
 
+#include <queue>
+#include <set>
+#include <vector>
+
 using namespace Dyninst;
 using namespace PatchAPI;
 
 /* If target is NULL, user is requesting a redirect to the sink block */
 bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
-   // Do we want edges to be in the same object? I don't think so.
+   // Do we want edges to only be in the same object? I don't think so.
    // However, same address space is probably a good idea ;)
    if (target && edge->src()->obj()->addrSpace() != target->obj()->addrSpace()) return false;
 
@@ -64,6 +68,9 @@ bool PatchModifier::redirect(PatchEdge *edge, PatchBlock *target) {
       assert(edge->consistency());
       assert(target->consistency());
    }
+
+   edge->src()->markModified();
+   edge->trg()->markModified();
 
    return true;
 }
@@ -95,6 +102,8 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
    // We want to return the new block so that folks have a handle; 
    // look it up. 
    PatchBlock *split = block->obj()->getBlock(split_int);
+   block->markModified();
+   split->markModified();
 
    // DEBUG BUILD
    assert(block->consistency());
@@ -103,14 +112,72 @@ PatchBlock *PatchModifier::split(PatchBlock *block, Address addr, bool trust, Ad
    return split;
 }
 
-PatchBlock *PatchModifier::insert(PatchObject *obj, void *start, unsigned size) {
+
+
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size, Address base) {
+   ParseAPI::CodeObject *co = obj->co();
+   
+   ParseAPI::InsertedRegion *newRegion = ParseAPI::CFGModifier::insert(co, base, start, size);
+
+   if (!newRegion) return InsertedCode::Ptr();
+
+   ParseAPI::Block *_e = co->findBlockByEntry(newRegion, base);
+   if (!_e) return InsertedCode::Ptr();
+
+   // Let's get handles to the various bits'n'pieces
+   PatchBlock *entry = obj->getBlock(_e);
+   if (!entry) return InsertedCode::Ptr();
+
+   InsertedCode::Ptr ret = InsertedCode::Ptr(new InsertedCode());
+   ret->entry_ = entry;
+
+   std::queue<PatchBlock *> worklist; worklist.push(entry);
+   while (!worklist.empty()) {
+      PatchBlock *cur = worklist.front(); worklist.pop();
+      assert(cur);
+
+      if (ret->blocks_.find(cur) != ret->blocks_.end()) continue;
+      ret->blocks_.insert(cur);
+
+      for (PatchBlock::edgelist::const_iterator iter = cur->targets().begin();
+           iter != cur->targets().end(); ++iter) {
+         PatchEdge *e = (*iter);
+         if (e->sinkEdge()) {
+
+            ret->exits_.push_back(e);
+            continue;
+         }
+         ParseAPI::Block *t_ = e->edge()->trg(); assert(t_);
+         if (t_->region() != newRegion) {
+            ret->exits_.push_back(e);
+            continue;
+         }
+         PatchBlock *t = obj->getBlock(t_);
+         worklist.push(t);
+      }
+   }
+
+   return ret;
+}
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, void *start, unsigned size) {
    ParseAPI::CodeObject *co = obj->co();
    Address base = co->getFreeAddr();
-   
-   ParseAPI::Block *newBlock = ParseAPI::CFGModifier::insert(co, base, start, size);
-   if (!newBlock) return NULL;
+   return insert(obj, start, size, base);
+}
 
-   return obj->getBlock(newBlock);
+
+InsertedCode::Ptr PatchModifier::insert(PatchObject *obj, SnippetPtr snip, Point *p) {
+   if (!snip) return InsertedCode::Ptr();
+
+   ParseAPI::CodeObject *co = obj->co();
+   Address base = co->getFreeAddr();
+
+   Buffer buf(base, 1024);
+   if (!snip->generate(p, buf)) return InsertedCode::Ptr();
+
+   return insert(obj, buf.start_ptr(), buf.size(), base);
 }
 
 bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
@@ -135,7 +202,6 @@ bool PatchModifier::remove(vector<PatchBlock *> &blocks, bool force)
 
 bool PatchModifier::remove(PatchFunction *func)
 {
-    cerr << "Removing whole function at " << hex << func->addr() << dec << endl;
     PatchObject *obj = func->obj();
     bool success = ParseAPI::CFGModifier::remove(func->function());
 

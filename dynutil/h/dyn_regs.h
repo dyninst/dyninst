@@ -34,7 +34,7 @@
 #define DYN_REGS_H_
 
 #include "util.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "boost/shared_ptr.hpp"
 
 #include <assert.h>
 #include <map>
@@ -55,18 +55,20 @@ namespace Dyninst
 
 
    COMMON_EXPORT bool isSegmentRegister(int regClass);
-   unsigned getArchAddressWidth(Dyninst::Architecture arch);
+   COMMON_EXPORT unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
-	  typedef std::map<signed int, std::string> NameMap;
-      static dyn_detail::boost::shared_ptr<NameMap> names();
+
+      typedef std::map<signed int, std::string> NameMap;
+      static boost::shared_ptr<MachRegister::NameMap> names();
+      void init_names();
    public:
 
 	  MachRegister();
-      explicit MachRegister(signed int r);
-      explicit MachRegister(signed int r, const char *n);
-	  explicit MachRegister(signed int r, std::string n);
+     explicit MachRegister(signed int r);
+     explicit MachRegister(signed int r, const char *n);
+     explicit MachRegister(signed int r, std::string n);
 
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;
@@ -665,7 +667,9 @@ namespace Dyninst
       DEF_REGISTER(cr5,    626 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr6,    627 | SPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc32, "ppc32");
-      DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");      
+      DEF_REGISTER(cr,     629 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(or3,    630 | SPR | Arch_ppc32, "ppc32");
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc32, "ppc32");      
    }
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
@@ -844,7 +848,9 @@ namespace Dyninst
       DEF_REGISTER(cr5,    626 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr6,    627 | SPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(cr7,    628 | SPR | Arch_ppc64, "ppc64");
-      DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");      
+      DEF_REGISTER(cr,     629 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(or3,    630 | SPR | Arch_ppc64, "ppc64");
+      DEF_REGISTER(trap,   631 | SPR | Arch_ppc64, "ppc64");      
    }
 }
 

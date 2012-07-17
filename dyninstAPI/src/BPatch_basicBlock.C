@@ -39,7 +39,6 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_collections.h"
 #include "BPatch_basicBlock.h"
-#include "process.h"
 #include "function.h"
 #include "BPatch_instruction.h"
 #include "BPatch_point.h"
@@ -49,6 +48,7 @@
 #include "BPatch_edge.h"
 #include "instPoint.h"
 #include "mapped_object.h"
+#include "addressSpace.h"
 
 int bpatch_basicBlock_count = 0;
 
@@ -88,11 +88,14 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
     delete (*eIter);
     eIter++;
   }
+/* Don't delete outgoing edges; the target block will get them. */
+#if 0
   eIter = outgoingEdges.begin();
   while (eIter != outgoingEdges.end()) {
     delete (*eIter);
     eIter++;
   }
+#endif
   return;
 }
 
@@ -529,13 +532,12 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
   instPoint *entry = instPoint::blockEntry(ifunc(), iblock);
   instPoint *preCall = instPoint::preCall(ifunc(), iblock);
   // Exit 'point'?
-  instPoint *postCall = instPoint::postCall(ifunc(), iblock);
+  // Side-effect is creation, so we don't need to keep it around. 
+  instPoint::postCall(ifunc(), iblock);
   instPoint *exit = instPoint::blockExit(ifunc(), iblock);
 
   if (entry) bpPoints.push_back(convertPoint(entry));
-  // TODO bind pre- and post-call together
   if (preCall) bpPoints.push_back(convertPoint(preCall));
-  if (postCall) bpPoints.push_back(convertPoint(postCall));
   if (exit) bpPoints.push_back(convertPoint(exit));
 }
 

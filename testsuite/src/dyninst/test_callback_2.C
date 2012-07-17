@@ -245,7 +245,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 
 	// load libtest12.so -- currently only used by subtest 5, but make it generally
 	// available
-	char *libname = "./libTest12.so";    
+	const char *libname = "./libTest12.so";    
 	test7err = false;
 	test7done = false;
 	callback_counter = 0;
@@ -366,7 +366,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	if (debugPrint) 
 	{
 		int one = 1;
-		char *varName = "libraryDebug";
+		const char *varName = "libraryDebug";
 		if (setVar(varName, (void *) &one, TESTNO, TESTNAME)) 
 		{
 			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", 

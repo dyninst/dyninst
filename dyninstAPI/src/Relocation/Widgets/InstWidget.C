@@ -81,12 +81,10 @@ std::string InstWidget::format() const {
 // Could be a lot smarter here...
 bool InstWidgetPatch::apply(codeGen &gen, CodeBuffer *) {
    relocation_cerr << "\t\t InstWidgetPatch::apply " << this << " /w/ tramp " << tramp << endl;
-  gen.registerInstrumentation(tramp, gen.currAddr());
 
-  
-  bool ret = tramp->generateCode(gen, gen.currAddr());
-  gen.verify();
-  return ret;
+   gen.registerInstrumentation(tramp, gen.currAddr());
+   bool ret = tramp->generateCode(gen, gen.currAddr());
+   return ret;
 }
 
 unsigned InstWidgetPatch::estimate(codeGen &) {

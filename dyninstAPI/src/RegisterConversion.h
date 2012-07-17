@@ -29,7 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #if !defined(REGISTER_CONVERSION_H)
 #define REGISTER_CONVERSION_H
 
@@ -46,5 +45,6 @@ extern std::multimap<Register, MachRegister> regToMachReg64;
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
 Register convertRegID(Dyninst::MachRegister reg, bool &wasUpcast);
+Dyninst::MachRegister convertRegID(Register r, Dyninst::Architecture arch);
 
 #endif //!defined(REGISTER_CONVERSION_H)

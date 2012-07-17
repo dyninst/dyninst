@@ -63,7 +63,7 @@ test_results_t test5_9_Mutator::executeTest() {
    bool found = false;
    
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "derivation_test::func_cpp";
+  const char *fn = "derivation_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #9 (derivation)\n");
@@ -78,7 +78,7 @@ test_results_t test5_9_Mutator::executeTest() {
   }
    
   bpfv.clear();
-  char *fn2 = "main";
+  const char *fn2 = "main";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #9 (derivation)\n");
@@ -129,7 +129,7 @@ test_results_t test5_9_Mutator::executeTest() {
    }
 
    // TODO pass a success message to the mutatee
-   char *passfn = "test5_9_passed";
+   const char *passfn = "test5_9_passed";
    BPatch_Vector<BPatch_function *> passfv;
    if ((NULL == appImage->findFunction(passfn, passfv))
        || (passfv.size() < 1) || (NULL == passfv[0])) {

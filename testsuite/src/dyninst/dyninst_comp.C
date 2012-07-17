@@ -1,29 +1,29 @@
 /*
  * Copyright (c) 1996-2011 Barton P. Miller
- *
+ * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- *
+ * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- *
+ * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- *
+ * 
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
@@ -45,11 +45,15 @@
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
+#include "MutateeStart.h"
 
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
 #endif
+
+using namespace std;
+
 class DyninstComponent : public ComponentTester
 {
 private:
@@ -99,7 +103,8 @@ DyninstComponent::DyninstComponent() :
 {
 }
 
-test_results_t DyninstComponent::program_setup(ParameterDict &params) {
+test_results_t DyninstComponent::program_setup(ParameterDict &params)
+{
    if (measure) um_program.start();  // Measure resource usage.
 
    bpatch = new BPatch();
@@ -117,7 +122,7 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params) {
    if (debugprint) {
       setDebugPrint(debugprint->getInt());
    }
- 
+   
    if ( getenv("DYNINSTAPI_RT_LIB") )
    {
       char *temp = getenv("DYNINSTAPI_RT_LIB");
@@ -143,11 +148,15 @@ test_results_t DyninstComponent::program_setup(ParameterDict &params) {
 
 test_results_t DyninstComponent::program_teardown(ParameterDict &params)
 {
+   delete bpatch;
+   bpatch = NULL;
+
    return PASSED;
 }
 
 test_results_t DyninstComponent::group_setup(RunGroup *group, 
-                                             ParameterDict &params) {
+                                             ParameterDict &params)
+{
 #if defined(m_abi)
    if (isMutateeMABI32(group->mutatee)) {
       if (NULL == libRTname_m_abi) {
@@ -159,88 +168,102 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    }
 #endif
 
-   params["useAttach"]->setInt(group->useAttach);
    appThread = NULL;
    appProc = NULL;
    appAddrSpace = NULL;
    appBinEdit = NULL;
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
    clear_mutateelog(mutatee_resumelog);
-   /*   if (group->customExecution)
-   {
-      return PASSED;
-      }*/
- 
-   if (group->mutatee && group->state != SELFSTART)
-   {
-      if (measure) um_group.start(); // Measure resource usage.
-
-      // If test requires mutatee, start it up for the test
-      // The mutatee doesn't need to print a test label for complex tests
-      if (group->useAttach != DISK)
-      {
-         //Create or attach
-         char *logfilename = params["logfilename"]->getString();
-         bool verboseFormat = (bool) params["verbose"]->getInt();
-         bool humanlog = (bool) params["usehumanlog"]->getInt();
-         bool printLabels = (bool) params["printlabels"]->getInt();
-         bool debugPrint = (bool) params["debugPrint"]->getInt();
-         char *humanlogname = params["humanlogname"]->getString();
-         int uniqueid = params["unique_id"]->getInt();
-         
-         appProc = startMutateeTest(bpatch, group, logfilename,
-                                      (humanlog) ? humanlogname : NULL,
-                                      verboseFormat, printLabels, debugPrint,
-                                      getPIDFilename(),
-                                      mutatee_resumelog, uniqueid);
-
-         if (!appProc) {
-            getOutput()->log(STDERR, "Skipping test because startup failed\n");
-            err_msg = std::string("Unable to run test program: ") + 
-               std::string(group->mutatee) + std::string("\n");
-            return SKIPPED;
-         }
-         appAddrSpace = (BPatch_addressSpace *) appProc;
-         appBinEdit = NULL;
-         appThread = appProc->getThreadByIndex(0);
-         
-         if (group->state == RUNNING)
-         {
-			 printf("group->state == RUNNING, appProc continue Execution\n");
-            appProc->continueExecution();
-         }
-      }
-      else
-      {
-         //Binary rewriter
-         appBinEdit  = startBinaryTest(bpatch, group);
-         if (!appBinEdit) {
-            getOutput()->log(STDERR, "Skipping test because startup failed\n");
-            return SKIPPED;
-         }
-
-         appThread = NULL;
-         appProc = NULL;
-         appAddrSpace = (BPatch_addressSpace*) appBinEdit;         
-      }
-
-      if (measure) um_group.end(); // Measure resource usage.
-
-      bp_appThread.setPtr(appThread);
-      params["appThread"] = &bp_appThread;
-      
-      bp_appAddrSpace.setPtr(appAddrSpace);
-      params["appAddrSpace"] = &bp_appAddrSpace;
-      
-      bp_appProc.setPtr(appProc);
-      params["appProcess"] = &bp_appProc;
-      
-      bp_appBinEdit.setPtr(appBinEdit);
-      params["appBinaryEdit"] = &bp_appBinEdit;
-   }
 
    is_xlc.setInt((int) isMutateeXLC(group->mutatee));
    params["mutateeXLC"] = &is_xlc;
+
+   if (!group->mutatee || group->state == SELFSTART)
+      return PASSED;
+   if (measure) um_group.start(); // Measure resource usage.
+   
+   switch (group->createmode) {
+      case CREATE:
+      {
+         std::string exec_name;
+         std::vector<std::string> args;
+
+         getMutateeParams(group, params, exec_name, args);
+         char **argv = getCParams(string(""), args);
+         appProc = BPatch::bpatch->processCreate(exec_name.c_str(), (const char**) argv, NULL);
+         free(argv);
+         if (!appProc) {
+            logerror("Error creating process\n");
+            return FAILED;
+         }
+         break;
+      }
+      case USEATTACH:
+      {
+         Dyninst::PID pid = getMutateePid(group);
+         if (pid == NULL_PID) {
+            std::string mutateeString = launchMutatee(group, params);
+            if (mutateeString == string("")) {
+               logerror("Error creating attach process\n");
+               return FAILED;
+            }
+            registerMutatee(mutateeString);
+            pid = getMutateePid(group);
+         }
+         assert(pid != NULL_PID);
+
+         appProc = BPatch::bpatch->processAttach(group->mutatee, pid);
+         if (!appProc) {
+            logerror("Error attaching to process\n");
+            return FAILED;
+         }
+         break;
+      }
+      case DISK:
+      {
+         appBinEdit = BPatch::bpatch->openBinary(group->mutatee, true);
+         if (!appBinEdit) {
+            logerror("Error opening binary for rewriting\n");
+            return FAILED;
+         }
+         break;
+      }
+      case DESERIALIZE:
+      {
+         assert(0); //Don't know how to handle this;
+         break;
+      }
+   }
+   
+
+   if (appProc) {
+      BPatch_Vector<BPatch_thread *> thrds;
+      appProc->getThreads(thrds);
+      appThread = thrds[0];
+      appAddrSpace = (BPatch_addressSpace *) appProc;
+   }
+   else if (appBinEdit) {
+      appAddrSpace = (BPatch_addressSpace *) appBinEdit;
+   }
+
+   if (group->state == RUNNING && appProc) 
+   {
+      appProc->continueExecution();
+   }
+
+   if (measure) um_group.end(); // Measure resource usage.
+   
+   bp_appThread.setPtr(appThread);
+   params["appThread"] = &bp_appThread;
+   
+   bp_appAddrSpace.setPtr(appAddrSpace);
+   params["appAddrSpace"] = &bp_appAddrSpace;
+   
+   bp_appProc.setPtr(appProc);
+   params["appProcess"] = &bp_appProc;
+   
+   bp_appBinEdit.setPtr(appBinEdit);
+   params["appBinaryEdit"] = &bp_appBinEdit;
 
    return PASSED;
 }
@@ -248,6 +271,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 test_results_t DyninstComponent::group_teardown(RunGroup *group,
                                                 ParameterDict &params)
 {
+
     if (group->customExecution) {
         // We don't care about pass/fail here but we most definitely care about mutatee cleanup.
         // Just kill the process...
@@ -258,7 +282,8 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
         }      
         return PASSED;
     }
-   bool someTestPassed;
+   bool someTestPassed = false;
+
    for (unsigned i=0; i<group->tests.size(); i++)
    {
       if (shouldRunTest(group, group->tests[i]))
@@ -268,22 +293,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
 
-   if (group->useAttach == DISK) {
+   if (group->createmode == DISK) {
       if (!someTestPassed)
          return FAILED;
-      char *logfilename = params["logfilename"]->getString();
-      bool verboseFormat = (bool) params["verbose"]->getInt();
-      bool humanlog = (bool) params["usehumanlog"]->getInt();
-      bool printLabels = (bool) params["printlabels"]->getInt();
-      bool debugPrint = (bool) params["debugPrint"]->getInt();
-      char *humanlogname = params["humanlogname"]->getString();
-      bool noClean = (bool) params["noClean"]->getInt();
-      int unique_id = params["unique_id"]->getInt();
 
       test_results_t test_result;
-      runBinaryTest(bpatch, group, appBinEdit,
-                    logfilename, humanlogname, verboseFormat, printLabels,
-                    debugPrint, getPIDFilename(), mutatee_resumelog, unique_id, noClean, test_result);
+      runBinaryTest(group, params, test_result);
       return test_result;
    }
 
@@ -301,9 +316,8 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    do {
-       //fprintf(stderr, "continuing mutatee...\n");	   
+       //fprintf(stderr, "continuing mutatee...\n");
       appProc->continueExecution();
-	  
       bpatch->waitForStatusChange();
    } while (appProc && !appProc->isTerminated());
 
@@ -325,7 +339,6 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    parse_mutateelog(group, mutatee_resumelog);
-
 
    return UNKNOWN;
 }
@@ -397,6 +410,9 @@ DyninstComponent::~DyninstComponent()
 // All the constructor does is set the instance fields to NULL
 DyninstMutator::DyninstMutator() :
     appThread(NULL),
+	appAddrSpace(NULL),
+	appBinEdit(NULL),
+	appProc(NULL),
     appImage(NULL)
 {
 }
@@ -411,9 +427,9 @@ DyninstMutator::~DyninstMutator() {
 
 test_results_t DyninstMutator::setup(ParameterDict &param) 
 {
-  runmode = (create_mode_t) param["useAttach"]->getInt();
+  runmode = (create_mode_t) param["createmode"]->getInt();
 
-  bool useAttach = param["useAttach"]->getInt() == USEATTACH;
+  bool createmode = param["createmode"]->getInt() == USEATTACH;
 
   if (param["appThread"] == NULL)
   {
@@ -429,7 +445,7 @@ test_results_t DyninstMutator::setup(ParameterDict &param)
   // Read the program's image and get an associated image object
   appImage = appAddrSpace->getImage();
 
-  if ( useAttach ) 
+  if ( createmode ) 
   {
 	  if ( ! signalAttached(appImage) )
 	  {
@@ -496,7 +512,7 @@ bool signalAttached(BPatch_image *appImage)
         return false;
     }
 
-    int yes = 1;	
+    int yes = 1;
     isAttached->writeValue(&yes);
     return true;
 }
@@ -1024,7 +1040,7 @@ TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appP
 {
 
     dprintf("Proc %d is pointer %p\n", *threadCount, appProc);
-	myprocs[(*threadCount)++] = appProc;	
+	myprocs[(*threadCount)++] = appProc;
         appProc->continueExecution();
 
 	while (1) {
@@ -1047,7 +1063,7 @@ TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appP
 
 		for (i=0; i < *threadCount; i++) {
                     if (myprocs[i]->isStopped()) {
-				dprintf("Thread %d marked stopped, continuing\n", i);				
+				dprintf("Thread %d marked stopped, continuing\n", i);
                                 myprocs[i]->continueExecution();
 			}
 		}
@@ -1280,7 +1296,9 @@ int instEffAddr(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 	BPatch_effectiveAddressExpr eae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 
@@ -1362,12 +1380,14 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
-	|| defined(i386_unknown_nt4_0_test)
+	|| defined(i386_unknown_nt4_0_test) \
+        || defined(amd64_unknown_freebsd7_0_test) \
+        || defined(i386_unknown_freebsd7_0_test)
 
         BPatch_bytesAccessedExpr bae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 	if(!conditional) {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 std::string insn2 = (*res2)[i]->getInsnAtPoint()->format();
@@ -1380,7 +1400,7 @@ int instByteCnt(BPatch_addressSpace* as, const char* fname,
 
         }
 	else {
-            for(int i = 0; i < (*res2).size(); i++)
+            for(unsigned int i = 0; i < (*res2).size(); i++)
             {
                 BPatch_Vector<BPatch_snippet*> listArgs2;
                 std::string insn = (*res2)[i]->getInsnAtPoint()->format();
@@ -1626,7 +1646,6 @@ int letOriginalMutateeFinish(BPatch_process *appThread){
 
 	/*fprintf(stderr,"\n************************\n");	
 	  fprintf(stderr,"Running the original mutatee\n\n");*/
-	printf("letOriginalMutateeFinish: continueExecution()\n");
 	appThread->continueExecution();
 
 	while( !appThread->isTerminated());
@@ -1727,4 +1746,6 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 
 	return true;
 }
+
+
 // End Test12 Library functions

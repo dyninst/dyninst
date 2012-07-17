@@ -83,6 +83,10 @@ volatile int isAttached = 0;
 #include "solo_driver.h"
 #endif
 
+#if defined(os_bgq_test)
+#include <mpi.h>
+#endif
+
 /* Pointer size variable, for multiple-ABI platforms */
 int pointerSize = sizeof (void *);
 
@@ -148,7 +152,7 @@ void updateResumeLogCompleted(const char *resumelogname) {
   }
 }
 
-void setLabel(unsigned int label_ndx, char *label) {
+void setLabel(char *label) {
   /* TODO Fix me so group mutatees work */
   if (max_tests > 1) {
     output->log(STDERR, "Group mutatees not enabled yet\n");
@@ -158,38 +162,117 @@ void setLabel(unsigned int label_ndx, char *label) {
   mutatee_funcs[0].testlabel = label;
 }
 
-#if !defined(i386_unknown_nt4_0_test)
-int timeout_secs = 3600;
-void alarm_handler(int signum) {
-  output->log(STDERR, "Timeout after %d seconds, exit mutatee.\n", timeout_secs);
-  exit(0);
-}
+static int pfd;
+static int custom_attach = 0;
+static int delayed_attach = 0;
+static int useAttach = FALSE;
+int signal_fd = 0;
+
+void handleAttach()
+{
+#if defined(os_bg_test)
+   return;
+#elif !defined(os_windows_test)
+   char ch = 'T';
+   struct timeval start_time;
+   if (!useAttach) return;
+   if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
+      output->log(STDERR, "*ERROR*: Writing to pipe\n");
+      exit(-1);
+   }
+   close(pfd);
+
+   logstatus("mutatee %d: Waiting for mutator to attach...\n", getpid());
+   gettimeofday(&start_time, NULL);
+
+#else
+   char ch = 'T';
+   LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
+   DWORD bytes_written = 0;
+   BOOL wrote_ok = FALSE;
+   HANDLE signalPipe;
+
+  
+   if (!useAttach) return;
+
+   signalPipe = CreateFile(pipeName,
+                           GENERIC_WRITE,
+                           0,
+                           NULL,
+                           OPEN_EXISTING,
+                           0,
+                           NULL);
+   if(signalPipe == INVALID_HANDLE) 
+   {
+      if(GetLastError() != ERROR_PIPE_BUSY)
+      {
+
+         output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+         exit(-1);
+      }
+      if(!WaitNamedPipe(pipeName, 2000))
+      {
+
+		  output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+         exit(-1);
+      }
+   }
+   wrote_ok = WriteFile(signalPipe,
+                        &ch,
+                        1,
+                        &bytes_written,
+                        NULL);
+   if(!wrote_ok ||(bytes_written != 1))
+   {
+
+      output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
+      exit(-1);
+   }
+   CloseHandle(signalPipe);
+
+   logstatus("mutatee: Waiting for mutator to attach...\n");
 #endif
+ 
+   setUseAttach(TRUE);
+
+   flushOutputLog();
+
+   while (!checkIfAttached()) {
+#if !defined(os_windows_test) && !defined(os_bg_test)
+      struct timeval present_time;
+      gettimeofday(&present_time, NULL);
+      if (present_time.tv_sec > (start_time.tv_sec + 30))
+      {
+         if (checkIfAttached())
+            break;
+         logstatus("mutatee: mutator attach problem, failing...\n");
+         exit(-1);
+      }
+#endif
+      /* Do nothing */
+   }
+   fflush(stderr);
+
+   logstatus("Mutator attached.  Mutatee continuing.\n");
+}
 
 int main(int iargc, char *argv[])
-{
-#if !defined(i386_unknown_nt4_0_test)
-   signal(SIGALRM, alarm_handler);
-   alarm(timeout_secs);
-#endif
-                                       /* despite different conventions */
+{                                       /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
    unsigned int i;
    signed int j;
-#if !defined(i386_unknown_nt4_0_test)
-   int pfd;
-#endif
-   int useAttach = FALSE;
    char *logfilename = NULL;
    int allTestsPassed = TRUE;
    int retval;
    char *mutatee_name = NULL;
    unsigned int label_count = 0;
    int print_labels = FALSE;
-   int has_pidfile = 0;
-#if !defined(os_windows_test)
-   struct timeval start_time;
+   FILE* f;
+
+#if defined(os_bgq_test)
+   MPI_Init(&iargc, &argv);
 #endif
+
    gargc = argc;
    gargv = argv;
 
@@ -206,7 +289,6 @@ int main(int iargc, char *argv[])
       mutatee_name += 1; /* Skip past the '/' */
       setExecutableName(mutatee_name);
    }
-   // output->log(STDERR, "Mutatee: %s @ pid=%d.\n", mutatee_name, getpid());
 
    for (j=0; j < max_tests; j++) {
       runTest[j] = FALSE;
@@ -214,6 +296,7 @@ int main(int iargc, char *argv[])
 
    /* Parse command line arguments */
    for (i=1; i < argc; i++) {
+
       if (!strcmp(argv[i], "-verbose")) {
          debugPrint = 1;
       } else if (!strcmp(argv[i], "-log")) {
@@ -234,6 +317,11 @@ int main(int iargc, char *argv[])
          }
          pfd = atoi(argv[i]);
 #endif
+      } else if (!strcmp(argv[i], "-customattach")) {
+         custom_attach = 1;
+      } else if (!strcmp(argv[i], "-delayedattach")) {
+
+		  delayed_attach = 1;
       } else if (!strcmp(argv[i], "-run")) {
          char *tests;
          char *name;
@@ -260,7 +348,7 @@ int main(int iargc, char *argv[])
             exit(-1);
          }
          i += 1;
-         setLabel(label_count, argv[i]);
+         setLabel(argv[i]);
          label_count += 1;
       } else if (!strcmp(argv[i], "-print-labels")) {
          print_labels = TRUE;
@@ -271,14 +359,6 @@ int main(int iargc, char *argv[])
          }
          i += 1;
          setHumanLog(argv[i]);
-      } else if (strcmp(argv[i], "-pidfile") == 0) {
-         if (i + 1 >= argc) {
-            output->log(STDERR, "-pidfile must be followed by a file name\n");
-            exit(-1);
-         }
-         has_pidfile = 1;
-         i += 1;
-         setPIDFilename(argv[i]);
       } else if (!strcmp(argv[i], "-runall")) {
          for (j = 0; j < max_tests; j++) {
             runTest[j] = TRUE;
@@ -292,12 +372,23 @@ int main(int iargc, char *argv[])
       } else if (!strcmp(argv[i], "-uniqueid")) {
          i += 1;
          unique_id = atoi(argv[i]);
+      } else if (!strcmp(argv[i], "-signal_file")) {
+         i += 1;
+         f = fopen(argv[i], "w");
+         fclose(f);
+      } else if (!strcmp(argv[i], "-signal_fd")) {
+         signal_fd = atoi(argv[++i]);
+         if (!signal_fd) {
+            fprintf(stderr, "Invalid signal_fd value %s\n", argv[i]);
+            exit(-1);
+         }
       } else {
          /* Let's just ignore unrecognized parameters.  They might be
           * important to a specific test.
           */
       }
    }
+	//fprintf(stderr, "parsed command line args\n");
 
    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
@@ -313,98 +404,18 @@ int main(int iargc, char *argv[])
       outlog = stdout;
       errlog = stderr;
    }
-
    if ((argc==1) || debugPrint)
       logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
-   if (argc==1) exit(0);
+   if (argc==1) {
+		fprintf(stderr, "no tests specified, exiting\n");
+	   exit(0);
+   }
 
    /* see if we should wait for the attach */
-   if (useAttach) {
-#ifndef i386_unknown_nt4_0_test
-      char ch = 'T';
-      if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
-         output->log(STDERR, "*ERROR*: Writing to pipe\n");
-         exit(-1);
-      }
-      close(pfd);
-#else
-	   char ch = 'T';
-	   LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
-	   DWORD bytes_written = 0;
-	   BOOL wrote_ok = FALSE;	   
-	   HANDLE signalPipe;
-	   signalPipe = CreateFile(pipeName,
-		   GENERIC_WRITE,
-		   0,
-		   NULL,
-		   OPEN_EXISTING,
-		   0,
-		   NULL);
-	   if(signalPipe == INVALID_HANDLE) 
-	   {
-		   if(GetLastError() != ERROR_PIPE_BUSY)
-		   {
-			   output->log(STDERR, "*ERROR*: Couldn't open pipe Not ERROR_PIPE_BUSY\n");
-			   fprintf(stderr, "Erroe code = %d\n", GetLastError());
-			   exit(-1);
-
-		   } 
-		   if(!WaitNamedPipe(pipeName, 2000))
-		   {
-			   output->log(STDERR, "*ERROR*: Couldn't open pipe WaitNamedPipe Fail\n");
-			   exit(-1);
-		   }
-	   }	 
-	   wrote_ok = WriteFile(signalPipe,
-		   &ch,
-		   1,
-		   &bytes_written,
-		   NULL);
-	   if(!wrote_ok ||(bytes_written != 1))
-	   {
-		   output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
-		   exit(-1);
-	   }	   
-	   CloseHandle(signalPipe);
-#endif
-      setUseAttach(TRUE);
-#if defined (os_windows_test)
-      logstatus("mutatee: Waiting for mutator to attach...\n");
-#else
-      logstatus("mutatee %d: Waiting for mutator to attach...\n", getpid());
-	  gettimeofday(&start_time, NULL);
-#endif
-      flushOutputLog();
-
-      while (!checkIfAttached()) {
-#if !defined(os_windows_test)
-		  struct timeval present_time;
-		  gettimeofday(&present_time, NULL);
-		  if (present_time.tv_sec > (start_time.tv_sec + 30))
-		  {
-           if (checkIfAttached())
-              break;
-			  logstatus("mutatee: mutator attach problem, failing...\n");
-			  exit(-1);
-		  }
-#endif
-#if 0
-		  struct timeval slp;
-		  slp.tv_sec = 1;
-		  slp.tv_usec = 0;
-		  select(0, NULL, NULL, NULL, &slp);
-
-		  elapsed++;
-		  if (elapsed > 60) {
-			  logstatus("mutatee %d: mutator attach problem, failing...\n", getpid());
-			  exit(-1);
-		  }
-#endif
-         /* Do nothing */
-      }
-      fflush(stderr);
-      logstatus("Mutator attached.  Mutatee continuing.\n");
+   if (useAttach && !custom_attach) {
+      if (!delayed_attach)
+         handleAttach();
    } else {
       setUseAttach(FALSE);
    }
@@ -412,8 +423,9 @@ int main(int iargc, char *argv[])
    /* 
     * Run the tests and keep track of return values in case of test failure
     */
-   for (i = 0; i < max_tests; i++) {
-      if (runTest[i]) {
+   for (i = 0; i < (unsigned) max_tests; i++) {
+
+	   if (runTest[i]) {
 
          log_testrun(mutatee_funcs[i].testname);
 
@@ -422,8 +434,10 @@ int main(int iargc, char *argv[])
          }
 
          output->setTestName(mutatee_funcs[i].testname);
-         mutatee_funcs[i].func();
-         log_testresult(passedTest[i]);
+	
+		 mutatee_funcs[i].func();
+	
+		 log_testresult(passedTest[i]);
     
          if (!passedTest[i]) {
             allTestsPassed = FALSE;
@@ -433,7 +447,7 @@ int main(int iargc, char *argv[])
       flushOutputLog();
       flushErrorLog();
    }
-
+	
    if (allTestsPassed) {
       logstatus("All tests passed.\n");
       retval = 0;
@@ -443,8 +457,8 @@ int main(int iargc, char *argv[])
 	   for (i = 0; i < max_tests; ++i)
 	   {
 		   if (runTest[i])
-			   logstatus("%s[%d]: %s: %s \n", passedTest[i] ? "PASSED" : "FAILED", __FILE__, __LINE__, 
-					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel);
+			   logstatus("%s[%d]: %s: %s \n",  __FILE__, __LINE__, 
+					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel, passedTest[i] ? "PASSED" : "FAILED");
 	   }
 	   logstatus("\n");
 #endif
@@ -455,6 +469,6 @@ int main(int iargc, char *argv[])
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
-   
+
    exit( retval);
 }

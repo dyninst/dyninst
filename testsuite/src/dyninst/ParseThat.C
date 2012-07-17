@@ -85,7 +85,7 @@ ParseThat::ParseThat() :
 	//  If we get here, we didn't find it
 	const char *dyn_root_env = getenv("DYNINST_ROOT");
 	if (!dyn_root_env) {
-		dyn_root_env = "../../";
+		dyn_root_env = "../..";
 	}	
 	const char *plat_env = getenv("PLATFORM");
 
@@ -110,11 +110,15 @@ ParseThat::ParseThat() :
 #endif
 	}
 
+   if (plat_env)
+      setup_env(plat_env);
+
 	if (plat_env)
 	{
-		std::string expect_pt_loc = std::string(dyn_root_env) + slash 
-			+ std::string(plat_env) + slash + std::string("bin") 
-			+ slash +std::string("parseThat");
+		std::string expect_pt_loc = std::string(dyn_root_env) + slash +
+         std::string("parseThat") + slash + 
+         std::string(plat_env) + slash +
+			std::string("parseThat");
 
 		struct stat statbuf;
 		if (!stat(expect_pt_loc.c_str(), &statbuf))
@@ -182,6 +186,35 @@ ParseThat::ParseThat() :
 
 ParseThat::~ParseThat()
 {
+}
+
+bool ParseThat::setup_env(std::string plat) {
+#if !defined(os_windows_test)
+   std::vector<std::string> components;
+   components.push_back("common");
+   components.push_back("dyninstAPI");
+   components.push_back("instructionAPI");
+   components.push_back("parseAPI");
+   components.push_back("patchAPI");
+   components.push_back("proccontrol");
+   components.push_back("stackwalk");
+   components.push_back("symtabAPI");
+
+   bool add_colon = false;
+   std::string ld_library_path;
+   const char *old_ld_library_path = getenv("LD_LIBRARY_PATH");
+   if (old_ld_library_path) {
+      ld_library_path = old_ld_library_path;
+      add_colon = true;
+   }
+
+   for (std::vector<std::string>::iterator i = components.begin(); i != components.end(); i++) {
+      if (add_colon)
+         ld_library_path += ":";
+      ld_library_path += std::string("../../") + *i + std::string("/") + plat;
+   }
+   setenv("LD_LIBRARY_PATH", ld_library_path.c_str(), 1);
+#endif
 }
 
 bool ParseThat::setup_args(std::vector<std::string> &pt_args)
@@ -339,7 +372,7 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 {
 	
 	struct stat statbuf;
-	char *binedit_dir = get_binedit_dir();
+	const char *binedit_dir = get_binedit_dir();
 	int result = stat(binedit_dir, &statbuf);
 	if (-1 == result)
 	{

@@ -33,11 +33,12 @@
 
 #include <vector>
 #include "Event.h"
+#include "util.h"
 
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class Decoder
+class PC_EXPORT Decoder
 {
  public:
    Decoder();

@@ -114,7 +114,8 @@ std::vector<localVar *> *localVarCollection::getAllVars()
 {
     return &localVars;
 }
-  
+
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	unsigned short lvmagic = 72;
@@ -148,6 +149,12 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const cha
 
 	return NULL;
 }
+#else
+Serializable *localVarCollection::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 // Could be somewhere else... for DWARF-work.
 dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
@@ -541,6 +548,7 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
    return varsVec;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	serialize_printf("%s[%d]:  enter typeCollection::serialize_impl\n", FILE__, __LINE__);
@@ -598,6 +606,12 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
 
 	return NULL;
 }
+#else
+Serializable *typeCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 /*
  * builtInTypeCollection::builtInTypeCollection

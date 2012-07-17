@@ -86,7 +86,6 @@ void disasAddress(const Address addr);
 
 bool attachToChild(int pid);
 
-void calcVSyscallFrame(process *p);
 struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 //  no /proc, dummy function

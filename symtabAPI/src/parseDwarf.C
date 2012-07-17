@@ -34,6 +34,8 @@
 #include "libelf.h"
 #include "dwarf.h"
 #include "libdwarf.h"
+#include "common/h/dwarfExpr.h"
+#include "common/h/dwarfSW.h"
 
 #include "Symtab.h"
 #include "Type.h"
@@ -47,6 +49,7 @@
 #include <stdarg.h>
 #include "dynutil/h/Annotatable.h"
 #include "annotations.h"
+#include "debug.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
@@ -73,30 +76,10 @@ int dwarf_get_fde_info_for_cfa_reg3(
 
 std::map<Dwarf_Off, fieldListType*> enclosureMap;
 
-int dwarf_printf(const char *format, ...);
-
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 void setSymtabError(SymtabError new_err);
-
-/* For location decode. */
-#include <stack>
-
-// on 64-bit x86_64 targets, the DWARF register number does not
-// correspond to the machine encoding. See the AMD-64 ABI.
-
-
-/*
-  #define DWARF_FALSE_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return false; }
-  #define DWARF_RETURN_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return; }
-  #define DWARF_NULL_IF(condition,...) \
-  if ( condition ) { //bpwarn ( __VA_ARGS__ ); return NULL; }
-*/
-
-#include "common/h/dwarfExpr.h"
 
 std::string convertCharToString(char *ptr)
 {
@@ -1263,25 +1246,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          {
             newVariable->addLocation(locs[i]);
          }
-         
-         localVarCollection *lvs = NULL; 
-         if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
-         {
-            lvs = new localVarCollection();
-            if (!currentFunction->addAnnotation(lvs, FunctionLocalVariablesAnno))
-            {
-               fprintf(stderr, "%s[%d]:  failed to add annotations here\n", 
-                       FILE__, __LINE__);
-               break;
-            }
-         }
-         if (!lvs)
-         {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", 
-                    FILE__, __LINE__);
-            break;
-         }
-         lvs->addLocalVar(newVariable);
+         currentFunction->addLocalVar(newVariable);
       } /* end if a local or static variable. */
       else if ( currentEnclosure != NULL ) {
          if (!variableName)
@@ -1289,7 +1254,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          assert( locs[0].stClass != storageRegOffset );
          currentEnclosure->addField( vName, variableType, locs[0].frameOffset);
       } /* end if this variable is not global */
-   } 
+   }
    break;
 
   case DW_TAG_formal_parameter: 
@@ -1451,29 +1416,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	  }
 
       /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
-     localVarCollection *lvs = NULL;
-     if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))
-     {
-        lvs = new localVarCollection();
-        if (!currentFunction->addAnnotation(lvs, FunctionParametersAnno)) 
-        {
-           fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-                   FILE__, __LINE__);
-           break;
-        }
-     }
-     
-     if (!lvs)
-     {
-        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-                FILE__, __LINE__);
-        break;
-     }
-         
-     lvs->addLocalVar(newParameter);
-     
-     //TODO ??NOT REQUIRED??
-     //currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
+     currentFunction->addParam(newParameter);
      
      dwarf_printf( "%s[%d]: added formal parameter '%s' of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterType, (unsigned long)parameterLineNo );
   } break;
@@ -2290,8 +2233,13 @@ bool Object::getRegValueAtFrame(Address pc,
 		Dyninst::MachRegisterVal &reg_result,
 		MemRegReader *reader)
 {
+   FrameErrors_t frame_error = FE_No_Error;
+   bool result;
+
    dwarf.dbg();
-   return dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, getArch(), reader);
+   result = dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, getArch(), reader, frame_error);
+   setSymtabError((SymtabError) frame_error);
+   return result;
 }
 
 DwarfHandle::DwarfHandle(Object *obj_) :

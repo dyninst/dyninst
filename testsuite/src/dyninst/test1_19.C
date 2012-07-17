@@ -101,7 +101,7 @@ test_results_t test1_19_Mutator::executeTest()
     BPatch_funcCallExpr call19_1Expr(*call19_1_func, nullArgs);
     checkCost(call19_1Expr);
 
-    appThread->oneTimeCode(call19_1Expr);
+    appProc->oneTimeCode(call19_1Expr);
 
     // Let the mutatee run to check the result
     appProc->continueExecution();
@@ -134,7 +134,7 @@ test_results_t test1_19_Mutator::executeTest()
     BPatchOneTimeCodeCallback oldCallback = 
        BPatch::bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
 
-    appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
+    appProc->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
     while (!appProc->isTerminated() && !appProc->isStopped() )
     {
@@ -145,7 +145,27 @@ test_results_t test1_19_Mutator::executeTest()
     appProc->continueExecution();
 
     // Wait for the callback to be called
-    while (!appProc->isTerminated() && !callbackFlag) ;
+    while (!appProc->isTerminated() && !callbackFlag) {
+        if( !BPatch::bpatch->waitForStatusChange() ) {
+            logerror("   FAILED: could not wait for callback to be called\n");
+            return FAILED;
+        }
+    }
+
+    if( !callbackFlag ) {
+        logerror("     FAILED: process %d terminated while waiting for async oneTimeCode\n",
+                appProc->getPid());
+        return FAILED;
+    }
+
+    // After the oneTimeCode is completed, there could be a crash due to bugs in
+    // the RPC code, wait for termination
+    while( !appProc->isTerminated() ) {
+        if( !BPatch::bpatch->waitForStatusChange() ) {
+            logerror("   FAILED: could not wait for process to terminate\n");
+            return FAILED;
+        }
+    }
 
     // Restore old callback (if there was one)
 	BPatch::bpatch->registerOneTimeCodeCallback(oldCallback);

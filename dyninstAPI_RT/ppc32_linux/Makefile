@@ -41,7 +41,6 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
 		   ../src/RTheap-linux.c \
 		   ../src/RTthread.c \
-		   ../src/RTthread-index.c \
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \
 		   ../src/RTstatic_ctors_dtors-ppc32.c \

@@ -45,7 +45,6 @@
 #include "BPatch_edge.h"
 
 class func_instance;
-class process;
 class AddressSpace;
 class BPatch_edge;
 class edge_instance;

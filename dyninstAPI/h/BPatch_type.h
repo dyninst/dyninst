@@ -355,7 +355,6 @@ public:
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_localVar
-class process;
 class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     friend class BPatch;
     friend class BPatch_function;
@@ -374,7 +373,7 @@ public:
 
     void fixupUnknown(BPatch_module *);
     Dyninst::SymtabAPI::localVar *getSymtabVar();
-    BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc);
+    BPatch_storageClass convertToBPatchStorage(Dyninst::VariableLocation *loc);
 
 public:
     //  end of functions for internal use only

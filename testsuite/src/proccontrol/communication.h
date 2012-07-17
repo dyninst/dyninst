@@ -32,14 +32,27 @@
 #define COMMUNICATION_H_
 
 #define MAX_POSSIBLE_THREADS 512
+
+#if defined(os_bg_test)
+#define DEFAULT_NUM_THREADS 3
+#else
 #define DEFAULT_NUM_THREADS 8
-#define DEFAULT_NUM_PROCS 8
+#endif
+
+#if defined(os_windows_test)
+#include <winsock2.h>
+#include <windows.h>
+#include <external/stdint-win.h>
+#include <external/inttypes-win.h>
+typedef int pid_t;
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_bg_test) || defined(os_bgq_test)
 #include <stdint.h>
 #endif
 
@@ -78,7 +91,22 @@ typedef struct {
    uint32_t is_threaded;
    uint32_t is_done;
 } forkinfo;
-      
+
+#define THREADINFO_CODE 0xBEEF0007
+typedef struct {
+   uint64_t code;
+   uint64_t pid;
+#if !defined(os_windows_test)
+   uint64_t lwp;
+#else
+   HANDLE lwp;
+#endif
+   uint64_t tid;
+   uint64_t a_stack_addr;
+   uint64_t initial_func;
+   uint64_t tls_addr;
+} threadinfo;
+
 #if defined(__cplusplus)
 }
 #endif

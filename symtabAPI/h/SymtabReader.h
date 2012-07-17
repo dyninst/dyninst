@@ -47,8 +47,9 @@ namespace SymtabAPI {
 class Symtab;
 class Region;
 class FastParser;
+class DwarfHandle;
 
-class SymtabReaderFactory : public SymbolReaderFactory
+class SYMTAB_EXPORT SymtabReaderFactory : public SymbolReaderFactory
 {
   private:
    std::map<std::string, SymReader *> open_syms;
@@ -60,15 +61,18 @@ class SymtabReaderFactory : public SymbolReaderFactory
    virtual bool closeSymbolReader(SymReader *sr);
 };
 
-class SymtabReader : public SymReader {
+class SYMTAB_EXPORT SymtabReader : public SymReader {
    friend class SymtabReaderFactory;
   protected:
    Symtab *symtab;
    int ref_count;
    std::vector<Region *> *mapped_regions;
+   DwarfHandle *dwarf_handle;
+   bool ownsSymtab;
   public:
    SymtabReader(std::string file_);
    SymtabReader(const char *buffer, unsigned long size);
+   SymtabReader(Symtab *s);
    virtual ~SymtabReader();
 
    virtual Symbol_t getSymbolByName(std::string symname);
@@ -92,11 +96,15 @@ class SymtabReader : public SymReader {
    virtual bool isValidSection(Section_t sec);
 
    virtual Dyninst::Offset imageOffset();
-   virtual Dyninst::Offset dataOffset();   
+   virtual Dyninst::Offset dataOffset();  
+
+   virtual void *getElfHandle();
+
+   void *getDebugInfo();
 };
 
 extern "C" {
-   SymbolReaderFactory *getSymtabReaderFactory();
+   SYMTAB_EXPORT SymbolReaderFactory *getSymtabReaderFactory();
 }
 
 }

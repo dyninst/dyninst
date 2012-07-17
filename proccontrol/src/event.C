@@ -36,11 +36,14 @@
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/h/Event.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PCErrors.h"
+#include "proccontrol/h/Generator.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+using namespace std;
 
 ArchEvent::ArchEvent(std::string name_) :
    name(name_)
@@ -59,10 +62,13 @@ std::string ArchEvent::getName()
 Event::Event(EventType etype_, Thread::ptr thread_) :
    etype(etype_),
    thread(thread_),
-   proc(thread ? thread->getProcess() : Process::ptr()),
+   proc(thread_ ? thread_->getProcess() : Process::ptr()),
    stype(unset),
    master_event(Event::ptr()),
-   suppress_cb(false)
+   suppress_cb(false),
+   user_event(false),
+   handling_started(false),
+   noted_event(false)
 {
 }
 
@@ -83,7 +89,15 @@ void Event::setThread(Thread::const_ptr t) {
 }
 
 void Event::setProcess(Process::const_ptr p) {
-   proc = p;
+	proc = p;
+}
+
+void Event::setUserEvent(bool b) {
+    user_event = b;
+}
+
+bool Event::userEvent() const {
+    return user_event;
 }
 
 bool Event::canFastHandle() const
@@ -107,7 +121,7 @@ bool Event::triggersCB() const
    if (cbhandler->requiresCB(shared_from_this()))
      return true;
    std::vector<Event::ptr>::const_iterator i = subservient_events.begin();
-   for (; i != subservient_events.end(); i++) {
+   for (; i != subservient_events.end(); ++i) {
       if ((*i)->triggersCB())
          return true;
    }
@@ -157,7 +171,11 @@ std::string EventType::name() const
       STR_CASE(Fork);
       STR_CASE(Exec);
       STR_CASE(ThreadCreate);
+      STR_CASE(UserThreadCreate);
+      STR_CASE(LWPCreate);
       STR_CASE(ThreadDestroy);
+      STR_CASE(UserThreadDestroy);
+      STR_CASE(LWPDestroy);
       STR_CASE(Stop);
       STR_CASE(Signal);
       STR_CASE(LibraryLoad);
@@ -168,9 +186,17 @@ std::string EventType::name() const
       STR_CASE(SingleStep);
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
-      STR_CASE(RPCInternal);
+      STR_CASE(BreakpointRestore);
+      STR_CASE(RPCLaunch);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
+      STR_CASE(Detach);
+      STR_CASE(IntBootstrap);
+      STR_CASE(ForceTerminate);
+	  STR_CASE(PreBootstrap);
+      STR_CASE(Nop);
+      STR_CASE(ThreadDB);
+	  STR_CASE(ThreadInfo);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -182,6 +208,12 @@ bool Event::procStopper() const
 
 Event::~Event()
 {
+}
+
+void Event::setLastError(err_t ec, const char *es) {
+   if (proc) {
+      proc->setLastError(ec, es);
+   }
 }
 
 EventTerminate::EventTerminate(EventType type_) :
@@ -223,6 +255,21 @@ EventCrash::~EventCrash()
 {
 }
 
+EventForceTerminate::EventForceTerminate(int termsig_) :
+    EventTerminate(EventType(EventType::Post, EventType::ForceTerminate)),
+    termsig(termsig_)
+{
+}
+
+int EventForceTerminate::getTermSignal() const
+{
+   return termsig;
+}
+
+EventForceTerminate::~EventForceTerminate()
+{
+}
+
 EventExec::EventExec(EventType::Time etime_, std::string path) :
    Event(EventType(etime_, EventType::Exec)),
    execpath(path)
@@ -253,12 +300,10 @@ EventStop::~EventStop()
 }
 
 
-EventBreakpoint::EventBreakpoint(Dyninst::Address addr_, installed_breakpoint *ibp_) :
+EventBreakpoint::EventBreakpoint(int_eventBreakpoint *ibp_) :
    Event(EventType(EventType::None, EventType::Breakpoint)),
-   ibp(ibp_),
-   addr(addr_)
+   int_bp(ibp_)
 {
-   int_bp = new int_eventBreakpoint();
 }
 
 EventBreakpoint::~EventBreakpoint()
@@ -272,38 +317,85 @@ EventBreakpoint::~EventBreakpoint()
 
 Dyninst::Address EventBreakpoint::getAddress() const
 {
-  return addr;
-}
-
-bool EventBreakpoint::procStopper() const
-{
-   return true;
+   return int_bp->addr;
 }
 
 void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::const_ptr> &bps) const
 {
-   if (!ibp)
+   if (!int_bp)
       return;
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   std::set<Breakpoint::ptr>::iterator i;
+   for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); ++i) {
+      bps.push_back(*i);
+   }
+}
+
+void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
+{
+   if (!int_bp)
+      return;
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
    std::set<Breakpoint::ptr>::iterator i;
    for (i = ibp->hl_bps.begin(); i != ibp->hl_bps.end(); i++) {
       bps.push_back(*i);
    }
 }
 
-installed_breakpoint *EventBreakpoint::installedbp() const
-{
-  return ibp;
-}
-
 bool EventBreakpoint::suppressCB() const
 {
-   if (Event::suppressCB()) return true;
-   return ibp->hl_bps.empty();
+   if (Event::suppressCB())
+      return true;
+   bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
+   if (ibp->hl_bps.empty()) return true;
+   for (bp_instance::iterator iter = ibp->begin();
+        iter != ibp->end(); ++iter) {
+      if (!(*iter)->suppressCallbacks()) return false;
+   }
+   return true;
 }
 
 int_eventBreakpoint *EventBreakpoint::getInternal() const
 {
    return int_bp;
+}
+
+bool EventBreakpoint::procStopper() const
+{
+   int num_proc_stoppers = 0;
+   bp_instance *bp = int_bp->lookupInstalledBreakpoint();
+   if (!bp) {
+      return false;
+   }
+
+   for (sw_breakpoint::iterator i = bp->begin(); i != bp->end(); i++) {
+      if (!(*i)->isProcessStopper())
+         continue;
+      if (isGeneratorThread()) {
+         //We can call this during decode--don't set the states then.
+         return true;
+      }
+      num_proc_stoppers++;
+   }
+
+   if (!handled_by.empty())
+      return false;
+
+   if (!num_proc_stoppers) {
+      //The breakpoint is not a proc stopper.
+      return false;
+   }
+
+   int_process *proc = getProcess()->llproc();
+   int_thread *thrd = getThread()->llthrd();
+   if (!int_bp->stopped_proc) {
+      //Move the internal state of the process to be stopped.
+      thrd->getInternalState().desyncStateProc(int_thread::stopped);
+      int_bp->stopped_proc = true;
+   }
+   
+   //We return true if the event isn't ready
+   return !proc->getProcStopManager().processStoppedTo(int_thread::InternalStateID);
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -321,6 +413,18 @@ int EventSignal::getSignal() const
    return sig;
 }
 
+void EventSignal::clearThreadSignal() const
+{
+    int_thread *thr = getThread()->llthrd();
+    thr->setContSignal(0);
+}
+
+void EventSignal::setThreadSignal(int newSignal) const 
+{
+    int_thread *thr = getThread()->llthrd();
+    thr->setContSignal(newSignal);
+}
+
 EventBootstrap::EventBootstrap() :
    Event(EventType(EventType::None, EventType::Bootstrap))
 {
@@ -330,9 +434,18 @@ EventBootstrap::~EventBootstrap()
 {
 }
 
-EventNewThread::EventNewThread(Dyninst::LWP lwp_) :
-   Event(EventType(EventType::None, EventType::ThreadCreate)),
-   lwp(lwp_)
+EventPreBootstrap::EventPreBootstrap() :
+   Event(EventType(EventType::None, EventType::PreBootstrap))
+{
+}
+
+EventPreBootstrap::~EventPreBootstrap()
+{
+}
+
+
+EventNewThread::EventNewThread(EventType et) : 
+   Event(et)
 {
 }
 
@@ -340,20 +453,70 @@ EventNewThread::~EventNewThread()
 {
 }
 
-Dyninst::LWP EventNewThread::getLWP() const
+EventNewUserThread::EventNewUserThread() :
+   EventNewThread(EventType(EventType::None, EventType::UserThreadCreate))
+{
+   iev = new int_eventNewUserThread();
+}
+
+EventNewUserThread::~EventNewUserThread()
+{
+   if (iev) 
+      delete iev;
+   iev = NULL;
+}
+
+Dyninst::LWP EventNewUserThread::getLWP() const
+{
+   if (iev->lwp != NULL_LWP)
+      return iev->lwp;
+   return iev->thr ? iev->thr->getLWP() : NULL_LWP;
+}
+
+Thread::const_ptr EventNewUserThread::getNewThread() const
+{
+   if (iev->thr)
+      return iev->thr->thread();
+   if (iev->lwp == NULL_LWP)
+      return Thread::const_ptr();
+
+   iev->thr = getProcess()->llproc()->threadPool()->findThreadByLWP(iev->lwp);
+   assert(iev->thr);
+   return iev->thr->thread();
+}
+
+int_eventNewUserThread *EventNewUserThread::getInternalEvent() const
+{
+   return iev;
+}
+
+EventNewLWP::EventNewLWP(Dyninst::LWP lwp_) :
+   EventNewThread(EventType(EventType::None, EventType::LWPCreate)),
+   lwp(lwp_)
+{
+}
+
+EventNewLWP::~EventNewLWP()
+{
+}
+
+Dyninst::LWP EventNewLWP::getLWP() const
 {
    return lwp;
 }
 
-Thread::const_ptr EventNewThread::getNewThread() const
+Thread::const_ptr EventNewLWP::getNewThread() const
 {
    int_thread *thr = getProcess()->llproc()->threadPool()->findThreadByLWP(lwp);
+   if (!thr) {
+      fprintf(stderr, "ERROR: LWP not found, %d\n", lwp);
+   }
    assert(thr);
    return thr->thread();
 }
 
-EventThreadDestroy::EventThreadDestroy(EventType::Time time_) :
-   Event(EventType(time_, EventType::ThreadDestroy))
+EventThreadDestroy::EventThreadDestroy(EventType et) :
+   Event(et)
 {
 }
 
@@ -361,8 +524,26 @@ EventThreadDestroy::~EventThreadDestroy()
 {
 }
 
-EventFork::EventFork(Dyninst::PID pid_) :
-   Event(EventType(EventType::Post, EventType::Fork)),
+EventUserThreadDestroy::EventUserThreadDestroy(EventType::Time time_) :
+   EventThreadDestroy(EventType(time_, EventType::UserThreadDestroy))
+{
+}
+
+EventUserThreadDestroy::~EventUserThreadDestroy()
+{
+}
+
+EventLWPDestroy::EventLWPDestroy(EventType::Time time_) :
+   EventThreadDestroy(EventType(time_, EventType::LWPDestroy))
+{
+}
+
+EventLWPDestroy::~EventLWPDestroy()
+{
+}
+
+EventFork::EventFork(EventType::Time time_, Dyninst::PID pid_) :
+   Event(EventType(time_, EventType::Fork)),
    pid(pid_)
 {
 }
@@ -423,17 +604,32 @@ int_eventRPC *EventRPC::getInternal() const
    return int_rpc;
 }
 
-bool EventRPCInternal::suppressCB() const
+bool EventRPCLaunch::procStopper() const
 {
-   return true;
+   int_process *proc = getProcess()->llproc();
+   int_thread *thrd = getThread()->llthrd();
+
+   if (!handled_by.empty())
+      return false;
+
+   int_iRPC::ptr rpc = thrd->nextPostedIRPC();
+   assert(rpc);
+
+   if (proc->plat_threadOpsNeedProcStop()) {
+      return !proc->getProcStopManager().processStoppedTo(int_thread::IRPCSetupStateID);
+   }
+   if (rpc->isProcStopRPC()) {
+      return !rpc->isRPCPrepped();
+   }
+   return !proc->getProcStopManager().threadStoppedTo(thrd, int_thread::IRPCSetupStateID);
 }
 
-EventRPCInternal::EventRPCInternal() :
-   Event(EventType(EventType::None, EventType::RPCInternal))
+EventRPCLaunch::EventRPCLaunch() :
+   Event(EventType(EventType::None, EventType::RPCLaunch))
 {
 }
 
-EventRPCInternal::~EventRPCInternal()
+EventRPCLaunch::~EventRPCLaunch()
 {
 }
 
@@ -446,9 +642,8 @@ EventSingleStep::~EventSingleStep()
 {
 }
 
-EventBreakpointClear::EventBreakpointClear(installed_breakpoint *bp) :
-  Event(EventType(EventType::None, EventType::BreakpointClear)),
-  bp_(bp)
+EventBreakpointClear::EventBreakpointClear() :
+  Event(EventType(EventType::None, EventType::BreakpointClear))
 {
    int_bpc = new int_eventBreakpointClear();
 }
@@ -460,15 +655,41 @@ EventBreakpointClear::~EventBreakpointClear()
    int_bpc = NULL;
 }
 
-installed_breakpoint *EventBreakpointClear::bp() const
-{
-  return bp_;
-}
-
 int_eventBreakpointClear *EventBreakpointClear::getInternal() const
 {
    return int_bpc;
 }
+
+bool EventBreakpointClear::procStopper() const
+{
+   if (!int_bpc->stopped_proc)
+      return false;
+
+   if (!handled_by.empty())
+      return false;
+
+   int_process *proc = getProcess()->llproc();
+   return !proc->getProcStopManager().processStoppedTo(int_thread::BreakpointStateID);
+}
+
+EventBreakpointRestore::EventBreakpointRestore(int_eventBreakpointRestore *iebpr) :
+   Event(EventType(EventType::None, EventType::BreakpointRestore)),
+   int_bpr(iebpr)
+{
+}
+
+EventBreakpointRestore::~EventBreakpointRestore()
+{
+   assert(int_bpr);
+   delete int_bpr;
+   int_bpr = NULL;
+}
+
+int_eventBreakpointRestore *EventBreakpointRestore::getInternal() const
+{
+   return int_bpr;
+}
+
 
 EventLibrary::EventLibrary(const std::set<Library::ptr> &added_libs_,
                            const std::set<Library::ptr> &rmd_libs_) :
@@ -504,7 +725,161 @@ const std::set<Library::ptr> &EventLibrary::libsRemoved() const
    return rmd_libs;
 }
 
-int_eventBreakpointClear::int_eventBreakpointClear() 
+EventAsync::EventAsync(int_eventAsync *ievent) :
+   Event(EventType(EventType::None, EventType::Async)),
+   internal(ievent)
+{
+}
+
+EventAsync::~EventAsync()
+{
+   if (internal) {
+      delete internal;
+      internal = NULL;
+   }
+}
+
+int_eventAsync *EventAsync::getInternal() const
+{
+   return internal;
+}
+
+EventChangePCStop::EventChangePCStop() :
+   Event(EventType(EventType::None, EventType::ChangePCStop))
+{
+}
+
+EventChangePCStop::~EventChangePCStop()
+{
+}
+
+EventDetach::EventDetach() :
+   Event(EventType(EventType::None, EventType::Detach))
+{
+   int_detach = new int_eventDetach();
+}
+
+EventDetach::~EventDetach()
+{
+   if (int_detach)
+      delete int_detach;
+   int_detach = NULL;
+}
+
+int_eventDetach *EventDetach::getInternal() const
+{
+   return int_detach;
+}
+
+bool EventDetach::procStopper() const
+{
+   if (!handled_by.empty())
+      return false;
+
+   if (getInternal()->removed_bps)
+      return false;
+
+   int_process *proc = getProcess()->llproc();
+   return !proc->getProcStopManager().processStoppedTo(int_thread::DetachStateID);
+}
+
+EventIntBootstrap::EventIntBootstrap(void *d) :
+   Event(EventType(EventType::None, EventType::IntBootstrap)),
+   data(d)
+{
+}
+
+EventIntBootstrap::~EventIntBootstrap()
+{
+}
+
+void *EventIntBootstrap::getData() const
+{
+   return data;
+}
+
+void EventIntBootstrap::setData(void *d)
+{
+   data = d;
+}
+
+EventNop::EventNop() :
+   Event(EventType(EventType::None, EventType::Nop))
+{
+}
+
+EventNop::~EventNop()
+{
+}
+
+EventThreadDB::EventThreadDB() :
+   Event(EventType(EventType::None, EventType::ThreadDB))
+{
+   int_etdb = new int_eventThreadDB();
+}
+
+EventThreadDB::~EventThreadDB()
+{
+   delete int_etdb;
+   int_etdb = NULL;
+}
+
+EventWinStopThreadDestroy::EventWinStopThreadDestroy(EventType::Time time_) :
+EventThreadDestroy(EventType(time_, EventType::WinStopThreadDestroy)) {};
+
+EventWinStopThreadDestroy::~EventWinStopThreadDestroy() {}
+
+int_eventThreadDB *EventThreadDB::getInternal() const
+{
+   return int_etdb;
+}
+
+bool EventThreadDB::triggersCB() const
+{
+   EventType::Time ev_times[] = { EventType::None, EventType::Pre, EventType::Post };
+   int ev_types[] = { EventType::UserThreadCreate, EventType::UserThreadDestroy, 
+                      EventType::LWPCreate, EventType::LWPDestroy };
+   HandleCallbacks *cbhandler = HandleCallbacks::getCB();
+   for (unsigned i = 0; i < 3; i++)
+      for (unsigned j = 0; j < 4; j++)
+         if (cbhandler->hasCBs(EventType(ev_times[i], ev_types[j])))
+            return true;
+   return false;
+}
+
+int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
+   addr(a),
+   hwbp(NULL),
+   thrd(thr),
+   stopped_proc(false)
+{
+}
+
+int_eventBreakpoint::int_eventBreakpoint(hw_breakpoint *i, int_thread *thr) :
+   addr(i->getAddr()),
+   hwbp(i),
+   thrd(thr),
+   stopped_proc(false)
+{
+}
+
+int_eventBreakpoint::~int_eventBreakpoint()
+{
+}
+
+bp_instance *int_eventBreakpoint::lookupInstalledBreakpoint()
+{
+   if (hwbp)
+      return static_cast<bp_instance *>(hwbp);
+   else
+      return static_cast<bp_instance *>(thrd->llproc()->getBreakpoint(addr));
+}
+
+int_eventBreakpointClear::int_eventBreakpointClear() :
+   started_bp_suspends(false),
+   cached_bp_sets(false),
+   set_singlestep(false),
+   stopped_proc(false)
 {
 }
 
@@ -512,12 +887,14 @@ int_eventBreakpointClear::~int_eventBreakpointClear()
 {
 }
 
-int_eventBreakpoint::int_eventBreakpoint() :
-   set_singlestep(false)
+int_eventBreakpointRestore::int_eventBreakpointRestore(bp_instance *breakpoint_) :
+   set_states(false),
+   bp_resume_started(false),
+   bp(breakpoint_)
 {
 }
 
-int_eventBreakpoint::~int_eventBreakpoint()
+int_eventBreakpointRestore::~int_eventBreakpointRestore()
 {
 }
 
@@ -542,85 +919,119 @@ void int_eventRPC::getPendingAsyncs(std::set<response::ptr> &pending)
    }
 }
 
-int_eventAsync::int_eventAsync(response::ptr r) :
-   resp(r)
+int_eventAsync::int_eventAsync(response::ptr r)
 {
+   resp.insert(r);
 }
 
 int_eventAsync::~int_eventAsync()
 {
 }
 
-response::ptr int_eventAsync::getResponse() const
+set<response::ptr> &int_eventAsync::getResponses()
 {
    return resp;
 }
 
-EventAsync::EventAsync(int_eventAsync *ievent) :
-   Event(EventType(EventType::None, EventType::Async)),
-   internal(ievent)
+void int_eventAsync::addResp(response::ptr r)
+{
+   resp.insert(r);
+}
+
+int_eventNewUserThread::int_eventNewUserThread() :
+   thr(NULL),
+   lwp(NULL_LWP),
+   raw_data(NULL),
+   needs_update(true)
+{   
+}
+
+int_eventNewUserThread::~int_eventNewUserThread()
+{
+   if (raw_data)
+      free(raw_data);
+}
+
+int_eventThreadDB::int_eventThreadDB() :
+   completed_new_evs(false)
 {
 }
 
-EventAsync::~EventAsync()
-{
-   if (internal) {
-      delete internal;
-      internal = NULL;
-   }
-}
-
-int_eventAsync *EventAsync::getInternal() const
-{
-   return internal;
-}
-
-
-EventChangePCStop::EventChangePCStop() :
-   Event(EventType(EventType::None, EventType::ChangePCStop))
+int_eventThreadDB::~int_eventThreadDB()
 {
 }
 
-EventChangePCStop::~EventChangePCStop()
+int_eventDetach::int_eventDetach() :
+   temporary_detach(false),
+   removed_bps(false),
+   done(false),
+   had_error(false)
 {
 }
+
+int_eventDetach::~int_eventDetach()
+{
+}
+
+
 
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE) return NAME::const_ptr();  \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
 #define DEFN_EVENT_CAST2(NAME, TYPE, TYPE2) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::ptr(); \
-     return dyn_detail::boost::static_pointer_cast<NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
    } \
    NAME::const_ptr Event::get ## NAME() const { \
      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2) return NAME::const_ptr(); \
-     return dyn_detail::boost::static_pointer_cast<const NAME>(shared_from_this()); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
-DEFN_EVENT_CAST2(EventTerminate, Exit, Crash)
+#define DEFN_EVENT_CAST3(NAME, TYPE, TYPE2, TYPE3) \
+   NAME::ptr Event::get ## NAME() {  \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::ptr(); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+   } \
+   NAME::const_ptr Event::get ## NAME() const { \
+     if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3) return NAME::const_ptr(); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+   }
+
+DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
+DEFN_EVENT_CAST2(EventNewThread, UserThreadCreate, LWPCreate)
+DEFN_EVENT_CAST2(EventThreadDestroy, UserThreadDestroy, LWPDestroy)
 DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
+DEFN_EVENT_CAST(EventForceTerminate, ForceTerminate)
 DEFN_EVENT_CAST(EventExec, Exec)
 DEFN_EVENT_CAST(EventStop, Stop)
 DEFN_EVENT_CAST(EventBreakpoint, Breakpoint)
-DEFN_EVENT_CAST(EventNewThread, ThreadCreate)
-DEFN_EVENT_CAST(EventThreadDestroy, ThreadDestroy)
+DEFN_EVENT_CAST(EventNewUserThread, UserThreadCreate)
+DEFN_EVENT_CAST(EventNewLWP, LWPCreate)
+DEFN_EVENT_CAST(EventUserThreadDestroy, UserThreadDestroy)
+DEFN_EVENT_CAST(EventLWPDestroy, LWPDestroy)
 DEFN_EVENT_CAST(EventFork, Fork)
 DEFN_EVENT_CAST(EventSignal, Signal)
 DEFN_EVENT_CAST(EventBootstrap, Bootstrap)
 DEFN_EVENT_CAST(EventRPC, RPC)
 DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
+DEFN_EVENT_CAST(EventBreakpointRestore, BreakpointRestore)
 DEFN_EVENT_CAST(EventLibrary, Library)
-DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
+DEFN_EVENT_CAST(EventRPCLaunch, RPCLaunch)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
-
+DEFN_EVENT_CAST(EventPreBootstrap, PreBootstrap)
+DEFN_EVENT_CAST(EventDetach, Detach)
+DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
+DEFN_EVENT_CAST(EventNop, Nop)
+DEFN_EVENT_CAST(EventThreadDB, ThreadDB)
+DEFN_EVENT_CAST(EventWinStopThreadDestroy, WinStopThreadDestroy)

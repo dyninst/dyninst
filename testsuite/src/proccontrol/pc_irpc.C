@@ -40,6 +40,13 @@ class pc_irpcMutator : public ProcControlMutator {
 public:
   virtual test_results_t executeTest();
    void runIRPCs();
+   void initialMessageExchange();
+   bool finalMessageExchange();
+
+   bool setStateForRPC();
+   bool postNextRPC();
+   bool waitForRPCCompletion();
+
 };
 
 extern "C" DLLEXPORT TestMutator* pc_irpc_factory()
@@ -69,6 +76,8 @@ struct rpc_data_t {
 struct proc_info_t {
    Dyninst::Address val;
    Dyninst::Address irpc_calltarg;
+   Dyninst::Address irpc_tocval;
+   Dyninst::Address busywait;
    std::vector<rpc_data_t *> rpcs;
    proc_info_t() : val(0), irpc_calltarg(0) {}
    void clear() {
@@ -79,7 +88,7 @@ struct proc_info_t {
    }
 };
 
-std::map<Process::ptr, proc_info_t> pinfo;
+static std::map<Process::ptr, proc_info_t> pinfo;
 
 #define NUM_IRPCS 4
 
@@ -92,51 +101,10 @@ struct thread_info_t {
    }
 };
 
-std::map<Thread::const_ptr, thread_info_t> tinfo;
-std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;
+static std::map<Thread::const_ptr, thread_info_t> tinfo;
+static std::map<IRPC::const_ptr, rpc_data_t *> rpc_to_data;
 
-static void createBuffer(Process::ptr proc,
-                         unsigned char* &buffer, unsigned &buffer_size,
-                         unsigned long &start_offset)
-{
-   proc_info_t &p = pinfo[proc];
-   Dyninst::Address calltarg = p.irpc_calltarg;
-   switch (proc->getArchitecture()) {
-      case Dyninst::Arch_x86_64: {
-         buffer = (unsigned char *) malloc(17);
-         //nop, nop, nop, nop
-         buffer[0] = buffer[1] = buffer[2] = buffer[3] = 0x90;
-         //mov %rax, $imm
-         buffer[4] = 0x48; buffer[5] = 0xb8;
-         memcpy(buffer+6, &calltarg, 8);
-         //call %rax
-         buffer[14] = 0xff; buffer[15] = 0xd0;
-         //Trap
-         buffer[16] = 0xcc;
-         buffer_size = 17;
-         start_offset = 4;
-         break;
-      }
-      case Dyninst::Arch_x86: {
-         buffer = (unsigned char *) malloc(12);
-         uint32_t addr32 = (uint32_t) calltarg;
-         //nop, nop, nop, nop
-         buffer[0] = buffer[1] = buffer[2] = buffer[3] = 0x90;
-         //mov %eax, $imm
-         buffer[4] = 0xb8;
-         memcpy(buffer+5, &addr32, 4);
-         //call %eax
-         buffer[9] = 0xff; buffer[10] = 0xd0;
-         //Trap
-         buffer[11] = 0xcc;
-         buffer_size = 12;
-         start_offset = 4;
-         break;
-      }
-      default:
-         assert(0);
-   }
-}
+#include "pc_irpc_asm.h"
 
 static bool has_pending_irpcs() 
 {
@@ -189,7 +157,8 @@ enum post_to_t {
 
 enum rpc_sync_t {
    rpc_use_sync = 0,
-   rpc_use_async = 1
+   rpc_use_async = 1,
+   rpc_use_postsync = 2
 };
 
 enum thread_start_t {
@@ -234,6 +203,7 @@ const char *rs_str() {
    switch (rpc_sync) {
       STR_CASE(rpc_use_sync);
       STR_CASE(rpc_use_async);
+      STR_CASE(rpc_use_postsync);
    }
    return NULL;
 }
@@ -248,10 +218,22 @@ const char *ts_str() {
 
 static bool post_irpc(Thread::const_ptr thr)
 {
-   Process::ptr proc = thr->getProcess();
-   proc_info_t &p = pinfo[proc];
+   Process::const_ptr proc = thr->getProcess();
+   Process::ptr proc_nc = Process::ptr();
 
-      //for (vector<rpc_data_t *>::iterator j = p.rpcs.begin(); j != p.rpcs.end(); j++) 
+   //bad hack to remove const from process
+   for (std::map<Process::ptr, proc_info_t>::iterator i = pinfo.begin(); 
+        i != pinfo.end(); i++) {
+      if (proc == i->first) {
+         proc_nc = i->first;
+         break;
+      }
+   }
+   assert(proc_nc);
+   
+   proc_info_t &p = pinfo[proc_nc];
+
+   //for (vector<rpc_data_t *>::iterator j = p.rpcs.begin(); j != p.rpcs.end(); j++) 
    for (unsigned j = 0; j < p.rpcs.size(); j++)
    {
       rpc_data_t *rpcdata = p.rpcs[j];
@@ -261,11 +243,25 @@ static bool post_irpc(Thread::const_ptr thr)
 
       Thread::const_ptr result_thread;
       if (post_to == post_to_proc) {
-         result_thread = proc->postIRPC(rpcdata->rpc);
-         if (result_thread == Thread::ptr()) {
-            logerror("Failed to post rpc to process\n");
-            myerror = true;
-            return false;
+         if(rpc_sync == rpc_use_postsync) {
+            if(!proc_nc->runIRPCSync(rpcdata->rpc))
+            {
+               logerror("Failed to post sync rpc to process\n");
+               myerror = true;
+               return false;
+            }
+            //We'll record all these too the initial thread, though we're actually
+            // telling ProcControlAPI to run it anywhere.
+            result_thread = proc->threads().getInitialThread();
+         }
+         else {
+	         bool result = proc->postIRPC(rpcdata->rpc);
+            if (!result) {
+               logerror("Failed to post rpc to process\n");
+               myerror = true;
+               return false;
+            }
+            result_thread = proc->threads().getInitialThread();
          }
       }
       else if (post_to == post_to_thread) {
@@ -279,7 +275,7 @@ static bool post_irpc(Thread::const_ptr thr)
       }
       thread_info_t &t = tinfo[result_thread];
       if (rpcdata->assigned) {
-         if (rpcdata->thread != result_thread) {
+         if (result_thread && rpcdata->thread != result_thread) {
             logerror("postIRPC and callback disagree on RPC's thread\n");
             myerror = true;
             return false;
@@ -326,6 +322,7 @@ void pc_irpcMutator::runIRPCs() {
          if (!result) {
             logerror("Failed to stop process\n");
             myerror = true;
+            return;
          }
       }
    }
@@ -337,17 +334,22 @@ void pc_irpcMutator::runIRPCs() {
    for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
         i != comp->procs.end(); i++) 
    {
-      Process::ptr proc = *i;
+	   Process::ptr proc = *i;
       proc_info_t &p = pinfo[proc];
       p.clear();
       unsigned long start_offset;
-      createBuffer(proc, buffer, buffer_size, start_offset);
-      
+      createBuffer(proc, pinfo[proc].irpc_calltarg, pinfo[proc].irpc_tocval, buffer, buffer_size, start_offset);
+
       for (ThreadPool::iterator j = proc->threads().begin();
            j != proc->threads().end(); j++)
       {
          Thread::ptr thr = *j;
          thread_info_t &t = tinfo[thr];
+         if(!thr->isUser())
+         {
+            continue;
+         }
+
          for (unsigned k = 0; k < NUM_IRPCS; k++)
          {
             IRPC::ptr irpc;
@@ -378,9 +380,13 @@ void pc_irpcMutator::runIRPCs() {
         i != tinfo.end(); i++)
    {
       Thread::const_ptr thr = i->first;
-      Process::ptr proc = thr->getProcess();
+      Process::const_ptr proc = thr->getProcess();
       thread_info_t &t = i->second;
 
+	  if(!thr->isUser())
+	  {
+		  continue;
+	  }
       int num_to_post_now = (post_time == post_all_once) ? NUM_IRPCS : 1;
       for (unsigned j=0; j<num_to_post_now; j++)
       {
@@ -392,9 +398,9 @@ void pc_irpcMutator::runIRPCs() {
     * Wait for completion
     **/
    bool done = false;
+
    while (!myerror) {
       while (has_pending_irpcs()) {
-         
          /** 
           * Continue all stopped threads
           **/
@@ -434,6 +440,7 @@ void pc_irpcMutator::runIRPCs() {
          if (!result) {
             logerror("Failed to block for events\n");
             myerror = true;
+            return;
          }
          if (rpc_sync == rpc_use_sync && has_pending_irpcs())
          {
@@ -444,6 +451,7 @@ void pc_irpcMutator::runIRPCs() {
             {
                logerror("handleEvents returned with sync rpcs pending\n");
                myerror = true;
+               return;
             }
          }
       }
@@ -455,14 +463,14 @@ void pc_irpcMutator::runIRPCs() {
        **/
       if (post_time == post_sequential) {
          for (std::map<Thread::const_ptr, thread_info_t>::iterator i = tinfo.begin(); 
-              i != tinfo.end(); i++) 
+				  i != tinfo.end(); i++) 
          {
-            Thread::const_ptr thr = i->first;
-            post_irpc(thr);
-         }
+				Thread::const_ptr thr = i->first;
+				post_irpc(thr);
+			 }
       }
    }
-
+   
    /**
     * Free memory
     **/
@@ -502,7 +510,7 @@ void pc_irpcMutator::runIRPCs() {
          myerror = true;
       }
       if (val != (comp->num_threads+1) * NUM_IRPCS) {
-         fprintf(stderr, "val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
+         logerror("val = %d, expected = %d\n", val, (comp->num_threads+1)*NUM_IRPCS);
          logerror("IRPCS did not update val\n");
          myerror = true;
       }
@@ -513,7 +521,7 @@ void pc_irpcMutator::runIRPCs() {
          logerror("Failure writing to process memory\n");
          myerror = true;
       }
-      
+
       /**
        * Continue process
        **/
@@ -537,9 +545,17 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
       return Process::cbDefault;
    }
    rpc_data_t *rpcdata = i->second;
-   thread_info_t &t = tinfo[ev->getThread()];
+   Process::const_ptr proc = ev->getProcess();
+   Thread::const_ptr lookup_thread;
+   if (post_to == post_to_proc) {
+      lookup_thread = proc->threads().getInitialThread();
+   }
+   else {
+      lookup_thread = ev->getThread();
+   }
+   thread_info_t &t = tinfo[lookup_thread];
    if (rpcdata->assigned) {
-      if (rpcdata->thread != ev->getThread()) {
+	   if (post_to == post_to_thread && rpcdata->thread && rpcdata->thread != ev->getThread()) {
          logerror("callback and postIRPC disagree on RPC's thread\n");
          myerror = true;
          return Process::cbDefault;
@@ -549,7 +565,7 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
       //Darn race, we finished the rpc before we put it into the thread's RPC
       // vector.  We'll fill it in now and check the result in post.
       rpcdata->assigned = true;
-      rpcdata->thread = ev->getThread();
+      rpcdata->thread = lookup_thread;
       t.rpcs.push_back(rpcdata);
    }
    if (rpcdata->completed) {
@@ -558,15 +574,21 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
       return Process::cbDefault;
    }
 
+   // Check whether the thread's registers can be read or not
+   MachRegister pcReg = MachRegister::getPC(ev->getProcess()->getArchitecture());
+   MachRegisterVal pcVal;
+   if (!ev->getThread()->getRegister(pcReg, pcVal)) {
+       logerror("Failed to retrieve PC in iRPC callback\n");
+       myerror = true;
+   }
+
    int &cur = t.cur;
 
    assert(cur < t.rpcs.size());
    if (t.rpcs[cur] != rpcdata) {
-      if (!(post_time == post_from_callback && post_to==post_to_proc && thread_start == rpc_start_running)) 
+      if (post_to != post_to_proc)
       {
-         //These three conditions can combine to form a test level (not ProcControlAPI level) 
-         // race condition where we mess up the results of the order vector.  Fixing this would
-         // be hard, so I'm going to skip this test in this combo.
+         //post_to_proc scatters the rpcs across a multithreaded process.  No guarentee on order
          logerror("RPC ran out of order\n");
          myerror = true;
       }
@@ -588,10 +610,9 @@ Process::cb_ret_t on_irpc(Event::const_ptr ev)
    return Process::cbThreadContinue;      
 }
 
-
-test_results_t pc_irpcMutator::executeTest()
+void pc_irpcMutator::initialMessageExchange()
 {
-   myerror = false;
+	myerror = false;
    pinfo.clear();
 
    Process::registerEventCallback(EventType::RPC, on_irpc);
@@ -619,6 +640,18 @@ test_results_t pc_irpcMutator::executeTest()
       }
       p.irpc_calltarg = addr.addr;
 
+      result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr),
+              proc);
+      if(!result) {
+          logerror("Failed to receive addr message\n");
+          myerror = true;
+      }
+      if( addr.code != SENDADDR_CODE ) {
+          logerror("Unexpected addr code\n");
+          myerror = true;
+      }
+      p.irpc_tocval = addr.addr;
+
       result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
                                   proc);
       if (!result) {
@@ -630,8 +663,34 @@ test_results_t pc_irpcMutator::executeTest()
          myerror = true;
       }
       p.val = addr.addr;
+
+      result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
+                                  proc);
+      if (!result) {
+         logerror("Failed to recieve busywait addr message\n");
+         myerror = true;
+      }
+      if (addr.code != SENDADDR_CODE) {
+         logerror("Unexpected addr code\n");
+         myerror = true;
+      }
+      p.busywait = addr.addr;
+
       pinfo[proc] = p;
    }
+}
+
+
+test_results_t pc_irpcMutator::executeTest()
+{
+   initialMessageExchange();
+  if (myerror) {
+     char buffer[256];
+     snprintf(buffer, 256, "Errored in initial setup\n");
+     logerror(buffer);
+     finalMessageExchange();
+     return FAILED;
+  }
 
    //Change these values for debugging
    unsigned allocation_mode_start = 0;
@@ -643,23 +702,34 @@ test_results_t pc_irpcMutator::executeTest()
    unsigned allocation_mode_end = 1;
    unsigned post_time_end = 2;
    unsigned post_to_end = 1;
-   unsigned rpc_sync_end = 1;
+   unsigned rpc_sync_end = 2;
    unsigned thread_start_end = 1;
 
    for (unsigned a = allocation_mode_start; a <= allocation_mode_end; a++)
       for (unsigned b = post_time_start; b <= post_time_end; b++)
          for (unsigned c = post_to_start; c <= post_to_end; c++)
             for (unsigned d = rpc_sync_start; d <= rpc_sync_end ; d++)
-               for (unsigned e = thread_start_start;  e <= thread_start_end; e++)
+               for (unsigned e = thread_start_start; e <= thread_start_end; e++)
                {
                   allocation_mode = (allocation_mode_t) a;
                   post_time = (post_time_t) b;
                   post_to = (post_to_t) c;
                   rpc_sync = (rpc_sync_t) d;
                   thread_start = (thread_start_t) e;
+
+#if defined(os_windows_test)
+                  if(rpc_sync == rpc_use_sync && post_time != post_sequential) continue;
+                  // Windows does not support thread-specific RPCs due to the 
+                  //  "create a thread" mechanism for dealing with all threads in syscall.
+                  if (post_to == post_to_thread) continue;
+#endif
+                  if (post_time == post_from_callback && rpc_sync == rpc_use_postsync)
+                     continue; //Incompatible, postSyncRPC cannot be run from a callback.
+
                   logerror("Running: allocation_mode=%s post_time=%s post_to=%s " 
-                          "rpc_sync=%s thread_start=%s\n", am_str(), pti_str(), pto_str(), 
-                          rs_str(), ts_str());
+                           "rpc_sync=%s thread_start=%s\n", am_str(), pti_str(), pto_str(), 
+                           rs_str(), ts_str());
+                  assert(!myerror);
                   runIRPCs();
                   if (myerror) {
                      char buffer[256];
@@ -671,16 +741,25 @@ test_results_t pc_irpcMutator::executeTest()
                   }
                }
   done:
-
-   Process::removeEventCallback(EventType::RPC);
-
-   syncloc sync_point;
-   sync_point.code = SYNCLOC_CODE;
-   bool result = comp->send_broadcast((unsigned char *) &sync_point, sizeof(syncloc));
-   if (!result) {
+   if (!finalMessageExchange()) {
       logerror("Failed to send sync broadcast\n");
       return FAILED;
    }
    
    return myerror ? FAILED : PASSED;
+}
+
+bool pc_irpcMutator::finalMessageExchange()
+{
+   Process::removeEventCallback(EventType::RPC);
+
+	for (vector<Process::ptr>::iterator i = comp->procs.begin(); 
+		i != comp->procs.end(); i++)
+	{
+		int done = 1;
+		(*i)->writeMemory(pinfo[*i].busywait, &done, sizeof(int));
+	}
+   syncloc sync_point;
+   sync_point.code = SYNCLOC_CODE;
+   return comp->send_broadcast((unsigned char *) &sync_point, sizeof(syncloc));
 }

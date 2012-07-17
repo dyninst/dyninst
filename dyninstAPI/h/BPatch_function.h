@@ -45,7 +45,6 @@
 // class BPatch_dependenceGraphNode;
 
 class func_instance;
-class process;
 class InstrucIter;
 
 class BPatch_localVarCollection;

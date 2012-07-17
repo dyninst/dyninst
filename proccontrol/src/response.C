@@ -34,6 +34,7 @@
 #include "proccontrol/src/response.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/procpool.h"
 
 #include <cstring>
 
@@ -41,7 +42,9 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-unsigned int response::next_id = 0;
+unsigned int response::next_id = 1;
+
+static Mutex id_lock;
 
 response::response() :
    event(Event::ptr()),
@@ -49,17 +52,20 @@ response::response() :
    checked_ready(false),
    isSyncHandled(false),
    error(false),
-   errorcode(0)
+   errorcode(0),
+   proc(NULL),
+   decoder_event(NULL),
+   multi_resp_size(0),
+   multi_resp_recvd(0)
 {
-   static Mutex id_lock;
-   id_lock.lock();
-   id = next_id++;
-   id_lock.unlock();
+  id_lock.lock();
+  id = next_id++;
+  id_lock.unlock();
 }
 
 response::~response()
 {
-   assert(state != ready || checked_ready);
+   assert(error || state != ready || checked_ready);
 }
 
 bool response::isReady() const
@@ -91,6 +97,9 @@ bool response::isPosted() const
 
 void response::markReady()
 {
+   if (multi_resp_size && multi_resp_size < multi_resp_recvd)
+      return;
+
    assert(state != ready);
    state = ready;
 }
@@ -135,44 +144,108 @@ string response::name() const
          return "AllReg Response";
       case rt_mem:
          return "Mem Response";
+      case rt_set:
+         return "Set Response";
+      case rt_stack:
+         return "Stack Response";
    }
    assert(0);
    return "";
 }
 
+unsigned int response::markAsMultiResponse(int num_resps)
+{
+   assert(num_resps);
+   assert(state == unset);
+   id_lock.lock();
+   id = next_id;
+   next_id += num_resps;
+   id_lock.unlock();
+
+   multi_resp_size = num_resps;
+
+   return id;
+}
+
+bool response::isMultiResponse()
+{
+   return multi_resp_size != 0;
+}
+
+unsigned int response::multiResponseSize()
+{
+   return multi_resp_size;
+}
+
+bool response::isMultiResponseComplete()
+{
+   return (multi_resp_size == multi_resp_recvd);
+}
+
+void response::setDecoderEvent(ArchEvent *ae)
+{
+   decoder_event = ae;
+}
+
+ArchEvent *response::getDecoderEvent()
+{
+   return decoder_event;
+}
+
+int_process *response::getProcess() const
+{
+  return proc;
+}
+
+void response::setProcess(int_process *p)
+{
+  proc = p;
+}
+
 result_response::ptr response::getResultResponse()
 {
    return resp_type == rt_result ? 
-      dyn_detail::boost::static_pointer_cast<result_response>(shared_from_this()) :
+      boost::static_pointer_cast<result_response>(shared_from_this()) :
       result_response::ptr();
 }
 
 mem_response::ptr response::getMemResponse()
 {
    return resp_type == rt_mem ? 
-      dyn_detail::boost::static_pointer_cast<mem_response>(shared_from_this()) :
+      boost::static_pointer_cast<mem_response>(shared_from_this()) :
       mem_response::ptr();
 }
 
 reg_response::ptr response::getRegResponse()
 {
    return resp_type == rt_reg ? 
-      dyn_detail::boost::static_pointer_cast<reg_response>(shared_from_this()) :
+      boost::static_pointer_cast<reg_response>(shared_from_this()) :
       reg_response::ptr();
 }
 
 allreg_response::ptr response::getAllRegResponse()
 {
    return resp_type == rt_allreg ? 
-      dyn_detail::boost::static_pointer_cast<allreg_response>(shared_from_this()) :
+      boost::static_pointer_cast<allreg_response>(shared_from_this()) :
       allreg_response::ptr();
+}
+
+stack_response::ptr response::getStackResponse()
+{
+   return resp_type == rt_stack ?
+      boost::static_pointer_cast<stack_response>(shared_from_this()) :
+      stack_response::ptr();
 }
 
 response::ptr responses_pending::rmResponse(unsigned int id)
 {
    //cvar lock should already be held.
    std::map<unsigned int, response::ptr>::iterator i = pending.find(id);
-   assert(i != pending.end());
+   if (i == pending.end()) {
+      //I've seen this happen on BlueGene/P, it sometimes throws duplicate ACKs
+      pthrd_printf("Unknown response.  Recieved duplicate ACK message on BlueGene?\n");
+      return response::ptr();
+   }
    response::ptr result = (*i).second;
 
    pending.erase(i);
@@ -206,15 +279,20 @@ bool responses_pending::waitFor(response::ptr resp)
    return true;
 }
 
-bool responses_pending::hasAsyncPending()
+bool responses_pending::hasAsyncPending(bool ev_only)
 {
    bool ret = false;
    cvar.lock();
-   map<unsigned, response::ptr>::const_iterator i;
-   for (i = pending.begin(); i != pending.end(); i++) {
-      if (i->second->getEvent()) {
-         ret = true;
-         break;
+   if (!ev_only) {
+      ret = !pending.empty();
+   }
+   else {
+      map<unsigned, response::ptr>::const_iterator i;
+      for (i = pending.begin(); i != pending.end(); i++) {
+         if (i->second->getEvent()) {
+            ret = true;
+            break;
+         }
       }
    }
    cvar.unlock();
@@ -245,19 +323,47 @@ void responses_pending::signal()
    cvar.broadcast();
 }
 
+CondVar &responses_pending::condvar()
+{
+   return cvar;
+}
+
 void responses_pending::addResponse(response::ptr r, int_process *proc)
 {
    pthrd_printf("Adding response %d of type %s to list of pending responses\n", r->getID(), r->name().c_str());
    Event::ptr ev = proc->handlerPool()->curEvent();
-   if (!ev) {
-      ev = proc->getInternalRPCEvent(); //May return NULL
-   }
    if (r->isSyncHandled)
       ev = Event::ptr();
 
+   r->setProcess(proc);
+
    r->setEvent(ev);
    r->markPosted();
-   pending[r->getID()] = r;
+
+   if (!r->isMultiResponse()) {
+      pending[r->getID()] = r;
+   }
+   else {
+      unsigned int id = r->getID();
+      unsigned int end = r->getID() + r->multiResponseSize();
+      for (unsigned int i = id; i < end; i++) {
+         pending[i] = r;
+      }
+   }
+}
+
+void responses_pending::noteResponse()
+{
+   if (isGeneratorThread()) {
+      //Signaling the ProcPool is meant to wake the generator.  We
+      // obviously don't need to signal ourselves.  In fact,
+      // the generator may already be holding the procpool lock, 
+      // so we don't want to retake it.
+      return;
+   }
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->broadcast();
+   ProcPool()->condvar()->unlock();
 }
 
 responses_pending &getResponses()
@@ -289,7 +395,19 @@ void result_response::setResponse(bool b_)
 
 void result_response::postResponse(bool b_)
 {
-   b = b_;
+   if (!isMultiResponse()) {
+      b = b_;
+      return;
+   }
+
+   multi_resp_recvd++;
+   if (multi_resp_recvd == 1) {
+      b = b_;
+      return;
+   }
+   // The 'b = b & b_' logic is so that a multi-response result will 
+   // be true iff all RESULT_ACKs returned success
+   b = b & b_;
 }
 
 bool result_response::getResult() const
@@ -379,7 +497,12 @@ void allreg_response::setResponse()
 void allreg_response::postResponse()
 {
    assert(thr);
-   thr->updateRegCache(*regpool);
+   if (isMultiResponse()) {
+      multi_resp_recvd++;
+   }
+   if (isMultiResponseComplete()) {
+      thr->updateRegCache(*regpool);
+   }
 }
 
 int_registerPool *allreg_response::getRegPool() const
@@ -400,7 +523,8 @@ mem_response::ptr mem_response::createMemResponse(char *targ, unsigned targ_size
 mem_response::mem_response() :
    buffer(NULL),
    size(0),
-   buffer_set(false)
+   buffer_set(false),
+   last_base(0)
 {
    resp_type = rt_mem;
 }
@@ -408,7 +532,8 @@ mem_response::mem_response() :
 mem_response::mem_response(char *targ, unsigned targ_size) :
    buffer(targ),
    size(targ_size),
-   buffer_set(true)
+   buffer_set(true),
+   last_base(0)
 {
    resp_type = rt_mem;
 }
@@ -437,12 +562,29 @@ void mem_response::setResponse()
    markReady();
 }
 
-void mem_response::postResponse(char *src, unsigned src_size)
+void mem_response::postResponse(char *src, unsigned src_size, Address src_addr)
 {
    assert(buffer_set);
-   assert(src_size >= size);
 
-   memcpy(buffer, src, size);
+   if (!isMultiResponse()) {
+      assert(src_size >= size);
+      memcpy(buffer, src, size);
+      return;
+   }
+
+   multi_resp_recvd++;
+   unsigned long offset = src_addr - last_base;
+   memcpy(buffer + offset, src, src_size);
+}
+
+void mem_response::setLastBase(Address a) 
+{
+   last_base = a;
+}
+
+Address mem_response::lastBase()
+{
+   return last_base;
 }
 
 void mem_response::postResponse()
@@ -458,3 +600,81 @@ unsigned mem_response::getSize() const
 {
    return size;
 }
+
+stack_response::ptr stack_response::createStackResponse(int_thread *t)
+{
+   return stack_response::ptr(new stack_response(t));
+}
+
+stack_response::stack_response(int_thread *t) :
+   data(NULL),
+   thr(t)
+{
+   resp_type = rt_stack;
+}
+ 
+stack_response::~stack_response()
+{
+}
+
+void *stack_response::getData()
+{
+   return data;
+}
+
+int_thread *stack_response::getThread()
+{
+   return thr;
+}
+
+void stack_response::postResponse(void *d)
+{
+   data = d;
+}
+
+unsigned int ResponseSet::next_id = 1;
+Mutex ResponseSet::id_lock;
+std::map<unsigned int, ResponseSet *> ResponseSet::all_respsets;
+
+ResponseSet::ResponseSet()
+{
+  id_lock.lock();
+  myid = next_id++;
+  if (!myid)
+    myid = next_id++;
+  all_respsets.insert(make_pair(myid, this));
+  id_lock.unlock();
+}
+
+void ResponseSet::addID(unsigned id, unsigned index)
+{
+  ids.insert(make_pair(index, id));
+}
+
+unsigned ResponseSet::getIDByIndex(unsigned int index, bool &found) const
+{
+  map<unsigned, unsigned>::const_iterator i = ids.find(index);
+  if (i == ids.end()) {
+    found = false;
+    return 0;
+  }
+  found = true;
+  return i->second;
+}
+unsigned int ResponseSet::getID() const {
+  return myid;
+}
+
+ResponseSet *ResponseSet::getResponseSetByID(unsigned int id) {
+  map<unsigned int, ResponseSet *>::iterator i;
+  ResponseSet *respset = NULL;
+  id_lock.lock();
+  i = all_respsets.find(id);
+  if (i != all_respsets.end()) {
+    respset = i->second;
+    all_respsets.erase(i);
+  }
+  id_lock.unlock();
+  return respset;
+}
+

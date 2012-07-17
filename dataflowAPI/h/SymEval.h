@@ -314,8 +314,8 @@ class SymEvalPolicy;
 
 class  SymEval {
 public:
-    typedef dyn_detail::boost::shared_ptr<SliceNode> SliceNodePtr;
-    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+    typedef boost::shared_ptr<SliceNode> SliceNodePtr;
+    typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 public:
   typedef enum {
      FAILED,
@@ -353,8 +353,9 @@ public:
 			 const uint64_t addr,
 			 Result_t& res);
 
-  static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
-  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
+ static Retval_t process(SliceNodePtr ptr, Result_t &dbase, std::set<Edge::Ptr> &skipEdges);
+  
+ static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func, ParseAPI::Block *block);
 };
 
 };

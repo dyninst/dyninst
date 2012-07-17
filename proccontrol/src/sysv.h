@@ -48,47 +48,48 @@ class PCProcReader : public ProcessReader
 private:
    sysv_process *proc;
    
-   long word_cache;
-   Dyninst::Address word_cache_addr;
-   bool word_cache_valid;
-
-   bool postAsyncRead(Dyninst::Address addr);
-   bool ReadMemAsync(Address addr, void *buffer, unsigned size);
-   bool handleAsyncCompletion();
-   void clearBuffers();
-
-   static const unsigned long async_read_align = 0x1000;
-   std::map<Dyninst::Address, char *> async_read_buffers;
-   mem_response::ptr memresult;
-   Dyninst::Address pending_addr;
+   std::set<mem_response::ptr> memresults;
 public:
    PCProcReader(sysv_process *proc_);
    virtual ~PCProcReader();
    virtual bool start();
-   virtual bool isAsync();
    virtual bool ReadMem(Address addr, void *buffer, unsigned size);
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
    virtual bool done();
+
+   bool hasPendingAsync();
+   bool getNewAsyncs(std::set<response::ptr> &resps);
 };
 
 class sysv_process : virtual public int_process
 {
    friend class PCProcReader;
  public:
-   sysv_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   sysv_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    sysv_process(Dyninst::PID pid_, int_process *p);
    virtual ~sysv_process();
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
                                   std::set<int_library *> &rmd_libs,
+                                  bool &waiting_for_async,
                                   std::set<response::ptr> &async_responses);
    virtual bool initLibraryMechanism();
 
    Dyninst::Address getLibBreakpointAddr() const;
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
+   static bool addSysVHandlers(HandlerPool *hpool);
+
+   virtual bool sysv_setTrackLibraries(bool b, int_breakpoint* &bp, Address &addr, bool &add_bp);
+   virtual bool sysv_isTrackingLibraries();
+   virtual LibraryTracking *sysv_getLibraryTracking();
  protected:
    virtual bool plat_execed();
    virtual bool plat_isStaticBinary();
+   virtual int_library *plat_getExecutable();
+   virtual bool plat_getInterpreterBase(Address &addr);
+
+   AddressTranslate *constructTranslator(Dyninst::PID pid);
 
    static int_breakpoint *lib_trap;
 
@@ -96,6 +97,11 @@ class sysv_process : virtual public int_process
    AddressTranslate *translator;
    bool lib_initialized;
    PCProcReader *procreader;
+  private:
+   bool track_libraries;
+   int_library *aout;
+   LibraryTracking *libtracking;
+   static SymbolReaderFactory *symreader_factory;
 };
 
 #endif

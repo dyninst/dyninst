@@ -35,7 +35,6 @@
  * #Desc: sequential multiple-process management - abort
  * #Dep: 
  * #Arch:
- * #Notes: useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -93,8 +92,6 @@ test_results_t test3_5_Mutator::executeTest() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appProc->getPid());
-	// Register for cleanup
-        registerPID(appProc->getPid());
 
         appProc->continueExecution();
 

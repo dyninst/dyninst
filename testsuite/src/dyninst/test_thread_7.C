@@ -50,7 +50,7 @@ protected:
   bool create_proc;
   char *filename;
   BPatch_process *proc;
-  char *args[MAX_ARGS];
+  const char *args[MAX_ARGS];
   unsigned num_args;
 
   BPatch_process *getProcess();
@@ -74,7 +74,7 @@ test_thread_7_Mutator::test_thread_7_Mutator()
 // static FILE *errlog = NULL;
 
 
-static bool debug_flag = false;
+static bool debug_flag = true;
 #define dprintf if (debug_flag) fprintf
 
 void test_thread_7_Mutator::instr_func(BPatch_function *func,
@@ -116,43 +116,23 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
                  __FILE__, __LINE__, filename);
          return NULL;
       }
-      registerPID(proc->getPid()); // Register for cleanup
    }
-   else
-   {
-      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(), getErrorLog(), true);
-      if (pid < 0) {
-	 int errnum = errno;
-	 errno = 0;
-	 char *errstr = strerror(errnum);
-	 logerror("%s couldn't be started: %s\n", filename,
-		  errno ? "<unknown error>" : errstr);
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
+   else {
 #if defined(os_windows_test)
-      P_sleep(1);
+	   P_sleep(1);
 #endif
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-		  __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
+		// Should be attached by test infrastructure, but
+	   // we set delayedAttach so signal it here.
+	   if (!appProc) return NULL;
+
+	   signalAttached(appImage);
+	   proc = appProc;
    }
+   // Getting rid of attach here because the old code is apparently broken.
    return proc;
 }
 
 test_results_t test_thread_7_Mutator::executeTest() {
-  memset(args, 0, sizeof (args));
-
    proc = getProcess();
    if (!proc) {
      return FAILED;
@@ -210,12 +190,17 @@ test_results_t test_thread_7_Mutator::executeTest() {
 //extern "C" TEST_DLL_EXPORT int test14_1_mutatorMAIN(ParameterDict &param)
 test_results_t test_thread_7_Mutator::setup(ParameterDict &param) {
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    filename = param["pathname"]->getString();
 
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    }
 
+//   return DyninstMutator::setup(param);
+	// Leaving here for reference: we don't want to use the Dyninst setup,
+   // since it breaks attach.
    return PASSED;
 }

@@ -37,6 +37,7 @@
 #include "stackwalk/src/x86-swk.h"
 #include "stackwalk/src/symtab-swk.h"
 #include "stackwalk/src/libstate.h"
+#include "stackwalk/src/sw.h"
 
 #include "common/h/Types.h"
 
@@ -85,6 +86,7 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
    bool found_exact_match = false;
    Address found_base = 0x0;
    Address found_ra = 0x0;
+   FrameFuncHelper::alloc_frame_t alloc_res;
 
    do {
       result = getWord(word, current_stack);
@@ -96,20 +98,37 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
       Address target;
       if (whelper->isPrevInstrACall(word, target))
       {
-         if (whelper->isPCInFunc(target, in.getRA()))
-         {
+        // in func = exact match
+        // outside func = reject
+        // unknown = candidate
+        WandererHelper::pc_state pcs = whelper->isPCInFunc(target, in.getRA());
+        switch (pcs)
+        {
+          case WandererHelper::outside_func:
+            // TODO re-enable this heuristic for Dyninst when the Analysis Stepper is working
+            if (whelper->requireExactMatch()) {  
+            sw_printf("[%s:%u] - Wanderer discarded word 0x%lx at 0x%lx\n",
+                      __FILE__, __LINE__, word, current_stack);
+            // not a candidate
+            break;
+            }
+          case WandererHelper::unknown_s:
+            sw_printf("[%s:%u] - Wanderer added word 0x%lx at 0x%lx as candidate return "
+                      " address\n", __FILE__, __LINE__, word, current_stack);
+            candidate.push_back(std::pair<Address, Address>(word, current_stack));
+            break;
+
+          case WandererHelper::in_func:
             sw_printf("[%s:%u] - Wanderer thinks word 0x%lx at 0x%lx  is return "
                       " address\n", __FILE__, __LINE__, word, current_stack);
             found_base = current_stack;
             found_ra = word;
             found_exact_match = true;
             break;
-         }
-         else
-         {
-            //candidate.push_back(std::pair<Address, Address>(word, current_stack));
-         }
+        }
       }
+
+      if (found_exact_match) break;
       current_stack += addr_width;
       num_words_tried++;
    } while (num_words_tried < MAX_WANDERER_DEPTH);
@@ -126,15 +145,23 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
        * push_back and the below code.  This trades false negatives for
        * potential false positives, but I'm not sure it's worth it.
        **/
-      return gcf_not_me;
-      //found_ra = candidate[0].first;
-      //found_base = candidate[0].second;
+      if (whelper->requireExactMatch())
+      {
+        return gcf_not_me;
+      }
+      else
+      {
+        found_ra = candidate[0].first;
+        found_base = candidate[0].second;
+      }
    }
 
    out.setRA(found_ra);
    out.setSP(found_base + addr_width);
-   
-   if (fhelper->allocatesFrame(in.getRA()).first == FrameFuncHelper::savefp_only_frame) {
+
+   alloc_res = fhelper->allocatesFrame(in.getRA());
+   if (alloc_res.first == FrameFuncHelper::savefp_only_frame &&
+       alloc_res.second != FrameFuncHelper::unset_frame) {
       Address new_fp;
       result = getProcessState()->readMem(&new_fp, out.getSP(), 
                                           getProcessState()->getAddressWidth());
@@ -174,88 +201,15 @@ bool StepperWandererImpl::getWord(Address &word_out, Address start)
 
 bool WandererHelper::isPrevInstrACall(Address addr, Address &target)
 {
-   const unsigned max_call_length = 5;
-   bool result;
-   unsigned char buffer[max_call_length];
-
-   sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", __FILE__, __LINE__, addr);
-   Address start = addr - max_call_length;
-   result = proc->readMem(buffer, start, max_call_length);
-   if (!result)
-   {
-      sw_printf("[%s:%u] - Address 0x%lx is not a call--unreadable\n",
-                __FILE__, __LINE__, addr);
-      return false;
-   }
-
-   if (buffer[max_call_length - 5] == 0xe8) {
-      int32_t disp = *((int32_t *) (buffer+1));
-      target = addr + disp;
-      sw_printf("[%s:%u] - Found call encoded by %x to %lx (addr = %lx, disp = %lx)\n",
-                __FILE__, __LINE__, (int) buffer[0], target, addr, disp);
-                
-      return true;
-   }
-
-   target = 0x0;
-   for (unsigned i=0; i<max_call_length-1; i++)
-   {
-      if (buffer[i] != 0xff) 
-         continue;
-      int modrm_reg = buffer[i+1] >> 3 & 7;
-      if (modrm_reg != 2)
-         continue;
-
-      /**
-       * Compute the size of the x86 instruction.
-       **/
-      int modrm_mod = buffer[i+1] >> 6;
-      int modrm_rm = buffer[i+1] & 7;
-      unsigned size = 2; //Opcode + MOD/RM
-      switch (modrm_mod)
-      {
-         case 0:
-            if (modrm_rm == 5)
-               size += 4; //disp32
-            if (modrm_rm == 4)
-               size += 1; //SIB
-            break;
-         case 1:
-            size += 1; //disp8
-            if (modrm_rm == 4)
-               size += 1; //SIB
-            break;
-         case 2:
-            size += 4; //disp32
-            if (modrm_rm == 4)
-               size += 1; //SIB
-            break;
-         case 3:
-            break;
-      }
-
-      if (i + size == max_call_length)
-      {
-         sw_printf("[%s:%u] - Found call of size %d encoded by: ",
-                   __FILE__, __LINE__, size);
-         for (unsigned j=i; j<i+size; j++) {
-            sw_printf("%x ", buffer[j]);
-         }
-         sw_printf("\n");
-
-         return true;
-      }
-   }
-
-   return false;
+    return callchecker->isPrevInstrACall(addr, target);   
 }
 
-bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
+WandererHelper::pc_state WandererHelper::isPCInFunc(Address func_entry, Address pc)
 {
    if (!func_entry || !pc)
-      return false;
+      return unknown_s;
    if (func_entry == pc)
-      return true;
+      return in_func;
 
    SymReader *reader = NULL;
    LibAddrPair func_lib, pc_lib;
@@ -269,7 +223,7 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    if (!result) {
       sw_printf("[%s:%u] - Failed to find library at %lx\n",
                 __FILE__, __LINE__, func_entry);
-      return false;
+      return unknown_s;
    }
    func_entry_offset = func_entry - func_lib.second;
 
@@ -351,25 +305,21 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    if (!result) {
       sw_printf("[%s:%u] - Failed to find library at %lx\n",
                 __FILE__, __LINE__, pc);
-      return false;
+      return unknown_s;
    }
    pc_offset = pc - pc_lib.second;
-   /* Wenbin: this makes walking from _init in a shared-library work.
-      But I'm not sure whether this is correct to bypass the following
-      sanity checking. Aug. 1st, 2011 */
-   return true;
 
    if (func_entry > pc) {
       sw_printf("[%s:%u] - func_entry %lx is greater than pc %lx\n",
                 __FILE__, __LINE__, func_entry, pc);
-      return false;
+      return outside_func;
    }
    
    if (pc_lib != func_lib)
    {
       sw_printf("[%s:%u] - %lx and %lx are from different libraries\n",
                 __FILE__, __LINE__, func_entry, pc);
-      return false;
+      return outside_func;
    }
 
    func_symbol = reader->getContainingSymbol(func_entry_offset);
@@ -390,17 +340,39 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    pc_offset = reader->getSymbolOffset(pc_symbol);
    sw_printf("[%s:%u] - Decided func at offset %lx and pc-func at offset %lx\n",
              __FILE__, __LINE__, func_offset, pc_offset);
-   return (func_offset == pc_offset);
+   if (func_offset == pc_offset)
+   {
+     return in_func;
+   }
+   else
+   {
+     return unknown_s;
+   }
  reader_fail:   
 
    //We don't have much to work with.  This is all heuristics anyway, so assume
    // that if pc is within 8k of func_entry that it's a part of the function.
-   return (pc >= func_entry && pc < func_entry + 8192);
+   if (pc >= func_entry && pc < func_entry + 8192)
+   {
+     return in_func;
+   }
+   else
+   {
+     return unknown_s;
+   }
+}
+
+bool WandererHelper::requireExactMatch()
+{
+  // By default, require that candidate callsites actually call to the
+  // current function
+  return true;
 }
 
 WandererHelper::WandererHelper(ProcessState *proc_) :
    proc(proc_)
 {
+    callchecker = new CallChecker(proc_);   
 }
 
 WandererHelper::~WandererHelper()

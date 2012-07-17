@@ -40,12 +40,12 @@
 #include "codegen.h"
 #include "util.h"
 #include "debug.h"
+#include "addressSpace.h"
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
 #include "emit-x86.h"
-#include "process.h"
 #include "inst-x86.h"
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
@@ -279,10 +279,10 @@ void insnCodeGen::generatePush64(codeGen &gen, Address val)
 {
   GET_PTR(insn, gen);
   for (int i = 3; i >= 0; i--) {
-    short word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
+    unsigned short word = static_cast<unsigned short>((val >> (16 * i)) & 0xffff);
     *insn++ = 0x66; // operand size override
     *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
-    *(short *)insn = word;
+    *(unsigned short *)insn = word;
     insn += 2;
   }
   SET_PTR(insn, gen);

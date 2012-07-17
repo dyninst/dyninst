@@ -24,7 +24,7 @@ struct livenessData{
 	bitArray in, out, use, def;
 };
 
-class LivenessAnalyzer{
+class DATAFLOW_EXPORT LivenessAnalyzer{
 	map<ParseAPI::Block*, livenessData> blockLiveInfo;
 	map<ParseAPI::Function*, bool> liveFuncCalculated;
         map<ParseAPI::Function*, bitArray> funcRegsDefined;
@@ -47,8 +47,8 @@ class LivenessAnalyzer{
 public:
 	typedef enum {Before, After} Type;
 	typedef enum {Invalid_Location} ErrorType;
-	DATAFLOW_EXPORT LivenessAnalyzer(int w);
-	DATAFLOW_EXPORT void analyze(ParseAPI::Function *func);
+	LivenessAnalyzer(int w);
+	void analyze(ParseAPI::Function *func);
 
 	template <class OutputIterator>
 	bool query(ParseAPI::Location loc, Type type, OutputIterator outIter){
@@ -63,16 +63,16 @@ public:
 		}
 		return false;
 	}
-	DATAFLOW_EXPORT bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
-	DATAFLOW_EXPORT bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
+	bool query(ParseAPI::Location loc, Type type, const MachRegister &machReg, bool& live);
+	bool query(ParseAPI::Location loc, Type type, bitArray &bitarray);
 
-	DATAFLOW_EXPORT ErrorType getLastError(){ return errorno; }
+	ErrorType getLastError(){ return errorno; }
 
-	DATAFLOW_EXPORT void clean(ParseAPI::Function *func);
-	DATAFLOW_EXPORT void clean();
+	void clean(ParseAPI::Function *func);
+	void clean();
 
-	DATAFLOW_EXPORT int getIndex(MachRegister machReg);
-	DATAFLOW_EXPORT ABI* getABI() { return abi;}
+	int getIndex(MachRegister machReg);
+	ABI* getABI() { return abi;}
 
 private:
 	ErrorType errorno;

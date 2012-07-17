@@ -76,8 +76,8 @@ void my_barrier(volatile int *br)
                  "tramp guards are incorrectly preventing some threads "
                  "from running\n",
                  __FILE__, __LINE__);
-	 /* FIXME Don't call exit()! */
-         exit(1);
+         // At least do something useful...
+         assert(0);
       }
       P_sleep(1);        
    }
@@ -114,7 +114,7 @@ void test_thread_7_level1()
 
    thread_t me = threadSelf();
    for (i=0; i<NTHRD; i++) {
-      /* dprintf("Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me)); */
+      dprintf("Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me));
       if (threads_equal(thrds[i].tid, me))
          break;
    }
@@ -168,7 +168,7 @@ volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
    threads_running[(int) (long) arg] = 1;
-   while(! ok_to_go) P_sleep(1);
+   while(! ok_to_go) P_sleep(1); 
    test_thread_7_level0(N_INSTR-1);
    return NULL;
 }
@@ -177,11 +177,6 @@ void *init_func(void *arg)
 int test_thread_7_mutatee() {
    unsigned i;
    int startedall = 0;
-
-#ifndef os_windows_test
-   char c = 'T';
-#endif
-
    initLock(&barrier_mutex);
    initLock(&count_mutex);
 
@@ -190,11 +185,10 @@ int test_thread_7_mutatee() {
    for (i=1; i<NTHRD; i++)
    {
       thrds[i].is_in_instr = 0;
-      thrds[i].tid = spawnNewThread((void *) init_func, (void *) i);
+      thrds[i].tid = spawnNewThread((void *)init_func, (void *) (long) i);
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();
-
    while (!startedall) {
       for (i=1; i<NTHRD; i++) {
          startedall = 1;
@@ -205,12 +199,12 @@ int test_thread_7_mutatee() {
          }
       }
    }
-
+   handleAttach();
    ok_to_go = 1;
    init_func(NULL);
    for (i=1; i<NTHRD; i++)
    {
-      joinThread(thrds[i].tid);
+	   joinThread(thrds[i].tid);
    }
    
    if (times_level1_called != NTHRD*N_INSTR)

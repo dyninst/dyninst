@@ -75,7 +75,7 @@ test_results_t test2_1_Mutator::executeTest() {
     } else {
 	// try to run a program that does not exist
         clearError();
-	BPatch_process *ret = startMutateeTest(bpatch, "./noSuchFile", "test2_1", useAttach, NULL, NULL);
+        BPatch_process *ret = BPatch::bpatch->processCreate("./noSuchFile", NULL, NULL);
         bool gotError = getError();
 	if (ret || !gotError) {
 	    logerror("**Failed** test #1 (run an executable that does not exist)\n");
@@ -93,7 +93,7 @@ test_results_t test2_1_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_1_mutatorMAIN(ParameterDict &param)
 test_results_t test2_1_Mutator::setup(ParameterDict &param) {
-  useAttach = param["useAttach"]->getInt();
+   useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
   if (useAttach) {

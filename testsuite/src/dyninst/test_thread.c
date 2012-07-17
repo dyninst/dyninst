@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "mutatee_util.h"
 #include "test_thread.h"
@@ -109,7 +110,7 @@ Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
 	                    &attr, (void *(*)(void*))tmain, NULL))    
     {
       err = 1;
-      logerror("%s[%d]:pthread_create\n", __FILE__, __LINE__);
+      logerror("%s[%d]:pthread_create - %s\n", __FILE__, __LINE__, strerror(errno));
       goto cleanup;
     }
     dprintf("%s[%d]:  PTHREAD_CREATE: %lu\n", __FILE__, __LINE__, 

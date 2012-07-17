@@ -33,12 +33,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <util.h>
 
 namespace Dyninst {
 namespace ParseAPI {
 
-    extern int parsing_printf_int(const char *format, ...);
-    extern int malware_printf_int(const char *format, ...);
+    extern int PARSER_EXPORT parsing_printf_int(const char *format, ...);
+    extern int PARSER_EXPORT malware_printf_int(const char *format, ...);
     extern int dyn_debug_parsing;
     extern int dyn_debug_malware;
     extern int dyn_debug_initialized;

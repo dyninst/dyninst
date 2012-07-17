@@ -35,9 +35,7 @@ TARGET      = libcommon.a
 endif
 endif
 
-ifndef STATIC_COMPS
-MYFLAGS += -fPIC
-endif
+MYFLAGS += -Dlibcommon
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
@@ -79,7 +77,9 @@ SRCS	     +=	../../common/src/Ident.C \
 		../../common/src/AST.C \
 		../../common/src/addrtranslate.C \
 		../../common/src/arch-x86.C \
-		../../common/src/arch-power.C
+		../../common/src/arch-power.C \
+                ../../common/src/debug_common.C \
+                ../../common/src/VariableLocation.C
 
 
 #IGEN_GEN_SRCS = 
@@ -96,5 +96,3 @@ else
 IFLAGS	     += -I/usr/include/libxml2
 endif
 
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

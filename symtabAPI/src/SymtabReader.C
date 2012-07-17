@@ -34,13 +34,20 @@
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/Function.h"
 
+#include "symtabAPI/src/Object.h"
+
+#include <sstream>
+using std::stringstream;
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 
 SymtabReader::SymtabReader(std::string file_) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL)
+   mapped_regions(NULL),
+   dwarf_handle(NULL),
+   ownsSymtab(true)
 {
    Symtab::openFile(symtab, file_);
 }
@@ -48,21 +55,37 @@ SymtabReader::SymtabReader(std::string file_) :
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :
    symtab(NULL),
    ref_count(1),
-   mapped_regions(NULL)
+   mapped_regions(NULL),
+   dwarf_handle(NULL),
+   ownsSymtab(true)
 {
+   stringstream memName;
+   memName << "memory_" << (unsigned long)(buffer) << "_" << size;
    Symtab::openFile(symtab, const_cast<char *>(buffer), 
-                    size, symtab->file(), 
-                    (symtab->isDefensiveBinary() ? Symtab::Defensive : Symtab::NotDefensive));
+                    size, memName.str());
 }
+
+SymtabReader::SymtabReader(Symtab *s) :
+    symtab(s),
+    ref_count(1),
+    mapped_regions(NULL),
+    dwarf_handle(NULL),
+    ownsSymtab(false)
+{}
 
 SymtabReader::~SymtabReader()
 {
    if (mapped_regions)
       delete mapped_regions;
-   if (symtab)
+   if (symtab && ownsSymtab)
       Symtab::closeSymtab(symtab);
    symtab = NULL;
    mapped_regions = NULL;
+#if !defined(os_windows)
+   if (dwarf_handle)
+     delete dwarf_handle;
+#endif
+   dwarf_handle = NULL;
 }
 
 
@@ -234,6 +257,31 @@ bool SymtabReader::isValidSection(Section_t sec)
    return (sec.v1 != NULL);
 }
 
+void *SymtabReader::getDebugInfo()
+{
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+  if (!dwarf_handle)
+  {
+    Object *obj = symtab->getObject();
+    dwarf_handle = new DwarfHandle(obj);
+  }
+  Dwarf_Debug dbg = *(dwarf_handle->dbg());
+  return (void *) dbg;
+#else
+  return NULL;
+#endif
+}
+
+void *SymtabReader::getElfHandle()
+{
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
+   Object *obj = symtab->getObject();
+   return obj->getElfHandle();
+#else
+   return NULL;
+#endif
+}
+
 SymtabReaderFactory::SymtabReaderFactory()
 {
 }
@@ -251,8 +299,9 @@ SymReader *SymtabReaderFactory::openSymbolReader(std::string pathname)
       return symtabreader;
    }
    SymtabReader *symtabreader = new SymtabReader(pathname);
-   if (!symtabreader) 
+   if (!symtabreader) { 
       return NULL;
+   }
    open_syms[pathname] = symtabreader;
    return symtabreader;
 }

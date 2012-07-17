@@ -39,7 +39,9 @@
 #include "dyntypes.h"
 #include "BPatch_enums.h"
 #include "BPatch_callbacks.h"
-#include "process.h"
+#include "function.h"
+#include "block.h"
+#include "BPatch_process.h"
 
 class BPatch_module;
 class BPatch_function;
@@ -54,14 +56,6 @@ class BPatch_basicBlockLoop;
 class block_instance;
 
 #if !defined(os_windows)
-// Compatibility definitions
-#define PAGE_READ 1
-#define PAGE_WRITE 2
-#define PAGE_EXECUTE 4
-#define PAGE_READONLY PAGE_READ
-#define PAGE_READWRITE (PAGE_READ | PAGE_WRITE)
-#define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
-#define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
 #endif
 
 /* There should only be one instance of this class, as for the BPatch class */
@@ -80,7 +74,7 @@ private:
         BPatchSnippetHandle *postHandle_;
    };
     typedef struct {
-        Address faultPCaddr;
+        Dyninst::Address faultPCaddr;
         bool isInterrupt;
     } ExceptionDetails; 
 
@@ -126,10 +120,10 @@ public:
     int getOrigPageRights(Dyninst::Address addr);
     void addReplacedFuncs(std::vector<std::pair<BPatch_function*,BPatch_function*> > &repFs);
 
-    void getCallBlocks(Address retAddr, 
+    void getCallBlocks(Dyninst::Address retAddr, 
                        func_instance *retFunc,
                        block_instance *retBlock,
-                       pair<ParseAPI::Block*, Address> & returningCallB, // output
+                       pair<ParseAPI::Block*, Dyninst::Address> & returningCallB, // output
                        set<ParseAPI::Block*> & callBlocks); // output
 
     std::map< BPatch_point* , SynchHandle* > & synchMap_pre();
@@ -206,11 +200,11 @@ private:
 
     // needs to call removeInstrumentation
     friend void BPatch_process::overwriteAnalysisUpdate
-        ( std::map<Dyninst::Address,unsigned char*>& owPages, 
-        std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
-          std::vector<BPatch_function*>& owFuncs,     
-          std::set<BPatch_function *> &monitorFuncs, 
-          bool &changedPages, bool &changedCode ); 
+       ( std::map<Dyninst::Address,unsigned char*>& owPages, 
+         std::vector<std::pair<Dyninst::Address,int> >& deadBlocks,
+         std::vector<BPatch_function*>& owFuncs,     
+         std::set<BPatch_function *> &monitorFuncs, 
+         bool &changedPages, bool &changedCode ); 
 
     // variables
     std::map<Dyninst::Address, ExceptionDetails> handlerFunctions; 
@@ -231,7 +225,7 @@ private:
     BPatchCodeDiscoveryCallback bpatchCodeDiscoveryCB;
     BPatchSignalHandlerCallback bpatchSignalHandlerCB;
 
-	Address virtualFreeAddr_;
+        Dyninst::Address virtualFreeAddr_;
 	unsigned virtualFreeSize_;
 };
 

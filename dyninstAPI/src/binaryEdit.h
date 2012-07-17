@@ -145,6 +145,7 @@ class BinaryEdit : public AddressSpace {
     // And the "open" factory method.
     static BinaryEdit *openFile(const std::string &file,
                                 Dyninst::PatchAPI::PatchMgrPtr mgr = Dyninst::PatchAPI::PatchMgrPtr(),
+                                Dyninst::PatchAPI::Patcher *patch = NULL,
                                 const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
@@ -191,6 +192,9 @@ class BinaryEdit : public AddressSpace {
    bool writing() { return writing_; }
 
    void addDyninstSymbol(SymtabAPI::Symbol *sym) { newDyninstSyms_.push_back(sym); }
+
+   virtual void addTrap(Address from, Address to, codeGen &gen);
+   virtual void removeTrap(Address /*from*/) {};
 
  private:
     Address highWaterMark_;

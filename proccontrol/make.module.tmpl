@@ -6,9 +6,11 @@
 # $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
 #
 
-SUITE_NAME	= ProcessControl
+SUITE_NAME	= ProcControlAPI
 RELEASE_MAJOR	= 0
 RELEASE_MINOR = 1
+
+USES_LIBELF = true
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
@@ -18,7 +20,18 @@ STATIC_LIBRARY = true
 TARGET = libpcontrol.a
 else
 TARGET = libpcontrol.so
-MYFLAGS += -fPIC
+endif
+
+ifdef HAVE_THREAD_DB
+ifdef THREAD_DB_INC
+MYFLAGS += -DTHREAD_DB_INC=\"$(THREAD_DB_INC)/thread_db.h\"
+endif
+ifdef THREAD_DB_LIB
+MYFLAGS += -DTHREAD_DB_PATH=\"$(THREAD_DB_LIB)\"
+endif
+ifdef THREAD_DB_STATIC
+MYFLAGS += -DTHREAD_DB_STATIC
+endif
 endif
 
 LDFLAGS += -L../../common/$(PLATFORM)
@@ -42,7 +55,9 @@ PUBLIC_H   = Decoder.h \
 				 Handler.h \
 				 Mailbox.h \
 				 PCErrors.h \
-				 Process.h \
+				 PCProcess.h \
+             ProcessSet.h \
+				 PlatFeatures.h \
 				 EventType.h
 
 SRCS	     +=	../src/event.C \
@@ -53,10 +68,21 @@ SRCS	     +=	../src/event.C \
 		../src/pcerrors.C \
 		../src/procpool.C \
 		../src/irpc.C \
-		../src/response.C
+		../src/response.C \
+		../src/int_thread_db.C \
+		../src/memcache.C \
+		../src/sysv.C \
+		../src/x86_process.C \
+		../src/ppc_process.C \
+		../src/mmapalloc.C \
+		../src/procset.C \
+		../src/processplat.C
 
+ifdef LIBELF_PLATFORM
+SRCS  +=  ../../common/src/Elf_X.C \
+          ../../common/src/SymLite-elf.C
+endif
 
 IFLAGS       += -I../src -I../h
+LDFLAGS += -L../../common/$(PLATFORM)
 
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)

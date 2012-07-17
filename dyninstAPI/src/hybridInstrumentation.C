@@ -39,6 +39,8 @@
 #include "debug.h"
 #include "function.h"
 #include "instPoint.h"
+#include "debug.h"
+#include "dynProcess.h"
 #include "mapped_object.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "mapped_module.h"
@@ -1529,13 +1531,13 @@ bool HybridAnalysis::getCFTargets(BPatch_point *point, vector<Address> &targets)
 
 const HybridAnalysis::AnalysisStats & HybridAnalysis::getStats()
 { 
-    process *llproc = proc_->lowlevel_process();
-    const vector<mapped_object*> objs = llproc->mappedObjects();
-    for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
-         oit != objs.end(); 
-         oit++) 
-    {
-        stats_.unpackCount += (*oit)->codeByteUpdates();
-    }
-    return stats_; 
+   PCProcess *llproc = proc_->lowlevel_process();
+   const vector<mapped_object*> objs = llproc->mappedObjects();
+   for (vector<mapped_object*>::const_iterator oit = objs.begin(); 
+        oit != objs.end(); 
+        oit++) 
+   {
+      stats_.unpackCount += (*oit)->codeByteUpdates();
+   }
+   return stats_; 
 }

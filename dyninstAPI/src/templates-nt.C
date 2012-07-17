@@ -42,8 +42,8 @@
 #include <string>
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/h/BPatch_Set.h"
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
@@ -102,17 +102,6 @@ template class dictionary_hash<std::string, pdvector<func_instance *> *>;
 class BPatch_typeCollection;
 template class dictionary_hash<std::string, BPatch_typeCollection *>;
 
-#include "dyninstAPI/src/rpcMgr.h"
-template class  dictionary_hash<unsigned, rpcLWP *>;
-template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
-template class  pdvector<rpcThr *>;
-template class pdvector<inferiorRPCtoDo *>;
-template class pdvector<inferiorRPCinProgress *>;
-
-#include "common/src/List.C"
-template class List<miniTramp*>;
-template class ListBase<miniTramp*, void*>;
-template class dictionary_hash<instPoint const *, baseTramp *>;
 
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_type.h"
@@ -130,9 +119,6 @@ template class dictionary_hash<Address, Address>;
 template class dictionary_hash<Address, heapItem *>;
 template class dictionary_hash<Address, func_instance *>;
 template class dictionary_hash<Address, unsigned>;
-
-#include "dyn_lwp.h"
-template class dictionary_hash<unsigned, dyn_lwp *>;
 
 class BPatch_basicBlock;
 
@@ -165,18 +151,10 @@ template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
 template class  BPatch_Set<dominatorBB *>;
 
-#include "callbacks.h"
-#include "signalhandler.h"
-#include "mailbox.h"
-template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
-template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
 
 class EventGate;
 
-template class pdvector<CallbackBase *>;
-template class pdvector<eventLock::lock_stack_elem>;
 template class pdvector<EventGate *>;
-template class pdvector<SignalHandler *>;
 
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash<int,int>::entry >;
@@ -184,21 +162,14 @@ template class  pdvector<dictionary_hash<int,int>::entry >;
 template class  dictionary_hash <unsigned long, std::string>;
 template class  pdvector<dictionary_hash<unsigned long,std::string>::entry >;
 
-template class dictionary_hash<Address, threadmap_t *>;
-template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
-
-class relocatedCode;
-template class dictionary_hash<Address, relocatedCode *>;
-template class pdvector<dictionary_hash<Address, relocatedCode *>::entry>;
+class registerSlot;
+template class dictionary_hash<unsigned int, registerSlot*>;
 
 template class dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>;
 template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>::entry>;
 
 class Statistic;
 template class dictionary_hash<std::string, Statistic *>;
-
-class registerSlot;
-template class dictionary_hash<unsigned, registerSlot *>;
 
 #include "dyninstAPI/src/block.h"
 template class ParseAPI::ContainerWrapper<

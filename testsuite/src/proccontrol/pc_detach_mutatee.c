@@ -30,6 +30,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include "pcontrol_mutatee_tools.h"
 
 static testlock_t init_lock;
@@ -73,7 +74,18 @@ static void self_signal()
   }
 }
 
+#elif defined(os_windows_test)
+
+static HANDLE am_signaled;
+
+static void self_signal()
+{
+	fprintf(stderr, "self_signal GO!\n");
+	SetEvent(am_signaled);
+}
+
 #else
+
 
 #include <sys/types.h>
 #include <signal.h>
@@ -81,7 +93,7 @@ static void self_signal()
 
 static void self_signal()
 {
-   return kill(getpid(), SIGUSR1);
+   kill(getpid(), SIGUSR1);
 }
 
 #endif
@@ -89,21 +101,32 @@ static void self_signal()
 static int threadFunc(int myid, void *data)
 {
    testLock(&init_lock);
+#if !defined(os_bg_test)
    self_signal();
+#endif
    testUnlock(&init_lock);
    return 0;
 }
 
+#if !defined(os_windows_test)
 static void signal_handler(int sig)
 {
    num_signals++;
 }
+#else
+static void signal_handler(int sig)
+{
+	WaitForSingleObject(am_signaled, 30000);
+   num_signals++;
+}
 
+#endif
 //Basic test for create/attach and exit.
 int pc_detach_mutatee()
 {
    syncloc syncloc_msg;
    int result;
+   int total_num_signals;
    num_signals = 0;
 
    initLock(&init_lock);
@@ -114,21 +137,24 @@ int pc_detach_mutatee()
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
-
+#if !defined(os_windows_test)
    signal(SIGUSR1, signal_handler);
-
+#else
+   am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
+#endif
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
+	   fprintf(stderr, "Failed to receive sync message\n");
       output->log(STDERR, "Failed to recieve sync message\n");
       return -1;
    }
    if (syncloc_msg.code != SYNCLOC_CODE) {
-      output->log(STDERR, "Incorrect sync code\n");
+	   fprintf(stderr, "Incorrect sync code: %x\n", syncloc_msg.code);
+      output->log(STDERR, "Incorrect sync code: %x\n", syncloc_msg.code);
       return -1;
    }
-
    self_signal();
-   
+
    testUnlock(&init_lock);
 
    result = finiProcControlTest(0);
@@ -137,7 +163,12 @@ int pc_detach_mutatee()
       return -1;
    }
 
-   if (num_signals != num_threads+1)
+#if defined(os_bg_test)
+   total_num_signals = 1;
+#else
+   total_num_signals = num_threads+1;
+#endif
+   if (num_signals != total_num_signals)
    {
       output->log(STDERR, "Incorrect number of signals recieved\n");
       return -1;

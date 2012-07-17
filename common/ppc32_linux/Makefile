@@ -1,3 +1,4 @@
+
 #
 # $Id: Makefile,v 1.3 2008/06/11 22:48:23 legendre Exp $
 #
@@ -8,8 +9,6 @@
 #USES_PAPI = true
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # For debugging.
 #NO_OPT_FLAG = true

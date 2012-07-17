@@ -41,12 +41,12 @@ namespace Stackwalker {
 class Walker;
 class ProcessState;
 
-class SymbolLookup {
+class SW_EXPORT SymbolLookup {
+  friend class Walker;
  protected:
   Walker *walker;
  public:
-  SymbolLookup(Walker *w, 
-               std::string exec_path = "");
+  SymbolLookup(std::string exec_path = "");
   virtual ~SymbolLookup();
 
   virtual bool lookupAtAddr(Dyninst::Address addr, 
@@ -59,9 +59,9 @@ class SymbolLookup {
   std::string executable_path;
 };
 
-class SwkSymtab : public SymbolLookup {
+class SW_EXPORT SwkSymtab : public SymbolLookup {
  public:
-    SwkSymtab(Walker *w, std::string exec_name);
+    SwkSymtab(std::string exec_name);
     virtual bool lookupAtAddr(Dyninst::Address addr, 
                               std::string &out_name, 
                               void* &out_value);
@@ -70,7 +70,7 @@ class SwkSymtab : public SymbolLookup {
 
 class SymDefaultLookup : public SymbolLookup {
   public:
-    SymDefaultLookup(Walker *w, std::string exec_name);
+    SymDefaultLookup(std::string exec_name);
     virtual bool lookupAtAddr(Dyninst::Address addr, 
                               std::string &out_name, 
                               void* &out_value);

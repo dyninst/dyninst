@@ -51,7 +51,7 @@ class StepperGroup;
 
 typedef enum { gcf_success, gcf_stackbottom, gcf_not_me, gcf_error } gcframe_ret_t;
 
-class FrameStepper {
+class SW_EXPORT FrameStepper {
 protected:
   Walker *walker;
 public:
@@ -74,12 +74,13 @@ public:
   static const unsigned stackbottom_priority = 0x10000;
   static const unsigned dyninstr_priority = 0x10010;
   static const unsigned sighandler_priority = 0x10020;
-  static const unsigned debugstepper_priority = 0x10030;
-  static const unsigned frame_priority = 0x10040;
-  static const unsigned wanderer_priority = 0x10050;
+  static const unsigned analysis_priority = 0x10058;
+  static const unsigned debugstepper_priority = 0x10040;
+  static const unsigned frame_priority = 0x10050;
+  static const unsigned wanderer_priority = 0x10060;
 };
 
-class FrameFuncHelper
+class SW_EXPORT FrameFuncHelper
 {
  protected:
    ProcessState *proc;
@@ -103,7 +104,7 @@ class FrameFuncHelper
 };
 
 class FrameFuncStepperImpl;
-class FrameFuncStepper : public FrameStepper {
+class SW_EXPORT FrameFuncStepper : public FrameStepper {
 private:
    FrameFuncStepperImpl *impl;
 public:
@@ -116,7 +117,7 @@ public:
 };
 
 class DebugStepperImpl;
-class DebugStepper : public FrameStepper {
+class SW_EXPORT DebugStepper : public FrameStepper {
 private:
    DebugStepperImpl *impl;
 public:
@@ -128,19 +129,27 @@ public:
   virtual const char *getName() const;
 };
 
-class WandererHelper
+class CallChecker;
+class SW_EXPORT WandererHelper
 {
  private:
    ProcessState *proc;
+   CallChecker * callchecker;
  public:
+   typedef enum {
+      unknown_s = 0,
+      in_func,
+      outside_func
+   } pc_state;
    WandererHelper(ProcessState *proc_);
    virtual bool isPrevInstrACall(Address addr, Address &target);
-   virtual bool isPCInFunc(Address func_entry, Address pc);
+   virtual pc_state isPCInFunc(Address func_entry, Address pc);
+   virtual bool requireExactMatch();
    virtual ~WandererHelper();
 };
 
 class StepperWandererImpl;
-class StepperWanderer : public FrameStepper {
+class SW_EXPORT StepperWanderer : public FrameStepper {
  private:
    StepperWandererImpl *impl;
  public:
@@ -154,7 +163,7 @@ class StepperWanderer : public FrameStepper {
 };
 
 class SigHandlerStepperImpl;
-class SigHandlerStepper : public FrameStepper {
+class SW_EXPORT SigHandlerStepper : public FrameStepper {
  private:
    SigHandlerStepperImpl *impl;
  public:
@@ -168,7 +177,7 @@ class SigHandlerStepper : public FrameStepper {
 };
 
 class BottomOfStackStepperImpl;
-class BottomOfStackStepper : public FrameStepper {
+class SW_EXPORT BottomOfStackStepper : public FrameStepper {
  private:
    BottomOfStackStepperImpl *impl;
  public:
@@ -182,7 +191,7 @@ class BottomOfStackStepper : public FrameStepper {
 };
 
 class DyninstInstrStepperImpl;
-class DyninstInstrStepper : public FrameStepper {
+class SW_EXPORT DyninstInstrStepper : public FrameStepper {
  private:
    DyninstInstrStepperImpl *impl;
  public:
@@ -191,6 +200,40 @@ class DyninstInstrStepper : public FrameStepper {
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~DyninstInstrStepper();
+   virtual const char *getName() const;
+};
+
+class AnalysisStepperImpl;
+class SW_EXPORT AnalysisStepper : public FrameStepper {
+  private:
+   AnalysisStepperImpl *impl;
+  public:
+   AnalysisStepper(Walker *w);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~AnalysisStepper();
+   virtual const char *getName() const;
+};
+
+class SW_EXPORT DyninstDynamicHelper
+{
+ public:
+   virtual bool isInstrumentation(Address ra, Address *orig_ra,
+                                  unsigned *stack_height, bool *entryExit) = 0;
+   virtual ~DyninstDynamicHelper();
+};
+
+class DyninstDynamicStepperImpl;
+class SW_EXPORT DyninstDynamicStepper : public FrameStepper {
+ private:
+   DyninstDynamicStepperImpl *impl;
+ public:
+   DyninstDynamicStepper(Walker *w, DyninstDynamicHelper *dihelper = NULL);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~DyninstDynamicStepper();
    virtual const char *getName() const;
 };
 

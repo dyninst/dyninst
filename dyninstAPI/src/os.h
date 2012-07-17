@@ -66,9 +66,6 @@
 #include <string>
 #include "common/h/Types.h"
 
-typedef enum { neonatal, running, stopped, detached, exited, deleted, unknown_ps } processState;
-const char *processStateAsString(processState state); // Defined in process.C
-
 class OS {
 public:
   static void osTraceMe(void);

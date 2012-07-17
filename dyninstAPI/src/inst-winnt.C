@@ -34,7 +34,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -109,11 +109,11 @@ void initPrimitiveCost()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
+bool PCProcess::hasBeenBound(const SymtabAPI::relocationEntry &,func_instance *&, Address ) {
     return false;
 }
 
-bool process::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
+bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address base_addr, 
                            func_instance *, Address target_addr) {
    return false;
 }
@@ -141,7 +141,7 @@ bool thunkILT(edge_instance *edge, AddressSpace *proc, func_instance *&ret) {
 	if (cFunc == NULL) return false;
 
 	// 1)
-	if (cFunc->getAllBlocks().size() > 1) return false;
+	if (cFunc->blocks().size() > 1) return false;
 
 	// 2)
 	block_instance *cBlock = cFunc->entryBlock();

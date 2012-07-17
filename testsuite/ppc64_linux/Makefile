@@ -6,15 +6,15 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g 
+SUITE_NAME = testsuite
 
 LDFLAGS=-m64
 TESTSUITE_FLAGS=$(LDFLAGS)
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+include $(TO_CORE)/make.config.local
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
@@ -47,8 +47,6 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 # without the libdl)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
-MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 MUTATEE_LDFLAGS_GNU    += -ldl $(LDFLAGS)
 MUTATEE_LDFLAGS_NATIVE += -ldl $(LDFLAGS)
@@ -75,7 +73,7 @@ TEST6_AS_SRC = test6LS-powerpc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 #TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
 
-TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
+TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl $(LDFLAGS)
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe

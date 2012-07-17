@@ -164,7 +164,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
           //
           // This behavior has been seen before, but may not be a
           // possibility after changes in runTests.C.
-          retval = -2;
+          retval = 0;
           break;
       }
 
@@ -250,7 +250,7 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
 
   args.push_back("-under-runtests");
   args.push_back("-enable-resume");
-  args.push_back("-limit");
+  args.push_back("-group-limit");
   char *limit_str = new char[12];
   snprintf(limit_str, 12, "%d", testLimit);
   args.push_back(limit_str);
@@ -266,6 +266,11 @@ void generateTestArgs(char **exec_args[], bool resume, bool useLog,
     args.push_back("-logfile");
     args.push_back(const_cast<char *>(logfile.c_str()));
   }
+  static bool first_run = true;
+  if (!first_run) {
+     args.push_back("-no-header");
+  }
+  first_run = false;
 
   for (unsigned int i = 0; i < child_argv.size(); i++) {
       args.push_back(child_argv[i]);
@@ -398,7 +403,7 @@ void setupVars(bool useLog, string &logfile)
       base_dir = getenv("PARADYN_BASE");
    }
 
-   pdscrdir = base_dir + "/scripts";
+   pdscrdir = base_dir + "/dyninst/scripts";
    if ( ! isDir(pdscrdir) )
    {
       cerr << pdscrdir << " does not exist.  Paradyn scripts dir required." 

@@ -31,13 +31,13 @@
 
 #include "addressSpace.h"
 #include "codeRange.h"
-#include "process.h"
+#include "dynProcess.h"
 #include "function.h"
 #include "binaryEdit.h"
-#include "miniTramp.h"
 #include "baseTramp.h"
 
 #include "instPoint.h"
+#include "debug.h"
 
 // Two-level codeRange structure
 #include "mapped_object.h"
@@ -66,11 +66,13 @@
 // class.
 
 using namespace Dyninst;
+
 using PatchAPI::DynObject;
 using PatchAPI::DynAddrSpace;
 using PatchAPI::PatchMgr;
 using PatchAPI::Patcher;
 using PatchAPI::DynInstrumenter;
+using PatchAPI::DynRemoveSnipCommand;
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
@@ -83,22 +85,26 @@ AddressSpace::AddressSpace () :
     emulatePC_(false),
     delayRelocation_(false)
 {
+#if 0
+   // Disabled for now; used by defensive mode
    if ( getenv("DYNINST_EMULATE_MEMORY") ) {
        printf("emulating memory & pc\n");
        memEmulator_ = new MemoryEmulator(this);
        emulateMem_ = true;
        emulatePC_ = true;
    }
+#endif
 }
 
 AddressSpace::~AddressSpace() {
     if (memEmulator_)
       delete memEmulator_;
-    static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
+    if (mgr_)
+       static_cast<DynAddrSpace*>(mgr_->as())->removeAddrSpace(this);
 }
 
-process *AddressSpace::proc() {
-    return dynamic_cast<process *>(this);
+PCProcess *AddressSpace::proc() {
+    return dynamic_cast<PCProcess *>(this);
 }
 
 BinaryEdit *AddressSpace::edit() {
@@ -144,8 +150,10 @@ Address AddressSpace::getTOCoffsetInfo(func_instance *func) {
 
 // Fork constructor - and so we can assume a parent "process"
 // rather than "address space"
-void AddressSpace::copyAddressSpace(process *parent) {
-   deleteAddressSpace();
+//
+// Actually, for the sake of abstraction, use an AddressSpace instead of process
+void AddressSpace::copyAddressSpace(AddressSpace *parent) {
+    deleteAddressSpace();
 
     // This is only defined for process->process copy
     // until someone can give a good reason for copying
@@ -172,7 +180,10 @@ void AddressSpace::copyAddressSpace(process *parent) {
 
 
     // Clone the tramp guard base
-    trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
+    if (parent->trampGuardBase_) 
+      trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
+    else
+      trampGuardBase_ = NULL;
 
     /////////////////////////
     // Inferior heap
@@ -928,6 +939,7 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
    }
 
    // get rid of the directory in the path
+   std::string orig_name = obj_name;
    std::string::size_type dir = obj_name.rfind('/');
    if (dir != std::string::npos) {
       // +1, as that finds the slash and we don't want it. 
@@ -945,7 +957,14 @@ mapped_object *AddressSpace::findObject(std::string obj_name, bool wildcard) con
            wildcardEquiv(obj_name, mapped_objects[j]->fileName())))
          return mapped_objects[j];
    }
-
+#if 0
+   cerr << "Warning: failed to find mapped_object matching " << obj_name
+        << " (originally " << orig_name << ")"
+        << " with wildcard " << (wildcard ? "<on>" : "<off>") << endl;
+   for (unsigned int i = 0; i < mapped_objects.size(); ++i) {
+      cerr << "\t" << mapped_objects[i]->fileName() << " / " << mapped_objects[i]->fullName() << endl;
+   }
+#endif
    return NULL;
 }
 
@@ -1103,6 +1122,9 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    }
    needs_updating = true;
 #endif
+#if defined(arch_x86) || defined(arch_x86_64)
+   from--;
+#endif
 }
 
 bool trampTrapMappings::definesTrapMapping(Address from)
@@ -1200,7 +1222,7 @@ void trampTrapMappings::flush() {
    //If we're sorting, then everytime we update we'll generate a whole new table
    //If we're not sorting, then each update will just append to the end of the
    // table.
-   bool should_sort = (dynamic_cast<process *>(proc()) == NULL ||
+   bool should_sort = (dynamic_cast<PCProcess *>(proc()) == NULL ||
                        table_mutatee_size > table_allocated);
 
    if (should_sort) {
@@ -1312,7 +1334,7 @@ void trampTrapMappings::flush() {
 
    //This function just keeps going... Now we need to take all of those 
    // mutatee side variables and update them.
-   if (dynamic_cast<process *>(proc())) 
+   if (dynamic_cast<PCProcess *>(proc())) 
    {
       if (!trapTable) {
          //Lookup all variables that are in the rtlib
@@ -1346,7 +1368,7 @@ void trampTrapMappings::allocateTable()
 {
    unsigned entry_size = proc()->getAddressWidth() * 2;
 
-   if (dynamic_cast<process *>(proc()))
+   if (dynamic_cast<PCProcess *>(proc()))
    {
       //Dynamic rewriting
 
@@ -1507,11 +1529,14 @@ bool AddressSpace::canUseTraps()
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
       return false;
 
+   PCProcess *pcProc = dynamic_cast<PCProcess *>(this);
+   if( pcProc ) return useTraps_;
+
 #if !defined(cap_mutatee_traps)
    return false;
-#endif
-   
+#else
    return useTraps_;
+#endif
 }
 
 void AddressSpace::setUseTraps(bool usetraps)
@@ -1596,30 +1621,27 @@ bool AddressSpace::wrapFunction(func_instance *original,
    mgr()->instrumenter()->wrapFunction(original, wrapper, clone->getMangledName());
    addModifiedFunction(original);
 
+   wrappedFunctionWorklist_[original] = clone;
+
+   return true;
+}
+
+void AddressSpace::wrapFunctionPostPatch(func_instance *func, Dyninst::SymtabAPI::Symbol *clone) {
    if (edit()) {
-      if (!AddressSpace::patch(this)) return false;
-      if (!original->addSymbolsForCopy()) return false;
+      func->addSymbolsForCopy();
    }
    else {
-      if (!AddressSpace::patch(this)) return false;
-      Address newAddr = original->getWrapperSymbol()->getOffset();
+      Address newAddr = func->getWrapperSymbol()->getOffset();
       // We have copied the original function and given it the address
       // newAddr. We now need to update any references calling the clone
       // symbol and point them at newAddr. Effectively, we're acting as
       // a proactive loader. 
-
+      
       for (unsigned i = 0; i < mapped_objects.size(); ++i) {
          // Need original to get intermodule working right. 
-         mapped_objects[i]->replacePLTStub(clone, original, newAddr);
+         mapped_objects[i]->replacePLTStub(clone, func, newAddr);
       }
-      // Aaaand patch again to make it all actually happen.
-      // We need to do the function wrapping first because relocation is
-      // per-mapped-object. Oy. 
-      if (!AddressSpace::patch(this)) return false;
-
-      return false;
    }
-   return true;
 }
 
 void AddressSpace::removeCall(block_instance *block, func_instance *context) {
@@ -1647,6 +1669,7 @@ void AddressSpace::revertWrapFunction(func_instance *wrappedfunc) {
    // Undo the instrumentation component
    mgr()->instrumenter()->revertWrappedFunction(wrappedfunc);
    addModifiedFunction(wrappedfunc);
+   wrappedFunctionWorklist_.erase(wrappedfunc);
 }
 
 const func_instance *AddressSpace::isFunctionReplacement(func_instance *func) const
@@ -1671,9 +1694,9 @@ bool AddressSpace::delayRelocation() const {
 
 bool AddressSpace::relocate() {
    if (delayRelocation()) return true;
-
-
-  relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
+   
+   relocation_cerr << "ADDRSPACE::Relocate called; modified functions reports "
+                   << modifiedFunctions_.size() << " objects to relocate." << endl;
   if (!mapped_objects.size()) {
     relocation_cerr << "WARNING: No mapped_object in this addressSpace!\n";
     return false;
@@ -1683,7 +1706,6 @@ bool AddressSpace::relocate() {
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
 
-     mapped_object *obj = iter->first;
      FuncSet &modFuncs = iter->second;
 
      bool repeat = false;
@@ -1715,6 +1737,13 @@ bool AddressSpace::relocate() {
   updateMemEmulator();
 
   modifiedFunctions_.clear();
+
+  for (std::map<func_instance *, Dyninst::SymtabAPI::Symbol *>::iterator foo = wrappedFunctionWorklist_.begin();
+       foo != wrappedFunctionWorklist_.end(); ++foo) {
+      wrapFunctionPostPatch(foo->first, foo->second);
+  }
+  wrappedFunctionWorklist_.clear();
+
   return ret;
 }
 
@@ -1758,14 +1787,13 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
         (cm->ptr(),cm->size(),getArch());
       Instruction::Ptr insn = deco.decode();
       while(insn) {
-        cerr << "\t" << hex << base << ": " << insn->format() << endl;
-        //cerr << "\t" << hex << base << ": " << insn->format(base) << endl;
+         cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
         base += insn->size();
         insn = deco.decode();
       }
       cerr << dec;
       cerr << endl;
-      cerr << cm->format() << endl;
+ //     cerr << cm->format() << endl;
 
   }
 
@@ -1796,9 +1824,13 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       // adjust PC if active frame is in a modified function, this 
       // forces the instrumented version of the code to execute right 
       // away and is needed for code overwrites
-      vector<dyn_thread*>::const_iterator titer;
-      for (titer=proc()->threads.begin();
-           titer != proc()->threads.end(); 
+      
+      vector<PCThread *> threads;
+      proc()->getThreads(threads);
+
+      vector<PCThread *>::const_iterator titer;
+      for (titer = threads.begin();
+           titer != threads.end(); 
            titer++) 
       {
           // translate thread's active PC to orig addr
@@ -1839,12 +1871,13 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              func = tframe.getFunc();
              offset = 0;
           }             
+			if (!block || !func) continue;
 
           list<Address> relocPCs;
           getRelocAddrs(orig, block, func, relocPCs, true);
           mal_printf("Found %d matches for address 0x%lx\n", relocPCs.size(), orig);
           if (!relocPCs.empty()) {
-             (*titer)->get_lwp()->changePC(relocPCs.back() + offset,NULL);
+             (*titer)->changePC(relocPCs.back() + offset);
              mal_printf("Pulling active frame PC into newest relocation "
                         "orig[%lx], cur[%lx], new[%lx (0x%lx + 0x%lx)]\n", orig, 
                         tframe.getPC(), relocPCs.back() + offset, relocPCs.back(), offset);
@@ -2267,10 +2300,20 @@ void AddressSpace::initPatchAPI(mapped_object* aout) {
 }
 
 bool AddressSpace::patch(AddressSpace* as) {
-  return as->patcher()->commit();
+   return as->patcher()->commit();
 }
 
 void AddressSpace::addMappedObject(mapped_object* obj) {
   mapped_objects.push_back(obj);
   dynamic_cast<DynAddrSpace*>(mgr_->as())->loadLibrary(obj);
+}
+
+
+bool uninstrument(Dyninst::PatchAPI::Instance::Ptr inst) {
+   instPoint *point = IPCONV(inst->point());
+   bool ret = point->remove(inst);
+   if (!ret) return false;
+   point->markModified();
+   return true;
+
 }

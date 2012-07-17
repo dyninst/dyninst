@@ -59,9 +59,6 @@ using namespace NS_x86;
 #undef max
 #endif
 
-class dyn_lwp;
-class dyn_thread;
-class process;
 class AddressSpace;
 class instPoint;
 class registerSpace;
@@ -70,7 +67,7 @@ class AstNode;
 class Emitter;
 class pcRelRegion;
 class func_instance;
-class generatedCodeObject;
+class PCThread;
 class baseTramp;
 class block_instance;
 
@@ -202,26 +199,19 @@ class codeGen {
     //Apply all patches that have been added
     void applyPatches();
 
-    //void setProcess(process *p);
     void setAddrSpace(AddressSpace *a);
-    void setThread(dyn_thread *t) { thr_ = t; }
-    void setLWP(dyn_lwp *l) { lwp_ = l; }
-    void setRegisterSpace(registerSpace *r) { 
-      rs_ = r; 
-    }
+    void setThread(PCThread *t) { thr_ = t; }
+    void setRegisterSpace(registerSpace *r) { rs_ = r; }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
     void setFunction(func_instance *f) { f_ = f; }
-    void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBT(baseTramp *i) { bt_ = i; }
     void setInInstrumentation(bool i) { inInstrumentation_ = i; }
 
-    dyn_lwp *lwp() const;
-    dyn_thread *thread() const;
-    //process *proc();
     AddressSpace *addrSpace() const;
+    PCThread *thread();
     Address startAddr() const { return addr_; }
     instPoint *point() const;
     baseTramp *bt() const { return bt_; }
@@ -234,8 +224,6 @@ class codeGen {
     
 
     Dyninst::Architecture getArch() const;
-
-    generatedCodeObject *obj() const;
 
     void beginTrackRegDefs();
     void endTrackRegDefs();
@@ -271,10 +259,8 @@ class codeGen {
     Emitter *emitter_;
     bool allocated_;
 
-    //process *proc_;
     AddressSpace *aSpace_;
-    dyn_thread *thr_;
-    dyn_lwp * lwp_;
+    PCThread *thr_;
     registerSpace *rs_;
     regTracker_t *t_;
     Address addr_;
@@ -288,7 +274,6 @@ class codeGen {
 
     bool inInstrumentation_;
 
-    generatedCodeObject *obj_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

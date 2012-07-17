@@ -65,5 +65,6 @@ int test3_7_mutatee()
 
 void test3_7_call1() {
   test7counter++;
+  dprintf("test7counter = %d\n", test7counter);
 }
 

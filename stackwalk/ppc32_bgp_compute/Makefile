@@ -5,8 +5,6 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 STATIC_COMPS = true;
 
@@ -31,15 +29,6 @@ SRCS = ../src/ppc-swk.C \
 		 ../../common/src/addrtranslate-bluegenep.C \
 		 ../../common/src/bluegeneKludges.C \
 		 ../../common/src/string-regex.C
-
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-
-ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB)
-endif
-LIBS += -lelf
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

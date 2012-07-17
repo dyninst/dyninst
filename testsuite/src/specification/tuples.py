@@ -125,16 +125,16 @@ def parse_compilers(tuplestring):
 			abis = filter(lambda af: af[0] == p, compiler_dict[c]['abiflags'])
 			abidict = {}
 			for a in abis:
-				abidict[a[1]] = a[2]
+				abidict[a[1]] = dict(zip(('flags','command'),(a[2],a[3])))
 			abiflags[p] = abidict
 		compiler_dict[c]['abiflags'] = abiflags
 	return compiler_dict
 
 def parse_rungroups(tuplestring):
 	rungroups_tuple_labels = ('mutatee', 'compiler', 'optimization',
-							  'run_mode', 'start_state', 'groupable', 'tests',
-							  'abi', 'thread_mode', 'process_mode', 'format',
-                                                          'pic')
+                                  'run_mode', 'start_state', 'groupable', 'tests',
+                                  'abi', 'thread_mode', 'process_mode', 'format',
+                                  'mutatorstart', 'mutateestart', 'mutateeruntime', 'pic', 'platmode')
 	rungroups_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(rungroups_tuple_labels, x)), rungroups_list)
 

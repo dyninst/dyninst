@@ -74,6 +74,7 @@ Type* Variable::getType()
 	return type_;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
@@ -157,6 +158,12 @@ Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THRO
 
 	return NULL;
 }
+#else
+Serializable *Variable::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
 {
@@ -195,54 +202,6 @@ bool Variable::removeSymbol(Symbol *sym)
         module_->exec()->deleteVariable(this);
     }
     return true;
-}
-
-namespace Dyninst {
-	namespace SymtabAPI {
-const char *storageClass2Str(Dyninst::SymtabAPI::storageClass sc) 
-{
-	switch(sc) {
-		CASE_RETURN_STR(storageAddr);
-		CASE_RETURN_STR(storageReg);
-		CASE_RETURN_STR(storageRegOffset);
-	};
-	return "bad_storage_class";
-}
-
-const char *storageRefClass2Str(Dyninst::SymtabAPI::storageRefClass sc) 
-{
-	switch(sc) {
-		CASE_RETURN_STR(storageRef);
-		CASE_RETURN_STR(storageNoRef);
-	};
-	return "bad_storage_class";
-}
-}
-}
-
-bool VariableLocation::operator==(const VariableLocation &f)
-{
-	if (stClass != f.stClass) return false;
-	if (refClass != f.refClass) return false;
-	if (reg != f.reg) return false;
-	if (frameOffset != f.frameOffset) return false;
-	if (hiPC != f.hiPC) return false;
-	if (lowPC != f.lowPC) return false;
-	return true;
-}
-Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
-{
-	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
-	ifxml_start_element(sb, tag);
-	gtranslate(sb, stClass, storageClass2Str, "StorageClass");
-	gtranslate(sb, refClass, storageRefClass2Str, "StorageRefClass");
-	gtranslate(sb, reg, "register");
-	gtranslate(sb, frameOffset, "frameOffset");
-	gtranslate(sb, hiPC, "hiPC");
-	gtranslate(sb, lowPC, "lowPC");
-	ifxml_end_element(sb, tag);
-	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
-	return NULL;
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
@@ -404,7 +363,7 @@ std::string &localVar::getFileName()
 	return fileName_;
 }
 
-std::vector<Dyninst::SymtabAPI::VariableLocation> &localVar::getLocationLists() 
+std::vector<Dyninst::VariableLocation> &localVar::getLocationLists() 
 {
 	return locs_;
 }
@@ -434,6 +393,7 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
@@ -496,4 +456,9 @@ Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THRO
 	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 	return NULL;
 }
-
+#else
+Serializable *localVar::serialize_impl(SerializerBase *, const char *) THROW_SPEC(SerializerError)
+{
+   return NULL;
+}
+#endif

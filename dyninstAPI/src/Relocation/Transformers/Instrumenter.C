@@ -54,6 +54,10 @@ bool Instrumenter::process(RelocBlock *trace,
       // One of ours!
       return true;
    }
+   if (trace == skip) {
+      skip = NULL;
+      return true;
+   }
 
    // Hoo boy. Fun for the whole family...
    //
@@ -78,9 +82,10 @@ bool Instrumenter::process(RelocBlock *trace,
    if (!preCallInstrumentation(trace)) return false;
    if (!blockEntryInstrumentation(trace)) return false;
    if (!blockExitInstrumentation(trace)) return false;
-   if (!funcExitInstrumentation(trace)) return false;
+
 
    // And on to the graph modification shtuff. 
+   if (!funcExitInstrumentation(trace, cfg)) return false;
    if (!postCallInstrumentation(trace, cfg)) return false;
    if (!edgeInstrumentation(trace, cfg)) return false;
    if (!funcEntryInstrumentation(trace, cfg)) return false;
@@ -199,21 +204,106 @@ bool Instrumenter::preCallInstrumentation(RelocBlock *trace) {
    return true;
 }
 
-bool Instrumenter::funcExitInstrumentation(RelocBlock *trace) {
-   // TODO: do this right :)
+bool Instrumenter::funcExitInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
+   // Function exit instrumentation is complicated by the existence of conditional
+   // return instructions (e.g., PowerPC's bclr and its various mnemonics). 
+   // If we have an unconditional return, we simply insert the basetramp immediately
+   // before the return instruction. That's trivial. If we have a conditional return,
+   // we construct the following sequence:
+   //
+   // let retcc = conditional return
+   // let jcc = a conditional branch with the same condition as retcc
+   // let ret = unconditional return (... not strictly necessary, but nice)
+   //
+   // New "instruction stream"
+   // 
+   // jcc - taken: inst, not taken: ft
+   // inst:
+   //   instWidget
+   //   ret (or retcc, really...)
+   // ft:
+   //
+   // Since CFWidgets end blocks, this requires:
+   //   1) Replace retcc with jcc at the end of the current relocBlock
+   //   2) Create a new relocBlock with instWidget and ret/retcc
+   //   3) Hook up edges so that jcc "taken" to the new relocBlock and "not taken" to ft. 
+
    instPoint *exit = trace->func()->funcExitPoint(trace->block(), false);
    if (!exit || exit->empty()) return true;
 
-   RelocBlock::WidgetList &elements = trace->elements();
-   // For now, we're inserting this instrumentation immediately before the last instruction
-   // in the list of elements. 
-   RelocBlock::WidgetList::reverse_iterator riter = elements.rbegin();
-   Widget::Ptr inst = makeInstrumentation(exit);
-   if (!inst) return false;
+   // Let's see if this is easy or complicated. Woo complicated!
+   CFWidget::Ptr retcc = trace->cfWidget();
+   assert(retcc);
 
-   inst.swap(elements.back());
-   elements.push_back(inst);
+   relocation_cerr << "Checking return statement " << retcc->insn()->format() << ": "
+		   << (retcc->isConditional() ? "<cond>" : "")
+		   << (retcc->isIndirect() ? "<ind>" : "")
+		   << endl;
 
+   if (retcc->isConditional()) {
+     relocation_cerr << "Function exit instrumentation /w/ conditional return!" << endl;
+      // Complex!
+      // Make the jcc
+      CFWidget::Ptr jcc = CFWidget::create(retcc);
+      jcc->clearIsIndirect(); // Will turn this into a straight conditional branch
+      jcc->clearIsCall();
+      assert(jcc->isConditional());
+      trace->setCF(jcc);
+
+      // And the new relocBlock
+      RelocBlock *instRelocBlock = RelocBlock::createInst(exit, retcc->addr(), trace->block(), trace->func());
+      instRelocBlock->setCF(retcc);
+      cfg->addRelocBlockAfter(trace, instRelocBlock);
+
+      // Skip this block when it comes up; we don't want to re-instrument it :)
+      skip = trace;
+
+      // And wire edges correctly. 
+      // Lessee...
+      // trace should have a batch of <INDIRECT> edges and a <COND_NOT_TAKEN> edge. The COND_NOT_TAKEN is fine,
+      // but the INDIRECTs need to move to instRelocBlock.
+      // So... move 
+      Predicates::Type ind(ParseAPI::INDIRECT);
+      if (!cfg->changeSources(ind, trace->outs(), instRelocBlock)) {
+	relocation_cerr << "Failed to change sources of indirect edges from old block to new block!" << endl;
+	return false;
+      }
+
+      // Also, instRelocBlock needs a <COND_NOT_TAKEN> to wherever trace's COND_NOT_TAKEN went. 
+      cerr << "DEBUG: trace has " << trace->outs()->edges.size() << " out-edges" << endl;
+
+      // Currently we encode this as a fallthrough, not a conditional not taken... arguably a bug? 
+      RelocEdge *ft = trace->outs()->find(ParseAPI::FALLTHROUGH); 
+      if (ft) ft->type = ParseAPI::COND_NOT_TAKEN;
+
+      if (!ft) {
+	relocation_cerr << "Error: did not find a COND_NOT_TAKEN out-edge from current block!" << endl;
+	return false;
+      }
+
+      // As a rule, we can't share Targets so that we can get deletion right later. So 
+      // copy this puppy...
+
+      cfg->makeEdge(new Target<RelocBlock *>(instRelocBlock),
+                    ft->trg->copy(),
+                    ft->type);
+      // Finally, we need a COND_TAKEN from trace to instRelocBlock.
+      cfg->makeEdge(new Target<RelocBlock *>(trace),
+                    new Target<RelocBlock *>(instRelocBlock),
+                    ParseAPI::COND_TAKEN);
+   }
+   else {
+      // Easy
+      RelocBlock::WidgetList &elements = trace->elements();
+      // For now, we're inserting this instrumentation immediately before the last instruction
+      // in the list of elements. 
+
+      Widget::Ptr inst = makeInstrumentation(exit);
+      if (!inst) return false;
+   
+      inst.swap(elements.back());
+      elements.push_back(inst);
+   }
    return true;
 }
 
@@ -349,7 +439,9 @@ bool Instrumenter::edgeInstrumentation(RelocBlock *trace, RelocGraph *cfg) {
       if (!point || point->empty()) continue;
 
       RelocBlock *instRelocBlock = RelocBlock::createInst(point, iedge->trg()->start(), iedge->trg(), trace->func());
+
       cfg->addRelocBlockAfter(trace, instRelocBlock);
+      skip = trace;
 
       Predicates::Edge pred(iedge);
       if (!cfg->interpose(pred, trace->outs(), instRelocBlock)) return false;

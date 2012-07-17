@@ -40,7 +40,7 @@
 #include "Instruction.h"
 #include "Expression.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 
@@ -49,7 +49,6 @@
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
-using namespace dyn_detail::boost;
 
 void Absloc::getAbslocs(AbslocSet &locs) {
     RegisterLoc::getRegisterLocs(locs);

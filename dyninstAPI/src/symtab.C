@@ -130,6 +130,10 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
         file_match_ = true;
     }
 #endif  
+
+#if defined(os_windows)
+	if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
+#endif
     bool addr_match = ((code_ == fd.code_ && data_ == fd.data_) ||
                        (dynamic_ && dynamic_ == fd.dynamic_));
     if (file_match_ &&
@@ -442,9 +446,11 @@ void image::findMain()
         if (linkedFile->findFunctionsByName(funcs, "main") ||
             linkedFile->findFunctionsByName(funcs, "_main"))
             foundMain = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_start"))
+
+        if (linkedFile->findFunctionsByName(funcs, "_start"))
             foundStart = true;
-        else if (linkedFile->findFunctionsByName(funcs, "_fini"))
+
+        if (linkedFile->findFunctionsByName(funcs, "_fini"))
             foundFini = true;
     
     	Region *textsec = NULL;
@@ -1184,7 +1190,6 @@ void image::analyzeImage() {
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-    mal_printf("parsing %s loaded at %lx\n", name().c_str(),desc().loadAddr());
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
 // FIXME necessary?

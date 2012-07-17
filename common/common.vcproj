@@ -45,11 +45,12 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="..;../../i386-unknown-nt4.0/include;../dynutil/h;../external"
-				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;COMMON_LIB"
+				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;snprintf=_snprintf;COMMON_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="true"
+				PrecompiledHeaderThrough="headers.h"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4251;4503"
@@ -66,7 +67,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Psapi.lib"
-				OutputFile="$(OutDir)\libcommon.dll"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
@@ -98,7 +99,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\include&#x0D;&#x0A;echo xcopy /s /c /y $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;xcopy /s /c /y $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
+				CommandLine="mkdir $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)..\dynutil\h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -302,6 +303,18 @@
 			</File>
 			<File
 				RelativePath=".\src\DOT.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\dthread-win.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -625,6 +638,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
 						CompileAsManaged="0"
 						CompileAs="2"
 					/>
@@ -701,6 +715,18 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\VariableLocation.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -728,11 +754,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\dthread.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dynutil\h\dyn_regs.h"
 				>
 			</File>
 			<File
-				RelativePath="..\dynutil\h\DynAST.h"
+				RelativePath="..\dynutil\h\dyn_regs.h"
 				>
 			</File>
 			<File
@@ -761,6 +791,10 @@
 			</File>
 			<File
 				RelativePath=".\h\int64iostream.h"
+				>
+			</File>
+			<File
+				RelativePath=".\h\IntervalTree.h"
 				>
 			</File>
 			<File
@@ -865,6 +899,10 @@
 			</File>
 			<File
 				RelativePath="..\dynutil\h\util.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dynutil\h\VariableLocation.h"
 				>
 			</File>
 			<Filter

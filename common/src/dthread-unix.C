@@ -116,6 +116,12 @@ bool Mutex::lock()
    return (result == 0);
 }
 
+bool Mutex::trylock()
+{
+  int result = pthread_mutex_trylock(&mutex);
+  return (result == 0);
+}
+
 bool Mutex::unlock()
 {
    int result = pthread_mutex_unlock(&mutex);
@@ -151,6 +157,11 @@ bool CondVar::unlock()
 bool CondVar::lock()
 {
    return mutex->lock();
+}
+
+bool CondVar::trylock()
+{
+  return mutex->trylock();
 }
 
 bool CondVar::signal()

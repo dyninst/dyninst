@@ -1,0 +1,405 @@
+warning: too many files, skipping inexact rename detection
+Renamed common/ppc32-unknown-vxworks6.x/Makefile => symtabAPI/ppc64_bgq/Makefile
+Auto-merged symtabAPI/ppc64_bgq/Makefile
+Renamed dyninstAPI/ppc32-unknown-vxworks6.x/Makefile => dyninstAPI/ppc64_bgq/Makefile
+Auto-merged dyninstAPI/ppc64_bgq/Makefile
+CONFLICT (rename/modify): Merge conflict in dyninstAPI/ppc64_bgq/Makefile
+Renamed dyninstAPI/src/MemoryEmulator/memEmulatorAtom.h => dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h
+Auto-merged dyninstAPI/src/MemoryEmulator/memEmulatorWidget.h
+Renamed dyninstAPI/src/Relocation/patchapi_debug.h => testsuite/ppc64_bgq/symtab_group_test_group.c
+Auto-merged testsuite/ppc64_bgq/symtab_group_test_group.c
+CONFLICT (rename/modify): Merge conflict in testsuite/ppc64_bgq/symtab_group_test_group.c
+Renamed dyninstAPI_RT/ppc32-unknown-vxworks6.x/Makefile => dyninstAPI_RT/ppc64_bgq/Makefile
+Auto-merged dyninstAPI_RT/ppc64_bgq/Makefile
+CONFLICT (rename/modify): Merge conflict in dyninstAPI_RT/ppc64_bgq/Makefile
+CONFLICT (rename/delete): Renamed stackwalk/x86_64_catamount/Makefile->codeCoverage/ppc64_bgq/Makefile in master and deleted in HEAD
+Auto-merged .gitignore
+Auto-merged DyninstAPI.sln
+CONFLICT (content): Merge conflict in DyninstAPI.sln
+Auto-merged Makefile
+CONFLICT (content): Merge conflict in Makefile
+Auto-merged common/common.vcproj
+CONFLICT (content): Merge conflict in common/common.vcproj
+Auto-merged common/h/IntervalTree.h
+CONFLICT (content): Merge conflict in common/h/IntervalTree.h
+Auto-merged common/h/SymLite-elf.h
+Auto-merged common/h/addrtranslate.h
+Auto-merged common/h/dwarfExpr.h
+Auto-merged common/h/dwarfSW.h
+Auto-merged common/src/addrtranslate-sysv.C
+CONFLICT (content): Merge conflict in common/src/addrtranslate-sysv.C
+Auto-merged common/src/addrtranslate.C
+Auto-merged common/src/dyn_regs.C
+Auto-merged common/x86_64-unknown-linux2.4/Makefile
+Auto-merged common/x86_64_cnl/Makefile
+Auto-merged dataflowAPI/h/Absloc.h
+Auto-merged dataflowAPI/h/SymEval.h
+CONFLICT (content): Merge conflict in dataflowAPI/h/SymEval.h
+Auto-merged dataflowAPI/h/stackanalysis.h
+Auto-merged dataflowAPI/src/AbslocInterface.C
+Auto-merged dataflowAPI/src/SymEval.C
+Auto-merged dataflowAPI/src/slicing.C
+Auto-merged dataflowAPI/src/stackanalysis.C
+Removed dyner/src/cmdline.l
+Removed dyner/src/cmdline.y
+Auto-merged dyninstAPI/amd64-unknown-freebsd7.2/Makefile
+CONFLICT (content): Merge conflict in dyninstAPI/amd64-unknown-freebsd7.2/Makefile
+Auto-merged dyninstAPI/dyninstAPI.vcproj
+CONFLICT (content): Merge conflict in dyninstAPI/dyninstAPI.vcproj
+Auto-merged dyninstAPI/h/BPatch_binaryEdit.h
+Auto-merged dyninstAPI/h/BPatch_function.h
+Auto-merged dyninstAPI/h/BPatch_image.h
+Auto-merged dyninstAPI/h/BPatch_module.h
+Auto-merged dyninstAPI/h/BPatch_point.h
+Auto-merged dyninstAPI/h/BPatch_process.h
+CONFLICT (content): Merge conflict in dyninstAPI/h/BPatch_process.h
+Auto-merged dyninstAPI/h/BPatch_snippet.h
+CONFLICT (content): Merge conflict in dyninstAPI/h/BPatch_snippet.h
+Auto-merged dyninstAPI/i386-unknown-freebsd7.2/Makefile
+CONFLICT (content): Merge conflict in dyninstAPI/i386-unknown-freebsd7.2/Makefile
+Auto-merged dyninstAPI/make.module.tmpl
+CONFLICT (content): Merge conflict in dyninstAPI/make.module.tmpl
+Auto-merged dyninstAPI/ppc32_bgp/Makefile
+Auto-merged dyninstAPI/src/BPatch.C
+Auto-merged dyninstAPI/src/BPatch_addressSpace.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_addressSpace.C
+CONFLICT (delete/modify): dyninstAPI/src/BPatch_asyncEventHandler.C deleted in HEAD and modified in master. Version master of dyninstAPI/src/BPatch_asyncEventHandler.C left in tree.
+Auto-merged dyninstAPI/src/BPatch_basicBlock.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_basicBlock.C
+Auto-merged dyninstAPI/src/BPatch_binaryEdit.C
+Auto-merged dyninstAPI/src/BPatch_edge.C
+Auto-merged dyninstAPI/src/BPatch_flowGraph.C
+Auto-merged dyninstAPI/src/BPatch_function.C
+Auto-merged dyninstAPI/src/BPatch_image.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_image.C
+Auto-merged dyninstAPI/src/BPatch_module.C
+Auto-merged dyninstAPI/src/BPatch_point.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_point.C
+Auto-merged dyninstAPI/src/BPatch_process.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_process.C
+Auto-merged dyninstAPI/src/BPatch_snippet.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/BPatch_snippet.C
+CONFLICT (delete/modify): dyninstAPI/src/EventHandler.C deleted in HEAD and modified in master. Version master of dyninstAPI/src/EventHandler.C left in tree.
+CONFLICT (delete/modify): dyninstAPI/src/EventHandler.h deleted in HEAD and modified in master. Version master of dyninstAPI/src/EventHandler.h left in tree.
+Removed dyninstAPI/src/IA_IAPI.C.orig
+Removed dyninstAPI/src/MemoryEmulator/memEmulatorAtom.C
+Auto-merged dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.C
+Auto-merged dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/MemoryEmulator/memEmulatorTransformer.h
+Auto-merged dyninstAPI/src/Parsing.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Parsing.C
+Auto-merged dyninstAPI/src/RegisterConversion-ppc.C
+Auto-merged dyninstAPI/src/RegisterConversion-x86.C
+Auto-merged dyninstAPI/src/RegisterConversion.h
+Auto-merged dyninstAPI/src/Relocation/CFG/RelocGraph.h
+Auto-merged dyninstAPI/src/Relocation/CodeMover.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/CodeMover.C
+Auto-merged dyninstAPI/src/Relocation/CodeMover.h
+Auto-merged dyninstAPI/src/Relocation/CodeTracker.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/CodeTracker.C
+Auto-merged dyninstAPI/src/Relocation/Springboard.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/Springboard.C
+Auto-merged dyninstAPI/src/Relocation/Springboard.h
+Auto-merged dyninstAPI/src/Relocation/Transformers/Instrumenter.h
+Auto-merged dyninstAPI/src/Relocation/Transformers/Movement-adhoc.C
+Auto-merged dyninstAPI/src/Relocation/Transformers/Movement-analysis.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/Transformers/Movement-analysis.C
+Auto-merged dyninstAPI/src/Relocation/Transformers/Movement-analysis.h
+Auto-merged dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/Widgets/CFWidget-x86.C
+Auto-merged dyninstAPI/src/Relocation/Widgets/CFWidget.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/Relocation/Widgets/CFWidget.C
+Auto-merged dyninstAPI/src/Relocation/Widgets/CFWidget.h
+Auto-merged dyninstAPI/src/Relocation/Widgets/Widget.h
+Auto-merged dyninstAPI/src/addressSpace.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/addressSpace.C
+Auto-merged dyninstAPI/src/addressSpace.h
+Auto-merged dyninstAPI/src/ast.C
+Auto-merged dyninstAPI/src/ast.h
+Auto-merged dyninstAPI/src/baseTramp.C
+Auto-merged dyninstAPI/src/binaryEdit.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/binaryEdit.C
+Auto-merged dyninstAPI/src/binaryEdit.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/binaryEdit.h
+Removed dyninstAPI/src/bitArray.C
+Auto-merged dyninstAPI/src/block.C
+Auto-merged dyninstAPI/src/codegen-power.C
+Auto-merged dyninstAPI/src/codegen-x86.C
+Auto-merged dyninstAPI/src/codegen.C
+Auto-merged dyninstAPI/src/codegen.h
+Auto-merged dyninstAPI/src/debug.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/debug.C
+Auto-merged dyninstAPI/src/debug.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/debug.h
+Auto-merged dyninstAPI/src/emit-x86.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/emit-x86.C
+Auto-merged dyninstAPI/src/function.C
+Auto-merged dyninstAPI/src/function.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/function.h
+Auto-merged dyninstAPI/src/hybridAnalysis.h
+Auto-merged dyninstAPI/src/hybridCallbacks.C
+Auto-merged dyninstAPI/src/hybridInstrumentation.C
+Auto-merged dyninstAPI/src/hybridOverwrites.C
+Auto-merged dyninstAPI/src/inst-power.C
+Auto-merged dyninstAPI/src/inst-winnt.C
+Auto-merged dyninstAPI/src/inst-x86.C
+Auto-merged dyninstAPI/src/instPoint.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/instPoint.C
+Auto-merged dyninstAPI/src/instPoint.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/instPoint.h
+Auto-merged dyninstAPI/src/linux-power.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/linux-power.C
+Auto-merged dyninstAPI/src/linux-x86.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/linux-x86.C
+Auto-merged dyninstAPI/src/linux.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/linux.C
+Auto-merged dyninstAPI/src/mapped_module.C
+Auto-merged dyninstAPI/src/mapped_object.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/mapped_object.C
+Auto-merged dyninstAPI/src/mapped_object.h
+Auto-merged dyninstAPI/src/miniTramp.C
+Auto-merged dyninstAPI/src/os.h
+Auto-merged dyninstAPI/src/pdwinnt.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/pdwinnt.C
+Auto-merged dyninstAPI/src/pdwinntDL.C
+CONFLICT (delete/modify): dyninstAPI/src/process.C deleted in HEAD and modified in master. Version master of dyninstAPI/src/process.C left in tree.
+CONFLICT (delete/modify): dyninstAPI/src/process.h deleted in HEAD and modified in master. Version master of dyninstAPI/src/process.h left in tree.
+Auto-merged dyninstAPI/src/registerSpace.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/registerSpace.C
+Auto-merged dyninstAPI/src/registerSpace.h
+CONFLICT (delete/modify): dyninstAPI/src/signalhandler.C deleted in HEAD and modified in master. Version master of dyninstAPI/src/signalhandler.C left in tree.
+CONFLICT (delete/modify): dyninstAPI/src/signalhandler.h deleted in HEAD and modified in master. Version master of dyninstAPI/src/signalhandler.h left in tree.
+Auto-merged dyninstAPI/src/stackwalk-x86.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/stackwalk-x86.C
+Auto-merged dyninstAPI/src/symtab.C
+Auto-merged dyninstAPI/src/symtab.h
+CONFLICT (content): Merge conflict in dyninstAPI/src/symtab.h
+Auto-merged dyninstAPI/src/syscall-linux.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/syscall-linux.C
+Auto-merged dyninstAPI/src/unix.C
+CONFLICT (content): Merge conflict in dyninstAPI/src/unix.C
+Auto-merged dyninstAPI/src/vxworks.C
+Auto-merged dyninstAPI/x86_64-unknown-linux2.4/Makefile
+CONFLICT (content): Merge conflict in dyninstAPI/x86_64-unknown-linux2.4/Makefile
+Auto-merged dyninstAPI_RT/DyninstAPI_RT.vcproj
+CONFLICT (content): Merge conflict in dyninstAPI_RT/DyninstAPI_RT.vcproj
+Auto-merged dyninstAPI_RT/h/dyninstAPI_RT.h
+Auto-merged dyninstAPI_RT/ppc32_linux/Makefile
+Auto-merged dyninstAPI_RT/ppc64_linux/Makefile
+Auto-merged dyninstAPI_RT/src/RTcommon.c
+CONFLICT (content): Merge conflict in dyninstAPI_RT/src/RTcommon.c
+Auto-merged dyninstAPI_RT/src/RTlinux.c
+Auto-merged dyninstAPI_RT/src/RTmemEmulator.c
+CONFLICT (content): Merge conflict in dyninstAPI_RT/src/RTmemEmulator.c
+Auto-merged dyninstAPI_RT/src/RTthread.c
+CONFLICT (content): Merge conflict in dyninstAPI_RT/src/RTthread.c
+Auto-merged dyninstAPI_RT/src/RTwinnt.c
+Auto-merged dynutil/Makefile
+Auto-merged dynutil/h/SymReader.h
+Auto-merged dynutil/h/dyn_regs.h
+CONFLICT (content): Merge conflict in dynutil/h/dyn_regs.h
+Auto-merged dynutil/h/entryIDs.h
+Auto-merged dynutil/h/util.h
+Auto-merged instructionAPI/instructionAPI.vcproj
+Auto-merged instructionAPI/src/InstructionDecoder-x86.C
+CONFLICT (content): Merge conflict in instructionAPI/src/InstructionDecoder-x86.C
+Auto-merged instructionAPI/src/Operation.C
+Auto-merged make.config
+CONFLICT (content): Merge conflict in make.config
+Auto-merged make.library.tmpl
+CONFLICT (content): Merge conflict in make.library.tmpl
+Auto-merged parseAPI/parseAPI.vcproj
+CONFLICT (content): Merge conflict in parseAPI/parseAPI.vcproj
+Auto-merged parseAPI/src/IA_IAPI.C
+Auto-merged parseAPI/src/IA_x86Details.C
+CONFLICT (content): Merge conflict in parseAPI/src/IA_x86Details.C
+Auto-merged parseAPI/src/Parser.C
+Auto-merged parseAPI/src/debug_parse.h
+Auto-merged parseThat/Makefile.in
+CONFLICT (content): Merge conflict in parseThat/Makefile.in
+Auto-merged proccontrol/amd64-unknown-freebsd7.2/Makefile
+CONFLICT (content): Merge conflict in proccontrol/amd64-unknown-freebsd7.2/Makefile
+Auto-merged proccontrol/i386-unknown-freebsd7.2/Makefile
+CONFLICT (content): Merge conflict in proccontrol/i386-unknown-freebsd7.2/Makefile
+Auto-merged proccontrol/i386-unknown-linux2.4/Makefile
+CONFLICT (content): Merge conflict in proccontrol/i386-unknown-linux2.4/Makefile
+Auto-merged proccontrol/src/freebsd.C
+Auto-merged proccontrol/src/linux.C
+CONFLICT (content): Merge conflict in proccontrol/src/linux.C
+Auto-merged proccontrol/src/process.C
+CONFLICT (content): Merge conflict in proccontrol/src/process.C
+Auto-merged proccontrol/x86_64-unknown-linux2.4/Makefile
+CONFLICT (content): Merge conflict in proccontrol/x86_64-unknown-linux2.4/Makefile
+Auto-merged stackwalk/h/swk_errors.h
+Auto-merged stackwalk/h/walker.h
+CONFLICT (content): Merge conflict in stackwalk/h/walker.h
+Auto-merged stackwalk/i386-unknown-linux2.4/Makefile
+CONFLICT (content): Merge conflict in stackwalk/i386-unknown-linux2.4/Makefile
+Auto-merged stackwalk/ppc32_bgl_compute/Makefile
+Auto-merged stackwalk/ppc32_bgl_ion/Makefile
+Auto-merged stackwalk/ppc32_bgp_compute/Makefile
+Auto-merged stackwalk/ppc32_bgp_ion/Makefile
+Auto-merged stackwalk/ppc32_linux/Makefile
+Auto-merged stackwalk/ppc64_linux/Makefile
+Auto-merged stackwalk/src/bluegene-swk.C
+CONFLICT (content): Merge conflict in stackwalk/src/bluegene-swk.C
+Auto-merged stackwalk/src/dbginfo-stepper.C
+CONFLICT (content): Merge conflict in stackwalk/src/dbginfo-stepper.C
+Auto-merged stackwalk/src/dbgstepper-impl.h
+CONFLICT (content): Merge conflict in stackwalk/src/dbgstepper-impl.h
+Auto-merged stackwalk/src/frame.C
+Auto-merged stackwalk/src/linux-ppc-swk.C
+CONFLICT (content): Merge conflict in stackwalk/src/linux-ppc-swk.C
+Auto-merged stackwalk/src/linux-swk.C
+CONFLICT (content): Merge conflict in stackwalk/src/linux-swk.C
+Auto-merged stackwalk/src/linux-swk.h
+CONFLICT (content): Merge conflict in stackwalk/src/linux-swk.h
+Auto-merged stackwalk/src/linux-x86-swk.C
+CONFLICT (content): Merge conflict in stackwalk/src/linux-x86-swk.C
+Auto-merged stackwalk/src/ppc-swk.C
+Auto-merged stackwalk/src/walker.C
+Auto-merged stackwalk/src/x86-swk.C
+Auto-merged stackwalk/src/x86-wanderer.C
+Auto-merged stackwalk/x86_64-unknown-linux2.4/Makefile
+CONFLICT (content): Merge conflict in stackwalk/x86_64-unknown-linux2.4/Makefile
+Auto-merged stackwalk/x86_64_cnl/Makefile
+CONFLICT (content): Merge conflict in stackwalk/x86_64_cnl/Makefile
+Auto-merged symtabAPI/amd64-unknown-freebsd7.2/Makefile
+Auto-merged symtabAPI/h/Region.h
+Auto-merged symtabAPI/h/symutil.h
+CONFLICT (content): Merge conflict in symtabAPI/h/symutil.h
+Auto-merged symtabAPI/i386-unknown-freebsd7.2/Makefile
+Auto-merged symtabAPI/i386-unknown-linux2.4/Makefile
+Auto-merged symtabAPI/i386-unknown-vxworks6.x/Makefile
+Auto-merged symtabAPI/ppc32-unknown-vxworks6.x/Makefile
+Auto-merged symtabAPI/ppc32_bgl_ion/Makefile
+Auto-merged symtabAPI/ppc32_bgp/Makefile
+Auto-merged symtabAPI/ppc32_bgp_ion/Makefile
+Auto-merged symtabAPI/ppc32_linux/Makefile
+Auto-merged symtabAPI/ppc64-unknown-linux2.4/Makefile
+Auto-merged symtabAPI/ppc64_linux/Makefile
+Auto-merged symtabAPI/sparc-sun-solaris2.8/Makefile
+Auto-merged symtabAPI/sparc-sun-solaris2.9/Makefile
+Auto-merged symtabAPI/src/Collections.C
+Auto-merged symtabAPI/src/Object-elf.C
+Auto-merged symtabAPI/src/Region.C
+Auto-merged symtabAPI/src/Symbol.C
+CONFLICT (content): Merge conflict in symtabAPI/src/Symbol.C
+Auto-merged symtabAPI/src/Symtab-lookup.C
+Auto-merged symtabAPI/src/Symtab.C
+CONFLICT (content): Merge conflict in symtabAPI/src/Symtab.C
+Auto-merged symtabAPI/src/debug.C
+CONFLICT (content): Merge conflict in symtabAPI/src/debug.C
+Auto-merged symtabAPI/src/emitElf-64.C
+Auto-merged symtabAPI/src/emitElf.C
+Auto-merged symtabAPI/src/emitWin.h
+CONFLICT (content): Merge conflict in symtabAPI/src/emitWin.h
+Auto-merged symtabAPI/src/parseDwarf.C
+Auto-merged symtabAPI/symtabAPI.vcproj
+Auto-merged symtabAPI/x86_64-unknown-linux2.4/Makefile
+Auto-merged symtabAPI/x86_64_cnl/Makefile
+CONFLICT (content): Merge conflict in symtabAPI/x86_64_cnl/Makefile
+Auto-merged testsuite/Makefile
+CONFLICT (content): Merge conflict in testsuite/Makefile
+Auto-merged testsuite/amd64-unknown-freebsd7.2/make.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/amd64-unknown-freebsd7.2/make.mutators.gen
+Auto-merged testsuite/amd64-unknown-freebsd7.2/make.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/amd64-unknown-freebsd7.2/make.solo_mutatee.gen
+Auto-merged testsuite/amd64-unknown-freebsd7.2/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/amd64-unknown-freebsd7.2/test_info_new.gen.C
+Auto-merged testsuite/amd64-unknown-freebsd7.2/tuples
+CONFLICT (content): Merge conflict in testsuite/amd64-unknown-freebsd7.2/tuples
+Auto-merged testsuite/i386-unknown-freebsd7.2/make.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-freebsd7.2/make.mutators.gen
+Auto-merged testsuite/i386-unknown-freebsd7.2/make.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-freebsd7.2/make.solo_mutatee.gen
+Auto-merged testsuite/i386-unknown-freebsd7.2/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-freebsd7.2/test_info_new.gen.C
+Auto-merged testsuite/i386-unknown-freebsd7.2/tuples
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-freebsd7.2/tuples
+Auto-merged testsuite/i386-unknown-linux2.4/make.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-linux2.4/make.mutators.gen
+Auto-merged testsuite/i386-unknown-linux2.4/make.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-linux2.4/make.solo_mutatee.gen
+Auto-merged testsuite/i386-unknown-linux2.4/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-linux2.4/test_info_new.gen.C
+Auto-merged testsuite/i386-unknown-linux2.4/tuples
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-linux2.4/tuples
+Auto-merged testsuite/i386-unknown-nt4.0/Makefile
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-nt4.0/Makefile
+Auto-merged testsuite/i386-unknown-nt4.0/nmake.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-nt4.0/nmake.mutators.gen
+Auto-merged testsuite/i386-unknown-nt4.0/nmake.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-nt4.0/nmake.solo_mutatee.gen
+Auto-merged testsuite/i386-unknown-nt4.0/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-nt4.0/test_info_new.gen.C
+Auto-merged testsuite/i386-unknown-nt4.0/tuples
+CONFLICT (content): Merge conflict in testsuite/i386-unknown-nt4.0/tuples
+Auto-merged testsuite/make.module.tmpl
+CONFLICT (content): Merge conflict in testsuite/make.module.tmpl
+Auto-merged testsuite/nmake.module.tmpl
+CONFLICT (content): Merge conflict in testsuite/nmake.module.tmpl
+Auto-merged testsuite/ppc32_bgp/make.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/ppc32_bgp/make.mutators.gen
+Auto-merged testsuite/ppc32_bgp/make.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/ppc32_bgp/make.solo_mutatee.gen
+Auto-merged testsuite/ppc32_bgp/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/ppc32_bgp/test_info_new.gen.C
+Auto-merged testsuite/ppc32_bgp/tuples
+CONFLICT (content): Merge conflict in testsuite/ppc32_bgp/tuples
+Auto-merged testsuite/ppc32_linux/make.mutators.gen
+Auto-merged testsuite/ppc32_linux/make.solo_mutatee.gen
+Auto-merged testsuite/ppc32_linux/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/ppc32_linux/test_info_new.gen.C
+Auto-merged testsuite/ppc32_linux/tuples
+CONFLICT (content): Merge conflict in testsuite/ppc32_linux/tuples
+Auto-merged testsuite/ppc64_linux/make.mutators.gen
+Auto-merged testsuite/ppc64_linux/make.solo_mutatee.gen
+Auto-merged testsuite/ppc64_linux/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/ppc64_linux/test_info_new.gen.C
+Auto-merged testsuite/ppc64_linux/tuples
+CONFLICT (content): Merge conflict in testsuite/ppc64_linux/tuples
+Auto-merged testsuite/rs6000-ibm-aix5.1/make.mutators.gen
+Auto-merged testsuite/rs6000-ibm-aix5.1/make.solo_mutatee.gen
+Auto-merged testsuite/rs6000-ibm-aix5.1/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/rs6000-ibm-aix5.1/test_info_new.gen.C
+Auto-merged testsuite/rs6000-ibm-aix5.1/tuples
+CONFLICT (content): Merge conflict in testsuite/rs6000-ibm-aix5.1/tuples
+Auto-merged testsuite/src/StdOutputDriver.h
+CONFLICT (content): Merge conflict in testsuite/src/StdOutputDriver.h
+Auto-merged testsuite/src/TestOutputDriver.h
+CONFLICT (content): Merge conflict in testsuite/src/TestOutputDriver.h
+Auto-merged testsuite/src/dyninst/dyninst_comp.C
+CONFLICT (content): Merge conflict in testsuite/src/dyninst/dyninst_comp.C
+Auto-merged testsuite/src/dyninst/dyninst_comp.h
+CONFLICT (delete/modify): testsuite/src/dyninst/libtestB.c deleted in HEAD and modified in master. Version master of testsuite/src/dyninst/libtestB.c left in tree.
+Auto-merged testsuite/src/dyninst/test2_14.C
+CONFLICT (content): Merge conflict in testsuite/src/dyninst/test2_14.C
+Auto-merged testsuite/src/dyninst/test4_4.C
+Auto-merged testsuite/src/dyninst/test5_3.C
+CONFLICT (content): Merge conflict in testsuite/src/dyninst/test5_3.C
+Auto-merged testsuite/src/dyninst/test_lib_mutateeStart.C
+Auto-merged testsuite/src/mutatee_driver.c
+CONFLICT (content): Merge conflict in testsuite/src/mutatee_driver.c
+Auto-merged testsuite/src/proccontrol/pc_breakpoint.C
+CONFLICT (content): Merge conflict in testsuite/src/proccontrol/pc_breakpoint.C
+Auto-merged testsuite/src/runTests-utils-nt.C
+Auto-merged testsuite/src/runTests.C
+CONFLICT (content): Merge conflict in testsuite/src/runTests.C
+Auto-merged testsuite/src/specification/spec-grouped.pl
+CONFLICT (content): Merge conflict in testsuite/src/specification/spec-grouped.pl
+Auto-merged testsuite/src/specification/spec-ungrouped.pl
+Auto-merged testsuite/src/test_driver.C
+CONFLICT (content): Merge conflict in testsuite/src/test_driver.C
+Auto-merged testsuite/src/test_lib.C
+CONFLICT (content): Merge conflict in testsuite/src/test_lib.C
+Auto-merged testsuite/x86_64-unknown-linux2.4/make.mutators.gen
+CONFLICT (content): Merge conflict in testsuite/x86_64-unknown-linux2.4/make.mutators.gen
+Auto-merged testsuite/x86_64-unknown-linux2.4/make.solo_mutatee.gen
+CONFLICT (content): Merge conflict in testsuite/x86_64-unknown-linux2.4/make.solo_mutatee.gen
+Auto-merged testsuite/x86_64-unknown-linux2.4/test_info_new.gen.C
+CONFLICT (content): Merge conflict in testsuite/x86_64-unknown-linux2.4/test_info_new.gen.C
+Auto-merged testsuite/x86_64-unknown-linux2.4/tuples
+CONFLICT (content): Merge conflict in testsuite/x86_64-unknown-linux2.4/tuples
+Automatic merge failed; fix conflicts and then commit the result.

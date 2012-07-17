@@ -49,7 +49,6 @@
 
 class codeGen;
 class instPoint;
-class process;
 class AddressSpace;
 class parse_block;
 class baseTramp;

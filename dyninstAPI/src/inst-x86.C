@@ -39,8 +39,6 @@
 #include "common/h/headers.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -51,19 +49,17 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/dynProcess.h"
 
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/instP.h" // class returnInstance
-#include "dyninstAPI/src/rpcMgr.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "IAPI_to_AST.h"
@@ -74,8 +70,6 @@
 
 class ExpandInstruction;
 class InsertNops;
-
-extern bool relocateFunction(process *proc, instPoint *&location);
 
 extern "C" int cpuidCall();
 
@@ -537,11 +531,14 @@ void registerSpace::initialize()
    are saved. */
 #if defined(os_windows)
 int cpuidCall() {
-    DWORD result;
-    _asm {
-        xor eax, eax
-        cpuid
-        mov result, eax
+    DWORD result = 0;
+// Note: mov <target> <source>, so backwards from what gnu uses
+	_asm {
+		push ebx
+		mov eax, 1
+		cpuid
+		pop ebx
+		mov result, edx
     }
     return result;
 }
@@ -640,7 +637,7 @@ int tramp_pre_frame_size_32 = 36; //Stack space allocated by 'pushf; pusha'
 int tramp_pre_frame_size_64 = 8 + 16 * 8 + AMD64_RED_ZONE; // stack space allocated by pushing flags and 16 GPRs
                                                 // and skipping the 128-byte red zone
 
-bool can_do_relocation(process *proc,
+bool can_do_relocation(PCProcess *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
                        func_instance *instrumented_func)
 {
@@ -1339,7 +1336,8 @@ Register EmitterIA32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   Register ret = gen.rs()->allocateRegister(gen, noCost);
+   //Register ret = gen.rs()->allocateRegister(gen, noCost);
+   Register ret = REGNUM_EAX;
 
    emitCallInstruction(gen, callee, ret);
 
@@ -2167,7 +2165,6 @@ int getInsnCost(opCode op)
    return 0;
 }
 
-
 bool EmitterIA32::emitPush(codeGen &gen, Register reg) {
     RealRegister real_reg = gen.rs()->loadVirtual(reg, gen);
     return ::emitPush(real_reg, gen);
@@ -2271,7 +2268,7 @@ bool func_instance::setReturnValue(int val)
     return proc()->writeTextSpace((void *) addr(), gen.used(), gen.start_ptr());
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, 
+unsigned saveRestoreRegistersInBaseTramp(AddressSpace * /*proc*/, 
                                          baseTramp * /*bt*/,
                                          registerSpace * /*rs*/)
 {

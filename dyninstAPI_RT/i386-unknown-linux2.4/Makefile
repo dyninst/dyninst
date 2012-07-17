@@ -38,7 +38,6 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
          ../src/RTheap-linux.c \
 			../src/RTthread.c \
-			../src/RTthread-index.c \
 			../src/RTthread-x86.c \
 			../src/RTspace.S \
 			../src/RTtlsgetaddr-x86.S \

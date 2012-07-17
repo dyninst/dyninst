@@ -247,6 +247,12 @@ do { \
   } \
 } while (0)
 
+#if defined(os_freebsd_test)
+const char *threadLibName = "libthr";
+#else
+const char *threadLibName = "libpthread";
+#endif
+
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_thread_5_Mutator::executeTest() {
   test8done = false;
@@ -254,14 +260,14 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
     // load libtest12.so -- currently only used by subtest 5, but make it generally
     // available
-    char *libname = "./libTest12.so";    
+    const char *libname = "./libTest12.so";    
 #if defined(arch_x86_64_test)
     if (appThread->getProcess()->getAddressWidth() == 4)
-      libname = "./libTest12_m32.so";
+       libname = "./libTest12_m32.so";
 #endif
     dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
     if (!appProc->loadLibrary(libname)) {
-      logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
+      logerror("TERMINATE: %s[%d]:  failed to load library %s, cannot proceed\n", 
 	      __FILE__, __LINE__, libname);
       appThread->getProcess()->terminateExecution();
       return FAILED;
@@ -274,7 +280,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
   //  instrument events having to do with mutex init, lock, unlock, destroy
   //  with messaging functions in libtest12.so
-  BPatch_module *libpthread = appImage->findModule("libpthread",true);
+  BPatch_module *libpthread = appImage->findModule(threadLibName,true);
   assert(libpthread);
 
   BPatch_function *mutInit = findFunction("createLock", appImage,TESTNO, TESTDESC);
@@ -306,7 +312,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
   BPatchUserEventCallback cb = test8cb;
   if (!bpatch->registerUserEventCallback(cb)) {
     FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
+    logerror("TERMINATE: %s[%d]: could not register callback\n", __FILE__, __LINE__);
     appThread->getProcess()->terminateExecution();
     return FAILED;
   }
@@ -316,11 +322,8 @@ test_results_t test_thread_5_Mutator::executeTest() {
   appThread->getProcess()->continueExecution();
 
   //  wait until we have received the desired number of events
-  //  (or timeout happens)
-  while(!test8err && !test8done && (timeout < TIMEOUT)) {
-    sleep_ms(SLEEP_INTERVAL/*ms*/);
-    timeout += SLEEP_INTERVAL;
-    bpatch->pollForStatusChange();
+  while(!test8err && !test8done) {
+    bpatch->waitForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {
@@ -334,15 +337,16 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
   int one = 1;
   // I need to check the return value for this function call
+  logerror("TERMINATE: setting exit variable\n");
   if (setVar("test_thread_5_idle", (void *) &one, TESTNO, TESTDESC)) {
-    logerror("Unable to set variable test_thread_5_idle\n");
+    logerror("TERMINATE: Unable to set variable test_thread_5_idle\n");
     appThread->getProcess()->terminateExecution();
     return FAILED;
   }
 
   if (!bpatch->removeUserEventCallback(test8cb)) {
     FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]:  failed to remove callback\n",
+    logerror("TERMINATE: %s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
     appThread->getProcess()->terminateExecution();
     return FAILED;

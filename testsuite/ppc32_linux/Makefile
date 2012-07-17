@@ -6,12 +6,12 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g
+SUITE_NAME = testsuite
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+include $(TO_CORE)/make.config.local
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:

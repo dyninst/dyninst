@@ -6,7 +6,7 @@
 # $Id: make.module.tmpl,v 1.4 2008/09/15 17:38:17 jaw Exp $
 #
 
-SUITE_NAME	= Dyninst
+SUITE_NAME	= PatchAPI
 RELEASE_MAJOR	= 1
 RELEASE_MINOR = 0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
@@ -20,25 +20,25 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 endif #USES_NATIVE
 
 TO_INC   = ../h
 
-PUBLIC_H = ../h/AddrSpace.h \
-           ../h/CFGMaker.h \
-           ../h/Command.h \
-           ../h/common.h \
-           ../h/Instrumenter.h \
-           ../h/PatchCallback.h \
-           ../h/PatchCFG.h \
-           ../h/PatchMgr.h \
-           ../h/PatchModifier.h \
-           ../h/PatchObject.h \
-           ../h/Point.h \
-           ../h/Snippet.h
+PUBLIC_H = AddrSpace.h \
+           Buffer.h \
+           CFGMaker.h \
+           Command.h \
+           Instrumenter.h \
+           PatchCallback.h \
+           PatchCFG.h \
+           PatchCommon.h \
+           PatchMgr.h \
+           PatchModifier.h \
+           PatchObject.h \
+           Point.h \
+           Snippet.h 
 
 SRCS +=	../src/AddrSpace.C \
         ../src/Instrumenter.C \
@@ -53,12 +53,10 @@ SRCS +=	../src/AddrSpace.C \
         ../src/Command.C \
         ../src/PatchCallback.C \
         ../src/ParseCallback.C \
-        ../src/PatchModifier.C
+        ../src/PatchModifier.C \
+        ../src/Buffer.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../parseAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../h
 
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
 

@@ -35,19 +35,18 @@
 #define EXEC_FUNC "execve"
 #define EXIT_FUNC "_exit"
 
-#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/ast.h"
 
 extern bool getInheritedMiniTramp(const miniTramp *parentMT,
                                   miniTramp *&childMT,
-                                  process *childProc);
+                                  PCProcess *childProc);
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
-                                         process *child) : preForkInst(NULL),
+                                         PCProcess *child) : preForkInst(NULL),
                                                            postForkInst(NULL),
                                                            preExecInst(NULL),
                                                            postExecInst(NULL),

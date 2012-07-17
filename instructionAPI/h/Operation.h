@@ -96,7 +96,7 @@ namespace Dyninst
     public:
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
-      typedef dyn_detail::boost::shared_ptr<Operation> Ptr;
+      typedef boost::shared_ptr<Operation> Ptr;
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       
     public:

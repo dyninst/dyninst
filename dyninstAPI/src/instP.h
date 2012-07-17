@@ -42,11 +42,6 @@
 #include "common/h/arch.h"  // for type, instruction
 #include "dyninstAPI/src/frame.h"
 
-// base tramp template
-//#include "dyninstAPI/src/baseTramp.h"
-// minitramp data structure
-//#include "dyninstAPI/src/miniTramp.h"
-
 class baseTramp;
 class miniTramp;
 class AddressSpace;
@@ -100,7 +95,7 @@ extern unsigned generateAndWriteBranch(AddressSpace *proc, Address fromAddr, Add
 extern int flushPtrace();
 
 extern unsigned saveGPRegister(char *baseInsn, Address &base, Register reg);
-extern unsigned saveRestoreRegistersInBaseTramp(process *proc, baseTramp * bt, 
+extern unsigned saveRestoreRegistersInBaseTramp(AddressSpace *proc, baseTramp * bt, 
 						registerSpace * rs);
 
 extern void generateNoopField(unsigned size,

@@ -40,6 +40,7 @@
 #include "emitElf-64.h"
 #include "emitElfStatic.h"
 #include "debug.h"
+#include "common/h/pathName.h"
 
 #if defined(os_freebsd)
 #include "common/h/freebsdKludges.h"
@@ -80,21 +81,6 @@ static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
-#if defined(os_linux) || defined(os_freebsd)
-static char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   return p;
-}
-#else
-static char *deref_link(const char *path)
-{
-   return const_cast<char *>(path);
-}
-#endif
-
 static void setVersion(){
   libelfso0Flag = false;
   libelfso1Flag = false;
@@ -106,8 +92,8 @@ static void setVersion(){
   for (unsigned i=0; i< nEntries; i++){
      if (!strstr(maps[i].path, "libelf"))
         continue;
-     char *real_file = deref_link(maps[i].path);
-     char *libelf_start = strstr(real_file, "libelf");
+     std::string real_file = resolve_file_path(maps[i].path);
+     const char *libelf_start = strstr(real_file.c_str(), "libelf");
      int num_read, major, minor;
      num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
      if (num_read == 2) {
@@ -554,7 +540,6 @@ bool emitElf64::driver(Symtab *obj, string fName){
     shdr = elf64_getshdr(scn);
 
     // resolve section name
-    Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result || foundSec->isDirty()) {

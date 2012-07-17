@@ -47,11 +47,13 @@ extern "C" DLLEXPORT TestMutator* pc_singlestep_factory()
 #define STOP_FUNC 3
 #define NUM_FUNCS 5
 
-struct proc_info {
+struct proc_info_ss {
    Address func[NUM_FUNCS];
-   proc_info()
+   Address start;
+   proc_info_ss()
    {
-      for (unsigned i=0; i<NUM_FUNCS; i++) {
+	   start = 0x0;
+	   for (unsigned i=0; i<NUM_FUNCS; i++) {
          func[i] = 0x0;
       }
    }
@@ -73,30 +75,54 @@ struct thread_info {
    }
 };
 
-std::map<Thread::const_ptr, thread_info> tinfo;
-std::map<Process::const_ptr, proc_info> pinfo;
+static std::map<Thread::const_ptr, thread_info> tinfo;
+static std::map<Process::const_ptr, proc_info_ss> pinfo;
 Breakpoint::ptr bp;
+Breakpoint::ptr early_bp;
 
 static bool myerror;
 
 Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
 {
-   EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
-   std::vector<Breakpoint::ptr> bps;
-   ebp->getBreakpoints(bps);
-   if (bps.size() != 1 && bps[0] != bp) {
-      logerror("Got unexpected breakpoing\n");
-      myerror = true;
-   }
-   thread_info &ti = tinfo[ev->getThread()];
-   ti.breakpoint = ti.order++;
-   return Process::cbProcContinue;
+	logerror("Begin on_breakpoint\n");
+
+	MachRegister pc = MachRegister::getPC(ev->getProcess()->getArchitecture());
+    MachRegisterVal loc;
+    //logerror("Begin onsinglestep()\n");
+
+    bool result = ev->getThread()->getRegister(pc, loc);
+    if (!result) {
+        logerror("Failed to read PC register\n");
+        myerror = true;
+        return Process::cbDefault;
+    }
+
+	proc_info_ss &pi = pinfo[ev->getProcess()];
+
+	if (loc == pi.start) {
+		logerror("Received Windows workaround breakpoint, ignoring\n");
+		return Process::cbProcContinue;
+	}
+
+	EventBreakpoint::const_ptr ebp = ev->getEventBreakpoint();
+ 	std::vector<Breakpoint::const_ptr> bps;
+	ebp->getBreakpoints(bps);
+	if (bps.size() != 1 && bps[0] != bp) {
+		logerror("Got unexpected breakpoint\n");
+		myerror = true;
+	}
+	thread_info &ti = tinfo[ev->getThread()];
+	logerror("Got breakpoint on thread %d, order = %d\n", ev->getThread()->getTID(), ti.order);
+	ti.breakpoint = ti.order++;
+	logerror("ti.breakpoint = %d\n", ti.breakpoint);
+	return Process::cbProcContinue;
 }
 
 Process::cb_ret_t on_singlestep(Event::const_ptr ev)
 {
    MachRegister pc = MachRegister::getPC(ev->getProcess()->getArchitecture());
    MachRegisterVal loc;
+   //logerror("Begin onsinglestep()\n");
 
    bool result = ev->getThread()->getRegister(pc, loc);
    if (!result) {
@@ -105,29 +131,31 @@ Process::cb_ret_t on_singlestep(Event::const_ptr ev)
       return Process::cbDefault;
    }
    
+//	   cerr << "Singlestep @ " << hex << loc << dec << endl;
+
    if (!ev->getThread()->getSingleStepMode())
    {
       logerror("Single step on thread not in single step mode\n");
       myerror = true;
    }
-
-   proc_info &pi = pinfo[ev->getProcess()];
+   proc_info_ss &pi = pinfo[ev->getProcess()];
    thread_info &ti = tinfo[ev->getThread()];
-
-   ti.steps++;
+	ti.steps++;
    for (unsigned i = 0; i<NUM_FUNCS; i++) {
       if (pi.func[i] == loc) {
          if (ti.hit_funcs[i] != -1) {
-            logerror("Single step was executed twice");
+            logerror("Single step was executed twice\n");
             myerror = true;
          }
+		 logerror("Singlestep %d on thread %d hit func %d, order = %d\n", ti.steps, ev->getThread()->getTID(), i, ti.order);
          ti.hit_funcs[i] = ti.order++;
          if (i == STOP_FUNC) {
-            //Last singlstep point.
+            //Last singlestep point.
             ev->getThread()->setSingleStepMode(false);
          }
       }
    }
+   //logerror("Single step OK at 0x%x\n", loc);
    
    return Process::cbThreadContinue;
 }
@@ -141,6 +169,7 @@ test_results_t pc_singlestepMutator::executeTest()
    tinfo.clear();
    pinfo.clear();
    bp = Breakpoint::newBreakpoint();
+   early_bp = Breakpoint::newBreakpoint();
 
    
    std::set<Thread::ptr> singlestep_threads;
@@ -155,22 +184,36 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
 
-      proc_info &pi = pinfo[proc];
+      proc_info_ss &pi = pinfo[proc];
+
+	  send_addr addrmsg;
+	  result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), proc);
+	  if (!result) {
+		  logerror("Failed to receive initial breakpoint address\n");
+		  myerror = true;
+	  }
+	  if (addrmsg.code != SENDADDR_CODE) {
+		  logerror("Unexpected addr code @ initial breakpoint message\n");
+		  myerror = true;
+	  }
+	  pi.start = addrmsg.addr;
+	  logerror("initial breakpoint at 0x%lx\n", addrmsg.addr);
+
       Address funcs[NUM_FUNCS];
       for (unsigned j=0; j < NUM_FUNCS; j++)
       {
-         send_addr addr;
-         bool result = comp->recv_message((unsigned char *) &addr, sizeof(send_addr), 
+         bool result = comp->recv_message((unsigned char *) &addrmsg, sizeof(send_addr), 
                                           proc);
          if (!result) {
-            logerror("Failed to recieve addr message\n");
+            logerror("Failed to receive addr message\n");
             myerror = true;
          }
-         if (addr.code != SENDADDR_CODE) {
+         if (addrmsg.code != SENDADDR_CODE) {
             logerror("Unexpected addr code\n");
             myerror = true;
          }
-         pi.func[j] = addr.addr;
+         pi.func[j] = addrmsg.addr;
+		 logerror("func %d at 0x%lx\n", j, addrmsg.addr);
       }
       
       result = proc->stopProc();
@@ -180,14 +223,23 @@ test_results_t pc_singlestepMutator::executeTest()
       }
 
       Dyninst::Address addr = pi.func[BP_FUNC];
+	  logerror("inserting breakpoint at 0x%lx\n", addr);
       result = proc->addBreakpoint(addr, bp);
       if (!result) {
          logerror("Failed to insert breakpoint\n");
          myerror = true;
       }
-      
+
+	  /* Windows has a problem where setting singlestep on a thread in a syscall is just ignored,
+	     without any sort of failure. We insert a breakpoint early in process execution to ensure
+		 that this is caught. */
+	  addr = pi.start;
+	  logerror("Inserting windows workaround breakpoint at 0x%lx\n", addr);
+	  result = proc->addBreakpoint(addr, early_bp);
+
       syncloc sync_msg;
       sync_msg.code = SYNCLOC_CODE;
+	  logerror("Mutator sending sync message\n");
       result = comp->send_message((unsigned char *) &sync_msg, sizeof(sync_msg), 
                                        proc);
       if (!result) {
@@ -195,17 +247,23 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
       
-      ThreadPool::iterator j;
+      ThreadPool::iterator k;
       int count = 0;
-      for (j = proc->threads().begin(); j != proc->threads().end(); j++)
+
+	  for (k = proc->threads().begin(); k != proc->threads().end(); k++)
       {
          //Singlestep half of the threads.
-         Thread::ptr thrd = *j;
-         if (count++ % 2 == 0 || thrd->isInitialThread()) {
+         Thread::ptr thrd = *k;
+		 Dyninst::Address startAddr = thrd->getStartFunction();
+		 Dyninst::THR_ID tid = thrd->getTID();
+		 logerror("Thread %d has initial function at %p\n", tid, startAddr);
+		 if ((count++ % 2 == 0) || (thrd->isInitialThread())) {
             singlestep_threads.insert(thrd);
+			logerror("Thread %d (start %p) single-stepping\n", tid, startAddr);
             thrd->setSingleStepMode(true);
-         }
+		 }
          else {
+			 logerror("Thread %d (start %p) running normally\n", tid, startAddr);
             regular_threads.insert(thrd);
          }
       }
@@ -221,16 +279,17 @@ test_results_t pc_singlestepMutator::executeTest()
          myerror = true;
       }
    }
+   logerror("Mutator waiting for sync message\n");
 
    syncloc loc[NUM_PARALLEL_PROCS];
    bool result = comp->recv_broadcast((unsigned char *) loc, sizeof(syncloc));
    if (!result) {
-      logerror("Failed to recieve sync broadcast\n");
+      logerror("Failed to receive sync broadcast\n");
       myerror = true;
    }
    for (unsigned j=0; j<comp->procs.size(); j++) {
       if (loc[j].code != SYNCLOC_CODE) {
-         logerror("Recieved unexpected message code\n");
+         logerror("Received unexpected message code\n");
          myerror = true;
       }
    }
@@ -238,9 +297,10 @@ test_results_t pc_singlestepMutator::executeTest()
    std::set<Thread::ptr>::iterator i;
    for (i = singlestep_threads.begin(); i != singlestep_threads.end(); i++)
    {
+      logerror("Results for thread %d/%d\n", (*i)->getProcess()->getPid(), (*i)->getLWP());
       thread_info &ti = tinfo[*i];
       if (ti.steps == 0) {
-         logerror("Thread did not recieve any single step events\n");
+         logerror("Thread did not receive any single step events\n");
          myerror = true;
       }
       for (unsigned j = 0; j < NUM_FUNCS; j++) {
@@ -253,7 +313,7 @@ test_results_t pc_singlestepMutator::executeTest()
             continue;
          }
          if (ti.hit_funcs[j] == -1) {
-            logerror("Function entry was not singlestepped over\n");
+            logerror("Function %d entry was not singlestepped over\n", j);
             myerror = true;
          }
          if (j == BP_FUNC) {
@@ -293,11 +353,7 @@ test_results_t pc_singlestepMutator::executeTest()
          logerror("Regular thread had single steps.\n");
          myerror = true;
       }
-      if (ti.breakpoint != 0) {
-         logerror("Regular thread did not execute breakpoint\n");
-         myerror = true;
-      }
-      for (unsigned j = 0; j < NUM_FUNCS; j++) {
+	  for (unsigned j = 0; j < NUM_FUNCS; j++) {
          if (ti.hit_funcs[j] != -1) {
             logerror("Thread singlestepped over function\n");
             myerror = true;

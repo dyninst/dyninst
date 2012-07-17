@@ -38,30 +38,33 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 endif
 
 ifneq ($(findstring cap_mem_emulation,$(CAP_DEF)),)
-      	SRCS += ../src/MemoryEmulator/memEmulator.C \
+	SRCS += ../src/MemoryEmulator/memEmulator.C \
 	        ../src/MemoryEmulator/memEmulatorTransformer.C \
 		../src/MemoryEmulator/memEmulatorAtom.C 
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpatchAPI -linstructionAPI
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lpcontrol -lstackwalk -lpatchAPI
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
 LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
 LDFLAGS     += -L../../parseAPI/$(PLATFORM)
+LDFLAGS     += -L../../proccontrol/$(PLATFORM)
+LDFLAGS     += -L../../stackwalk/$(PLATFORM)
 LDFLAGS     += -L../../patchAPI/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD) 
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
 endif #sparc
 endif #USES_NATIVE
+ifndef STATIC_COMPS
 TFLAGS		+= -fPIC
+endif
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
                 ../../common/src:../../paradyn/h
@@ -93,7 +96,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_function.C \
 		../src/BPatch_snippet.C \
 		../src/BPatch_thread.C \
-              ../src/BPatch_process.C \
+                ../src/BPatch_process.C \
 		../src/BPatch_type.C \
 		../src/BPatch_module.C \
                 ../src/BPatch_object.C \
@@ -119,23 +122,10 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/inst.C \
                 ../src/instPoint.C \
                 ../src/baseTramp.C \
-                ../src/miniTramp.C \
-                ../src/dyn_thread.C \
                 ../src/addressSpace.C \
-                ../src/process.C \
                 ../src/binaryEdit.C \
                 ../src/infHeap.C \
-                ../src/dyn_lwp.C \
                 ../src/frame.C \
-                ../src/signalhandler.C \
-                ../src/signalgenerator.C \
-                                ../src/eventgate.C \
-                ../src/callbacks.C \
-                ../src/mailbox.C \
-                ../src/EventHandler.C \
-                ../src/rpcMgr.C \
-                ../src/rpcMgr-lwp.C \
-                ../src/rpcMgr-thr.C \
                 ../src/codeRange.C \
                 ../src/symtab.C \
                 ../src/dominator.C \
@@ -148,7 +138,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/variable.C \
 		../src/util.C \
                 ../src/BPatch_instruction.C \
-                ../src/BPatch_asyncEventHandler.C \
                 ../src/BPatch_eventLock.C \
                 ../src/parRegion.C \
                 ../src/Parsing.C \
@@ -156,6 +145,12 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/hybridInstrumentation.C \
                 ../src/hybridOverwrites.C \
                 ../src/hybridCallbacks.C \
+                ../src/dynProcess.C \
+                ../src/dynThread.C \
+                ../src/pcEventHandler.C \
+                ../src/pcEventMuxer.C \
+                ../src/syscallNotification.C \
+                ../src/eventLock.C \
 		../src/Relocation/CodeMover.C \
                 ../src/Relocation/CFG/RelocGraph.C \
                 ../src/Relocation/CFG/RelocBlock.C \
@@ -226,12 +221,9 @@ PUBLIC_H = BPatch_addressSpace.h \
 
 IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
 IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
+IFLAGS      += -I../../proccontrol/h
 IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
 IFLAGS      += -I../../patchAPI/h
-
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
-
 
 # I couldn't figure out how to explicitly instantiate a templated
 # function whose template arguments are protected members of

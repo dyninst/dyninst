@@ -42,7 +42,7 @@
 #include "BPatch_edge.h"
 #include "BPatch_function.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -60,7 +60,6 @@ using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace dyn_detail::boost;
 
 
 ///////////////////////////////////////
@@ -236,7 +235,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
                 // For now, that's a cNode...
                 
                 // If we're a stack slot then do some impedance matching magic...
-                StackLoc::Ptr SD = dyn_detail::boost::dynamic_pointer_cast<StackLoc>(D);
+                StackLoc::Ptr SD = dyn_dynamic_pointer_cast<StackLoc>(D);
                 if (SD) {
                     if (height != -1 && SD->isPrecise()) {
                         int slot = SD->slot();
@@ -287,12 +286,12 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
     cDDG->formalReturnNodes(begin, end);
 
     for (; begin != end; ++begin) {
-        FormalReturnNode::Ptr p = dyn_detail::boost::dynamic_pointer_cast<FormalReturnNode> (*begin);
+        FormalReturnNode::Ptr p = dyn_dynamic_pointer_cast<FormalReturnNode> (*begin);
         if (!p) continue;
         Absloc::Ptr D = p->absloc();
                 
         // If we're a stack slot then do some impedance matching magic...
-        StackLoc::Ptr SD = dyn_detail::boost::dynamic_pointer_cast<StackLoc>(D);
+        StackLoc::Ptr SD = dyn_dynamic_pointer_cast<StackLoc>(D);
         if (SD) {
             if (height != -1 && SD->isPrecise()) {
                 int slot = SD->slot();
@@ -515,7 +514,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
                 // For now, that's a cNode...
                 
                 // If we're a stack slot then do some impedance matching magic...
-                StackLoc::Ptr SU = dyn_detail::boost::dynamic_pointer_cast<StackLoc>(U);
+                StackLoc::Ptr SU = dyn_dynamic_pointer_cast<StackLoc>(U);
                 if (SU) {
                     if (height != -1 && SU->isPrecise()) {
                         int slot = SU->slot();
@@ -580,12 +579,12 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
     cDDG->formalParamNodes(begin, end);
     
     for (; begin != end; ++begin) {
-        FormalParamNode::Ptr p = dyn_detail::boost::dynamic_pointer_cast<FormalParamNode> (*begin);
+        FormalParamNode::Ptr p = dyn_dynamic_pointer_cast<FormalParamNode> (*begin);
         if (!p) continue;
         Absloc::Ptr U = p->absloc();
         
         // If we're a stack slot then do some impedance matching magic...
-        StackLoc::Ptr SU = dyn_detail::boost::dynamic_pointer_cast<StackLoc>(U);
+        StackLoc::Ptr SU = dyn_dynamic_pointer_cast<StackLoc>(U);
         if (SU) {
             if (height != -1 && SU->isPrecise()) {
                 int slot = SU->slot();

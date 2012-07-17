@@ -95,7 +95,9 @@ void test_stack_2_func2()
 void test_stack_2_func1()
 {
 #if defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */
+ || defined(x86_64_unknown_linux2_4_test) \
+ || defined(amd64_unknown_freebsd7_0_test) \
+ || defined(i386_unknown_freebsd7_0_test) /* Blind duplication - Ray */ 
     void (*old_handler)(int) = signal(SIGALRM, sigalrm_handler);
 
     globalVariable2_1++;

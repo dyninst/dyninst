@@ -137,6 +137,8 @@ class IntervalTree {
 
   void clear() { tree_.clear(); }
 
+  bool empty() { return tree_.empty(); }
+
   bool update(K lb, K newUB) {
      Iter iter = tree_.find(lb);
      if (iter == tree_.end()) return false;

@@ -120,7 +120,7 @@ static void execFunc(BPatch_thread *thread)
         BPatch_image *appImage = thread->getProcess()->getImage();
         assert(appImage);
 
-	char *fn = "test4_3_func2";
+   const char *fn = "test4_3_func2";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  logerror("    Unable to find function %s\n",fn);
@@ -133,7 +133,7 @@ static void execFunc(BPatch_thread *thread)
         BPatch_funcCallExpr callExpr(*func3_2_parent, nullArgs);
 
 	bpfv.clear();
-	char *fn2 = "test4_3_func1";
+	const char *fn2 = "test4_3_func1";
 	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  logerror("    Unable to find function %s\n",fn2);
@@ -173,10 +173,6 @@ test_results_t test4_3_Mutator::mutatorTest() {
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_3");
-    if (getPIDFilename() != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = getPIDFilename();
-    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -187,9 +183,6 @@ test_results_t test4_3_Mutator::mutatorTest() {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
-
-    // Register for cleanup
-    registerPID(appProc->getPid());
 
     contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 

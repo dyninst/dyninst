@@ -38,6 +38,14 @@
 #include "common/h/Types.h"
 #include "common/h/headers.h"
 
+#if defined(SERIALIZATION_DISABLED)
+unsigned short Dyninst::get_serializer_index(Dyninst::SerializerBase *) {
+  return 0;
+}
+
+
+#else
+
 using namespace Dyninst;
 
 //COMMON_EXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
@@ -417,9 +425,8 @@ SerFile::SerFile(std::string fname, iomode_t mode, bool verbose) :
 	iomode_(mode), 
 	noisy(verbose) 
 {
-	char file_path[PATH_MAX];
-
-	if (!resolve_file_path(fname.c_str(), file_path)) 
+        std::string file_path = resolve_file_path(fname.c_str());
+        if( file_path.empty() )
 	{
 		char msg[1024];
 		snprintf(msg, 1024, "failed to resolve path for '%s'\n", fname.c_str());
@@ -2468,3 +2475,4 @@ void SerializerBase::translate_base(std::string &v, const char *t)
    getSD().translate(v, t);
 }
 
+#endif

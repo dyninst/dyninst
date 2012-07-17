@@ -43,50 +43,68 @@ dnl: if $4 and $5 are set, they are additional libdirs and libs needed
 dnl: for linking to resolve all references properly and test to pass
 AC_DEFUN(PD_CHECK_LIB_DIR,[
   if test "$1" = "" ; then
-    AC_CHECK_LIB($2, $3, [], [AC_MSG_ERROR(Can't find lib$2.)])
+    FIRST_LIBPARAM=""
   else
-    LIBS_HOLD=$LIBS
-    if test "$4" != "" ; then
-      LIBS="-L$1 -L$4"
-      AC_CHECK_LIB($2, $3, [], [AC_MSG_ERROR(Can't find lib$2 in $1)], $5)
-    else
-      LIBS="-L$1"
-      AC_CHECK_LIB($2, $3, [], [AC_MSG_ERROR(Can't find lib$2 in $1)])
-    fi
-    LIBS=$LIBS_HOLD
+    FIRST_LIBPARAM="-L$1"
   fi
+  if test "$4" = "" ; then
+    FOURTH_LIBPARAM=""
+  else
+    FOURTH_LIBPARAM="-L$4"
+  fi
+  LIBS_HOLD=$LIBS
+  LIBS="$LIBS $FIRST_LIBPARAM $FOURTH_LIBPARAM"
+  AC_CHECK_LIB($2, $3, [], [AC_MSG_ERROR(Cant find lib$2.)], $5)
+  LIBS=$LIBS_HOLD
+])
+
+AC_DEFUN(PD_CHECK_LIB_DIR_WERR,[
+  if test "$1" = "" ; then
+    FIRST_LIBPARAM=""
+  else
+    FIRST_LIBPARAM="-L$1"
+  fi
+  if test "$4" = "" ; then
+    FOURTH_LIBPARAM=""
+  else
+    FOURTH_LIBPARAM="-L$4"
+  fi
+  LIBS_HOLD=$LIBS
+  LIBS="$LIBS $FIRST_LIBPARAM $FOURTH_LIBPARAM"
+  AC_CHECK_LIB($2, $3, [], $6, $5)
+  LIBS=$LIBS_HOLD
 ])
 
 AC_DEFUN(PD_SOFT_CHECK_LIB_DIR,[
   if test "$1" = "" ; then
-    AC_CHECK_LIB($2, $3, [], [AC_MSG_RESULT(Can't find lib$2.)])
+    FIRST_LIBPARAM=""
   else
-    LIBS_HOLD=$LIBS
-    if test "$4" != "" ; then
-      LIBS="-L$1 -L$4"
-      AC_CHECK_LIB($2, $3, [], 
-	[AC_MSG_RESULT(Can't find lib$2 in $1)], $5)
-    else
-      LIBS="-L$1"
-      AC_CHECK_LIB($2, $3, [], 
-	[AC_MSG_RESULT(Can't find lib$2 in $1)])
-    fi
-    LIBS=$LIBS_HOLD
+    FIRST_LIBPARAM="-L$1"
   fi
+  if test "$4" = "" ; then
+    FOURTH_LIBPARAM=""
+  else
+    FOURTH_LIBPARAM="-L$4"
+  fi
+  LIBS_HOLD=$LIBS
+  LIBS="$LIBS $FIRST_LIBPARAM $FOURTH_LIBPARAM"
+  AC_CHECK_LIB($2, $3, [], [AC_MSG_RESULT(Cant find lib$2.)], $5)
+  LIBS=$LIBS_HOLD
 ])
 
 AC_DEFUN(PD_CHECK_LIB_FEATURE,[
   if test "$1" = "" ; then
-    AC_CHECK_LIB($2, $3, [HAS_FEATURE="true"], [])
+    FIRST_LIBPARAM=""
   else
-    LIBS_HOLD=$LIBS
-    if test "$4" != "" ; then
-      LIBS="-L$1 -L$4"
-      AC_CHECK_LIB($2, $3, [HAS_FEATURE="true"], [], $5)
-    else
-      LIBS="-L$1"
-      AC_CHECK_LIB($2, $3, [HAS_FEATURE="true"], [])
-    fi
-    LIBS=$LIBS_HOLD
+    FIRST_LIBPARAM="-L$1"
   fi
+  if test "$4" = "" ; then
+    FOURTH_LIBPARAM=""
+  else
+    FOURTH_LIBPARAM="-L$4"
+  fi
+  LIBS_HOLD=$LIBS
+  LIBS="$LIBS $FIRST_LIBPARAM $FOURTH_LIBPARAM"
+  AC_CHECK_LIB($2, $3, [HAS_FEATURE="true"], [], $5)
+  LIBS=$LIBS_HOLD
 ])

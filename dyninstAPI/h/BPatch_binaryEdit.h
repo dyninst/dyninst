@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <signal.h>
 
-class process;
 class BinaryEdit;
 class AddressSpace;
 class dyn_thread;

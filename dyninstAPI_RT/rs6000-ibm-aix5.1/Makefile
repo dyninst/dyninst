@@ -30,14 +30,12 @@ SRCS  += ../src/RTposix.c \
 	../src/RTheap-aix.c \
 	../src/RTthread-power-asm.s \
 	../src/RTthread-power.c\
-	../src/RTthread-index.c \
 	../src/RTthread.c
 #	../src/RTmutatedBinary.c \
 #	../src/RTmutatedBinary_XCOFF.c \
 
 # Build and link the library text heap
 ifdef USES_LIB_TEXT_HEAP
-EXTRA_LIBS = libDyninstText.a
 CFLAGS	+= -DUSES_LIB_TEXT_HEAP
 LDFLAGS += -L. -lDyninstText
 endif

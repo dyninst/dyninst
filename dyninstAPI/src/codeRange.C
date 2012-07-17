@@ -36,11 +36,10 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/dynProcess.h"
 
 inferiorRPCinProgress * codeRange::is_inferior_rpc() {
 	return dynamic_cast< inferiorRPCinProgress * >( this );

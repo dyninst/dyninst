@@ -40,6 +40,7 @@
 #include "proccontrol/src/unix.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/mmapalloc.h"
 
 #include "common/h/dthread.h"
 
@@ -83,50 +84,63 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public x86_process
+class freebsd_process : public sysv_process, public unix_process, public x86_process, public thread_db_process, public mmap_alloc_process, public hybrid_lwp_control_process
 {
+   friend class freebsd_thread;
 public:
-    freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
+    freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+            std::vector<std::string> envp, std::map<int, int> f);
     freebsd_process(Dyninst::PID pid_, int_process *p);
     virtual ~freebsd_process();
 
     virtual bool plat_create();
-    virtual bool plat_attach();
+    virtual bool plat_attach(bool allStopped, bool &);
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach();
+    virtual bool plat_detach(result_response::ptr resp);
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
                               Dyninst::Address remote, size_t size);
-    virtual bool plat_writeMem(int_thread *thr, void *local,
+    virtual bool plat_writeMem(int_thread *thr, const void *local,
                                Dyninst::Address remote, size_t size);
 
     virtual bool needIndividualThreadAttach();
     virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
     virtual Dyninst::Architecture getTargetArch();
     virtual bool plat_individualRegAccess();
-    virtual bool plat_contProcess();
+    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
+    virtual OSType getOS() const;
 
-    virtual bool post_attach();
-    virtual bool post_create();
+    virtual bool post_attach(bool wasDetached);
+    virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
+
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
     virtual SymbolReaderFactory *plat_defaultSymReader();
+    virtual bool plat_threadOpsNeedProcStop();
+
+    /* handling forks on FreeBSD */
+    virtual bool forked();
+    virtual bool isForking() const;
+    virtual void setForking(bool b);
+    virtual bool post_forked();
+    virtual freebsd_process *getParent();
 
     /* thread_db_process methods */
-    virtual string getThreadLibName(const char *symName);
-    virtual bool isSupportedThreadLib(const string &libName);
-    virtual bool plat_readProcMem(void *local,
-            Dyninst::Address remote, size_t size);
-    virtual bool plat_writeProcMem(void *local,
-            Dyninst::Address remote, size_t size);
+    virtual const char *getThreadLibName(const char *symName);
+    virtual bool isSupportedThreadLib(string libName);
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
-    virtual bool plat_contThread(lwpid_t lwp);
-    virtual bool plat_stopThread(lwpid_t lwp);
-    
+
+    virtual bool plat_suspendThread(int_thread *thr);
+    virtual bool plat_resumeThread(int_thread *thr);
+    virtual bool plat_debuggerSuspended();
+    virtual void noteNewDequeuedEvent(Event::ptr ev);
 protected:
     string libThreadName;
+    bool forking;
+    bool debugger_stopped;
+    freebsd_process *parent;
 };
 
 class freebsd_thread : public thread_db_thread
@@ -144,6 +158,8 @@ public:
     virtual bool plat_setAllRegisters(int_registerPool &reg);
     virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
     virtual bool attach();
+    virtual bool plat_suspend();
+    virtual bool plat_resume();
 
     /* FreeBSD-specific */
     virtual bool plat_setStep();
@@ -161,24 +177,26 @@ protected:
     bool pcBugCondition;
     bool pendingPCBugSignal;
     bool signalStopped;
+    bool is_pt_setstep;
+    bool is_exited;
 };
 
-class FreeBSDStopHandler : public Handler
+class FreeBSDPollLWPDeathHandler : public Handler
 {
 public:
-    FreeBSDStopHandler();
-    virtual ~FreeBSDStopHandler();
+    FreeBSDPollLWPDeathHandler();
+    virtual ~FreeBSDPollLWPDeathHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 #if defined(bug_freebsd_mt_suspend)
-class FreeBSDPostStopHandler : public Handler
+class FreeBSDPreStopHandler : public Handler
 {
 public:
-    FreeBSDPostStopHandler();
-    virtual ~FreeBSDPostStopHandler();
+    FreeBSDPreStopHandler();
+    virtual ~FreeBSDPreStopHandler();
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
@@ -206,5 +224,15 @@ public:
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 #endif
+
+class FreeBSDPreForkHandler : public Handler
+{
+public:
+    FreeBSDPreForkHandler();
+    ~FreeBSDPreForkHandler();
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
 
 #endif

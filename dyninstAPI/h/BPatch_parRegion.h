@@ -37,7 +37,6 @@
 #include "BPatch_eventLock.h"
 
 class int_parRegion;
-class process;
 class InstrucIter;
 class BPatch_function;
 class BPatch_instruction;

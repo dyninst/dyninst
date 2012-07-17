@@ -15,6 +15,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
+CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 
 SRCS = ../src/bluegene-swk.C \
        ../src/bluegenel-swk.C \
@@ -22,10 +23,6 @@ SRCS = ../src/bluegene-swk.C \
        ../src/symtab-swk.C
 
 STATIC_COMPS = true
-
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
 
 LIBS   +=
 CFLAGS  += -m32 $(MYFLAGS)

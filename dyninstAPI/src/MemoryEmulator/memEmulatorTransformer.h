@@ -49,7 +49,8 @@ namespace Relocation {
 class InsnWidget;
 
 class MemEmulatorTransformer : public Transformer {
-  typedef dyn_detail::boost::shared_ptr<InsnWidget> InsnWidgetPtr;
+   typedef boost::shared_ptr<InsnWidget> InsnWidgetPtr;
+
  public:
   typedef std::map<Register, Widget::RelocBlockPtr> TranslatorMap;
 

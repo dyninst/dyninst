@@ -73,7 +73,6 @@ class BPatch_function;
 class BPatch_point;
 
 class Emitter;
-class generatedCodeObject;
 class fileDescriptor;
 
 using namespace Dyninst;
@@ -84,6 +83,7 @@ class int_symbol;
 
 class Dyn_Symbol;
 class BinaryEdit;
+class PCProcess;
 class trampTrapMappings;
 class baseTramp;
 
@@ -123,7 +123,7 @@ class AddressSpace : public InstructionSource {
    //typedef std::map<func_instance *, func_instance *> FuncModMap;
     
     // Down-conversion functions
-    process *proc();
+    PCProcess *proc();
     BinaryEdit *edit();
 
     // Read/write
@@ -183,8 +183,12 @@ class AddressSpace : public InstructionSource {
     bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
     bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
 
-
     bool isInferiorAllocated(Address block);
+
+    // Allow the AddressSpace to update any extra bookkeeping for trap-based
+    // instrumentation
+    virtual void addTrap(Address from, Address to, codeGen &gen) = 0;
+    virtual void removeTrap(Address from) = 0;
 
     bool getDyninstRTLibName();
 
@@ -329,13 +333,15 @@ class AddressSpace : public InstructionSource {
     bool wrapFunction(func_instance *original, 
                       func_instance *wrapper, 
                       SymtabAPI::Symbol *clone);
+    void wrapFunctionPostPatch(func_instance *wrapped, Dyninst::SymtabAPI::Symbol *);
+
     void revertWrapFunction(func_instance *original);                      
     void revertReplacedFunction(func_instance *oldfunc);
     void removeCall(block_instance *callBlock, func_instance *context = NULL);
     const func_instance *isFunctionReplacement(func_instance *func) const;
 
     // And this....
-    typedef dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
+    typedef boost::shared_ptr<Dyninst::InstructionAPI::Instruction> InstructionPtr;
     bool getDynamicCallSiteArgs(InstructionPtr insn,
                                 Address addr,
                                 pdvector<AstNodePtr> &args);
@@ -370,22 +376,25 @@ class AddressSpace : public InstructionSource {
     // Callbacks for higher level code (like BPatch) to learn about new 
     //  functions and InstPoints.
  private:
-    BPatch_function *(*new_func_cb)(AddressSpace *a, func_instance *f);
-    BPatch_point *(*new_instp_cb)(AddressSpace *a, func_instance *f, instPoint *ip, 
+    BPatch_function *(*new_func_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f);
+    BPatch_point *(*new_instp_cb)(AddressSpace *a, Dyninst::PatchAPI::PatchFunction *f, 
+                                  Dyninst::PatchAPI::Point *ip, 
                                   int type);
  public:
     //Trigger the callbacks from a lower level
-    BPatch_function *newFunctionCB(func_instance *f) 
+    BPatch_function *newFunctionCB(Dyninst::PatchAPI::PatchFunction *f) 
         { assert(new_func_cb); return new_func_cb(this, f); }
-    BPatch_point *newInstPointCB(func_instance *f, instPoint *pt, int type)
+    BPatch_point *newInstPointCB(Dyninst::PatchAPI::PatchFunction *f, 
+                                 Dyninst::PatchAPI::Point *pt, int type)
         { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
     
     //Register callbacks from the higher level
     void registerFunctionCallback(BPatch_function *(*f)(AddressSpace *p, 
-                                                        func_instance *f))
+                                                        Dyninst::PatchAPI::PatchFunction *f))
         { new_func_cb = f; };
-    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, func_instance *f,
-                                                      instPoint *ip, int type))
+    void registerInstPointCallback(BPatch_point *(*f)(AddressSpace *p, 
+                                                      Dyninst::PatchAPI::PatchFunction *f,
+                                                      Dyninst::PatchAPI::Point *ip, int type))
         { new_instp_cb = f; }
     
     
@@ -402,7 +411,7 @@ class AddressSpace : public InstructionSource {
     // Clear things out (e.g., deleteProcess)
     void deleteAddressSpace();
     // Fork psuedo-constructor
-    void copyAddressSpace(process *parent);
+    void copyAddressSpace(AddressSpace *parent);
 
     // Aaand constructor/destructor
     AddressSpace();
@@ -546,9 +555,11 @@ class AddressSpace : public InstructionSource {
 
     bool delayRelocation_;
 
+    std::map<func_instance *, Dyninst::SymtabAPI::Symbol *> wrappedFunctionWorklist_;
+
   // PatchAPI stuffs
   public:
-    Dyninst::PatchAPI::PatchMgrPtr mgr() const { return mgr_; }
+    Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
     void initPatchAPI(mapped_object* aout);
@@ -561,6 +572,7 @@ class AddressSpace : public InstructionSource {
 };
 
 
+bool uninstrument(Dyninst::PatchAPI::Instance::Ptr);
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 
 #endif // ADDRESS_SPACE_H

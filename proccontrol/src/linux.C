@@ -40,26 +40,22 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <iostream>
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
 
+#include "common/h/pathName.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/h/Mailbox.h"
-
-using namespace Dyninst;
-using namespace ProcControlAPI;
-using namespace std;
-
-#define ELF_X_NAMESPACE ProcControlAPI
-#include "common/h/SymLite-elf.h"
-#include "common/src/Elf_X.C"
+#include "proccontrol/h/PlatFeatures.h"
 
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
+#include "proccontrol/src/int_thread_db.h"
 #include "proccontrol/src/linux.h"
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/response.h"
@@ -70,9 +66,28 @@ using namespace std;
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
 
+using namespace Dyninst;
+using namespace ProcControlAPI;
+#include "common/h/SymLite-elf.h"
+
+#if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
+#define PTRACE_GETREGS PPC_PTRACE_GETREGS
+#endif
+
+#if !defined(PTRACE_SETREGS) && defined(PPC_PTRACE_SETREGS)
+#define PTRACE_SETREGS PPC_PTRACE_SETREGS
+#endif
+
+static pid_t P_gettid();
+static bool t_kill(int pid, int sig);
+
+using namespace Dyninst;
+using namespace std;
+
+static GeneratorLinux *gen = NULL;
+
 Generator *Generator::getDefaultGenerator()
 {
-   static GeneratorLinux *gen = NULL;
    if (!gen) {
       gen = new GeneratorLinux();
       assert(gen);
@@ -83,6 +98,8 @@ Generator *Generator::getDefaultGenerator()
 
 bool GeneratorLinux::initialize()
 {
+   generator_lwp = P_gettid();
+   generator_pid = P_getpid();
    return true;
 }
 
@@ -99,6 +116,9 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
    options = __WALL;
    options |= block ? 0 : WNOHANG; 
    pthrd_printf("%s in waitpid\n", block ? "blocking" : "polling");
+
+   if (isExitingState())
+      return NULL;
    int pid = waitpid(-1, &status, options);
 
    ArchEventLinux *newevent = NULL;
@@ -136,13 +156,61 @@ ArchEvent *GeneratorLinux::getEvent(bool block)
 }
 
 GeneratorLinux::GeneratorLinux() :
-   GeneratorMT(std::string("Linux Generator"))
+   GeneratorMT(std::string("Linux Generator")),
+   generator_lwp(0),
+   generator_pid(0)
 {
    decoders.insert(new DecoderLinux());
 }
 
+static volatile int on_sigusr2_hit;
+static void on_sigusr2(int)
+{
+   on_sigusr2_hit = 1;
+}
+
 GeneratorLinux::~GeneratorLinux()
 {
+   setState(exiting);
+   
+   if (!generator_lwp)
+      return;
+   if (generator_pid != P_getpid())
+      return;
+   
+   //Throw a SIGUSR2 at the generator thread.  This will kick it out of
+   // a waitpid with EINTR, and allow it to exit.  Will do nothing if not
+   // blocked in waitpid.
+   //
+   //There's a subtle race condition here, which we can't easily fix.  
+   // The generator thread could be just before waitpid, but after 
+   // it's exit test when the signal hits.  We won't throw EINTR because
+   // we're not in waitpid yet, and we won't retest the exiting state.
+   // This exact kind of race is why we have things like pselect, but
+   // waitpid doesn't have a pwaitpid, so we're stuck.
+   struct sigaction newact, oldact;
+   memset(&newact, 0, sizeof(struct sigaction));
+   memset(&oldact, 0, sizeof(struct sigaction));
+   newact.sa_handler = on_sigusr2;
+
+   int result = sigaction(SIGUSR2, &newact, &oldact);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+      return;
+   }
+   on_sigusr2_hit = 0;
+   bool bresult = t_kill(generator_lwp, SIGUSR2);
+   while (bresult && !on_sigusr2_hit) {
+      //Don't use a lock because pthread_mutex_unlock is not signal safe
+      sched_yield();
+   }
+
+   result = sigaction(SIGUSR2, &oldact, NULL);
+   if (result == -1) {
+      int error = errno;
+      perr_printf("Error signaling generator thread: %s\n", strerror(error));
+   }
 }
 
 DecoderLinux::DecoderLinux()
@@ -177,7 +245,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    linux_thread *lthread = NULL;
    if (thread) {
       proc = thread->llproc();
-      lthread = static_cast<linux_thread *>(thread);
+      lthread = dynamic_cast<linux_thread *>(thread);
    }
    if (proc) {
       lproc = dynamic_cast<linux_process *>(proc);
@@ -216,6 +284,17 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
          case SIGTRAP: {
+#if 0
+            {
+               //Debugging code
+               Dyninst::MachRegisterVal addr;
+               result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               if (!result) {
+                  fprintf(stderr, "Failed to read PC address upon crash\n");
+               }
+               fprintf(stderr, "Got SIGTRAP at %lx\n", addr);               
+            }
+#endif
             ext = status >> 16;
             if (ext) {
                switch (ext) {
@@ -229,8 +308,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      if (thread->getLWP() == proc->getPid())
                         event = Event::ptr(new EventExit(EventType::Pre, 0));
                      else {
-                        event = Event::ptr(new EventThreadDestroy(EventType::Pre));
+                        EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Pre));
+                        event = lwp_ev;
+                        event->setThread(thread->thread());
+                        lproc->decodeTdbLWPExit(lwp_ev);
                      }
+                     thread->setExitingInGenerator(true);
                      break;
                   case PTRACE_EVENT_FORK: 
                   case PTRACE_EVENT_CLONE: {
@@ -242,8 +325,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                         return true;
                      }
                      unsigned long cpid_l = 0x0;
-                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
-                               NULL, &cpid_l);
+                     int result = do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
+                                            NULL, &cpid_l);
+                     if (result == -1) {
+                        perr_printf("Error getting event message from fork/clone\n");
+                        return false;
+                     }
                      pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
                      archevent->event_ext = ext;
@@ -291,43 +378,96 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                break;
             }
 
-            installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
-            if (ibp && ibp != thread->isClearingBreakpoint()) {
+            bp_instance *clearingbp = thread->isClearingBreakpoint();
+            if (thread->singleStep() && clearingbp) {
+                pthrd_printf("Decoded event to breakpoint restore\n");
+                event = Event::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(clearingbp)));
+                if (thread->singleStepUserMode()) {
+                   Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
+                   subservient_ss->setProcess(proc->proc());
+                   subservient_ss->setThread(thread->thread());
+                   subservient_ss->setSyncType(Event::sync_thread);
+                   event->addSubservientEvent(subservient_ss);
+                }
+                break;
+            }
+
+            // Need to distinguish case where the thread is single-stepped to a
+            // breakpoint and when a single step hits a breakpoint.
+            //
+            // If no forward progress was made due to a single step, then a
+            // breakpoint was hit
+            sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+            if (thread->singleStep() && !ibp) {
+               pthrd_printf("Decoded event to single step on %d/%d\n",
+                       proc->getPid(), thread->getLWP());
+               event = Event::ptr(new EventSingleStep());
+               break;
+            }
+            
+            if (ibp && ibp != clearingbp) {
                pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(), 
                             thread->getLWP(), adjusted_addr);
-               event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+               EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new int_eventBreakpoint(adjusted_addr, ibp, thread)));
+               event = event_bp;
+               event->setThread(thread->thread());
+
+               if (thread->singleStepUserMode() && !proc->plat_breakpointAdvancesPC()) {
+                  Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
+                  subservient_ss->setProcess(proc->proc());
+                  subservient_ss->setThread(thread->thread());
+                  subservient_ss->setSyncType(Event::sync_thread);
+                  event->addSubservientEvent(subservient_ss);
+               }
 
                if (adjusted_addr == lproc->getLibBreakpointAddr()) {
                   pthrd_printf("Breakpoint is library load/unload\n");
-                  Event::ptr lib_event = Event::ptr(new EventLibrary());
+                  EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                   lib_event->setThread(thread->thread());
                   lib_event->setProcess(proc->proc());
+                  lib_event->setSyncType(Event::sync_thread);
                   event->addSubservientEvent(lib_event);
+                  break;
                }
+               for (;;) {
+                  async_ret_t result = lproc->decodeTdbBreakpoint(event_bp);
+                  if (result == aret_error) {
+                     //Not really an error, just how we say that it isn't
+                     // a breakpoint.
+                     break;
+                  }
+                  if (result == aret_success) {
+                     //decodeTdbBreakpoint added a subservient event if this hits
+                     pthrd_printf("Breakpoint was thread event\n");
+                     break;
+                  }
+                  if (result == aret_async) {
+                     pthrd_printf("decodeTdbBreakpoint returned async\n");
+                     set<response::ptr> resps;
+                     lproc->getMemCache()->getPendingAsyncs(resps);
+                     pthrd_printf("%d asyncs are pending\n", (int) resps.size());
+                     int_process::waitForAsyncEvent(resps);
+                     continue;
+                  }
+               }
+
                break;
             }
-            if (thread->singleStep())
-            {
-               installed_breakpoint *ibp = thread->isClearingBreakpoint();
-               if (ibp) {
-                  pthrd_printf("Decoded event to breakpoint cleanup\n");
-                  event = Event::ptr(new EventBreakpointClear(ibp));
-                  break;
-               } 
-               else {
-                  pthrd_printf("Decoded event to single step on %d/%d\n",
-                               proc->getPid(), thread->getLWP());
-                  event = Event::ptr(new EventSingleStep());
-                  break;
-               }
+            response::ptr resp;
+            EventBreakpoint::ptr evhwbp = thread->decodeHWBreakpoint(resp);
+            if (evhwbp) {
+               pthrd_printf("Decoded SIGTRAP as hardware breakpoint\n");
+               event = evhwbp;
+               break;
             }
+
          }
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
 #if 0
             //Debugging code
-            if (stopsig == 11) {
+            if (stopsig == 11 || stopsig == 4) {
                Dyninst::MachRegisterVal addr;
                result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
                if (!result) {
@@ -343,7 +483,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          event->setSyncType(Event::sync_thread);
    }
    else if ((WIFEXITED(status) || WIFSIGNALED(status)) && 
-            (!proc || !thread || thread->getGeneratorState() == int_thread::exited)) 
+            (!proc || !thread || thread->getGeneratorState().getState() == int_thread::exited)) 
    {
       //This can happen if the debugger process spawned the 
       // child, but then detached.  We recieve the child process
@@ -358,11 +498,15 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    else if (WIFEXITED(status) && proc->getPid() != thread->getLWP())
    {
       int exitcode = WEXITSTATUS(status);
+
       pthrd_printf("Decoded exit of thread %d/%d with code %d\n",
                    proc->getPid(), thread->getLWP(), exitcode);
-      event = Event::ptr(new EventThreadDestroy(EventType::Post));
+      EventLWPDestroy::ptr lwp_ev = EventLWPDestroy::ptr(new EventLWPDestroy(EventType::Post));
+      event = lwp_ev;
       event->setSyncType(Event::async);
-      thread->setGeneratorState(int_thread::exited);
+      event->setThread(thread->thread());
+      lproc->decodeTdbLWPExit(lwp_ev);
+      thread->getGeneratorState().setState(int_thread::exited);
    }
    else if (WIFEXITED(status) || WIFSIGNALED(status)) {
       if (WIFEXITED(status)) {
@@ -373,14 +517,20 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       }
       else {
          int termsig = WTERMSIG(status);
-         pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
-                      proc->getPid(), thread->getLWP(), termsig);
-         event = Event::ptr(new EventCrash(termsig));
+         if( proc->wasForcedTerminated() ) {
+             pthrd_printf("Decoded event to force terminate of %d/%d\n",
+                     proc->getPid(), thread->getLWP());
+             event = Event::ptr(new EventForceTerminate(termsig));
+         }else{
+             pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
+                          proc->getPid(), thread->getLWP(), termsig);
+             event = Event::ptr(new EventCrash(termsig));
+         }
       }
       event->setSyncType(Event::sync_process);
       int_threadPool::iterator i = proc->threadPool()->begin();
       for (; i != proc->threadPool()->end(); i++) {
-         (*i)->setGeneratorState(int_thread::exited);
+         (*i)->getGeneratorState().setState(int_thread::exited);
       }
    }
 
@@ -392,9 +542,9 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       assert(thread);
       proc = thread->llproc();
       if (parent->event_ext == PTRACE_EVENT_FORK)
-         event = Event::ptr(new EventFork(child->pid));
+         event = Event::ptr(new EventFork(EventType::Post, child->pid));
       else if (parent->event_ext == PTRACE_EVENT_CLONE)
-         event = Event::ptr(new EventNewThread(child->pid));
+         event = Event::ptr(new EventNewLWP(child->pid));
       else 
          assert(0);
       event->setSyncType(Event::sync_thread);
@@ -417,34 +567,43 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
    return true;
 }
 
+#if defined(arch_power)
+#define DEFAULT_PROCESS_TYPE linux_ppc_process
+#define DEFAULT_THREAD_TYPE linux_ppc_thread
+#elif defined(arch_x86) || defined(arch_x86_64)
+#define DEFAULT_PROCESS_TYPE linux_x86_process
+#define DEFAULT_THREAD_TYPE linux_x86_thread
+#endif
+
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::vector<std::string> a;
    std::map<int,int> f;
+   std::vector<std::string> envp;
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(p, e, a, f);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(p, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(0, e, a, f);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(0, e, a, envp, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *p)
 {
-   linux_process *newproc = new linux_process(pid_, p);
+   linux_process *newproc = new DEFAULT_PROCESS_TYPE(pid_, p);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-static int computeAddrWidth(int pid)
+int linux_process::computeAddrWidth(Dyninst::Architecture me)
 {
-#if defined(arch_64bit)
    /**
     * It's surprisingly difficult to figure out the word size of a process
     * without looking at the files it loads (we want to avoid disk accesses).
@@ -464,7 +623,7 @@ static int computeAddrWidth(int pid)
    uint32_t buffer[256];
    char auxv_name[64];
    
-   snprintf(auxv_name, 64, "/proc/%d/auxv", pid);
+   snprintf(auxv_name, 64, "/proc/%d/auxv", getPid());
    int fd = open(auxv_name, O_RDONLY);
    if (fd == -1) { 
       pthrd_printf("Couldn't open %s to determine address width: %s",
@@ -475,7 +634,25 @@ static int computeAddrWidth(int pid)
    long int result = read(fd, buffer, sizeof(buffer));
    long int words_read = result / sizeof(uint32_t);
    int word_size = 8;
-   for (long int i=1; i<words_read; i+= 4)
+
+   // We want to check the highest 4 bytes of each integer
+   // On big-endian systems, these come first in memory
+   int start_index;
+   switch (me) {
+      case Arch_x86:
+      case Arch_x86_64:
+         start_index = 1;
+         break;
+      case Arch_ppc32:
+      case Arch_ppc64:
+         start_index = 0;
+         break;
+      case Arch_none:
+      default:
+         assert(0);
+   }
+
+   for (long int i=start_index; i<words_read; i+= 4)
    {
       if (buffer[i] != 0) {
          word_size = 4;
@@ -484,35 +661,17 @@ static int computeAddrWidth(int pid)
    }
    close(fd);
    return word_size;
-#else
-   return sizeof(void*);
-#endif
 }
 
-Dyninst::Architecture linux_process::getTargetArch()
-{
-   if (arch != Dyninst::Arch_none) {
-      return arch;
-   }
-   int addr_width = computeAddrWidth(getPid());
-   
-#if defined(arch_x86) || defined(arch_x86_64)
-   assert(addr_width == 4 || addr_width == 8);
-   arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
-#elif defined(arch_power)
-   assert(addr_width == 4 || addr_width == 8);   
-   arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
-#else
-   assert(0);
-#endif
-   return arch;
-}
-
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
-   int_process(p, e, a, f),
-   sysv_process(p, e, a, f),
-   unix_process(p, e, a, f),
-   x86_process(p, e, a, f)
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                             std::vector<std::string> envp,  std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   sysv_process(p, e, a, envp, f),
+   unix_process(p, e, a, envp, f),
+   thread_db_process(p, e, a, envp, f),
+   indep_lwp_control_process(p, e, a, envp, f),
+   mmap_alloc_process(p, e, a, envp, f),
+   fork_tracker(NULL)
 {
 }
 
@@ -520,12 +679,19 @@ linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
    unix_process(pid_, p),
-   x86_process(pid_, p)
+   thread_db_process(pid_, p),
+   indep_lwp_control_process(pid_, p),
+   mmap_alloc_process(pid_, p),
+   fork_tracker(NULL)
 {
 }
 
 linux_process::~linux_process()
 {
+   if (fork_tracker) {
+      delete fork_tracker;
+      fork_tracker = NULL;
+   }
 }
 
 bool linux_process::plat_create()
@@ -548,6 +714,9 @@ bool linux_process::plat_create_int()
 
    if (!pid)
    {
+      // Make sure cleanup on failure goes smoothly
+      ProcPool()->condvar()->unlock();
+
       //Child
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
       if (result == -1)
@@ -563,9 +732,62 @@ bool linux_process::plat_create_int()
    return true;
 }
 
-bool linux_process::plat_attach()
+bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) {
+    vector<Dyninst::LWP> lwps;
+    if( !getThreadLWPs(lwps) ) {
+        pthrd_printf("Failed to determine lwps for process %d\n", getPid());
+        setLastError(err_noproc, "Failed to find /proc files for debuggee");
+        return false;
+    }
+
+    for(vector<Dyninst::LWP>::iterator i = lwps.begin();
+            i != lwps.end(); ++i)
+    {
+        char proc_stat_name[128];
+        char sstat[256];
+        char *status;
+        int paren_level = 1;
+        
+        snprintf(proc_stat_name, 128, "/proc/%d/stat", *i);
+        FILE *sfile = fopen(proc_stat_name, "r");
+
+        if (sfile == NULL) {
+            pthrd_printf("Failed to open /proc/%d/stat file\n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            return false;
+        }
+        if( fread(sstat, 1, 256, sfile) == 0 ) {
+            pthrd_printf("Failed to read /proc/%d/stat file \n", *i);
+            setLastError(err_noproc, "Failed to find /proc files for debuggee");
+            fclose(sfile);
+            return false;
+        }
+        fclose(sfile);
+
+        sstat[255] = '\0';
+        status = sstat;
+
+        while (*status != '\0' && *(status++) != '(') ;
+        while (*status != '\0' && paren_level != 0) {
+            if (*status == '(') paren_level++;
+            if (*status == ')') paren_level--;
+            status++;
+        }
+
+        while (*status == ' ') status++;
+
+        runningStates.insert(make_pair(*i, (*status != 'T')));
+    }
+
+    return true;
+}
+
+bool linux_process::plat_attach(bool, bool &)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
+
+   bool attachWillTriggerStop = plat_attachWillTriggerStop();
+
    int result = do_ptrace((pt_req) PTRACE_ATTACH, pid, NULL, NULL);
    if (result != 0) {
       int errnum = errno;
@@ -579,19 +801,50 @@ bool linux_process::plat_attach()
       }
       return false;
    }
+
+   if ( !attachWillTriggerStop ) {
+       // Force the SIGSTOP delivered by the attach to be handled
+       pthrd_printf("Attach will not trigger stop, calling PTRACE_CONT to flush out stop\n");
+       int result = do_ptrace((pt_req) PTRACE_CONT, pid, NULL, NULL);
+       if( result != 0 ) {
+           int errnum = errno;
+           pthrd_printf("Unable to continue process %d to flush out attach: %s\n",
+                   pid, strerror(errnum));
+           return false;
+       }
+   }
    
    return true;
 }
 
-static std::string deref_link(const char *path)
-{
-   char *p = realpath(path, NULL);
-   if (p == NULL) {
-      return std::string();
-   }
-   std::string sp = p;
-   free(p);
-   return sp;
+bool linux_process::plat_attachWillTriggerStop() {
+    char procName[64];
+    char cmd[256];
+    pid_t tmpPid;
+    char state;
+    int ttyNumber;
+
+    // Retrieve the state of the process and its controlling tty
+    snprintf(procName, 64, "/proc/%d/stat", pid);
+
+    FILE *sfile = fopen(procName, "r");
+    if ( sfile == NULL ) {
+        perr_printf("Failed to determine whether attach would trigger stop -- assuming it will\n");
+        return true;
+    }
+
+    fscanf(sfile, "%d %255s %c %d %d %d",
+            &tmpPid, cmd, &state,
+            &tmpPid, &tmpPid, &ttyNumber);
+    fclose(sfile);
+
+    // If the process is stopped and it has a controlling tty, an attach
+    // will not trigger a stop
+    if ( state == 'T' && ttyNumber != 0 ) {
+        return false;
+    }
+
+    return true;
 }
 
 bool linux_process::plat_execed()
@@ -602,7 +855,7 @@ bool linux_process::plat_execed()
 
    char proc_exec_name[128];
    snprintf(proc_exec_name, 128, "/proc/%d/exe", getPid());
-   executable = deref_link(proc_exec_name);
+   executable = resolve_file_path(proc_exec_name);
    return true;
 }
 
@@ -617,10 +870,75 @@ bool linux_process::plat_readMem(int_thread *thr, void *local,
    return LinuxPtrace::getPtracer()->ptrace_read(remote, size, local, thr->getLWP());
 }
 
-bool linux_process::plat_writeMem(int_thread *thr, void *local, 
+bool linux_process::plat_writeMem(int_thread *thr, const void *local, 
                                   Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
+}
+
+linux_x86_process::linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   x86_process(p, e, a, envp, f)
+{
+}
+
+linux_x86_process::linux_x86_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   linux_process(pid_, p),
+   x86_process(pid_, p)
+{
+}
+
+
+linux_x86_process::~linux_x86_process()
+{
+}
+
+Dyninst::Architecture linux_x86_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_x86 : Arch_x86_64);
+   arch = (addr_width == 4) ? Dyninst::Arch_x86 : Dyninst::Arch_x86_64;
+   return arch;
+}
+
+bool linux_x86_process::plat_supportHWBreakpoint()
+{
+   return true;
+}
+
+linux_ppc_process::linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+                                     std::vector<std::string> envp, std::map<int,int> f) :
+   int_process(p, e, a, envp, f),
+   linux_process(p, e, a, envp, f),
+   ppc_process(p, e, a, envp, f)
+{
+}
+
+linux_ppc_process::linux_ppc_process(Dyninst::PID pid_, int_process *p) :
+   int_process(pid_, p),
+   linux_process(pid_, p),
+   ppc_process(pid_, p)
+{
+}
+
+
+linux_ppc_process::~linux_ppc_process()
+{
+}
+
+Dyninst::Architecture linux_ppc_process::getTargetArch()
+{
+   if (arch != Dyninst::Arch_none) {
+      return arch;
+   }
+   int addr_width = computeAddrWidth(sizeof(void *) == 4 ? Arch_ppc32 : Arch_ppc64);
+   arch = (addr_width == 4) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc64;
+   return arch;
 }
 
 static std::vector<unsigned int> fake_async_msgs;
@@ -684,7 +1002,6 @@ void linux_thread::fake_async_main(void *)
          
          pthrd_printf("Enqueueing Async event with subservient %s to mailbox\n", ev->name().c_str());
          mbox()->enqueue(async_ev, true);
-         MTManager::eventqueue_cb_wrapper();
       }
       
       getResponses().signal();
@@ -712,11 +1029,12 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
    if (!b) {
       result->markError(getLastError());      
    }
+   result->setLastBase(addr);
    fake_async_msgs.push_back(result->getID());
    return true;
 }
 
-bool linux_process::plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr, size_t size, 
+bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size, 
                                        result_response::ptr result)
 {
    bool b = plat_writeMem(thr, local, addr, size);
@@ -741,50 +1059,92 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-int_process::ThreadControlMode int_process::getThreadControlMode() {
-    return int_process::IndependentLWPControl;
+bool linux_process::plat_supportLWPCreate() 
+{
+   return true;
+}
+
+bool linux_process::plat_supportLWPPreDestroy()
+{
+   return true;
+}
+
+bool linux_process::plat_supportLWPPostDestroy()
+{
+   return true;
 }
 
 bool linux_thread::plat_cont()
 {
    pthrd_printf("Continuing thread %d\n", lwp);
-   switch (handler_state) {
+   switch (getHandlerState().getState()) {
       case neonatal:
       case running:
       case exited:
       case errorstate:
+      case detached:
          perr_printf("Continue attempted on thread in invalid state %s\n", 
-                     int_thread::stateStr(handler_state));
+                     int_thread::stateStr(handler_state.getState()));
          return false;
       case neonatal_intermediate:
       case stopped:
          //OK
          break;
+      case none:
+      case dontcare:
+      case ditto:
+         assert(0);
    }
 
-   void *data = (continueSig_ == 0) ? NULL : (void *) continueSig_;
+   // The following case poses a problem:
+   // 1) This thread has received a signal, but the event hasn't been handled yet
+   // 2) An event that precedes the signal event triggers a callback where
+   //    the user requests that the whole process stop. This in turn causes
+   //    the thread to be sent a SIGSTOP because the Handler hasn't seen the
+   //    signal event yet.
+   // 3) Before handling the pending signal event, this thread is continued to
+   //    clear out the pending stop and consequently, it is delivered the signal
+   //    which can cause the whole process to crash
+   //
+   // The solution:
+   // Don't continue the thread with the pending signal if there is a pending stop.
+   // Wait until the user sees the signal event to deliver the signal to the process.
+   //
+   
+   int tmpSignal = continueSig_;
+   if( hasPendingStop() ) {
+       tmpSignal = 0;
+   }
+
+   void *data = (tmpSignal == 0) ? NULL : (void *) tmpSignal;
    int result;
    if (singleStep())
    {
-      pthrd_printf("Calling PTRACE_SINGLESTEP with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_SINGLESTEP on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_SINGLESTEP, lwp, NULL, data);
    }
    else 
    {
-      pthrd_printf("Calling PTRACE_CONT with signal %d\n", continueSig_);
+      pthrd_printf("Calling PTRACE_CONT on %d with signal %d\n", lwp, tmpSignal);
       result = do_ptrace((pt_req) PTRACE_CONT, lwp, NULL, data);
    }
    if (result == -1) {
       int error = errno;
+      if (error == ESRCH) {
+         pthrd_printf("Continue attempted on exited thread %d\n", lwp);
+         setLastError(err_exited, "Continue on exited thread");
+         return false;
+      }
       perr_printf("low-level continue failed: %s\n", strerror(error));
       setLastError(err_internal, "Low-level continue failed\n");
       return false;
    }
+   if( tmpSignal == continueSig_ ) continueSig_ = 0;
 
    return true;
 }
 
-SymbolReaderFactory *linux_process::plat_defaultSymReader()
+SymbolReaderFactory *getElfReader()
 {
   static SymbolReaderFactory *symreader_factory = NULL;
   if (symreader_factory)
@@ -794,12 +1154,17 @@ SymbolReaderFactory *linux_process::plat_defaultSymReader()
   return symreader_factory;
 }
 
+SymbolReaderFactory *linux_process::plat_defaultSymReader()
+{
+   return getElfReader();
+}
+
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
 #endif
 
-pid_t P_gettid()
+static pid_t P_gettid()
 {
   static int gettid_not_valid = 0;
   long int result;
@@ -844,13 +1209,14 @@ int_thread *int_thread::createThreadPlat(int_process *proc,
    if (initial_thrd) {
       lwp_id = proc->getPid();
    }
-   linux_thread *lthrd = new linux_thread(proc, thr_id, lwp_id);
+   linux_thread *lthrd = new DEFAULT_THREAD_TYPE(proc, thr_id, lwp_id);
    assert(lthrd);
    return static_cast<int_thread *>(lthrd);
 }
 
 linux_thread::linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
-   int_thread(p, t, l)
+   int_thread(p, t, l),
+   thread_db_thread(p, t, l)
 {
 }
 
@@ -862,7 +1228,7 @@ bool linux_thread::plat_stop()
 {
    bool result;
 
-   assert(pending_stop);
+   assert(pending_stop.local());
    result = t_kill(lwp, SIGSTOP);
    if (!result) {
       int err = errno;
@@ -884,67 +1250,30 @@ void linux_thread::setOptions()
    long options = 0;
    options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXIT;
-   options |= PTRACE_O_TRACEFORK;
-   options |= PTRACE_O_TRACECLONE;
    options |= PTRACE_O_TRACEEXEC;
-   options |= PTRACE_O_TRACEFORK;
+   if (llproc()->fork_isTracking() != FollowFork::ImmediateDetach)
+      options |= PTRACE_O_TRACEFORK;
 
    if (options) {
       int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL, 
                           (void *) options);
       if (result == -1) {
-         pthrd_printf("Failed to set options for %d: %s\n", tid, strerror(errno));
+         pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
       }
    }   
 }
 
-bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+bool linux_thread::unsetOptions()
 {
-   switch (llproc()->getTargetArch())
-   {
-      case Arch_x86_64:
-         // TODO
-         // use ptrace_arch_prctl     
-         pthrd_printf("Segment bases on x86_64 not implemented\n");
-         return false;
-      case Arch_x86: {
-         MachRegister segmentSelectorReg;
-         MachRegisterVal segmentSelectorVal;
-         unsigned long entryNumber;
-         struct user_desc entryDesc;
+    long options = 0;
 
-         switch (reg.val())
-         {
-            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
-            case x86::igsbase: segmentSelectorReg = x86::gs; break;
-            default: {
-               pthrd_printf("Failed to get unrecognized segment base\n");
-               return false;
-            }
-         }
-
-         if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
-         {
-            pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name().c_str());
-           return false;
-         }
-         entryNumber = segmentSelectorVal / 8;
-
-         pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
-         do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
-            lwp, (void *) entryNumber, (void *) &entryDesc);
-         if (errno != 0) {
-            pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
-            return false;
-         }
-
-         val = entryDesc.base_addr;
-         pthrd_printf("Got segment base: 0x%lx\n", val);
-         return true;
-      }
-      default:
-         assert(0);
-   }
+    int result = do_ptrace((pt_req) PTRACE_SETOPTIONS, lwp, NULL,
+            (void *) options);
+    if (result == -1) {
+        pthrd_printf("Failed to set options for %lu: %s\n", tid, strerror(errno));
+        return false;
+    }
+    return true;
 }
 
 bool linux_process::plat_individualRegAccess()
@@ -952,9 +1281,8 @@ bool linux_process::plat_individualRegAccess()
    return true;
 }
 
-bool linux_process::plat_detach()
+bool linux_process::plat_detach(result_response::ptr)
 {
-   //ProcPool lock should be held.
    int_threadPool *tp = threadPool();
    bool had_error = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
@@ -993,6 +1321,58 @@ bool linux_process::plat_terminate(bool &needs_sync)
    return true;
 }
 
+bool linux_process::preTerminate() {
+#if defined(bug_force_terminate_failure)
+    // On some Linux versions (currently only identified on our power platform),
+    // a force terminate can fail to actually kill a process due to some OS level
+    // race condition. The result is that some threads in a process are stopped
+    // instead of exited and for some reason, continues will not continue the 
+    // process. This can be detected because some OS level structures (such as pipes)
+    // still exist for the terminated process
+
+    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
+    // events being delivered to the debugger, so we stop the process and disable these
+    // events for all threads in the process
+
+   pthrd_printf("Stopping process %d for pre-terminate handling\n", getPid());
+   threadPool()->initialThread()->getInternalState().desyncStateProc(int_thread::stopped);
+   bool threw_event = false;
+   while (!threadPool()->allStopped(int_thread::InternalStateID)) {
+      if (!threw_event) {
+         throwNopEvent();
+         threw_event = true;
+      }
+      bool exited = false;
+      int_process::waitAndHandleForProc(true, this, exited);
+      if (exited) {
+         perr_printf("Process %d exited during terminate handling.  Is this irony?\n", getPid());
+         return false;
+      }
+   }
+
+
+   int_threadPool::iterator i;
+   for(i = threadPool()->begin(); i != threadPool()->end(); i++)
+   {
+      linux_thread *thr = dynamic_cast<linux_thread *>(*i);
+      pthrd_printf("Disabling syscall tracing events for thread %d/%d\n",
+                   getPid(), thr->getLWP());
+      if( !thr->unsetOptions() ) {
+         perr_printf("Failed to unset options for thread %d/%d in pre-terminate handling\n",
+                     getPid(), thr->getLWP());
+         return false;
+      }
+   }
+#endif
+
+    return true;
+}
+
+OSType linux_process::getOS() const
+{
+   return Dyninst::Linux;
+}
+
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
     Dyninst::Address result = 0x0;
     bool found_result = false;
@@ -1019,6 +1399,57 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
     return result;
 }
 
+bool linux_process::fork_setTracking(FollowFork::follow_t f)
+{
+   int_threadPool::iterator i;      
+   for (i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thrd = *i;
+      if (thrd->getUserState().getState() != int_thread::stopped) {
+         perr_printf("Could not set fork tracking because thread %d/%d was not stopped\n", 
+                     getPid(), thrd->getLWP());
+         setLastError(err_notstopped, "All threads must be stopped to change fork tracking\n");
+         return false;
+      }
+   }
+   if (f == FollowFork::None) {
+      perr_printf("Could not set fork tracking on %d to None\n", getPid());
+      setLastError(err_badparam, "Cannot set fork tracking to None");
+      return false;
+   }
+
+   if (f == fork_tracking) {
+      pthrd_printf("Leaving fork tracking for %d in state %d\n",
+                   getPid(), (int) f);
+      return true;
+   }
+
+   for (i = threadPool()->begin(); i != threadPool()->end(); i++) {
+      int_thread *thrd = *i;
+      linux_thread *lthrd = dynamic_cast<linux_thread *>(thrd);
+      pthrd_printf("Changing fork tracking for thread %d/%d to %d\n",
+                   getPid(), lthrd->getLWP(), (int) f);
+      lthrd->setOptions();
+   }
+   return true;
+}
+
+FollowFork *linux_process::getForkTracking()
+{
+   if (!fork_tracker) {
+      fork_tracker = new FollowFork(proc());
+   }
+   return fork_tracker;
+}
+
+FollowFork::follow_t linux_process::fork_isTracking() {
+   return fork_tracking;
+}
+
+
+#if !defined(OFFSETOF)
+#define OFFSETOF(STR, FLD) (unsigned long) (&(((STR *) 0x0)->FLD))
+#endif
+
 dynreg_to_user_t dynreg_to_user;
 static void init_dynreg_to_user()
 {
@@ -1044,106 +1475,334 @@ static void init_dynreg_to_user()
       cur+= 8; //r14
       cur+= 8; //r13
       cur+= 8; //r12
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur+=8, 4);
       cur+= 8; //r11
       cur+= 8; //r10
       cur+= 8; //r9
       cur+= 8; //r8
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gsbase]= std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=8, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gsbase]= make_pair(cur+=8, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=8, 4);
+#if defined(arch_x86) || defined(arch_x86_64)
+      cur = OFFSETOF(user, u_debugreg);
+#endif
+      dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
+      dynreg_to_user[x86::dr1]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr2]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr3]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr4]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr5]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr6]   = make_pair(cur+=8, 4);
+      dynreg_to_user[x86::dr7]   = make_pair(cur+=8, 4);
    }
    else {
-      dynreg_to_user[x86::ebx]   = std::pair<unsigned int, unsigned int>(cur, 4);
-      dynreg_to_user[x86::ecx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edx]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::edi]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ebp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eax]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ds]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::es]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::fs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::gs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::oeax]  = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::eip]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::cs]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::flags] = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::esp]   = std::pair<unsigned int, unsigned int>(cur+=4, 4);
-      dynreg_to_user[x86::ss]    = std::pair<unsigned int, unsigned int>(cur+=4, 4);
+      dynreg_to_user[x86::ebx]   = make_pair(cur, 4);
+      dynreg_to_user[x86::ecx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edx]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::edi]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ebp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eax]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ds]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::es]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::fs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::gs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::oeax]  = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::eip]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::cs]    = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::flags] = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::esp]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::ss]    = make_pair(cur+=4, 4);
+#if defined(arch_x86) || defined(arch_x86_64)
+      cur = OFFSETOF(user, u_debugreg);
+#endif
+      dynreg_to_user[x86::dr0]   = make_pair(cur, 4);
+      dynreg_to_user[x86::dr1]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr2]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr3]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr4]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr5]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr6]   = make_pair(cur+=4, 4);
+      dynreg_to_user[x86::dr7]   = make_pair(cur+=4, 4);
    }
    cur = 0;
-   dynreg_to_user[x86_64::r15]    = std::pair<unsigned int, unsigned int>(cur, 8);
-   dynreg_to_user[x86_64::r14]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r13]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r12]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rbx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r11]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r10]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r9]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::r8]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rax]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rcx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdx]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rdi]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::orax]   = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rip]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::cs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::flags]  = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::rsp]    = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ss]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gsbase] = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::ds]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::es]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::fs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
-   dynreg_to_user[x86_64::gs]     = std::pair<unsigned int, unsigned int>(cur+=8, 8);
+   dynreg_to_user[x86_64::r15]    = make_pair(cur, 8);
+   dynreg_to_user[x86_64::r14]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r13]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r12]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rbx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r11]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r10]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r9]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::r8]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rax]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rcx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdx]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rdi]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::orax]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rip]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::cs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::flags]  = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::rsp]    = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ss]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gsbase] = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::ds]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::es]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::fs]     = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::gs]     = make_pair(cur+=8, 8);
+#if defined(arch_x86) || defined(arch_x86_64)
+   cur = OFFSETOF(user, u_debugreg);
+#endif
+   dynreg_to_user[x86_64::dr0]   = make_pair(cur, 8);
+   dynreg_to_user[x86_64::dr1]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr2]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr3]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr4]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr5]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr6]   = make_pair(cur+=8, 8);
+   dynreg_to_user[x86_64::dr7]   = make_pair(cur+=8, 8);
+ 
+   cur = 0;
+   if(sizeof(void *) == 8 ) {
+       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
+       dynreg_to_user[ppc32::r1]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r2]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r3]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r4]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r5]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r6]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r7]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r8]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r9]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r10]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r11]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r12]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r13]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r14]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r15]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r16]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r17]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r18]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r19]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r20]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r21]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r22]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r23]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r24]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r25]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r26]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r27]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r28]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r29]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r30]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::r31]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::pc]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::msr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::or3]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::lr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::xer]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::cr]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::mq]         = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::trap]       = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::dar]        = make_pair(cur+=8, 4);
+       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=8, 4);
+   }else{
+       dynreg_to_user[ppc32::r0]        = make_pair(cur, 4);
+       dynreg_to_user[ppc32::r1]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r2]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r3]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r4]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r5]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r6]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r7]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r8]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r9]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r10]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r11]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r12]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r13]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r14]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r15]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r16]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r17]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r18]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r19]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r20]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r21]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r22]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r23]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r24]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r25]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r26]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r27]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r28]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r29]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r30]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::r31]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::pc]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::msr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::or3]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::ctr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::lr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::xer]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::cr]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::mq]         = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::trap]       = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::dar]        = make_pair(cur+=4, 4);
+       dynreg_to_user[ppc32::dsisr]      = make_pair(cur+=4, 4);
+   }
+   cur = 0;
+   dynreg_to_user[ppc64::r0]        = make_pair(cur, 8);
+   dynreg_to_user[ppc64::r1]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r2]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r3]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r4]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r5]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r6]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r7]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r8]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r9]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r10]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r11]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r12]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r13]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r14]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r15]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r16]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r17]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r18]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r19]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r20]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r21]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r22]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r23]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r24]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r25]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r26]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r27]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r28]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r29]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r30]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::r31]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::pc]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::msr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::or3]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::ctr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::lr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::xer]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::cr]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::mq]         = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::trap]       = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::dar]        = make_pair(cur+=8, 8);
+   dynreg_to_user[ppc64::dsisr]      = make_pair(cur+=8, 8);
+
    initialized = true;
 
    init_lock.unlock();
 }
 
+#if defined(PT_GETREGS)
+#define MY_PTRACE_GETREGS PTRACE_GETREGS
+#elif defined(arch_power)
+//Kernel value for PPC_PTRACE_SETREGS 0x99
+#define MY_PTRACE_GETREGS 12
+#endif
+
 //912 is currently the x86_64 size, 128 bytes for just-because padding
 #define MAX_USER_SIZE (912+128)
 bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 {
+   static bool have_getregs = true;
+   static bool tested_getregs = false;
+
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    volatile unsigned int sentinel1 = 0xfeedface;
    unsigned char user_area[MAX_USER_SIZE];
    volatile unsigned int sentinel2 = 0xfeedface;
    memset(user_area, 0, MAX_USER_SIZE);
 
+   Dyninst::Architecture curplat = llproc()->getTargetArch();
+   init_dynreg_to_user();
+   dynreg_to_user_t::iterator i;
+
+   if (have_getregs)
+   {
+      long result = do_ptrace((pt_req) MY_PTRACE_GETREGS, lwp, user_area, user_area);
+      if (result != 0) {
+         int error = errno;
+         if (error == EIO && !tested_getregs) {
+            pthrd_printf("PTRACE_GETREGS not working.  Trying PTRACE_PEEKUSER\n");
+            have_getregs = false;
+         }
+         else {
+            perr_printf("Error reading registers from %d\n", lwp);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+      }
+      tested_getregs = true;
+   }
+   if (!have_getregs)
+   {
+      for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++) {
+         const MachRegister reg = i->first;
+         if (reg.getArchitecture() != curplat)
+            continue;
+         long result = do_ptrace((pt_req) PTRACE_PEEKUSER, lwp, (void *) i->second.first, NULL);
+         if (errno == -1) {
+            perr_printf("Error reading registers from %d at %x\n", lwp, i->second.first);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+         if (Dyninst::getArchAddressWidth(curplat) == 4) {
+            uint32_t val = (uint32_t) result;
+            *((uint32_t *) (user_area + i->second.first)) = val;
+         }
+         else if (Dyninst::getArchAddressWidth(curplat) == 8) {
+            uint64_t val = (uint64_t) result;
+            *((uint64_t *) (user_area + i->second.first)) = val;
+         }
+         else {
+            assert(0);
+         }
+      }
+   }
+
    //If a sentinel assert fails, then someone forgot to increase MAX_USER_SIZE
    // for a new platform.
    assert(sentinel1 == 0xfeedface);
-   int result = do_ptrace((pt_req) PTRACE_GETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error reading registers from %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
-   }
    assert(sentinel2 == 0xfeedface);
 
-   init_dynreg_to_user();
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
    regpool.regs.clear();
-   dynreg_to_user_t::iterator i;
    for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
@@ -1153,7 +1812,13 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       const unsigned int offset = i->second.first;
       const unsigned int size = i->second.second;
       if (size == 4) {
-         val = *((uint32_t *) (user_area+offset));
+         if( sizeof(void *) == 8 ) {
+            // Avoid endian issues
+            uint64_t tmpVal = *((uint64_t *) (user_area+offset));
+            val = (uint32_t) tmpVal;
+         }else{
+            val = *((uint32_t *) (user_area+offset));
+         }
       }
       else if (size == 8) {
          val = *((uint64_t *) (user_area+offset));
@@ -1161,7 +1826,8 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
       else {
          assert(0);
       }
-      pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
+
+     pthrd_printf("Register %s has value %lx, offset %d\n", reg.name().c_str(), val, offset);
       regpool.regs[reg] = val;
    }
    return true;
@@ -1169,6 +1835,17 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    if (x86::fsbase == reg || x86::gsbase == reg 
        || x86_64::fsbase == reg || x86_64::gsbase == reg) {
       return getSegmentBase(reg, val);
@@ -1198,17 +1875,103 @@ bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    return true;
 }
 
-bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
+#if defined(PT_SETREGS)
+#define MY_PTRACE_SETREGS PT_SETREGS
+#else
+//Common kernel value for PTRACE_SETREGS
+#define MY_PTRACE_SETREGS 13
+#endif
+
+bool linux_thread::plat_setAllRegisters(int_registerPool &regpool) 
 {
+   static bool have_setregs = true;
+   static bool tested_setregs = false;
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+   
+
+   if (have_setregs)
+   {
+      unsigned char user_area[MAX_USER_SIZE];
+      //Fill in 'user_area' with the contents of regpool.   
+      if( !plat_convertToSystemRegs(regpool, user_area) ) return false;
+      
+      //Double up the user_area parameter because if MY_PTRACE_SETREGS is
+      // defined to PPC_PTRACE_SETREGS than the parameters data and addr
+      // pointers get swapped (just because linux hates us).  Since the 
+      // other is ignored, we pass it in twice.
+      int result = do_ptrace((pt_req) MY_PTRACE_SETREGS, lwp, user_area, user_area);
+      if (result != 0) {
+         int error = errno;
+         if (error == EIO && !tested_setregs) {
+            pthrd_printf("PTRACE_SETREGS not working.  Trying PTRACE_POKEUSER\n");
+            have_setregs = false;
+         }
+         else {
+            perr_printf("Error setting registers for %d\n", lwp);
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+      }
+      tested_setregs = true;
+   }
+   if (!have_setregs)
+   {
+      Dyninst::Architecture curplat = llproc()->getTargetArch();
+      init_dynreg_to_user();
+      for (int_registerPool::iterator i = regpool.regs.begin(); i != regpool.regs.end(); i++) {
+         assert(i->first.getArchitecture() == curplat);
+         dynreg_to_user_t::iterator di = dynreg_to_user.find(i->first);
+         assert(di != dynreg_to_user.end());
+         
+         //Don't treat errors on these registers as real errors.
+         bool not_present = true;
+         if (curplat == Arch_ppc32)
+            not_present = (i->first == ppc32::mq || i->first == ppc32::dar || 
+                           i->first == ppc32::dsisr || i->first == ppc32::trap ||
+                           i->first == ppc32::or3);
+         
+         if (not_present)
+            continue;
+         
+         int result;
+         if (Dyninst::getArchAddressWidth(curplat) == 4) {
+            uint32_t res = (uint32_t) i->second;
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+         }
+         else {
+            uint64_t res = (uint64_t) i->second;
+            result = do_ptrace((pt_req) PTRACE_POKEUSER, lwp, (void *) di->second.first, (void *) res);
+         }
+         
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error setting register %s for %d at %d: %s\n", i->first.name().c_str(),
+                        lwp, (int) di->second.first, strerror(error));
+            setLastError(err_internal, "Could not read user area from thread");
+            return false;
+         }
+      }
+   }
+
+   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
+   return true;
+}
+
+bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) {
    init_dynreg_to_user();
 
-   unsigned char user_area[MAX_USER_SIZE];
-
-   //Fill in 'user_area' with the contents of regpool.
-   dynreg_to_user_t::iterator i;
+   Architecture curplat = llproc()->getTargetArch();
    unsigned num_found = 0;
-   Dyninst::Architecture curplat = llproc()->getTargetArch();
-   for (i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
+   for (dynreg_to_user_t::const_iterator i = dynreg_to_user.begin(); i != dynreg_to_user.end(); i++)
    {
       const MachRegister reg = i->first;
       MachRegisterVal val;
@@ -1219,12 +1982,16 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       const unsigned int size = i->second.second;
       assert(offset+size < MAX_USER_SIZE);
       
-      int_registerPool::reg_map_t::iterator j = regpool.regs.find(reg);
+      int_registerPool::reg_map_t::const_iterator j = regpool.regs.find(reg);
       assert(j != regpool.regs.end());
       val = j->second;
       
       if (size == 4) {
-         *((uint32_t *) (user_area+offset)) = (uint32_t) val;
+          if( sizeof(void *) == 8 ) {
+              *((uint64_t *) (user_area+offset)) = (uint64_t) val;
+          }else{
+              *((uint32_t *) (user_area+offset)) = (uint32_t) val;
+          }
       }
       else if (size == 8) {
          *((uint64_t *) (user_area+offset)) = (uint64_t) val;
@@ -1234,6 +2001,7 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
       }
       pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
    }
+
    if (num_found != regpool.regs.size())
    {
       setLastError(err_badparam, "Invalid register set passed to setAllRegisters");
@@ -1243,18 +2011,22 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    }
    assert(num_found == regpool.regs.size());
 
-   int result = do_ptrace((pt_req) PTRACE_SETREGS, lwp, NULL, user_area);
-   if (result != 0) {
-      perr_printf("Error setting registers for %d\n", lwp);
-      setLastError(err_internal, "Could not read user area from thread");
-      return false;
-   }
-   pthrd_printf("Successfully set the values of all registers for %d\n", lwp);
    return true;
 }
 
 bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
 {
+#if defined(bug_registers_after_exit)
+   /* On some kernels, attempting to read registers from a thread in a pre-Exit
+    * state causes an oops
+    */
+   if( isExiting() ) {
+       perr_printf("Cannot reliably retrieve registers from an exited thread\n");
+       setLastError(err_exited, "Cannot retrieve registers from an exited thread");
+       return false;
+   }
+#endif
+
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (reg.getArchitecture() != llproc()->getTargetArch() ||
@@ -1284,8 +2056,8 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    if (result != 0) {
       int error = errno;
       setLastError(err_internal, "Could not set register value");
-      perr_printf("Unable to set value of register %s in thread %d: %s\n",
-                  reg.name().c_str(), lwp, strerror(error));
+      perr_printf("Unable to set value of register %s in thread %d: %s (%d)\n",
+                  reg.name().c_str(), lwp, strerror(error), error);
       return false;
    }
    
@@ -1359,7 +2131,6 @@ bool linux_thread::attach()
                    "be auto-attached.\n", llproc()->getPid(), lwp);
       return true;
    }
-   assert(getInternalState() == neonatal);
 
    pthrd_printf("Calling PTRACE_ATTACH on thread %d/%d\n", 
                 llproc()->getPid(), lwp);
@@ -1370,6 +2141,151 @@ bool linux_thread::attach()
       return false;
    }
    return true;
+}
+
+#if !defined(ARCH_GET_FS)
+#define ARCH_GET_FS 0x1003
+#endif
+#if !defined(ARCH_GET_GS)
+#define ARCH_GET_GS 0x1004
+#endif
+#if !defined(PTRACE_GET_THREAD_AREA)
+#define PTRACE_GET_THREAD_AREA 25
+#endif
+#if !defined(PTRACE_ARCH_PRCTL)
+#define PTRACE_ARCH_PRCTL 30
+#endif
+#define FS_REG_NUM 25
+#define GS_REG_NUM 26
+
+bool linux_thread::thrdb_getThreadArea(int val, Dyninst::Address &addr)
+{
+   Dyninst::Architecture arch = llproc()->getTargetArch();
+   switch (arch) {
+      case Arch_x86: {
+         uint32_t addrv[4];
+         int result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, lwp, (void *) val, &addrv);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_GET_THREAD_AREA on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_GET_THREAD_AREA\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv[1];
+         break;
+      }
+      case Arch_x86_64: {
+         int op;
+         if (val == FS_REG_NUM)
+            op = ARCH_GET_FS;
+         else if (val == GS_REG_NUM)
+            op = ARCH_GET_GS;
+         else {
+            perr_printf("Bad value (%d) passed to thrdb_getThreadArea\n", val);
+            return false;
+         }
+         uint64_t addrv;
+         int result = do_ptrace((pt_req) PTRACE_ARCH_PRCTL, lwp, &addrv, (void *) op);
+         if (result != 0) {
+            int error = errno;
+            perr_printf("Error doing PTRACE_ARCH_PRCTL on %d/%d: %s\n", llproc()->getPid(), lwp, strerror(error));
+            setLastError(err_internal, "Error doing PTRACE_ARCH_PRCTL\n");
+            return false;
+         }
+         addr = (Dyninst::Address) addrv;
+         break;
+      }
+      default:
+         assert(0); //Should not be needed on non-x86
+   }
+   return true;
+}
+
+//Copied from /usr/include/asm/ldt.h, as it was not available on all machines
+struct linux_x86_user_desc {
+   unsigned int  entry_number;   
+   unsigned long base_addr;
+   unsigned int  limit;
+   unsigned int  seg_32bit:1;
+   unsigned int  contents:2;
+   unsigned int  read_exec_only:1;
+   unsigned int  limit_in_pages:1;
+   unsigned int  seg_not_present:1;
+   unsigned int  useable:1;
+};
+
+bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+{
+   switch (llproc()->getTargetArch())
+   {
+      case Arch_x86_64:
+         // TODO
+         // use ptrace_arch_prctl     
+         pthrd_printf("Segment bases on x86_64 not implemented\n");
+         return false;
+      case Arch_x86: {
+         MachRegister segmentSelectorReg;
+         MachRegisterVal segmentSelectorVal;
+         unsigned long entryNumber;
+         struct linux_x86_user_desc entryDesc;
+
+         switch (reg.val())
+         {
+            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
+            case x86::igsbase: segmentSelectorReg = x86::gs; break;
+            default: {
+               pthrd_printf("Failed to get unrecognized segment base\n");
+               return false;
+            }
+         }
+
+         if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
+         {
+           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name().c_str());
+           return false;
+         }
+         entryNumber = segmentSelectorVal / 8;
+
+         pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
+         long result = do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+                                 lwp, (void *) entryNumber, (void *) &entryDesc);
+         if (result == -1 && errno != 0) {
+            pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
+            return false;
+         }
+
+         val = entryDesc.base_addr;
+         pthrd_printf("Got segment base: 0x%lx\n", val);
+         return true;
+      }
+      default:
+         assert(!"This is not implemented on this architecture");
+         return false;
+   }
+ }
+
+linux_x86_thread::linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   thread_db_thread(p, t, l),
+   linux_thread(p, t, l),
+   x86_thread(p, t, l)
+{
+}
+
+linux_x86_thread::~linux_x86_thread()
+{
+}
+
+linux_ppc_thread::linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l),
+   thread_db_thread(p, t, l),
+   linux_thread(p, t, l),
+   ppc_thread(p, t, l)
+{
+}
+
+linux_ppc_thread::~linux_ppc_thread()
+{
 }
 
 ArchEventLinux::ArchEventLinux(bool inter_) : 
@@ -1450,12 +2366,12 @@ Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
 {
    linux_thread *thr = NULL;
    if (ev->getEventType().code() == EventType::Bootstrap) {
-      thr = static_cast<linux_thread *>(ev->getThread()->llthrd());
+      thr = dynamic_cast<linux_thread *>(ev->getThread()->llthrd());
    }
    else if (ev->getEventType().code() == EventType::ThreadCreate) {
       Dyninst::LWP lwp = static_cast<EventNewThread *>(ev.get())->getLWP();
       ProcPool()->condvar()->lock();
-      thr = static_cast<linux_thread *>(ProcPool()->findThread(lwp));
+      thr = dynamic_cast<linux_thread *>(ProcPool()->findThread(lwp));
       ProcPool()->condvar()->unlock();
    }
    assert(thr);
@@ -1476,7 +2392,46 @@ void LinuxHandleNewThr::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 
-HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+LinuxHandleLWPDestroy::LinuxHandleLWPDestroy()
+    : Handler("Linux LWP Destroy")
+{
+}
+
+LinuxHandleLWPDestroy::~LinuxHandleLWPDestroy()
+{
+}
+
+Handler::handler_ret_t LinuxHandleLWPDestroy::handleEvent(Event::ptr ev) {
+    int_thread *thrd = ev->getThread()->llthrd();
+
+    // This handler is necessary because SIGSTOPS cannot be sent to pre-destroyed
+    // threads -- these stops will never be delivered to the debugger
+    //
+    // Setting the exiting state in the thread will avoid any waiting for pending stops
+    // on this thread
+
+    thrd->setExiting(true);
+
+    // If there is a pending stop, need to handle it here because there is
+    // no guarantee that the stop will ever be received
+    if( thrd->hasPendingStop() ) {
+       thrd->setPendingStop(false);
+    }
+
+    return ret_success;
+}
+
+int LinuxHandleLWPDestroy::getPriority() const
+{
+    return PostPlatformPriority;
+}
+
+void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+    etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
+}
+
+HandlerPool *linux_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
    static LinuxHandleNewThr *lbootstrap = NULL;
@@ -1485,7 +2440,14 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
+   thread_db_process::addThreadDBHandlers(hpool);
+   sysv_process::addSysVHandlers(hpool);
    return hpool;
+}
+
+HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+{
+   return linux_createDefaultHandlerPool(hpool);
 }
 
 bool ProcessPool::LWPIDsAreUnique()
@@ -1552,7 +2514,7 @@ void LinuxPtrace::main()
       switch(ptrace_request) {
          case create_req:
             bret = proc->plat_create_int();
-	    break;
+            break;
          case ptrace_req:
             ret = ptrace(request, pid, addr, data);
             break;
@@ -1639,12 +2601,12 @@ bool LinuxPtrace::ptrace_read(Dyninst::Address inTrace, unsigned size_,
 }
 
 bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_, 
-                               void *inSelf, int pid_)
+                               const void *inSelf, int pid_)
 {
    start_request();
    ptrace_request = ptrace_bulkwrite;
    remote_addr = inTrace;
-   data = inSelf;
+   data = const_cast<void *>(inSelf);
    pid = pid_;
    size = size_;
    waitfor_ret();
@@ -1654,78 +2616,27 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
-const unsigned int x86_64_mmap_flags_position = 26;
-const unsigned int x86_64_mmap_size_position = 43;
-const unsigned int x86_64_mmap_addr_position = 49;
-const unsigned int x86_64_mmap_start_position = 4;
-const unsigned char x86_64_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
-0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
-0x49, 0xc7, 0xc0, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r8
-0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9
-0x49, 0xc7, 0xc2, 0x22, 0x00, 0x00, 0x00,       //mov    $0x22,%r10
-0x48, 0xc7, 0xc2, 0x07, 0x00, 0x00, 0x00,       //mov    $0x7,%rdx
-0x48, 0x31, 0xf6,                               //xor    %rsi,%rsi
-0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,       //mov    $<size>,%rsi
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
-0x00, 0x00, 0x00,                               //
-0x48, 0xc7, 0xc0, 0x09, 0x00, 0x00, 0x00,       //mov    $0x9,%rax
-0x0f, 0x05,                                     //syscall 
-0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
-0xcc,                                           //Trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
+void linux_process::plat_adjustSyncType(Event::ptr ev, bool gen)
+{
+   if (gen) return;
 
-const unsigned int x86_64_munmap_size_position = 15;
-const unsigned int x86_64_munmap_addr_position = 21;
-const unsigned int x86_64_munmap_start_position = 4;
-const unsigned char x86_64_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
-0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
-0x48, 0x31, 0xf6,                               //xor    %rsi,%rsi
-0x48, 0xc7, 0xc6, 0x00, 0x00, 0x00, 0x00,       //mov    $<size>,%rsi
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $<addr>,%rdi
-0x00, 0x00, 0x00,                               //
-0x48, 0xc7, 0xc0, 0x0b, 0x00, 0x00, 0x00,       //mov    $0xb,%rax
-0x0f, 0x05,                                     //syscall 
-0x48, 0x8d, 0xa4, 0x24, 0x80, 0x00, 0x00, 0x00, //lea    128(%rsp),%rsp
-0xcc,                                           //Trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
+   if (ev->getEventType().code() != EventType::LWPDestroy ||
+       ev->getEventType().time() != EventType::Pre) 
+      return;
 
+   int_thread *thrd = ev->getThread()->llthrd();
+   if (thrd->getGeneratorState().getState() != int_thread::running)
+      return;
 
-const unsigned int x86_mmap_flags_position = 20;
-const unsigned int x86_mmap_size_position = 10;
-const unsigned int x86_mmap_addr_position = 5;
-const unsigned int x86_mmap_start_position = 4;
-const unsigned char x86_call_mmap[] = {
-   0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
-   0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
-   0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
-   0xba, 0x07, 0x00, 0x00, 0x00,          //mov    $0x7,%edx  (perms)
-   0xbe, 0x22, 0x00, 0x00, 0x00,          //mov    $0x22,%esi (flags)
-   0xbf, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%edi  (fd)
-   0xbd, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebp  (offset)
-   0xb8, 0xc0, 0x00, 0x00, 0x00,          //mov    $0xc0,%eax (syscall)
-   0xcd, 0x80,                            //int    $0x80
-   0xcc,                                  //Trap
-   0x90                                   //nop
-};
-const unsigned int x86_call_mmap_size = sizeof(x86_64_call_mmap);
+   // So we have a pre-LWP destroy and a running generator; this means
+   // that someone continued the thread during decode and it is now
+   // gone. So set the event to async and set the generator state to
+   // exited.
 
-const unsigned int x86_munmap_size_position = 10;
-const unsigned int x86_munmap_addr_position = 5;
-const unsigned int x86_munmap_start_position = 4;
-const unsigned char x86_call_munmap[] = {
-   0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
-   0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
-   0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
-   0xb8, 0xc0, 0x00, 0x00, 0x00,          //mov    $0x5b,%eax (syscall)
-   0xcd, 0x80,                            //int    $0x80
-   0xcc,                                  //Trap
-   0x90                                   //nop
-};
-const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
+   pthrd_printf("plat_adjustSyncType: thread %d raced with exit, setting event to async\n",
+                thrd->getLWP());
 
+   //thrd->getGeneratorState().setState(int_thread::exited);
+   ev->setSyncType(Event::async);
+   //thrd->getHandlerState().setState(int_thread::exited);
+}

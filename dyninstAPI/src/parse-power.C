@@ -64,7 +64,6 @@
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
-#include "miniTramp.h"
 #include "baseTramp.h"
 
 
@@ -578,7 +577,6 @@ void parse_func::calcUsedRegs()
 #include "binaryEdit.h"
 #include "addressSpace.h"
 #include "function.h"
-#include "miniTramp.h"
 #include "baseTramp.h"
 #include "symtab.h"
 

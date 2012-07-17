@@ -2,12 +2,14 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT([Dyninst], [7.0], [bugs@dyninst.org], [dyninst])
+AC_INIT([Dyninst], [8.0], [bugs@dyninst.org], [dyninst])
 
-AC_PREFIX_DEFAULT(`pwd`/..)
+AC_PREFIX_DEFAULT(/usr)
 
 AC_CONFIG_AUX_DIR([autodyninst])
 AC_CONFIG_MACRO_DIR([autodyninst])
+
+AC_PROG_INSTALL
 
 AC_PROG_CXX(g++)
 AC_PATH_PROG(_ICC_, icc)
@@ -20,6 +22,20 @@ AC_LANG(C++)
 
 
 dnl === configure options ==
+
+AC_SUBST(INSTALL)
+
+AC_ARG_WITH(traditional,
+            [AS_HELP_STRING([--with-traditional],[Install to traditional (deprecated) locations])],
+            [LIBRARY_DEST_VAR="LIBRARY_DEST=\${TO_CORE}/../\${PLATFORM}/lib";
+             PROGRAM_DEST_VAR="PROGRAM_DEST=\${TO_CORE}/../\${PLATFORM}/bin";
+             INCLUDE_DEST_VAR="INCLUDE_DEST=\${TO_CORE}/../include";],
+            [LIBRARY_DEST_VAR="";
+             PROGRAM_DEST_VAR="";
+             INCLUDE_DEST_VAR="";])
+AC_SUBST(LIBRARY_DEST_VAR)
+AC_SUBST(PROGRAM_DEST_VAR)
+AC_SUBST(INCLUDE_DEST_VAR)
 
 
 PACKAGE_BASE=""
@@ -39,22 +55,25 @@ AC_ARG_WITH(package-base,
            ],[
             # We fall back on these defaults if both --with-package-base and
             # specific --with-<package> arguments are not provided.
-            TCLTK_INC_DIR="/usr/include";
-            TCLTK_LIB_DIR="/usr/lib";
-            LIBELF_INC_DIR="/usr/include";
-            LIBELF_LIB_DIR="/usr/lib";
+            #TCLTK_INC_DIR="/usr/include";
+            #TCLTK_LIB_DIR="/usr/lib";
+            #LIBELF_INC_DIR="/usr/include";
+            #LIBELF_LIB_DIR="/usr/lib";
             ARG_WRAPPER_LIBS="";
-            LIBDWARF_INC_DIR="/usr/include";
-            LIBDWARF_LIB_DIR="/usr/lib";
+            #LIBDWARF_INC_DIR="/usr/include";
+            #LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
-            LIBXML2_LIB_DIR="/usr/lib";
-            LIBFLEX_LIB_DIR="/usr/lib";
+            #LIBXML2_LIB_DIR="/usr/lib";
+            #LIBFLEX_LIB_DIR="/usr/lib";
            ])
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
 #          Why?  Putting these here for now...
 #LIBIBERTY_LIB_DIR="/usr/lib";
 
-
+AC_ARG_WITH(default-component,
+            [AS_HELP_STRING([--with-default-component],[Valid values: DyninstAPI, SymtabAPI, InstructionAPI, ProcControlAPI, ParseAPI, default])],
+            [DEFAULT_COMPONENT="${withval}";],
+            [DEFAULT_COMPONENT=`cat autodyninst/default_component`;])                                                            
 AC_ARG_WITH(tcl83,
             [AS_HELP_STRING([--with-tcl83],[Use Tcl/Tk 8.3])],
             [TCL_VERSION="tcl8.3"; USE_TCL83="${withval}";],
@@ -70,6 +89,7 @@ PD_SOFT_CHECK_LIB_DIR($TCLTK_LIB_DIR, $TCL_VERSION, [Tcl_Eval])
 AC_SUBST(USE_TCL83)
 AC_SUBST(TCLTK_INC_DIR)
 AC_SUBST(TCLTK_LIB_DIR)
+AC_SUBST(DEFAULT_COMPONENT)
 
 AC_CANONICAL_HOST
 
@@ -82,9 +102,46 @@ AC_ARG_ENABLE(gnu-demangler,
               [AS_HELP_STRING([--enable-gnu-demangler],[Use g++'s built in demangler])],
               [GNU_DEMANGLER="true"],)
 
+if test "x$DEFAULT_COMPONENT" = "xInstructionAPI"; then
+   AC_MSG_NOTICE([InstructionAPI, not requiring libelf...])   
+   SUPPRESS_LIBELF_REQ="true"
+   AC_MSG_NOTICE([InstructionAPI, not requiring thread_db...])   
+   SUPPRESS_THREADDB_REQ="true"
+   AC_MSG_NOTICE([InstructionAPI, not requiring libdwarf...])   
+   SUPPRESS_LIBDWARF_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xSymtabAPI"; then
+   AC_MSG_NOTICE([SymtabAPI, not requiring thread_db...])
+   SUPPRESS_THREADDB_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xParseAPI"; then
+   AC_MSG_NOTICE([ParseAPI, not requiring thread_db...])
+   SUPPRESS_THREADDB_REQ="true"
+fi
+if test "x$DEFAULT_COMPONENT" = "xProcControlAPI"; then
+   AC_MSG_NOTICE([ProcControlAPI, not requiring libdwarf...])   
+   SUPPRESS_LIBDWARF_REQ="true"
+fi 
+if test "`echo $host_os | cut -b-5`" = "linux" ; then
+  if test "x$PLATFORM" = "xppc32_bgp_ion"; then
+   AC_MSG_NOTICE([BG/P, thread_db required...])   
+  elif test "x$PLATFORM" = "xppc32_bgl_ion"; then
+   AC_MSG_NOTICE([BG/L, thread_db required...])
+  elif test "x$PLATFORM" = "xppc64_bgq_ion"; then
+   AC_MSG_NOTICE([BG/Q, thread_db required...])
+  else 
+   AC_MSG_NOTICE([Linux, not requiring thread_db...])
+   SUPPRESS_THREADDB_REQ="true"
+  fi
+fi
+
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
+   AC_MSG_NOTICE([AIX, not requiring thread_db...])
+   SUPPRESS_THREADDB_REQ="true"
+fi
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libelf...])
-   
 else
    AC_ARG_WITH(libelf-incdir,
 		   [AS_HELP_STRING([--with-libelf-incdir],[LIBELF include directory])],
@@ -93,21 +150,34 @@ else
             [AS_HELP_STRING([--with-libelf-libdir],[LIBELF library directory])],
             [LIBELF_LIB_DIR="${withval}";],)
   
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
-                        
-   AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf.h], [AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
-        [CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR/libelf";
-         CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
-         AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf/libelf.h],
-                         [LIBELF_INC_DIR+="/libelf";AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
-                         [AC_ERROR(couldn't find libelf.h)])])
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
-   PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
-   PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
+   if test "x$SUPPRESS_LIBELF_REQ" = "x"; then
+      if test "x$LIBELF_INC_DIR" = "x"; then
+         LIBELF_INCFLAGS=""
+         LIBELF_ALT_INC_DIR=/usr/include/libelf
+      else
+         LIBELF_INCFLAGS=-I$LIBELF_INC_DIR
+         LIBELF_ALT_INC_DIR=$LIBELF_INC_DIR/libelf
+      fi
+      LIBELF_ALT_INCFLAGS=-I$LIBELF_ALT_INC_DIR
+
+      CXXFLAGS_HOLD=$CXXFLAGS
+      CPPFLAGS_HOLD=$CPPFLAGS
+      CXXFLAGS="$CXXFLAGS $LIBELF_INCFLAGS";
+      CPPFLAGS="$CPPFLAGS $LIBELF_INCFLAGS";
+
+      AC_CHECK_HEADER([libelf.h], [AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+           [CXXFLAGS="$CXXFLAGS $LIBELF_ALT_INCFLAGS"
+            CPPFLAGS="$CPPFLAGS $LIBELF_ALT_INCFLAGS"
+            $as_unset ac_cv_header_libelf_h
+            AC_CHECK_HEADER([libelf.h],
+                            [LIBELF_INC_DIR=$LIBELF_ALT_INC_DIR;AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+                            [AC_ERROR(couldn't find libelf.h: $CPPFLAGS)])])
+
+      CXXFLAGS=$CXXFLAGS_HOLD
+      CPPFLAGS=$CPPFLAGS_HOLD
+      PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
+      PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
+   fi
    LIBELF_STATIC="$LIB_TYPE_STATIC"
    LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
    AC_SUBST(LIBELF_INC_DIR)
@@ -195,10 +265,9 @@ AC_SUBST(GNU_DEMANGLER)
 AC_SUBST(USE_LIBERTY)
 AC_SUBST(LINK_LIBERTY)
 AC_SUBST(LIBIBERTY_LIB_DIR)
- 
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libdwarf...])
-   
 else
    AC_ARG_WITH(libdwarf-incdir,
             [AS_HELP_STRING([--with-libdwarf-incdir],[LIBDWARF include directory])],
@@ -207,22 +276,35 @@ else
             [AS_HELP_STRING([--with-libdwarf-libdir],[LIBDWARF library directory])],
             [LIBDWARF_LIB_DIR="${withval}";],)
    
-   CXXFLAGS_HOLD=$CXXFLAGS;
-   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
-   CPPFLAGS_HOLD=$CPPFLAGS;
-   CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
-                        
-   AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf.h], [AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
-        [CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
-         AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf/libdwarf.h],
-                         [LIBDWARF_INC_DIR+="/libdwarf";AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
-                         [AC_ERROR(couldn't find libdwarf.h)])])
-   CXXFLAGS=$CXXFLAGS_HOLD;
-   CPPFLAGS=$CPPFLAGS_HOLD;
+   if test "x$SUPPRESS_LIBDWARF_REQ" = "x"; then
+       if test "x$LIBDWARF_INC_DIR" = "x"; then
+          LIBDWARF_INCFLAGS="";
+          LIBDWARF_ALT_INC_DIR="/usr/include/libdwarf";
+       else
+          LIBDWARF_INCFLAGS="-I$LIBDWARF_INC_DIR";
+          LIBDWARF_ALT_INC_DIR="$LIBDWARF_INC_DIR/libdwarf";
+       fi
+       LIBDWARF_ALT_INCFLAGS="-I$LIBDWARF_ALT_INC_DIR";
 
-   PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
-   PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
+       CXXFLAGS_HOLD=$CXXFLAGS;
+       CPPFLAGS_HOLD=$CPPFLAGS;
+       CXXFLAGS="$CXXFLAGS $LIBDWARF_INCFLAGS";
+       CPPFLAGS="$CPPFLAGS $LIBDWARF_INCFLAGS";
+
+       AC_CHECK_HEADER([libdwarf.h], [AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+                        [CXXFLAGS="$CXXFLAGS_HOLD $LIBDWARF_ALT_INCFLAGS"
+                         CPPFLAGS="$CPPFLAGS_HOLD $LIBDWARF_ALT_INCFLAGS"
+                         $as_unset ac_cv_header_libdwarf_h
+                         AC_CHECK_HEADER([libdwarf.h],
+                              [LIBDWARF_INC_DIR=$LIBDWARF_ALT_INC_DIR;AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+                              [AC_ERROR(couldn't find libdwarf.h)])])
+       CXXFLAGS=$CXXFLAGS_HOLD;
+       CPPFLAGS=$CPPFLAGS_HOLD;
+
+       PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
+       PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
+   fi
+
    LIBDWARF_STATIC="$LIB_TYPE_STATIC"
    LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
    AC_SUBST(LIBDWARF_INC_DIR)
@@ -236,7 +318,43 @@ else
 fi
 
 
-
+AC_ARG_WITH(threaddb-incdir,
+         [AS_HELP_STRING([--with-threaddb-incdir],[THREADDB include directory])],
+         [THREADDB_INC_DIR="${withval}";],)
+AC_ARG_WITH(threaddb-libdir,
+         [AS_HELP_STRING([--with-threaddb-libdir],[THREADDB library directory])],
+         [THREADDB_LIB_DIR="${withval}";],)
+CXXFLAGS_HOLD=$CXXFLAGS;
+CPPFLAGS_HOLD=$CPPFLAGS;
+LDFLAGS_HOLD=$LDFLAGS
+if test "x$THREADDB_INC_DIR" != "x"; then
+  CXXFLAGS="$CXXFLAGS -I$THREADDB_INC_DIR"
+  CPPFLAGS="$CPPFLAGS -I$THREADDB_INC_DIR"
+fi
+LDFLAGS="-shared -fPIC"
+HAVE_THREADDB="true"
+if test "x$SUPPRESS_THREADDB_REQ" = "x"; then
+    AC_CHECK_HEADER([thread_db.h], [AC_MSG_NOTICE(thread_db include directory: $THREADDB_INC_DIR)],
+                     [AC_ERROR(couldn't find thread_db.h)], )
+    PD_CHECK_LIB_DIR($THREADDB_LIB_DIR,[thread_db],[td_ta_new], , )
+else
+    AC_CHECK_HEADER([thread_db.h], [AC_MSG_NOTICE(thread_db include directory: $THREADDB_INC_DIR)],
+                     [HAVE_THREADDB=""], )
+    PD_CHECK_LIB_DIR_WERR($THREADDB_LIB_DIR,[thread_db],[td_ta_new], , , [HAVE_THREADDB=""])
+fi
+if test "x$HAVE_THREADDB" = "xtrue"; then
+    PD_CHECK_LIB_TYPE($THREADDB_LIB_DIR, thread_db)
+fi
+CXXFLAGS=$CXXFLAGS_HOLD
+CPPFLAGS=$CPPFLAGS_HOLD
+LDFLAGS=$LDFLAGS_HOLD
+THREADDB_STATIC="$LIB_TYPE_STATIC"
+THREADDB_DYNAMIC="$LIB_TYPE_DYNAMIC"
+AC_SUBST(THREADDB_INC_DIR)
+AC_SUBST(THREADDB_LIB_DIR)
+AC_SUBST(THREADDB_STATIC)
+AC_SUBST(THREADDB_DYNAMIC)
+AC_SUBST(HAVE_THREADDB)
 
 AC_ARG_WITH(libxml2-incdir,
             [AS_HELP_STRING([--with-libxml2-incdir],[LIBXML2 include directory])],
@@ -248,6 +366,15 @@ PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
 PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
+
+AC_ARG_WITH(launchmon-incdir,
+            [AS_HELP_STRING([--with-launchmon-incdir],[Launchmon include directory])],
+            [LAUNCHMON_INC_DIR="${withval}";],)
+AC_ARG_WITH(launchmon-libdir,
+            [AS_HELP_STRING([--with-launchmon-libdir],[Launchmon library directory])],
+            [LAUNCHMON_LIB_DIR="${withval}";],)
+AC_SUBST(LAUNCHMON_INC_DIR)
+AC_SUBST(LAUNCHMON_LIB_DIR)
 
 AC_ARG_WITH(libflex-libdir,
             [AS_HELP_STRING([--with-libflex-libdir],[Absolute path to flex library])],

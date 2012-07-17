@@ -26,7 +26,7 @@ CXXFLAGS	+= -DNO_MDL_PRINT -g -O0 -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
 TCLTK_LIBS	?= -ltk8.0 -ltcl
-SYSLIBS 	= -lrt -lelf $(TCLTK_LIBS) -lsymtabAPI -lpthread -L$(LIBDWARF_LIB) -ldwarf
+SYSLIBS 	= -lrt $(TCLTK_LIBS) -lsymtabAPI -lpthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

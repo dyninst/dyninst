@@ -146,7 +146,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
                                              bool parseGaps = true);
 
     // Copy constructor: for forks
-    mapped_object(const mapped_object *par_obj, process *child);
+    mapped_object(const mapped_object *par_obj, AddressSpace *child);
 
     // Will delete all func_instances which were originally part of this object; including
     // any that were relocated (we can always follow the "I was relocated" pointer).
@@ -200,6 +200,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     func_instance *findFuncByEntry(const Address addr);
     func_instance *findFuncByEntry(const block_instance *blk);
 
+    bool getInfHeapList(pdvector<heapDescriptor> &infHeaps);
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
     bool findFuncsByAddr(const Address addr, std::set<func_instance *> &funcs);

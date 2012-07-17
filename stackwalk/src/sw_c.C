@@ -201,6 +201,12 @@ int frameGetLibOffset(frame_t frame, char **libname, unsigned long *offset)
    return 0;
 }
 
+int frameIsTopFrame(frame_t frame)
+{
+   Frame *f = (Frame *) frame.frame;
+   return f->isTopFrame() ? 1 : 0;
+}
+
 int frameIsBottomFrame(frame_t frame)
 {
    Frame *f = (Frame *) frame.frame;

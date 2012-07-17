@@ -32,218 +32,18 @@
 // $Id: test_lib_mutateeStart.C,v 1.1 2008/10/30 19:21:46 legendre Exp $
 // Functions Dealing with mutatee Startup
 
+#if !defined(COMPLIB_DLL_BUILD)
 #define COMPLIB_DLL_BUILD
+#endif
 
 #include "dyninst_comp.h"
 #include "test_lib.h"
 #include "util.h"
 #include "ResumeLog.h"
+#include "MutateeStart.h"
 #include <stdlib.h>
-
-BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
-{
-   BPatch_process *appProc;
-   if (useAttach) {
-      // I should be able to remove the outlog and errlog parameters from
-      // startNewProcessForAttach without harming anything.
-      int pid = startNewProcessForAttach(pathname, child_argv,
-                                         NULL, NULL, true);
-      if (pid < 0) {
-         fprintf(stderr, "*ERROR*: unable to start tests due to error creating mutatee process\n");
-         return NULL;
-      } else {
-         dprintf("New mutatee process pid %d started; attaching...\n", pid);
-         registerPID(pid); // Register PID for cleanup
-      }
-      dprintf("Attaching to process: %s, %d\n", pathname, pid);
-      appProc = bpatch->processAttach(pathname, pid);
-      dprintf("Attached to process\n");
-      dprintf("appProc == %lu\n", (unsigned long) appProc);
-   } else {
-       appProc = bpatch->processCreate(pathname, child_argv, NULL);
-       if (appProc != NULL) {
-           int pid = appProc->getPid();
-           registerPID(pid); // Register PID for cleanup
-       }
-   }
-
-   return appProc;
-}
-
-BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname,
-                                bool useAttach, char *logfilename,
-                                char *humanlogname)
-{
-   std::vector<std::string> mutateeArgs;
-   getOutput()->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
-   const char **child_argv = new const char *[8 + mutateeArgs.size()];
-   if (NULL == child_argv) {
-      return NULL;
-   }
-
-   // Start the mutatee
-   dprintf("Starting \"%s\"\n", mutatee);
-
-   int n = 0;
-   child_argv[n++] = mutatee;
-   if (logfilename != NULL) {
-      child_argv[n++] = const_cast<char *>("-log");
-      child_argv[n++] = logfilename;
-   }
-   if (humanlogname != NULL) {
-      child_argv[n++] = const_cast<char *>("-humanlog");
-      child_argv[n++] = humanlogname;
-   }
-   child_argv[n++] = const_cast<char *>("-run");
-   child_argv[n++] = testname;
-   for (int i = 0; i < mutateeArgs.size(); i++) {
-      child_argv[n++] = mutateeArgs[i].c_str();
-   }
-   child_argv[n] = NULL;
-
-   BPatch_process *retval = startMutateeTestGeneric(bpatch, mutatee, child_argv,
-                                                   useAttach);
-   delete [] child_argv;
-   return retval;
-}
-
-static const char** parseArgsIndividual(RunGroup *group, TestInfo *test,
-                              char *logfilename, char *humanlogname,
-                              bool verboseFormat, bool printLabels,
-                              int debugPrint, const char *pidfilename)
-{
-   std::vector<std::string> mutateeArgs;
-   getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
-   const char **child_argv = new const char *[12 + (4 * group->tests.size()) +
-                                              mutateeArgs.size()];
-   assert(child_argv);
-   int n = 0;
-   child_argv[n++] = group->mutatee;
-   if (logfilename != NULL) {
-      child_argv[n++] = const_cast<char *>("-log");
-      child_argv[n++] = logfilename;
-   }
-   if (humanlogname != NULL) {
-      child_argv[n++] = const_cast<char *>("-humanlog");
-      child_argv[n++] = humanlogname;
-   }
-   if (false == verboseFormat) {
-      child_argv[n++] = const_cast<char *>("-q");
-      // TODO I'll also want to pass a parameter specifying a file to write
-      // postponed messages to
-   }
-   if (debugPrint != 0) {
-      child_argv[n++] = const_cast<char *>("-verbose");
-   }
-   if (pidfilename != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = pidfilename;
-   }
-   if (shouldRunTest(group, test)) {
-         child_argv[n++] = const_cast<char*>("-run");
-         child_argv[n++] = test->name;
-      }
-   if (printLabels) {
-         child_argv[n++] = const_cast<char *>("-label");
-         child_argv[n++] = test->label;
-      child_argv[n++] = const_cast<char *>("-print-labels");
-   }
-   for (int i = 0; i < mutateeArgs.size(); i++) {
-      child_argv[n++] = strdup(mutateeArgs[i].c_str());
-   }
-   child_argv[n] = NULL;   
-
-   return child_argv;
-}
-
-static const char** parseArgs(RunGroup *group,
-                              char *logfilename, char *humanlogname,
-                              bool verboseFormat, bool printLabels,
-                              int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique)
-{
-   std::vector<std::string> mutateeArgs;
-   getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
-   const char **child_argv = new const char *[16 + (4 * group->tests.size()) +
-                                              mutateeArgs.size()];
-   assert(child_argv);
-   int n = 0;
-   child_argv[n++] = group->mutatee;
-   if (logfilename != NULL) {
-      child_argv[n++] = const_cast<char *>("-log");
-      child_argv[n++] = logfilename;
-   }
-   if (humanlogname != NULL) {
-      child_argv[n++] = const_cast<char *>("-humanlog");
-      child_argv[n++] = humanlogname;
- }
-   if (false == verboseFormat) {
-      child_argv[n++] = const_cast<char *>("-q");
-      // TODO I'll also want to pass a parameter specifying a file to write
-      // postponed messages to
-   }
-   if (mutatee_resumelog) {
-      child_argv[n++] = "-resumelog";
-      child_argv[n++] = mutatee_resumelog;
-   }
-   if (unique) {
-      static char buffer[32];
-      snprintf(buffer, 32, "%d", unique);
-      child_argv[n++] = "-unique";
-      child_argv[n++] = buffer;
-   }
-   if (debugPrint != 0) {
-      child_argv[n++] = const_cast<char *>("-verbose");
-   }
-   if (pidfilename != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = pidfilename;
-   }
-   for (int i = 0; i < group->tests.size(); i++) {
-      if (shouldRunTest(group, group->tests[i])) {
-         child_argv[n++] = const_cast<char*>("-run");
-         child_argv[n++] = group->tests[i]->name;
-      }
-   }
-   if (printLabels) {
-      for (int i = 0; i < group->tests.size(); i++) {
-         child_argv[n++] = const_cast<char *>("-label");
-         child_argv[n++] = group->tests[i]->label;
-      }
-      child_argv[n++] = const_cast<char *>("-print-labels");
-   }
-   for (int i = 0; i < mutateeArgs.size(); i++) {
-      child_argv[n++] = strdup(mutateeArgs[i].c_str());
-   }
-   child_argv[n] = NULL;   
-
-   return child_argv;
-}
-
-BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group,
-                                char *logfilename, char *humanlogname,
-                                bool verboseFormat, bool printLabels,
-                                int debugPrint, char *pidfilename, 
-                                char *mutatee_resumelog, int uniqueid)
-{
-   const char **child_argv = parseArgs(group, logfilename, humanlogname,
-                                       verboseFormat, printLabels, 
-                                       debugPrint, pidfilename, mutatee_resumelog, uniqueid);
-   
-   // Start the mutatee
-   dprintf("Starting \"%s\"\n", group->mutatee);
-   BPatch_process *retval = startMutateeTestGeneric(bpatch, group->mutatee,
-                                                   child_argv,
-                                                   group->useAttach);
-   delete [] child_argv;
-   return retval;
-}
-
-BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
-{
-   BPatch_binaryEdit *binEdit = bpatch->openBinary(group->mutatee, true);
-   return binEdit;
-}
-
+#include <string>
+using namespace std;
 
 #if defined(os_linux_test) || defined(os_freebsd_test)
 
@@ -257,7 +57,7 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 static void clearBinEditFiles()
 {
    struct dirent **files;
-   char *binedit_dir = get_binedit_dir();
+   const char *binedit_dir = get_binedit_dir();
    int result = scandir(binedit_dir, &files, NULL, NULL);
    if (result == -1) {
       return;
@@ -285,7 +85,7 @@ static void clearBinEditFiles()
 
 static bool cdBinDir()
 {
-   char *binedit_dir = get_binedit_dir();
+   const char *binedit_dir = get_binedit_dir();
    int result = chdir(binedit_dir);
    if (result != -1) {
       return true;
@@ -360,7 +160,9 @@ static void killWaywardChild(int pid)
    int dont_care2;
    waitForCompletion(pid, dont_care1, dont_care2);
 }
+
 #else
+
 void clearBinEditFiles()
 {
    assert(0); //IMPLEMENT ME
@@ -390,13 +192,7 @@ static bool waitForCompletion(int, bool &, int &)
 }
 #endif
 
-bool runBinaryTest(BPatch *bpatch, RunGroup *group,
-                   BPatch_binaryEdit *binEdit,
-                   char *logfilename, char *humanlogname,
-                   bool verboseFormat, bool printLabels,
-                   int debugPrint, char *pidfilename,
-                   char *mutatee_resumelog, int unique_id,
-                   bool noClean, test_results_t &test_result)
+bool runBinaryTest(RunGroup *group, ParameterDict &params, test_results_t &test_result)
 {
    bool cd_done = false;
    bool file_written = false;
@@ -404,12 +200,15 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
    bool error = true;
    bool result;
    int app_return;
+   Dyninst::PID pid;
    bool app_crash;
    const char **child_argv = NULL;
-   int pid;
-   std::string outfile;
+   std::string outfile, mutatee_string;
+   BPatch_binaryEdit *binEdit;
 
-   char *binedit_dir = get_binedit_dir();
+   int unique_id = params["unique_id"]->getInt();
+   
+   const char *binedit_dir = get_binedit_dir();
    if (unique_id) {
       unsigned buffer_len = strlen(BINEDIT_BASENAME) + 32;
       char *buffer = (char *) malloc(buffer_len);
@@ -419,7 +218,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       }
       else {	    
          binedit_dir = buffer;
-		 set_binedit_dir(buffer);
+         set_binedit_dir(buffer);
       }
    }
 
@@ -427,18 +226,13 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    clearBinEditFiles();
 
-   //  runTests is clobbering (perhaps intentionally?) the user's LD_LIBRARY_PATH
-   //  which means that if we cd to the bin dir, and any rewritten binary depends
-   //  on a library in the test directory (one level up), the library will no
-   //  be found.  So rather than cd to the directory, keep the CWD in the test 
-   //  directory and generate and execute the rewritten binary via relative path
    result = cdBinDir();
    if (!result) {
       goto done;
    }
    cd_done = true;
 
-   outfile = /*std::string(binedit_dir) +*/ std::string("rewritten_") + std::string(group->mutatee);
+   outfile = std::string("rewritten_") + std::string(group->mutatee);
 
 #if !defined(os_windows_test)
    if (getenv("DYNINST_REWRITER_NO_UNLINK"))
@@ -458,9 +252,9 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       fclose(myrep);
    }
 #endif
-
+   
+   binEdit = (BPatch_binaryEdit *) params["appBinaryEdit"]->getPtr();
    result = binEdit->writeFile(outfile.c_str());
-
    if (!result) {
       goto done;
    }
@@ -471,30 +265,15 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       cd_done = false;
    }
 
-   child_argv = parseArgs(group, logfilename, humanlogname,
-                          verboseFormat, printLabels, 
-                          debugPrint, pidfilename, mutatee_resumelog, unique_id);
-   
-   dprintf("%s[%d]:  starting rewritten process '%s ", FILE__, __LINE__, outfile.c_str());
-   if (child_argv)
-   {
-     const char **argv_iter = child_argv;
-     while(argv_iter)
-     {
-       const char *arg = *argv_iter;
-       if (arg) dprintf("%s ", arg);
-       else break;
-       argv_iter++;
-     }
-   }
-   dprintf("'...\n\n\n");
    outfile = binedit_dir + std::string("/") + outfile;
-   pid = startNewProcessForAttach(outfile.c_str(), child_argv,
-                                  NULL, NULL, false);
-   if (pid == -1) {
+   dprintf("%s[%d]:  starting rewritten process '%s ", FILE__, __LINE__, outfile.c_str());
+   mutatee_string = launchMutatee(outfile, group, params);
+   if (mutatee_string == string(""))
       goto done;
-   }
-   file_running = false;
+
+   registerMutatee(mutatee_string);
+   pid = getMutateePid(group);
+   assert(pid != NULL_PID);
 
    result = waitForCompletion(pid, app_crash, app_return);
    if (!result)
@@ -506,7 +285,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    if ((app_crash)  || (app_return != 0))
    {
-     parse_mutateelog(group, mutatee_resumelog);
+      parse_mutateelog(group, params["mutatee_resumelog"]->getString());
      test_result = UNKNOWN;
    }
    else {
@@ -520,7 +299,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       test_result = FAILED;
    if (cd_done)
       cdBack();
-   if (file_written && !noClean)
+   if (file_written && !params["noClean"]->getInt())
       clearBinEditFiles();
    if (file_running)
       killWaywardChild(pid);

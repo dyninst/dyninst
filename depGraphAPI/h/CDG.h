@@ -35,7 +35,7 @@
 #include "Node.h"
 #include "Graph.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 class BPatch_function;
 class BPatch_basicBlock;
@@ -47,7 +47,7 @@ namespace DepGraphAPI {
 // This class represents a Control Dependence Graph for a given function.
 class CDG : public Graph {
 public:
-    typedef dyn_detail::boost::shared_ptr<CDG> Ptr;
+    typedef dyn_shared_ptr<CDG> Ptr;
 
 private:
     typedef BPatch_function Function;

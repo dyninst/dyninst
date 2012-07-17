@@ -47,9 +47,9 @@
 #include "BPatch_point.h"
 
 #include "util.h"
-#include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
+#include "debug.h"
 
 #include "Instruction.h"
 

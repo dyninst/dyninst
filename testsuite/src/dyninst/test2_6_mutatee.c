@@ -28,11 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#if !defined(os_windows_test)
 #include <signal.h>
 #include <dlfcn.h>
-#endif
 
 #include "mutatee_util.h"
 #include "test2.h"
@@ -83,13 +80,9 @@ void func1() {
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */
-#if !defined(os_windows_test)
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
 
     if (!ref) {
 	logerror("%s[%d]: %s\n", __FILE__, __LINE__, dlerror() );
     }
-#else
-    LoadLibrary(TEST_DYNAMIC_LIB);
-#endif
 }

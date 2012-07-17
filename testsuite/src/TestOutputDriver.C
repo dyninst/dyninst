@@ -113,3 +113,12 @@ TESTLIB_DLL_EXPORT bool TestOutputDriver::getAttributesMap(TestInfo *test,
 TESTLIB_DLL_EXPORT void TestOutputDriver::getMutateeArgs(std::vector<std::string> &args) {
   args.clear();
 }
+
+void TestOutputDriver::setNeedsHeader(bool h)
+{
+   needs_header = h;
+}
+
+TESTLIB_DLL_EXPORT TestOutputDriver::~TestOutputDriver()
+{
+}

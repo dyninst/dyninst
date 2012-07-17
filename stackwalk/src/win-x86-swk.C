@@ -37,6 +37,15 @@
 
 #include <windows.h>
 
+
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/frame.h"
+
+#include "stackwalk/src/sw.h"
+
+#include <assert.h>
+
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -51,6 +60,12 @@ bool Walker::createDefaultSteppers()
      goto error;
   sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
             __FILE__, __LINE__, stepper);
+#if defined(USE_PARSE_API)
+  stepper = new AnalysisStepper(this);
+  result = addStepper(stepper);
+  if (!result)
+		goto error;
+#endif
 
   return true;
  error:
@@ -87,7 +102,7 @@ bool ProcSelf::readMem(void *dest, Address source, size_t size)
 }
 
 ProcSelf::ProcSelf(std::string exe_path) :
-   ProcessState(_getpid(), exe_path)
+   ProcessState(P_getpid(), exe_path)
 {
 }
 
@@ -95,18 +110,23 @@ void ProcSelf::initialize()
 {
 }
 
-ProcDebug *ProcDebug::newProcDebug(PID pid, string)
+bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &alibs)
 {
-  return NULL;
+	assert(!"not implemented");
+	return false;
 }
 
-ProcDebug *ProcDebug::newProcDebug(std::string executable, 
-                                   const std::vector<std::string> &argv)
+SymbolReaderFactory* Stackwalker::getDefaultSymbolReader()
 {
-  return NULL;
+	assert(!"not implemented");
+	return NULL;
 }
 
-DebugEvent ProcDebug::debug_get_event(bool block)
+void BottomOfStackStepperImpl::initialize()
 {
-  return DebugEvent();
+	assert(!"not implemented");
+}
+void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t)
+{
+	assert(!"not implemented");
 }

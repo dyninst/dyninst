@@ -38,23 +38,7 @@
 #ifndef LINUX_POWER_HDR
 #define LINUX_POWER_HDR
 
-#include <asm/ptrace.h>
-
-// fields within ptrace() pt_regs structure
-#define PTRACE_REG_FP gpr[1] // frame pointer
-#define PTRACE_REG_IP nip    // next instruction pointer
-
-struct dyn_saved_regs
-{
-   struct pt_regs gprs;      // 32 general purpose registers plus most SPRs
-   struct fp_regs {
-     double        fpr[32];  // 32 floating point registers
-     unsigned long fpscr;    // floating point status and control register
-   }              fprs;
-};
-
-
-#include "dyninstAPI/src/inst.h"
+#include "common/h/Types.h"
 
 // floor of inferior malloc address range within a single branch of x
 // for 32-bit ELF PowerPC mutatees
@@ -71,6 +55,5 @@ extern Address region_hi(const Address x);
 // ceiling of inferior malloc address range within a single branch of x
 // for 64-bit ELF PowerPC mutatees
 extern Address region_hi_64(const Address x);
-
 
 #endif

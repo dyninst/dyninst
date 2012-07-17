@@ -32,7 +32,11 @@
 #if !defined(PCERRORS_H_)
 #define PCERRORS_H_
 
+// Only works on posix-compliant systems. IE not windows.
+//#define PROCCTRL_PRINT_TIMINGS 1
+
 #include <stdio.h>
+#include "util.h"
 
 #define pclean_printf(format, ...) \
   do { \
@@ -40,27 +44,50 @@
       fprintf(pctrl_err_out, format, ## __VA_ARGS__); \
   } while (0)
 
+#if defined(PROCCTRL_PRINT_TIMINGS)
+
 #define pthrd_printf(format, ...) \
   do { \
-    if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+    if (dyninst_debug_proccontrol) { \
+       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
+    } \
   } while (0)
 
 #define perr_printf(format, ...) \
   do { \
     if (dyninst_debug_proccontrol) \
-      fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+       fprintf(pctrl_err_out, "[%s:%u-%s@%lu] - Error: " format, __FILE__, __LINE__, thrdName(), gettod(), ## __VA_ARGS__); \
   } while (0)
+
+#else
+
+#define pthrd_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) { \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+    } \
+  } while (0)
+
+#define perr_printf(format, ...) \
+  do { \
+    if (dyninst_debug_proccontrol) \
+       fprintf(pctrl_err_out, "[%s:%u-%s] - Error: " format, __FILE__, __LINE__, thrdName(), ## __VA_ARGS__); \
+  } while (0)
+
+#endif
 
 extern bool dyninst_debug_proccontrol;
 extern const char *thrdName();
 extern FILE* pctrl_err_out;
 
+extern unsigned long gettod();
+
 namespace Dyninst {
 namespace ProcControlAPI {
 
 typedef unsigned err_t;
-  
+
+const err_t err_none           = 0x0;  
 const err_t err_badparam       = 0x10000;
 const err_t err_procread       = 0x10001;
 const err_t err_internal       = 0x10002;
@@ -71,20 +98,26 @@ const err_t err_exited         = 0x10006;
 const err_t err_nofile         = 0x10007;
 const err_t err_unsupported    = 0x10008;
 const err_t err_symtab         = 0x10009;
-const err_t err_nothrd         = 0x10010;
-const err_t err_notstopped     = 0x10011;
-const err_t err_notrunning     = 0x10012;
-const err_t err_noevents       = 0x10013;
-const err_t err_incallback     = 0x10014;
+const err_t err_nothrd         = 0x1000a;
+const err_t err_notstopped     = 0x1000b;
+const err_t err_notrunning     = 0x1000c;
+const err_t err_noevents       = 0x1000d;
+const err_t err_incallback     = 0x1000e;
+const err_t err_nouserthrd     = 0x1000f;
+const err_t err_detached       = 0x10010;
+const err_t err_attached       = 0x10011;
+const err_t err_pendingirpcs   = 0x10012;
+const err_t err_bpfull         = 0x10013;
+const err_t err_notfound       = 0x10014;
 
-err_t getLastError();
-void clearLastError();
-const char *getLastErrorMsg();
-void setLastError(err_t err, const char *msg = NULL);
-void setDebugChannel(FILE *f);
-void setDebug(bool enable);
-
-FILE *getDebugChannel();
+PC_EXPORT err_t getLastError();
+PC_EXPORT void clearLastError();
+PC_EXPORT const char* getLastErrorMsg();
+PC_EXPORT void globalSetLastError(err_t err, const char *msg = NULL);
+PC_EXPORT void setDebugChannel(FILE *f);
+PC_EXPORT void setDebug(bool enable);
+PC_EXPORT const char *getGenericErrorMsg(err_t e);
+PC_EXPORT FILE *getDebugChannel();
 
 }
 }

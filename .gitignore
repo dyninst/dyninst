@@ -4,6 +4,7 @@ DEPENDS
 *.o
 *.so
 *.so.1
+*.so.?.?
 *.a
 *.tlog
 *.log
@@ -52,5 +53,11 @@ patchAPI/doc/patchapi.out
 patchAPI/doc/patchapi.toc
 test.sh
 autodyninst/configure
-
-
+config.log
+# For Windows
+_UpgradeReport_Files/*
+*.tlog
+*.lastbuildstate
+*.cache
+*.log
+*_manifest.rc

@@ -286,7 +286,6 @@ int launch_mutator()
          sendMsg(config.outfd, ID_PARSE_MODULE, INFO, ID_PASS,
                  appModules->size());
    }
-
    if (config.parse_level >= PARSE_FUNC) {
       for (i = 0; i < appModules->size(); ++i) {
          (*appModules)[i]->getName(buf, sizeof(buf));

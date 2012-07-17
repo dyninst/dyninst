@@ -65,7 +65,7 @@ extern "C" DLLEXPORT TestMutator *test5_1_factory() {
 test_results_t test5_1_Mutator::executeTest() {
 
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "arg_test::call_cpp";
+  const char *fn = "arg_test::call_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror("**Failed** test #1\n");
@@ -129,7 +129,7 @@ test_results_t test5_1_Mutator::executeTest() {
 
    // pass a paramter to a class member function
    bpfv.clear();
-   char *fn2 = "arg_test::func_cpp";
+   const char *fn2 = "arg_test::func_cpp";
    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
      logerror("**Failed** test #1 (C++ argument pass)\n");
@@ -146,7 +146,7 @@ test_results_t test5_1_Mutator::executeTest() {
    }
 
    bpfv.clear();
-   char *fn3 = "arg_test::arg_pass";
+   const char *fn3 = "arg_test::arg_pass";
    if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]) {
      logerror("**Failed** test #1 (C++ argument pass)\n");

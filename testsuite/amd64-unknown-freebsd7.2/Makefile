@@ -6,12 +6,12 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g
+SUITE_NAME = testsuite
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+include $(TO_CORE)/make.config.local
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
@@ -32,8 +32,6 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 # without the libdl)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
-MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -Damd64_unknown_freebsd7_0 -DF77 -fno-second-underscore -g
@@ -50,6 +48,10 @@ MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g -I../src
 # CALL35_1_SRC = call35_1_x86_linux.s
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic
+
+ifeq ($(GNU_DEMANGLER),)
+TESTDRIVER_LDFLAGS += -L$(LIBIBERTY_LIB) -liberty
+endif
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe

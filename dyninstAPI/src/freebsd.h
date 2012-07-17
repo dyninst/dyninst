@@ -36,41 +36,15 @@
 #ifndef FREEBSD_PD_HDR
 #define FREEBSD_PD_HDR
 
-class process;
-
-#include <sys/param.h>
-#include <pthread.h>
-
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "common/h/freebsdKludges.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 
-struct dyn_saved_regs {
-    int placeholder;
-};
-
-/* More than the number of bundles necessary for loadDYNINSTlib()'s code. */
-#define CODE_BUFFER_SIZE	512
-#define BYTES_TO_SAVE		(CODE_BUFFER_SIZE * 16)
-
 #define SIGNAL_HANDLER "no_signal_handler"
 
-#if defined(arch_x86) || defined(arch_x86_64)
-//Constant values used for the registers in the vsyscall page.
-#define DW_CFA  0
-#define DW_ESP 4
-#define DW_EBP 5
-#define DW_PC  8
-
-#define MAX_DW_VALUE 17
-
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-                           Address *reg_map,
-                           process *p, bool *error);
-#endif
-
-typedef int handleT; // a /proc file descriptor
+class PCProcess;
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #include "freebsd-x86.h"
@@ -80,9 +54,8 @@ typedef int handleT; // a /proc file descriptor
 
 #include "unix.h"
 
-//  no /proc, dummy function
-typedef int procProcStatus_t;
-
-#define INDEPENDENT_LWP_CONTROL false
+#ifndef WNOWAIT
+#define WNOWAIT WNOHANG
+#endif
 
 #endif

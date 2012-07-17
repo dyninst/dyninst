@@ -43,8 +43,6 @@
 #include "common/h/serialize.h"
 #include "common/h/pathName.h"
 
-#include "dyn_detail/boost/make_shared.hpp"
-
 #include "Serialization.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -142,38 +140,36 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
-dyn_detail::boost::shared_ptr<Type> Symtab::type_Error()
+boost::shared_ptr<Type> Symtab::type_Error()
 {
-    static dyn_detail::boost::shared_ptr<Type> store =
-        dyn_detail::boost::make_shared<Type>( 
-            std::string("<error>"), 0, dataUnknownType);
+    static boost::shared_ptr<Type> store = 
+       boost::shared_ptr<Type>(new Type(std::string("<error>"), 0, dataUnknownType));
     return store;
 }
-dyn_detail::boost::shared_ptr<Type> Symtab::type_Untyped()
+boost::shared_ptr<Type> Symtab::type_Untyped()
 {
-    static dyn_detail::boost::shared_ptr<Type> store =
-        dyn_detail::boost::make_shared<Type>(
-            std::string("<no type>"), 0, dataUnknownType);
+    static boost::shared_ptr<Type> store =
+       boost::shared_ptr<Type>(new Type(std::string("<no type>"), 0, dataUnknownType));
     return store;
 }
 
-dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
+boost::shared_ptr<builtInTypeCollection> Symtab::builtInTypes()
 {
-    static dyn_detail::boost::shared_ptr<builtInTypeCollection> store =
+    static boost::shared_ptr<builtInTypeCollection> store =
         setupBuiltinTypes();
     return store;
 }
-dyn_detail::boost::shared_ptr<typeCollection> Symtab::stdTypes()
+boost::shared_ptr<typeCollection> Symtab::stdTypes()
 {
-    static dyn_detail::boost::shared_ptr<typeCollection> store =
+    static boost::shared_ptr<typeCollection> store =
         setupStdTypes();
     return store;
 }
 
-dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
+boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 {
-    dyn_detail::boost::shared_ptr<builtInTypeCollection> builtInTypes =
-        dyn_detail::boost::make_shared<builtInTypeCollection>(); 
+    boost::shared_ptr<builtInTypeCollection> builtInTypes =
+       boost::shared_ptr<builtInTypeCollection>(new builtInTypeCollection);
 
    typeScalar *newType;
 
@@ -307,10 +303,10 @@ dyn_detail::boost::shared_ptr<builtInTypeCollection> Symtab::setupBuiltinTypes()
 }
 
 
-dyn_detail::boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
+boost::shared_ptr<typeCollection> Symtab::setupStdTypes() 
 {
-    dyn_detail::boost::shared_ptr<typeCollection> stdTypes =
-        dyn_detail::boost::make_shared<typeCollection>();
+    boost::shared_ptr<typeCollection> stdTypes =
+       boost::shared_ptr<typeCollection>(new typeCollection);
 
    typeScalar *newType;
 
@@ -1820,7 +1816,6 @@ Symtab::~Symtab()
    undefDynSymsByTypedName.clear();
 
    // TODO make annotation
-   userAddedSymbols.clear();
    symsByOffset.clear();
    symsByMangledName.clear();
    symsByPrettyName.clear();
@@ -1874,6 +1869,7 @@ Symtab::~Symtab()
 #endif
 }	
 
+#if !defined(SERIALIZATION_DISABLED)
 bool Symtab::exportXML(string file)
 {
 #if defined (cap_serialization)
@@ -1904,7 +1900,6 @@ bool Symtab::exportXML(string file)
 #endif
 }
 
-#if defined (cap_serialization)
 bool Symtab::exportBin(string file)
 {
    try
@@ -1931,13 +1926,6 @@ bool Symtab::exportBin(string file)
    fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
    return false;
 }
-#else
-bool Symtab::exportBin(string) 
-{
-   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
-   return false;
-}
-#endif
 
 Symtab *Symtab::importBin(std::string file)
 {
@@ -1989,6 +1977,23 @@ Symtab *Symtab::importBin(std::string file)
    return NULL;
 #endif
 }
+
+#else
+bool Symtab::exportXML(string)
+{
+   return false;
+}
+
+bool Symtab::exportBin(string) 
+{
+   return false;
+}
+
+Symtab *Symtab::importBin(std::string)
+{
+   return NULL;
+}
+#endif
 
 bool Symtab::openFile(Symtab *&obj, void *mem_image, size_t size, 
                       std::string name, def_t def_bin)
@@ -3064,8 +3069,6 @@ void Symtab::rebuild_region_indexes(SerializerBase *sb) THROW_SPEC (SerializerEr
 	{
 		Region *r = regions_[i];
 
-		if (!r) SER_ERR("FIXME:  NULL REGION");
-
 		if ( r->isLoadable() )
 		{
 			if ((r->getRegionPermissions() == Region::RP_RX)
@@ -3083,10 +3086,9 @@ void Symtab::rebuild_region_indexes(SerializerBase *sb) THROW_SPEC (SerializerEr
 
 	std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
 	std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
-
-
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Symtab::serialize_impl(SerializerBase *sb, 
 		const char *tag) THROW_SPEC (SerializerError)
 {
@@ -3157,6 +3159,12 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 	serialize_printf("%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
 	return NULL;
 }
+#else
+Serializable *Symtab::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 SYMTAB_EXPORT LookupInterface::LookupInterface() 
 {
@@ -3210,6 +3218,7 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable * ExceptionBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	ifxml_start_element(sb, tag);
@@ -3220,6 +3229,12 @@ Serializable * ExceptionBlock::serialize_impl(SerializerBase *sb, const char *ta
 	ifxml_end_element(sb, tag);
 	return NULL;
 }
+#else
+Serializable * ExceptionBlock::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 SYMTAB_EXPORT relocationEntry::relocationEntry() :
    target_addr_(0), 
@@ -3376,6 +3391,7 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	return true;
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  on deserialize need to rebuild symtab::undefDynSyms before deserializing relocations
@@ -3445,6 +3461,12 @@ Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *ta
 	  }
 	  return NULL;
 }
+#else
+Serializable *relocationEntry::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
 {
@@ -3603,7 +3625,7 @@ namespace Dyninst {
 	namespace SymtabAPI {
 
 
-#if 1
+#if !defined(SERIALIZATION_DISABLED)
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {
 	SerializerBin *ser;

@@ -46,8 +46,11 @@
 #include <vector>
 #include <string>
 
+#include <iostream>
+
 #include "common/h/parseauxv.h"
 #include "common/h/headers.h"
+#include "common/h/pathName.h"
 
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
@@ -177,6 +180,7 @@ r_debug_dyn<r_debug_X>::~r_debug_dyn()
 
 template<class r_debug_X> 
 bool r_debug_dyn<r_debug_X>::is_valid() {
+   if (!valid) return false;
    if (0 == r_map()) return false;
    else return valid;
 }
@@ -286,6 +290,7 @@ static const char *deref_link(const char *path)
    return p;
 }
 
+
 ProcessReaderSelf::ProcessReaderSelf() :
    ProcessReader() 
 {
@@ -343,10 +348,11 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
                                                             ProcessReader *reader_,
                                                             SymbolReaderFactory *symfactory_,
                                                             PROC_HANDLE,
-                                                            std::string exename)
+                                                            std::string exename,
+                                                            Address interp_base)
 {
    translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
-   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename);
+   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_, exename, interp_base);
    translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
    
    if (!at) {
@@ -360,10 +366,11 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_,
-                                                            SymbolReaderFactory *factory_,
-                                                            std::string exename)
+                                                            SymbolReaderFactory *factory_, 
+                                                            std::string exename,
+                                                            Address interp_base)
 {
-   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE, exename);
+   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE, exename, interp_base);
 }
 
 AddressTranslateSysV::AddressTranslateSysV() :
@@ -376,30 +383,38 @@ AddressTranslateSysV::AddressTranslateSysV() :
    previous_r_state(0),
    current_r_state(0),
    r_debug_addr(0),
-   trap_addr(0)
+   trap_addr(0),
+   real_trap_addr(0)
 {
 }
 
 AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_, 
                                            SymbolReaderFactory *reader_fact,
-                                           std::string exename) :
+                                           std::string exename, Address interp_base) :
    AddressTranslate(pid, INVALID_HANDLE_VALUE, exename),
    reader(reader_),
    interpreter_base(0),
-   set_interp_base(0),
+   set_interp_base(false),
    address_size(0),
    interpreter(NULL),
    previous_r_state(0),
    current_r_state(0),
    r_debug_addr(0),
-   trap_addr(0)
+   trap_addr(0),
+   real_trap_addr(0)
 {
    bool result;
+   if (interp_base != (Address) -1) {
+      interpreter_base = interp_base;
+      set_interp_base = true;
+   }
    if (!reader) {
-      if (pid == getpid())
+     if (pid == getpid()) {
          reader = new ProcessReaderSelf();
-      else
-         reader = createDefaultDebugger(pid);
+     }
+     else {
+       reader = createDefaultDebugger(pid);
+     }
    }
    symfactory = reader_fact;
    result = init();
@@ -600,6 +615,7 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
    return ll;
 }
 
+
 Address AddressTranslateSysV::getTrapAddrFromRdebug() {
     Address retVal = 0;
     assert( r_debug_addr && address_size );
@@ -746,7 +762,6 @@ bool AddressTranslateSysV::refresh()
          continue;
       }
       string obj_name(link_elm->l_name());
-
       // Don't re-add the executable, it has already been added
       if( getExecName() == string(deref_link(obj_name.c_str())) ) {
          if (exec)
@@ -755,9 +770,10 @@ bool AddressTranslateSysV::refresh()
       }
 
       Address text = (Address) link_elm->l_addr();
-      if (obj_name == "" && !text) {
-         if (exec)
+      if (obj_name.empty()) {
+         if (!text && exec) {
             exec->dynamic_addr = (Address) link_elm->l_ld();
+         }
          continue;
       }
       if (!link_elm->is_valid())
@@ -787,6 +803,7 @@ bool AddressTranslateSysV::refresh()
 
       libs.push_back(ll);
    } while (link_elm->load_next());
+   
    
    if (read_abort) {
       result = false;
@@ -835,7 +852,7 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    symreader(NULL),
    factory(factory_)
 {
-   filename = deref_link(f.c_str());
+   filename = resolve_file_path(f.c_str());
 }
 
 string FCNode::getFilename() {
@@ -977,5 +994,41 @@ FileCache::FileCache()
 }
 
 Address AddressTranslateSysV::getLibraryTrapAddrSysV() {
-  return trap_addr;
+  if (real_trap_addr == 0)
+    plat_getTrapAddr();
+  return real_trap_addr;
+}
+
+bool AddressTranslateSysV::plat_getTrapAddr() {
+#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+    // On ppc64_linux, the trap addr is actually a pointer to the address to
+    // set the trap -- so the current trap addr needs to be dereferenced
+    if( trap_addr != 0 ) {
+      translate_printf("[%s:%u]: trap addr is 0x%lx, reading addr from mutatee\n",
+		       __FILE__, __LINE__, trap_addr);
+        // Only need to do this for 64-bit mutatees
+        if( address_size == sizeof(void *) ) {
+            if( !reader->start() ) {
+                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
+	    if( !reader->ReadMem(trap_addr, &real_trap_addr, sizeof(trap_addr)) ) {
+	      translate_printf("[%s:%u] - Failed to dereference trap addr\n", __FILE__, __LINE__);
+	      return false;
+	    }
+	    
+	    // Depending on the state of the process, the real_trap_addr may already be relocated
+	    // Only add the interpreter base when the real_trap_addr hasn't been relocated
+	    if( real_trap_addr < interpreter_base ) real_trap_addr += interpreter_base;
+            if( !reader->done() ) {
+	      translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
+	      return false; 
+            }
+        }
+    }
+#else
+  real_trap_addr = trap_addr;
+#endif
+  return true;
 }

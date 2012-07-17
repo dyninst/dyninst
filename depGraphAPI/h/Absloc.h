@@ -38,7 +38,7 @@
 
 #include <values.h>
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dynptr.h"
 
 #include <set>
 #include <string>
@@ -65,7 +65,7 @@ class Absloc : public AnnotatableSparse {
  public:
     // Get a list of all abstract locations currently defined
     // by the graph.
-    typedef dyn_detail::boost::shared_ptr<Absloc> Ptr;
+    typedef dyn_shared_ptr<Absloc> Ptr;
     typedef std::set<Ptr> AbslocSet;
 
     static void getAbslocs(AbslocSet &locs);
@@ -90,7 +90,7 @@ class RegisterLoc : public Absloc {
 
  public:
     typedef std::map<InstructionAPI::RegisterAST, RegisterLoc::Ptr> RegisterMap;
-    typedef dyn_detail::boost::shared_ptr<RegisterLoc> Ptr;
+    typedef dyn_shared_ptr<RegisterLoc> Ptr;
     
 
     virtual ~RegisterLoc() {};
@@ -129,7 +129,7 @@ class RegisterLoc : public Absloc {
 class StackLoc : public Absloc {
  public:
     typedef std::map<std::pair<int, int>, StackLoc::Ptr> StackMap;
-    typedef dyn_detail::boost::shared_ptr<StackLoc> Ptr;
+    typedef dyn_shared_ptr<StackLoc> Ptr;
 
     int slot() const { return slot_; }
     int region() const { return region_; }
@@ -162,7 +162,7 @@ class StackLoc : public Absloc {
 
 class MemLoc : public Absloc {
  public:
-    typedef dyn_detail::boost::shared_ptr<MemLoc> Ptr;
+    typedef dyn_shared_ptr<MemLoc> Ptr;
     typedef std::map<Address, MemLoc::Ptr> MemMap;
     typedef std::set<MemLoc::Ptr> MemSet;
 
@@ -201,7 +201,7 @@ class MemLoc : public Absloc {
 
 class ImmLoc : public Absloc { 
  public:
-    typedef dyn_detail::boost::shared_ptr<ImmLoc> Ptr;
+    typedef dyn_shared_ptr<ImmLoc> Ptr;
     
     virtual ~ImmLoc() {};
     virtual std::string format() const;

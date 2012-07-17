@@ -49,8 +49,6 @@
 // for blockSet...
 //#include "dyninstAPI/src/image-func.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-
 // To define StackAST
 #include "DynAST.h"
 
@@ -89,12 +87,12 @@ namespace Dyninst {
 
  
 class StackAnalysis {
-  typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
-  typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
+  typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+  typedef boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
 
  public:
 
-    class Height {
+    class DATAFLOW_EXPORT Height {
     public:
         typedef signed long Height_t;
         
@@ -333,6 +331,9 @@ class StackAnalysis {
     DATAFLOW_EXPORT Height find(ParseAPI::Block *, Address addr, MachRegister reg);
     // And a commonly used shortcut
     DATAFLOW_EXPORT Height findSP(ParseAPI::Block *, Address addr);
+    DATAFLOW_EXPORT Height findFP(ParseAPI::Block *, Address addr);
+    DATAFLOW_EXPORT void findDefinedHeights(ParseAPI::Block* b, Address addr, std::vector<std::pair<MachRegister, Height> >& heights);
+    
     
     DATAFLOW_EXPORT void debug();
     
@@ -348,9 +349,9 @@ class StackAnalysis {
     void summarize();
 
     void fixpoint();
-
-    void createIntervals();
     
+    void createIntervals();
+
     void createEntryInput(RegisterState &input);
     void meetInputs(ParseAPI::Block *b, RegisterState &input);
     void meet(const RegisterState &source, RegisterState &accum);

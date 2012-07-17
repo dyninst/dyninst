@@ -47,36 +47,6 @@ using namespace ProcControlAPI;
 
 class int_process;
 class int_thread;
-/*
- * Copyright (c) 1996-2011 Barton P. Miller
- * 
- * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
- * validity or performance.  We reserve the right to update, modify,
- * or discontinue this software at any time.  We shall have no
- * obligation to supply such updates or modifications or any other
- * form of support to you.
- * 
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
 
 class iRPCAllocation;
 class int_iRPC;
@@ -89,20 +59,21 @@ class IRPC;
 
 class iRPCAllocation
 {
-   friend void dyn_detail::boost::checked_delete<iRPCAllocation>(iRPCAllocation *);
+   friend void boost::checked_delete<iRPCAllocation>(iRPCAllocation *);
   public:
-   typedef dyn_detail::boost::shared_ptr<iRPCAllocation> ptr;
+   typedef boost::shared_ptr<iRPCAllocation> ptr;
   iRPCAllocation() :
       addr(0),
       size(0),
       start_offset(0),
       orig_data(NULL),
-      needs_datasave(true),
+	  // HACK: affirmatively set that we do need a data save. If we've just allocated space, why save the data?
+      needs_datasave(false),
       have_saved_regs(false),
       ref_count(0)
       {
       }
-   ~iRPCAllocation() 
+      ~iRPCAllocation() 
       {
          if (orig_data)
             free(orig_data);
@@ -117,15 +88,17 @@ class iRPCAllocation
    int ref_count;
 
    //These are NULL if the user handed us memory to run the iRPC in.
-   dyn_detail::boost::weak_ptr<int_iRPC> creation_irpc;
-   dyn_detail::boost::weak_ptr<int_iRPC> deletion_irpc;
+   boost::weak_ptr<int_iRPC> creation_irpc;
+   boost::weak_ptr<int_iRPC> deletion_irpc;
 };
 
-class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
+class int_iRPC : public boost::enable_shared_from_this<int_iRPC>
 {
-   friend void dyn_detail::boost::checked_delete<int_iRPC>(int_iRPC *);   
+   friend void boost::checked_delete<int_iRPC>(int_iRPC *);   
+   friend class iRPCMgr;
+   friend class Dyninst::ProcControlAPI::IRPC;
  public:
-   typedef dyn_detail::boost::shared_ptr<int_iRPC> ptr;
+   typedef boost::shared_ptr<int_iRPC> ptr;
 
 
    typedef enum {
@@ -182,17 +155,17 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    bool isMemManagementRPC() const;
    int_iRPC::ptr allocationRPC() const;
    int_iRPC::ptr deletionRPC() const; 
-   bool needsToDesync() const; 
    bool isRPCPrepped();
+
+   bool needsToRestoreInternal() const;
+   void setRestoreInternal(bool b);
 
    bool saveRPCState();
    bool checkRPCFinishedSave();
    bool writeToProc();
    bool checkRPCFinishedWrite();
-   bool runIRPC(bool block);
+   bool runIRPC();
 
-
-   void setNeedsDesync(bool b);
    void setState(State s);
    void setType(Type t);
    void setBinaryBlob(void *b);
@@ -207,6 +180,10 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    void setAllocSize(unsigned long size);
    void setShouldSaveData(bool b);
    bool fillInAllocation();
+   bool countedSync();
+
+   void setDirectFree(bool s) { directFree_ = s; }
+   bool directFree() const { return directFree_; }
 
    void getPendingResponses(std::set<response::ptr> &resps);
    void syncAsyncResponses(bool is_sync);
@@ -217,6 +194,10 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    Dyninst::Address infMallocResult();
    void setMallocResult(Dyninst::Address addr);
    rpc_wrapper *getWrapperForDecode();
+   Address getInfFreeTarget();
+
+   int_thread::State getRestoreToState() const;
+   void setRestoreToState(int_thread::State s);
  private:
    static unsigned long next_id;
    unsigned long my_id;
@@ -225,21 +206,26 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    void *binary_blob;
    unsigned long binary_size;
    unsigned long start_offset;
-   bool async;
    int_thread *thrd;
+   Address inffree_target;
    iRPCAllocation::ptr cur_allocation;
    iRPCAllocation::ptr target_allocation;
    IRPC::weak_ptr hl_irpc;
+   bool async;
    bool freeBinaryBlob;
-   bool needsDesync;
-   int lock_live;
    bool needs_clean;
+   bool restore_internal;
+   bool counted_sync;
+   int lock_live;
    Dyninst::Address malloc_result;
+   int_thread::State restore_at_end;
 
    mem_response::ptr memsave_result;
    allreg_response::ptr regsave_result;
    result_response::ptr rpcwrite_result;
    result_response::ptr pcset_result;
+   bool directFree_;
+   void *user_data;
 };
 
 //Singleton class, only one of these across all processes.
@@ -256,15 +242,11 @@ class iRPCMgr
    
    bool postRPCToProc(int_process *proc, int_iRPC::ptr rpc);
    bool postRPCToThread(int_thread *thread, int_iRPC::ptr rpc);
-   bool prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error);
+   int_thread *createThreadForRPC(int_process* proc, int_thread* best_candidate);
 
    int_iRPC::ptr createInfMallocRPC(int_process *proc, unsigned long size, bool use_addr, Dyninst::Address addr);
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);
 
-   bool checkIfNeedsProcStop(int_process *p);
-   bool stopNeededThreads(int_process *p, bool sync);
-
-   bool handleThreadContinue(int_thread *thr, bool user_cont, bool &completed);
    bool isRPCTrap(int_thread *thr, Dyninst::Address addr);
 };
 
@@ -279,6 +261,24 @@ class iRPCHandler : public Handler
    virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual int getPriority() const;
+};
+
+class iRPCPreCallbackHandler : public Handler
+{
+  public:
+   iRPCPreCallbackHandler();
+   virtual ~iRPCPreCallbackHandler();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+class iRPCLaunchHandler : public Handler
+{
+  public:
+   iRPCLaunchHandler();
+   virtual ~iRPCLaunchHandler();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 //Wraps an int_iRPC::ptr so that the user level class IRPC doesn't

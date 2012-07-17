@@ -51,12 +51,8 @@
 #include <sys/mman.h>
 #include <link.h>
 
-#define NOT_ON_FREEBSD "This function is unimplemented on FreeBSD"
-
 /* FreeBSD libc has stubs so a static version shouldn't need libpthreads */
 #include <pthread.h>
-
-/* TODO threading support, mutatee traps */
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
@@ -105,10 +101,9 @@ void mark_heaps_exec() {
     RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 } /* end mark_heaps_exec() */
 
-int DYNINST_sysEntry;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
-    assert(!NOT_ON_FREEBSD);
+    RTprintf("DYNINSTos_init(%d,%d\n", calledByFork, calledByAttach);
 }
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
@@ -130,9 +125,34 @@ void runDYNINSTBaseInit()
 
 /** Dynamic instrumentation support **/
 
+static
+int tkill(pid_t pid, long lwp, int sig) {
+    static int has_tkill = 1;
+    int result = 0;
+
+    if( has_tkill ) {
+        result = syscall(SYS_thr_kill2, pid, lwp, sig);
+        if( 0 != result && ENOSYS == errno ) {
+            has_tkill = 0;
+        }
+    }
+
+    if( !has_tkill ) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
+}
+
 void DYNINSTbreakPoint()
 {
-    assert(!NOT_ON_FREEBSD);
+    if(DYNINSTstaticMode) return;
+
+    DYNINST_break_point_event = 1;
+    while( DYNINST_break_point_event ) {
+        tkill(getpid(), dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0 */
 }
 
 static int failed_breakpoint = 0;
@@ -143,31 +163,44 @@ void uncaught_breakpoint(int sig)
 
 void DYNINSTsafeBreakPoint()
 {
-    assert(!NOT_ON_FREEBSD);
+    if( DYNINSTstaticMode ) return;
+
+    DYNINST_break_point_event = 2;
+    sigset_t emptyset;
+    sigemptyset(&emptyset);
+
+    // There is a bug with attaching to a stopped process on FreeBSD This
+    // achieves the same result as long as Dyninst attaches to the process when
+    // it is in sigsuspend
+    while( DYNINST_break_point_event ) {
+        sigsuspend(&emptyset);
+    }
 }
 
-/* FreeBSD libc includes dl* functions typically in libdl */
-typedef struct dlopen_args {
-  const char *libname;
-  int mode;
-  void *result;
-  void *caller;
-} dlopen_args_t;
-
-void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
-
-/*
+#if !defined(DYNINST_RT_STATIC_LIB)
 static int get_dlopen_error() {
-    assert(!NOT_ON_FREEBSD);
-    return 1;
+    const char *err_str;
+    err_str = dlerror();
+    if( err_str ) {
+        strncpy(gLoadLibraryErrorString, err_str, (size_t) ERROR_STRING_LENGTH);
+        return 1;
+    }
+
+    sprintf(gLoadLibraryErrorString, "unknown error withe dlopen");
+    return 0;
 }
-*/
 
 int DYNINSTloadLibrary(char *libname)
 {
-    assert(!NOT_ON_FREEBSD);
-    return 1;
+    void *res;
+    gLoadLibraryErrorString[0] = '\0';
+    res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
+    if( res ) return 1;
+
+    get_dlopen_error();
+    return 0;
 }
+#endif
 
 /** threading support **/
 
@@ -209,66 +242,17 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
-/* 
-   We reserve index 0 for the initial thread. This value varies by
-   platform but is always constant for that platform. Wrap that
-   platform-ness here. 
-*/
 int DYNINST_am_initial_thread( dyntid_t tid ) {
-    if( dyn_lwp_self() == getpid() ) {
-        return 1;
-    }
+    /*
+     * LWPs and PIDs are in different namespaces on FreeBSD.
+     *
+     * I don't really know a good way to determine this without
+     * doing an expensive sysctl.
+     *
+     * Luckily, this function isn't used anymore
+     */
+    assert(!"This function is unimplemented on FreeBSD");
     return 0;
-} /* end DYNINST_am_initial_thread() */
-
-/*
- * This code extracts the lwp, the address of the thread entry function,
- * and the top of the thread's stack. It uses predefined offset to 
- * extract this information from pthread_t, which is usually opaque. 
- * 
- * Hopefully, only one set of offsets should be needed per architecture
- * because there should exist only one version of FreeBSD libc per 
- * FreeBSD version.
- *
- * If different versions are encountered, see the Linux version of this
- * for ideas on how to handle them.
- *
- * Finally, there is a problem that can be used to determine these offsets
- * at the end of this file.
- */
-#define READ_OPAQUE(buffer, pos, type) *((type *)(buffer + pos))
-
-typedef struct pthread_offset_t {
-    unsigned long lwp_pos;
-    unsigned long start_func_pos;
-    unsigned long stack_start_pos;
-    unsigned long stack_size_pos;
-} pthread_offset_t;
-
-#if defined(os_freebsd) && defined(arch_x86_64)
-static pthread_offset_t offsets = { 0, 112, 152, 160 };
-#elif defined(os_freebsd) && defined(arch_x86)
-static pthread_offset_t offsets = { 0, 80, 108, 112};
-#else
-#error pthread_t offsets undefined for this architecture
-#endif
-
-int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
-    static int err_printed = 0;
-    unsigned char *buffer = (unsigned char *)ev->tid;
-
-    unsigned long lwp = READ_OPAQUE(buffer, offsets.lwp_pos, unsigned long);
-    ev->stack_addr = (void *)(READ_OPAQUE(buffer, offsets.stack_start_pos, unsigned long) + 
-        READ_OPAQUE(buffer, offsets.stack_size_pos, unsigned long));
-    ev->start_pc = (void *)(READ_OPAQUE(buffer, offsets.start_func_pos, unsigned long));
-
-    if( lwp != ev->lwp && !err_printed ) {
-        RTprintf("%s[%d]: Failed to parse pthread_t information. Making a best effort guess.\n",
-                __FILE__, __LINE__);
-        err_printed = 1;
-    }
-
-    return 1;
 }
 
 /** trap based instrumentation **/
@@ -277,17 +261,20 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
 
 #include <ucontext.h>
 
-/* XXX This will compile, but it does not work yet */
+#if defined(arch_x86) || defined(MUTATEE_32)
+#define UC_PC(x) x->uc_mcontext.mc_eip
+#elif defined(arch_x86_64)
+#define UC_PC(x) x->uc_mcontext.mc_rip
+#endif // UC_PC
 
-/* XXX This current only works for amd64 FreeBSD -- needs some ifdefs for i386 */
-
-extern void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint);
 extern unsigned long dyninstTrapTableUsed;
 extern unsigned long dyninstTrapTableVersion;
 extern trapMapping_t *dyninstTrapTable;
 extern unsigned long dyninstTrapTableIsSorted;
 
 /**
+ * This comment is now obsolete, left for historic purposes
+ *
  * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
  * closly intwined with dyninstTrapHandler, don't modify one without 
  * understanding the other.
@@ -309,29 +296,15 @@ extern unsigned long dyninstTrapTableIsSorted;
  *      do a popf/ret to restore flags and go to instrumentation.  The 'retPoint'
  *      parameter is the address in dyninstTrapHandler the popf/ret can be found.
  **/
-void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint)
+void dyninstTrapHandler(int sig, siginfo_t *sg, ucontext_t *context)
 {
-   ucontext_t newcontext;
-   unsigned long *orig_sp;
    void *orig_ip;
    void *trap_to;
 
-   getcontext(&newcontext);
-   
-   //Set up the 'context' parameter so that when we restore 'context' control
-   // will get transfered to our instrumentation.
-   newcontext.uc_mcontext = context->uc_mcontext;
-
-   orig_sp = (unsigned long *) context->uc_mcontext.mc_rsp;
-   orig_ip = (void *) context->uc_mcontext.mc_rip;
-
+   orig_ip = UC_PC(context);
    assert(orig_ip);
 
-   //Set up the PC to go to the 'ret_point' in RTsignal-x86.s
-   newcontext.uc_mcontext.mc_rip = (unsigned long) retPoint;
-
-   //simulate a "push" of the flags and instrumentation entry points onto
-   // the stack.
+   // Find the new IP we're going to and substitute. Leave everything else untouched
    if (DYNINSTstaticMode) {
       unsigned long zero = 0;
       unsigned long one = 1;
@@ -352,30 +325,10 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
                                      &dyninstTrapTableIsSorted);
                                      
    }
-   *(orig_sp - 1) = (unsigned long) trap_to;
-   *(orig_sp - 2) = flags;
-   unsigned shift = 2;
-#if defined(arch_x86_64) && !defined(MUTATEE_32)
-   *(orig_sp - 3) = context->uc_mcontext.mc_r11;
-   *(orig_sp - 4) = context->uc_mcontext.mc_r10;
-   *(orig_sp - 5) = context->uc_mcontext.mc_rax;
-   shift = 5;
-#else
-#error mutatee traps unavailable on this architecture
-#endif
-   newcontext.uc_mcontext.mc_rsp = (unsigned long) (orig_sp - shift);
-
-   //Restore the context.  This will move all the register values of 
-   // context into the actual registers and transfer control away from
-   // this function.  This function shouldn't actually return.
-   setcontext(&newcontext);
-   assert(0);
+   UC_PC(context) = (long) trap_to;
 }
 
 #if defined(cap_binary_rewriter)
-
-extern struct r_debug _r_debug;
-struct r_debug _r_debug __attribute__ ((weak));
 
 #define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
 
@@ -388,8 +341,10 @@ static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
 
 #if !defined(arch_x86_64) || defined(MUTATEE_32)
 typedef Elf32_Dyn ElfX_Dyn;
+typedef Elf32_Ehdr ElfX_Ehdr;
 #else
 typedef Elf64_Dyn ElfX_Dyn;
+typedef Elf64_Ehdr ElfX_Ehdr;
 #endif
 
 static int parse_libs();
@@ -429,11 +384,31 @@ static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
    return header;
 }
 
+static struct link_map *getLinkMap() {
+    struct link_map *map = NULL;
+#if !defined(DYNINST_RT_STATIC_LIB)
+    if( dlinfo(RTLD_SELF, RTLD_DI_LINKMAP, &map) ) {
+        return NULL;
+    }
+
+    // Rewind the current link map pointer to find the
+    // start of the list
+    struct link_map *last_map;
+    while( map != NULL ) {
+        last_map = map;
+        map = map->l_prev;
+    }
+
+    map = last_map;
+#endif
+    return map;
+}
+
 static int parse_libs()
 {
    struct link_map *l_current;
 
-   l_current = _r_debug.r_map;
+   l_current = getLinkMap();
    if (!l_current)
       return -1;
 
@@ -470,6 +445,20 @@ static int parse_link_map(struct link_map *l)
    }
 
    header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + l->l_addr);
+
+   caddr_t libAddr = l->l_addr;
+
+   // Executables have an implicit zero load address but the library load address
+   // may be non-zero
+   if( ((ElfX_Ehdr *)libAddr)->e_type == ET_EXEC ) {
+       libAddr = 0;
+   }else if( ((ElfX_Ehdr *)libAddr)->e_type == ET_DYN ) {
+       // Account for library_adjust mechanism which is used for shared libraries
+       // on FreeBSD
+       libAddr += getpagesize();
+   }
+
+   header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + libAddr);
    
    if (header->signature != TRAP_HEADER_SIG)
       return ERROR_INTERNAL;
@@ -481,8 +470,8 @@ static int parse_link_map(struct link_map *l)
  
    for (i = 0; i < header->num_entries; i++)
    {
-      header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + l->l_addr);
-      header->traps[i].target = (void *) (((unsigned long) header->traps[i].target) + l->l_addr);
+      header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + libAddr);
+      header->traps[i].target = (void *) (((unsigned long) header->traps[i].target) + libAddr);
       if (!header->low_entry || header->low_entry > (unsigned long) header->traps[i].source)
          header->low_entry = (unsigned long) header->traps[i].source;
       if (!header->high_entry || header->high_entry < (unsigned long) header->traps[i].source)
@@ -579,6 +568,9 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 #endif /* cap_mutatee_traps */
 
 /*
+ * Note: this program is for historical purposes only, we use libthread_db
+ * now to get thread information.
+ *
  * A program to determine the offsets of certain thread structures on FreeBSD
  *
  * This program should be compiled with the headers from the libthr library from

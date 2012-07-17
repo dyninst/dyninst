@@ -38,11 +38,11 @@
 namespace Dyninst {
 namespace Relocation {
 
-class Patch;
+struct Patch;
 
 class CallbackWidget : public Widget {
  public:
-  typedef dyn_detail::boost::shared_ptr<CallbackWidget> Ptr;
+  typedef boost::shared_ptr<CallbackWidget> Ptr;
 
   // I believe I can patch in the current code generation
   // system here...

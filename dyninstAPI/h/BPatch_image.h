@@ -47,7 +47,6 @@
 #include <map>
 
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
-class process;
 class image;
 class int_variable;
 class BPatch_point;
@@ -69,7 +68,7 @@ class BPatch_image;
 namespace Dyninst {
    namespace PatchAPI {
       class PatchMgr;
-      typedef dyn_detail::boost::shared_ptr<PatchMgr> PatchMgrPtr;
+      typedef boost::shared_ptr<PatchMgr> PatchMgrPtr;
       PatchMgrPtr convert(const BPatch_image *);
    }
 }
@@ -83,7 +82,6 @@ namespace Dyninst {
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
     friend class BPatch; // registerLoaded... callbacks
     friend class BPatch_module; // access to findOrCreate...
-    friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
     friend class BPatch_process;
     friend class BPatch_addressSpace;
     friend class BPatch_binaryEdit;

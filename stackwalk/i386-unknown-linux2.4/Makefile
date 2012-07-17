@@ -20,25 +20,31 @@ include ../make.module.tmpl
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS += 	../src/linux-swk.C \
-			../src/linux-x86-swk.C \
+			../src/linuxbsd-x86-swk.C \
 			../src/x86-swk.C \
 			../src/symtab-swk.C \
 			../src/dbginfo-stepper.C \
-			../src/x86-wanderer.C
+			../src/x86-wanderer.C \
+			../src/linuxbsd-swk.C \
+			../src/linux-x86-swk.C \
+			../src/analysis_stepper.C
 
-ifdef LIBELF_INC
-MYFLAGS += -I$(LIBELF_INC)
-endif
-ifdef LIBDWARF_INC
-MYFLAGS += -I$(LIBDWARF_INC)
+#USE_PARSE_API = true
+
+ifdef USE_PARSE_API
+	SRCS += ../src/analysis_stepper.C \
+		../src/callchecker-IAPI.C
+else
+	SRCS += ../src/callchecker.C
 endif
 
-ifdef LIBELF_LIB
-LDFLAGS += -L$(LIBELF_LIB) -lelf
+ifdef USE_PARSE_API
+	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
+	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	
 endif
-ifdef LIBDWARF_LIB
-LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
-endif
+
+MYFLAGS += -I../../symtabAPI/h
+LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 
 LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)

@@ -39,7 +39,6 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/arch.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>
@@ -181,63 +180,6 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     } while (mapEntry.pr_size != 0);
 
     return true;
-}
-
-/* Return true if the exception was caused by the hook in the linker
- * code, we'll worry about whether or not any libraries were
- * added/removed later on when we handle the exception
- */
-bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       unsigned int & /* change_type */) 
-{
-    assert(ev.lwp);
-    dyn_lwp *brk_lwp = ev.lwp;
-    sharedLibHook *hook = NULL;
-    
-    Frame brk_frame = brk_lwp->getActiveFrame();
-    hook = reachedLibHook(brk_frame.getPC());
-   
-    return (bool) hook;
-}
-
-// handleIfDueToSharedObjectMapping: returns true if the trap was caused
-// by a change to the link maps
-// p - process we're dealing with
-// changed_objects -- set to list of new objects
-// change_type -- set to 1 if added, 2 if removed
-// error_occurred -- duh
-// return value: true if there was a change to the link map,
-// false otherwise
-bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
-                                pdvector<mapped_object *> &changed_objects,
-                                pdvector<bool> &is_new_object)
-{
-    // We discover it by comparing sizes
-    dyn_lwp *brk_lwp = instru_based ? NULL : ev.lwp;
-    sharedLibHook *hook = NULL;
-
-    if (!instru_based && brk_lwp) {
-       Frame brk_frame = brk_lwp->getActiveFrame();
-       hook = reachedLibHook(brk_frame.getPC());
-    }
-
-    if (force_library_load || hook || instru_based) {
-        
-        if (!findChangeToLinkMaps(changed_objects, is_new_object))
-            return false;
-	if (brk_lwp) {
-	  // Now we need to fix the PC. We overwrote the return instruction,
-	  // so grab the value in the link register and set the PC to it.
-	  dyn_saved_regs regs;
-	  bool status = brk_lwp->getRegisters(&regs);
-	  assert(status == true);
-	  brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
-	  return true;
-   }
-	else
-      return true;
-    }
-    return false;
 }
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 

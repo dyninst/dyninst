@@ -74,11 +74,8 @@
 #define FAIL -1
 
 #define BINEDIT_BASENAME "./binaries"
-TESTLIB_DLL_EXPORT char *get_binedit_dir();
-TESTLIB_DLL_EXPORT void set_binedit_dir(char *s);
-
-TESTLIB_DLL_EXPORT char *get_resumelog_name();
-TESTLIB_DLL_EXPORT void set_resumelog_name(char *s);
+TESTLIB_DLL_EXPORT const char *get_binedit_dir();
+TESTLIB_DLL_EXPORT void set_binedit_dir(const char *s);
 
 // New logging system
 TESTLIB_DLL_EXPORT TestOutputDriver * getOutput();
@@ -102,18 +99,21 @@ TESTLIB_DLL_EXPORT void flushErrorLog();
 // TODO Implement this function for Windows   
 TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 
+TESTLIB_DLL_EXPORT int getNumProcs(const ParameterDict &dict);
+TESTLIB_DLL_EXPORT int getNumThreads(const ParameterDict &dict);
+
+TESTLIB_DLL_EXPORT FILE *getDebugLog();
+TESTLIB_DLL_EXPORT void setDebugLog(FILE *f);
 
 // Mutatee PID registration, for cleaning up hung mutatees
 // TODO Check if these make any sense on Windows.  I suspect I'll need to
 // change them.
 TESTLIB_DLL_EXPORT void setPIDFilename(char *pfn);
-TESTLIB_DLL_EXPORT char *getPIDFilename();
 TESTLIB_DLL_EXPORT void registerPID(int pid);
-TESTLIB_DLL_EXPORT void cleanPIDFile();
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
-TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog, bool attach);
+
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize, bool isStatic = false);
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
@@ -137,10 +137,6 @@ TESTLIB_DLL_EXPORT void enableDBLog(TestInfo *test, RunGroup *runGroup);
 TESTLIB_DLL_EXPORT void clearDBLog();
 
 TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
-
-#if !defined(os_windows_test)
-TESTLIB_DLL_EXPORT pid_t fork_mutatee();
-#endif
 
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \

@@ -36,8 +36,9 @@
 #include "dyninstAPI/src/symtab.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Region.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -155,7 +156,7 @@ void MemoryEmulator::addRegion(Region *reg, Address base, Address, Address) {
 
    if (addedRegions_.find(reg) != addedRegions_.end()) return;
       
-   process *proc = dynamic_cast<process *>(aS_);
+   PCProcess *proc = dynamic_cast<PCProcess *>(aS_);
    char *buffer = (char *)malloc(reg->getMemSize());
    if (proc) {
        if (!proc->readDataSpace((void*)(base + reg->getMemOffset()), 
@@ -203,9 +204,12 @@ void MemoryEmulator::addRegion(Region *reg, Address base, Address, Address) {
        default:
            assert(0);
        }
-       dyn_lwp *stoppedlwp = aS_->proc()->query_for_stopped_lwp();
+	   assert(0 && "Not ported to ProcControl");
+#if 0
+	   PCThread *stoppedlwp = aS_->proc()->query_for_stopped_lwp();
        assert(stoppedlwp);
        stoppedlwp->changeMemoryProtections(mutateeBase, reg->getMemSize(), winrights, false);
+#endif
 #endif
    }
    
@@ -472,7 +476,7 @@ void MemoryEmulator::removeSpringboards(func_instance * func)
 {
    malware_cerr << "untracking springboards from deadfunc " << hex << func->addr() << dec << endl;
 
-   const PatchFunction::Blockset & blocks = func->getAllBlocks();
+   const PatchFunction::Blockset & blocks = func->blocks();
    PatchFunction::Blockset::const_iterator bit = blocks.begin();
    for (; bit != blocks.end(); bit++) {
       removeSpringboards(SCAST_BI(*bit));

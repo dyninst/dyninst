@@ -111,7 +111,7 @@ static void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead\n", __FILE__, __LINE__, my_dyn_id);
+   dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead, %d total dead threads\n", __FILE__, __LINE__, my_dyn_id, deleted_threads);
 }
 
 // Globals: dyn_tids, error13, initial_funcs(?), our_tid_max, proc,
@@ -120,7 +120,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
 
-   if (my_proc != proc)
+   if (my_proc != proc && proc != NULL && my_proc != NULL)
    {
       logerror("[%s:%u] - Got invalid process: %p vs %p\n", 
               __FILE__, __LINE__, my_proc, proc);
@@ -185,6 +185,25 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    {
       logerror("[%s:%d] - WARNING: Thread %d has no stack\n",
               __FILE__, __LINE__, my_dyn_id);
+
+        // For debugging, dump the stack
+        BPatch_Vector<BPatch_frame> stack;
+	thr->getCallStack(stack);
+
+        dprintf(stderr, "Stack dump\n");
+        for( unsigned i = 0; i < stack.size(); i++) {
+                char name[256];
+                BPatch_function *func = stack[i].findFunction();
+                if (func == NULL)
+                        strcpy(name, "[UNKNOWN]");
+                else
+                        func->getName(name, 256);
+                dprintf(stderr, "  %10p: %s, fp = %p\n",
+                                stack[i].getPC(),
+                                name,
+                                stack[i].getFP());
+        }
+        dprintf(stderr, "End of stack dump.\n");
    }
    else
    {
@@ -201,7 +220,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    // FIXME Make sure this static variable works correctly.  Maybe push it out
    // to a regular global variable..
    static long pthread_ids[NUM_THREADS];
-   long mytid = thr->getTid();
+   long mytid = (long)(thr->getTid());
    if (mytid == -1)
    {
       logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
@@ -225,92 +244,29 @@ void test_thread_6_Mutator::upgrade_mutatee_state()
 {
    dprintf(stderr, "%s[%d]:  welcome to upgrade_mutatee_state\n", __FILE__, __LINE__);
    BPatch_variableExpr *var;
-   BPatch_constExpr *one;
-   BPatch_arithExpr *inc_var;
-   BPatch_arithExpr *inc_var_assign;
-
    BPatch_image *img = proc->getImage();
-   var = img->findVariable("proc_current_state");
-   one = new BPatch_constExpr(1);
-   inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
-   inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
-   dprintf(stderr, "%s[%d]: going into oneTimecode...\n", __FILE__, __LINE__);
-   proc->oneTimeCode(*inc_var_assign);
-   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
+	var = img->findVariable("proc_current_state");
+	dprintf(stderr, "%s[%d]: upgrade_mutatee_state: stopping for read...\n", __FILE__, __LINE__);
+   proc->stopExecution();
+   int val = 0;
+   var->readValue(&val);
+   val++;
+   var->writeValue(&val);
+   proc->continueExecution();
+   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: continued after write, val = %d\n", __FILE__, __LINE__, val);
 }
 
 #define MAX_ARGS 32
-static char *filename = "test13.mutatee_gcc";
-static char *args[MAX_ARGS];
-static char *create_arg = "-create";
+static const char *filename = "test13.mutatee_gcc";
+static const char *args[MAX_ARGS];
+static const char *create_arg = "-create";
 static unsigned num_args = 0; 
 
 // This method creates (or attaches to?) the mutatee process and returns a
 // handle for it
 BPatch_process *test_thread_6_Mutator::getProcess()
 {
-  int n = 0;
-   args[n++] = filename;
-
-   if (NULL == logfilename) {
-     args[n++] = "-log";
-     args[n++] = "-";
-   } else  {
-     args[n++] = "-log";
-     args[n++] = logfilename;
-   }
-
-   args[n++] = "-run";
-   args[n++] = "test_thread_6";
-
-   BPatch_process *proc;
-   if (create_proc) {
-      args[n++] = create_arg; // I don't think this does anything.
-      args[n] = NULL;
-      proc = bpatch->processCreate(filename, (const char **) args);
-      if(proc == NULL) {
-         logerror("%s[%d]: processCreate(%s) failed\n", 
-                 __FILE__, __LINE__, filename);
-         return NULL;
-      }
-      // FIXME(?) Is this call thread-safe?
-      registerPID(proc->getPid()); // Register for cleanup
-   }
-   else
-     { // useAttach
-      dprintf(stderr, "%s[%d]: starting process for attach\n",
-	      __FILE__, __LINE__);
-      args[n] = NULL;
-      // FIXME figure out what to put for outlog & errlog..
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(),
-                                         getErrorLog(), true);
-      if (pid < 0) {
-	logerror("%s couldn't be started\n", filename);
-         fprintf(stderr, "%s ", filename);
-         fprintf(stderr, "couldn't be started");
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
-
-#if defined(os_windows_test)
-      P_sleep(1);
-#endif
-
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      fflush(stderr);
-
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-                 __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
-   }
-   return proc;
+   return appProc;
 }
 
 test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
@@ -327,11 +283,23 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    deleted_threads = 0;
    memset(stack_addrs, 0, sizeof(stack_addrs));
 
+   proc = NULL;
    proc = getProcess();
    if (!proc)
       return FAILED;
 
    proc->continueExecution();
+
+   newthr(appProc, appThread);
+
+   // For the attach case, we may already have the threads in existence; if so, 
+   // manually trigger them here. 
+   std::vector<BPatch_thread *> threads;
+   appProc->getThreads(threads);
+   for (unsigned i = 0; i < threads.size(); ++i) {
+	   if (threads[i] == appThread) continue;
+	   newthr(appProc, threads[i]);
+   }
 
    // Wait for NUM_THREADS new thread callbacks to run
    while (thread_count < NUM_THREADS) {
@@ -386,13 +354,16 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
    upgrade_mutatee_state();
    dprintf(stderr, "%s[%d]:  Now waiting for application to exit.\n", __FILE__, __LINE__);
 
-   while (!proc->isTerminated())
+   while (!proc->isTerminated()) {
+	   proc->continueExecution();
       bpatch->waitForStatusChange();
-
+   }
    num_attempts = 0;
    while(deleted_threads != NUM_THREADS && num_attempts != TIMEOUT) {
       num_attempts++;
-      P_sleep(1);
+	  std::cerr << "Deleted " << deleted_threads << " and expected " << NUM_THREADS << std::endl;
+	  P_sleep(1);
+
    }
 
    for (unsigned i=1; i<NUM_THREADS; i++)
@@ -425,15 +396,6 @@ test_results_t test_thread_6_Mutator::mutatorTest(BPatch *bpatch)
 }
 
 test_results_t test_thread_6_Mutator::executeTest() {
-   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
-					    newthr) ||
-       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
-					    deadthr))
-   {
-      logerror("%s[%d]:  failed to register thread callback\n",
-	      __FILE__, __LINE__);
-      return FAILED;
-   }
 
    test_results_t rv = mutatorTest(bpatch);
 
@@ -454,10 +416,26 @@ test_results_t test_thread_6_Mutator::setup(ParameterDict &param) {
    filename = param["pathname"]->getString();
    logfilename = param["logfilename"]->getString();
    
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["debugPrint"]->getInt() != 0 ) {
+       debug_flag = true;
+   }
+   
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    }
+   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
+					    newthr) ||
+       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
+					    deadthr))
+   {
+      logerror("%s[%d]:  failed to register thread callback\n",
+	      __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    
-   return PASSED;
+   return DyninstMutator::setup(param);
 }

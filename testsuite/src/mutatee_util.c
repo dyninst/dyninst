@@ -36,6 +36,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#if !defined(os_windows_test)
+#include <sys/time.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -376,7 +379,7 @@ void warningVLog(output_stream_t stream, const char *fmt, va_list args) {
    fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
 }
 
-void warningLog(output_stream_t stream, const char *fmt, ...) {
+void warningLog(output_stream_t stream, const char * fmt, ...) {
    fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
 }
 
@@ -449,26 +452,6 @@ void dbLogResult(test_results_t result) {
 /* Support for cleaning up mutatees after a test crashes */
 /*********************************************************/
 
-static char *pidFilename = NULL;
-void setPIDFilename(char *pfn) {
-   pidFilename = pfn;
-}
-char *getPIDFilename() {
-   return pidFilename;
-}
-void registerPID(int pid) {
-   FILE *pidFile;
-   if (NULL == pidFilename) 
-      return;
-   pidFile = fopen(pidFilename, "a");
-   if (NULL == pidFile) {
-      logerror("[%s:%u] - Error registering mutatee PID: error opening pid file\n", __FILE__, __LINE__);
-   } else {
-      fprintf(pidFile, "%d\n", pid);
-      fclose(pidFile);
-   }
-}
-
 static int saved_stdout_fd = -1;
 static int stdout_fd = 1;
 /* setupFortranOutput() redirects stdout to point to outlog.  This seemed
@@ -486,7 +469,7 @@ int setupFortranOutput() {
    if (-1 == outlog_fd) {
       return -1; /* Error */
    }
-   printf(" "); /* Workaround */
+   //printf(" "); /* Workaround */
    stdout_fd = fileno(stdout);
    saved_stdout_fd = dup(stdout_fd); /* Duplicate stdout */
    if (-1 == saved_stdout_fd) {
@@ -583,6 +566,12 @@ void printResultHumanLog(const char *testname, test_results_t result)
       case FAILED:
          output->log(HUMAN, "FAILED\n");
          break;
+      case CRASHED:
+         output->log(HUMAN, "CRASHED");
+         break;
+      case UNKNOWN:
+         output->log(HUMAN, "UNKNOWN");
+         break;
    }
 
    if (stdout == human) {
@@ -607,7 +596,7 @@ void stop_process_()
  * somehow
  */
 void test_passes(const char *testname) {
-   unsigned int i;
+   int i;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
@@ -619,7 +608,7 @@ void test_passes(const char *testname) {
 
 /* This function sets a flag noting that testname ran unsuccessfully */
 void test_fails(const char *testname) {
-   unsigned int i;
+   int i;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
@@ -633,7 +622,7 @@ void test_fails(const char *testname) {
  * otherwise
  */
 static int test_passed(const char *testname) {
-   unsigned int i;
+   int i;
    int retval;
    for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
@@ -688,4 +677,181 @@ void log_testresult(int passed)
    }
    fprintf(f, "%d\n", passed ? 1 : 0);
    fclose(f);
+}
+
+/* high precision timer */
+
+#if defined(os_linux_test) || defined(os_freebsd_test)
+#if defined(_POSIX_C_SOURCE)
+#undef _POSIX_C_SOURCE
+#endif
+#define _POSIX_C_SOURCE 199309 
+
+#include <time.h>
+#include <errno.h>
+#elif defined(os_bg_test)
+#include <sys/select.h>
+#endif
+
+int precisionSleep(int milliseconds) {
+#if defined(os_linux_test) || defined(os_freebsd_test)
+    struct timespec req;
+    struct timespec rem;
+
+    if( milliseconds >= 1000 ) return 0;
+
+    memset(&rem, 0, sizeof(struct timespec));
+    req.tv_sec = 0;
+    req.tv_nsec = milliseconds*1000*1000;
+
+    int result, error;
+    do {
+        result = nanosleep(&req, &rem);
+        error = errno;
+        if (req.tv_nsec == rem.tv_nsec) {
+           //Buggy kernel - rem never set.  Just decrement it by 1/10th
+           unsigned long decrement = milliseconds*1000*100;
+           if (decrement >= (unsigned long) req.tv_nsec)
+              break;
+           else {
+              req.tv_nsec -= decrement;
+           }
+        }
+        else {
+           req = rem;
+        }
+    }while(result == -1 && error == EINTR);
+
+    if( result == -1 ) return 0;
+    return 1;
+#elif defined(os_bg_test)
+    struct timeval timeout;
+    
+    int result;
+    struct timeval start, cur;
+    unsigned long long istart, icur, microseconds;
+    microseconds = milliseconds * 1000;
+    int tresult = gettimeofday(&start, NULL);
+    assert(tresult != -1);
+    istart = (start.tv_sec * 1000000) + start.tv_usec;
+    
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = microseconds;
+
+    for (;;) {
+       result = select(1, NULL, NULL, NULL, &timeout);
+       if (result == -1 && errno != EINTR) {
+          perror("precisionSleep select failed");
+          return 0;
+       }
+       if (result == 0) {
+          return 1;
+       }
+       tresult = gettimeofday(&cur, NULL);
+       assert(tresult != -1);
+       icur = (cur.tv_sec * 1000000) + cur.tv_usec;
+       if (icur - istart >= microseconds) {
+          return 1;
+       }
+       timeout.tv_usec = microseconds - (icur - istart);
+    } 
+
+#elif defined(os_windows_test)
+    Sleep(milliseconds);
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+/* Event source interface */
+
+static uint64_t eventCounter = 0;
+
+#if defined(os_linux_test) || defined(os_freebsd_test)
+#define TIMER_EVENT_SOURCE
+#endif
+
+#if defined(TIMER_EVENT_SOURCE)
+#include <signal.h>
+#include <sys/time.h>
+
+
+/* 
+ * headers define: 
+ *
+ * typedef struct event_source_struct event_source
+ *
+ * but the actual definition needs to be opaque due to platform dependent internals
+ */
+struct event_source_struct {
+    struct itimerval timer;
+    struct sigaction action;
+    struct sigaction old_action;
+};
+
+void handler(int sig, siginfo_t *siginfo, void *context) {
+    eventCounter++;
+}
+
+#else
+struct event_source_struct {
+    int unused;
+};
+#endif
+
+event_source *startEventSource() {
+    event_source *retVal = NULL;
+#if defined(TIMER_EVENT_SOURCE)
+    retVal = (event_source *)malloc(sizeof(struct event_source_struct));
+
+    /* First, register the signal handler */
+    memset(&(retVal->action), 0, sizeof(retVal->action));
+    retVal->action.sa_sigaction = handler;
+    retVal->action.sa_flags = SA_SIGINFO;
+    if( sigaction(SIGALRM, &(retVal->action), &(retVal->old_action)) ) {
+        free(retVal);
+        return NULL;
+    }
+
+    /* Next, setup the profiling timer (every 10ms) */
+    retVal->timer.it_interval.tv_sec = 0;
+    retVal->timer.it_interval.tv_usec = 10000;
+    retVal->timer.it_value = retVal->timer.it_interval;
+    if( setitimer(ITIMER_REAL, &(retVal->timer), NULL) == -1 ) {
+        free(retVal);
+        return NULL;
+    }
+#endif
+    return retVal;
+}
+
+uint64_t getEventCounter() {
+    return eventCounter;
+}
+
+int stopEventSource(event_source *eventSource) {
+    int retVal = 0;
+#if defined(TIMER_EVENT_SOURCE)
+    /* First, turn off the timer */
+    eventSource->timer.it_value.tv_sec = 0;
+    eventSource->timer.it_value.tv_usec = 0;
+    eventSource->timer.it_interval.tv_sec = 0;
+    eventSource->timer.it_interval.tv_usec = 0;
+    if( setitimer(ITIMER_PROF, &(eventSource->timer), NULL) == -1 ) {
+        return 0;
+    }
+
+    /* Next, unregister the signal handler */
+    if( sigaction(SIGPROF, &(eventSource->old_action), NULL) ) {
+        return 0;
+    }
+
+    free(eventSource);
+    retVal = 1;
+#else
+    eventSource = eventSource;
+#endif
+    return retVal;
 }

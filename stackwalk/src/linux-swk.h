@@ -32,88 +32,25 @@
 #ifndef LINUX_SWK_H
 #define LINUX_SWK_H
 
-#include "stackwalk/h/framestepper.h"
-
-#include "dyntypes.h"
-#include <set>
-
+#include "dynutil/h/dyntypes.h"
 #include "dynutil/h/SymReader.h"
-#include "stackwalk/src/get_trap_instruction.h"
-#define MAX_TRAP_LEN 8
+
+#include "common/h/Types.h"
+#include "common/h/linuxKludges.h"
+
+#define START_THREAD_FUNC_NAME "start_thread"
+#define CLONE_FUNC_NAME "__clone"
+#define START_FUNC_NAME "_start"
 
 namespace Dyninst {
 namespace Stackwalker {
-
-class ProcDebugLinux : public ProcDebug {
- protected:
-  virtual bool debug_attach(ThreadState *ts);
-  virtual bool debug_post_attach(ThreadState *ts);
-  virtual bool debug_post_create();
-  virtual bool debug_create(std::string executable, 
-                            const std::vector<std::string> &argv);
-  virtual bool debug_pause(ThreadState *thr);
-  virtual bool debug_continue(ThreadState *thr);
-  virtual bool debug_continue_with(ThreadState *thr, long sig);
-  virtual bool debug_handle_signal(DebugEvent *ev);
-
-  virtual bool debug_handle_event(DebugEvent ev);
-  void setOptions(Dyninst::THR_ID tid);
- public:
-  ProcDebugLinux(Dyninst::PID pid);
-  ProcDebugLinux(std::string executable, 
-                 const std::vector<std::string> &argv);
-  virtual ~ProcDebugLinux();
-
-  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
-  virtual bool setRegValue(Dyninst::MachRegister reg, 
-			   Dyninst::THR_ID t, 
-			   Dyninst::MachRegisterVal val);
-  virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
-  virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
-  virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
-  virtual unsigned getAddressWidth();
-  virtual bool detach(bool leave_stopped = false);
-  bool detach_thread(int tid, bool leave_stopped);
-  void detach_arch_cleanup();
-
-  virtual Dyninst::Architecture getArchitecture();
-
-  bool pollForNewThreads();
-  bool isLibraryTrap(Dyninst::THR_ID thrd);
-
-  static thread_map_t all_threads;
- protected:
-  unsigned cached_addr_width;
-  void registerLibSpotter();
-  Address lib_load_trap;
-  char trap_overwrite_buffer[MAX_TRAP_LEN];
-  unsigned trap_actual_len;
-  bool trap_install_error;
- public:
-  static std::map<pid_t, int> unknown_pid_events;
-};
-
-class SigHandlerStepperImpl : public FrameStepper {
-private:
-   SigHandlerStepper *parent_stepper;
-   void registerStepperGroupNoSymtab(StepperGroup *group);
-   bool init_libc;
-   bool init_libthread;
-public:
-   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
-   virtual const char *getName() const;
-   virtual ~SigHandlerStepperImpl();  
-};
 
 struct vsys_info {
    void *vsys_mem;
    Dyninst::Address start;
    Dyninst::Address end;
    Dyninst::SymReader *syms;
+   std::string name;
    vsys_info() :
       vsys_mem(NULL),
       start(0),
@@ -127,14 +64,10 @@ struct vsys_info {
 };
 
 vsys_info *getVsysInfo(ProcessState *ps);
-}
-}
 
-namespace Dyninst {
-   namespace Stackwalker {
-      class Elf_X;
-   }
+class Elf_X;
+
 }
-Dyninst::Stackwalker::Elf_X *getElfHandle(std::string s);
+}
 
 #endif

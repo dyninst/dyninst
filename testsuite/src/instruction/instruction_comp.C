@@ -30,6 +30,7 @@
  */
 
 #include "instruction_comp.h"
+#include <iterator>
 
 using namespace Dyninst;
 using namespace InstructionAPI;

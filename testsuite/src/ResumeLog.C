@@ -33,7 +33,7 @@
 #include <assert.h>
 #include "test_results.h"
 #include "test_info_new.h"
-#include "test_lib.h"
+//#include "test_lib.h"
 #include "ResumeLog.h"
 #include <assert.h>
 
@@ -102,7 +102,7 @@ static void log_line(int groupnum, int testnum, int runstate, bool append)
 
    FILE *f = fopen(get_resumelog_name(), append ? "a" : "w");
    if (!f) {
-      getOutput()->log(STDERR, "Failed to update the resume log");
+      fprintf(stderr, "Failed to update the resume log");
       return;
    }
    fprintf(f, "%d,%d,%d\n", groupnum, testnum, runstate);
@@ -121,7 +121,7 @@ void log_testresult(test_results_t result)
 
    FILE *f = fopen(get_resumelog_name(), "a");
    if (!f) {
-      getOutput()->log(STDERR, "Failed to update the resume log");
+      fprintf(stderr, "Failed to update the resume log");
       return;
    }
    fprintf(f, "%d\n", result);
@@ -155,13 +155,13 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
    if (!enableLog)
       return;
 
-
    FILE *f = fopen(get_resumelog_name(), "r");
    if (!f) {
       return;
    }
 
-   int groupnum, testnum, runstate_int;
+   unsigned int groupnum, testnum;
+   int runstate_int;
    test_runstate_t runstate;
    test_results_t result;
    
@@ -266,7 +266,7 @@ void parse_mutateelog(RunGroup *group, char *logname)
       else if (passed == 0)
          result = FAILED;
       else {
-         getOutput()->log(STDERR, "Error parsing mutatee log\n");
+         fprintf(stderr, "Error parsing mutatee log\n");
          assert(0);
       }
       
@@ -295,8 +295,17 @@ void clear_mutateelog(char *logname)
       f = fopen(alt_logname.c_str(), "w");
    }
    if (!f) {
-      getOutput()->log(STDERR, "Unable to reset mutatee log\n");
+      fprintf(stderr, "Unable to reset mutatee log\n");
       exit(0);
    }
    fclose(f);
+}
+
+static char *resumelog_name = "resumelog";
+char *get_resumelog_name() {
+	return resumelog_name;
+}
+
+void set_resumelog_name(char *s) {
+	resumelog_name = s;
 }

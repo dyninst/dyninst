@@ -111,7 +111,8 @@ extern /* _inline */ void init_test_data();
 #endif /* defined(rs6000_ibm_aix4_1_test) */
 
 #if defined(i386_unknown_linux2_0_test) \
- || defined(i386_unknown_nt4_0_test)
+ || defined(i386_unknown_nt4_0_test) \
+ || (defined(os_freebsd_test) && defined(arch_x86_test))
 extern unsigned int loadExp;
 extern unsigned int storeExp;
 extern unsigned int prefeExp;
@@ -160,7 +161,7 @@ void reduceCC(const struct reduction x);
 void init_test_data();
 #endif /* defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test) */
 
-#ifdef x86_64_unknown_linux2_4_test
+#if defined(x86_64_unknown_linux2_4_test) || defined(amd64_unknown_freebsd7_0_test)
 
 extern unsigned int loadExp;
 extern unsigned int storeExp;

@@ -8,8 +8,6 @@
 #USES_PAPI = true
 #DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 
 # For debugging.
 #NO_OPT_FLAG = true
@@ -27,6 +25,7 @@ SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/addrtranslate-sysv.C \
 		../../common/src/addrtranslate-auxv.C \
 		../../common/src/addrtranslate-linux.C
+
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

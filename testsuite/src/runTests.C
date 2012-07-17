@@ -30,6 +30,7 @@
  */
 #ifdef os_windows_test
 //needed for Sleep
+#include <winsock2.h>
 #include <windows.h>
 #define sleep(x) Sleep(x * 1000)
 #define unlink _unlink
@@ -79,7 +80,7 @@ char *outputlog_name;
 int outputlog_pos = -1;
 FILE *outputlog_file = NULL;
 
-#if !defined(os_linux_test)
+#if !defined(os_linux_test) && !defined(os_bgq_test)
 int getline(char **line, size_t *line_size, FILE *f)
 {
    if (*line == NULL) {
@@ -229,7 +230,7 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
 
 static void clear_resumelog()
 {
-   for (unsigned i=0; i<parallel_copies; i++)
+   for (int  i=0; i<parallel_copies; i++)
    {
       char s[32];
       snprintf(s, 32, "%d", i+1);
@@ -332,7 +333,7 @@ int main(int argc, char *argv[])
    for (;;)
    {
       done = true;
-      for (unsigned i=0; i<parallel_copies; i++) {
+      for (int i=0; i<parallel_copies; i++) {
          if (test_drivers[i].last_result == NOTESTS || timeout) {
             //This invocation is done or produced an error
             continue;
@@ -367,43 +368,46 @@ int main(int argc, char *argv[])
          // TODO Make sure this is portable to Windows
          fprintf(stderr, "Press ctrl-c again within 2 seconds to abort runTests.\n");
          sleep(2);
-      } else if (driver == -2) {
+      }
+      if (driver == -2) {
           // We apparently have no children.  This may not be a possibility
           // anymore after we added the timeout flag.  I'm not sure what to
           // do in this case, though.  Both continuing and breaking are
           // problematic.
           assert(0 && "No children returned from waitpid.");
-      } else if (driver == -1) {
+      }
+      if (driver == -1) {
           // Timeout was encountered, and children were reaped.
           timeout = true;
-          for (unsigned idx=0; idx < parallel_copies; idx++) {
+          for (int idx=0; idx < parallel_copies; idx++) {
              test_drivers[idx].last_result = -1;
           }
 		  break;
-	  } else if (driver >= 0){
-		  if (test_drivers[driver].last_result == -4) {
-			  //Exec error
-			  fprintf(stderr, "Failed to exec test_driver\n");
-			  break;
-		  } else if (test_drivers[driver].last_result == -5) {
-			  //Help
-			  break;
-		  }
-		  if (parallel_copies > 1)
-		  {
-			  FILE *f = fopen(test_drivers[driver].outputlog.c_str(), "r");
-			  if (f) {
-				  for (;;) {
-					  int result = (int) getline(&line, &line_size, f);
-					  if (result == -1)
-						  break;
-					  fprintf(outputlog_file, "%s", line);
-				  }
-				  fclose(f);
-				  unlink(test_drivers[driver].outputlog.c_str());
-			  }
-		  }
-	  }
+      }
+      if (test_drivers[driver].last_result == -4) {
+         //Exec error
+         fprintf(stderr, "Failed to exec test_driver\n");
+         break;
+      }
+      if (test_drivers[driver].last_result == -5) {
+         //Help
+         break;
+      }
+
+      if (parallel_copies > 1)
+      {
+         FILE *f = fopen(test_drivers[driver].outputlog.c_str(), "r");
+         if (f) {
+            for (;;) {
+               int result = (int) getline(&line, &line_size, f);
+               if (result == -1)
+                  break;
+               fprintf(outputlog_file, "%s", line);
+            }
+            fclose(f);
+            unlink(test_drivers[driver].outputlog.c_str());
+         }
+      }
    }
 
    // Remove the PID file, now that we're done with it

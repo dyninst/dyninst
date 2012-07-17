@@ -45,6 +45,7 @@
 #include "BPatch_function.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
+#include "BPatch_libInfo.h"
 #include "BPatch_point.h"
 
 #include "addressSpace.h"
@@ -52,9 +53,11 @@
 #include "mapped_module.h"
 #include "ast.h"
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "registerSpace.h"
+#include "debug.h"
+#include "dynProcess.h"
+#include "pcEventHandler.h"
 
 #include "RegisterConversion.h"
 
@@ -1221,7 +1224,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
         Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
         vector<AstNodePtr> variableASTs;
         vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
-        vector<Dyninst::SymtabAPI::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
+        vector<Dyninst::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
         for (unsigned i=0; i<locs.size(); i++)
         {
                 AstNodePtr variableAst;
@@ -1287,23 +1290,23 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
  */
 bool BPatch_variableExpr::readValueInt(void *dst)
 {
-        if (isLocal) {
-                char msg[2048];
-                sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
-                BPatch_reportError(BPatchWarning, 109,msg);
-                return false;
-        }
+	if (isLocal) {
+		char msg[2048];
+		sprintf(msg, "variable %s is not a global variable, cannot read using readValue()",name);
+		BPatch_reportError(BPatchWarning, 109,msg);
+		return false;
+	}
 
-        if (size == 2 || size == 4 || size == 8) {
-                // XXX - We should be going off of type here, not just size.
-                lladdrSpace->readDataWord(address, size, dst, true);
-                return true;
-        } else if (size) {
-                lladdrSpace->readDataSpace(address, size, dst, true);
-                return true;
-        } else {
-                return false;
-        }
+	if (size == 2 || size == 4 || size == 8) {
+		// XXX - We should be going off of type here, not just size.
+		if (!lladdrSpace->readDataWord(address, size, dst, true)) return false;
+		return true;
+	} else if (size) {
+		if (!lladdrSpace->readDataSpace(address, size, dst, true)) return false;
+		return true;
+	} else {
+		return false;
+	}
 }
 
 
@@ -1589,17 +1592,16 @@ static void constructorHelper(
     if (stopThread_cbs == NULL) {
         stopThread_cbs = new std::set<BPatchStopThreadCallback>;
     }
-    std::set<BPatchStopThreadCallback>::iterator cbIter =
+
+    std::set<BPatchStopThreadCallback>::iterator cbIter = 
         stopThread_cbs->find(bp_cb);
     if (cbIter == stopThread_cbs->end()) {
-       StopThreadCallback *cb = new StopThreadCallback(bp_cb);
-       cb->enableDelete(false);
        stopThread_cbs->insert(bp_cb);
-       getCBManager()->registerCallback(evtStopThread, cb);
+       BPatch::bpatch->registerStopThreadCallback(bp_cb);
     }
 
     // create callback ID argument
-    int cb_id = process::getStopThreadCB_ID((Address)bp_cb);
+    int cb_id = BPatch::bpatch->getStopThreadCallbackID(bp_cb); 
     idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
     BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
     assert(inttype != NULL);
@@ -1758,10 +1760,9 @@ void BPatch_scrambleRegistersExpr::BPatch_scrambleRegistersExprInt(){
    
 }
 
-#if 0
 // Conversions
-Dyninst::PatchAPI::DynASTSnippet *Dyninst::PatchAPI::convert(const BPatch_snippet *) {
+Dyninst::PatchAPI::Snippet::Ptr Dyninst::PatchAPI::convert(const BPatch_snippet *snip) {
    // TODO when this class exists
-   
+   return snip->ast_wrapper;
 }
-#endif
+

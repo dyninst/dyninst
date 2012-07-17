@@ -1,13 +1,13 @@
 /* Public Interface */
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "PatchCFG.h"
 #include "AddrSpace.h"
 #include "PatchObject.h"
 #include "PatchMgr.h"
 #include "PatchCallback.h"
 #include "Point.h"
-#include <dyn_detail/boost/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 using namespace Dyninst;
 using namespace PatchAPI;
@@ -231,7 +231,7 @@ PatchBlock::containsDynamicCall() {
                       rit != regs.end(); rit++)
                  {
                      if (RegisterAST::makePC(obj()->co()->cs()->getArch()).getID() != 
-                         dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(*rit)->getID()) 
+                         boost::dynamic_pointer_cast<RegisterAST>(*rit)->getID()) 
                      {
                          return true;
                      }
@@ -614,3 +614,6 @@ bool BlockPoints::consistency(const PatchBlock *b, const PatchFunction *f) const
    return true;
 }
 
+bool PatchBlock::wasUserAdded() const {
+   return block_->wasUserAdded();
+}

@@ -49,4 +49,7 @@ TESTLIB_DLL_EXPORT void parse_resumelog(std::vector<RunGroup *> &groups);
 TESTLIB_DLL_EXPORT void parse_mutateelog(RunGroup *group, char *logname);
 TESTLIB_DLL_EXPORT void clear_mutateelog(char *logname);
 
+TESTLIB_DLL_EXPORT char *get_resumelog_name();
+TESTLIB_DLL_EXPORT void set_resumelog_name(char *s);
+
 #endif

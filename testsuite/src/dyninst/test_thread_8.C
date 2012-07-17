@@ -43,7 +43,7 @@
 class test_thread_8_Mutator : public DyninstMutator {
 protected:
   char *filename;
-  char *args[MAX_ARGS];
+  const char *args[MAX_ARGS];
   char *logfilename;
   BPatch *bpatch;
   unsigned failed_tests;
@@ -72,7 +72,7 @@ test_thread_8_Mutator::test_thread_8_Mutator()
 #include <unistd.h>
 #endif
 #define NUM_THREADS 5 // one controller, four workers
-#define TIMEOUT 20
+#define TIMEOUT 40
 
 // static FILE *outlog = NULL;
 // static FILE *errlog = NULL;
@@ -94,7 +94,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error15 = %d\n", __FILE__, __LINE__, error15);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && (my_proc != proc))
+   if (create_proc && (my_proc != proc) && proc != NULL && my_proc != NULL)
    {
       logerror("[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
       error15 = 1;
@@ -118,7 +118,7 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dyn_tids[my_dyn_id] = 1;
 
    //Thread IDs should be unique
-   long mytid = thr->getTid();
+   long mytid = (long)(thr->getTid());
    if (mytid == -1)
    {
       logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
@@ -153,7 +153,7 @@ BPatch_process *test_thread_8_Mutator::getProcess()
 
    args[n] = NULL;
 
-   BPatch_process *proc;
+   BPatch_process *proc = NULL;
    if (create_proc) {
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
@@ -161,34 +161,16 @@ BPatch_process *test_thread_8_Mutator::getProcess()
                  __FILE__, __LINE__, filename);
          return NULL;
       }
-      registerPID(proc->getPid()); // Register for cleanup
    }
-   else
-   {
-      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args,
-                                         getOutputLog(), getErrorLog(), true);
-      if (pid < 0)
-      {
-         logerror("%s ", filename);
-         perror("couldn't be started");
-         return NULL;
-      } else if (pid > 0) {
-	registerPID(pid); // Register for cleanup
-      }
+   else {
 #if defined(os_windows_test)
-      P_sleep(1);
+	P_sleep(1);
 #endif
-      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      proc = bpatch->processAttach(filename, pid);  
-      if(proc == NULL) {
-         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
-                 __FILE__, __LINE__, filename, pid);
-         return NULL;
-      }
-      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
-      BPatch_image *appimg = proc->getImage();
-      signalAttached(appimg);
+	// Should be attached by test infrastructure, but
+	// we set delayedAttach so signal it here.
+	if (!appProc) return NULL;
+
+	proc = appProc;
    }
    return proc;
 }
@@ -211,6 +193,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    failed_tests = 2;
    error15 = 0;
 
+   proc = NULL;
    proc = getProcess();
    if (!proc)
       return error_exit();
@@ -233,6 +216,18 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    }
    BPatch_function *check_async = asyncfuncs[0];   
 
+  // For the attach case, we may already have the threads in existence; if so, 
+   // manually trigger them here. 
+
+   if (!create_proc) {
+	   newthr(appProc, appThread);
+	   std::vector<BPatch_thread *> threads;
+	   appProc->getThreads(threads);
+	   for (unsigned i = 0; i < threads.size(); ++i) {
+		   if (threads[i] == appThread) continue;
+		   newthr(appProc, threads[i]);
+	   }
+   }
    proc->continueExecution();
 
    // Wait for NUM_THREADS to be created
@@ -251,7 +246,18 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
-      P_sleep(1);
+   }
+
+   if( waitUntilStopped(bpatch, proc, 8, "test_thread_8: oneTimeCode") < 0 ){
+       logerror("[%s:%d] - Failed to wait for stop of threads\n",
+               __FILE__, __LINE__);
+       return error_exit();
+   }
+
+   if( !proc->continueExecution() ) {
+       logerror("[%s:%d] - failed to continue process after stop\n",
+               FILE__, __LINE__);
+       return error_exit();
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 
@@ -281,7 +287,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
       if (dyn_tids[i])
       {
          long tid = pthread_ids[i];
-         BPatch_thread *thr = proc->getThread(tid);
+         BPatch_thread *thr = proc->getThread((dynthread_t)(tid));
          if(thr == NULL) {
             logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);
@@ -290,7 +296,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
          }
          BPatch_constExpr asyncVarExpr(tid);
          BPatch_Vector<BPatch_snippet *> args;
-	 args.push_back(&asyncVarExpr);
+         args.push_back(&asyncVarExpr);
          BPatch_funcCallExpr call_check_async(*check_async, args);
          BPatch_Vector<BPatch_snippet *> async_code;
          async_code.push_back(&call_check_async);
@@ -305,15 +311,13 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
 //       logerror("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
     }
 
-   P_sleep(10);
-
    // OneTimeCode each worker thread to allow it to exit
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
       if (dyn_tids[i])
       {
          long tid = pthread_ids[i];
-         BPatch_thread *thr = proc->getThread(tid);
+         BPatch_thread *thr = proc->getThread((dynthread_t)(tid));
          if(thr == NULL) {
             logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);
@@ -328,7 +332,9 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
+         proc->stopExecution();
          thr->oneTimeCode(*code);
+         proc->continueExecution();
          dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
       }
    }
@@ -354,6 +360,10 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    } else {
      // TODO Figure out what went wrong and print a relevant error message
      logerror("**Failed test_thread_8 (thread-specific one time codes)\n");
+	 if(exitCode) logerror("**Expected exit code = 0, exit code was %d\n", exitCode);
+	 if(error15) logerror("**Expected error15 = 0, error15 was %d\n", error15);
+	 if(failed_tests) logerror("**Expected failed tests = 0, failed tests was %d\n", failed_tests);
+
      return -1;
    }
 
@@ -395,16 +405,21 @@ test_results_t test_thread_8_Mutator::setup(ParameterDict &param) {
    /* Grab info from param */
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
-
+    appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+   if (appProc) appImage = appProc->getImage();
    // Get log file pointers
    logfilename = param["logfilename"]->getString();
 
-   if ( param["useAttach"]->getInt() != 0 )
+   if ( param["createmode"]->getInt() != CREATE )
    {
       create_proc = false;
    } else {
      create_proc = true;
    }
 
-   return PASSED;
+   if( param["debugPrint"]->getInt() != 0 ) {
+       debug_flag = true;
+   }
+
+   return DyninstMutator::setup(param);
 }

@@ -61,7 +61,11 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
   Symtab *s;
-  const char *libcPath = "/lib/libc.so.6";
+  const char *libcPath;
+  if (sizeof(void *) == 8)
+     libcPath = "/lib64/libc.so.6";
+  else
+     libcPath = "/lib/libc.so.6";
 
 #if defined(os_freebsd_test)
   libcPath = "/usr/lib/libc.so";
@@ -82,16 +86,16 @@ test_results_t test_instruction_profile_Mutator::executeTest()
       curReg != codeRegions.end();
       ++curReg)
   {
-    if((*curReg)->getRegionSize() < 16) continue;
+    if((*curReg)->getDiskSize() < 16) continue;
     const unsigned char* decodeBase = reinterpret_cast<const unsigned char*>((*curReg)->getPtrToRawData());
     
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
-    InstructionDecoder d(decodeBase, (*curReg)->getRegionSize(), Dyninst::Arch_x86);
+    InstructionDecoder d(decodeBase, (*curReg)->getDiskSize(), Dyninst::Arch_x86);
     long offset = 0;
     
     // simulate parsing via vector-per-basic-block
-    while(offset < (*curReg)->getRegionSize() - InstructionDecoder::maxInstructionLength)
+    while(offset < (*curReg)->getDiskSize() - InstructionDecoder::maxInstructionLength)
     {
       i = d.decode(decodeBase + offset);
       //cout << endl << "\t\t" << i->format() << std::endl;

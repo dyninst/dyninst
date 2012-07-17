@@ -4,7 +4,6 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-USES_LIBELF = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -15,28 +14,15 @@ TARGET = libpcontrol.so
 
 LDFLAGS     += $(LIBDIR) -lcommon
 
-SRCS = ../src/sysv.C \
+SRCS = ../src/freebsd.C \
        ../src/unix.C \
-       ../src/freebsd.C \
-       ../src/int_thread_db.C \
-       ../src/x86_process.C \
+		 ../src/notify_pipe.C \
        ../../common/src/dthread-unix.C
-
-ifdef LIBELF_DIR
-MYLAGS += -I$(LIBELF_DIR)
-endif
 
 CXXFLAGS += $(MYFLAGS)
 CFLAGS += $(MYFLAGS)
 
-ifdef LIBELF_INC
-CXXFLAGS += -I$(LIBELF_INC) 
-CFLAGS += -I$(LIBELF_INC)
-endif
-ifdef LIBELF_LIB
-LIBS += -L$(LIBELF_LIB)
-endif
-LIBS += -lelf -lthread_db -pthread
+LIBS += -lthread_db -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

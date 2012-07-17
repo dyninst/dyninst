@@ -520,7 +520,7 @@ namespace Dyninst
 	      break;
 	    default:
                fprintf(stderr, "ERROR: unhandled entry %s\n", found->second.writtenFlags[j].name().c_str());
-               assert(0);
+	       assert(0);
 	    }
 	  }
 	}

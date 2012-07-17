@@ -30,15 +30,30 @@
  */
 
 #include <cassert>
+#include <dlfcn.h>
+#include <cstdlib>
 
-#include "freebsd.h"
-#include "dyn_lwp.h"
-#include "process.h"
-#include "syscallNotification.h"
-#include "dynamiclinking.h"
-#include "signalgenerator.h"
 #include "binaryEdit.h"
+#include "dynProcess.h"
+#include "symtab.h"
+#include "function.h"
+#include "instPoint.h"
+#include "baseTramp.h"
+#include "os.h"
+#include "debug.h"
 #include "mapped_object.h"
+#include "mapped_module.h"
+#include "freebsd.h"
+
+#include "common/h/headers.h"
+#include "common/h/freebsdKludges.h"
+#include "common/h/pathName.h"
+
+#include "symtabAPI/h/Symtab.h"
+using namespace Dyninst::SymtabAPI;
+using namespace Dyninst::ProcControlAPI;
+
+using std::string;
 
 void loadNativeDemangler() {}
 
@@ -117,8 +132,6 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
     return ( 0 < paths.size() );
 }
 
-sharedLibHook::~sharedLibHook() {}
-
 bool BinaryEdit::archSpecificMultithreadCapable() {
     /*
      * The heuristic on FreeBSD is to check for some symbols that are
@@ -156,8 +169,8 @@ bool AddressSpace::getDyninstRTLibName() {
         }
         else {
            std::string msg;
-           process *proc;
-           if ((proc = dynamic_cast<process *>(this)) != NULL) {
+           PCProcess *proc;
+           if ((proc = dynamic_cast<PCProcess *>(this)) != NULL) {
               msg = std::string("Environment variable ") +
                  std::string("DYNINSTAPI_RT_LIB") +
                  std::string(" has not been defined for process ") +
@@ -206,6 +219,8 @@ bool AddressSpace::getDyninstRTLibName() {
                      std::string(modifier) +
                      std::string(suffix);
 
+    dyninstRT_name = resolve_file_path(dyninstRT_name.c_str());
+
     startup_printf("Dyninst RT Library name set to '%s'\n",
             dyninstRT_name.c_str());
 
@@ -220,322 +235,229 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
+/* dynamic instrumentation support */
+
+PCEventHandler::CallbackBreakpointCase
+PCEventHandler::getCallbackBreakpointCase(EventType et) {
+    // This switch statement can be derived from the EventTypes and Events
+    // table in the ProcControlAPI manual -- it states what Events are
+    // available on each platform
+
+    switch(et.code()) {
+        case EventType::Fork:
+            switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return BothCallbackBreakpoint;
+                default:
+                    break;
+            }
+            break;
+        case EventType::Exit:
+            switch(et.time()) {
+                case EventType::Pre:
+                    // Using the RT library breakpoint allows us to determine
+                    // the exit code in a uniform way across Unices
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+       case EventType::Exec:
+            switch(et.time()) {
+                case EventType::Pre:
+                    return BreakpointOnly;
+                case EventType::Post:
+                    return CallbackOnly;
+                default:
+                    break;
+            }
+            break;
+    }
+
+    return NoCallbackOrBreakpoint;
+}
+
+void PCProcess::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+        inferiorHeapType /* type */ )
+{
+    if(near) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+        lo = region_lo(near);
+        hi = region_hi(near);
+#else
+        if( getAddressWidth() == 8 ) {
+            lo = region_lo_64(near);
+            hi = region_hi_64(near);
+        }else{
+            lo = region_lo(near);
+            hi = region_hi(near);
+        }
+#endif
+    }
+}
+
+inferiorHeapType PCProcess::getDynamicHeapType() const {
+    return anyHeap;
+}
+
+bool PCProcess::dumpImage(string) {
+    return false;
+}
+
+bool PCProcess::dumpCore(string) {
+    return false;
+}
+
+bool PCProcess::skipHeap(const heapDescriptor &) {
+    return false;
+}
+
+bool PCProcess::usesDataLoadAddress() const {
+    return false;
+}
+
+bool PCProcess::copyDanglingMemory(PCProcess *) {
+    return true;
+}
+
+const unsigned int N_DYNINST_LOAD_HIJACK_FUNCTIONS = 4;
+const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
+  "__libc_start_main",
+  "_init",
+  "_start",
+  "main"
+};
+
+/**
+ * Returns an address that we can use to write the code that executes
+ * dlopen on the runtime library.
+ **/
+Address PCProcess::findFunctionToHijack()
+{
+   Address codeBase = 0;
+   unsigned i;
+   for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
+      const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
+
+      pdvector<func_instance *> hijacks;
+      if (!findFuncsByAll(func_name, hijacks)) continue;
+      codeBase = hijacks[0]->addr();
+
+      if (codeBase)
+          break;
+   }
+   if( codeBase != 0 ) {
+     proccontrol_printf("%s[%d]: found hijack function %s = 0x%lx\n",
+           FILE__, __LINE__, DYNINST_LOAD_HIJACK_FUNCTIONS[i], codeBase);
+   }
+
+  return codeBase;
+} /* end findFunctionToHijack() */
+
+const int DLOPEN_MODE = RTLD_NOW | RTLD_GLOBAL;
+
+const char *DL_OPEN_FUNC_USER = NULL;
+const char *DL_OPEN_FUNC_EXPORTED = "dlopen";
+
+bool PCProcess::postRTLoadCleanup() {
+    if( rtLibLoadHeap_ ) {
+        if( !pcProc_->freeMemory(rtLibLoadHeap_) ) {
+            startup_printf("%s[%d]: failed to free memory used for RT library load\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+    }
+    return true;
+}
+
+AstNodePtr PCProcess::createLoadRTAST() {
+    vector<func_instance *> dlopen_funcs;
+
+    // allow user to override default dlopen func names with env. var
+
+    DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
+
+    if( DL_OPEN_FUNC_USER ) {
+        findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs);
+    }
+
+    if( dlopen_funcs.size() == 0 ) {
+        if( !findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs) ) {
+            startup_printf("%s[%d]: failed to find dlopen function to load RT lib\n",
+                    FILE__, __LINE__);
+            return AstNodePtr();
+        }
+    }
+
+    // We need to make sure that the correct dlopen function is being used -- the
+    // dlopen in the runtime linker. A symbol for dlopen exists in ld.so even
+    // when it is stripped so we should always find that version of dlopen
+    const char *runtimeLdPath = 
+        getAOut()->parse_img()->getObject()->getInterpreterName();
+    std::string derefRuntimeLdPath = resolve_file_path(runtimeLdPath);
+
+    func_instance *dlopen_func = NULL;
+    for(vector<func_instance *>::iterator i = dlopen_funcs.begin();
+            i != dlopen_funcs.end(); ++i)
+    {
+        func_instance *tmpFunc = *i;
+        std::string derefPath = resolve_file_path(tmpFunc->obj()->fullName().c_str());
+        if( derefPath == derefRuntimeLdPath ) {
+            dlopen_func = tmpFunc;
+            break;
+        }
+    }
+
+    if( dlopen_func == NULL ) {
+        startup_printf("%s[%d]: failed to find correct dlopen function\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+    
+    rtLibLoadHeap_ = pcProc_->mallocMemory(dyninstRT_name.length());
+    if( !rtLibLoadHeap_ ) {
+        startup_printf("%s[%d]: failed to allocate memory for RT library load\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    if( !writeDataSpace((char *)rtLibLoadHeap_, dyninstRT_name.length(), dyninstRT_name.c_str()) ) {
+        startup_printf("%s[%d]: failed to write RT lib name into mutatee\n",
+                FILE__, __LINE__);
+        return AstNodePtr();
+    }
+
+    pdvector<AstNodePtr> args;
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)rtLibLoadHeap_));
+    args.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE));
+
+    return AstNode::funcCallNode(dlopen_func, args);
+}
+
+Address PCProcess::getTOCoffsetInfo(Address) {
+    assert(!"This function is unimplemented");
+    return 0;
+}
+
+Address PCProcess::getTOCoffsetInfo(func_instance *) {
+    assert(!"This function is unimplemented");
+    return 0;
+}
+
+bool PCProcess::getOPDFunctionAddr(Address &) {
+    return true;
+}
+
 /* START unimplemented functions */
 
 #define FREEBSD_NOT_IMPLEMENTED "This function is not implemented on FreeBSD"
 
 void initPrimitiveCost() {
     assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-void dyninst_yield() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-bool dyn_lwp::stop_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPostFork() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::dumpImage(std::string) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::realLWP_attach_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::trapAtEntryPointOfMain(dyn_lwp*, unsigned long) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dynamic_linking::installTracing() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::removePreLwpExit() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-Frame dyn_lwp::getActiveFrame() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
-}
-
-bool dyn_lwp::waitUntilStopped() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::hasPassedMain() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::writeTextWord(char*, int) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::handleTrapAtLibcStartMain(dyn_lwp*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::getRegisters_(dyn_saved_regs*, bool) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool SignalGenerator::decodeEvents(std::vector<EventRecord, std::allocator<EventRecord> >&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dynamic_linking::initialize() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::continueLWP_(int) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-syscallNotification::syscallNotification(syscallNotification*, process*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord&, unsigned int&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPostExec() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::loadDYNINSTlibCleanup(dyn_lwp*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::changePC(unsigned long, dyn_saved_regs*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::insertTrapAtEntryPointOfMain() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::restoreRegisters_(dyn_saved_regs const&, bool) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::readDataSpace(void const*, unsigned int, void*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-Address dyn_lwp::readRegister(unsigned int) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::determineLWPs(std::vector<unsigned int, std::allocator<unsigned int> >&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::writeTextSpace(void*, unsigned int, void const*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-void dyn_lwp::realLWP_detach_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-bool dyn_lwp::writeDataSpace(void*, unsigned int, void const*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-Frame dyn_thread::getActiveFrameMT() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    Frame nullFrame;
-    return nullFrame;
-}
-
-bool syscallNotification::removePostExec() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-std::string process::tryToFindExecutable(std::string const&, int) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return std::string("");
-}
-
-
-bool process::unsetProcessFlags() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::decodeStartupSysCalls(EventRecord&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool SignalGeneratorCommon::getExecFileDescriptor(std::string, int, bool, int&, fileDescriptor&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord&, std::vector<mapped_object*, std::allocator<mapped_object*> >&, 
-        std::vector<bool, std::allocator<bool> >&) 
-{
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-void OS::osTraceMe() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-bool Frame::setPC(unsigned long) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::instrumentLibcStartMain() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-void dyn_lwp::representativeLWP_detach_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-}
-
-bool process::handleTrapAtEntryPointOfMain(dyn_lwp*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::trapDueToDyninstLib(dyn_lwp*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::removePreExec() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dynamic_linking::processLinkMaps(std::vector<fileDescriptor, std::allocator<fileDescriptor> >&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::removePostFork() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::dumpCore_(std::string) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::removePreFork() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-dyn_lwp* process::createRepresentativeLWP() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return NULL;
-}
-
-bool syscallNotification::removePreExit() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPreExec() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPreFork() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::loadDYNINSTlib() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool SignalHandler::handleProcessExitPlat(EventRecord&, bool&) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPreLwpExit() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::representativeLWP_attach_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::isRunning_() const {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::hasBeenBound(Dyninst::SymtabAPI::relocationEntry const&, func_instance*&, unsigned long) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool syscallNotification::installPreExit() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool dyn_lwp::readTextSpace(const void*, unsigned int, void*) {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-bool process::setProcessFlags() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
-terminateProcStatus_t process::terminateProc_() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return terminateFailed;
 }
 
 // Temporary remote debugger interface.

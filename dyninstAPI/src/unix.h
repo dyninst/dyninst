@@ -141,6 +141,13 @@ typedef pthread_cond_t EventCond_t;
 #define INVALID_HANDLE_VALUE -1
 #endif
 
+// Hybrid Analysis Compatibility definitions
+#define PAGE_READ 1
+#define PAGE_WRITE 2
+#define PAGE_EXECUTE 4
+#define PAGE_READONLY PAGE_READ
+#define PAGE_READWRITE (PAGE_READ | PAGE_WRITE)
+#define PAGE_EXECUTE_READ (PAGE_READ | PAGE_EXECUTE)
+#define PAGE_EXECUTE_READWRITE (PAGE_READ | PAGE_EXECUTE | PAGE_WRITE)
+
 #endif
-
-

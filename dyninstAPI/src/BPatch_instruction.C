@@ -41,8 +41,8 @@
 #include "BPatch_process.h"
 #include "util.h"
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
+#include "addressSpace.h"
 
 #include "legacy-instruction.h"
 

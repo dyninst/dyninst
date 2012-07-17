@@ -46,8 +46,10 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
+class PCProcess;
+class PCThread;
+class PCEventHandler;
 class func_instance;
-class process;
 
 //Keep old versions defined, that way someone can test if we're more
 // at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
@@ -65,6 +67,11 @@ class process;
 
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4251)
 #endif
 
 //  BPatch_stats is a collection of instrumentation statistics.
@@ -106,8 +113,6 @@ typedef struct {
 } BPatch_remoteHost;
 // --------------------------------------------------------------------
 
-class EventRecord;
-
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -116,11 +121,8 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_thread;
     friend class BPatch_process;
     friend class BPatch_point;
-    friend class process;
+    friend class PCProcess;
     friend class func_instance;
-    friend class SignalHandler;
-    friend class BPatch_asyncEventHandler;
-    friend bool handleSigStopNInt(EventRecord &ev);
 
     BPatch_libInfo *info; 
 
@@ -173,17 +175,32 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
         // callbacks may delete BPatch objects. 
         void continueIfExists(int pid);
 
-    /* flag that is set when a mutatee's runnning status changes,
-       for use with pollForStatusChange */
-   bool mutateeStatusChange;
-   bool waitingForStatusChange;
-
    /* Internal notification file descriptor - a pipe */
    int notificationFDOutput_;
    int notificationFDInput_;
    // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
    bool FDneedsPolling_;
+
+   // Callbacks //
+   BPatchErrorCallback errorCallback;
+   BPatchForkCallback preForkCallback;
+   BPatchForkCallback postForkCallback;
+   BPatchExecCallback execCallback;
+   BPatchExitCallback exitCallback;
+   BPatchOneTimeCodeCallback oneTimeCodeCallback;
+   BPatchDynLibraryCallback dynLibraryCallback;
+   BPatchAsyncThreadEventCallback threadCreateCallback;
+   BPatchAsyncThreadEventCallback threadDestroyCallback;
+   BPatchDynamicCallSiteCallback dynamicCallSiteCallback;
+   InternalSignalHandlerCallback signalHandlerCallback;
+   BPatch_Set<long> *callbackSignals;
+   InternalCodeOverwriteCallback codeOverwriteCallback;
+   
+   BPatch_Vector<BPatchUserEventCallback> userEventCallbacks;
+   BPatch_Vector<BPatchStopThreadCallback> stopThreadCallbacks;
+
    public:  
+      
    /* And auxiliary functions for the above */
    /* These are NOT part of the API, do not use externally */
    void signalNotificationFD(); // Called when an event happens
@@ -203,25 +220,32 @@ public:
     // The following are only to be called by the library:
     //  These functions are not locked.
     void registerProvisionalThread(int pid);
-    void registerForkedProcess(process *parentProc, process *childProc);
-    void registerForkingProcess(int forkingPid, process *proc);
+    void registerForkedProcess(PCProcess *parentProc, PCProcess *childProc);
+    void registerForkingProcess(int forkingPid, PCProcess *proc);
 
-    void registerExecExit(process *proc);
-    void registerExecCleanup(process *proc, char *arg0);
+    void registerExecExit(PCProcess *proc);
+    void registerExecCleanup(PCProcess *proc, char *arg0);
 
-    void registerNormalExit(process *proc, int exitcode);
-    void registerSignalExit(process *proc, int signalnum);
+    void registerNormalExit(PCProcess *proc, int exitcode);
+    void registerSignalExit(PCProcess *proc, int signalnum);
 
-    void registerThreadExit(process *proc, long tid, bool exiting);
+    void registerThreadExit(PCProcess *llproc, PCThread *llthread);
     bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr);
 
     void registerProcess(BPatch_process *process, int pid=0);
     void unRegisterProcess(int pid, BPatch_process *proc);
 
-    void launchDeferredOneTimeCode();
+    void registerUserEvent(BPatch_process *process, void *buffer,
+           unsigned int bufsize);
 
-    void registerLoadedModule(process *process, mapped_module *mod);
-    void registerUnloadedModule(process *process, mapped_module *mod);
+    void registerDynamicCallsiteEvent(BPatch_process *process, Dyninst::Address callTarget,
+           Dyninst::Address callAddr);
+
+    void registerStopThreadCallback(BPatchStopThreadCallback stopCB);
+    int getStopThreadCallbackID(BPatchStopThreadCallback stopCB);
+
+    void registerLoadedModule(PCProcess *process, mapped_module *mod);
+    void registerUnloadedModule(PCProcess *process, mapped_module *mod);
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
     BPatch_process *getProcessByPid(int pid, bool *exists = NULL);
@@ -675,5 +699,10 @@ public:
     API_EXPORT_V(Int, (name),
     void, addNonReturningFunc, (std::string name));
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 
 #endif /* _BPatch_h_ */

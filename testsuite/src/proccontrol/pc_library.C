@@ -36,14 +36,27 @@ using namespace std;
 class pc_libraryMutator : public ProcControlMutator {
 public:
   virtual test_results_t executeTest();
+  virtual test_results_t setup(ParameterDict &param);
+private:
+	bool isAttach;
 };
+
+test_results_t pc_libraryMutator::setup(ParameterDict &param)
+{
+	isAttach = false;
+	if(param["createmode"]->getInt() == 1)
+	{
+		isAttach = true;
+	}
+	return ProcControlMutator::setup(param);
+}
 
 extern "C" DLLEXPORT TestMutator* pc_library_factory()
 {
   return new pc_libraryMutator();
 }
 
-struct proc_info {
+struct proc_info_lib {
    int loaded_libtesta;
    int loaded_libtestb;
    int unloaded_libtesta;
@@ -51,7 +64,7 @@ struct proc_info {
    int order;
    bool found_exec;
    bool found_libc;
-   proc_info() :
+   proc_info_lib() :
       loaded_libtesta(-1),
       loaded_libtestb(-1),
       unloaded_libtesta(-1),
@@ -63,7 +76,7 @@ struct proc_info {
    }
 };
 
-static std::map<Process::const_ptr, proc_info> proclibs;
+static std::map<Process::const_ptr, proc_info_lib> proclibs;
 static bool got_breakpoint;
 static bool myerror;
 
@@ -73,20 +86,41 @@ Process::cb_ret_t on_breakpoint(Event::const_ptr ev)
    return Process::cbDefault;
 }
 
+struct find_by_pointer
+{
+	find_by_pointer(Library::const_ptr lib)
+		: m_lib(lib), found_it(false) {}
+	void operator()(Library::const_ptr L)
+	{
+		if(L == m_lib) found_it = true;
+	}
+	Library::const_ptr m_lib;
+	bool found_it;
+};
+
+struct check_unload
+{
+
+};
+
 Process::cb_ret_t on_library(Event::const_ptr ev)
 {
    EventLibrary::const_ptr evlib = ev->getEventLibrary();
    if (!evlib) {
-      logerror("error, recieved non library event\n");
+      logerror("error, received non library event\n");
       myerror = true;
       return Process::cbDefault;
    }
-   proc_info &pi = proclibs[ev->getProcess()];
 
-   std::set<Library::ptr>::iterator i;
+   proc_info_lib &pi = proclibs[ev->getProcess()];
+   const LibraryPool& libpool = ev->getProcess()->libraries();
+
+   std::set<Library::ptr>::const_iterator i;
    for (i = evlib->libsAdded().begin(); i != evlib->libsAdded().end(); i++) {
       Library::ptr lib = *i;
-      if (lib->getName().find("libtestA") != string::npos) {
+	// FIXME
+	  //cerr << hex << "Callback library " << lib << dec << endl;
+	  if (lib->getName().find("libtestA") != string::npos) {
          pi.loaded_libtesta = pi.order++;
       }
       if (lib->getName().find("libtestB") != string::npos) {
@@ -94,15 +128,15 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
       }
 
       bool found_lib = false;
-      for (LibraryPool::const_iterator j = ev->getProcess()->libraries().begin();
-           j != ev->getProcess()->libraries().end(); j++)
-      {
-         if (*j == lib) {
-            found_lib = true;
-            break;
-         }
-      }
-      if (!found_lib) {
+	  find_by_pointer F = find_by_pointer(lib);
+	  for(LibraryPool::const_iterator i = libpool.begin();
+		  i != libpool.end();
+		  ++i)
+	  {
+		  F(*i);
+	  }
+	  found_lib = F.found_it;
+	  if (!found_lib) {
          logerror("New library was not in library list\n");
          myerror = true;
       }
@@ -111,20 +145,32 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
    for (i = evlib->libsRemoved().begin(); i != evlib->libsRemoved().end(); i++) {
       Library::ptr lib = *i;
       if (lib->getName().find("libtestA") != string::npos) {
-         pi.unloaded_libtesta = pi.order++;
+		  pi.unloaded_libtesta = pi.order++;
       }
       if (lib->getName().find("libtestB") != string::npos) {
          pi.unloaded_libtestb = pi.order++;
       }
+	  find_by_pointer f(lib);
+	  for(LibraryPool::const_iterator i = libpool.begin();
+		  i != libpool.end();
+		  ++i)
+	  {
+		  f(*i);
+	  }
+	  if(f.found_it) {
+		  logerror("Removed library was still in library list\n");
+		  myerror = true;
+	  }
 
-      for (LibraryPool::const_iterator j = ev->getProcess()->libraries().begin();
-           j != ev->getProcess()->libraries().end(); j++)
+/*      for (LibraryPool::const_iterator j = libpool.begin();
+           j != libpool.end(); j++)
       {
          if (*j == lib) {
             logerror("Removed library was still in library list\n");
             myerror = true;
          }
       }
+	  */ 
    }
 
    return Process::cbDefault;
@@ -132,6 +178,7 @@ Process::cb_ret_t on_library(Event::const_ptr ev)
 
 test_results_t pc_libraryMutator::executeTest()
 {
+	//std::cerr << "ExecuteTest" << std::endl;
    proclibs.clear();
    got_breakpoint = false;
    myerror = false;
@@ -147,27 +194,38 @@ test_results_t pc_libraryMutator::executeTest()
 
       Process::ptr proc = *i;
       Process::const_ptr cproc = proc;
-      proc_info &pi = proclibs[cproc];
+      proc_info_lib &pi = proclibs[cproc];
       
       for (LibraryPool::iterator j = proc->libraries().begin();
            j != proc->libraries().end(); j++)
       {
          Library::ptr lib = *j;
-         if (lib->getName().find("libc")) {
+#if !defined(os_windows_test)
+		 if (lib->getName().find("libc") != std::string::npos) {
             pi.found_libc = true;
             libc_fullname = lib->getName();
             libc_lib = lib;
          }
-         if (lib->getName().find("pc_library_mutatee")) {
+#else
+		 if (lib->getName().find("msvcrt") != std::string::npos) {
+			 pi.found_libc = true;
+			 libc_fullname = lib->getName();
+			 libc_lib = lib;
+		 }
+#endif
+		 if (lib->getName().find("pc_library_mutatee") != std::string::npos ||
+           lib->getName().find("pc_library.mutatee") != std::string::npos) {
             pi.found_exec = true;
          }
       }
-      
-      Library::ptr libc_lib2 = proc->libraries().getLibraryByName(libc_fullname);
-      if (libc_lib != libc_lib2) {
-         logerror("Failed to find libc in getLibraryByName\n");
-         myerror = true;
-      }
+	  if(!libc_fullname.empty()) {
+		  Library::ptr libc_lib2 = proc->libraries().getLibraryByName(libc_fullname);
+		  if (libc_lib != libc_lib2) {
+			  logerror("Failed to find libc in getLibraryByName\n");
+			  myerror = true;
+		  }
+	  }
+
 
       bool result = proc->continueProc();
       if (!result) {
@@ -203,10 +261,10 @@ test_results_t pc_libraryMutator::executeTest()
       logerror("Didn't get library events from enough processes\n");
       myerror = true;
    }
-   for (std::map<Process::const_ptr, proc_info>::iterator j = proclibs.begin();
+   for (std::map<Process::const_ptr, proc_info_lib>::iterator j = proclibs.begin();
         j != proclibs.end(); j++)
    {
-      const proc_info &pi = j->second;
+      const proc_info_lib &pi = j->second;
       if (pi.loaded_libtesta == -1) {
          logerror("Didn't load libtestA\n");
          myerror = true;
@@ -220,7 +278,7 @@ test_results_t pc_libraryMutator::executeTest()
          myerror = true;
       }
       if (pi.unloaded_libtestb == -1) {
-         logerror("Didn't unload libtestA\n");
+         logerror("Didn't unload libtestB\n");
          myerror = true;
       }
       if (pi.loaded_libtesta != 0 ||
@@ -231,14 +289,19 @@ test_results_t pc_libraryMutator::executeTest()
          logerror("Unexpected library load order\n");
          myerror = true;
       }
-      if (!pi.found_exec) {
-         logerror("Failed to find executable\n");
-         myerror = true;
-      }
-      if (!pi.found_libc) {
-         logerror("Failed to find libc\n");
-         myerror = true;
-      }
+	  if(!isAttach)
+	  {
+#if !defined(os_windows_test)
+		  if (!pi.found_exec) {
+			 logerror("Failed to find executable\n");
+			 myerror = true;
+		  }
+#endif
+		  if (!pi.found_libc) {
+			 logerror("Failed to find libc\n");
+			 myerror = true;
+		  }
+	  }
    }
    
    Process::removeEventCallback(on_library);

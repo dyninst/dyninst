@@ -92,6 +92,8 @@ void run_all_funcs()
    if (result != 105) { 
       output->log(STDERR, "Computation failed\n");
       myerror = 1;
+   } else {
+	   //fprintf(stderr, "run_all_funcs OK\n");
    }
 }
 
@@ -119,6 +121,7 @@ int pc_singlestep_mutatee()
    myerror = 0;
    initLock(&init_lock);
    testLock(&init_lock);
+	//fprintf(stderr, "pc_singlestep_mutatee acquired init_lock\n");
 
    result = initProcControlTest(threadFunc, NULL);
    if (result != 0) {
@@ -134,11 +137,21 @@ int pc_singlestep_mutatee()
    funcs[4] = func5;
 
    addr_msg.code = SENDADDR_CODE;
+
+   addr_msg.addr = getFunctionPtr((unsigned long *)run_all_funcs);
+   result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
+   if (result == -1) {
+	   output->log(STDERR, "Failed to send addr message for initial breakpoint func\n");
+	   testUnlock(&init_lock);
+	   return -1;
+   }
+
    for (i = 0; i < NUM_FUNCS; i++) {
-      addr_msg.addr = (uint64_t) funcs[i];
+      addr_msg.addr = getFunctionPtr((unsigned long *)funcs[i]);
       result = send_message((unsigned char *) &addr_msg, sizeof(addr_msg));
       if (result == -1) {
          output->log(STDERR, "Failed to send addr message\n");
+		 testUnlock(&init_lock);
          return -1;
       }
    }
@@ -150,11 +163,10 @@ int pc_singlestep_mutatee()
       return -1;
    }
    if (msg.code != SYNCLOC_CODE) {
-      output->log(STDERR, "Recieved unexpected sync message\n");
+      output->log(STDERR, "Received unexpected sync message\n");
       testUnlock(&init_lock);
       return -1;
    }
-
 
    testUnlock(&init_lock);
    run_all_funcs();
@@ -166,11 +178,13 @@ int pc_singlestep_mutatee()
    }
 
    msg.code = SYNCLOC_CODE;
+   //fprintf(stderr, "mutatee sending sync message\n");
    result = send_message((unsigned char *) &msg, sizeof(syncloc));
    if (result == -1) {
       output->log(STDERR, "Failed to send sync message\n");
       return -1;
    }
+   //fprintf(stderr, "mutatee sent sync message OK\n");
 
    if (myerror == 0) {
       test_passes(testname);

@@ -32,6 +32,7 @@
 #define HANDLER_H_
 
 #include "Event.h"
+#include "util.h"
 
 #include <set>
 #include <vector>
@@ -39,7 +40,7 @@
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class Handler 
+class PC_EXPORT Handler 
 {
  protected:
    std::string name;
@@ -49,7 +50,9 @@ class Handler
 
    typedef enum {
       ret_success,
-      ret_async,
+      ret_async,      
+      ret_cbdelay,
+      ret_again,
       ret_error
    } handler_ret_t;
 

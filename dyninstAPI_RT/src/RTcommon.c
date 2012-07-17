@@ -53,9 +53,6 @@ struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTdebugRTlib;
 
-dyninst_thread_t *DYNINST_thread_structs;
-int *DYNINST_thread_hash;
-unsigned DYNINST_thread_hash_size;
 int DYNINSTstaticMode = 1;
 
 /**
@@ -118,8 +115,8 @@ int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
 // stopThread cache variables 
-char cacheLRUflags[TARGET_CACHE_LENGTH];
-void *DYNINST_target_cache[TARGET_CACHE_LENGTH][TARGET_CACHE_WAYS];
+char cacheLRUflags[TARGET_CACHE_WIDTH];
+void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
 FILE *stOut;
 int fakeTickCount;
 
@@ -278,15 +275,10 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    /* defensive stuff */
    memset(DYNINST_target_cache, 
           0, 
-          sizeof(void*) * TARGET_CACHE_LENGTH * TARGET_CACHE_WAYS);
-   memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_LENGTH);
-   if (getenv("DYNINST_DEBUG_MALWARE")) {
-      stOut = fopen("rtdump.txt","w");
-      fprintf(stOut,"Runtime library output\n");
-      fflush(stOut);
-   } else {
-      stOut = 0;
-   }
+          sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
+   memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
+   // stOut = fopen("rtdump.txt","w");
+
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
    fakeTickCount=0;
    /* Memory emulation */
@@ -303,6 +295,8 @@ int DYNINSTreturnZero()
 
 /* Used to by dyninst breakpoint snippet */
 void DYNINST_snippetBreakpoint() {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_snippetBreakpoint;
    DYNINST_synch_event_arg1 = NULL;
@@ -310,10 +304,14 @@ void DYNINST_snippetBreakpoint() {
    DYNINSTbreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of fork */
 void DYNINST_instForkEntry() {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_forkEntry;
    DYNINST_synch_event_arg1 = NULL;
@@ -322,6 +320,8 @@ void DYNINST_instForkEntry() {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
@@ -330,6 +330,8 @@ void DYNINST_instForkEntry() {
    as we may not be attached at that point. The parent
    side uses the normal version. */
 void DYNINST_instForkExit(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */    
    DYNINST_synch_event_id = DSE_forkExit;
    DYNINST_synch_event_arg1 = arg1;
@@ -344,11 +346,15 @@ void DYNINST_instForkExit(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the entry of exec */
 void DYNINST_instExecEntry(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_execEntry;
    DYNINST_synch_event_arg1 = arg1;
@@ -361,11 +367,15 @@ void DYNINST_instExecEntry(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the exit of exec */
 void DYNINST_instExecExit(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_execExit;
    DYNINST_synch_event_arg1 = arg1;
@@ -374,11 +384,15 @@ void DYNINST_instExecExit(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
        
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instExitEntry(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_exitEntry;
    DYNINST_synch_event_arg1 = arg1;
@@ -387,10 +401,14 @@ void DYNINST_instExitEntry(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instLoadLibrary(void *arg1) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_loadLibrary;
    DYNINST_synch_event_arg1 = arg1;
@@ -399,10 +417,14 @@ void DYNINST_instLoadLibrary(void *arg1) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instLwpExit(void) {
+   tc_lock_lock(&DYNINST_trace_lock);
+
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_lwpExit;
    DYNINST_synch_event_arg1 = NULL;
@@ -411,6 +433,8 @@ void DYNINST_instLwpExit(void) {
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
+    
+   tc_lock_unlock(&DYNINST_trace_lock);
 }
 
 
@@ -422,7 +446,7 @@ void DYNINST_instLwpExit(void) {
 // instrumentation will take the form of a call to cache check  
 RT_Boolean cacheLookup(void *calculation)
 {
-    int index = ((unsigned long) calculation) % TARGET_CACHE_LENGTH;
+    int index = ((unsigned long) calculation) % TARGET_CACHE_WIDTH;
     if (DYNINST_target_cache[index][0] == calculation) {
         cacheLRUflags[index] = 0;
         return RT_TRUE;
@@ -556,7 +580,7 @@ void DYNINST_stopInterProc(void * pointAddr, void *callBackID,
     fflush(stOut);
 #endif
     if (calculation < objStart || calculation >= objEnd) {
-        flags = (void*)(((int)flags) & 0xfffffffe);
+       flags = (void*) ((long) (((int)((long)flags)) & 0xfffffffe));
     }
     DYNINST_stopThread(pointAddr, callBackID, flags, calculation);
 }
@@ -608,94 +632,51 @@ RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_,
 /**
  * Used to report addresses of functions called at dynamic call sites 
  **/     
-int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
-{
-  int err = 0;
-  int result;
-  rtBPatch_asyncEventRecord ev;
-  BPatch_dynamicCallRecord call_ev;
+int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr) {
+    if (DYNINSTstaticMode) return 0;
 
-  if (DYNINSTstaticMode)
-     return 0;
+    tc_lock_lock(&DYNINST_trace_lock);
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDynFuncCall\n", __FILE__, __LINE__);
-  result = tc_lock_lock(&DYNINST_trace_lock);
-  if (result == DYNINST_DEAD_LOCK)
-  {
-     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
-             __FILE__, __LINE__);
-     return DYNINST_TRACEPIPE_ERRVAL;
-  }
- 
-  ev.type = rtBPatch_dynamicCallEvent;
-  ev.pid = dyn_pid_self();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
+    /* Set the state so the mutator knows what's up */
+    DYNINST_synch_event_id = DSE_dynFuncCall;
+    DYNINST_synch_event_arg1 = call_target;
+    DYNINST_synch_event_arg2 = call_addr;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
+    DYNINST_synch_event_arg2 = NULL;
 
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
+    tc_lock_unlock(&DYNINST_trace_lock);
 
-  call_ev.call_site_addr = call_addr;
-  call_ev.call_target = call_target;
-  err = DYNINSTwriteEvent((void *) &call_ev, sizeof(BPatch_dynamicCallRecord));
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
- done:
-  tc_lock_unlock(&DYNINST_trace_lock);
-
-  rtdebug_printf("%s[%d]:  leaving DYNINSTasyncDynFuncCall: status = %s\n", 
-                 __FILE__, __LINE__, err ? "error" : "ok");
-  return err;
+    return 0;
 }
 
-int DYNINSTuserMessage(void *msg, unsigned int msg_size)
-{
-  int err = 0, result;
-  rtBPatch_asyncEventRecord ev;
+int DYNINSTuserMessage(void *msg, unsigned int msg_size) {
+    unsigned long msg_size_long = (unsigned long)msg_size;
+    if (DYNINSTstaticMode) 
+	{
+		return 0;
+	}
 
-  if (DYNINSTstaticMode)
-     return 0;
+    tc_lock_lock(&DYNINST_trace_lock);
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTuserMessage\n", __FILE__, __LINE__);
-  result = tc_lock_lock(&DYNINST_trace_lock);
-  if (result == DYNINST_DEAD_LOCK)
-  {
-     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
-             __FILE__, __LINE__);
-     return DYNINST_TRACEPIPE_ERRVAL;
-  }
 
-  ev.type = rtBPatch_userEvent;
-  ev.pid = dyn_pid_self();
-  ev.size = msg_size;
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
+    /* Set the state so the mutator knows what's up */
+    DYNINST_synch_event_id = DSE_userMessage;
+    DYNINST_synch_event_arg1 = msg;
+    DYNINST_synch_event_arg2 = (void *)msg_size_long;
+    /* Stop ourselves */
+    DYNINSTbreakPoint();
+    /* Once the stop completes, clean up */
+    DYNINST_synch_event_id = DSE_undefined;
+    DYNINST_synch_event_arg1 = NULL;
+    DYNINST_synch_event_arg2 = NULL;
 
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
+    tc_lock_unlock(&DYNINST_trace_lock);
 
-  err = DYNINSTwriteEvent(msg, msg_size);
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
- done:
-  tc_lock_unlock(&DYNINST_trace_lock);
-  rtdebug_printf("%s[%d]:  leaving DYNINSTuserMessage: status = %s\n", 
-                 __FILE__, __LINE__, err ? "error" : "ok");
-  return err;
+    return 0;
 }
 
 int tc_lock_init(tc_lock_t *t)

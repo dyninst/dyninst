@@ -93,6 +93,7 @@ typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define LIBRARY_MODULE	"LIBRARY_MODULE"
 
 #define NUMBER_OF_MAIN_POSSIBILITIES 8
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
 
 class image;
 class lineTable;
@@ -113,6 +114,8 @@ class instPoint;
 class DynCFGFactory;
 class DynParseCallback;
 
+class PCProcess;
+
 // File descriptor information
 class fileDescriptor {
  public:
@@ -124,17 +127,18 @@ class fileDescriptor {
     // hand in the same address for code and data.
     fileDescriptor(string file, Address code, Address data, 
                    bool isShared=false, Address dynamic=0) :
-        file_(file),
+#if defined(os_windows)
+		procHandle_(INVALID_HANDLE_VALUE),
+		fileHandle_(INVALID_HANDLE_VALUE),
+#endif
+		file_(file),
         member_(emptyString),
         code_(code),
         data_(data),
-        dynamic_(dynamic),
+		dynamic_(dynamic),
         shared_(isShared),
-        pid_(0),
-        loadAddr_(0)
+        pid_(0)
 #if defined (os_windows)
-        ,procHandle_(0)
-        ,fileHandle_(0)
         ,length_(0)
         ,rawPtr_(0)
 #endif
@@ -164,10 +168,9 @@ class fileDescriptor {
      Address data() const { return data_; }
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
-     Address loadAddr() const { return loadAddr_; }
+//     Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
      void setLoadAddr(Address a) { 
-        loadAddr_ = a;
         code_ += a;
         data_ += a;
      }
@@ -179,24 +182,18 @@ class fileDescriptor {
      unsigned char* rawPtr();                   //only for non-files
 
 #if defined(os_windows)
-     // Windows gives you file handles. Since I collapsed the fileDescriptors
-     // to avoid having to track allocated/deallocated memory, these moved here.
-     fileDescriptor(string name, Address baseAddr, HANDLE procH, HANDLE fileH,
-                    bool isShared, Address loadAddr, 
-                    Address len=0, unsigned char* raw=NULL) :
-         file_(name), code_(baseAddr), data_(baseAddr),
-         procHandle_(procH), fileHandle_(fileH),
-         length_(len), rawPtr_(raw),
-         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
-     HANDLE procHandle() const { return procHandle_; }
+	 void setHandles(HANDLE proc, HANDLE file) {
+		 procHandle_ = proc;
+		 fileHandle_ = file;
+	 }
+
+	 HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
      Address length() const { return length_; }  //only for non-files
  private:
      HANDLE procHandle_;
      HANDLE fileHandle_;
-     Address length_;        // set only if this is not really a file
-     unsigned char* rawPtr_; // set only if this is not really a file
  public:
 #endif
 
@@ -210,7 +207,8 @@ class fileDescriptor {
      Address dynamic_; //Used on Linux, address of dynamic section.
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
-     Address loadAddr_;
+     Address length_;        // set only if this is not really a file
+     unsigned char* rawPtr_; // set only if this is not really a file
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };
@@ -261,7 +259,6 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 //  Image class contains information about statically and 
 //  dynamically linked code belonging to a process
 class image : public codeRange {
-   friend class process;
    friend class image_variable;
    friend class DynCFGFactory;
  public:
@@ -540,7 +537,7 @@ class pdmodule {
    pdmodule(SymtabAPI::Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
 
-   void cleanProcessSpecific(process *p);
+   void cleanProcessSpecific(PCProcess *p);
 
    bool getFunctions(pdvector<parse_func *> &funcs);
 

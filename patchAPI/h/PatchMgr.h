@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_PATCHMGR_H_
 #define PATCHAPI_H_PATCHMGR_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "Point.h"
 #include "Instrumenter.h"
 #include "PatchCFG.h"
@@ -30,7 +30,7 @@ Scope(PatchFunction *f) : obj(NULL), func(f), block(NULL), wholeProgram(false) {
 };
 
 
-class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
+class PatchMgr : public boost::enable_shared_from_this<PatchMgr> {
   friend class Point;
   friend class PatchObject; // for splitting blocks as that is _not_ public.
   typedef std::pair<PatchFunction *, PatchBlock *> BlockInstance;
@@ -46,8 +46,9 @@ class PatchMgr : public dyn_detail::boost::enable_shared_from_this<PatchMgr> {
   typedef std::vector<Point::Type> EnumeratedTypes;
 
   public:
-    typedef std::pair<Location, Point::Type> Candidate;
-    typedef std::vector<Candidate> Candidates;
+  typedef boost::shared_ptr<PatchMgr> Ptr;
+  typedef std::pair<Location, Point::Type> Candidate;
+  typedef std::vector<Candidate> Candidates;
 
     PatchMgr(AddrSpace* as,  Instrumenter* inst, PointMaker* pf);
     PATCHAPI_EXPORT virtual ~PatchMgr();

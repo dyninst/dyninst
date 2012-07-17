@@ -44,23 +44,17 @@
 
 #include <list>
 
-class miniTramp;
 class baseTramp;
-class rpcMgr;
+class AddressSpace;
 
-class generatedCodeObject;
-
-// Encapsulates the code generation techniques for a series
-// of minitramps. 
 
 class baseTramp { 
     baseTramp();
 
  public:
     static baseTramp *create(instPoint *p);
-    static baseTramp *create(rpcMgr *r, AstNodePtr ast);
+    static baseTramp *createForIRPC(AddressSpace *as);
     static baseTramp *fork(baseTramp *parBT, AddressSpace *child);
-
 
     func_instance *func() const;
     instPoint *point() const { return point_; }
@@ -84,9 +78,8 @@ class baseTramp {
 
   private:
     instPoint *point_;
+    AddressSpace *as_;
 
-    // If we're RPCing it we have a built-in ast.
-    rpcMgr *rpcMgr_;
     AstNodePtr ast_;
     
     bool shouldRegenBaseTramp(registerSpace *rs); 
@@ -120,7 +113,6 @@ class baseTramp {
     bool skippedRedZone;
     
     bool validOptimizationInfo() { return optimizationInfo_; }
-    bool hasFuncJump();
 
  public:
     // Code generation methods

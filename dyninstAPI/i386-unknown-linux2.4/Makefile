@@ -7,10 +7,8 @@
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
 #DEBUG_FLAG = -g
-#AUTO_TEMPLATES= true
+AUTO_TEMPLATES= true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 USES_BOOST = true
 
 # For debugging.
@@ -25,9 +23,6 @@ include ../../make.config
 
 SRCS =          ../src/linux.C \
 		../src/linux-x86.C \
-		../src/linuxDL.C \
-		../src/dynamiclinking.C \
-		../src/linuxMT.C \
                 ../src/inst-linux.C \
 		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
@@ -35,16 +30,14 @@ SRCS =          ../src/linux.C \
                 ../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
-		../src/parse-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C \
+		../src/dynProcess-x86.C \
+		../src/parse-x86.C \
 		../src/Relocation/Widgets/CFWidget-x86.C
-#		../src/addLibraryLinux.C \
-#		../src/writeBackElf.C \
-#		../src/saveSharedLibrary.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -56,9 +49,6 @@ SRCS =          ../src/linux.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS         += -I$(LIBELF_INC)
-
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
@@ -68,17 +58,6 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS      +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
 LIBS    += -lgcc
 
 AS		= /usr/bin/as

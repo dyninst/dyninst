@@ -83,6 +83,8 @@ class TargetInt {
   virtual void removeSourceEdge(RelocEdge *) {};
   virtual block_instance *block() { return NULL; }
 
+  virtual TargetInt *copy() const {return NULL; };
+
   protected:
 
   bool necessary_;
@@ -129,6 +131,8 @@ template <>
   virtual void removeSourceEdge(RelocEdge *e);
   virtual block_instance *block();
 
+  virtual TargetInt *copy() const { return new Target<RelocBlock *>(t_); }
+
  private:
   RelocBlock * t_;
 };
@@ -155,6 +159,8 @@ class Target<block_instance *> : public TargetInt {
   int label(CodeBuffer *) const;
   virtual block_instance *block() { return t_; }
 
+  virtual TargetInt *copy() const { return new Target<block_instance *>(t_); }
+
  private:
   block_instance *t_;
 };
@@ -179,6 +185,8 @@ class Target<Address> : public TargetInt {
   }
 
   int label(CodeBuffer *) const;
+
+  virtual TargetInt *copy() const { return new Target<Address>(t_); }
 
  private:
   const Address t_;

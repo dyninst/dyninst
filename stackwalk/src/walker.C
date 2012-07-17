@@ -43,6 +43,8 @@ using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
+SymbolReaderFactory *Walker::symrfact = NULL;
+
 void Walker::version(int& major, int& minor, int& maintenance)
 {
     major = SW_MAJOR;
@@ -81,7 +83,10 @@ Walker::Walker(ProcessState *p,
    }
 
    lookup = sym ? sym : createDefaultSymLookup(exec_name);
-   if (!lookup) {
+   if (lookup) {
+      lookup->walker = this;
+   }
+   else {
       sw_printf("[%s:%u] - WARNING, no symbol lookup available\n",
                 __FILE__, __LINE__);
    }
@@ -197,6 +202,31 @@ Walker *Walker::newWalker(Dyninst::PID pid)
    return newWalker(pid, "");
 }
 
+Walker *Walker::newWalker(Dyninst::ProcControlAPI::Process::ptr proc)
+{
+  sw_printf("[%s:%u] - Creating new stackwalker for ProcControl process %d\n",
+	    __FILE__, __LINE__, (int) proc->getPid());
+  
+  ProcessState *newproc = createDefaultProcess(proc);
+  if (!newproc) {
+    sw_printf("[%s:%u] - Error creating default process\n",
+	      __FILE__, __LINE__);
+    return NULL;
+  }
+
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, string());
+  if (!newwalker || newwalker->creation_error) {
+    sw_printf("[%s:%u] - Error creating new Walker object %p\n",
+	      __FILE__, __LINE__, newwalker);
+    return NULL;
+  }
+  
+  sw_printf("[%s:%u] - Successfully created Walker %p\n", 
+	    __FILE__, __LINE__, newwalker);
+  
+  return newwalker;
+}
+
 bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
                        std::vector<Walker *> &walkers_out)
 {
@@ -255,6 +285,15 @@ Walker::~Walker() {
    //TODO: Stepper cleanup
 }
 
+SymbolReaderFactory *Walker::getSymbolReader()
+{
+   return symrfact;
+}
+
+void Walker::setSymbolReader(SymbolReaderFactory *srf)
+{
+   symrfact = srf;
+}
 
 /**
  * What is happening here, you may ask?  
@@ -307,6 +346,7 @@ Walker::~Walker() {
   loc.val.reg = Dyninst::FrameBase; \
   frame.setFPLocation(loc); \
   frame.setThread(thread); \
+  frame.markTopFrame(); \
   done_gifi: ; \
 }
 
@@ -394,6 +434,7 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
         result = false;
         goto done;
      }
+     stackwalk.back().next_stepper = cur_frame.getStepper();
      stackwalk.push_back(cur_frame);
    }       
 
@@ -404,8 +445,16 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
       return false;
    }
 
+   for (std::vector<Frame>::iterator swi = stackwalk.begin();
+        swi != stackwalk.end();
+        ++swi)
+   {
+     swi->prev_frame = NULL;
+   }
+
    sw_printf("[%s:%u] - Finished walking callstack from frame, result = %s\n",
              __FILE__, __LINE__, result ? "true" : "false");
+
    return result;
 }
 
@@ -429,6 +478,8 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
       return false;
    }
+
+   out.prev_frame = &in;
 
    FrameStepper *last_stepper = NULL;
    for (;;)
@@ -455,6 +506,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
        }
        sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
 		 __FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
+       out.setStepper(cur_stepper);
        result = true;
        goto done;
      }
@@ -486,8 +538,6 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
       sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
       return false;
    }
-   sw_printf("[%s:%u] - Finished walking callstack, result = %s\n",
-             __FILE__, __LINE__, result ? "true" : "false");
 
    return result;
 }
@@ -556,6 +606,12 @@ ProcessState *Walker::createDefaultProcess(PID pid, std::string executable)
    return pdebug;
 }
 
+ProcessState *Walker::createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc)
+{
+   ProcDebug *pdebug = ProcDebug::newProcDebug(proc);
+   return pdebug;
+}
+
 bool Walker::createDefaultProcess(const vector<Dyninst::PID> &pids,
                                   vector<ProcDebug *> &pds)
 {
@@ -607,14 +663,142 @@ StepperGroup *Walker::getStepperGroup() const
    return group;
 }
 
-SymbolReaderFactory *Walker::symrfact = NULL;
-SymbolReaderFactory *Walker::getSymbolReader()
+int_walkerSet::int_walkerSet() :
+   non_pd_walkers(0)
 {
-   return Dyninst::Stackwalker::getDefaultSymbolReader();
+   initProcSet();
 }
 
-void Walker::setSymbolReader(SymbolReaderFactory *val)
+int_walkerSet::~int_walkerSet()
 {
-   symrfact = val;
+   clearProcSet();
 }
 
+pair<set<Walker *>::iterator, bool> int_walkerSet::insert(Walker *w)
+{
+   ProcDebug *pd = dynamic_cast<ProcDebug *>(w->getProcessState());
+   if (!pd) {
+      non_pd_walkers++;
+   }
+   else {
+      addToProcSet(pd);
+   }
+
+   return walkers.insert(w);
+}
+
+void int_walkerSet::erase(set<Walker *>::iterator i)
+{
+   ProcDebug *pd = dynamic_cast<ProcDebug *>((*i)->getProcessState());
+   if (!pd) {
+      non_pd_walkers--;
+   }
+   else {
+      eraseFromProcSet(pd);
+   }
+   
+   walkers.erase(i);
+}
+
+WalkerSet *WalkerSet::newWalkerSet()
+{
+   return new WalkerSet();
+}
+
+WalkerSet::WalkerSet() :
+   iwalkerset(new int_walkerSet())
+{
+}
+
+WalkerSet::~WalkerSet()
+{
+   delete iwalkerset;
+}
+
+WalkerSet::iterator WalkerSet::begin() {
+   return iwalkerset->walkers.begin();
+}
+
+WalkerSet::iterator WalkerSet::end() {
+   return iwalkerset->walkers.end();
+}
+
+WalkerSet::iterator WalkerSet::find(Walker *w) {
+   return iwalkerset->walkers.find(w);
+}
+
+WalkerSet::const_iterator WalkerSet::begin() const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.begin();
+}
+
+WalkerSet::const_iterator WalkerSet::end() const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.end();
+}
+
+WalkerSet::const_iterator WalkerSet::find(Walker *w) const {
+   return ((const int_walkerSet *) iwalkerset)->walkers.find(w);
+}
+
+pair<WalkerSet::iterator, bool> WalkerSet::insert(Walker *walker) {
+   return iwalkerset->insert(walker);
+}
+
+void WalkerSet::erase(WalkerSet::iterator i) {
+   iwalkerset->erase(i);
+}
+
+bool WalkerSet::empty() const {
+   return iwalkerset->walkers.empty();
+}
+
+size_t WalkerSet::size() const {
+   return iwalkerset->walkers.size();
+}
+
+bool WalkerSet::walkStacks(CallTree &tree) const {
+   if (empty()) {
+      sw_printf("[%s:%u] - Attempt to walk stacks of empty process set\n", __FILE__, __LINE__);
+      return false;
+   }
+   if (!iwalkerset->non_pd_walkers) {
+      bool bad_plat = false;
+      bool result = iwalkerset->walkStacksProcSet(tree, bad_plat);
+      if (result) {
+         //Success
+         return true;
+      }
+      if (!bad_plat) {
+         //Error
+         return false;
+      }
+      sw_printf("[%s:%u] - Platform does not have OS supported unwinding\n", __FILE__, __LINE__);
+   }
+   
+   bool had_error = false;
+   for (const_iterator i = begin(); i != end(); i++) {
+      vector<THR_ID> threads;
+      Walker *walker = *i;
+      bool result = walker->getAvailableThreads(threads);
+      if (!result) {
+         sw_printf("[%s:%u] - Error getting threads for process %d\n", __FILE__, __LINE__, 
+                   walker->getProcessState()->getProcessId());
+         had_error = true;
+         continue;
+      }
+
+      for (vector<THR_ID>::iterator j = threads.begin(); j != threads.end(); j++) {
+         std::vector<Frame> swalk;
+         THR_ID thr = *j;
+
+         bool result = walker->walkStack(swalk, thr);
+         if (!result && swalk.empty()) {
+            sw_printf("[%s:%u] - Error walking stack for %d/%d\n", __FILE__, __LINE__,
+                      walker->getProcessState()->getProcessId(), thr);
+            had_error = true;
+            continue;
+         }
+         tree.addCallStack(swalk, thr, walker, !result);
+      }
+   }
+   return !had_error;
+}

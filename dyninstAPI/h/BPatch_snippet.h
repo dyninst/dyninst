@@ -43,31 +43,28 @@
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
 #include "BPatch_enums.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "boost/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
 class BPatch_snippet;
 
-namespace dyn_detail 
-{
-   namespace boost {
-      template< typename T > class shared_ptr;
-      template<> class shared_ptr<AstNode *>;
-   }
+typedef boost::shared_ptr<AstNode> AstNodePtr;
+namespace boost {
+   template< typename T > class shared_ptr;
+   template<> class shared_ptr<AstNode *>;
 }
 
 namespace Dyninst {
    namespace PatchAPI {
-      class DynASTSnippet;
-      DynASTSnippet *convert(const BPatch_snippet *);
+      class Snippet;
+      typedef boost::shared_ptr<Snippet> SnippetPtr;
+      SnippetPtr convert(const BPatch_snippet *);
    }
 }
 
-typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 
 class AstNode;
-class process;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;
@@ -145,7 +142,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
                                        const BPatch_snippet &rOperand);
     friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
-    
+    friend Dyninst::PatchAPI::SnippetPtr convert(const BPatch_snippet *snip);
 
     public:
 
@@ -171,8 +168,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  Returns the type of the underlying AST
     API_EXPORT(Int, (),
     BPatch_type *,getType,());
-
-    operator Dyninst::PatchAPI::DynASTSnippet *() const;
 
   private: 
 

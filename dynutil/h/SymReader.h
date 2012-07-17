@@ -75,7 +75,7 @@ typedef struct {
  * that the underlying implementation could be made re-enterant safe (so it 
  * could be called from a signal handler).
  **/
-class SymReader
+class COMMON_EXPORT SymReader
 {
  protected:
    SymReader() {}
@@ -107,7 +107,7 @@ class SymReader
    virtual void *getElfHandle() { return NULL; }
 };
 
-class SymbolReaderFactory
+class COMMON_EXPORT SymbolReaderFactory
 {
  public:
    SymbolReaderFactory() {}

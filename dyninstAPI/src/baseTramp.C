@@ -32,29 +32,30 @@
 // $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/dynThread.h"
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "debug.h"
-#include "process.h"
 #include "mapped_object.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "Point.h"
+
+using namespace Dyninst;
+using namespace PatchAPI;
 
 #if defined(os_aix)
-  extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
-  extern void resetBR( process *p, Address loc);               //inst-power.C
+  extern void resetBRL(AddressSpace *p, Address loc, unsigned val); //inst-power.C
+  extern void resetBR(AddressSpace *p, Address loc);               //inst-power.C
 #endif
 
 // Normal constructor
 baseTramp::baseTramp() :
    point_(NULL),
-   rpcMgr_(NULL),
+   as_(NULL),
    funcJumpState_(cfj_unset),
    needsStackFrame_(false),
    threaded_(false),
@@ -85,11 +86,13 @@ baseTramp *baseTramp::create(instPoint *p) {
    return bt;
 }
 
-baseTramp *baseTramp::create(rpcMgr *r, AstNodePtr a) {
-   baseTramp *bt = new baseTramp();
-   bt->rpcMgr_ = r;
-   bt->ast_= a;
-   return bt;
+baseTramp *baseTramp::createForIRPC(AddressSpace *as) {
+    // We use baseTramps to generate save and restore code for iRPCs
+    // iRPCs don't have a corresponding instPoint so the AddressSpace
+    // needs to be specified
+    baseTramp *bt = new baseTramp();
+    bt->as_ = as;
+    return bt;
 }
 
 baseTramp *baseTramp::fork(baseTramp *parent, AddressSpace *child) {
@@ -189,18 +192,10 @@ bool baseTramp::shouldRegenBaseTramp(registerSpace *rs)
    return (saved_unneeded != 0);
 }
 
-#define PRE_TRAMP_SIZE 4096
-#define POST_TRAMP_SIZE 4096
-
-// recursive into miniTramps
-// If we generated once, we skip most of this as useless.
-// However, we still go into the miniTramps.
-
 bool baseTramp::generateCode(codeGen &gen,
                              Address baseInMutatee) {
    inst_printf("baseTramp %p ::generateCode(%p, 0x%x, %d)\n",
                this, gen.start_ptr(), baseInMutatee, gen.used());
-
    initializeFlags();
 
    doOptimizations();
@@ -247,6 +242,10 @@ bool baseTramp::generateCode(codeGen &gen,
       while (gen.allPatches().size() > num_patches) {
          gen.allPatches().pop_back();
       }
+   }
+
+   if( dyn_debug_disassemble ) {
+       fprintf(stderr, "%s", gen.format().c_str());
    }
 
    gen.setBT(NULL);
@@ -298,16 +297,13 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    pdvector<AstNodePtr> miniTramps;
 
    if (point_) {
-     /*
-      for (instPoint::iterator iter = point_->begin(); 
-           iter != point_->end(); ++iter) {
-         miniTramps.push_back((*iter)->ast());
-      }
-     */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-        miniTramp* mini = GET_MINI(*iter);
-        miniTramps.push_back(mini->ast());
+         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         if (ast) 
+            miniTramps.push_back(ast);
+         else
+            miniTramps.push_back(AstNode::snippetNode((*iter)->snippet()));
       }
    }
    else {
@@ -336,7 +332,7 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
       else if (gen.thread()) {
          // Constant override...
          threadIndex = AstNode::operandNode(AstNode::Constant,
-                                            (void *)(long)gen.thread()->get_index());
+                                            (void *)(long)gen.thread()->getIndex());
       }
       else {
          // TODO: we can get clever with this, and have the generation of
@@ -437,8 +433,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
 AddressSpace *baseTramp::proc() const { 
    if (point_)
       return point_->proc();
-   if (rpcMgr_)
-      return rpcMgr_->proc();
+   if (as_)
+       return as_;
    return NULL;
 }
 
@@ -455,43 +451,12 @@ bool baseTramp::checkForFuncCalls()
 */
       for (instPoint::instance_iter iter = point_->begin(); 
            iter != point_->end(); ++iter) {
-	miniTramp* mini = GET_MINI(*iter);
-        if (mini->ast()->containsFuncCall()) return true;
+         AstNodePtr ast = DCAST_AST((*iter)->snippet());
+         if (!ast) continue;
+         if (ast->containsFuncCall()) return true;
       }
    }
    return false;
-}
-
-bool baseTramp::hasFuncJump()
-{
-   if (funcJumpState_ != cfj_unset)
-      return (funcJumpState_ >= cfj_jump); 
-
-   funcJumpState_ = cfj_none;
-   if (ast_) {
-      cfjRet_t tmp = ast_->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_) {
-         funcJumpState_ = tmp;
-      }
-      return (funcJumpState_ >= cfj_jump);
-   }
-   /*   
-	for (instPoint::iterator iter = point_->begin(); 
-        iter != point_->end(); ++iter) {
-      cfjRet_t tmp = (*iter)->ast()->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_)
-         funcJumpState_ = tmp;
-   }
-   */
-   for (instPoint::instance_iter iter = point_->begin(); 
-        iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-      cfjRet_t tmp = mini->ast()->containsFuncJump();
-      if ((int) tmp > (int) funcJumpState_)
-         funcJumpState_ = tmp;
-   }
-
-   return (funcJumpState_ >= cfj_jump);
 }
 
 bool baseTramp::doOptimizations() 
@@ -515,8 +480,9 @@ bool baseTramp::doOptimizations()
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-      if (mini->ast()->containsFuncCall()) {
+      AstNodePtr ast = DCAST_AST((*iter)->snippet());
+      if (!ast) continue;
+      if (ast->containsFuncCall()) {
          hasFuncCall = true;
          break;
       }
@@ -606,11 +572,12 @@ bool baseTramp::guarded() const {
    */
    for (instPoint::instance_iter iter = point_->begin(); 
         iter != point_->end(); ++iter) {
-     miniTramp* mini = GET_MINI(*iter);
-     if (mini->recursive())
-         recursive = true;
-      else
+      if ((*iter)->recursiveGuardEnabled()) {
          guarded = true;
+      }
+      else {
+         recursive = true;
+      }
    }
 
    if (recursive && guarded) {

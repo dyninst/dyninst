@@ -33,6 +33,7 @@
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+#include "common/h/pathName.h"
 
 #include <cstdio>
 #include <linux/limits.h>
@@ -180,21 +181,12 @@ bool AddressTranslateSysV::setAddressSize()
    return true;
 }
 
-static char *deref_link(const char *path)
-{
-   static char buffer[PATH_MAX], *p;
-   buffer[PATH_MAX-1] = '\0';
-   p = realpath(path, buffer);
-   return p;
-}
-
-
 string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
-      exec_name = std::string(deref_link(name));
+      exec_name = resolve_file_path(name);
    }
    return exec_name;
 }
@@ -202,8 +194,10 @@ string AddressTranslateSysV::getExecName()
 
 LoadedLib *AddressTranslateSysV::getAOut()
 {
-   // TODO: shouldn't this just return exec if it's set?
+   if (exec)
+      return exec;
    LoadedLib *ll = new LoadedLib(getExecName(), 0);
    ll->setFactory(symfactory);
+   exec = ll;
    return ll;
 }

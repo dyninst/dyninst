@@ -42,14 +42,19 @@
 #include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
 
+namespace Dyninst {
+   namespace PatchAPI {
+      class Instance;
+      typedef boost::shared_ptr<Instance> InstancePtr;
+   }
+}
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
 
 class instPoint;
-class miniTramp;
 class baseTramp;
-class process;
 class func_instance;
 class metricFocusNode;
 class codeGen;
@@ -61,15 +66,9 @@ typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
-extern pdvector<Address> getTrampAddressesAtPoint(process *proc, 
-                                                  const instPoint *loc,
-                                                  callWhen when);
-
 class AstNode;
 
 /* Utility functions */
-
-int getPointCost(process *proc, const instPoint *point);
 
 
 /* return the function asociated with a point. */
@@ -117,7 +116,7 @@ class instMapping {
          };
 
       // Fork
-      instMapping(const instMapping *parMapping, process *child);
+      instMapping(const instMapping *parMapping, AddressSpace *child);
 
   ~instMapping() {
   }
@@ -138,7 +137,7 @@ public:
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
-  pdvector<miniTramp *> miniTramps;
+  pdvector<Dyninst::PatchAPI::InstancePtr> instances;
 };
 
 

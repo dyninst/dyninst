@@ -43,15 +43,16 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/registerSpace.h"
 
-#include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/dynProcess.h"
 
+#include "dyninstAPI/src/binaryEdit.h"
+#include "dyninstAPI/src/symtab.h"
 // get_index...
-#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/dynThread.h"
 #include "ABI.h"
 #include "liveness.h"
 #include "RegisterConversion.h"
@@ -1551,6 +1552,7 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
 }
 
 void EmitterAMD64::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
+   assert(gen.addrSpace());
    unsigned size = (gen.addrSpace()->getAddressWidth());
    gen.rs()->writeProgramRegister(gen, register_num, src, size);
 }
@@ -1752,8 +1754,10 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
       {
          if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
             reg = amd64_arg_regs[u];
-         else
+         else {
+            cerr << "Error: tried to allocate register " << amd64_arg_regs[u] << " and failed!" << endl;
             assert(0);
+         }
          gen.markRegDefined(reg);
          if (!operands[u]->generateCode_phase2(gen,
                                                noCost,
@@ -1995,6 +1999,8 @@ void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPoint::Ty
       emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, dest, true, gen);
 }
 
+// Commented out until we need it to avoid warnings
+#if 0
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
@@ -2011,7 +2017,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 
    SET_PTR(insn, gen);
 }
-
+#endif
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, int stackShift, codeGen &gen)
 {

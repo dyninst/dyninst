@@ -38,10 +38,16 @@
 extern "C" {
 #endif
 
+#if !defined(os_windows_test)
+#include <stdint.h>
+#else
+	typedef unsigned __int64 uint64_t;
+#endif
+
 #include <stdio.h>
 
 #if defined(os_windows_test)
-
+#include <winsock2.h>
 #include <windows.h>
 
 #if !defined(INVALID_HANDLE)
@@ -160,8 +166,6 @@ extern void log_testrun(char *testname);
 extern void log_testresult(int passed);
 
 /* Mutatee cleanup: PID registration */
-extern void setPIDFilename(char *pfn);
-extern char *getPIDFilename();
 extern void registerPID(int pid);
 
 
@@ -215,6 +219,8 @@ extern void test_fails(const char *testname);
 extern int verifyScalarValue(const char *name, int a, int value,
 			     const char *testName, const char *testDesc);
 
+extern void handleAttach();
+
 #if !defined(P_sleep)
 #if defined(os_windows_test)
 #define P_sleep(sec) Sleep(1000*(sec))
@@ -222,6 +228,41 @@ extern int verifyScalarValue(const char *name, int a, int value,
 #define P_sleep(sec) sleep(sec)
 #endif
 #endif
+
+/*
+ * A high precision sleep
+ *
+ * Sleeps for time specified by milliseconds. This function assumes that
+ * the parameter is less than 1000.
+ *
+ * Returns 0 if the sleep fails.
+ */
+int precisionSleep(int milliseconds);
+
+/* Event source interface
+ * Schedule a timer (or some other mechanism) that periodically delivers
+ * events to the mutator on behalf of the mutatee
+ *
+ * The underlying mechanism is most definitely portable so hence the
+ * void *.
+ */
+typedef struct event_source_struct event_source;
+
+/* Starts the event source and returns the opaque handle to the
+ * event source. This handle is NULL if the event source
+ * cannot be created.
+ */
+event_source *startEventSource();
+
+/* Returns the number of events that have occurred so far */
+uint64_t getEventCounter();
+
+/* Stops the specified event source.
+ *
+ * Returns non-zero values if successful, zero on failure
+ * On success, the specified event source will be free'd.
+ */
+int stopEventSource(event_source *eventSource);
 
 #ifdef __cplusplus
 } /* terminate extern "C" */

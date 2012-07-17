@@ -1018,7 +1018,7 @@ namespace Dyninst
 			    (entryid == e_push || entryid == e_pop || entryid == e_xchg || ((*(b.start + locs->opcode_position) & 0xf0) == 0xb0) ) )
                         {
                             // FP stack registers are not affected by the rex_b bit in AM_REG.
-                            if(r.regClass() != x86::MMX)
+                           if(r.regClass() != (unsigned) x86::MMX)
                             {
                                 r = MachRegister((r.val()) | x86_64::r8.val());
                             }

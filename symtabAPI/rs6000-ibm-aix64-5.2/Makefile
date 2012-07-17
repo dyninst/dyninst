@@ -13,8 +13,6 @@ OVERRIDE_INSTALL	= true
 
 #DEBUG_FLAG = -g
 
-EXTRA_LIBS = libdemangle.so.1
-
 ifdef COVERAGE
 NO_OPT_FLAG		= true
 endif

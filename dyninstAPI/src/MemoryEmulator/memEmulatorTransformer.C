@@ -64,7 +64,7 @@ bool MemEmulatorTransformer::process(RelocBlock *rblock, RelocGraph *rgraph)
   for (WidgetList::iterator e_iter = elements.begin();
        e_iter != elements.end(); ++e_iter) {
     // If we're not an instruction then skip...
-     InsnWidget::Ptr reloc = dyn_detail::boost::dynamic_pointer_cast<Relocation::InsnWidget>(*e_iter);
+     InsnWidget::Ptr reloc = boost::dynamic_pointer_cast<Relocation::InsnWidget>(*e_iter);
      if (!reloc) continue;
 
     relocation_cerr << "Memory emulation considering addr " << hex << reloc->addr() << dec << endl;

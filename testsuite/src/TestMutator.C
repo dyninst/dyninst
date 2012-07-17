@@ -32,6 +32,15 @@
 
 #include "test_lib.h"
 
+TestMutator::TestMutator() :
+   monitor(NULL)
+{
+}
+
+TestMutator::~TestMutator()
+{
+}
+
 bool TestMutator::hasCustomExecutionPath() {
   return false;
 }

@@ -34,13 +34,8 @@
 
 #include "libelf.h"
 
-#if !defined(ELF_X_NAMESPACE)
-//Example values of ELF_X_NAMESPACE may be 'Stackwalker' or 'Symtab'
-#error Define ELF_X_NAMESPACE before including Elf_X.h
-#endif
-
 namespace Dyninst {
-namespace ELF_X_NAMESPACE {
+namespace COMPONENT_NAME {
 
 // Forward declarations
 class Elf_X;

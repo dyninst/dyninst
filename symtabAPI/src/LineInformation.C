@@ -170,7 +170,7 @@ LineInformation::~LineInformation()
 {
 } /* end LineInformation destructor */
 
-
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    //fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
@@ -192,5 +192,10 @@ Serializable *LineInformation::ac_serialize_impl(SerializerBase *sb, const char 
 	//multimap_translator<std::pair<Address, Address>, Statement>(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
 	ifxml_end_element(sb, tag);
 	return NULL;
-
 }
+#else
+Serializable *LineInformation::ac_serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif

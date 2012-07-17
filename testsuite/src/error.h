@@ -36,5 +36,6 @@
 #define SUCCESS         0
 #define GENERAL_ERROR   1
 #define NOTESTS         2
+#define DRIVER_CRASHED      -2
 
 #endif /* TEST_ERROR_H */

@@ -39,7 +39,7 @@
 #include "Module.h"
 #include "Collections.h"
 #include "Function.h"
-
+#include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
 
 #include "annotations.h"
@@ -114,8 +114,8 @@ Offset Function::getTOCOffset() const
     return retval;
 }
 
-static std::vector<Dyninst::SymtabAPI::VariableLocation> emptyLocVec;
-std::vector<Dyninst::SymtabAPI::VariableLocation> &Function::getFramePtr() 
+static std::vector<Dyninst::VariableLocation> emptyLocVec;
+std::vector<Dyninst::VariableLocation> &Function::getFramePtr() 
 {
 	if (locs_) return *locs_;
 	return emptyLocVec;
@@ -244,11 +244,11 @@ bool Function::addLocalVar(localVar *locVar)
 
       if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
       {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
          return false;
       }
    }
+   if (!lvs)
+      return false;
 
    lvs->addLocalVar(locVar);
    return true;
@@ -257,22 +257,16 @@ bool Function::addLocalVar(localVar *locVar)
 bool Function::addParam(localVar *param)
 {
 	localVarCollection *ps = NULL;
+   if (!setupParams())
+   {
+      return false;
+   }
 
 	if (!getAnnotation(ps, FunctionParametersAnno))
 	{
-                if (!setupParams())
-                {
-                        return false;
-                }
-
-                if (!getAnnotation(ps, FunctionParametersAnno))
-                {
-			fprintf(stderr, "%s[%d]:  failed to get local var collecton anno\n", 
-					FILE__, __LINE__);
-			return false;
-                }
+      return false;
 	}
-
+   
 	ps->addLocalVar(param);
 
 	return true;
@@ -294,7 +288,7 @@ bool Function::setupParams()
 		}
 	}
         
-        return true;
+   return true;
 }
 
 Function::~Function()
@@ -321,6 +315,7 @@ Function::~Function()
 
 }
 
+#if !defined(SERIALIZATION_DISABLED)
 Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	if (!sb) SER_ERR("bad paramater sb");
@@ -358,6 +353,12 @@ Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THRO
 			sb->isInput() ? "deserialize" : "serialize");
 	return NULL;
 }
+#else
+Serializable *Function::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+{
+   return NULL;
+}
+#endif
 
 bool Function::removeSymbol(Symbol *sym) 
 {
@@ -368,7 +369,7 @@ bool Function::removeSymbol(Symbol *sym)
 	return true;
 }
 
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::VariableLocation &l)
+std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 {
 	const char *stc = storageClass2Str(l.stClass);
 	const char *strc = storageRefClass2Str(l.refClass);

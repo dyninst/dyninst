@@ -30,9 +30,29 @@
  */
 
 #include "response.h"
+#include <set>
 
 namespace Dyninst {
 namespace ProcControlAPI {
+
+class int_eventBreakpoint
+{
+  public:
+   int_eventBreakpoint(Address a, sw_breakpoint *i, int_thread *thr);
+   int_eventBreakpoint(hw_breakpoint *i, int_thread *thr);
+   ~int_eventBreakpoint();
+   bp_instance *lookupInstalledBreakpoint();
+
+   //Only one of addr or hwbp will be set
+   Dyninst::Address addr;
+   hw_breakpoint *hwbp;
+
+   result_response::ptr pc_regset;
+   int_thread *thrd;
+   bool stopped_proc;
+
+   std::set<Breakpoint::ptr> cb_bps;
+};
 
 class int_eventBreakpointClear
 {
@@ -40,18 +60,25 @@ class int_eventBreakpointClear
    int_eventBreakpointClear();
    ~int_eventBreakpointClear();
 
-   result_response::ptr memwrite_bp_resume;
-};
+   std::set<response::ptr> bp_suspend;
+   bool started_bp_suspends;
+   bool cached_bp_sets;
+   bool set_singlestep;
+   bool stopped_proc;
 
-class int_eventBreakpoint
+   std::set<Thread::ptr> clearing_threads;
+};
+ 
+class int_eventBreakpointRestore
 {
   public:
-   int_eventBreakpoint();
-   ~int_eventBreakpoint();
+   int_eventBreakpointRestore(bp_instance *breakpoint_);
+   ~int_eventBreakpointRestore();
 
-   result_response::ptr memwrite_bp_suspend;
-   result_response::ptr pc_regset;
-   bool set_singlestep;
+   bool set_states;
+   bool bp_resume_started;
+   std::set<response::ptr> bp_resume;
+   bp_instance *bp;
 };
 
 class int_eventRPC {
@@ -67,12 +94,46 @@ class int_eventRPC {
 
 class int_eventAsync {
   private:
-   response::ptr resp;
+   std::set<response::ptr> resp;
   public:
    int_eventAsync(response::ptr r);
    ~int_eventAsync();
 
-   response::ptr getResponse() const;
+   std::set<response::ptr> &getResponses();
+   void addResp(response::ptr r);
+};
+
+class int_eventNewUserThread {
+  public:
+   int_eventNewUserThread();
+   ~int_eventNewUserThread();
+
+   int_thread *thr;
+   Dyninst::LWP lwp;
+   void *raw_data;
+   bool needs_update;
+};
+
+class int_eventThreadDB {
+  public:
+   int_eventThreadDB();
+   ~int_eventThreadDB();
+   
+   std::set<Event::ptr> new_evs;
+   bool completed_new_evs;
+};
+
+class int_eventDetach {
+  public:
+   int_eventDetach();
+   ~int_eventDetach();
+
+   std::set<response::ptr> async_responses;
+   result_response::ptr detach_response;
+   bool temporary_detach;
+   bool removed_bps;
+   bool done;
+   bool had_error;
 };
 
 }

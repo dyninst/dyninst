@@ -32,7 +32,7 @@
 #define pcontrol_mutatee_tools
 
 #include "communication.h"
-#include "mutatee_util.h"
+#include "../src/mutatee_util.h"
 
 extern thread_t threads[MAX_POSSIBLE_THREADS];
 extern int thread_results[MAX_POSSIBLE_THREADS];
@@ -42,6 +42,7 @@ extern int sockfd;
 int initProcControlTest(int (*init_func)(int, void*), void *thread_data);
 int finiProcControlTest(int expected_ret_code);
 
+void getSocketInfo();
 int MultiThreadFinish();
 int MultiThreadInit(int (*init_func)(int, void*), void *thread_data);
 int initMutatorConnection();
@@ -50,5 +51,8 @@ int releaseThreads();
 
 int send_message(unsigned char *msg, size_t msg_size);
 int recv_message(unsigned char *msg, size_t msg_size);
+
+uint64_t getFunctionPtr(unsigned long *ptr);
+uint64_t getTOCValue(unsigned long *ptr);
 
 #endif

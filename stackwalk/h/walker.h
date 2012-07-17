@@ -33,13 +33,19 @@
 #define WALKER_H_
 
 #include "basetypes.h"
+#include "PCProcess.h"
 #include <vector>
 #include <list>
 #include <string>
+#include <utility>
 
-#define SW_MAJOR 2
-#define SW_MINOR 1
+#define SW_MAJOR 8
+#define SW_MINOR 0
 #define SW_BETA  0
+
+#define SW_VERSION_8_0_0
+#define SW_VERSION_2_1_1
+#define SW_VERSION_2_1_0
 
 namespace Dyninst {
 
@@ -53,9 +59,10 @@ class SymbolLookup;
 class Frame;
 class FrameStepper;
 class StepperGroup;
+class CallTree;
+class int_walkerSet;
 
-class Walker {
-   friend SymbolReaderFactory *getDefaultSymbolReader();
+class SW_EXPORT Walker {
  private:
    //Object creation functions
    Walker(ProcessState *p,
@@ -67,6 +74,7 @@ class Walker {
    StepperGroup *createDefaultStepperGroup();
    static ProcessState *createDefaultProcess(std::string exec_name = std::string(""));
    static ProcessState *createDefaultProcess(Dyninst::PID pid, std::string exe);
+   static ProcessState *createDefaultProcess(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
                                     std::vector<ProcDebug *> &pds);
    static ProcessState *createDefaultProcess(std::string exec_name, 
@@ -89,6 +97,7 @@ class Walker {
    static Walker *newWalker(Dyninst::PID pid,
                             std::string executable);
    static Walker *newWalker(Dyninst::PID pid);
+   static Walker *newWalker(Dyninst::ProcControlAPI::Process::ptr proc);
    static bool newWalker(const std::vector<Dyninst::PID> &pids,
                          std::vector<Walker *> &walkers_out,
                          std::string executable);
@@ -104,6 +113,12 @@ class Walker {
                             StepperGroup *grp = NULL,
                             SymbolLookup *lookup = NULL,
                             bool default_steppers = true);
+   
+   //Get the default symbol reader
+   static SymbolReaderFactory *getSymbolReader();
+
+   //Set the default symbol reader
+   static void setSymbolReader(SymbolReaderFactory *srf);
 
    //Collect a stackwalk
    bool walkStack(std::vector<Frame> &stackwalk, 
@@ -136,10 +151,6 @@ class Walker {
    //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
 
-   //Manage SymbolReader
-   static SymbolReaderFactory* getSymbolReader();
-   static void setSymbolReader(SymbolReaderFactory*);
-
    virtual ~Walker();
  private:
    ProcessState *proc;
@@ -148,6 +159,33 @@ class Walker {
    StepperGroup *group;
    unsigned call_count;
    static SymbolReaderFactory *symrfact;
+};
+
+class WalkerSet {
+  private:
+   int_walkerSet *iwalkerset;
+   WalkerSet();
+  public:
+   //Create an object that operates on the specified process
+   static WalkerSet *newWalkerSet();
+   ~WalkerSet();
+   
+   typedef std::set<Walker *>::iterator iterator;
+   typedef std::set<Walker *>::const_iterator const_iterator;
+   
+   iterator begin();
+   iterator end();
+   iterator find(Walker *);
+   const_iterator begin() const;
+   const_iterator end() const;
+   const_iterator find(Walker *) const;
+   
+   std::pair<iterator, bool> insert(Walker *walker);
+   void erase(iterator i);
+   bool empty() const;
+   size_t size() const;
+
+   bool walkStacks(CallTree &tree) const;
 };
 
 }

@@ -60,15 +60,11 @@ int test_thread_6_mutatee() {
    thread_t threads[NTHRD];
    int startedall = 0;
 
-#ifndef os_windows_test
-   char c = 'T';
-#endif
-
    /* initThreads() has an empty function body? */
    initThreads();
 
    for (i=0; i<NTHRD; i++)  {
-       threads[i] = spawnNewThread((void *) init_func, (void *) i);
+      threads[i] = spawnNewThread((void *) init_func, (void *) (long) i);
    }
 
    while (!startedall) {
@@ -82,31 +78,7 @@ int test_thread_6_mutatee() {
       }
    }
 
-   /* Hmm..  So in attach mode we create all the threads before waiting for
-    * the mutator to attach, but in create mode we (by necessity) create all
-    * the threads after the mutator has attached (and let us run..)
-    * And this test runs in both create and attach modes...
-    * I'm going to strip out this attach mode handling and see if it works
-    * alright when I let the mutatee driver handle it.
-    */
-   /* FIXME Remove this cruft */
-#if 0
-#ifndef os_windows_test
-   if (attached_fd) {
-      if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
-         output->log(STDERR, "*ERROR*: Writing to pipe\n");
-         exit(-1);
-      }
-      close(attached_fd);
-      while (!checkIfAttached()) {
-         usleep(1);
-      }
-   }
-#else
-   if (attached_fd)
-      while (!checkIfAttached());
-#endif
-#endif
+   handleAttach();
 
    logstatus("[%s:%d]: stage 1 - all threads created\n", __FILE__, __LINE__);
    while (proc_current_state == 0) {

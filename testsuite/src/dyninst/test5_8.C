@@ -61,7 +61,7 @@ extern "C" DLLEXPORT TestMutator *test5_8_factory() {
 test_results_t test5_8_Mutator::executeTest() {
   // Find the exit point to the procedure "func_cpp"
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "decl_test::func_cpp";
+  const char *fn = "decl_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror( "**Failed** test #8 (declaration)\n");
@@ -76,7 +76,7 @@ test_results_t test5_8_Mutator::executeTest() {
   }
 
   bpfv.clear();
-  char *fn2 = "main";
+  const char *fn2 = "main";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror( "**Failed** test #8 (declaration)\n");
@@ -91,7 +91,7 @@ test_results_t test5_8_Mutator::executeTest() {
   }
 
   bpfv.clear();
-  char *fn3 = "decl_test::call_cpp";
+  const char *fn3 = "decl_test::call_cpp";
   if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror( "**Failed** test #8 (declaration)\n");

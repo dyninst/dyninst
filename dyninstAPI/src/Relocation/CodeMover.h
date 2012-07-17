@@ -34,7 +34,6 @@
 #define _R_CODE_MOVER_H_
 
 #include "CFG.h"
-#include "dyn_detail/boost/shared_ptr.hpp"
 #include "common/h/Types.h"
 #include <list>
 #include <map>
@@ -65,7 +64,7 @@ typedef std::map<std::pair<block_instance *, func_instance *>, Priority> Priorit
 
 class CodeMover {
  public:
-  typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
+  typedef boost::shared_ptr<CodeMover> Ptr;
   typedef std::set<func_instance *> FuncSet;
   typedef std::set<block_instance *> BlockSet;
 

@@ -33,7 +33,6 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -79,6 +78,8 @@ extern int tramp_pre_frame_size_64;
 #include "mapped_object.h"
 
 using namespace Dyninst;
+using PatchAPI::Point;
+using PatchAPI::Buffer;
 
 extern bool doNotOverflow(int value);
 
@@ -261,6 +262,10 @@ AstNodePtr AstNode::dynamicTargetNode() {
         dynamicTargetNode_ = AstNodePtr(new AstDynamicTargetNode());
     }
     return dynamicTargetNode_;
+}
+
+AstNodePtr AstNode::snippetNode(Dyninst::PatchAPI::SnippetPtr snip) {
+   return AstNodePtr(new AstSnippetNode(snip));
 }
 
 AstNodePtr AstNode::scrambleRegistersNode(){
@@ -850,8 +855,8 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    {
       if(loperand->getoType() == variableValue)
       {
-         dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
-            dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+         boost::shared_ptr<AstOperandNode> lnode = 
+            boost::dynamic_pointer_cast<AstOperandNode>(loperand);
        
          int_variable* var = lnode->lookUpVar(gen.addrSpace());
          if (!var || gen.addrSpace()->needsPIC(var))
@@ -1331,8 +1336,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             case Param: 
             case ParamAtCall: 
             case ParamAtEntry: {
-               dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
-                  dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+               boost::shared_ptr<AstOperandNode> lnode = 
+                  boost::dynamic_pointer_cast<AstOperandNode>(loperand);
                emitR(getParamOp, (Address)lnode->oValue,
                      src1, src2, gen, noCost, gen.point(),
                      gen.addrSpace()->multithread_capable());
@@ -1587,8 +1592,11 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        
        addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
        
-       if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
-           perror("ast.C(1351): writing string value");
+       if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue)) {
+           ast_printf("Failed to write string constant into mutatee\n");
+           return false;
+       }
+
        if(!gen.addrSpace()->needsPIC())
        {
           emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
@@ -3008,97 +3016,6 @@ bool AstScrambleRegistersNode::containsFuncCall() const
    return false;
 }
 
-static void setCFJRet(cfjRet_t &a, cfjRet_t b) {
-   //cfj_call takes priority over cfj_jump
-   int a_i = (int) a;
-   int b_i = (int) b;
-   if (b_i > a_i)
-      a = b;
-}
-
-cfjRet_t AstCallNode::containsFuncJump() const {
-   return cfj_none;
-}
-
-cfjRet_t AstOperatorNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	if (loperand) setCFJRet(ret, loperand->containsFuncJump());
-	if (roperand) setCFJRet(ret, roperand->containsFuncJump());
-	if (eoperand) setCFJRet(ret, eoperand->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstOperandNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	if (operand_) setCFJRet(ret, operand_->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstMiniTrampNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-   if (ast_) setCFJRet(ret, ast_->containsFuncJump());
-	return ret;
-}
-
-cfjRet_t AstSequenceNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-	for (unsigned i = 0; i < sequence_.size(); i++) {
-		setCFJRet(ret, sequence_[i]->containsFuncJump());
-	}
-	return ret;
-}
-
-cfjRet_t AstVariableNode::containsFuncJump() const 
-{
-    return ast_wrappers_[index]->containsFuncJump();
-}
-
-cfjRet_t AstInsnMemoryNode::containsFuncJump() const {
-   cfjRet_t ret = cfj_none;
-   if (load_) setCFJRet(ret, load_->containsFuncJump());
-   if (store_) setCFJRet(ret, store_->containsFuncJump());
-   return ret;
-}
-
-cfjRet_t AstNullNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstLabelNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstMemoryNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstInsnNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstOriginalAddrNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstActualAddrNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
-cfjRet_t AstDynamicTargetNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-cfjRet_t AstScrambleRegistersNode::containsFuncJump() const
-{
-   return cfj_none;
-}
-
 bool AstCallNode::usesAppRegister() const {
    for (unsigned i=0; i<args_.size(); i++) {
       if (args_[i] && args_[i]->usesAppRegister()) return true;
@@ -3347,6 +3264,33 @@ bool AstNode::decRefCount()
    return true;
 }
 
+bool AstNode::generate(Point *point, Buffer &buffer) {
+   // For now, be really inefficient. Yay!
+   codeGen gen(1024);
+   instPoint *ip = IPCONV(point);
+
+   gen.setPoint(ip);
+   gen.setRegisterSpace(registerSpace::actualRegSpace(ip));
+   gen.setAddrSpace(ip->proc());
+   if (!generateCode(gen, false)) return false;
+
+   unsigned char *start_ptr = (unsigned char *)gen.start_ptr();
+   unsigned char *cur_ptr = (unsigned char *)gen.cur_ptr();
+   buffer.copy(start_ptr, cur_ptr);
+
+   return true;
+}
+
+bool AstSnippetNode::generateCode_phase2(codeGen &gen,
+                                         bool,
+                                         Address &,
+                                         Register &) {
+   Buffer buf(gen.currAddr(), 1024);
+   if (!snip_->generate(gen.point(), buf)) return false;
+   gen.copy(buf.start_ptr(), buf.size());
+   return true;
+}
+   
 std::string AstNode::format(std::string indent) {
    std::stringstream ret;
    ret << indent << "Default/" << hex << this << dec << "()" << endl;
@@ -3501,7 +3445,7 @@ bool AstOperandNode::initRegisters(codeGen &g) {
         if (!kids[i]->initRegisters(g))
             ret = false;
     }
-    
+
     // If we're an origRegister, override its state as live. 
     if (oType == origRegister) {
        Address origReg = (Address) oValue;
@@ -3509,6 +3453,6 @@ bool AstOperandNode::initRegisters(codeGen &g) {
        registerSlot *r = (*(g.rs()))[origReg];
        r->liveState = registerSlot::live;
     }       
-    
+
     return ret;
 }

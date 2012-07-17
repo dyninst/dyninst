@@ -41,7 +41,7 @@ namespace Relocation {
 
 class InstWidget : public Widget {
  public:
-  typedef dyn_detail::boost::shared_ptr<InstWidget> Ptr;
+  typedef boost::shared_ptr<InstWidget> Ptr;
 
   // I believe I can patch in the current code generation
   // system here...
@@ -66,7 +66,6 @@ class InstWidget : public Widget {
 
  private:
   instPoint *point_;
-
 };
 
 struct InstWidgetPatch : public Patch {

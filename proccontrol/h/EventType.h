@@ -31,10 +31,12 @@
 #if !defined(EVENTTYPE_H_)
 #define EVENTTYPE_H_
 
+#include "util.h"
+
 namespace Dyninst {
 namespace ProcControlAPI {
 
-class EventType
+class PC_EXPORT EventType
 {
  public:
    static const int Error               = -1;
@@ -43,24 +45,44 @@ class EventType
    static const int Crash               = 2;
    static const int Fork                = 3;
    static const int Exec                = 4;
-   static const int ThreadCreate        = 5;
-   static const int ThreadDestroy       = 6;
-   static const int Stop                = 7;
-   static const int Signal              = 8;
-   static const int LibraryLoad         = 9;
-   static const int LibraryUnload       = 10;
-   static const int Bootstrap           = 11;
-   static const int Breakpoint          = 12;
-   static const int RPC                 = 13;
-   static const int SingleStep          = 14;
-   static const int Library             = 15;
+   static const int UserThreadCreate    = 5;
+   static const int LWPCreate           = 6;
+   static const int UserThreadDestroy   = 7;
+   static const int LWPDestroy          = 8;
+   static const int Stop                = 9;
+   static const int Signal              = 10;
+   static const int LibraryLoad         = 11;
+   static const int LibraryUnload       = 12;
+   static const int Bootstrap           = 13;
+   static const int Breakpoint          = 14;
+   static const int RPC                 = 15;
+   static const int SingleStep          = 16;
+   static const int Library             = 17;
+   static const int ForceTerminate      = 18;
+   static const int PreBootstrap		= 19;
+   static const int Continue		    = 20;
+
+   //These aren't completely real events.  They can have callbacks registered, but won't be delivered.
+   // Instead, a real event will be delivered to their callback.  E.g, a callback registered for 
+   // Terminate will actually get Exit or Crash events.
+   static const int Terminate           = 400;
+   static const int ThreadCreate        = 401;
+   static const int ThreadDestroy       = 402;
 
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;
    static const int BreakpointClear     = 500;
-   static const int RPCInternal         = 501;
+   static const int BreakpointRestore   = 501;
    static const int Async               = 502;
    static const int ChangePCStop        = 503; // Used for bug_freebsd_change_pc
+   static const int Detach              = 504;
+   static const int Detached            = 505;
+   static const int IntBootstrap        = 506;
+   static const int Nop                 = 507;
+   static const int ThreadDB            = 508;
+   static const int RPCLaunch           = 509;
+   static const int ThreadInfo			= 510;
+   static const int WinStopThreadDestroy = 511;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

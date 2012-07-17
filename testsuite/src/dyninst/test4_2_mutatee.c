@@ -32,6 +32,12 @@
 
 #include "mutatee_util.h"
 
+#if defined(os_freebsd_test)
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <errno.h>
+#endif
+
 /* Externally accessed function prototypes.  These must have globally unique
  * names.  I suggest following the pattern <testname>_<function>
  */
@@ -81,10 +87,6 @@ int test4_2_mutatee() {
     pid = fork();
     dprintf("fork result: %d\n", pid);
 
-    if (pid > 0) {
-      registerPID(pid); /* Register for cleanup */
-    }
-
     if (pid >= 0) {
        /* both parent and child exit here */
        test4_2_func2();
@@ -104,6 +106,28 @@ int test4_2_mutatee() {
           dprintf("%d SLEEP MORE\n",getpid());
           sleep(5);
           dprintf("%d DONE SLEEPING\n",getpid());
+       }
+#endif
+
+#if defined(os_freebsd_test)
+       if( pid > 0 ) {
+           // FreeBSD's debugger interface is broken -- attaching to the child
+           // mucks with the parent relationship so waitpid can mistakenly return
+           // ECHILD when it really shouldn't
+           //
+           // Plus we avoid some OS-level race conditions by waiting for the child
+           // to exit
+
+           pid_t tmpPid = -1;
+           int status;
+           do{
+               tmpPid = waitpid(pid, &status, 0);
+               sleep(1);
+           }while(tmpPid == -1 && errno == ECHILD);
+
+           if( tmpPid == -1 ) {
+               dprintf("Failed to wait for child\n");
+           }
        }
 #endif
         

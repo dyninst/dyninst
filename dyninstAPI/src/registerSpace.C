@@ -32,13 +32,14 @@
 // $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h"
+
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/registerSpace.h"
@@ -503,7 +504,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register. 
 #if defined(arch_x86_64) || defined(arch_x86)
-bool registerSpace::checkVolatileRegisters(codeGen &,
+bool registerSpace::checkVolatileRegisters(codeGen & /*gen*/,
                                            registerSlot::livenessState_t state)
 {
 	if (addr_width == 8) {

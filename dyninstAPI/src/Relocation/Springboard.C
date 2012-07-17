@@ -137,6 +137,9 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end, func_instance
   for (; begin != end; ++begin) {
      block_instance *bbl = SCAST_BI(*begin);
 
+     if (bbl->wasUserAdded()) continue;
+     // Don't try to springboard a user-added block...
+
     // Check for overlapping blocks. Lovely.
     Address LB, UB; int id;
     Address start = bbl->start();
@@ -212,30 +215,35 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
    codeGen gen;
 
    bool usedTrap = false;
+   unsigned size;
    // Arbitrarily select the first function containing this springboard, since only one can win. 
    generateBranch(r.from, r.destinations.begin()->second, gen);
 
-   if ((dyn_debug_trap /*&& r.from > 0xab0000 && r.from < 0xad0000*/) || r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
+   if (r.useTrap || conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
       // Errr...
       // Fine. Let's do the trap thing. 
 
       usedTrap = true;
+      if (conflict(r.from, r.from + 1, r.fromRelocatedCode)) return Failed;
+
       generateTrap(r.from, r.destinations.begin()->second, gen);
-	  //cerr << hex << "Generated springboard trap: " << hex << r.from << " -> " << r.destinations.begin()->second << dec << endl;
-	  if (conflict(r.from, r.from + gen.used(), r.fromRelocatedCode)) {
-         // Someone could already be there; omit the trap. 
-         return Failed;
-      }
+      size = 1;
    }
 
    if (r.includeRelocatedCopies) {
       createRelocSpringboards(r, usedTrap, input);
    }
+   
+   if (!usedTrap) {
+      registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
+      springboards.push_back(gen);
+   }
+   else {
+      // Assume trap has size 1
+      registerBranch(r.from, r.from + 1, r.destinations, r.fromRelocatedCode);
+   }
 
-  registerBranch(r.from, r.from + gen.used(), r.destinations, r.fromRelocatedCode);
-  springboards.push_back(gen);
-
-  return Succeeded;
+   return Succeeded;
 }
 
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &,
@@ -353,8 +361,12 @@ void SpringboardBuilder::registerBranch
       validRanges_.remove(lb);
 
       if (idToUse == -1) idToUse = state;
-        else assert(idToUse = state);
-
+      else {
+         if (idToUse != state) {
+            cerr << "Error: idToUse " << idToUse << " and state " << state << endl;
+         }
+         assert(idToUse == state);
+      }
       if (LB == 0) LB = lb;
       working = ub;
    }
@@ -406,14 +418,9 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
-	//cerr << "Springboard: generateTrap " << hex << from << " -> " << to << dec << endl;
-	gen.invalidate();
-  gen.allocate(4);
-  gen.setAddrSpace(addrSpace_);
-  gen.setAddr(from);
-  springboard_cerr << "YUCK! Springboard trap at: "<< hex << from << "->" << to << dec << endl;
-  addrSpace_->trapMapping.addTrapMapping(from, to, true);
-  insnCodeGen::generateTrap(gen);
+   // This has to be an AddressSpace method, since we use trap instructions
+   // for the rewriter and ProcControl methods for dynamic mode.
+   addrSpace_->addTrap(from, to, gen);
 }
 
 bool SpringboardBuilder::createRelocSpringboards(const SpringboardReq &req, 

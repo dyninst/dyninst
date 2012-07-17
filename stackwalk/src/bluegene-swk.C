@@ -194,7 +194,7 @@ namespace Dyninst {
       }
 
       // extract process and thread id from the BG message.
-      pid_t pid = msg.header.nodeNumber;   
+      pid_t pid = msg.header.nodeNumber;
       THR_ID tid = msg.header.thread;
       int returnCode = msg.header.returnCode;
       sw_printf("[%s:%u] - Received debug event %s from pid %d, tid %d, rc %d\n", __FILE__, __LINE__,
@@ -770,7 +770,7 @@ namespace Dyninst {
             val = 0x0;
             break;
          default:
-            sw_printf("[%s:%u] - Request for unsupported register %s\n", __FILE__, __LINE__, reg.name().c_str());
+            sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg.name().c_str());
             setLastError(err_badparam, "Unknown register passed in reg field");
             return false;
       }   
@@ -958,7 +958,8 @@ namespace Dyninst {
     // ============================================================ //
     // SymtabLibState -- need to differentiate for P
     // ============================================================ //
-     bool TrackLibState::updateLibsArch() {
+     bool LibraryState::updateLibsArch(vector<pair<LibAddrPair, unsigned int> > &)
+     {
         return true;
      }
 

@@ -51,22 +51,20 @@ void test1_37_inc3();
  * keyword static so they don't interfere with other mutatees in the group.
  */
 
-int globalVariable37_1 = 0;
-int globalVariable37_2 = 0;
-int globalVariable37_3 = 0;
+/* Global variables used internally by the mutatee.  These should be declared
+ * with the keyword static so they don't interfere with other mutatees in the
+ * group.
+ */
+
+static volatile int globalVariable37_1 = 0;
+static volatile int globalVariable37_2 = 0;
+static volatile int globalVariable37_3 = 0;
 
 /* Function definitions follow */
 
 /* Test #37 (loop instrumentation) */
 
 int test1_37_mutatee() {
-/* Alpha is no longer supported, so I'm commenting out this check
- * #if defined(os_osf_test)
- *    passedTest [ 37 ] = TRUE;
- *    logerror( "Skipped test #37 (instrument loops)\n" );
- *    logerror( "\t- known to be a problem on this platform-- hah!\n" );
- * #else
- */
   int failed = FALSE;
 
     const int ANSWER37_1 = 11002;
@@ -103,8 +101,6 @@ int test1_37_mutatee() {
     } else {
       return -1; /* Test failed */
     }
-
-/* #endif /* !Alpha */
 }
 
 void test1_37_inc1() { globalVariable37_1++; }

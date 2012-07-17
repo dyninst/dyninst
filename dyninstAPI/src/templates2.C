@@ -87,11 +87,6 @@ template class dictionary_hash<std::string, BPatch_localVar *>;
 template class dictionary_hash_iter<std::string, BPatch_localVar *>;
 template class pdvector<dictionary_hash <std::string, BPatch_localVar *>::entry>;
 
-#include "EventHandler.h"
-template class pdvector<EventRecord>;
-template class dictionary_hash<Address, threadmap_t *>;
-template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
-
 template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
 
 class BPatch_basicBlock;
@@ -109,28 +104,6 @@ template class std::map< unsigned int, char * >;
 class BPatch_typeCollection;
 template class dictionary_hash< std::string, BPatch_typeCollection * >;
 template class pdvector<dictionary_hash <std::string, BPatch_typeCollection *>::entry>;
-
-#include "signalhandler.h"
-#include "BPatch_asyncEventHandler.h"
-#include "mailbox.h"
-#include "callbacks.h"
-#include "debuggerinterface.h"
-/* From class BPatch_asyncEventHandler */
-template class pdvector<process_record>;
-template class pdvector<BPatchSnippetHandle *>;
-template class pdvector<BPatch_function *>;
-template class pdvector<eventLock::lock_stack_elem>;
-class EventGate;
-template class pdvector<EventGate *>;
-template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
-template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
-
-template class pdvector<CallbackBase *>;
-template class pdvector<AsyncThreadEventCallback *>;
-template class pdvector<void *>;
-template class pdvector<eventType>;
-template class pdvector<dyn_lwp *>;
-template class pdvector<SignalHandler *>;
 
 template class dictionary_hash< std::string, bool >;
 template class pdvector< dictionary_hash< std::string, bool >::entry >;

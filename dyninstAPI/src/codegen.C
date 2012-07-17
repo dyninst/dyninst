@@ -36,20 +36,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include "addressSpace.h"
-#include "process.h"
+#include "dynThread.h"
+#include "dynProcess.h"
 #include "common/h/Types.h"
-#include "common/h/parseauxv.h"
 #if defined (os_osf)
 #include <malloc.h>
 #endif
 #include "codegen.h"
 #include "util.h"
 #include "function.h"
-#include "dyn_thread.h"
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "pcrel.h"
 #include "bitArray.h"
+
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/InstructionDecoder.h"
+#endif
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
@@ -68,7 +71,6 @@ codeGen::codeGen() :
     allocated_(false),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
     t_(NULL),
     addr_((Address)-1),
@@ -77,8 +79,7 @@ codeGen::codeGen() :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false), // save default
-    obj_(NULL)
+    inInstrumentation_(false) // save default
 {}
 
 // size is in bytes
@@ -90,7 +91,6 @@ codeGen::codeGen(unsigned size) :
     allocated_(true),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
 	t_(NULL),
     addr_((Address)-1),
@@ -99,8 +99,7 @@ codeGen::codeGen(unsigned size) :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false),
-    obj_(NULL)
+    inInstrumentation_(false)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     if (!buffer_)
@@ -118,7 +117,6 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     allocated_(false),
     aSpace_(NULL),
     thr_(NULL),
-    lwp_(NULL),
     rs_(NULL),
     t_(NULL),
     addr_((Address)-1),
@@ -127,8 +125,7 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     bt_(NULL),
     isPadded_(true),
     trackRegDefs_(false),
-    inInstrumentation_(false),
-    obj_(NULL)
+    inInstrumentation_(false)
 {
     assert(buffer_);
     memset(buffer_, 0, size+codeGenPadding);
@@ -149,7 +146,6 @@ codeGen::codeGen(const codeGen &g) :
     allocated_(g.allocated_),
     aSpace_(g.aSpace_),
     thr_(g.thr_),
-    lwp_(g.lwp_),
     rs_(g.rs_),
 	t_(g.t_),
     addr_(g.addr_),
@@ -158,8 +154,7 @@ codeGen::codeGen(const codeGen &g) :
     bt_(g.bt_),
     isPadded_(g.isPadded_),
     trackRegDefs_(g.trackRegDefs_),
-    inInstrumentation_(g.inInstrumentation_),
-    obj_(g.obj_)
+    inInstrumentation_(g.inInstrumentation_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -187,12 +182,9 @@ codeGen &codeGen::operator=(const codeGen &g) {
     max_ = g.max_;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
-    lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     inInstrumentation_ = g.inInstrumentation_;
-    obj_ = g.obj_;
-    
 
     if (size_ != 0) {
        assert(allocated_); 
@@ -304,6 +296,8 @@ void codeGen::copy(const std::vector<unsigned char> &buf) {
    realloc(used() + buf.size());
    
    unsigned char * ptr = (unsigned char *)cur_ptr();
+	assert(ptr);
+
    std::copy(buf.begin(), buf.end(), ptr);
 
    moveIndex(buf.size());
@@ -480,7 +474,6 @@ void codeGen::applyTemplate(const codeGen &c) {
   emitter_ = c.emitter_;
   aSpace_ = c.aSpace_;
   thr_ = c.thr_;
-  lwp_ = c.lwp_;
   rs_ = c.rs_;
   t_ = c.t_;
   ip_ = c.ip_;
@@ -670,13 +663,7 @@ void toAddressPatch::set_address(Address a) {
 
 codeGen codeGen::baseTemplate;
 
-dyn_lwp *codeGen::lwp() const {
-    if (lwp_) return lwp_;
-    if (thr_) return thr_->get_lwp();
-    return NULL;
-}
-
-dyn_thread *codeGen::thread() const {
+PCThread *codeGen::thread() {
     return thr_;
 }
 
@@ -684,7 +671,7 @@ AddressSpace *codeGen::addrSpace() const {
     if (aSpace_) { return aSpace_; }
     if (f_) { return f_->proc(); }
     if (ip_) { return ip_->proc(); }
-    if (thr_) { return thr_->get_proc(); }
+    if (thr_) { return thr_->getProc(); }
     return NULL;
 }
 
@@ -708,10 +695,6 @@ regTracker_t *codeGen::tracker() const {
 
 Emitter *codeGen::codeEmitter() const {
     return emitter_;
-}
-
-generatedCodeObject *codeGen::obj() const {
-    return obj_;
 }
 
 void codeGen::beginTrackRegDefs()

@@ -1,7 +1,7 @@
 # === local definitions ===
 
 BUILD_MARK=
-BUILD_NUM=-576
+BUILD_NUM=-1
 
 #Are any alternatives to g++ available?
 
@@ -37,7 +37,16 @@ LIBDWARF_HASSETFRAME = @LIBDWARF_HAS_SET_FRAME@
 LIBXML2_LIB	= @LIBXML2_LIB_DIR@
 LIBXML2_INC	= @LIBXML2_INC_DIR@
 
-WRAPPER_LIBS = @ARG_WRAPPER_LIBS@
+#LaunchMON used on BlueGene by the testsuite
+LAUNCHMON_LIB = @LAUNCHMON_LIB_DIR@
+LAUNCHMON_INC = @LAUNCHMON_INC_DIR@
+
+#Thread_db is required by FreeBSD and BlueGene, and is optional on Linux
+THREAD_DB_LIB = @THREADDB_LIB_DIR@
+THREAD_DB_INC = @THREADDB_INC_DIR@
+THREAD_DB_STATIC = @THREADDB_STATIC@
+THREAD_DB_DYNAMIC = @THREADDB_DYNAMIC@
+HAVE_THREAD_DB = @HAVE_THREADDB@
 
 #build Paradyn using Tcl/Tk 8.3
 USE_TCL83 = @USE_TCL83@
@@ -58,6 +67,7 @@ LINK_LIBERTY = @LINK_LIBERTY@
 #nice to have: where is libiberty?
 LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
 
+DEFAULT_COMPONENT = @DEFAULT_COMPONENT@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
@@ -72,22 +82,25 @@ AC_DEF 	       = @DEFS@
 @STACKPROT@
 @BUILD32@
 
+build = @build@
+host = @host@
+
 prefix = @prefix@
-exec_prefix = @exec_prefix@/${PLATFORM}
-libdir ?= @prefix@/lib
-bindir ?= @prefix@/bin
-includedir ?= @prefix@/include
+exec_prefix = @exec_prefix@
+libdir = @libdir@
+bindir = @bindir@
+includedir = @includedir@
 builddir = @builddir@
 abs_builddir = @abs_builddir@
-top_build_prefix = @top_build_prefix@
 abs_top_builddir = @abs_top_builddir@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 abs_top_srcdir = @abs_top_srcdir@
 abs_srcdir = @abs_srcdir@
 
-LIBRARY_DEST = @libdir@
-PROGRAM_DEST = @bindir@
-INCLUDE_DEST = @includedir@
+INSTALL = @INSTALL@
+@LIBRARY_DEST_VAR@
+@PROGRAM_DEST_VAR@
+@INCLUDE_DEST_VAR@
 
 @TESTSUITE@

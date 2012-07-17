@@ -35,7 +35,6 @@
  * #Desc: Create processes, process events, and kill them, no instrumentation
  * #Dep: 
  * #Arch:
- * #Notes:useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -70,11 +69,7 @@ extern "C" DLLEXPORT  TestMutator *test3_1_factory() {
 }
 
 test3_1_Mutator::test3_1_Mutator() {
-#if defined(os_windows_test)
-  expectedSignal = ExitedNormally;
-#else
   expectedSignal = ExitedViaSignal;
-#endif
 
   Mutatees = 3;
 
@@ -117,8 +112,6 @@ test_results_t test3_1_Mutator::executeTest() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appProc[n]->getPid());
-	// Register mutatee for cleanup
-        registerPID(appProc[n]->getPid());
     }
 
     dprintf("Letting mutatee processes run a short while (5s).\n");

@@ -31,7 +31,6 @@
 
 #include "function.h"
 #include "parse-cfg.h"
-#include "process.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
@@ -40,6 +39,7 @@
 #include <set>
 #include <sstream>
 #include "Relocation/Transformers/Movement-analysis.h"
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -166,3 +166,10 @@ void *block_instance::getPtrToInstruction(Address addr) const {
   return obj()->getPtrToInstruction(addr);
 }
 
+void block_instance::markModified() {
+   std::vector<PatchAPI::PatchFunction *> funcs;
+   getFuncs(std::back_inserter(funcs));
+   for (unsigned i = 0; i < funcs.size(); ++i) {
+      funcs[i]->markModified();
+   }
+}

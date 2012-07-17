@@ -28,16 +28,8 @@ SRCS =		../src/Object-elf.C \
 		../src/relocationEntry-elf-sparc.C
 
 CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/ $(MYFLAGS)
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -DUSES_DWARF_DEBUG -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) $(MYFLAGS)
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -DUSES_DWARF_DEBUG -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG $(MYFLAGS)
 TFLAGS		+= -DUSES_ELF32_ONLY 
-
-LDFLAGS += -L$(LIBELF_LIB) -L$(LIBDWARF_LIB)
-ifndef LIBDWARFSTATIC
-LIBS += -ldwarf
-endif
-ifndef LIBELFSTATIC
-LIBS += -lelf
-endif
 
 SYSLIBS = -lsocket -lnsl -ldl -lrt
 

@@ -246,7 +246,7 @@ class AbsRegion {
 			 ParseAPI::Function *caller,
 			 ParseAPI::Function *callee);
 
-  DATAFLOW_EXPORT const Absloc absloc() const { return absloc_; }
+  DATAFLOW_EXPORT Absloc absloc() const { return absloc_; }
   DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
   DATAFLOW_EXPORT size_t size() const { return size_; }
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
@@ -272,13 +272,13 @@ class AbsRegion {
 
 class Assignment {
  public:
-  typedef dyn_detail::boost::shared_ptr<Assignment> Ptr;
+  typedef boost::shared_ptr<Assignment> Ptr;
   typedef std::set<AbsRegion> Aliases;
 
   DATAFLOW_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
   DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  DATAFLOW_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  DATAFLOW_EXPORT InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   DATAFLOW_EXPORT Address addr() const { return addr_; }
 
   DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }

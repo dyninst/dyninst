@@ -7,11 +7,16 @@
 #
 
 SUITE_NAME	= Stackwalker
-RELEASE_MAJOR	= 2
+RELEASE_MAJOR	= 7
 RELEASE_MINOR = 0
+
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+
+LDFLAGS += -L../../common/$(PLATFORM)
 
 ifndef TARGET
 ifdef STATIC_COMPS
@@ -19,7 +24,6 @@ STATIC_LIBRARY = true
 TARGET = libstackwalk.a
 else
 TARGET = libstackwalk.so
-MYFLAGS += -fPIC
 endif
 endif
 
@@ -51,18 +55,25 @@ PUBLIC_H   = basetypes.h \
 SRCS	     +=	../src/frame.C \
 		../src/framestepper.C \
 		../src/swk_errors.C \
-      ../src/symlookup.C \
+                ../src/symlookup.C \
 		../src/walker.C \
-      ../src/procstate.C \
-      ../src/steppergroup.C \
+                ../src/procstate.C \
+                ../src/steppergroup.C \
 		../src/libstate.C \
-		../src/sw_c.C
+		../src/sw_c.C \
+		../src/sw_pcontrol.C
 
+ifdef LIBELF_PLATFORM
+SRCS  +=  ../../common/src/Elf_X.C \
+          ../../common/src/SymLite-elf.C
+endif
+ifdef USES_DWARF_DEBUG
+SRCS  +=  ../../common/src/dwarfSW.C \
+          ../../common/src/dwarfExpr.C
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+endif
 
-# All that, and we finally get a target...
-all: $(TARGET) $(EXTRA_LIBS)
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
 
 ifdef WRAPPER_LIBS
 all: libstackwalk_c.so
@@ -84,4 +95,4 @@ libstackwalk_c.so: libsw.a sw_c.o
 	g++ -o $@ -shared sw_c.o -Wl,--exclude-libs -Wl,ALL libsw.a $(WRAPPER_LIBS_NOCOMMA)
 
 $(DEST)/libstackwalk_c.so: libstackwalk_c.so
-	-$(CP) libstackwalk_c.so $(DEST)
+	-$(INSTALL) libstackwalk_c.so $(DEST)

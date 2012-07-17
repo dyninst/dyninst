@@ -43,14 +43,14 @@
 #include "BPatch_process.h"
 #include "BPatch_frame.h"
 
-class process;
+class PCProcess;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
 class BPatch_statement;
-class dyn_thread;
+class PCThread;
 
-typedef long dynthread_t;
+typedef Dyninst::THR_ID dynthread_t;
 
 /*
  * Represents a thread of execution.
@@ -65,42 +65,27 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class BPatch_process;
     friend class BPatch_addressSpace;
     friend class BPatch;
-    friend bool pollForStatusChange();
-    friend class BPatch_asyncEventHandler;
-    friend class AsyncThreadEventCallback;
-    friend class process;
 
     BPatch_process *proc;
-    dyn_thread *llthread;
-    unsigned index;
-    bool updated;
-    bool doa;
-    bool reported_to_user; //Have we notified this user of thread creation yet?
-    //  If thread is doa, keep a record of the tid around so that user
-    //  callbacks can get the right tid, even if they can't do anything else
-    //  with it.
-    dynthread_t doa_tid;
-    bool deleted_callback_made;
-    bool is_deleted;
-    bool legacy_destructor;
+    PCThread *llthread;
+	// Sometimes we get per-thread exit notifications, sometimes we 
+	// just get whole-process. So keep track of whether we've notified
+	// the user of an exit so we don't duplicate when the process exits.
+	bool madeExitCallback_;
 
  protected:
-    BPatch_thread(BPatch_process *parent, dyn_thread *dthr);
-    BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid);
+    BPatch_thread(BPatch_process *parent, PCThread *thr);
 
-    void setDynThread(dyn_thread *thr);
     //Generator for above constructor
-    static BPatch_thread *createNewThread(BPatch_process *proc, int ind, 
-                                          int lwp_id, dynthread_t async_tid);
-    void deleteThread(bool cleanup = true);
-    void removeThreadFromProc();
-    void updateValues(dynthread_t tid, unsigned long stack_start, 
-                      BPatch_function *initial_func, int lwp_id);
+    static BPatch_thread *createNewThread(BPatch_process *proc, PCThread *thr);
+
+    // Currently only used on an exec to replace the underlying PCThread
+    void updateThread(PCThread *newThr);
+    
+	bool madeExitCallback() { return madeExitCallback_; }
+	void setMadeExitCallback() { madeExitCallback_ = true; }
 
  public:
-
-    void markVisiblyStopped(bool new_state);
-    bool isVisiblyStopped();
 
     //  BPatch_thread::getCallStack
     //  Returns a vector of BPatch_frame, representing the current call stack
@@ -116,7 +101,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     dynthread_t, getTid, ());
 
     API_EXPORT(Int, (),
-    int, getLWP, ());
+		Dyninst::LWP, getLWP, ());
 
     API_EXPORT(Int, (),
     unsigned, getBPatchID, ());
@@ -145,14 +130,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     //  Have mutatee execute specified code expr once.  Dont wait until done.
     API_EXPORT(Int, (expr, userData, cb),
     bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL));
-
-
-    /*
-    // DO NOT USE
-    // this function should go away as soon as Paradyn links against Dyninst
-    process *lowlevel_process() { return proc->llproc; }
-    */
-
 };
 
 #endif /* BPatch_thread_h_ */

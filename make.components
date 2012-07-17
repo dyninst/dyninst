@@ -1,0 +1,84 @@
+#Don't add tests to Everything
+Everything = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+
+#List of tests
+Everything_tests = testsuite parseThat
+#List dependencies for components here, followed by the component directory
+dynutil = 
+common = dynutil common
+symtabAPI = dynutil common symtabAPI
+stackwalk = dynutil common proccontrol parseAPI instructionAPI symtabAPI stackwalk
+dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+instructionAPI = dynutil common instructionAPI
+proccontrol = dynutil common proccontrol
+depGraphAPI = dynutil common depGraphAPI
+parseAPI = dynutil common symtabAPI instructionAPI parseAPI
+dataflowAPI = $(parseAPI)
+patchAPI = dynutil common parseAPI
+parseThat = $(dyninstAPI) parseThat
+dynC_API = $(dyninstAPI) dynC_API
+dyner = $(dyninstAPI) dyner
+testsuite = testsuite
+valueAdded = $(dyninstAPI) valueAdded/sharedMem
+
+#List all components with tests here
+test_comps = symtabAPI instructionAPI proccontrol dyninstAPI all patchAPI
+
+DEFAULT_COMPONENT ?= default
+ifeq ($(DEFAULT_COMPONENT),default)
+fullSystem	= $(Everything)
+BUILD_PARSETHAT = true
+else
+ifeq ($(DEFAULT_COMPONENT),SymtabAPI)
+fullSystem = $(symtabAPI)
+else
+ifeq ($(DEFAULT_COMPONENT),StackwalkerAPI)
+fullSystem = $(stackwalk)
+else
+ifeq ($(DEFAULT_COMPONENT),DyninstAPI)
+fullSystem	= $(dyninstAPI)
+BUILD_PARSETHAT = true
+else
+ifeq ($(DEFAULT_COMPONENT),InstructionAPI)
+fullSystem = $(instructionAPI)
+else
+ifeq ($(DEFAULT_COMPONENT),ProcControlAPI)
+fullSystem = $(proccontrol)
+else
+ifeq ($(DEFAULT_COMPONENT),ParseAPI)
+fullSystem = $(parseAPI)
+else
+ifeq ($(DEFAULT_COMPONENT),DataflowAPI)
+fullSystem = $(parseAPI)
+else
+default:
+	@echo Error: Build system does not have a valid default component: $(DEFAULT_COMPONENT)
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+endif
+
+ifndef DONT_BUILD_NEWTESTSUITE
+testsuites += testsuite
+fullSystem += testsuite
+ifdef BUILD_PARSETHAT
+testsuites += parseThat
+fullSystem += parseThat
+testsuite: parseThat
+testsuite_install: parseThat_install
+endif
+endif
+
+
+fullSystem_install = $(patsubst %,%_install,$(fullSystem))
+Everything_install = $(patsubst %,%_install,$(Everything))
+Everything_tests_install = $(patsubst %,%_install,$(Everything_tests))
+
+Test_targets = $(patsubst %,%_testsuite,$(test_comps))
+
+fullSystem_notests = $(filter-out testsuite,$(filter-out parseThat,$(fullSystem)))
+fullSystem_install_notests = $(filter-out testsuite_install,$(filter-out parseThat_install,$(fullSystem_install)))

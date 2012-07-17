@@ -41,8 +41,9 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/dynProcess.h"
 #include "symtabAPI/h/Symtab.h"
-#include "process.h"
 #include "InstructionDecoder.h"
 #include "Parsing.h"
 #include "instPoint.h"
@@ -80,11 +81,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,
       BPatch_hybridMode mode):
-#if defined(os_windows)
-  DynObject(img->codeObject(), proc, fileDesc.loadAddr()),
-#else
   DynObject(img->codeObject(), proc, fileDesc.code()),
-#endif
   desc_(fileDesc),
   fullName_(img->getObject()->file()),
   everyUniqueVariable(imgVarHash),
@@ -104,12 +101,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
   memEnd_(-1),
   memoryImg_(false)
 {
-   
 // Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
-#if defined(os_windows)
-   dataBase_ = fileDesc.loadAddr();
-#endif
 #if 0
    fprintf(stderr, "Creating new mapped_object %s/%s\n",
          fullName_.c_str(), getFileDesc().member().c_str());
@@ -142,6 +135,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
    }
+   assert(desc.file() != "");
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
@@ -183,30 +177,11 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
          //Executable is a shared lib
          p->proc()->setAOutLoadAddress(desc);
       }
-      // Search for main, if we can't find it, and we're creating the process,
-      // and not attaching to it, we can find it by instrumenting libc.so
-      // Currently this has only been implemented for linux
-#if defined(os_linux)
-      // More specifically, x86 and x86_64 linux
-#if defined(arch_x86) || defined(arch_x86_64)
 
-      vector <SymtabAPI::Function *> main;
-      if (p->proc() &&
-          (p->proc()->getTraceState() == noTracing_ts) &&
-          !p->proc()->wasCreatedViaAttach() &&
-          (!img->getObject()->findFunctionsByName(main,"main") &&
-           !img->getObject()->findFunctionsByName(main,"_main"))) {
-          fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
-               "\t  is not a shared object so it should contain a symbol for \n"
-               "\t  function main. Initial attempt to locate main failed,\n"
-               "\t  possibly due to the lack of a .text section\n",
-               __FILE__,__LINE__,desc.file().c_str(), p->proc()->getPid());
-         p->proc()->setTraceSysCalls(true);
-         p->proc()->setTraceState(libcOpenCall_ts);
-      }
-
-#endif // arch_x86 || arch_x86_64
-#endif // os_linux
+// Used to search for main here and enable system call tracing to find out 
+// when libc.so is loaded -- this is unnecessary now that we use ProcControlAPI
+//
+// This is now done on-demand when libc is loaded and main has yet to be found
    }
 
    // Adds exported functions and variables..
@@ -220,7 +195,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
   return obj;
 }
 
-mapped_object::mapped_object(const mapped_object *s, process *child) :
+mapped_object::mapped_object(const mapped_object *s, AddressSpace *child) :
    codeRange(),
    DynObject(s, child, s->codeBase_),
    desc_(s->desc_),
@@ -884,8 +859,82 @@ const std::string mapped_object::debugString() const
     return debug;
 }
 
-unsigned mapped_object::memoryEnd()
-{
+// Search an object for heapage
+bool mapped_object::getInfHeapList(pdvector<heapDescriptor> &infHeaps) {
+    vector<pair<string,Address> > foundHeaps;
+
+    getInferiorHeaps(foundHeaps);
+
+    for (u_int j = 0; j < foundHeaps.size(); j++) {
+        // The string layout is: DYNINSTstaticHeap_size_type_unique
+        // Can't allocate a variable-size array on NT, so malloc
+        // that sucker
+        char *temp_str = (char *)malloc(strlen(foundHeaps[j].first.c_str())+1);
+        strcpy(temp_str, foundHeaps[j].first.c_str());
+        char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
+        assert(!strcmp("DYNINSTstaticHeap", garbage_str));
+        // Name is as is.
+        // If address is zero, then skip (error condition)
+        if (foundHeaps[j].second == 0) {
+            cerr << "Skipping heap " << foundHeaps[j].first.c_str()
+                 << "with address 0" << endl;
+            continue;
+        }
+        // Size needs to be parsed out (second item)
+        // Just to make life difficult, the heap can have an optional
+        // trailing letter (k,K,m,M,g,G) which indicates that it's in
+        // kilobytes, megabytes, or gigabytes. Why gigs? I was bored.
+        char *heap_size_str = strtok(NULL, "_"); // Second element, null-terminated
+        unsigned heap_size = (unsigned) atol(heap_size_str);
+        if (heap_size == 0)
+            /* Zero size or error, either way this makes no sense for a heap */
+        {
+            free(temp_str);
+            continue;
+        }
+        switch (heap_size_str[strlen(heap_size_str)-1]) {
+        case 'g':
+        case 'G':
+            heap_size *= 1024;
+        case 'm':
+        case 'M':
+            heap_size *= 1024;
+        case 'k':
+        case 'K':
+            heap_size *= 1024;
+        default:
+            break;
+        }
+
+        // Type needs to be parsed out. Can someone clean this up?
+        inferiorHeapType heap_type;
+        char *heap_type_str = strtok(NULL, "_");
+
+        if (!strcmp(heap_type_str, "anyHeap"))
+            heap_type = anyHeap;
+        else if (!strcmp(heap_type_str, "lowmemHeap"))
+            heap_type = lowmemHeap;
+        else if (!strcmp(heap_type_str, "dataHeap"))
+            heap_type = dataHeap;
+        else if (!strcmp(heap_type_str, "textHeap"))
+            heap_type = textHeap;
+        else if (!strcmp(heap_type_str, "uncopiedHeap"))
+            heap_type = uncopiedHeap;
+        else {
+            cerr << "Unknown heap string " << heap_type_str << " read from file!" << endl;
+            free(temp_str);
+            continue;
+        }
+        infHeaps.push_back(heapDescriptor(foundHeaps[j].first.c_str(),
+                                          foundHeaps[j].second,
+                                          heap_size, heap_type));
+        free(temp_str);
+    }
+    return foundHeaps.size() > 0;
+}
+
+unsigned mapped_object::memoryEnd() 
+{ 
     if ((long)memEnd_ != -1) {
         return memEnd_;
     }
@@ -920,7 +969,7 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 
     // We have a bunch of offsets, now add in the base addresses
     for (unsigned i = 0; i < code_heaps.size(); i++) {
-        foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
+		foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
                                                   code_heaps[i].second + codeBase()));
     }
     for (unsigned i = 0; i < data_heaps.size(); i++) {
@@ -1218,6 +1267,7 @@ bool mapped_object::parseNewEdges(const std::vector<edgeStub> &stubs)
 {
     using namespace SymtabAPI;
     using namespace ParseAPI;
+
     vector<ParseAPI::CodeObject::NewEdgeToParse> edgesInThisObject;
 
 /* 0. Make sure memory for the target is up to date */
@@ -1949,6 +1999,13 @@ bool mapped_object::isSystemLib(const std::string &objname)
       return true;
 #endif
 
+#if defined(os_freebsd)
+   if(std::string::npos != lowname.find("libc.so"))
+       return true;
+   if(std::string::npos != lowname.find("libthr"))
+       return true;
+#endif
+
 #if defined(os_windows)
    if (std::string::npos != lowname.find("windows\\system32\\") &&
        std::string::npos != lowname.find(".dll"))
@@ -2156,4 +2213,3 @@ void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, 
       }
    }
 }
-

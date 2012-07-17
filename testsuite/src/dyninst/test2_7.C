@@ -65,7 +65,8 @@ static void lcase(char *s) {
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 test_results_t test2_7_Mutator::executeTest() {
 #if !defined(os_linux_test) && \
-    !defined(os_aix_test) && !defined(os_windows_test)
+    !defined(os_aix_test) && !defined(os_windows_test) && \
+    !defined(os_freebsd_test)
     logerror("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     logerror("    feature not implemented on this platform\n");
     return SKIPPED;
@@ -81,6 +82,11 @@ test_results_t test2_7_Mutator::executeTest() {
 	bool found = false;
 	char match2[256];
 	sprintf(match2, "%s_module", TEST_DYNAMIC_LIB2);
+
+        // Links are now resolved at library load so compare the names (minus the extension)
+        std::string noext(TEST_DYNAMIC_LIB2);
+        noext = noext.substr(0, noext.find_last_of("."));
+
 	BPatch_Vector<BPatch_module *> *m = appImage->getModules();
 	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
@@ -94,6 +100,7 @@ test_results_t test2_7_Mutator::executeTest() {
 #ifdef os_aix_test
 		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||
 #endif
+                    strstr(name, noext.c_str()) ||
 		    strcmp(name, match2) == 0) {
 		    found = true;
 		    break;

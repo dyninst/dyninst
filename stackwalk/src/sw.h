@@ -35,6 +35,9 @@
 #include <set>
 #include "common/h/addrRange.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/walker.h"
+#include "stackwalk/h/frame.h"
 #include "stackwalk/src/libstate.h"
 
 namespace Dyninst {
@@ -105,17 +108,66 @@ public:
 class DyninstInstrStepperImpl : public FrameStepper {
  private:
    static std::map<SymReader *, bool> isRewritten;
-   FrameStepper *parent;
-  
+   DyninstInstrStepper *parent;
+
  public:
-   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
+   DyninstInstrStepperImpl(Walker *w, DyninstInstrStepper *p);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, 
+                                    Address base, Address lib_base, 
 				    unsigned size, unsigned stack_height);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual const char *getName() const;
    virtual ~DyninstInstrStepperImpl();
+};
+
+class DyninstDynamicStepperImpl : public FrameStepper {
+ private:
+   DyninstDynamicStepper *parent;
+   DyninstDynamicHelper *helper;
+   bool prevEntryExit; // remember if the previous frame was entry/exit instrumentation
+  
+ public:
+   DyninstDynamicStepperImpl(Walker *w, DyninstDynamicStepper *p, DyninstDynamicHelper *h);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, 
+                                    Address base, Address lib_base, 
+				    unsigned size, unsigned stack_height,
+                                    Address orig_ra, bool pEntryExit);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual const char *getName() const;
+   virtual ~DyninstDynamicStepperImpl();
+};
+
+class CallChecker {
+    private:
+       ProcessState * proc;
+    public:
+      CallChecker(ProcessState * proc_);
+      ~CallChecker();
+      bool isPrevInstrACall(Address addr, Address & target); 
+};
+
+class int_walkerSet {
+   friend class Dyninst::Stackwalker::WalkerSet;
+public:
+   int_walkerSet();
+   ~int_walkerSet();
+
+   pair<set<Walker *>::iterator, bool> insert(Walker *w);
+   void erase(set<Walker *>::iterator i);
+private:
+   void addToProcSet(ProcDebug *);
+   void eraseFromProcSet(ProcDebug *);
+   void clearProcSet();
+   void initProcSet();
+   bool walkStacksProcSet(CallTree &tree, bool &bad_plat);
+
+   unsigned non_pd_walkers;
+   set<Walker *> walkers;
+   void *procset; //Opaque pointer, will refer to a ProcControl::ProcessSet in some situations
 };
 
 }

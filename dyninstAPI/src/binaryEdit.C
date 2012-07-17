@@ -299,7 +299,10 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const std::string &member) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, 
+                                 PatchMgrPtr mgr, 
+                                 Dyninst::PatchAPI::Patcher *patch,
+                                 const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -334,9 +337,11 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, PatchMgrPtr mgr, const
 
     /* PatchAPI stuffs */
     if (!mgr) {
-      newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
+       newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
     } else {
-      newBinaryEdit->setMgr(mgr);
+       newBinaryEdit->setMgr(mgr);
+       assert(patch);
+       newBinaryEdit->setPatcher(patch);
     }
     newBinaryEdit->addMappedObject(newBinaryEdit->mobj);
     /* End of PatchAPI stuffs */
@@ -396,7 +401,7 @@ mapped_object *BinaryEdit::openResolvedLibraryName(std::string filename, std::ma
      */
     std::map<std::string, BinaryEdit *> retMap;
     assert(mgr());
-    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr());
+    BinaryEdit *temp = BinaryEdit::openFile(filename, mgr(), patcher());
 
     if( temp && temp->getAddressWidth() == getAddressWidth() ) {
        allOpened.insert(std::make_pair(filename, temp));
@@ -507,8 +512,10 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->getAllRegions(oldSegs);
 
       //Write any traps to the mutatee
-      trapMapping.shouldBlockFlushes(false);
-      trapMapping.flush();
+      if (canUseTraps()) {
+         trapMapping.shouldBlockFlushes(false);
+         trapMapping.flush();
+      }
 
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < oldSegs.size(); i++) {
@@ -800,8 +807,6 @@ void BinaryEdit::addLibraryPrereq(std::string libname) {
 // To keep this list (somewhat) short, we're doing one symbol per extent of 
 // instrumentation + relocation for a particular function. 
 // New: do this for one mapped object. 
-
-
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                                      Region *newSec,
                                      Module *newMod) {
@@ -1033,5 +1038,14 @@ bool BinaryEdit::needsPIC()
    //If there is a fixed load address, then we can calculate 
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
+}
+
+void BinaryEdit::addTrap(Address from, Address to, codeGen &gen) {
+   gen.invalidate();
+   gen.allocate(4);
+   gen.setAddrSpace(this);
+   gen.setAddr(from);
+   insnCodeGen::generateTrap(gen);
+   trapMapping.addTrapMapping(from, to, true);
 }
 

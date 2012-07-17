@@ -55,7 +55,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    std::vector<AbsRegion> &regions) {
   // If we're a memory dereference, then convert us and all
   // used registers.
-  if (dyn_detail::boost::dynamic_pointer_cast<Dereference>(expr)) {
+  if (boost::dynamic_pointer_cast<Dereference>(expr)) {
     std::vector<Expression::Ptr> tmp;
     // Strip dereference...
     expr->getChildren(tmp);
@@ -71,7 +71,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   expr->getUses(used);
   for (std::set<InstructionAST::Ptr>::const_iterator j = used.begin();
        j != used.end(); ++j) {
-    regions.push_back(convert(dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(*j)));
+    regions.push_back(convert(boost::dynamic_pointer_cast<RegisterAST>(*j)));
   }
 }
 

@@ -37,7 +37,7 @@ all: $(TARGETS)
 OVERRIDE_INSTALL = true
 
 install: $(TARGETS) install_generic
-	-$(CP) $(TARGETS) $(DEST)
+	-$(INSTALL) $(TARGETS) $(DEST)
 
 libdynShmMutatee.so: $(MUTATEE_OBJS)
 	$(LD) $(LDFLAGS) $(LDFLAGS_MUTATEE) -o libdynShmMutatee.so $(MUTATEE_OBJS)

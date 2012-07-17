@@ -85,8 +85,6 @@ using namespace std;
 #include <boost/assign/list_of.hpp>
 #include <boost/assign/std/set.hpp>
 
-#include "common/src/Elf_X.C"
-
 using namespace boost::assign;
 
 #include <libgen.h>
@@ -865,29 +863,29 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
           We want to concatenate them and search for BGP to determine
           if the binary is built for BGP compute nodes */
 
-	Elf_X_Data data = scnp->get_data();
+       Elf_X_Data data = scnp->get_data();
         
-	unsigned int index = 0;
-	size_t size = data.d_size();
-	char *buf = (char *) data.d_buf();
-        while (index < size)
-        {
-                string comment = buf+index;
-                size_t pos_p = comment.find("BGP");
-                size_t pos_q = comment.find("BGQ");
-                if (pos_p !=string::npos) {
-                        isBlueGeneP_ = true;
-                        break;
-                } else if (pos_q !=string::npos) {
-					         isBlueGeneQ_ = true;
-								break;
-					}
-                index += comment.size();
-                if (comment.size() == 0) { // Skip NULL characters in the comment section
-                        index ++;
-                }
-        }
-     }
+       unsigned int index = 0;
+       size_t size = data.d_size();
+       char *buf = (char *) data.d_buf();
+       while (buf && (index < size))
+       {
+          string comment = buf+index;
+          size_t pos_p = comment.find("BGP");
+          size_t pos_q = comment.find("BGQ");
+          if (pos_p !=string::npos) {
+             isBlueGeneP_ = true;
+             break;
+          } else if (pos_q !=string::npos) {
+             isBlueGeneQ_ = true;
+             break;
+          }
+          index += comment.size();
+          if (comment.size() == 0) { // Skip NULL characters in the comment section
+             index ++;
+          }
+       }
+    }
 
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) &&
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
@@ -2261,7 +2259,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
          continue;
 
       Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size()) {
+      if(secNumber >= 1 && secNumber < regions_.size()) {
          sec = regions_[secNumber];
       } else{
          sec = NULL;		
@@ -5157,7 +5155,7 @@ void Object::parseStabTypes(Symtab *obj)
 	while (ptr[strlen(ptr)-1] == '\\') {
 	  //ptr[strlen(ptr)-1] = '\0';
 	  ptr2 =  const_cast<char *>(stabptr->name(i+1));
-	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+	  ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2) + 1);
 	  strcpy(ptr3, ptr);
 	  ptr3[strlen(ptr)-1] = '\0';
 	  strcat(ptr3, ptr2);
@@ -5293,7 +5291,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
         Elf_X_Shdr *strtab_scnp) {
 
-  const char *shnames = pdelf_get_shnames(elfHdr);
+   //const char *shnames = pdelf_get_shnames(elfHdr);
     // Setup symbol table access
     Offset dynsym_offset = 0;
     Elf_X_Data dynsym_data, dynstr_data;    
@@ -5372,6 +5370,15 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         Elf_X_Shdr *curSymHdr = allRegionHdrsByShndx[shdr->sh_link()];
 
+        // Check whether curSymHdr actually points to something intellegible
+        if ((!dynstr || curSymHdr->sh_offset() != dynsym_offset) &&
+            (!strtab || curSymHdr->sh_offset() != symtab_offset)) {
+           // Warning: there is no valid relocation data here since there
+           // aren't any symbols
+           fprintf(stderr, "%s[%d]: warning: possibly erroneous relocation section %d does not have a elf link field (%d) to either symtab or dynsymtab\n", FILE__, __LINE__, i, shdr->sh_link());
+           continue;
+        }
+
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
             Offset relOff, addend = 0;
@@ -5400,8 +5407,9 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
             // Determine which symbol table to use
             Symbol *sym = NULL;
-            if( curSymHdr->sh_offset() == dynsym_offset ) {
-                name = string( &dynstr[dynsym.st_name(symbol_index)] );
+            // Use dynstr to ensure we've initialized dynsym...
+            if( dynstr && curSymHdr->sh_offset() == dynsym_offset ) {
+               name = string( &dynstr[dynsym.st_name(symbol_index)] );
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
                 sym_it = dynsymByIndex.find(symbol_index);
@@ -5411,7 +5419,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 			name = sym->getSec()->getRegionName().c_str();
 	            }		 
                 }
-            }else if( curSymHdr->sh_offset() == symtab_offset ) {
+            }else if( strtab && curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
 
                 dyn_hash_map<int, Symbol *>::iterator sym_it;
@@ -5423,10 +5431,10 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 		    }
                 }
             }else{
-                fprintf(stderr, "%s[%d]: warning: unknown symbol table "
-                        "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
-                        "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
-                        symtab_offset, dynsym_offset);
+               fprintf(stderr, "%s[%d]: warning: unknown symbol table "
+                       "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
+                       "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
+                       symtab_offset, dynsym_offset);
                 continue;
             }
 

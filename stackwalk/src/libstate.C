@@ -110,7 +110,9 @@ bool TrackLibState::updateLibs()
                  __FILE__, __LINE__, pid);
       needs_update = true;
    }
-   if (!updateLibsArch()) {
+
+   vector<pair<LibAddrPair, unsigned int> > arch_libs;
+   if (!updateLibsArch(arch_libs)) {
 #if !defined(os_linux) && !defined(arch_x86_64)
       sw_printf("[%s:%u] - updateLibsArch failed\n",  __FILE__, __LINE__);
 #endif
@@ -251,7 +253,7 @@ static bool libNameMatch(const char *s, const char *libname)
    return false;
 }
 
-bool TrackLibState::getLibc(LibAddrPair &addr_pair)
+bool LibraryState::getLibc(LibAddrPair &addr_pair)
 {
    std::vector<LibAddrPair> libs;
    getLibraries(libs);
@@ -270,7 +272,7 @@ bool TrackLibState::getLibc(LibAddrPair &addr_pair)
    return false;
 }
 
-bool TrackLibState::getLibthread(LibAddrPair &addr_pair)
+bool LibraryState::getLibthread(LibAddrPair &addr_pair)
 {
    std::vector<LibAddrPair> libs;
    getLibraries(libs);
@@ -281,7 +283,7 @@ bool TrackLibState::getLibthread(LibAddrPair &addr_pair)
    }
    for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
    {
-      if (libNameMatch("pthread", i->first.c_str())) {
+      if (libNameMatch("pthread", i->first.c_str()) || libNameMatch("thr", i->first.c_str()))  {
          addr_pair = *i;
          return true;
       }
@@ -349,6 +351,15 @@ void LibraryWrapper::registerLibrary(SymReader *reader, std::string filename)
    libs.file_map[filename] = reader;
 }
  
+SymReader *LibraryWrapper::testLibrary(std::string filename)
+{
+   std::map<std::string, SymReader *>::iterator i = libs.file_map.find(filename);
+   if (i != libs.file_map.end()) {
+      return i->second;
+   }
+   return NULL;
+}
+
 StaticBinaryLibState::StaticBinaryLibState(ProcessState *parent, std::string executable) :
    LibraryState(parent)
 {

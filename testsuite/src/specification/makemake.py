@@ -153,6 +153,11 @@ def mutatee_binary(mutatee):
                            mutatee_bto_component(mutatee),
                            es)
 
+# Returns the command used to invoke the compiler
+def compiler_command(compiler, platform, abi):
+   return compiler['abiflags'][platform['name']][abi]['command']
+
+
 #
 ######################################################################
 
@@ -219,7 +224,8 @@ def print_mutators_list(out, mutator_dict, test_dict):
 		except KeyError:
 			print "Couldn't find libs for mutator " + m['name']
 			raise
-		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) %s\n" % (ObjSuffix, module, libstr))
+                out.write("\t@echo Linking mutator $@\n");
+		out.write("\t$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) %s\n" % (ObjSuffix, module, libstr))
 		out.write("ifndef NO_OPT_FLAG\n")
 		out.write("ifdef STRIP_SO\n")
 		out.write("\t$(STRIP_SO) $@\n")
@@ -357,6 +363,10 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('STOPPED, ')
 		elif group['start_state'] == 'running':
 			out.write('RUNNING, ')
+		elif group['start_state'] == 'selfattach':
+			out.write('SELFATTACH, ')
+                elif group['start_state'] == 'delayedattach':
+                        out.write('DELAYEDATTACH, ')
 		else: # Assuming 'selfstart'
 			out.write('SELFSTART, ')
 		if group['run_mode'] == 'createProcess':
@@ -379,6 +389,14 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('SingleProcess, ')
 		elif group['process_mode'] == 'MultiProcess':
 			out.write('MultiProcess, ')
+
+		out.write(group['mutatorstart'])
+		out.write(', ')
+		out.write(group['mutateestart'])
+		out.write(', ')
+		out.write(group['mutateeruntime'])
+		out.write(', ')
+
                 if group['format'] == 'staticMutatee':
                         out.write('StaticLink, ')
                 else:
@@ -401,7 +419,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			print "No module found! Test object: " 
 			print testobj[0]
 			raise
-		out.write(', "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi']))
+		out.write(', "%s", "%s", "%s", "%s", "%s"' % (module, group['compiler'], group['optimization'], group['abi'], group['platmode']))
 		out.write(');\n')
 		for test in group['tests']:
 			# Set the tuple string for this test
@@ -470,20 +488,84 @@ def has_multiple_tests(testgroup):
       print t
       raise
 
-def print_mutatee_rules(out, mutatees, compiler, module):
+def print_mutatee_rules(out, mutatees, compiler, module, platform):
 	if(len(mutatees) == 0):
 		return
+	mut_static_mabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '32', mutatees))
+	mut_static_nonmabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] == 'staticMutatee' and y['abi'] == '64', mutatees))
+	mut_dynamic_mabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee' and y['abi'] == '32', mutatees))
+	mut_dynamic_nonmabi = map(lambda x: mutatee_binary(x), filter(lambda y: y['format'] != 'staticMutatee' and y['abi'] == '64', mutatees))
 	mut_names = map(lambda x: mutatee_binary(x), mutatees)
 	out.write("######################################################################\n")
 	out.write("# Mutatees compiled with %s for %s\n" % (mutatees[0]['compiler'], module))
 	out.write("######################################################################\n\n")
-	if compiler['presencevar'] != 'true':
+        ifdef_comp = (compiler['presencevar'] != 'true')
+        exists_32 = '32' in compiler['abiflags'][platform['name']]
+        exists_64 = '64' in compiler['abiflags'][platform['name']]
+        ifdef_32 = ifdef_comp and exists_32
+        ifdef_64 = ifdef_comp and exists_64
+	if ifdef_comp:
 		out.write("ifdef %s\n" % (compiler['presencevar']))
 		out.write("# We only want to build these targets if the compiler exists\n")
-	out.write("%s_SOLO_MUTATEES_%s = " % (module, compiler['defstring']))
-	for m in mut_names:
+        if ('c++' in compiler['languages']):
+		out.write("ifndef SKIP_TEST_STATIC_32_C++\n")
+		if ifdef_32:
+ 			out.write("ifdef M_%s\n" % (compiler_command(compiler,platform,'32')))
+		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
+		for m in mut_static_mabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		if ifdef_32:
+ 			out.write("endif\n")
+		out.write("endif\n")
+		out.write("ifndef SKIP_TEST_STATIC_64_C++\n")
+		if ifdef_64:
+ 			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
+		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
+		for m in mut_static_nonmabi:
+			out.write("%s " % (m))
+		out.write('\n')
+		if ifdef_64:
+ 			out.write("endif\n")
+		out.write("endif\n")
+        else:
+		out.write("ifndef SKIP_TEST_STATIC_32_NONC++\n")
+		if ifdef_32:
+			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
+		out.write("%s_SOLO_MUTATEES_STATIC_32_%s = " % (module, compiler['defstring']))
+		for m in mut_static_mabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		if ifdef_32:
+ 			out.write("endif\n")
+		out.write("endif\n")
+		out.write("ifndef SKIP_TEST_STATIC_64_NONC++\n")
+		if ifdef_64:
+			out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
+		out.write("%s_SOLO_MUTATEES_STATIC_64_%s = " % (module, compiler['defstring']))
+		for m in mut_static_nonmabi:
+ 			out.write("%s " % (m))
+		out.write('\n')
+		if ifdef_64:
+ 			out.write("endif\n")
+		out.write("endif\n")
+	if ifdef_32:
+		out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['32']['command']))
+	out.write("%s_SOLO_MUTATEES_DYNAMIC_32_%s = " % (module, compiler['defstring']))
+	for m in mut_dynamic_mabi:
 		out.write("%s " % (m))
 	out.write('\n')
+	if ifdef_32:
+		out.write("endif\n")
+	if ifdef_64:
+		out.write("ifdef M_%s\n" % (compiler['abiflags'][platform['name']]['64']['command']))
+	out.write("%s_SOLO_MUTATEES_DYNAMIC_64_%s = " % (module, compiler['defstring']))
+	for m in mut_dynamic_nonmabi:
+		out.write("%s " % (m))
+	out.write('\n')
+	if ifdef_64:
+		out.write("endif\n")
+	out.write("%s_SOLO_MUTATEES_%s = $(%s_SOLO_MUTATEES_STATIC_32_%s) $(%s_SOLO_MUTATEES_STATIC_64_%s) $(%s_SOLO_MUTATEES_DYNAMIC_32_%s) $(%s_SOLO_MUTATEES_DYNAMIC_64_%s)\n" % (module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring'], module, compiler['defstring']))
 	if compiler['presencevar'] != 'true':
 		out.write("endif\n")
 	out.write("\n")
@@ -498,7 +580,6 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 	# Write rules for building the mutatee executables from the object files
 	for (m, n) in zip(mutatees, mut_names):
 		out.write("%s: " % (n))
-
 		group_mutatee_list = filter(has_multiple_tests, groups)
 		group_mutatee_list = filter(lambda g: g['mutatee'] == m['name'], group_mutatee_list)
 		group_boilerplates = uniq(map(lambda g: g['mutatee'] + '_group.c', group_mutatee_list))
@@ -589,12 +670,13 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 			out.write("mutatee_driver_solo_%s_%s%s\n"
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
-		out.write("\t%s %s -o $@ $(filter %%%s,$^) %s %s"
-				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
+		out.write("\t@echo Linking $@\n");
+		out.write("\t$(HIDE_COMP)%s %s -o $@ $(filter %%%s,$^) %s %s "
+				  % (platform['linker'] or "$(M_%s)" % compiler['abiflags'][platform['name']][m['abi']]['command'],
 				    compiler['flags']['std'],
 					 ObjSuffix,
 					 compiler['flags']['link'],
-					 compiler['abiflags'][platform['name']][m['abi']]))
+					 compiler['abiflags'][platform['name']][m['abi']]['flags']))
                 if m['format'] == 'staticMutatee':
                     linkage = compiler['staticlink']
                 else:
@@ -636,7 +718,8 @@ def print_special_object_rules(compiler, out):
 		for d in o['dependencies']:
 			out.write("%s " % (d))
 		out.write("\n")
-		out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
+		out.write("\t@echo Compiling $@\n")
+		out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) " % (info['compilers'][compiler]['defstring']))
 		for f in o['flags']:
 			out.write("%s " % (f))
 		out.write("-o $@ %s " % info['compilers'][compiler]['parameters']['partial_compile'])
@@ -653,7 +736,7 @@ def object_flag_string(platform, compiler, abi, optimization, pic):
    return "%s %s %s %s %s %s" % (compiler['flags']['std'],
                         compiler['flags']['mutatee'],
                         compiler['parameters']['partial_compile'],
-                        compiler['abiflags'][platform['name']][abi],
+                        compiler['abiflags'][platform['name']][abi]['flags'],
                         compiler['optimization'][optimization],
                         compiler['pic'][pic])
 
@@ -676,8 +759,9 @@ def print_patterns_wildcards(c, out, module):
                     else:
                         out.write("%%%s%s: ../src/%s/%%%s\n"
                                     % (cto, ObjSuffix, module, e))
-                    out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
-                                % (compiler['defstring'],
+                    out.write("\t@echo Compiling $@\n");
+                    out.write("\t$(HIDE_COMP)$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+                                % (compiler['abiflags'][platform['name']][abi]['command'],
                                     object_flag_string(platform, compiler,
                                                     abi, o, p)))
 def is_valid_test(mutatee):
@@ -736,8 +820,9 @@ def print_patterns(c, out, module):
 
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
-				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
-						% (compiler['defstring'], module,
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 						   module,
 						   basename, module, sourcefile))
@@ -748,8 +833,9 @@ def print_patterns(c, out, module):
 
 				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
-				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
-						% (compiler['defstring'], module,
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
+						% (compiler_command(compiler, platform, abi), module,
 						   object_flag_string(platform, compiler, abi, o, p),
 
 						   module,
@@ -766,8 +852,9 @@ def print_patterns(c, out, module):
                                     ext = extension(sourcefile)
                                     basename = sourcefile[0:-len(ext)]
                                     out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
-                                    out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
-                                                            % (compiler['defstring'], module,
+                                    out.write("\t@echo Compling $@\n")
+                                    out.write("\t$(HIDE_COMP)$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
+                                                            % (compiler_command(compiler, platform, abi), module,
                                                                     object_flag_string(platform, compiler, abi, o, p)))
 
 	out.write("\n")
@@ -796,8 +883,9 @@ def print_aux_patterns(out, platform, comps, module):
 								 ext))
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
-					out.write("\t$(M_%s) %s -o $@ $<\n\n"
-							  % (comp['defstring'],
+					out.write("\t@echo Compiling $@\n")
+					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
+							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
 					if (module != None):
@@ -810,8 +898,9 @@ def print_aux_patterns(out, platform, comps, module):
 										  ext))
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
-					out.write("\t$(M_%s) %s -o $@ $<\n\n"
-							  % (comp['defstring'],
+					out.write("\t@echo Compiling $@\n")
+					out.write("\t$(HIDE_COMP)$(M_%s) %s -o $@ $<\n\n"
+							  % (compiler_command(comp, platform, abi),
 								 object_flag_string(platform, comp, abi, o, p)))
 
 
@@ -824,17 +913,11 @@ def print_make_solo_mutatee_gen_footer(out, comps, platform, module):
    for c in comps:
       out.write("$(%sSOLO_MUTATEES_%s) " % (module, compilers[c]['defstring']))
    out.write("\n\n")
-   out.write(".PHONY: clean_solo_mutatees\n")
+   out.write(".PHONY: %s_clean_solo_mutatees\n" % (module))
    out.write("%s_clean_solo_mutatees:\n" % (module))
    for c in comps:
-      out.write("\t-$(RM) $(%s_SOLO_MUTATEES_%s)\n"
+      out.write("\t$(HIDE_COMP)-$(RM) $(%s_SOLO_MUTATEES_%s)\n"
               % (module, compilers[c]['defstring']))
-   # Get a list of optimization levels we're using and delete the mutatee
-   # objects for each of them individually
-   objExt = platform['filename_conventions']['object_suffix']
-   # FIXME Get the actual list of optimization levels we support
-   for o in ['none', 'low', 'high', 'max']:
-      out.write("\t-$(RM) *_%s%s\n" % (o, objExt))
    out.write("\n\n")
    out.write("%s_SOLO_MUTATEES =" % (module))
    for c in comps:
@@ -891,7 +974,7 @@ def accumulate_tests_by_mutatee(acc, g):
 
 def write_group_mutatee_boilerplate(filename_pre, filename_post, tuplefile):
    read_tuples(tuplefile)
-   groups = filter(lambda g: len(g['tests']) > 25, info['rungroups'])
+   groups = filter(lambda g: len(g['tests']) >= 2, info['rungroups'])
    tests_by_group = reduce(accumulate_tests_by_mutatee, groups, {})
    for mutatee, tests in tests_by_group.iteritems():
       write_group_mutatee_boilerplate_file(filename_pre + mutatee + filename_post, tests)
@@ -914,7 +997,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		for m in modules:
 			muts = filter(lambda x: x['compiler'] == c and is_valid_test(x) == 'true' and get_module(x) == m, mutatees)
 			if(len(muts) != 0):
-				print_mutatee_rules(out, muts, compilers[c], m)
+				print_mutatee_rules(out, muts, compilers[c], m, platform)
 		# Print rules for exceptional object files
 		print_special_object_rules(c, out)
 
@@ -929,19 +1012,21 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		if 'c' in info['compilers'][c]['languages']:
 			for abi in platform['abis']:
 				out.write("mutatee_driver_solo_%s_%s%s: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi, ObjSuffix))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n"
-						  % (compilers[c]['defstring'],
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n"
+						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
+							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 				out.write("mutatee_util_%s_%s%s: ../src/mutatee_util.c\n"
 						  % (info['compilers'][c]['executable'],
 							 abi, ObjSuffix))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n\n"
-						  % (compilers[c]['defstring'],
+				out.write("\t@echo Compiling $@\n")
+				out.write("\t$(HIDE_COMP)$(M_%s) %s %s %s -o $@ -c $<\n\n"
+						  % (compiler_command(compilers[c], platform, abi),
 							 compilers[c]['flags']['std'],
 							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
+							 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 		else:
 			out.write("# (Skipped: driver and utility objects cannot be compiled with this compiler\n")
 
@@ -1088,6 +1173,10 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			state_init = 'STOPPED'
 		elif group['start_state'] == 'running':
 			state_init = 'RUNNING'
+		elif group['start_state'] == 'selfattach':
+			state_init = 'SELFATTACH'
+                elif group['start_state'] == 'delayedattach':
+                        state_init = 'DELAYEDATTACH'
 		else: # Assuming 'selfstart'
 			state_init = 'SELFSTART'
 		if group['run_mode'] == 'createProcess':
@@ -1172,8 +1261,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
   for (int i = 0; i < %d; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
-			rungroup_params[i].optimization, rungroup_params[i].abi);
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
+			rungroup_params[i].optimization, rungroup_params[i].abi, "NONE");
     
     do {
       tp_index++;
@@ -1451,7 +1540,7 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 		out.write("\t%s %s -out:$@ $** %s "
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 					 compiler['flags']['link'],
-					 compiler['abiflags'][platform['name']][m['abi']]))
+					 compiler['abiflags'][platform['name']][m['abi']]['flags']))
 		# TODO: libraries
 		#for l in m['libraries']:
 		# Need to include the required libraries on the command line
@@ -1590,7 +1679,7 @@ def write_make_solo_mutatee_gen_nt(filename, tuplefile):
 								 compilers[c]['flags']['std'],
 								 compilers[c]['flags']['mutatee'],
 								 opt_flag,
-								 compilers[c]['abiflags'][platform['name']][abi]))
+								 compilers[c]['abiflags'][platform['name']][abi]['flags']))
 					# TODO: find where these files live in our data structures
 					# and remove the hardcoding!
 

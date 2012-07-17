@@ -60,17 +60,6 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int max;
    volatile int guard2;
    int debug=0;
-   //if (input >= 0x400000 && input < 0x500000) {
-       fprintf(stOut, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
-               input, origAddr, curAddr);
-       fflush(stOut);
-       debug = 1;
-   //}
-
-#ifdef DEBUG_MEM_EM
-   fprintf(stOut, "RTtranslateMemory(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
-           input, origAddr, curAddr);
-#endif
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -96,46 +85,15 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
 
    if (min <= max) {
       if (RTmemoryMapper.elements[index].shift == -1) {
-         fprintf(stOut, "... returning 0 (should be) segv!\n");
-         fflush(stOut);
          return 0;
       }
       else {
-#ifdef  DEBUG_MEM_EM
-        fprintf(stOut, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
-                RTmemoryMapper.elements[index].lo,
-                RTmemoryMapper.elements[index].hi,
-                RTmemoryMapper.elements[index].shift);
-        fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
-                * (int *)(input + RTmemoryMapper.elements[index].shift));
-        fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
-#endif
-        if (debug) {
-            fprintf(stOut, "... returning shadow copy as index is within range 0x%lx to 0x%lx, shift 0x%lx\n",
-                    RTmemoryMapper.elements[index].lo,
-                    RTmemoryMapper.elements[index].hi,
-                    RTmemoryMapper.elements[index].shift);
-            fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                    input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
-                    * (int *)(input + RTmemoryMapper.elements[index].shift));
-            fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
-        }
-        fflush(stOut);
         return input + RTmemoryMapper.elements[index].shift;
       }
    }
    else {
-#ifdef  DEBUG_MEM_EM
-      fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
-#endif
-	   if (debug) fprintf(stOut, "\t no shift, returning input\n");
-      fflush(stOut);
       return input;
    }
-   fflush(stOut);
    return 0;
 }
 
@@ -146,16 +104,6 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
    int min;
    int max;
    volatile int guard2;
-
-#ifdef  DEBUG_MEM_EM
-   fprintf(stOut, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
-           input, origAddr, curAddr);
-#endif
-   //if (input >= 0x409000 && input < 0x4009100) {
-        fprintf(stOut, "RTtranslateMemoryShift(ptr 0x%lx, origInsn 0x%lx, curAddr 0x%lx)\n", 
-               input, origAddr, curAddr);
-       debug = 1;
-   //}
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -185,33 +133,12 @@ unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr
          return -1 * input;
       }
       else {
-#ifdef DEBUG_MEM_EM
-         fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
-                 * (int *)(input + RTmemoryMapper.elements[index].shift));
-         fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
-#endif
-       if (debug) {
-         fprintf(stOut, "Original 0x%lx, dereferenced 0x%x, now 0x%lx, deref 0x%x ", 
-                 input, * (int *) input, (input + RTmemoryMapper.elements[index].shift),
-                 * (int *)(input + RTmemoryMapper.elements[index].shift));
-         fprintf(stOut, "equal=%d\n", (*(int*)input) == *(int*)(input + RTmemoryMapper.elements[index].shift));
-       }
-       fflush(stOut);
        return RTmemoryMapper.elements[index].shift;
       }
    }
    else {
-#ifdef DEBUG_MEM_EM
-      fprintf(stOut, "\t min %d, max %d, index %d returning no change\n", min, max, index);
-      //fprintf(stOut, "\t min %d, max %d, index %d returning no change ", min, max, index);
-      //fprintf(stOut, "@deref 0x%x\n", *(int*)input);
-#endif
-	  if (debug) fprintf(stOut, "\t No shift\n");
-      fflush(stOut);
-	  return 0;
+      return 0;
    }
-   fflush(stOut);
    return 0;
 }
 
@@ -219,7 +146,7 @@ int RTuntranslatedEntryCounter;
 extern void DYNINST_stopThread (void * pointAddr, void *callBackID, void *flags, void *calculation);
 
 void RThandleShadow(void *direction, void *pointAddr, void *callbackID, void *flags, void *calculation) {
-    if ((long)direction == 1) {
+   if ((int)((long) direction) == 1) {
         if (RTuntranslatedEntryCounter == 0) {
             // Entering a system call...
             DYNINST_stopThread(pointAddr, callbackID, flags, (void *)1);

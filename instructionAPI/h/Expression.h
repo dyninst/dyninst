@@ -36,7 +36,6 @@
 #include "InstructionAST.h"
 #include "Result.h"
 
-#include <dyn_detail/boost/shared_ptr.hpp>
 #include <vector>
 #include <sstream>
 
@@ -122,7 +121,7 @@ namespace Dyninst
     {
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
-      typedef dyn_detail::boost::shared_ptr<Expression> Ptr;
+      typedef boost::shared_ptr<Expression> Ptr;
       friend class Operation;
     protected:      
       Expression(Result_Type t);

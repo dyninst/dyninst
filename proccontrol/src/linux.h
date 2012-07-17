@@ -38,23 +38,26 @@
 #include "proccontrol/h/Decoder.h"
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/src/int_thread_db.h"
+
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
 #include "proccontrol/src/x86_process.h"
+#include "proccontrol/src/ppc_process.h"
+#include "proccontrol/src/mmapalloc.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
-#include <asm/ldt.h>
-
-using namespace Dyninst;
-using namespace ProcControlAPI;
 
 typedef enum __ptrace_request pt_req;
 
 class GeneratorLinux : public GeneratorMT
 {
- public:
+  private:
+   int generator_lwp;
+   int generator_pid;
+  public:
    GeneratorLinux();
    virtual ~GeneratorLinux();
 
@@ -93,21 +96,24 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : public sysv_process, public unix_process, public x86_process
+class linux_process : public sysv_process, public unix_process, public thread_db_process, public indep_lwp_control_process, public mmap_alloc_process
 {
  public:
-   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
    linux_process(Dyninst::PID pid_, int_process *p);
    virtual ~linux_process();
 
    virtual bool plat_create();
    virtual bool plat_create_int();
-   virtual bool plat_attach();   
+   virtual bool plat_attach(bool allStopped, bool &);
+   virtual bool plat_attachWillTriggerStop();
    virtual bool plat_forked();
    virtual bool plat_execed();
-   virtual bool plat_detach();
+   virtual bool plat_detach(result_response::ptr resp);
    virtual bool plat_terminate(bool &needs_sync);
-
+   virtual bool preTerminate();
+   virtual OSType getOS() const;
 
    //The following async functions are only used if a linux debugging mode,
    // 'debug_async_simulate' is enabled, which tries to get Linux to simulate having
@@ -115,23 +121,56 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual bool plat_needsAsyncIO() const;
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
-   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+   virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
                                    size_t size, result_response::ptr result);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size);
-   virtual bool plat_writeMem(int_thread *thr, void *local, 
+   virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size);
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
-   virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
-   virtual bool plat_contProcess() { return true; }
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
+   virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
+   virtual bool plat_supportLWPCreate();
+   virtual bool plat_supportLWPPreDestroy();
+   virtual bool plat_supportLWPPostDestroy();
+   virtual void plat_adjustSyncType(Event::ptr ev, bool gen);
+   virtual bool fork_setTracking(FollowFork::follow_t b);
+   virtual FollowFork *getForkTracking();
+   virtual FollowFork::follow_t fork_isTracking();
+  protected:
+   int computeAddrWidth(Dyninst::Architecture me);
+   FollowFork *fork_tracker;
 };
 
-class linux_thread : public int_thread
+class linux_x86_process : virtual public linux_process, virtual public x86_process
+{
+  public:
+   linux_x86_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_x86_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_x86_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+   virtual bool plat_supportHWBreakpoint();
+};
+
+class linux_ppc_process : virtual public linux_process, virtual public ppc_process
+{
+  public:
+   linux_ppc_process(Dyninst::PID p, std::string e, std::vector<std::string> a, 
+           std::vector<std::string> envp, std::map<int,int> f);
+   linux_ppc_process(Dyninst::PID pid_, int_process *p);
+   virtual ~linux_ppc_process();
+
+   virtual Dyninst::Architecture getTargetArch();
+};
+
+
+class linux_thread : virtual public thread_db_thread
 {
  public:
    linux_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
@@ -155,15 +194,35 @@ class linux_thread : public int_thread
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
-
-   // Needed by HybridLWPControl, unused on Linux
-   virtual bool plat_resume() { return true; }
-   virtual bool plat_suspend() { return true; }
+   virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
+   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
 
    void setOptions();
+   bool unsetOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-
+   
    static void fake_async_main(void *);
+};
+
+class linux_x86_thread : virtual public linux_thread, virtual public x86_thread
+{
+  public:
+   linux_x86_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_x86_thread();
+};
+
+class linux_ppc_thread : virtual public linux_thread, virtual public ppc_thread
+{
+  public:
+   linux_ppc_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
+   virtual ~linux_ppc_thread();
+};
+
+class LinuxFeatures : public LibraryTracking, public ThreadTracking, FollowFork
+{
+  public:
+   LinuxFeatures();
+   ~LinuxFeatures();
 };
 
 class LinuxPtrace
@@ -207,7 +266,7 @@ public:
    void main();
    long ptrace_int(pt_req request_, pid_t pid_, void *addr_, void *data_);
    bool ptrace_read(Dyninst::Address inTrace, unsigned size_, void *inSelf, int pid_);
-   bool ptrace_write(Dyninst::Address inTrace, unsigned size_, void *inSelf, int pid_);
+   bool ptrace_write(Dyninst::Address inTrace, unsigned size_, const void *inSelf, int pid_);
 
    bool plat_create(linux_process *p);
 };
@@ -223,5 +282,18 @@ class LinuxHandleNewThr : public Handler
    virtual int getPriority() const;
    void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+class LinuxHandleLWPDestroy : public Handler
+{
+ public:
+     LinuxHandleLWPDestroy();
+     virtual ~LinuxHandleLWPDestroy();
+     virtual handler_ret_t handleEvent(Event::ptr ev);
+     virtual int getPriority() const;
+     void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+
+SymbolReaderFactory *getElfReader();
 
 #endif

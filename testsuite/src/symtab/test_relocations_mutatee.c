@@ -63,7 +63,7 @@ void func_relocations_mutatee()
 	sprintf(buf,"a");
 	snprintf(buf,2, "%s", "aaaaaa");
 	memcpy(buf, "aaaa", 4*sizeof(char));
-	strcmp(buf, "aaaa");
+	if (strcmp(buf, "aaaa")) {};
 	memset(buf, 0, 4*sizeof(char));
    f = fopen("/blaarch", "rw");
 	fwrite(buf, sizeof(char), 4, f);

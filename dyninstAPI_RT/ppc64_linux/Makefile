@@ -28,7 +28,7 @@ CFLAGS		+= -O2
 CC              = $(GCC)
 LD              = $(GCC)
 STATIC_CFLAGS  := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
-CFLAGS          += -I. -I../.. -fpic
+CFLAGS          += -I. -I../..
 
 LIBS 		+= -ldl
 
@@ -41,7 +41,6 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap.c \
 		   ../src/RTheap-linux.c \
 		   ../src/RTthread.c \
-		   ../src/RTthread-index.c \
 		   ../src/RTthread-powerpc.c \
 		   ../src/RTthread-powerpc-asm.S \
 		   ../src/RTstatic_ctors_dtors-ppc64.c \

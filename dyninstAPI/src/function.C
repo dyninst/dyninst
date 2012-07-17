@@ -32,8 +32,9 @@
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp
 
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
+#include "debug.h"
+#include "dynProcess.h"
 
 #include "mapped_object.h"
 #include "mapped_module.h"
@@ -595,7 +596,6 @@ bool func_instance::addSymbolsForCopy() {
    }
    else {
       // I think we just add this to the dynamic symbol table...
-      cerr << "Adding symbol... " << hex << wrapperSym << " " << wrapperSym->getName() << dec << endl;
       wrapperSym->setDynamic(true);
       proc()->edit()->addDyninstSymbol(wrapperSym_);
    }
@@ -820,6 +820,9 @@ void func_instance::add_block_cb(block_instance * /*block*/)
 #endif
 }
 
+void func_instance::markModified() {
+   proc()->addModifiedFunction(this);
+}
 
 // get caller blocks that aren't in deadBlocks
 bool func_instance::getLiveCallerBlocks

@@ -43,7 +43,7 @@
 
 #include "ProcReader.h"
 
-#include "dyn_detail/boost/shared_ptr.hpp"
+#include "boost/shared_ptr.hpp"
 
 class MappedFile;
 
@@ -246,8 +246,8 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addType(Type *typ);
 
-   static dyn_detail::boost::shared_ptr<builtInTypeCollection> builtInTypes();
-   static dyn_detail::boost::shared_ptr<typeCollection> stdTypes();
+   static boost::shared_ptr<builtInTypeCollection> builtInTypes();
+   static boost::shared_ptr<typeCollection> stdTypes();
 
    SYMTAB_EXPORT static std::vector<Type *> *getAllstdTypes();
    SYMTAB_EXPORT static std::vector<Type *> *getAllbuiltInTypes();
@@ -429,8 +429,8 @@ class Symtab : public LookupInterface,
    /***** Private Data Members *****/
    private:
 
-   static dyn_detail::boost::shared_ptr<typeCollection> setupStdTypes();
-   static dyn_detail::boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
+   static boost::shared_ptr<typeCollection> setupStdTypes();
+   static boost::shared_ptr<builtInTypeCollection> setupBuiltinTypes();
 
 
    std::string member_name_;
@@ -483,9 +483,6 @@ class Symtab : public LookupInterface,
    // Indices
 
    std::vector<Symbol *> everyDefinedSymbol;
-   // Subset of the above
-   std::set<Symbol *> userAddedSymbols;
-
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
@@ -602,8 +599,8 @@ class Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   static dyn_detail::boost::shared_ptr<Type> type_Error();
-   static dyn_detail::boost::shared_ptr<Type> type_Untyped();
+   static boost::shared_ptr<Type> type_Error();
+   static boost::shared_ptr<Type> type_Untyped();
 
  private:
     unsigned _ref_cnt;

@@ -330,3 +330,93 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
     }
     return convertRegID(toBeConverted->getID(), wasUpcast);
 }
+
+map<Register, MachRegister> machRegisterMapx86_64 = map_list_of
+        (REGNUM_R8, x86_64::r8)
+        (REGNUM_R9, x86_64::r9)
+        (REGNUM_R10, x86_64::r10)
+        (REGNUM_R11, x86_64::r11)
+        (REGNUM_R12, x86_64::r12)
+        (REGNUM_R13, x86_64::r13)
+        (REGNUM_R14, x86_64::r14)
+        (REGNUM_R15, x86_64::r15)
+        (REGNUM_RAX, x86_64::rax)
+        (REGNUM_RCX, x86_64::rcx)
+        (REGNUM_RDX, x86_64::rdx)
+        (REGNUM_RBX, x86_64::rbx)
+        (REGNUM_RSP, x86_64::rsp)
+        (REGNUM_RBP, x86_64::rbp)
+        (REGNUM_RSI, x86_64::rsi)
+        (REGNUM_RDI, x86_64::rdi)
+        (REGNUM_CF, x86_64::cf)
+        (REGNUM_PF, x86_64::pf)
+        (REGNUM_AF, x86_64::af)
+        (REGNUM_ZF, x86_64::zf)  
+        (REGNUM_SF, x86_64::sf)
+        (REGNUM_TF, x86_64::tf)
+        (REGNUM_DF, x86_64::df)
+        (REGNUM_OF, x86_64::of)
+        (REGNUM_NT, x86_64::nt_)
+        (REGNUM_IF, x86_64::if_)
+        (REGNUM_EFLAGS, x86_64::flags)
+        (REGNUM_XMM0, x86_64::xmm0)
+        (REGNUM_XMM1, x86_64::xmm1)
+        (REGNUM_XMM2, x86_64::xmm2)
+        (REGNUM_XMM3, x86_64::xmm3)
+        (REGNUM_XMM4, x86_64::xmm4)
+        (REGNUM_XMM5, x86_64::xmm5)
+        (REGNUM_XMM6, x86_64::xmm6)
+        (REGNUM_XMM7, x86_64::xmm7)
+        ;
+
+map<Register, MachRegister> machRegisterMapx86 = map_list_of
+        (REGNUM_EAX, x86::eax)
+        (REGNUM_ECX, x86::ecx)
+        (REGNUM_EDX, x86::edx)
+        (REGNUM_EBX, x86::ebx)
+        (REGNUM_ESP, x86::esp)
+        (REGNUM_EBP, x86::ebp)
+        (REGNUM_ESI, x86::esi)
+        (REGNUM_EDI, x86::edi)
+        (REGNUM_CF, x86::cf)
+        (REGNUM_PF, x86::pf)
+        (REGNUM_AF, x86::af)
+        (REGNUM_ZF, x86::zf)  
+        (REGNUM_SF, x86::sf)
+        (REGNUM_TF, x86::tf)
+        (REGNUM_DF, x86::df)
+        (REGNUM_OF, x86::of)
+        (REGNUM_NT, x86::nt_)
+        (REGNUM_IF, x86::if_)
+        (REGNUM_EFLAGS, x86::flags)
+        (REGNUM_XMM0, x86::xmm0)
+        (REGNUM_XMM1, x86::xmm1)
+        (REGNUM_XMM2, x86::xmm2)
+        (REGNUM_XMM3, x86::xmm3)
+        (REGNUM_XMM4, x86::xmm4)
+        (REGNUM_XMM5, x86::xmm5)
+        (REGNUM_XMM6, x86::xmm6)
+        (REGNUM_XMM7, x86::xmm7)
+        ;
+
+
+MachRegister convertRegID(Register reg, Dyninst::Architecture arch) {
+    map<Register, MachRegister>::const_iterator found;
+    switch(arch) {
+        case Arch_x86_64:
+            found = machRegisterMapx86_64.find(reg);
+            assert(    found != machRegisterMapx86_64.end() 
+                    && "No Register->MachRegister mapping found" );
+            break;
+        case Arch_x86:
+            found = machRegisterMapx86.find(reg);
+            assert(    found != machRegisterMapx86.end() 
+                    && "No Register->MachRegister mapping found" );
+            break;
+        default:
+            assert(!"Invalid architecture");
+            break;
+    }
+
+    return found->second;
+}

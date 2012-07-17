@@ -43,7 +43,7 @@
 #include "BPatch_edge.h"
 #include "BPatch_function.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -63,7 +63,6 @@ using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
-using namespace dyn_detail::boost;
 
 AnnotationClass <DDG::Ptr> DDGAnno(std::string("DDGAnno"));
 

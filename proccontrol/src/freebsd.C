@@ -41,14 +41,9 @@
 #include "proccontrol/src/snippets.h"
 #include "proccontrol/src/freebsd.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/int_event.h"
 #include "common/h/freebsdKludges.h"
-
-using namespace Dyninst;
-using namespace ProcControlAPI;
-
-#define ELF_X_NAMESPACE ProcControlAPI
 #include "common/h/SymLite-elf.h"
-#include "common/src/Elf_X.C"
 
 // System includes
 #include <sys/syscall.h>
@@ -71,6 +66,9 @@ using namespace ProcControlAPI;
 
 #include <map>
 using std::make_pair;
+
+using namespace Dyninst;
+using namespace ProcControlAPI;
 
 /*
  * FreeBSD Bug Descriptions
@@ -117,8 +115,6 @@ using std::make_pair;
  * See the Stop, Bootstrap event handlers and the post_attach
  * function for more detailed comments.
  *
- * TODO submit a problem report to FreeBSD devs for this
- *
  * --- bug_freebsd_change_pc ---
  *
  * Here is the scenario:
@@ -145,9 +141,6 @@ using std::make_pair;
  * ChangePCStop, which is only defined on platforms this bug affects.
  *  
  * See the ChangePCHandler as well for more info.
- *
- * TODO submit a problem report (or possibly a feature request) to 
- * FreeBSD devs for this
  *
  * --- bug_freebsd_lost_signal ---
  *
@@ -181,10 +174,17 @@ using std::make_pair;
  * the OS could deschedule the ProcControl process and the debuggee could hit a
  * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
  * being inconsistent).
+ *
+ * --- bug_freebsd_attach_stop ---
+ *
+ * When attaching to a stopped process on FreeBSD, the stopped process is resumed on
+ * attach. This isn't the expected behavior. The best we can do is send a signal to
+ * the debuggee after attach to allow us to regain control of the debuggee.
  */
 
+static GeneratorFreeBSD *gen = NULL;
+
 Generator *Generator::getDefaultGenerator() {
-    static GeneratorFreeBSD *gen = NULL;
     if( NULL == gen ) {
         gen = new GeneratorFreeBSD();
         assert(gen);
@@ -233,23 +233,6 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
         return newevent;
     }
 
-    if (dyninst_debug_proccontrol)
-    {
-        pthrd_printf("Waitpid return status %x for pid %d:\n", status, pid);
-        if (WIFEXITED(status))
-            pthrd_printf("Exited with %d\n", WEXITSTATUS(status));
-        else if (WIFSIGNALED(status))
-            pthrd_printf("Exited with signal %d\n", WTERMSIG(status));
-        else if (WIFSTOPPED(status))
-            pthrd_printf("Stopped with signal %d\n", WSTOPSIG(status));
-#if defined(WIFCONTINUED)
-        else if (WIFCONTINUED(status))
-            perr_printf("Continued with signal SIGCONT (Unexpected)\n");
-#endif
-        else
-            pthrd_printf("Unable to interpret waitpid return.\n");
-    }
-
     // On FreeBSD, we need to get information about the thread that caused the
     // stop via ptrace -- try for all cases; the ptrace call will fail for some
     struct ptrace_lwpinfo lwpInfo;
@@ -264,6 +247,23 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
             newevent = new ArchEventFreeBSD(errsv);
             return newevent;
         }
+    }
+
+    if (dyninst_debug_proccontrol)
+    {
+        pthrd_printf("Waitpid return status %x for pid %d/%d:\n", status, pid, lwp);
+        if (WIFEXITED(status))
+            pthrd_printf("Exited with %d\n", WEXITSTATUS(status));
+        else if (WIFSIGNALED(status))
+            pthrd_printf("Exited with signal %d\n", WTERMSIG(status));
+        else if (WIFSTOPPED(status))
+            pthrd_printf("Stopped with signal %d\n", WSTOPSIG(status));
+#if defined(WIFCONTINUED)
+        else if (WIFCONTINUED(status))
+            perr_printf("Continued with signal SIGCONT (Unexpected)\n");
+#endif
+        else
+            pthrd_printf("Unable to interpret waitpid return.\n");
     }
 
     newevent = new ArchEventFreeBSD(pid, lwp, status);
@@ -387,6 +387,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     break;
                 }
 
+                if( lproc->isForking() ) {
+                    event = Event::ptr(new EventFork(EventType::Post, proc->getPid()));
+
+                    // Need to maintain consistent behavior across platforms
+                    freebsd_process *parent = lproc->getParent();
+                    assert(parent);
+                    event->setProcess(parent->proc());
+                    event->setThread(parent->threadPool()->initialThread()->thread());
+                    break;
+                }
+    
                 // Relying on fall through for bootstrap and other SIGSTOPs
             }
             case SIGTRAP: {
@@ -398,16 +409,16 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 }
 
                 Dyninst::MachRegisterVal addr;
-		reg_response::ptr regvalue = reg_response::createRegResponse();
+                reg_response::ptr regvalue = reg_response::createRegResponse();
                 result = thread->getRegister(MachRegister::getPC(proc->getTargetArch()), regvalue);
-		bool is_ready = regvalue->isReady();
+                bool is_ready = regvalue->isReady();
                 if (!result || regvalue->hasError()) {
                     perr_printf("Failed to read PC address upon SIGTRAP\n");
                     return false;
                 }
-		assert(is_ready);	       
-		addr = regvalue->getResult();
-		regvalue = reg_response::ptr();
+                assert(is_ready);
+                addr = regvalue->getResult();
+                regvalue = reg_response::ptr();
 
                 Dyninst::Address adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
@@ -420,56 +431,28 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 }
 
                 // Check if it is a breakpoint
-                installed_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
+                sw_breakpoint *ibp = proc->getBreakpoint(adjusted_addr);
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
-                    event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
+                    int_eventBreakpoint *new_int_bp = new int_eventBreakpoint(adjusted_addr, ibp, thread);
+                    EventBreakpoint::ptr event_bp = EventBreakpoint::ptr(new EventBreakpoint(new_int_bp));
+                    event = event_bp;
+                    event->setThread(thread->thread());
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
-                        Event::ptr lib_event = Event::ptr(new EventLibrary());
+                        EventLibrary::ptr lib_event = EventLibrary::ptr(new EventLibrary());
                         lib_event->setThread(thread->thread());
                         lib_event->setProcess(proc->proc());
+                        lib_event->setSyncType(Event::sync_process);
                         event->addSubservientEvent(lib_event);
-                    }else{
-                        // Check for thread events
-                        vector<Event::ptr> threadEvents;
-                        if( lproc->getEventsAtAddr(adjusted_addr, lthread, threadEvents) ) {
-                            vector<Event::ptr>::iterator threadEventIter;
-                            for(threadEventIter = threadEvents.begin(); threadEventIter != threadEvents.end();
-                                    ++threadEventIter)
-                            {
-                                // An event is created for the initial thread, but this thread is already
-                                // created during bootstrap. Ignore any create events for threads that
-                                // are already created.
-                                if( (*threadEventIter)->getEventType().code() == EventType::ThreadCreate ) {
-                                    Dyninst::LWP createdLWP = (*threadEventIter)->getEventNewThread()->getLWP();
-                                    int_thread * newThread = ProcPool()->findThread(createdLWP);
-                                    if( NULL != newThread ) {
-                                        freebsd_thread *newlThread = static_cast<freebsd_thread *>(newThread);
-                                        pthrd_printf("Thread already created for %d/%d\n", proc->getPid(),
-                                                createdLWP);
+                        break;
+                    }
 
-                                        if( !newlThread->plat_resume() ) {
-                                            perr_printf("Failed to resume already created thread %d/%d\n", 
-                                                    proc->getPid(), createdLWP);
-                                            return false;
-                                        }
-
-                                        // Still need to enable events for it -- this can't be done during
-                                        // bootstrap because the thread_db library isn't guaranteed to 
-                                        // be initialized at bootstrap
-                                        newlThread->setEventReporting(true);
-                                        continue;
-                                    }
-                                }
-
-                                (*threadEventIter)->setThread(thread->thread());
-                                (*threadEventIter)->setProcess(proc->proc());
-                                event->addSubservientEvent(*threadEventIter);
-                            }
-                        }
+                    if (lproc->decodeTdbBreakpoint(event_bp)) {
+                        pthrd_printf("Breakpoint was thread event\n");
+                        break;
                     }
                     break;
                 }
@@ -478,17 +461,13 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     ibp = thread->isClearingBreakpoint();
                     if( ibp ) {
                         pthrd_printf("Decoded event to breakpoint cleanup\n");
-                        event = Event::ptr(new EventBreakpointClear(ibp));
-
-                        // For a thread_db_process, post-ThreadDestroy events happen
-                        // after a BreakpointClear
-                        vector<Event::ptr> destroyEvents;
-                        if( lproc->getPostDestroyEvents(destroyEvents) ) {
-                            vector<Event::ptr>::iterator eventIter;
-                            for(eventIter = destroyEvents.begin(); eventIter != destroyEvents.end(); ++eventIter) {
-                                event->addSubservientEvent(*eventIter);
-                                (*eventIter)->getThread()->llthrd()->setGeneratorState(int_thread::exited);
-                            }
+                        event = EventBreakpointRestore::ptr(new EventBreakpointRestore(new int_eventBreakpointRestore(ibp)));
+                        if (thread->singleStepUserMode()) {
+                           Event::ptr subservient_ss = EventSingleStep::ptr(new EventSingleStep());
+                           subservient_ss->setProcess(proc->proc());
+                           subservient_ss->setThread(thread->thread());
+                           subservient_ss->setSyncType(Event::sync_process);
+                           event->addSubservientEvent(subservient_ss);
                         }
                     }else{
                         pthrd_printf("Decoded event to single step on %d/%d\n",
@@ -535,6 +514,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                 pthrd_printf("Decoded event to signal %d on %d/%d\n",
                         stopsig, proc->getPid(), thread->getLWP());
 
+                // If we are re-attaching to a process that we created that has been receiving signals,
+                // we can get one of these signals before the bootstrap stop -- ignore this event for
+                // now
+                if( lproc->getState() == int_process::neonatal_intermediate ) {
+                    pthrd_printf("Received signal %d before attach stop\n", stopsig);
+                    if( !lproc->threadPool()->initialThread()->plat_cont()) {
+                        perr_printf("Failed to continue process to flush out attach stop\n");
+                    }
+                    return true;
+                }
+
                 if( lthread->hasPCBugCondition() && stopsig == PC_BUG_SIGNAL ) {
                     pthrd_printf("Decoded event to change PC stop\n");
                     event = Event::ptr(new EventChangePCStop());
@@ -575,7 +565,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
              * ProcControlAPI process, ProcControlAPI will receive two copies of the exit
              * event. The second event should be ignored.
              */
-            if( int_thread::exited == thread->getGeneratorState() ) {
+            if( int_thread::exited == thread->getGeneratorState().getState() ) {
                 pthrd_printf("Decoded duplicate exit event of process %d/%d with code %d\n",
                         proc->getPid(), thread->getLWP(), exitcode);
                 return true;
@@ -586,15 +576,27 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             event = Event::ptr(new EventExit(EventType::Post, exitcode));
         }else{
             int termsig = WTERMSIG(status);
-            pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
-                    proc->getPid(), thread->getLWP(), termsig);
-            event = Event::ptr(new EventCrash(termsig));
+            if( int_thread::exited == thread->getGeneratorState().getState() ) {
+                pthrd_printf("Decoded duplicate terminate event of process %d/%d with signal %d\n",
+                        proc->getPid(), thread->getLWP(), termsig);
+                return true;
+            }
+
+            if( proc->wasForcedTerminated() ) {
+                pthrd_printf("Decoded event to force terminate of %d/%d\n",
+                        proc->getPid(), thread->getLWP());
+                event = Event::ptr(new EventForceTerminate(termsig));
+            }else{
+                pthrd_printf("Decoded event to crash of %d/%d with signal %d\n",
+                        proc->getPid(), thread->getLWP(), termsig);
+                event = Event::ptr(new EventCrash(termsig));
+            }
         }
         event->setSyncType(Event::sync_process);
 
         int_threadPool::iterator i = proc->threadPool()->begin();
         for(; i != proc->threadPool()->end(); ++i) {
-            (*i)->setGeneratorState(int_thread::exited);
+           (*i)->getGeneratorState().setState(int_thread::exited);
         }
     }
 
@@ -607,8 +609,13 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         if( event && event->getSyncType() == Event::unset)
             event->setSyncType(Event::sync_process);
 
-        event->setThread(thread->thread());
-        event->setProcess(proc->proc());
+        if( event->getThread() == Thread::ptr() ) {
+            event->setThread(thread->thread());
+        }
+
+        if( event->getProcess() == Process::ptr() ) {
+            event->setProcess(proc->proc());
+        }
         events.push_back(event);
     }
 
@@ -642,16 +649,18 @@ bool tkill(pid_t pid, long lwp, int sig) {
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
     std::vector<std::string> args;
     std::map<int, int> f;
-    freebsd_process *newproc = new freebsd_process(pid_, exec, args, f);
+    std::vector<std::string> envp;
+    freebsd_process *newproc = new freebsd_process(pid_, exec, args, envp, f);
     assert(newproc);
 
     return static_cast<int_process *>(newproc);
 }
 
 int_process *int_process::createProcess(std::string exec,
-        std::vector<std::string> args, std::map<int, int> f) 
+        std::vector<std::string> args, std::vector<std::string> envp,
+        std::map<int, int> f) 
 {
-    freebsd_process *newproc = new freebsd_process(0, exec, args, f);
+    freebsd_process *newproc = new freebsd_process(0, exec, args, envp, f);
     assert(newproc);
     return static_cast<int_process *>(newproc);
 }
@@ -660,10 +669,6 @@ int_process *int_process::createProcess(Dyninst::PID pid_, int_process *parent) 
     freebsd_process *newproc = new freebsd_process(pid_, parent);
     assert(newproc);
     return static_cast<int_process *>(newproc);
-}
-
-int_process::ThreadControlMode int_process::getThreadControlMode() {
-    return int_process::HybridLWPControl;
 }
 
 int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_id,
@@ -684,10 +689,11 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static bool initialized = false;
-    static FreeBSDStopHandler *lstop = NULL;
+    static FreeBSDPollLWPDeathHandler *lpolldeath = NULL;
+    static FreeBSDPreForkHandler *luserfork = NULL;
 
 #if defined(bug_freebsd_mt_suspend)
-    static FreeBSDPostStopHandler *lpoststop = NULL;
+    static FreeBSDPreStopHandler *lprestop = NULL;
     static FreeBSDBootstrapHandler *lboot = NULL;
 #endif
 
@@ -696,10 +702,11 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 #endif
 
     if( !initialized ) {
-        lstop = new FreeBSDStopHandler();
+        lpolldeath = new FreeBSDPollLWPDeathHandler();
+        luserfork = new FreeBSDPreForkHandler();
 
 #if defined(bug_freebsd_mt_suspend)
-        lpoststop = new FreeBSDPostStopHandler();
+        lprestop = new FreeBSDPreStopHandler();
         lboot = new FreeBSDBootstrapHandler();
 #endif
 
@@ -709,10 +716,11 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 
         initialized = true;
     }
-    hpool->addHandler(lstop);
+    hpool->addHandler(lpolldeath);
+    hpool->addHandler(luserfork);
 
 #if defined(bug_freebsd_mt_suspend)
-    hpool->addHandler(lpoststop);
+    hpool->addHandler(lprestop);
     hpool->addHandler(lboot);
 #endif
 
@@ -721,6 +729,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
 #endif
 
     thread_db_process::addThreadDBHandlers(hpool);
+    sysv_process::addSysVHandlers(hpool);
     return hpool;
 }
 
@@ -728,21 +737,32 @@ bool ProcessPool::LWPIDsAreUnique() {
     return true;
 }
 
-freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
-  int_process(p, e, a, f),
-  thread_db_process(p, e, a, f),
-  sysv_process(p, e, a, f),
-  unix_process(p, e, a, f),
-  x86_process(p, e, a, f)
+freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, 
+        std::map<int, int> f) :
+  int_process(p, e, a, envp, f),
+  sysv_process(p, e, a, envp, f),
+  unix_process(p, e, a, envp, f),
+  x86_process(p, e, a, envp, f),
+  thread_db_process(p, e, a, envp, f),
+  mmap_alloc_process(p, e, a, envp, f),
+  hybrid_lwp_control_process(p, e, a, envp, f),
+  forking(false),
+  debugger_stopped(false),
+  parent(NULL)
 {
 }
 
 freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   int_process(pid_, p),
-  thread_db_process(pid_, p),
   sysv_process(pid_, p),
   unix_process(pid_, p),
-  x86_process(pid_, p)
+  x86_process(pid_, p),
+  thread_db_process(pid_, p),
+  mmap_alloc_process(pid_, p),
+  hybrid_lwp_control_process(pid_, p),
+  forking(false),
+  debugger_stopped(false),
+  parent(dynamic_cast<freebsd_process *>(p))
 {
 }
 
@@ -803,8 +823,17 @@ bool freebsd_process::initKQueueEvents() {
     return true;
 }
 
-bool freebsd_process::post_create() {
-    if( !thread_db_process::post_create() ) return false;
+async_ret_t freebsd_process::post_create(std::set<response::ptr> &async_responses)
+{
+   if (thread_db_process::post_create() != aret_success) 
+      return aret_error;
+   if (!initKQueueEvents()) 
+      return aret_error;
+   return aret_success;
+}
+
+bool freebsd_process::post_forked() {
+    if( !unix_process::post_forked() ) return false;
 
     return initKQueueEvents();
 }
@@ -835,7 +864,22 @@ bool freebsd_process::plat_create() {
     return true;
 }
 
-bool freebsd_process::plat_attach() {
+bool freebsd_process::plat_getOSRunningStates(map<Dyninst::LWP, bool> &runningStates) {
+    if( !sysctl_getRunningStates(pid, runningStates) ) {
+        pthrd_printf("Unable to retrieve process information via sysctl for pid %d\n",
+                pid);
+        setLastError(err_noproc, "Unable to retrieve process information via sysctl\n");
+        return false;
+    }
+    return true;
+}
+
+OSType freebsd_process::getOS() const
+{
+   return Dyninst::FreeBSD;
+}
+
+bool freebsd_process::plat_attach(bool allStopped, bool &) {
     pthrd_printf("Attaching to pid %d\n", pid);
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;
@@ -849,10 +893,44 @@ bool freebsd_process::plat_attach() {
         }
         return false;
     }
+
+#if defined(bug_freebsd_attach_stop)
+    if(allStopped) {
+        if( !tkill(pid, threadPool()->initialThread()->getLWP(), SIGUSR2) ) {
+            perr_printf("Failed to send signal to process %d after attach\n",
+                    pid);
+            return false;
+        }
+    }
+#endif
+
     return true;
 }
 
 bool freebsd_process::plat_forked() {
+    return true;
+}
+
+bool freebsd_process::forked() {
+    setForking(false);
+
+    ProcPool()->condvar()->lock();
+
+    if( !attachThreads() ) {
+        pthrd_printf("Failed to attach to threads in %d\n", pid);
+        setLastError(err_internal, "Could not attach to process' threads");
+        return false;
+    }
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    if( !post_forked() ) {
+        pthrd_printf("Post-fork failed on %d\n", pid);
+        setLastError(err_internal, "Error handling forked process");
+        return false;
+    }
+
     return true;
 }
 
@@ -872,7 +950,7 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach() {
+bool freebsd_process::plat_detach(result_response::ptr) {
     pthrd_printf("PT_DETACH on %d\n", getPid());
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
@@ -883,12 +961,12 @@ bool freebsd_process::plat_detach() {
 
 bool freebsd_process::plat_terminate(bool &needs_sync) {
     pthrd_printf("Terminating process %d\n", getPid());
-    if( threadPool()->allStopped() ) {
-        if( 0 != ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
-            perr_printf("Failed to PT_KILL process %d\n", getPid());
-            setLastError(err_internal, "PT_KILL operation failed\n");
-            return false;
-        }
+    if (threadPool()->allHandlerStopped()) {
+       if( 0 != ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
+          perr_printf("Failed to PT_KILL process %d\n", getPid());
+          setLastError(err_internal, "PT_KILL operation failed\n");
+          return false;
+       }
     }else{
         if( kill(getPid(), SIGKILL) ) {
             perr_printf("Failed to send SIGKILL to process %d: %s\n", getPid(),
@@ -897,33 +975,21 @@ bool freebsd_process::plat_terminate(bool &needs_sync) {
             return false;
         }
     }
-
     needs_sync = true;
+
     return true;
 }
 
 bool freebsd_process::plat_readMem(int_thread *thr, void *local, 
-                         Dyninst::Address remote, size_t size) 
+                                   Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkRead(remote, size, local, thr->llproc()->getPid());
 }
 
-bool freebsd_process::plat_readProcMem(void *local, 
-        Dyninst::Address remote, size_t size)
-{
-    return PtraceBulkRead(remote, size, local, getPid());
-}
-
-bool freebsd_process::plat_writeMem(int_thread *thr, void *local, 
-                          Dyninst::Address remote, size_t size) 
+bool freebsd_process::plat_writeMem(int_thread *thr, const void *local, 
+                                    Dyninst::Address remote, size_t size) 
 {
     return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());
-}
-
-bool freebsd_process::plat_writeProcMem(void *local, 
-                          Dyninst::Address remote, size_t size) 
-{
-    return PtraceBulkWrite(remote, size, local, getPid());
 }
 
 bool freebsd_process::needIndividualThreadAttach() {
@@ -954,7 +1020,7 @@ Dyninst::Architecture freebsd_process::getTargetArch() {
 
 freebsd_thread::freebsd_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
     : thread_db_thread(p, t, l), bootstrapStop(false), pcBugCondition(false),
-      pendingPCBugSignal(false), signalStopped(false)
+      pendingPCBugSignal(false), signalStopped(false), is_pt_setstep(false)
 {
 }
 
@@ -1006,35 +1072,7 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
     return true;
 }
 
-bool freebsd_process::plat_contThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
-    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to resume lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to resume lwp");
-        return false;
-    }
-
-    return true;
-}
-
-bool freebsd_process::plat_stopThread(lwpid_t lwp) {
-    if( threadPool()->size() <= 1 ) return true;
-
-    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
-    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
-        perr_printf("Failed to suspend lwp %d: %s\n",
-                lwp, strerror(errno));
-        setLastError(err_internal, "Failed to suspend lwp");
-        return false;
-    }
-
-    return true;
-}
-
-string freebsd_process::getThreadLibName(const char *symName) {
+const char *freebsd_process::getThreadLibName(const char *symName) {
     // This hack is needed because the FreeBSD implementation doesn't
     // set the object name when looking for a symbol -- instead of
     // searching every library for the symbol, make some educated 
@@ -1051,10 +1089,10 @@ string freebsd_process::getThreadLibName(const char *symName) {
         libThreadName = "libthr.so";
     }
 
-    return libThreadName;
+    return libThreadName.c_str();
 }
 
-bool freebsd_process::isSupportedThreadLib(const string &libName) {
+bool freebsd_process::isSupportedThreadLib(string libName) {
     if( libName.find("libthr") != string::npos ) {
         return true;
     }else if( libName.find("libkse") != string::npos ) {
@@ -1064,58 +1102,105 @@ bool freebsd_process::isSupportedThreadLib(const string &libName) {
     return false;
 }
 
-FreeBSDStopHandler::FreeBSDStopHandler() 
-    : Handler("FreeBSD Stop Handler")
+bool freebsd_process::isForking() const {
+    return forking;
+}
+
+void freebsd_process::setForking(bool b) {
+    forking = b;
+}
+
+freebsd_process *freebsd_process::getParent() {
+    return parent;
+}
+
+bool freebsd_process::plat_suspendThread(int_thread *thr)
+{
+   return static_cast<freebsd_thread *>(thr)->plat_suspend();
+}
+
+bool freebsd_process::plat_resumeThread(int_thread *thr)
+{
+   return static_cast<freebsd_thread *>(thr)->plat_resume();
+}
+
+
+
+FreeBSDPollLWPDeathHandler::FreeBSDPollLWPDeathHandler() 
+    : Handler("FreeBSD Poll LWP Death")
 {}
 
-FreeBSDStopHandler::~FreeBSDStopHandler()
+FreeBSDPollLWPDeathHandler::~FreeBSDPollLWPDeathHandler()
 {}
 
-Handler::handler_ret_t FreeBSDStopHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t FreeBSDPollLWPDeathHandler::handleEvent(Event::ptr ev) {
     freebsd_process *lproc = dynamic_cast<freebsd_process *>(ev->getProcess()->llproc());
-    freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
 
-    // No extra handling is required for single-threaded debuggees
-    if( lproc->threadPool()->size() <= 1 ) return Handler::ret_success;
+    int_threadPool *tp = lproc->threadPool();
+    int_threadPool::iterator i;
 
-    if( lthread->hasPendingStop() || lthread->hasBootstrapStop() ) {
-        pthrd_printf("Pending stop on %d/%d\n",
-                lproc->getPid(), lthread->getLWP());
-        if( !lthread->plat_suspend() ) {
-            perr_printf("Failed to suspend thread %d/%d\n", 
-                    lproc->getPid(), lthread->getLWP());
-            return Handler::ret_error;
-        }
+    vector<Dyninst::LWP> lwps;
+    vector<Dyninst::LWP>::iterator j;
+    bool have_lwps = false;
 
-        // Since the default thread stop handler is being wrapped, set this flag
-        // here so the default handler doesn't have problems
-        if( lthread->hasBootstrapStop() ) {
-            lthread->setPendingStop(true);
-        }
+    std::set<int_thread *> to_clean;
+
+    for (i = tp->begin(); i != tp->end(); i++) {
+       int_thread *thr = *i;
+       if (thr->getUserState().getState() != int_thread::exited) {
+          continue;
+       }
+       if (!have_lwps) {
+          lproc->getThreadLWPs(lwps);
+          have_lwps = true;
+       }
+
+       pthrd_printf("%d/%d is marked dead.  Checking if really dead.\n", lproc->getPid(), thr->getLWP());
+       bool found_match = false;
+       for (j = lwps.begin(); j != lwps.end(); j++) {
+          if (*j == thr->getLWP()) {
+             found_match = true;
+             break;
+          }
+       }
+       if (found_match) {
+          pthrd_printf("%d/%d is actually still alive, leaving\n", lproc->getPid(), thr->getLWP());
+          continue;
+       }
+       pthrd_printf("%d/%d is finally dead.  Reaping.\n", lproc->getPid(), thr->getLWP());
+       to_clean.insert(thr);
+    }
+
+    for (set<int_thread *>::iterator k = to_clean.begin(); k != to_clean.end(); k++) {
+       int_thread::cleanFromHandler(*k, true);
     }
 
     return Handler::ret_success;
 }
 
-int FreeBSDStopHandler::getPriority() const {
+int FreeBSDPollLWPDeathHandler::getPriority() const {
     return PrePlatformPriority;
 }
 
-void FreeBSDStopHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+void FreeBSDPollLWPDeathHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Stop));
+    etypes.push_back(EventType(EventType::None, EventType::RPC));
+    etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
+    etypes.push_back(EventType(EventType::None, EventType::SingleStep));
+    etypes.push_back(EventType(EventType::None, EventType::Signal));
 }
 
 #if defined(bug_freebsd_mt_suspend)
-FreeBSDPostStopHandler::FreeBSDPostStopHandler() 
+FreeBSDPreStopHandler::FreeBSDPreStopHandler() 
     : Handler("FreeBSD Post Stop Handler")
 {
 }
 
-FreeBSDPostStopHandler::~FreeBSDPostStopHandler()
+FreeBSDPreStopHandler::~FreeBSDPreStopHandler()
 {
 }
 
-Handler::handler_ret_t FreeBSDPostStopHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t FreeBSDPreStopHandler::handleEvent(Event::ptr ev) {
     int_process *lproc = ev->getProcess()->llproc();
 
     freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
@@ -1124,16 +1209,20 @@ Handler::handler_ret_t FreeBSDPostStopHandler::handleEvent(Event::ptr ev) {
         pthrd_printf("Handling bootstrap stop on %d/%d\n",
                 lproc->getPid(), lthread->getLWP());
         lthread->setBootstrapStop(false);
+        // Since the default thread stop handler is being wrapped, set this flag
+        // here so the default handler doesn't have problems
+        lthread->setPendingStop(true);
+        lthread->getStartupState().setState(int_thread::stopped);
     }
 
     return Handler::ret_success;
 }
 
-int FreeBSDPostStopHandler::getPriority() const {
-    return PostPlatformPriority;
+int FreeBSDPreStopHandler::getPriority() const {
+    return PrePlatformPriority+1;
 }
 
-void FreeBSDPostStopHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+void FreeBSDPreStopHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Stop));
 }
 
@@ -1158,14 +1247,16 @@ Handler::handler_ret_t FreeBSDBootstrapHandler::handleEvent(Event::ptr ev) {
     {
         freebsd_thread *bsdThread = static_cast<freebsd_thread *>(*i);
 
-        if( bsdThread->getLWP() != lthread->getLWP() ) {
-            pthrd_printf("Issuing bootstrap stop for %d/%d\n",
-                    lproc->getPid(), bsdThread->getLWP());
-            bsdThread->setBootstrapStop(true);
-
-            if( !bsdThread->plat_stop() ) {
-	      return Handler::ret_error;
-            }
+        if (bsdThread->getLWP() == lthread->getLWP())
+           continue;
+        if (bsdThread->getDetachState().getState() == int_thread::detached)
+           continue;
+        pthrd_printf("Issuing bootstrap stop for %d/%d\n",
+                     lproc->getPid(), bsdThread->getLWP());
+        bsdThread->setBootstrapStop(true);
+        
+        if( !bsdThread->plat_stop() ) {
+           return Handler::ret_error;
         }
     }
 
@@ -1173,13 +1264,75 @@ Handler::handler_ret_t FreeBSDBootstrapHandler::handleEvent(Event::ptr ev) {
 }
 
 int FreeBSDBootstrapHandler::getPriority() const {
-    return PostPlatformPriority;
+    return PrePlatformPriority;
 }
 
 void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 #endif
+
+FreeBSDPreForkHandler::FreeBSDPreForkHandler() 
+    : Handler("FreeBSD Pre-Fork Handler")
+{}
+
+FreeBSDPreForkHandler::~FreeBSDPreForkHandler()
+{}
+
+Handler::handler_ret_t FreeBSDPreForkHandler::handleEvent(Event::ptr ev) {
+    EventFork::ptr evFork = ev->getEventFork();
+    int_process *parent = evFork->getProcess()->llproc();
+
+    // Need to create and partially bootstrap the new process
+    // -- the rest of the bootstrap needs to occur after the attach
+    int_process *child_proc = int_process::createProcess(evFork->getPID(), parent);
+    assert(child_proc);
+
+    ProcPool()->condvar()->lock();
+
+    int_thread *initial_thread;
+    initial_thread = int_thread::createThread(child_proc, NULL_THR_ID, NULL_LWP, true);
+
+    ProcPool()->addProcess(child_proc);
+
+    ProcPool()->condvar()->broadcast();
+    ProcPool()->condvar()->unlock();
+
+    // Need to attach to the newly created process
+    map<Dyninst::LWP, bool> runningStates;
+    if( !child_proc->plat_getOSRunningStates(runningStates) ) {
+        perr_printf("Failed to determine running state of child process %d\n",
+                evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    bool allStopped = true;
+    for(map<Dyninst::LWP, bool>::iterator i = runningStates.begin();
+            i != runningStates.end(); ++i)
+    {
+        if( i->second ) {
+            allStopped = false;
+            break;
+        }
+    }
+
+    freebsd_process *child_fproc = dynamic_cast<freebsd_process *>(child_proc);
+    child_fproc->setForking(true);
+    if( !child_fproc->plat_attach(allStopped) ) {
+        perr_printf("Failed to attach to child process %d\n", evFork->getPID());
+        return Handler::ret_error;
+    }
+
+    return Handler::ret_success;
+}
+
+int FreeBSDPreForkHandler::getPriority() const {
+    return DefaultPriority;
+}
+
+void FreeBSDPreForkHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::Pre, EventType::Fork));
+}
 
 /*
  * In the bootstrap handler, SIGSTOPs where issued to all threads. This function
@@ -1188,43 +1341,52 @@ void FreeBSDBootstrapHandler::getEventTypesHandled(std::vector<EventType> &etype
  * I haven't been able to figure out why this needs to happen, but it solves the 
  * problem at hand.
  */
-bool freebsd_process::post_attach() {
-    if( !thread_db_process::post_attach() ) return false;
+bool freebsd_process::post_attach(bool wasDetached) {
+    bool result;
+    if( !thread_db_process::post_attach(wasDetached) ) return false;
 
     if( !initKQueueEvents() ) return false;
 
 #if defined(bug_freebsd_mt_suspend)
     if( threadPool()->size() <= 1 ) return true;
 
-    for(int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); ++i) {
+    threadPool()->initialThread()->getStartupState().desyncStateProc(int_thread::stopped);
+    
+    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); ++i) {
         freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
-        if( thrd->hasBootstrapStop() ) {
-            pthrd_printf("attach workaround: resuming %d/%d\n",
-                    getPid(), thrd->getLWP());
-            if( !thrd->intCont() ) {
-                return false;
-            }
+        if (!thrd->hasBootstrapStop())
+           continue;
+        if (thrd->getDetachState().getState() == int_thread::detached)
+           continue;
 
-            pthrd_printf("attach workaround: continuing whole process\n");
-            if( !plat_contProcess() ) {
-                return false;
-            }
-
+        pthrd_printf("attach workaround: continuing %d/%d\n", getPid(), thrd->getLWP());
+        thrd->getStartupState().setState(int_thread::running);
+        
 #if defined(bug_freebsd_lost_signal)
-            pthrd_printf("attach workaround: sending stop to %d/%d\n",
-                    getPid(), thrd->getLWP());
-            if( !thrd->plat_stop() ) {
-                return false;
-            }
-#endif
+        throwNopEvent();
+        result = waitAndHandleEvents(true);
+        if (!result) { 
+           pthrd_printf("attach workaround: error handling events.\n");
+           return false;
+        }
 
-            pthrd_printf("attach workaround: handling stop of %d/%d\n",
-                    getPid(), thrd->getLWP());
-            if( !waitfor_startup() ) {
-                return false;
-            }
+        pthrd_printf("attach workaround: sending stop to %d/%d\n",
+                     getPid(), thrd->getLWP());
+        thrd->getStartupState().setState(int_thread::stopped);
+#endif
+        
+        throwNopEvent();
+        pthrd_printf("attach workaround: handling stop of %d/%d\n",
+                     getPid(), thrd->getLWP());
+        while (thrd->hasBootstrapStop()) {
+           result = waitAndHandleEvents(true);
+           if (!result) {
+              pthrd_printf("Error in waitAndHandleEvents for attach workaround\n");
+              return false;
+           }
         }
     }
+    threadPool()->initialThread()->getStartupState().restoreStateProc();
 #endif
 
     return true;
@@ -1259,82 +1421,6 @@ void FreeBSDChangePCHandler::getEventTypesHandled(std::vector<EventType> &etypes
 }
 #endif
 
-bool freebsd_process::plat_contProcess() {
-    ProcPool()->condvar()->lock();
-    for(int_threadPool::iterator i = threadPool()->begin();
-        i != threadPool()->end(); ++i)
-    {
-        if( (*i)->isResumed() ) {
-            (*i)->setInternalState(int_thread::running);
-            (*i)->setHandlerState(int_thread::running);
-            (*i)->setGeneratorState(int_thread::running);
-            (*i)->setResumed(false);
-        }else if( (*i)->getInternalState() == int_thread::stopped ) {
-            pthrd_printf("Suspending before continue %d/%d\n",
-                    getPid(), (*i)->getLWP());
-            if( !(*i)->plat_suspend() ) {
-                perr_printf("Failed to suspend thread %d/%d\n",
-                        getPid(), (*i)->getLWP());
-                setLastError(err_internal, "low-level continue failed");
-                return false;
-            }
-        }
-    }
-    ProcPool()->condvar()->signal();
-    ProcPool()->condvar()->unlock();
-
-#if defined(bug_freebsd_change_pc)
-    freebsd_thread *pcBugThrd = NULL;
-
-    for(int_threadPool::iterator i = threadPool()->begin();
-        i != threadPool()->end(); ++i)
-    {
-        freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
-        if( thrd->hasPCBugCondition() && thrd->getInternalState() == int_thread::running ) {
-            // Only wait for one PC bug signal at a time
-            if( !thrd->hasPendingPCBugSignal() ) {
-                pcBugThrd = thrd;
-            }else{
-                pthrd_printf("Waiting for PC bug signal for thread %d/%d\n",
-                        getPid(), thrd->getLWP());
-                pcBugThrd = NULL;
-                break;
-            }
-        }
-    }
-
-    if( NULL != pcBugThrd ) {
-        pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
-                getPid(), pcBugThrd->getLWP());
-        pcBugThrd->setPendingPCBugSignal(true);
-        if( !tkill(getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL) ) {
-            perr_printf("Failed to handle change PC bug condition\n");
-            setLastError(err_internal, "sending signal failed");
-            return false;
-        }
-    }
-#endif
-
-    /* Single-stepping is enabled/disabled using PT_SETSTEP
-     * and PT_CLEARSTEP instead of continuing the process
-     * with PT_STEP. See plat_setStep.
-     */
-    pthrd_printf("Calling PT_CONTINUE on %d with signal %d\n", 
-                getPid(), continueSig);
-    if (0 != ptrace(PT_CONTINUE, getPid(), (caddr_t)1, continueSig) ) {
-        perr_printf("low-level continue failed: %s\n", strerror(errno));
-        setLastError(err_internal, "Low-level continue failed");
-        return false;
-    }
-
-#if defined(bug_freebsd_missing_sigstop)
-    // XXX this workaround doesn't always work
-    sched_yield();
-#endif
-
-    return true;
-}
-
 bool freebsd_thread::plat_stop() {
     Dyninst::PID pid = llproc()->getPid();
 
@@ -1353,24 +1439,101 @@ bool freebsd_thread::plat_stop() {
     return true;
 }
 
-bool freebsd_thread::plat_cont() {
-    pthrd_printf("Continuing thread %d/%d\n", 
-            llproc()->getPid(), lwp);
+bool freebsd_thread::plat_resume() {
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
 
-    if( !plat_setStep() ) return false;
-
-    setSignalStopped(false);
-
-    // Calling resume only makes sense for processes with multiple threads
-    if( llproc()->threadPool()->size() > 1 ) {
-        if( !plat_resume() ) return false;
+    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
+    if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
+       perr_printf("Failed to resume lwp %d: %s\n",
+                   lwp, strerror(errno));
+       setLastError(err_internal, "Failed to resume lwp");
+       return false;
     }
 
-    // Because all signals stop the whole process, only one thread should
-    // have a non-zero continue signal
-    if( continueSig_ ) {
-        llproc()->setContSignal(continueSig_);
+    return true;
+}
+
+bool freebsd_thread::plat_suspend() {
+    if( !llproc()->threadPool()->hadMultipleThreads() ) return true;
+
+    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
+    if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
+       perr_printf("Failed to suspend lwp %d: %s\n",
+                   lwp, strerror(errno));
+       setLastError(err_internal, "Failed to suspend lwp");
+       return false;
     }
+
+    return true;
+}
+
+bool freebsd_thread::plat_cont() 
+{
+   freebsd_process *proc = dynamic_cast<freebsd_process *>(llproc());
+   int_threadPool *tp = llproc()->threadPool();
+   int_threadPool::iterator i;
+   
+   freebsd_thread *cont_thread = this;
+   freebsd_thread *pcBugThrd = NULL;
+   for (i = tp->begin(); i != tp->end(); i++) {
+      freebsd_thread *thr = static_cast<freebsd_thread *>(*i);
+      if (thr->isSignalStopped()) {
+         cont_thread = thr;
+      }
+      if (!thr->plat_setStep()) {
+         return false;
+      }
+   }
+
+
+#if defined(bug_freebsd_change_pc)
+   for (i = tp->begin(); i != tp->end(); i++) {
+      freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
+      if (thrd->hasPCBugCondition() && !thrd->isSuspended()) {
+         // Only wait for one PC bug signal at a time
+         if (!thrd->hasPendingPCBugSignal()) {
+            pcBugThrd = thrd;
+         } 
+         else {
+            pthrd_printf("Waiting for PC bug signal for thread %d/%d\n",
+                         proc->getPid(), thrd->getLWP());
+            pcBugThrd = NULL;
+            break;
+         }
+      }
+   }
+   
+   if (pcBugThrd) {
+      pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
+                   proc->getPid(), pcBugThrd->getLWP());
+      pcBugThrd->setPendingPCBugSignal(true);
+      if (!tkill(proc->getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL)) {
+         perr_printf("Failed to handle change PC bug condition\n");
+         setLastError(err_internal, "sending signal failed");
+         return false;
+      }
+   }
+#endif
+
+    /* Single-stepping is enabled/disabled using PT_SETSTEP
+     * and PT_CLEARSTEP instead of continuing the process
+     * with PT_STEP. See plat_setStep.
+     */
+    pthrd_printf("Calling PT_CONTINUE on %d/%d with signal %d\n", 
+                 proc->getPid(), getLWP(), cont_thread->continueSig_);
+    int result = ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, cont_thread->continueSig_);
+    //int result = ptrace(PT_CONTINUE, getLWP(), (caddr_t)1, cont_thread->continueSig_);
+    if (result) {
+        perr_printf("low-level continue failed: %s\n", strerror(errno));
+        setLastError(err_internal, "Low-level continue failed");
+        return false;
+    }
+    cont_thread->continueSig_ = 0;
+
+#if defined(bug_freebsd_missing_sigstop)
+    // XXX this workaround doesn't always work
+    sched_yield();
+#endif
 
     return true;
 }
@@ -1380,18 +1543,21 @@ bool freebsd_thread::attach() {
 }
 
 bool freebsd_thread::plat_setStep() {
-    int result;
-    if( singleStep() ) {
+    int result = 0;
+    if (singleStep()) {
         pthrd_printf("Calling PT_SETSTEP on %d/%d\n", 
                 llproc()->getPid(), lwp);
         result = ptrace(PT_SETSTEP, lwp, (caddr_t)1, 0);
-    }else{
+        is_pt_setstep = true;
+    } 
+    if (!singleStep() && is_pt_setstep) {
         pthrd_printf("Calling PT_CLEARSTEP on %d/%d\n", 
                 llproc()->getPid(), lwp);
         result = ptrace(PT_CLEARSTEP, lwp, (caddr_t)1, 0);
+        is_pt_setstep = false;
     }
 
-    if( 0 != result ) {
+    if (0 != result) {
         perr_printf("low-level single step change failed: %s\n", strerror(errno));
         setLastError(err_internal, "Low-level single step change failed");
         return false;
@@ -1513,6 +1679,11 @@ SymbolReaderFactory *freebsd_process::plat_defaultSymReader()
   return symreader_factory;
 }
 
+bool freebsd_process::plat_threadOpsNeedProcStop()
+{
+   return true;
+}
+
 bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
     struct reg registers;
     unsigned char *regPtr = (unsigned char *)&registers;
@@ -1545,7 +1716,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
         }else{
             assert(!"Unknown address width");
         }
-        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s has value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
         regpool.regs[reg] = val;
     }
 
@@ -1615,7 +1786,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
             assert(!"Unknown address width");
         }
 
-        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name(), (unsigned long)val, offset);
+        pthrd_printf("Register %s gets value 0x%lx, offset 0x%x\n", reg.name().c_str(), (unsigned long)val, offset);
     }
 
     if (num_found != regpool.regs.size()) {
@@ -1673,76 +1844,5 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 // iRPC snippets
-const unsigned int x86_64_mmap_flags_position = 21;
-const unsigned int x86_64_mmap_size_position = 34;
-const unsigned int x86_64_mmap_addr_position = 44;
-const unsigned int x86_64_mmap_start_position = 4;
-const unsigned char x86_64_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9 (offset)
-0x49, 0xc7, 0xc0, 0xff, 0xff, 0xff, 0xff,       //mov    $0xffffffffffffffff,%r8 (fd)
-0x49, 0xc7, 0xc2, 0x12, 0x10, 0x00, 0x00,       //mov    $0x1012,%r10 (flags)
-0x48, 0xc7, 0xc2, 0x07, 0x00, 0x00, 0x00,       //mov    $0x7,%rdx (perms)
-0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi (size)
-0x00, 0x00, 0x00,                               //
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi (addr)
-0x00, 0x00, 0x00,                               //
-0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
-0x0f, 0x05,                                     //syscall
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-const unsigned int x86_64_munmap_size_position = 6;
-const unsigned int x86_64_munmap_addr_position = 16;
-const unsigned int x86_64_munmap_start_position = 4;
-const unsigned char x86_64_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi
-0x00, 0x00, 0x00,                               //
-0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi
-0x00, 0x00, 0x00,                               //
-0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax
-0x0f, 0x05,                                     //syscall
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
 
-const unsigned int x86_mmap_flags_position = 9;
-const unsigned int x86_mmap_size_position = 16;
-const unsigned int x86_mmap_addr_position = 21;
-const unsigned int x86_mmap_start_position = 4;
-const unsigned char x86_call_mmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x6a, 0x00,                                     //push   $0x0 (offset)
-0x6a, 0xff,                                     //push   $0xffffffff (fd)
-0x68, 0x12, 0x10, 0x00, 0x00,                   //push   $0x1012 (flags)
-0x6a, 0x07,                                     //push   $0x7 (perms)
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
-0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
-0x50,                                           //push   %eax (required by calling convention)
-0xcd, 0x80,                                     //int    $0x80
-0x8d, 0x64, 0x24, 0x1c,                         //lea    0x1c(%esp),%esp
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_call_mmap_size = sizeof(x86_call_mmap);
-
-const unsigned int x86_munmap_size_position = 5;
-const unsigned int x86_munmap_addr_position = 10;
-const unsigned int x86_munmap_start_position = 4;
-const unsigned char x86_call_munmap[] = {
-0x90, 0x90, 0x90, 0x90,                         //nop sled
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
-0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
-0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)
-0x50,                                           //push   %eax (required by calling convention)
-0xcd, 0x80,                                     //int    $0x80
-0x8d, 0x64, 0x24, 0x0c,                         //lea    0xc(%esp),%esp 
-0xcc,                                           //trap
-0x90                                            //nop
-};
-const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);

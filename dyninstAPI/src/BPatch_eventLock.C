@@ -30,18 +30,17 @@
  */
 
 #include "BPatch_eventLock.h"
-#include "mailbox.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "common/h/Vector.h"
+#include "eventLock.h"
 
 #if !defined(os_windows)
 #include <pthread.h> // Trying native windows threads for now
 #else
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #endif
 
 #if defined(os_windows)
@@ -71,46 +70,53 @@ unsigned long primary_thread_id = (unsigned long) -1;
 
 BPatch_eventLock::BPatch_eventLock() 
 {
-  if (mutex_created) return;
-  global_mutex = new eventLock();
-  mutex_created = true;
+//  if (mutex_created) return;
+//  global_mutex = new eventLock();
+//  mutex_created = true;
 
   //  Assume that this ctor is being called on the primary (UI) thread
   //  and set its value accordingly.
-  primary_thread_id = getExecThreadID();
+  //primary_thread_id = getExecThreadID();
+  primary_thread_id = 0;
 }
 
 BPatch_eventLock::~BPatch_eventLock() {};
 
 eventLock *BPatch_eventLock::getLock() 
 {
-	assert(global_mutex); 
-	return global_mutex;
+//	assert(global_mutex); 
+//	return global_mutex;
+	return NULL;
 }
 
-int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Lock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
-  return global_mutex->_Lock(__file__, __line__);
+	return 0;
+  //return global_mutex->_Lock(__file__, __line__);
 }
-int BPatch_eventLock::_Trylock(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Trylock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
-  return global_mutex->_Trylock(__file__, __line__);
-}
-
-int BPatch_eventLock::_Unlock(const char *__file__, unsigned int __line__) const
-{
-  return global_mutex->_Unlock(__file__, __line__);
+	return 0;
+//  return global_mutex->_Trylock(__file__, __line__);
 }
 
-
-int BPatch_eventLock::_Broadcast(const char *__file__, unsigned int __line__) const
+int BPatch_eventLock::_Unlock(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
-  return global_mutex->_Broadcast(__file__, __line__);
+	return 0;
+//  return global_mutex->_Unlock(__file__, __line__);
 }
 
-int BPatch_eventLock::_WaitForSignal(const char *__file__, unsigned int __line__) const
+
+int BPatch_eventLock::_Broadcast(const char * /*__file__*/, unsigned int /*__line__*/) const
 {
-  return global_mutex->_WaitForSignal(__file__, __line__);
+	return 0;
+//  return global_mutex->_Broadcast(__file__, __line__);
+}
+
+int BPatch_eventLock::_WaitForSignal(const char * /*__file__*/, unsigned int /*__line__*/) const
+{
+	return 0;
+//  return global_mutex->_WaitForSignal(__file__, __line__);
 }
 
 
@@ -128,5 +134,6 @@ unsigned long BPatch_eventLock::threadID() const
 
 unsigned int BPatch_eventLock::lockDepth() const
 {
-  return global_mutex->depth();
+	return 0;
+//  return global_mutex->depth();
 }

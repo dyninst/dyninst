@@ -34,6 +34,7 @@
 
 #include <sys/types.h>
 #include "dyninstAPI/h/BPatch_process.h"
+#include "dyninstAPI/h/BPatch_point.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "dynutil/h/util.h"
@@ -42,7 +43,22 @@
 class BPatch_libInfo {
 public:
    dictionary_hash<int, BPatch_process *> procsByPid;
-   BPatch_libInfo(): procsByPid(intHash) {};
+   BPatch_libInfo() : 
+       procsByPid(intHash),
+       stopThreadIDCounter_(0),
+       stopThreadCallbacks_(addrHash),
+       monitoredPoints_(addrHash)
+    {}
+
+   bool registerMonitoredPoint(BPatch_point *point);
+   BPatch_point *getMonitoredPoint(Address addr);
+
+   int getStopThreadCallbackID(Address cb);
+
+protected:
+   int stopThreadIDCounter_;
+   dictionary_hash<Address, unsigned> stopThreadCallbacks_;
+   dictionary_hash<Address, BPatch_point *> monitoredPoints_;
 };
 
 #endif /* _BPatch_libInfo_h_ */

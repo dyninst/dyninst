@@ -6,6 +6,9 @@
 	.global loadsnstores
 	.type loadsnstores,@function
 
+   .global amd_features
+   .type amd_features,@function
+       
 	.global rip_relative_load_address
 	.type rip_relative_load_address,@object
 	.size rip_relative_load_address,8

@@ -3,7 +3,7 @@
 #ifndef PATCHAPI_H_INSTRUMENTOR_H_
 #define PATCHAPI_H_INSTRUMENTOR_H_
 
-#include "common.h"
+#include "PatchCommon.h"
 #include "Point.h"
 #include "AddrSpace.h"
 #include "Command.h"

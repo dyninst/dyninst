@@ -37,6 +37,8 @@
 #include "BPatch_module.h"
 #include "instPoint.h"
 #include "function.h"
+#include "dynProcess.h"
+#include "eventLock.h"
 #include "MemoryEmulator/memEmulator.h"
 #include "PatchModifier.h"
 
@@ -481,7 +483,7 @@ static int getPreCallPoints(ParseAPI::Block* blk,
     }
 
     using namespace ParseAPI;
-    process *llproc = proc->lowlevel_process();
+    PCProcess *llproc = proc->lowlevel_process();
     vector<ParseAPI::Function*> pFuncs;
 
     blk->getFuncs(pFuncs); 
@@ -513,7 +515,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
 {
    // find blocks at returnAddr -1 
    using namespace ParseAPI;
-   process *llproc = retFunc->proc()->proc();
+   PCProcess *llproc = retFunc->proc()->proc();
    mapped_object *callObj = llproc->findObject((Address)retAddr - 1);
    std::set<CodeRegion*> callRegs;
    if (callObj) {

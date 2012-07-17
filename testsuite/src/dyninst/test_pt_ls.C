@@ -55,7 +55,7 @@ class test_pt_ls_Mutator : public DyninstMutator
 
   virtual test_results_t setup(ParameterDict &param)
   {
-	  runmode = (create_mode_t) param["useAttach"]->getInt();
+	  runmode = (create_mode_t) param["createmode"]->getInt();
 	  return PASSED;
   }
 
@@ -69,7 +69,7 @@ extern "C" DLLEXPORT TestMutator *test_pt_ls_factory()
 
 test_results_t test_pt_ls_Mutator::executeTest() 
 {
-    char *binedit_dir = get_binedit_dir();
+    const char *binedit_dir = get_binedit_dir();
     std::string prefix = std::string(binedit_dir) + std::string("/test_pt_ls");
     std::string bin_outfile;
     ParseThat parseThat;

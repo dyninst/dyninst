@@ -32,6 +32,7 @@
 #include <string>
 #include <sstream>
 
+#include <winsock2.h>
 #include <windows.h>
 #include "runTests-utils.h"
 
@@ -153,7 +154,6 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
 			return i;
 		}
 	}
-	printf("Down through loop and return -1\n");
 	return -1;
 }
 
@@ -207,7 +207,7 @@ char *setResumeEnv()
       tmp << "C:\\";
    }
 
-   tmp << "test_driver.resumelog." << getpid();
+   tmp << "test_driver.resumelog." << GetCurrentProcessId();
 
    char *r_tmp = strdup(tmp.str().c_str());
    putenv(r_tmp);

@@ -9,8 +9,6 @@
 #DEBUG_FLAG = -g
 AUTO_TEMPLATES=true
 #NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 USES_BOOST = true
 
 # For debugging.
@@ -25,21 +23,17 @@ include ../../make.config
 
 SRCS =		../src/linux.C \
 		../src/linux-power.C \
-		../src/linuxDL.C \
-		../src/dynamiclinking.C \
-		../src/linuxMT.C \
 		../src/inst-linux.C \
 		../src/inst-power.C \
 		../src/unix.C \
 		../src/codegen-power.C \
-		../src/parse-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C \
+		../src/RegisterConversion-ppc.C \
+		../src/stackwalk-ppc.C \
 		../src/Relocation/Widgets/CFWidget-ppc.C \
-		../src/RegisterConversion-ppc.C
-#		../src/addLibraryLinux.C \
-#		../src/writeBackElf.C \
-#		../src/saveSharedLibrary.C \
+		../src/parse-power.C \
+		../src/frameChecker.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -51,9 +45,6 @@ SRCS =		../src/linux.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS         += -I$(LIBELF_INC)
-
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
@@ -63,17 +54,6 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS      +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
 LIBS    += -lgcc
 
 # AS		= /usr/bin/as

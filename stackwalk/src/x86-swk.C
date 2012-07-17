@@ -49,14 +49,23 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+static volatile int always_zero = 0;
+
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-  unsigned long *frame_pointer;
+  unsigned long *frame_pointer = NULL;
 
-#if defined(arch_x86_64) && defined(os_linux)
+  if (always_zero) {
+     //Generate some (skipped) code involving frame_pointer before
+     // the assembly snippet.  This keeps gcc from optimizing 
+     // the below snippet by pulling it up into the function prolog.
+     sw_printf("%p%p\n", frame_pointer, &frame_pointer);
+  }
+
+#if defined(arch_x86_64) && (defined(os_linux) || defined(os_freebsd))
   __asm__("mov %%rbp, %0\n"
 	  : "=r"(frame_pointer));
-#elif defined(os_linux)
+#elif defined(os_linux) || defined(os_freebsd)
   __asm__("movl %%ebp, %0\n"
 	  : "=r"(frame_pointer));
 #elif defined(os_windows)
@@ -138,7 +147,7 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   }
 
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, out_sp);
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
   
@@ -146,9 +155,17 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
      return gcf_not_me;
   }
 
+  location_t ra_loc, fp_loc;
+  ra_loc.location = loc_address;
+  fp_loc.location = loc_address;
+  ra_loc.val.addr = in_fp + addr_width;
+  fp_loc.val.addr = in_fp + addr_width*2;
+
   out.setFP(ra_fp_pair.out_fp);
   out.setRA(ra_fp_pair.out_ra);
   out.setSP(out_sp);
+  out.setFPLocation(fp_loc);
+  out.setRALocation(ra_loc);
 
   return gcf_success;
 }
@@ -242,7 +259,7 @@ unsigned FrameFuncStepperImpl::getPriority() const
  * Look at the first few bytes in the function and see if they contain
  * the standard set to allocate a stack frame.
  **/
-#define FUNCTION_PROLOG_TOCHECK 12
+#define FUNCTION_PROLOG_TOCHECK 16
 static unsigned char push_ebp = 0x55;
 static unsigned char mov_esp_ebp[2][2] = { { 0x89, 0xe5 },
                                            { 0x8b, 0xec } };
@@ -327,16 +344,16 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
       }
    }
 
-   if (push_ebp_pos != -1 && mov_esp_ebp_pos != -1)
+   if ((push_ebp_pos != -1) && (mov_esp_ebp_pos != -1))
       res.first = standard_frame;
-   else if (push_ebp_pos != -1 && mov_esp_ebp_pos == -1)
+   else if ((push_ebp_pos != -1) && (mov_esp_ebp_pos == -1))
       res.first = savefp_only_frame;
    else 
       res.first = no_frame;
    
-   if (push_ebp_pos != -1 && addr <= func_addr + push_ebp_pos)
+   if ((push_ebp_pos != -1) && (addr <= func_addr + push_ebp_pos))
       res.second = unset_frame;
-   else if (mov_esp_ebp_pos != -1 && addr <= func_addr + mov_esp_ebp_pos)
+   else if ((mov_esp_ebp_pos != -1) && (addr <= func_addr + mov_esp_ebp_pos))
       res.second = halfset_frame;
    else
       res.second = set_frame;
@@ -383,6 +400,90 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame
   return gcf_success;
 }
 
+
+gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
+                                                            Address /*base*/, Address lib_base,
+                                                            unsigned /*size*/, unsigned stack_height,
+                                                            Address orig_ra, bool pEntryExit)
+{
+  bool result = false;
+  const unsigned addr_width = getProcessState()->getAddressWidth();
+  unsigned long sp_value = 0x0;
+  Address sp_addr = 0x0;
+
+  // Handle frameless instrumentation
+  if (0x0 != orig_ra)
+  {
+    location_t unknownLocation;
+    unknownLocation.location = loc_unknown;
+    out.setRA(orig_ra);
+    out.setFP(in.getFP());
+    out.setSP(in.getSP()); //Not really correct, but difficult to compute and unlikely to matter
+    out.setRALocation(unknownLocation);
+    sw_printf("[%s:%u] - DyninstDynamicStepper handled frameless instrumentation\n",
+              __FILE__, __LINE__);
+    return gcf_success;
+  }
+
+  // Handle case where *previous* frame was entry/exit instrumentation
+  if (pEntryExit)
+  {
+    Address ra_value = 0x0;
+
+    // RA is pointed to by input SP
+    // TODO may have an additional offset in some cases...
+    Address newRAAddr = in.getSP();
+
+    location_t raLocation;
+    raLocation.location = loc_address;
+    raLocation.val.addr = newRAAddr;
+    out.setRALocation(raLocation);
+
+    // TODO handle 64-bit mutator / 32-bit mutatee
+
+    // get value of RA
+    result = getProcessState()->readMem(&ra_value, newRAAddr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, newRAAddr);
+      return gcf_error;
+    }
+
+    out.setRA(ra_value);
+    out.setFP(in.getFP()); // FP stays the same
+    out.setSP(newRAAddr + addr_width);
+    sw_printf("[%s:%u] - DyninstDynamicStepper handled post entry/exit instrumentation\n",
+              __FILE__, __LINE__);
+    return gcf_success;
+  }
+
+  gcframe_ret_t ret = HandleStandardFrame(in, out, getProcessState());
+  if (ret != gcf_success)
+    return ret;
+  out.setRA(out.getRA() + lib_base);
+
+  // For tramps with frames, read the saved stack pointer
+  // TODO does this apply to static instrumentation?
+  if (stack_height)
+  {
+    sp_addr = in.getFP() + stack_height;
+    result = getProcessState()->readMem(&sp_value, sp_addr, addr_width);
+
+    if (!result) {
+      sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, sp_addr);
+      return gcf_error;
+    }
+
+    sw_printf("[%s:%u] - Read SP %p from addr %p, using stack height of 0x%lx\n",
+              __FILE__, __LINE__, sp_value, sp_addr, stack_height);
+    out.setSP(sp_value);
+  }
+
+  sw_printf("[%s:%u] - DyninstDynamicStepper handled normal instrumentation\n",
+            __FILE__, __LINE__);
+  return gcf_success;
+}
+
 namespace Dyninst {
 namespace Stackwalker {
 void getTrapInstruction(char *buffer, unsigned buf_size, 
@@ -391,13 +492,13 @@ void getTrapInstruction(char *buffer, unsigned buf_size,
    if (include_return)
    {
       assert(buf_size >= 2);
-      buffer[0] = 0xcc; //trap
-      buffer[1] = 0xc3; //ret
+      buffer[0] = (char) 0xcc; //trap
+      buffer[1] = (char) 0xc3; //ret
       actual_len = 2;
       return;
    }
    assert(buf_size >= 1);
-   buffer[0] = 0xcc; //trap
+   buffer[0] = (char) 0xcc; //trap
    actual_len = 1;
    return;
 }

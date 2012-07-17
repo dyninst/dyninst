@@ -34,7 +34,6 @@
 #if !defined(_SLICING_H_)
 #define _SLICING_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp"
 #include <vector>
 #include "dyntypes.h"
 #include <queue>
@@ -60,22 +59,22 @@ namespace ParseAPI {
 
 class Assignment;
 class AbsRegion;
-typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
+typedef boost::shared_ptr<Assignment> AssignmentPtr;
 
 class Graph;
-typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
+typedef boost::shared_ptr<Graph> GraphPtr;
 
  namespace InstructionAPI {
    class Instruction;
  }
- typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+ typedef boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
 class SliceNode : public Node {
  public:
-  typedef dyn_detail::boost::shared_ptr<SliceNode> Ptr;
+  typedef boost::shared_ptr<SliceNode> Ptr;
       
   DATAFLOW_EXPORT static SliceNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
@@ -109,7 +108,7 @@ class SliceNode : public Node {
 
 class SliceEdge : public Edge {
   public:
-   typedef dyn_detail::boost::shared_ptr<SliceEdge> Ptr;
+   typedef boost::shared_ptr<SliceEdge> Ptr;
 
    DATAFLOW_EXPORT static SliceEdge::Ptr create(SliceNode::Ptr source,
                                                 SliceNode::Ptr target,

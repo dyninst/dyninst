@@ -35,7 +35,6 @@
  * #Desc: instrument multiple processes
  * #Dep: 
  * #Arch: all
- * #Notes: useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -130,7 +129,6 @@ test_results_t test3_3_Mutator::executeTest() {
         }
         pid[n] = appProc[n]->getPid();
         dprintf("Mutatee %d started, pid=%d\n", n, pid[n]);
-	registerPID(pid[n]); // Register for cleanup
     }
 
     // Instrument mutatees

@@ -95,7 +95,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        appImage = parent->getProcess()->getImage();
        assert(appImage);
 
-       char *fn5 = "test4_4_func3";
+       const char *fn5 = "test4_4_func3";
        if (NULL == appImage->findFunction(fn5, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n", fn5);
@@ -107,7 +107,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_funcCallExpr callExpr2(*func3_parent, nullArgs);
 
        bpfv.clear();
-       char *fn6 = "test4_4_func2";
+       const char *fn6 = "test4_4_func2";
        if (NULL == appImage->findFunction(fn6, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 logerror("    Unable to find function %s\n",fn6);
@@ -158,8 +158,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         }
     } else {
         // exit from unknown thread
-        logerror("Failed test #4 (fork callback), expected pid %d\n", 
-                test4Child->getProcess()->getPid());
+        logerror("Failed test #4 (fork callback)\n");
         logerror("    exit from unknown pid = %d\n", exitCode);
         failedTest = true;
     }
@@ -185,7 +184,7 @@ static void execFunc(BPatch_thread *thread)
         BPatch_image *appImage = thread->getProcess()->getImage();
         assert(appImage);
 
-	char *fn3 = "test4_4_func4";
+   const char *fn3 = "test4_4_func4";
 	if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  logerror("    Unable to find function %s\n",fn3);
@@ -197,7 +196,7 @@ static void execFunc(BPatch_thread *thread)
 	BPatch_funcCallExpr callExpr1(*func4_child, nullArgs);
 	
 	bpfv.clear();
-	char *fn4 = "test4_4_func2";
+	const char *fn4 = "test4_4_func2";
 	if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
 	  logerror("    Unable to find function %s\n",fn4);
@@ -228,10 +227,6 @@ test_results_t test4_4_Mutator::mutatorTest() {
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_4");
-    if (getPIDFilename() != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = getPIDFilename();
-    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -242,10 +237,6 @@ test_results_t test4_4_Mutator::mutatorTest() {
 	logerror("Unable to run test program: %s.\n", pathname);
         return FAILED;
     }
-
-    // Register for cleanup
-    registerPID(appProc->getPid());
-    test4Parent = appProc->getThreadByIndex(0);
 
     contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 

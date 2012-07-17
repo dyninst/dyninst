@@ -122,22 +122,13 @@ WindowsNT    nonexistant
 #if defined(arch_x86_64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
-#if defined(os_cnl) && defined(arch_x86_64)
-//These aren't defined in Cray's stdint.h
-#if !defined(INT64_C)
-#define INT64_C(c) ((long) (c))
-#endif
-#if !defined(UINT64_C)
-#define UINT64_C(c) ((unsigned long) (c))
-#endif
-#if !defined(INT64_MAX)
-#define INT64_MAX 0xfffffffffffffff
-#endif
-#endif
 typedef long double double128_t;
 
 #elif defined(os_bg)
-#if !defined __STDC_LIMIT_MACROS
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
 #define __STDC_LIMIT_MACROS
 #endif
 #include <stdint.h>

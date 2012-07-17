@@ -6,12 +6,12 @@
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
 DEBUG_FLAG = -g
+SUITE_NAME = testsuite
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+include $(TO_CORE)/make.config.local
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
@@ -42,8 +42,6 @@ MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 # without the libdl)
 MUTATEE_USE_LIBDL_SELECTIVELY = true
 MUTATEE_LIBS =
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
-MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -ffixed-line-length-none -fno-range-check -g

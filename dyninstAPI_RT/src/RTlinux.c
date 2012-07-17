@@ -84,6 +84,26 @@ unsigned long DYNINSTtocSave;
  * stop oneself.
 ************************************************************************/
 
+#ifndef SYS_tkill
+#define SYS_tkill 238
+#endif
+
+int t_kill(int pid, int sig) {
+    static int has_tkill = 1;
+    long int result = 0;
+    if (has_tkill) {
+        result = syscall(SYS_tkill, pid, sig);
+        if (result == -1 && errno == ENOSYS) {
+            has_tkill = 0;
+        }
+    }
+    if (!has_tkill) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
+}
+
 void DYNINSTbreakPoint()
 {
    /* We set a global flag here so that we can tell
@@ -94,7 +114,7 @@ void DYNINSTbreakPoint()
 
    DYNINST_break_point_event = 1;
    while (DYNINST_break_point_event)  {
-      kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+      t_kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
    }
    /* Mutator resets to 0... */
 }
@@ -155,8 +175,6 @@ void DYNINSTsafeBreakPoint()
 }
 
 void mark_heaps_exec() {
-	RTprintf( "*** Initializing dyninstAPI runtime.\n" );
-
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
 	if( pageSize == 0 || pageSize == - 1 ) {
@@ -356,136 +374,6 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 	return 0;
 } /* end DYNINST_am_initial_thread() */
 
-/**
- * We need to extract certain pieces of information from the usually opaque 
- * type pthread_t.  Unfortunately, libc doesn't export this information so 
- * we're reverse engineering it out of pthread_t.  The following structure
- * tells us at what offsets it look off of the return value of pthread_self
- * for the lwp, pid, initial start function (the one passed to pthread_create)
- * and the top of this thread's stack.  We have multiple entries in positions, 
- * one for each different version of libc we've seen.
- **/
-#define READ_FROM_BUF(pos, type) *((type *)(buffer+pos))
-
-typedef struct pthread_offset_t
-{
-   unsigned lwp_pos;
-   unsigned pid_pos;
-   unsigned start_func_pos;
-   unsigned stck_start_pos;
-} pthread_offset_t;
-
-#if defined(arch_x86_64) && defined(MUTATEE_32)
-//x86_64 32 bit mode
-#define POS_ENTRIES 4
-static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
-                                                   { 72, 76, 516, 84 },
-                                                   { 72, 476, 516, 80 },
-                                                   { 72, 76, 532, 96} }; 
-
-#elif defined(arch_x86_64) 
-#define POS_ENTRIES 4
-static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
-                                                   { 144, 148, 1000, 160 },
-                                                   { 144, 148, 1000, 688 },
-                                                   { 144, 148, 1024, 192 } };
-
-#elif defined(arch_x86)
-//x86 32
-#define POS_ENTRIES 4
-static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
-                                                   { 72, 76, 516, 84 },
-                                                   { 72, 76, 532, 592 },
-                                                   { 72, 476, 516, 80 } };
-
-#elif defined(arch_power)
-//Power
-#define POS_ENTRIES 3
-static pthread_offset_t positions[POS_ENTRIES] = { { 72, 76, 508, 576 },
-						   { 144, 148, 992, 160 }, // PPC64
-                                                   { 144, 148, 992, 1072 } };
-#else
-#error Need to define thread structures here
-#endif
-
-int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
-{
-   static int err_printed = 0;
-   int i;
-   char *buffer;
-
-   ev->stack_addr = 0x0;
-   ev->start_pc = 0x0;
-   buffer = (char *) ev->tid;
-
-   for (i = 0; i < POS_ENTRIES; i++)
-   {
-      pid_t pid = READ_FROM_BUF(positions[i].pid_pos, pid_t);
-      int lwp = READ_FROM_BUF(positions[i].lwp_pos, int);
-
-      if( pid != ev->ppid || lwp != ev->lwp ) {
-         continue;
-      }
-
-      void *stack_addr;
-#if defined(target_ppc32)
-	assert("Fix me.");
-#elif defined(arch_x86_64) && defined(MUTATEE_32)
-      asm("movl %%esp,%0" : "=r" (stack_addr));
-#elif defined(arch_x86_64)
-      asm("mov %%rsp,%0" : "=r" (stack_addr));
-#elif defined(arch_x86)
-      asm("movl %%esp,%0" : "=r" (stack_addr));
-#else
-      stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
-#endif
-      void *start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
-
-#if defined(arch_power)
-      /* 64-bit POWER architectures also use function descriptors instead of directly
-       * pointing at the function code.  Find the actual address of the function.
-       *
-       * Actually, a process can't read its own OPD section.  Punt for now, but remember
-       * that we're storing the function descriptor address, not the actual function address!
-       */
-      //uint64_t actualAddr = *((uint64_t *)start_pc);
-      //fprintf(stderr, "*** Redirecting start_pc from 0x%lx to 0x%lx\n", start_pc, actualAddr);
-      //start_pc = (void *)actualAddr;
-#endif
-
-      // Sanity checking. There are multiple different places that we have
-      // found the stack address for a given pair of pid/lwpid locations,
-      // so we need to do the best job we can of verifying that we've
-      // identified the real stack. 
-      //
-      // Currently we just check for known incorrect values. We should
-      // generalize this to check for whether the address is in a valid
-      // memory region, but it is not clear whether that information is
-      // available at this point.
-      //        
-      if(stack_addr == (void*)0 || stack_addr == (void*)0xffffffec) {
-         continue;
-      }
-
-      ev->stack_addr = stack_addr;
-      ev->start_pc = start_pc;
-
-      return 1;
-   }
-
-   if (!err_printed)
-   {
-      //If you get this error, then Dyninst is having trouble figuring out
-      //how to read the information from the positions structure above.
-      //It needs a new entry filled in.  Running the commented out program
-      //at the end of this file can help you collect the necessary data.
-      RTprintf( "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
-      err_printed = 1;
-   }
-   
-   return 1;
-}
-
 #if defined(cap_mutatee_traps)
 
 #include <ucontext.h>
@@ -514,6 +402,8 @@ extern trapMapping_t *dyninstTrapTable;
 extern unsigned long dyninstTrapTableIsSorted;
 
 /**
+ * This comment is now obsolete, left for historic purposes
+ *
  * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
  * closly intwined with dyninstTrapHandler, don't modify one without 
  * understanding the other.
@@ -786,8 +676,6 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 
 
 #endif /* cap_mutatee_traps */
-
-int dyn_var = 0;
 
 #if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
 /* For a static binary, all global constructors are combined in an undefined

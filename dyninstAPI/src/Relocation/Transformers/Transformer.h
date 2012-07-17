@@ -32,12 +32,12 @@
 #if !defined(_R_T_BASE_H_)
 #define _R_T_BASE_H_
 
-#include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
 #include "common/h/Types.h" // Address
 #include <list>
 #include <map>
 #include <stack>
 #include "parseAPI/h/CFG.h"
+#include "boost/shared_ptr.hpp"
 
 class block_instance;
 class baseTramp;
@@ -70,7 +70,7 @@ class RelocGraph;
  
 class Transformer {
  public:
-  typedef dyn_detail::boost::shared_ptr<Widget> WidgetPtr;
+  typedef boost::shared_ptr<Widget> WidgetPtr;
   typedef std::list<WidgetPtr> WidgetList;
   typedef std::map<block_instance *, RelocBlock *> RelocBlockMap;
 

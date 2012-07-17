@@ -69,22 +69,6 @@ template class  dictionary_hash <std::string, unsigned>;
 template class  pdvector<dictionary_hash <std::string, unsigned>::entry>;
 template class  pdvector<dictionary_hash <Address, std::string>::entry>;
 
-// For the LWP list in the process class
-class dyn_lwp;
-template class  dictionary_hash <unsigned, dyn_lwp *>;
-template class  pdvector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
-template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
-
-class rpcLWP;
-class rpcThr;
-class inferiorRPCtoDo;
-class inferiorRPCinProgress;
-template class  dictionary_hash<unsigned, rpcLWP *>;
-template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
-template class pdvector<rpcThr *>;
-template class pdvector<inferiorRPCtoDo *>;
-template class pdvector<inferiorRPCinProgress *>;
-
 #include "common/src/List.C"
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

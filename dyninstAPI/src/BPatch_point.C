@@ -44,17 +44,17 @@
 #include "BPatch_image.h"
 #include "BPatch_function.h"
 #include "BPatch_collections.h"
-#include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_process.h"
 #include "BPatch_libInfo.h"
-#include "process.h"
 #include "symtab.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"
-#include "miniTramp.h"
 #include "function.h"
+#include "addressSpace.h"
+#include "dynProcess.h"
+#include "debug.h"
 
 #include "BPatch_memoryAccessAdapter.h"
 
@@ -77,7 +77,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
                            AddressSpace *as) :
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(_secondary),
-   pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
+   pointType(_pointType), memacc(NULL),
    edge_(NULL)
 {
    assert(point->func() == _func->lowlevel_func());
@@ -95,10 +95,9 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    // function/block entry + first insn problem.
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
       BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
+      handle->addInstance(*iter);
       preSnippets.push_back(handle);
-   }
+    }
 }
 
 /*
@@ -111,7 +110,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
    addSpace(_addSpace), lladdSpace(as), func(_func),
    point(_point), secondaryPoint(NULL),
    pointType(BPatch_locInstruction), memacc(NULL),
-   dynamic_point_monitor_func(NULL),edge_(_edge)
+   edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -123,9 +122,7 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace,
   // And check to see if there's already instrumentation there (from a fork, say)
    for (instPoint::instance_iter iter = point->begin(); iter != point->end(); ++iter) {
       BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
-      Dyninst::PatchAPI::SnippetPtr snip = (*iter)->snippet();
-      miniTramp* mini = GET_MINI(*iter);
-      handle->addMiniTramp(mini);
+      handle->addInstance(*iter);
       preSnippets.push_back(handle);
    }
 }
@@ -234,6 +231,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    }
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
+
+std::string BPatch_point::getCalledFunctionNameInt() {
+	assert(point->block());
+	return point->block()->obj()->getCalleeName(point->block());
+}
+
 
 Address BPatch_point::getCallFallThroughAddr()
 {
@@ -447,6 +450,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
       return NULL;
     }
     func_to_use = funcs[0];
+    BPatch::bpatch->info->registerMonitoredPoint(this);
   }
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite.
@@ -465,7 +469,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
 
-  miniTramp *res = point->push_back(ast, true);
+  Dyninst::PatchAPI::InstancePtr res = point->pushBack(ast);
 
   if (addSpace->pendingInsertions == NULL) {
     // Trigger it now
@@ -479,17 +483,12 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
      return NULL;
   }
 
-  //  Let asyncEventHandler know that we are being monitored
-  if (getAsync()) {
-      getAsync()->registerMonitoredPoint(this);
-  }
-
   dynamic_point_monitor_func = res;
 
   //  Return pointer to handle as unique id, user does not need to know its a
   //  miniTramp.
 
-  return (void*) res;
+  return (void*) res.get();
 } /* end monitorCalls() */
 
 bool BPatch_point::stopMonitoringInt()
@@ -499,9 +498,9 @@ bool BPatch_point::stopMonitoringInt()
     return false;
   }
   bool ret;
-  ret = dynamic_point_monitor_func->uninstrument();
+  ret = uninstrument(dynamic_point_monitor_func);
 
-  dynamic_point_monitor_func = NULL;
+  dynamic_point_monitor_func = Dyninst::PatchAPI::InstancePtr();
   return ret;
 }
 
@@ -718,10 +717,6 @@ instPoint *BPatch_point::getPoint(BPatch_callWhen when) const {
    return NULL;
 }
 
-std::string BPatch_point::getCalledFunctionNameInt() {
-	assert(point->block());
-	return point->block()->obj()->getCalleeName(point->block());
-}
 
 Dyninst::PatchAPI::Point *Dyninst::PatchAPI::convert(const BPatch_point *p, BPatch_callWhen when) {
   return p->getPoint(when);

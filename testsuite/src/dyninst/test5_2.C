@@ -62,7 +62,7 @@ extern "C" DLLEXPORT TestMutator *test5_2_factory() {
 test_results_t test5_2_Mutator::executeTest() {
 
   BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "overload_func_test::func_cpp";
+  const char *fn = "overload_func_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
     logerror( "**Failed** test #2 (overloaded functions)\n");
@@ -150,7 +150,7 @@ test_results_t test5_2_Mutator::executeTest() {
     }
 
     bpfv.clear();  
-    char *fn2 = "overload_func_test::pass";
+    const char *fn2 = "overload_func_test::pass";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
       logerror( "**Failed** test #2 (overloaded functions)\n");

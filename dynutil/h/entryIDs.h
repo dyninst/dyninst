@@ -862,14 +862,14 @@ enum prefixEntryID {
       hash<unsigned int> h;
       unsigned operator()(const entryID &e) const 
       {
-	return h(static_cast<unsigned int>(e));
+         return h(static_cast<unsigned int>(e));
       };
     };
     template<> struct hash<prefixEntryID> {
       hash<unsigned int> h;
       unsigned operator()(const prefixEntryID &e) const 
       {
-	return h(static_cast<unsigned int>(e));
+         return h(static_cast<unsigned int>(e));
       };
     };
   }
@@ -882,13 +882,13 @@ enum prefixEntryID {
       struct hash<entryID>
       {
         hash<size_t> h;
-	size_t operator()(const entryID &eid) const
-	{
-	  return h(static_cast<size_t>(eid));
-	}
+        size_t operator()(const entryID &eid) const
+        {
+           return h(static_cast<size_t>(eid));
+        }
       };
       template <>
-      struct hash<prefixEntryID>
+         struct hash<prefixEntryID>
       {
         hash<size_t> h;
 	size_t operator()(const prefixEntryID &eid) const

@@ -33,7 +33,6 @@
 #define INSTRUCTION_DECODER_IMPL_H
 
 #include "Expression.h"
-#include <dyn_detail/boost/shared_ptr.hpp>
 #include "dyn_regs.h"
 #include "Operation.h"
 #include "entryIDs.h"
@@ -47,7 +46,7 @@ namespace InstructionAPI
 class InstructionDecoderImpl
 {
     public:
-        typedef dyn_detail::boost::shared_ptr<InstructionDecoderImpl> Ptr;
+        typedef boost::shared_ptr<InstructionDecoderImpl> Ptr;
       
         InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
         virtual ~InstructionDecoderImpl() {}

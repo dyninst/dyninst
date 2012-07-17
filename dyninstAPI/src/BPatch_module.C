@@ -35,9 +35,10 @@
 
 #define BPATCH_FILE
 
-#include "process.h"
 #include "function.h"
 #include "debug.h"
+#include "addressSpace.h"
+#include "dynProcess.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
@@ -352,7 +353,8 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
 
    BPatch_funcMap::iterator i = func_map.begin();
    for (; i != func_map.end(); i++) {
-      if (incUninstrumentable || (*i).first->isInstrumentable())
+      func_instance *fi = static_cast<func_instance *>(i->first);
+      if (incUninstrumentable || fi->isInstrumentable())
          funcs.push_back((*i).second);
    }
    return true;
@@ -855,6 +857,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
 
     // build up list of memory pages that contain analyzed code
     std::set<Address> pageAddrs;
+#if defined (os_windows) && defined(working_windows_proccontrol)
     lowlevel_mod()->getAnalyzedCodePages(pageAddrs);
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
@@ -866,6 +869,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
             return false;
         }
     }
+#endif
 
     // add protected pages to the mapped_object's hash table, and
     // aggregate adjacent pages into regions and apply protection
@@ -898,7 +902,7 @@ bool BPatch_module::setAnalyzedCodeWriteable(bool writeable)
             end += pageSize;
         } 
 
-#if defined(os_windows)
+#if defined(os_windows) && defined(working_windows_proccontrol)
         int newRights = PAGE_EXECUTE_READ;
         if (writeable) {
             newRights = PAGE_EXECUTE_READWRITE;
@@ -931,6 +935,7 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callba
             return addSpace->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
+    
     return NULL;
 }
 

@@ -31,20 +31,19 @@
 
 #define DYN_DEFINE_REGS
 #include "dynutil/h/dyn_regs.h"
-#include "dyn_detail/boost/make_shared.hpp"
+#include "common/h/dwarfExpr.h"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
-
 
 #include <iostream>
 
 using namespace Dyninst;
 
-dyn_detail::boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
+boost::shared_ptr<MachRegister::NameMap> MachRegister::names()
 {
-    static dyn_detail::boost::shared_ptr<MachRegister::NameMap> store =
-        dyn_detail::boost::make_shared<MachRegister::NameMap>();
+    static boost::shared_ptr<MachRegister::NameMap> store = 
+       boost::shared_ptr<MachRegister::NameMap>(new MachRegister::NameMap);
     return store;
 }
 
@@ -229,8 +228,9 @@ MachRegister MachRegister::getFramePointer(Dyninst::Architecture arch)
       case Arch_x86_64:
          return x86_64::rbp;
       case Arch_ppc32:
+         return ppc32::r1;
       case Arch_ppc64:
-         return FrameBase;
+         return ppc64::r1;
       case Arch_none:
          return InvalidReg;
    }
@@ -1068,3 +1068,52 @@ unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
    }
    return 0;
 }
+
+
+#if defined(arch_x86_64)
+
+#define IA32_MAX_MAP 7
+#define AMD64_MAX_MAP 15
+static int const amd64_register_map[] =
+  {
+    0,  // RAX
+    2,  // RDX
+    1,  // RCX
+    3,  // RBX
+    6,  // RSI
+    7,  // RDI
+    5,  // RBP
+    4,  // RSP
+    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
+    /* This is incomplete. The x86_64 ABI specifies a mapping from
+       dwarf numbers (0-66) to ("architecture number"). Without a
+       corresponding mapping for the SVR4 dwarf-machine encoding for
+       IA-32, however, it is not meaningful to provide this mapping. */
+  };
+
+
+int Dyninst::Register_DWARFtoMachineEnc32(int n)
+{
+   return n;
+}
+
+
+int Dyninst::Register_DWARFtoMachineEnc64(int n)
+{
+   if (n <= AMD64_MAX_MAP)
+      return amd64_register_map[n];
+   return n;
+}
+
+#endif
+
+Dyninst::MachRegister Dyninst::DwarfToDynReg(signed long reg, Dyninst::Architecture arch)
+{
+   return MachRegister::DwarfEncToReg(reg, arch);
+}
+
+signed long Dyninst::DynToDwarfReg(Dyninst::MachRegister reg)
+{
+   return reg.getDwarfEnc();
+}
+
