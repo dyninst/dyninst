@@ -51,8 +51,8 @@ endif
 MYFLAGS += -I../../symtabAPI/h
 LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 
-CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
-CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
+CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
+CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
 AS		= as
 
 # Now make any necessary architecture specific changes to variables:
