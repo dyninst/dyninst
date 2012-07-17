@@ -5178,12 +5178,12 @@ RegisterPool::const_iterator RegisterPool::end() const
 
 RegisterPool::const_iterator RegisterPool::find(MachRegister r) const
 {
-   return RegisterPool::const_iterator(llregpool->regs.find(r));
+	return RegisterPool::const_iterator(llregpool->regs.find(r));
 }
 
 bool RegisterPool::const_iterator::operator==(const const_iterator &iter)
 {
-    return i != iter.i;
+    return i == iter.i;
 }
 
 bool RegisterPool::const_iterator::operator!=(const const_iterator &iter)

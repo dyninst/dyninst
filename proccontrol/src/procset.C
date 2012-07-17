@@ -2203,7 +2203,7 @@ ThreadSet::ptr ThreadSet::newThreadSet(Thread::ptr thr) {
 ThreadSet::ptr ThreadSet::newThreadSet(ProcessSet::ptr ps)
 {
    MTLock lock_this_func;
-   bool had_error;
+   bool had_error = false;
 
    ThreadSet::ptr newts = ThreadSet::ptr(new ThreadSet());
    int_threadSet* &newset = newts->ithrset;
