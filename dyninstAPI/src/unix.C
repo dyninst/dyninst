@@ -900,6 +900,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    unsigned maps_size = 0, i;
    char proc_path[128];
    int result;
+   Address loadAddr = 0;
 
    //Get the inode for the a.out
    startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
@@ -932,8 +933,9 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
       if (maps_entry.st_dev == aout.st_dev && maps_entry.st_ino == aout.st_ino)
       {
          //We have a match
+         
          desc.setLoadAddr(maps[i].start);
-         goto done;
+         loadAddr = maps[i].start;
       }
    }
         
@@ -941,7 +943,7 @@ Address PCProcess::setAOutLoadAddress(fileDescriptor &desc) {
    if (maps)
       free(maps);
 
-   return desc.loadAddr();
+   return loadAddr;
 }
 
 #endif
