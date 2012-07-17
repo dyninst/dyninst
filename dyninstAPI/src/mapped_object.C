@@ -969,12 +969,10 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 
     // We have a bunch of offsets, now add in the base addresses
     for (unsigned i = 0; i < code_heaps.size(); i++) {
-		cerr << "Adding code heap " << code_heaps[i].first << " @ " << hex << code_heaps[i].second << " + " << codeBase() << dec << endl;
 		foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
                                                   code_heaps[i].second + codeBase()));
     }
     for (unsigned i = 0; i < data_heaps.size(); i++) {
-		cerr << "Adding data heap " << data_heaps[i].first << " @ " << hex << data_heaps[i].second << " + " << dataBase() << dec << endl;
         foundHeaps.push_back(pair<string,Address>(data_heaps[i].first,
                                                   data_heaps[i].second + dataBase()));
     }

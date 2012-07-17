@@ -489,6 +489,6 @@ bool Dyninst::Stackwalker::frame_symname_cmp(const Frame &a, const Frame &b)
 
 bool Dyninst::Stackwalker::frame_lineno_cmp(const Frame &, const Frame &)
 {
-#warning TODO: Implement frame_lineno_cmp
    assert(0 && "frame_lineno_cmp unimplemented");
+	return false;
 }

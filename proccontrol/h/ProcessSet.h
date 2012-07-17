@@ -234,6 +234,12 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
       bool operator!=(const iterator &i) const;
       ProcessSet::iterator operator++();
       ProcessSet::iterator operator++(int);
+
+	  typedef Process::ptr value_type;
+	  typedef int difference_type;
+	  typedef Process::ptr *pointer;
+	  typedef Process::ptr &reference;
+	  typedef std::forward_iterator_tag iterator_category;
    };
 
    class PC_EXPORT const_iterator {
@@ -249,6 +255,12 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
       bool operator!=(const const_iterator &i) const;
       ProcessSet::const_iterator operator++();
       ProcessSet::const_iterator operator++(int);
+
+	  typedef Process::ptr value_type;
+	  typedef int difference_type;
+	  typedef Process::ptr *pointer;
+	  typedef Process::ptr &reference;
+	  typedef std::forward_iterator_tag iterator_category;
    };
 
    iterator begin();
@@ -389,7 +401,7 @@ class PC_EXPORT ProcessSet : public boost::enable_shared_from_this<ProcessSet>
  **/
 ProcessSet::const_ptr getAllProcs();
 
-class ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
+class PC_EXPORT ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
   private:
    int_threadSet *ithrset;
    TSetFeatures *features;
@@ -424,7 +436,7 @@ class ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
    /**
     * Iterator and standard set utilities
     **/
-   class iterator {
+   class PC_EXPORT iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
      protected:
       std::set<Thread::ptr>::iterator int_iter;
@@ -439,7 +451,7 @@ class ThreadSet : public boost::enable_shared_from_this<ThreadSet> {
       ThreadSet::iterator operator++(int);
    };
 
-   class const_iterator {
+   class PC_EXPORT const_iterator {
       friend class Dyninst::ProcControlAPI::ThreadSet;
      protected:
       std::set<Thread::ptr>::iterator int_iter;

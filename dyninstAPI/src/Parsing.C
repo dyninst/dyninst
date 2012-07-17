@@ -257,7 +257,7 @@ DynParseCallback::updateCodeBytes(Address target)
 {   // calls function that updates bytes if needed
     assert(BPatch_normalMode != _img->hybridMode());
     return codeBytesUpdateCB( _img->cb_arg0(), 
-                              target + _img->desc().loadAddr() );
+                              target + _img->desc().code() );
 }
 
 bool

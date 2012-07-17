@@ -236,6 +236,8 @@ PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 	}
 	DEFAULT_RETURN;
 }
+#include "InstructionDecoder.h"
+using namespace InstructionAPI;
 
 PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	INITIAL_MUXING;
@@ -243,9 +245,9 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
         // DEBUG
-#if 0
-        if (evSignal->getSignal() == 11) {
+    if (evSignal->getSignal() == 3221225477) {
            unsigned int esp;
+		   unsigned int pc = 0;
            ProcControlAPI::RegisterPool regs;
            evSignal->getThread()->getAllRegisters(regs);
            for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
@@ -253,7 +255,10 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
               if ((*iter).first == x86::esp) {
                  esp = (*iter).second;
               }
-           }
+			  if ((*iter).first == x86::eip) {
+				  pc = (*iter).second;
+			  }
+		   }
 
            std::vector<std::vector<Frame> > stacks;
            process->walkStacks(stacks);
@@ -272,9 +277,20 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
               cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
            }
 
-           while(1) sleep(100);
+		cerr << "Disassembling at " << hex << pc - 512 << " .. " << pc + 512 << dec << endl;
+		   unsigned disass[1024];
+		   process->readDataSpace((void *) (pc - 512), 1024, disass, false);
+		   Address base = pc-512;
+	      InstructionDecoder deco(disass,1024,process->getArch());
+		  Instruction::Ptr insn = deco.decode();
+		  while(insn) {
+			 cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
+			base += insn->size();
+			insn = deco.decode();
+		  }
+
+//           while(1) sleep(100);
         }
-#endif
 	if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
 		evSignal->clearThreadSignal();
 	}

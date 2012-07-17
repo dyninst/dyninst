@@ -1244,7 +1244,7 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen, func_instance *target,
         //Caller clean-up
         emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size        
     }
-    gen.rs()->incStack(-1 * frame_size);
+ gen.rs()->incStack(-1 * frame_size);
 
     //Restore extra registers we may have saved when storing parameters in
     // specific registers

@@ -1612,7 +1612,7 @@ bool PCProcess::walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
     bool retval = true;
 
     // sanity check
-    if( stackwalker_ == NULL ) return false;
+	if( stackwalker_ == NULL ) return false;
 
     // Process needs to be stopped before doing a stackwalk
     if( !isStopped() ) {

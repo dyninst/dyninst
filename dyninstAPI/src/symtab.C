@@ -1190,7 +1190,6 @@ void image::analyzeImage() {
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
-    mal_printf("parsing %s loaded at %lx\n", name().c_str(),desc().loadAddr());
     stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
 // FIXME necessary?

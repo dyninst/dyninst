@@ -772,8 +772,9 @@ Parser::init_frame(ParseFrame & frame)
     InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
     InstructionAdapter_t ah(dec, ia_start, frame.func->obj(),
         frame.codereg, frame.func->isrc(), b);
-    if(ah.isStackFramePreamble())
+	if(ah.isStackFramePreamble()) {
         frame.func->_no_stack_frame = false;
+	}
     frame.func->_saves_fp = ah.savesFP();
 }
 

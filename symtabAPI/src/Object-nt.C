@@ -43,6 +43,7 @@
 #include <iomanip>
 #include <limits.h>
 #include <crtdbg.h>
+#include <winnt.h>
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/src/Object-nt.h"
@@ -854,34 +855,33 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    //       the Base to get correct ordinal indices into the Export Address 
    //       table, but this is false, at least in the typical case for which 
    //       Base=1, I haven't observed any binaries with different bases
-   if (!is_aout_ && peHdr->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_EXPORT) {
-      assert(sizeof(Offset) == getAddressWidth());
-      Offset exportTableVA = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
-      IMAGE_EXPORT_DIRECTORY * exportTable = (IMAGE_EXPORT_DIRECTORY*) ((Offset)mapAddr + RVA2Offset(exportTableVA));
-      unsigned int exportSize = peHdr->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
-      if (exportSize && exportTable && exportTable->AddressOfNames) {
-         Offset exportEnd = exportTableVA + exportSize;
-         int numNames = exportTable->NumberOfNames;
-         Offset *namePtrs = (Offset*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfNames));
-         WORD *nameOrdMap = (WORD*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfNameOrdinals));
-         Offset *funcAddrs = (Offset*) ((Offset)mapAddr + RVA2Offset(exportTable->AddressOfFunctions));
-         for (int nidx=0; nidx < numNames; nidx++) {
-            string fName = string((char*)((Offset)mapAddr + RVA2Offset(namePtrs[nidx])));
-            Offset fAddr = funcAddrs[ nameOrdMap[nidx] +1 - exportTable->Base ]; //+1 compensates for PE spec error
-            if (fAddr >= exportTableVA && fAddr < exportEnd) {
-               continue; // forwarded export
-            }
-            Symbol *sym = new Symbol(fName,
-               Symbol::ST_FUNCTION, 
-               Symbol::SL_GLOBAL, 
-               Symbol::SV_DEFAULT,
-               fAddr);
-            sym->setDynamic(true); // it's exported, equivalent to ELF dynamic syms
-            symbols_[fName].push_back(sym);
-            symsToModules_[sym] = curModule->GetName();
-         }
-      }
-   }
+	if (!is_aout_ && peHdr->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_EXPORT) {
+		assert(sizeof(Offset) == getAddressWidth());
+		unsigned long size;
+		IMAGE_EXPORT_DIRECTORY *eT2 = (IMAGE_EXPORT_DIRECTORY *)::ImageDirectoryEntryToData(mapAddr, false, IMAGE_DIRECTORY_ENTRY_EXPORT, &size);
+		if (eT2) {
+			DWORD *funcNamePtrs = (DWORD *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, ULONG(eT2->AddressOfNames), NULL);
+			DWORD *funcAddrs = (DWORD *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, ULONG(eT2->AddressOfFunctions), NULL);
+			WORD *funcAddrNameMap = (WORD *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, ULONG(eT2->AddressOfNameOrdinals), NULL);
+			if (funcNamePtrs && funcAddrs && funcAddrNameMap) {
+				for (unsigned i = 0; i < eT2->NumberOfNames; ++i) {
+					char *name = (char *) ::ImageRvaToVa(ImageNtHeader(mapAddr), mapAddr, funcNamePtrs[i], NULL);
+					int funcIndx = funcAddrNameMap[i];
+					Address funcAddr = funcAddrs[funcIndx];
+					if ((funcAddr >= (Address) eT2) &&
+						(funcAddr < ((Address) eT2 + size))) continue;
+					Symbol *sym = new Symbol(name,
+						Symbol::ST_FUNCTION, 
+				        Symbol::SL_GLOBAL, 
+			            Symbol::SV_DEFAULT,
+				        funcAddr);
+					sym->setDynamic(true); // it's exported, equivalent to ELF dynamic syms
+					symbols_[name].push_back(sym);
+					symsToModules_[sym] = curModule->GetName();
+				}
+			}
+		}
+	}
 
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;

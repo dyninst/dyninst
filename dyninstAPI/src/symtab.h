@@ -137,8 +137,7 @@ class fileDescriptor {
         data_(data),
 		dynamic_(dynamic),
         shared_(isShared),
-        pid_(0),
-        loadAddr_(0)
+        pid_(0)
 #if defined (os_windows)
         ,length_(0)
         ,rawPtr_(0)
@@ -169,10 +168,9 @@ class fileDescriptor {
      Address data() const { return data_; }
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
-     Address loadAddr() const { return loadAddr_; }
+//     Address loadAddr() const { return loadAddr_; }
      Address dynamic() const { return dynamic_; }
      void setLoadAddr(Address a) { 
-        loadAddr_ = a;
         code_ += a;
         data_ += a;
      }
@@ -209,7 +207,6 @@ class fileDescriptor {
      Address dynamic_; //Used on Linux, address of dynamic section.
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
-     Address loadAddr_;
      Address length_;        // set only if this is not really a file
      unsigned char* rawPtr_; // set only if this is not really a file
 

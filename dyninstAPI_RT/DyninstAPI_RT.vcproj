@@ -45,7 +45,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories=".."
-				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;cap_mutatee_traps;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
+				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -94,7 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).pdb $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="mkdir $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration

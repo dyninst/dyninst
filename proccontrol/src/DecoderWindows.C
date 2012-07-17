@@ -298,7 +298,7 @@ bool DecoderWindows::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 				GeneratorWindows* winGen = static_cast<GeneratorWindows*>(GeneratorWindows::getDefaultGenerator());
 				winGen->markUnhandledException(e.dwProcessId);
 				newEvt = EventSignal::ptr(new EventSignal(e.u.Exception.ExceptionRecord.ExceptionCode));
-				assert(0);
+				cerr << "Signal is " << e.u.Exception.ExceptionRecord.ExceptionCode << endl;
 			}
 			break;
 			// Thread naming exception. Ignore.

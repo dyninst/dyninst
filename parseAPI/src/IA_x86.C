@@ -235,12 +235,20 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
 
 bool IA_IAPI::savesFP() const
 {
-    Instruction::Ptr ci = curInsn();
-    if(ci->getOperation().getID() == e_push)
-    {
-        return(ci->isRead(framePtr[_isrc->getArch()]));
-    }
-    return false;
+    InstructionDecoder tmp(dec);
+#if defined(os_windows)
+	const int limit = 2;
+#else
+	const int limit = 1;
+#endif
+	for (unsigned i = 0; i < limit; ++i) {
+		InstructionAPI::Instruction::Ptr ci = tmp.decode();
+	    if(ci->getOperation().getID() == e_push)
+		{
+			return(ci->isRead(framePtr[_isrc->getArch()]));
+		}
+	}	
+	return false;
 }
 
 bool IA_IAPI::isStackFramePreamble() const
@@ -256,16 +264,29 @@ bool IA_IAPI::isStackFramePreamble() const
         {
             return true;
         }
-    }
+#if defined(os_windows)
+		// Windows commonly uses the following:
+		// mov edi, edi
+		// push ebp
+		// mov esp, ebp
+		// where the mov edi,edi is for runtime patching
+		nextTwoInsns.push_back(tmp.decode());
+		if (isFrameSetupInsn(nextTwoInsns[2])) 
+		{
+			return true;
+		}
+#endif	
+	}
     return false;
 }
 
 bool IA_IAPI::cleansStack() const
 {
     Instruction::Ptr ci = curInsn();
-    return (ci->getCategory() == c_ReturnInsn) &&
-            ci->getOperand(0).getValue();
-
+	if (ci->getCategory() != c_ReturnInsn) return false;
+    std::vector<Operand> ops;
+	ci->getOperands(ops);
+	return (ops.size() > 1);
 }
 
 bool IA_IAPI::isReturn(Dyninst::ParseAPI::Function * /*context*/, 

@@ -531,11 +531,14 @@ void registerSpace::initialize()
    are saved. */
 #if defined(os_windows)
 int cpuidCall() {
-    DWORD result;
-    _asm {
-        xor eax, eax
-        cpuid
-        mov result, eax
+    DWORD result = 0;
+// Note: mov <target> <source>, so backwards from what gnu uses
+	_asm {
+		push ebx
+		mov eax, 1
+		cpuid
+		pop ebx
+		mov result, edx
     }
     return result;
 }

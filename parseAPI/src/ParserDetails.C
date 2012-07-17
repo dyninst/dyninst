@@ -603,6 +603,7 @@ void Parser::ProcessCFInsn(
     if(ah.isDelaySlot())
         ah.advance();
 
-    if(!frame.func->_cleans_stack && ah.cleansStack())
+	if(!frame.func->_cleans_stack && ah.cleansStack()) {
         frame.func->_cleans_stack = true;
+	}
 }

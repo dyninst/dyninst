@@ -839,7 +839,7 @@ bool PCEventHandler::handleLibrary(EventLibrary::const_ptr ev, PCProcess *evProc
 
         fileDescriptor tmpDesc((*i)->getName(), (*i)->getLoadAddress(),
                     dataAddress, true);
-        if( execFd == tmpDesc ) {
+		if( execFd == tmpDesc ) {
             proccontrol_printf("%s[%d]: ignoring Library event for executable %s\n",
                     FILE__, __LINE__, (*i)->getName().c_str());
             continue;

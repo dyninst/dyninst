@@ -60,6 +60,12 @@ bool Walker::createDefaultSteppers()
      goto error;
   sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
             __FILE__, __LINE__, stepper);
+#if defined(USE_PARSE_API)
+  stepper = new AnalysisStepper(this);
+  result = addStepper(stepper);
+  if (!result)
+		goto error;
+#endif
 
   return true;
  error:

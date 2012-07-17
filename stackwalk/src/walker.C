@@ -775,7 +775,7 @@ bool WalkerSet::walkStacks(CallTree &tree) const {
    }
    
    bool had_error = false;
-   for (iterator i = begin(); i != end(); i++) {
+   for (const_iterator i = begin(); i != end(); i++) {
       vector<THR_ID> threads;
       Walker *walker = *i;
       bool result = walker->getAvailableThreads(threads);
