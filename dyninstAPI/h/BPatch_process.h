@@ -499,10 +499,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // it is being debugged, so this is not a complete solution.  
     API_EXPORT(Int, (),
     bool,hideDebugger,());
-
+#if 0
     API_EXPORT_V(Int, (),
     void, printDefensiveStats, ());
-
+#endif
     //  BPatch_process::enableDumpPatchedImage
     //  
     //  

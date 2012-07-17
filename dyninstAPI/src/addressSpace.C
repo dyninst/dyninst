@@ -1871,6 +1871,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
              func = tframe.getFunc();
              offset = 0;
           }             
+			if (!block || !func) continue;
 
           list<Address> relocPCs;
           getRelocAddrs(orig, block, func, relocPCs, true);

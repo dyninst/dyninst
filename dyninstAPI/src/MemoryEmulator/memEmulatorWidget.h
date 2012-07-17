@@ -52,7 +52,7 @@ class MemEmulator : public Widget {
   friend class MemEmulatorTranslator;
   typedef std::map<Register, RelocBlockPtr> TranslatorMap;
  public:
-   typedef dyn_shared_ptr<MemEmulator> Ptr;
+	 typedef boost::shared_ptr<MemEmulator> Ptr;
    
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,

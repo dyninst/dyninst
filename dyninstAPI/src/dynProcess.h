@@ -214,7 +214,6 @@ public:
 
 // TODO FIXME
 #if defined(os_windows)
-    bool instrumentThreadInitialFunc(func_instance *f); // merge with instrumentMTFuncs
     pdvector<func_instance *> initial_thread_functions;
     bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif

@@ -94,19 +94,26 @@ comp_intro:
 
 # Before refactoring the Makefile, we used to support these build targets.  Recreate them with
 # simple aliases 
-DyninstAPI: comp_intro dyninstAPI parseThat dyninstAPI_testsuite
-SymtabAPI: comp_intro symtabAPI symtabAPI_testsuite
+ifndef DONT_BUILD_NEWTESTSUITE
+dyn_testsuite = dyninstAPI_testsuite
+sym_testsuite = symtabAPI_testsuite
+ins_testsuite = instructionAPI_testsuite
+pc_testsuite = proccontrol_testsuite
+endif
+
+DyninstAPI: comp_intro dyninstAPI parseThat $(dyn_testsuite)
+SymtabAPI: comp_intro symtabAPI $(sym_testsuite)
 StackwalkerAPI: comp_intro stackwalk
 basicComps: comp_intro dyninstAPI
 subSystems: comp_intro dyninstAPI
 testsuites: comp_intro testsuite
-InstructionAPI: comp_intro instructionAPI instructionAPI_testsuite
+InstructionAPI: comp_intro instructionAPI $(ins_testsuite)
 ValueAdded: comp_intro valueAdded/sharedMem
 DepGraphAPI: comp_intro depGraphAPI
 ParseAPI: comp_intro parseAPI
 DynC_API: comp_intro dynC_API
 DataflowAPI: comp_intro parseAPI
-ProcControlAPI: comp_intro proccontrol proccontrol_testsuite
+ProcControlAPI: comp_intro proccontrol $(pc_testsuite)
 PatchAPI: comp_intro parseAPI
 
 # Testsuite dependencies
@@ -153,3 +160,6 @@ umd-nightly:
 
 # Used for UW nightly builds
 nightly: ready $(Everything_install) parseThat_install testsuite-nightly
+
+echo:
+	@echo $(Everything)

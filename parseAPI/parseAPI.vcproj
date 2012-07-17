@@ -43,7 +43,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="h;..;../dynutil/h;../../include;../external;../dataflowAPI/h;../dataflowAPI/src"
-				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
+				PreprocessorDefinitions="_CRT_SECURE_NO_WARNINGS;WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;cap_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;DATAFLOW_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -98,7 +98,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)$(ProjectName).lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -193,6 +193,18 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\dataflowAPI\src\ABI.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\src\Absloc.C"
 				>
 				<FileConfiguration
@@ -249,6 +261,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\CFGModifier.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -449,6 +473,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\dataflowAPI\src\InstructionCache.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\InstructionSource-x86.C"
 				>
 				<FileConfiguration
@@ -461,6 +497,30 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\src\liveness.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\ParseCallback.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -541,6 +601,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\src\RegisterMap.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -752,6 +824,10 @@
 			</File>
 			<File
 				RelativePath=".\h\InstructionSource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dataflowAPI\h\liveness.h"
 				>
 			</File>
 			<File

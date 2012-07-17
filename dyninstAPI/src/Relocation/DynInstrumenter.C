@@ -3,6 +3,7 @@
 #include "BPatch_addressSpace.h"
 #include "../function.h"
 #include "../parse-cfg.h"
+#include "Snippet.h"
 
 using Dyninst::PatchAPI::DynInstrumenter;
 using Dyninst::PatchAPI::DynInsertSnipCommand;
@@ -56,10 +57,10 @@ bool DynInsertSnipCommand::undo() {
 }
 
 /* Remove Snippet Command */
-DynRemoveSnipCommand::DynRemoveSnipCommand(Instance::Ptr inst) : inst_(inst) {
+DynRemoveSnipCommand::DynRemoveSnipCommand(Dyninst::PatchAPI::Instance::Ptr inst) : inst_(inst) {
 }
 
-DynRemoveSnipCommand* DynRemoveSnipCommand::create(Instance::Ptr inst) {
+DynRemoveSnipCommand* DynRemoveSnipCommand::create(Dyninst::PatchAPI::Instance::Ptr inst) {
    return new DynRemoveSnipCommand(inst);
 }
 

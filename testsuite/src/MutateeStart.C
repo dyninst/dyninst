@@ -172,25 +172,6 @@ static void AddArchAttachArgs(std::vector<std::string> &args, create_mode_t cm, 
 extern FILE *getOutputLog();
 extern FILE *getErrorLog();
 
-std::string getRTLibDir() {
-   char *platform = getenv("PLATFORM");
-   char cwd[1024];
-   if (!platform) {
-      // Try to strip it from the current path
-      getcwd(cwd, 1024);
-      platform = strrchr(cwd, '/');
-   }
-   if (!platform) return std::string();
-
-   // Shift past initial slash
-   while (platform[0] == '/') {
-      platform++;
-   }
-
-   std::string rtlib = "../../dyninstAPI_RT/";
-   rtlib += platform;
-   return rtlib;
-}
 
 static std::string launchMutatee_plat(std::string exec_name, const std::vector<std::string> &args, bool needs_grand_fork)
 {   

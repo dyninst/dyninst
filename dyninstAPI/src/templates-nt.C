@@ -102,10 +102,6 @@ template class dictionary_hash<std::string, pdvector<func_instance *> *>;
 class BPatch_typeCollection;
 template class dictionary_hash<std::string, BPatch_typeCollection *>;
 
-#include "common/src/List.C"
-template class List<miniTramp*>;
-template class ListBase<miniTramp*, void*>;
-template class dictionary_hash<instPoint const *, baseTramp *>;
 
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_type.h"
