@@ -417,9 +417,6 @@ static int handleArgs(int argc, char *argv[])
       } 
       else if ( strcmp(argv[i], "-limit") == 0 || strcmp(argv[i], "-test-limit") == 0) 
       {
-         if (strcmp(argv[i], "-limit") == 0) {
-            fprintf(stderr, "-limit is deprecated, use -test-limit instead\n");
-         }
          if (i + 1 < argc) {
             testLimit = strtol(argv[++i], NULL, 10);
          }

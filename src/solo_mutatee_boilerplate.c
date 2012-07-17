@@ -33,15 +33,6 @@
  * Start of test_skeleton_solo
  */
 
-#if __INTEL_COMPILER
-/* external decl in primary source file: int CONCAT(...) */
-#pragma warning ( disable: 1419 )
-/* old-style parameter list: extern void handleAttach() */
-#pragma warning ( disable: 310 )
-/* external func defn with no prior declaration: const char *CONCAT */
-#pragma warning ( disable: 1418 )
-#endif
-
 /*
  * mutatee_utils.h and solo_mutatee.h are required for all solo test mutatees
  */

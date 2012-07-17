@@ -136,12 +136,12 @@ bool pc_statMutator::fakeStackwalk()
       Process::ptr proc = thr->getProcess();
 
       const RegisterPool &rp = i->second;
-      RegisterPool::const_iterator i = rp.find(stack_pointer);
-      if (i == rp.end()) {
+      RegisterPool::const_iterator j = rp.find(stack_pointer);
+      if (j == rp.end()) {
          logerror("Register set did not contain stack pointer\n");
          return false;
       }
-      MachRegisterVal val = (*i).second;
+      MachRegisterVal val = (*j).second;
       stack_locs->insert(val, proc);
    }
 
@@ -152,7 +152,7 @@ bool pc_statMutator::fakeStackwalk()
       return false;
    }
    if (read_results.size() != expected_threads) {
-      pthrd_printf("Read wrong number of objects\n");
+      logerror("Read wrong number of objects\n");
       return false;
    }
    
@@ -181,7 +181,7 @@ public:
    }
 
    virtual bool addStackFrame(Thread::ptr thr, Address ra, Address sp, Address fp) {
-      pthrd_printf("Called addStackFrame - %lx, %lx, %lx\n", ra, sp, fp);
+      logerror("Called addStackFrame - %lx, %lx, %lx\n", ra, sp, fp);
       frame_set->insert(thr);
       return true;
    }

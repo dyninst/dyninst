@@ -48,9 +48,10 @@ static void microsleep()
    nanosleep(&t, NULL);
 }
 #else
+#include <assert.h>
 static void microsleep()
 {
-#error Need .01 second sleep on windows (or leave blank and fix below timeout)
+  assert(0 && "Fixme");
 }
 #endif
 
