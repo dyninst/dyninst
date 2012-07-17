@@ -200,7 +200,7 @@ bool pc_statMutator::takeSample()
    }
 
    Process::ptr a_proc = *pset->begin();
-   MachRegister stack_pointer = MachRegister::getStackPointer(a_proc->getArchitecture());
+   stack_pointer = MachRegister::getStackPointer(a_proc->getArchitecture());
 
 
    if (pset->getLibraryTracking()) {

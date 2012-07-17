@@ -48,10 +48,10 @@ static void microsleep()
    nanosleep(&t, NULL);
 }
 #else
-#include <assert.h>
+#include <windows.h>
 static void microsleep()
 {
-  assert(0 && "Fixme");
+	Sleep(1);
 }
 #endif
 
