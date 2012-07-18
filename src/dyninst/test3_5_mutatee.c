@@ -51,11 +51,23 @@
 
 /* Function definitions follow */
 
+#if !defined(os_windows_test)
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
 /* 
  * Test #5 - terminate with an abort
  */
 int test3_5_mutatee() {
   dprintf("Mutatee aborting.\n");
+  /* Don't leave a core file around */
+#if !defined(os_windows_test)
+  struct rlimit limit;
+  limit.rlim_cur = 0;
+  limit.rlim_max = 0;
+  setrlimit(RLIMIT_CORE, &limit);
+#endif
   abort();
   return -1; /* Never reached */
 }
