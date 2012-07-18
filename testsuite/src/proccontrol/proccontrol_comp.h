@@ -105,7 +105,7 @@ public:
    bool send_message(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
-   bool create_pipes(Process::ptr p, bool read_pipe);
+   bool create_pipes(ProcessSet::ptr p);
    bool init_pipes(Process::ptr p);
 
    bool block_for_events();
