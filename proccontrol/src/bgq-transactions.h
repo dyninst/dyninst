@@ -53,6 +53,7 @@ class Transaction
    size_t packet_buffer_size;
    size_t packet_buffer_maxsize;
    uint32_t rank;
+   uint32_t cur_ack_size;
    uint16_t msg_id;
    ResponseSet *resp_set;
 
@@ -117,6 +118,7 @@ class Transaction
      packet_buffer_size(0),
      packet_buffer_maxsize(0),
      rank(p->getRank()),
+     cur_ack_size(0),
      msg_id(mid),
      resp_set(NULL)
    {
@@ -155,7 +157,24 @@ class Transaction
          pthrd_printf("Begin temporary transaction\n");
          beginTransaction();
       }
+
+      //If this transaction would push us over the size limit on packets (for either our send or ack)
+      // then roll the transaction.
       size_t cmd_size = bgq_process::getCommandLength(cmd_type, *cmd);
+      size_t ack_size = bgq_process::getCommandAckLength(cmd_type, *cmd);
+
+      if (packet_buffer_size + cmd_size >= SmallMessageDataSize) {
+         pthrd_printf("Rolling transaction.  Message would overflow max message size\n");
+         endTransaction();
+         beginTransaction();
+      }
+      if (cur_ack_size + ack_size >= SmallMessageDataSize) {
+         pthrd_printf("Rolling transaction.  Message Ack would overflow max message size\n");
+         endTransaction();
+         beginTransaction();
+      }
+      cur_ack_size += ack_size;
+
       unsigned int next_start_offset;
       CmdType *msg;
       if (!transaction_index) {
@@ -231,6 +250,7 @@ class Transaction
       transaction_index = 0;
       attach_transaction = false;
       resp_set = NULL;
+      cur_ack_size = 0;
    }
    
    bool activeTransaction()

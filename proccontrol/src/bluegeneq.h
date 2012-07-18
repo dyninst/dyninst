@@ -80,7 +80,9 @@ class bgq_process :
   public:
    static uint32_t getCommandLength(uint16_t cmd_type, const ToolCommand &cmd);
    static uint32_t getMessageLength(const ToolMessage &msg);
+   static uint32_t getCommandAckLength(uint16_t cmd_type, const ToolCommand &cmd);
    static uint16_t getCommandMsgType(uint16_t cmd_id);
+   static uint16_t getCommandExpectedAck(uint16_t cmd_id);
    static const char *bgqErrorMessage(uint32_t retcode, bool long_form = true);
    static bool isActionCommand(uint16_t cmd_type);
    static uint64_t getJobID();
@@ -126,8 +128,6 @@ class bgq_process :
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr);
 
-   virtual PlatformFeatures *plat_getPlatformFeatures();
-
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
    virtual bool plat_preAsyncWait();
@@ -150,6 +150,11 @@ class bgq_process :
 
    bool decoderPendingStop();
    void setDecoderPendingStop(bool b);
+
+   virtual std::string mtool_getName();
+   virtual MultiToolControl::priority_t mtool_getPriority();
+   virtual MultiToolControl *mtool_getMultiToolControl();
+
   private:
    typedef Transaction<QueryMessage, QueryAckMessage> QueryTransaction;
    typedef Transaction<UpdateMessage, UpdateAckMessage> UpdateTransaction;
@@ -175,6 +180,9 @@ class bgq_process :
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *initial_thread_list;
 
+   string tooltag;
+   uint8_t priority;
+   MultiToolControl *mtool;
    enum {
       issue_attach = 0,
       waitfor_attach,
@@ -201,12 +209,10 @@ class bgq_process :
       detach_done
    } detach_state;
 
-   static const char *tooltag;
    static uint64_t jobid;
    static uint32_t toolid;
    static bool set_ids;
    static bool do_all_attach;
-   static uint8_t priority;
 
    static set<void *> held_msgs;
    static unsigned int num_pending_stackwalks;
@@ -217,6 +223,7 @@ class bgq_thread : public thread_db_thread, ppc_thread
    friend class bgq_process;
   private:
    bool last_signaled;
+   CallStackUnwinding *unwinder;
   public:
    bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l);
    virtual ~bgq_thread();
@@ -238,6 +245,8 @@ class bgq_thread : public thread_db_thread, ppc_thread
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+
+   virtual CallStackUnwinding *getStackUnwinder();
 
    static void regBufferToPool(BG_Reg_t *gprs, BG_Special_Regs *sregs, int_registerPool &reg);
    static void regPoolToBuffer(int_registerPool &reg, BG_Reg_t *gprs, BG_Special_Regs *sregs);
