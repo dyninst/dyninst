@@ -215,6 +215,69 @@ CallStackCallback::~CallStackCallback()
 {
 }
 
+string MultiToolControl::default_tool_name("pcontrl");
+MultiToolControl::priority_t MultiToolControl::default_tool_priority = 99;
+
+MultiToolControl::MultiToolControl(Process::ptr p) :
+   proc(p)
+{
+}
+
+MultiToolControl::~MultiToolControl()
+{
+   proc = Process::weak_ptr();
+}
+
+void MultiToolControl::setDefaultToolName(string name) 
+{
+   MTLock lock_this_func;
+   default_tool_name = name;
+}
+
+void MultiToolControl::setDefaultToolPriority(MultiToolControl::priority_t p)
+{
+   MTLock lock_this_func;
+   default_tool_priority = p;
+}
+
+string MultiToolControl::getDefaultToolName()
+{
+   MTLock lock_this_func;
+   return default_tool_name;
+}
+
+MultiToolControl::priority_t MultiToolControl::getDefaultToolPriority()
+{
+   MTLock lock_this_func;
+   return default_tool_priority;
+}
+
+std::string MultiToolControl::getToolName() const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p ? p->llproc() : NULL;
+   if (!llproc) {
+      perr_printf("getToolName attempted on exited process\n");
+      globalSetLastError(err_exited, "Process is exited\n");
+      return string();
+   }
+   return llproc->mtool_getName();
+}
+
+MultiToolControl::priority_t MultiToolControl::getToolPriority() const
+{
+   MTLock lock_this_func;
+   Process::ptr p = proc.lock();
+   int_process *llproc = p ? p->llproc() : NULL;
+   if (!llproc) {
+      perr_printf("getToolPriority attempted on exited process\n");
+      globalSetLastError(err_exited, "Process is exited\n");
+      return 0;
+   }
+   return llproc->mtool_getPriority();
+}
+
 #if 0
 //TO BE IMPLEMENTED
 bool RemoteIO::getFileNames(std::vector<std::string> &/*filenames*/)

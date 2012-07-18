@@ -3,6 +3,11 @@ TO_CORE	= 	../..
 NO_IMPLICIT_TEMPLATES = true
 SUITE_NAME = testsuite
 
+M_bg_cc = mpixlc
+M_bg_CC = mpixlcxx
+M_gnu_cc = mpicc
+M_gnu_xx = mpicxx
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config.local
