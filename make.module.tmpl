@@ -309,7 +309,7 @@ mutatees: $(filter-out $(BUILD_FILTER), $(symtab_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES)))
 mutators: $(symtab_MUTATORS_SO)
 components: $(LIBSYMTABCOMP)
-testlibs:
+testlibs: $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS)
 symtab_targs = $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES)))
 symtab_targs = $(symtab_MUTATORS_SO) $(LIBSYMTABCOMP)
 endif
