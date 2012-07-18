@@ -890,20 +890,11 @@ void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
       Edge *edge = (Edge*)*eit;
       // Intraprocedural only
       if (edge->type() == CALL || edge->type() == RET) continue;
+	  stackanalysis_printf("\t\t Meet over block 0x%lx/0x%lx with data %s\n",
+		  edge->src()->start(),
+		  edge->src()->end(),
+		  format(blockOutputs[edge->src()]).c_str());
       meet(blockOutputs[edge->src()], input);
-#if 0
-      stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
-                           edge->src()->start(),
-                           outBlockEffects[edge->src()].format().c_str());
-#endif
-//      stackanalysis_printf("\t\t Inserting 0x%lx: x86_64::rsp := %s\n",
-//              edge->src()->start(),
-//              (blockOutputs[edge->src()])[x86_64::rsp].format().c_str());
-        stackanalysis_printf("\t\t Updated [0x%x-0x%x]: x86_64::rsp := %s\n",
-                edge->src()->start(),
-                edge->src()->lastInsnAddr(),
-                input[x86_64::rsp].format().c_str());
-
    }
 }
 

@@ -235,17 +235,21 @@ bool IA_IAPI::isTailCall(Function * context,unsigned int) const
 
 bool IA_IAPI::savesFP() const
 {
-    InstructionDecoder tmp(dec);
+	std::vector<Instruction::Ptr> insns;
+	insns.push_back(curInsn());
 #if defined(os_windows)
-	const int limit = 2;
-#else
-	const int limit = 1;
+	// Windows functions can start with a noop...
+	InstructionDecoder tmp(dec);
+	insns.push_back(tmp.decode());
 #endif
-	for (unsigned i = 0; i < limit; ++i) {
-		InstructionAPI::Instruction::Ptr ci = tmp.decode();
+	for (unsigned i = 0; i < insns.size(); ++i) {
+		InstructionAPI::Instruction::Ptr ci = insns[i];
 	    if(ci->getOperation().getID() == e_push)
 		{
-			return(ci->isRead(framePtr[_isrc->getArch()]));
+			if (ci->isRead(framePtr[_isrc->getArch()])) {
+				return true;
+			}
+			else return false;
 		}
 	}	
 	return false;
@@ -253,31 +257,22 @@ bool IA_IAPI::savesFP() const
 
 bool IA_IAPI::isStackFramePreamble() const
 {
-    if(savesFP())
-    {
-        InstructionDecoder tmp(dec);
-        std::vector<Instruction::Ptr> nextTwoInsns;
-        nextTwoInsns.push_back(tmp.decode());
-        nextTwoInsns.push_back(tmp.decode());
-        if(isFrameSetupInsn(nextTwoInsns[0]) ||
-           isFrameSetupInsn(nextTwoInsns[1]))
-        {
-            return true;
-        }
 #if defined(os_windows)
-		// Windows commonly uses the following:
-		// mov edi, edi
-		// push ebp
-		// mov esp, ebp
-		// where the mov edi,edi is for runtime patching
-		nextTwoInsns.push_back(tmp.decode());
-		if (isFrameSetupInsn(nextTwoInsns[2])) 
-		{
+	// Windows pads with a noop
+	const int limit = 3;
+#else 
+	const int limit = 2;
+#endif
+	if (!savesFP()) return false;
+    InstructionDecoder tmp(dec);
+    std::vector<Instruction::Ptr> nextTwoInsns;
+	for (unsigned i = 0; i < limit; ++i) {
+		Instruction::Ptr insn = tmp.decode();
+		if (isFrameSetupInsn(insn)) {
 			return true;
 		}
-#endif	
 	}
-    return false;
+	return false;
 }
 
 bool IA_IAPI::cleansStack() const
