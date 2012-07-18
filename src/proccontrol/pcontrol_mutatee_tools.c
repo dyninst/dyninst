@@ -419,7 +419,7 @@ static void createNamedPipes()
    snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
    do {
      r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
-   } while (r_pipe == -1 && errno == ENXIO);
+   } while (r_pipe == -1 && (errno == ENXIO || errno == EINTR));
    if (r_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
@@ -427,7 +427,9 @@ static void createNamedPipes()
    }
 
    snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
-   w_pipe = open(wr_socketname, O_WRONLY);
+   do {
+      w_pipe = open(wr_socketname, O_WRONLY);
+   } while (w_pipe == -1 && errno == EINTR);
    if (w_pipe == -1) {
       int error = errno;
       fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
@@ -626,7 +628,6 @@ int initMutatorConnection()
       if (result != 0) {
 		  fprintf(stderr, "connect() to 127.0.0.1:%d failed: %d\n", server_addr.sin_port, WSAGetLastError());
          perror("Failed to connect to server");
-//		 assert(!"connect failed");
          return -1;
       }
   

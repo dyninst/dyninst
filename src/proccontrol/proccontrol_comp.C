@@ -390,7 +390,7 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          return ProcessSet::ptr();
       }
    }
-   else if (group->createmode == USEATTACH) {
+   else {
       vector<ProcessSet::AttachInfo> ainfo;
       for (unsigned i=0; i<num_processes; i++) {
          ProcessSet::AttachInfo ai;
@@ -428,9 +428,6 @@ ProcessSet::ptr ProcControlComponent::startMutateeSet(RunGroup *group, Parameter
          logerror("Failed to attach to new mutatees\n");
          return ProcessSet::ptr();
       }
-   }
-   else {
-      return ProcessSet::ptr();
    }
 
    assert(procset);
@@ -592,7 +589,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       num_processes = getNumProcs(param);
    else
       num_processes = 1;
-
 #if defined(USE_SOCKETS)
 #if 0
    result = setupServerSocket(param);
@@ -669,7 +665,6 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
 #if defined(os_bg_test)
    Process::removeEventCallback(EventType::Library, setSocketOnLibLoad);
 #endif
-
    if (group->createmode == CREATE)
    {
       Process::ptr a_proc = *procs.begin();
@@ -723,21 +718,14 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
          error = true;
       }
    }
-
 #if defined(USE_PIPES)
-   for (vector<Process::ptr>::iterator j = procs.begin(); j != procs.end(); j++) {
-      result = create_pipes(*j, false);
-      if (!result) {
-         logerror("Failed to create write pipes\n");
-         error = true;
-      }
-      result = create_pipes(*j, true);
-      if (!result) {
-         logerror("Failed to create read pipes\n");
-         error = true;
-      }
+   result = create_pipes(pset);
+   if (!result) {
+      logerror("Failed to create pipes\n");
+      error = true;
+   }
+   for (ProcessSet::iterator j = pset->begin(); j != pset->end(); j++) 
       init_pipes(*j);
-   }   
 #endif
 
    if (group->state != RUNNING && check_threads_on_startup) {
@@ -1364,38 +1352,97 @@ bool ProcControlComponent::poll_for_events()
 }
 
 #if defined(USE_PIPES)
-bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
+bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)
 {
-   if (!create_pipes(p, true))
-      return false;
-
-   map<Process::ptr, int>::iterator i = r_pipe.find(p);
-   assert(i != r_pipe.end());
-   int fd = i->second;
-
-   unsigned int bytes_read = 0, num_retries = 10;
-   do {
-      int result = read(fd, msg + bytes_read, msg_size - bytes_read);
-      if (result == -1) {
-         perror("Failed to read message from mutator");
+   int rsize = 0;
+   for (;;) {
+      int result = read(fd, buffer + rsize, 1);
+      if (result <= 0) {
+         int error = errno;
+         if (error == EAGAIN || error == EWOULDBLOCK || error == EINTR || result == 0)
+            break;
+         fprintf(stderr, "Error reading from mutatee FD: %s\n", strerror(error));
          return false;
       }
-      if (result == 0 && --num_retries == 0) {
-         fprintf(stderr, "Failed to read message from read pipe\n");
-         return -1;
-      }
-      bytes_read += result;
-      assert(bytes_read <= msg_size);
-   } while (bytes_read < msg_size);
-
+      rsize++;
+   }
+   *rsize_out = rsize;
    return true;
+}
+
+bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
+{
+   static map<Process::ptr, pair<char *, size_t> > cached_reads;
+
+   for (;;) {
+      map<Process::ptr, pair<char *, size_t> >::iterator i;
+      i = cached_reads.find(p);
+      if (i != cached_reads.end()) {
+         pair<char *, size_t> &buffer = i->second;
+         if (buffer.second >= msg_size) {
+            memcpy(msg, buffer.first, msg_size);
+         }
+         if (buffer.second == msg_size) {
+            free(buffer.first);
+            cached_reads.erase(i);
+         }
+         else {
+            assert(buffer.second > msg_size);
+            for (unsigned j = msg_size; j < buffer.second; j++) {
+               buffer.first[j - msg_size] = buffer.first[j];
+            }
+            buffer.second = buffer.second - msg_size;
+         }
+         return true;
+      }
+
+      fd_set fset;
+      FD_ZERO(&fset);
+      int nfds = 0;
+      for (map<Process::ptr, int>::iterator j = r_pipe.begin(); j != r_pipe.end(); j++) {
+         FD_SET(j->second, &fset);
+         if (j->second > nfds)
+            nfds = j->second;
+      }
+      struct timeval timeout;
+      timeout.tv_sec = 30;
+      timeout.tv_usec = 0;
+      
+      int result = select(nfds+1, &fset, NULL, NULL, &timeout);
+      if (result == 0) {
+         fprintf(stderr, "Timeout while reading from mutatees\n");
+         return false;
+      }
+
+      for (map<Process::ptr, int>::iterator j = r_pipe.begin(); j != r_pipe.end(); j++) {
+         if (!FD_ISSET(j->second, &fset))
+            continue;
+
+         char buffer[1024];
+         size_t rsize = 0;
+         bool result = readAvail(j->second, buffer, 1024, &rsize);
+         if (!result) {
+            return false;
+         }
+         
+         i = cached_reads.find(j->first);
+         if (i == cached_reads.end()) {
+            char *newbuffer = (char *) malloc(rsize);
+            memcpy(newbuffer, buffer, rsize);
+            cached_reads[j->first] = make_pair(newbuffer, rsize);
+         }
+         else {
+            pair<char *, size_t> &newbuffer = i->second;
+            newbuffer.first = (char *) realloc(newbuffer.first, newbuffer.second + rsize);
+            memcpy(newbuffer.first + newbuffer.second, buffer, rsize);
+            newbuffer.second += rsize;
+         }
+      }
+   }
 }
 
 bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
-   if (!create_pipes(p, false))
-      return false;
-
    map<Process::ptr, int>::iterator i = w_pipe.find(p);
    assert(i != w_pipe.end());
    int fd = i->second;
@@ -1426,65 +1473,102 @@ bool ProcControlComponent::init_pipes(Process::ptr p)
    return true;
 }
 
-bool ProcControlComponent::create_pipes(Process::ptr p, bool read_pipe)
+enum pipe_state_t {
+   open_write = 0,
+   open_read = 1,
+   do_read = 2,
+   do_write = 3,
+   pipe_done = 4
+};
+
+bool ProcControlComponent::create_pipes(ProcessSet::ptr p)
 {
-   map<Process::ptr, int> &pipe_map = read_pipe ? r_pipe : w_pipe;
-
-   map<Process::ptr, int>::iterator i;
-   i = pipe_map.find(p);
-   if (i != pipe_map.end())
-      return true;
-
-   map<Process::ptr, string> &name_map = read_pipe ? pipe_read_names : pipe_write_names;
-   map<Process::ptr, string>::iterator j;
-   j = name_map.find(p);
-   assert(j != name_map.end());
-   int fd = open(j->second.c_str(), O_NONBLOCK | (read_pipe ? O_RDONLY : O_WRONLY));
-   if (fd == -1) {
-      int error = errno;
-      if (error == ENXIO) {
-         Process::handleEvents(false);
-         return create_pipes(p, read_pipe);
-      }
-      logerror("Mutator error opening %s: %s\n", j->second.c_str(), strerror(error));
-      return false;
+   map<Process::ptr, pipe_state_t> pstates;
+   for (ProcessSet::iterator pi = p->begin(); pi != p->end(); pi++) {
+      pstates[*pi] = open_write;
    }
-   errno = 0;
-   int fdflags = fcntl(fd, F_GETFL);
-   if (fdflags < 0 || errno) {
-      logerror("Failed to set fcntl flags\n");
-      return false;
-   }
-   fcntl(fd, F_SETFL, fdflags & ~O_NONBLOCK);
-
-   pipe_map.insert(make_pair(p, fd));
-
-   if (read_pipe) {
-      uint32_t ready = 0;
-      int result = 0;
-      do {
-         result = read(fd, &ready, 4);
-         if (result == -1) {
-            perror("Mutator could not read from pipe\n");
-            return false;
+   bool is_done;
+   do {
+      is_done = true;
+      for (ProcessSet::iterator pi = p->begin(); pi != p->end(); pi++) {
+         Process::ptr p = *pi;
+         pipe_state_t &pstate = pstates[p];
+         if (pstate == pipe_done) {
+            continue;
          }
-      } while (result == 0);
-      assert(ready == 0x42);
-   }
+         is_done = false;
+         bool read_pipe = true;
+         switch (pstate) {
+            case open_write:
+            case open_read: {
+               map<Process::ptr, int> &pipe_map = (pstate == open_read) ? r_pipe : w_pipe;
+               map<Process::ptr, string> &name_map = (pstate == open_read) ? pipe_read_names : pipe_write_names;
+               int o_options = (pstate == open_read) ? O_RDONLY : O_WRONLY;
+               
+               map<Process::ptr, int>::iterator i = pipe_map.find(p);
+               assert(i == pipe_map.end());
+               map<Process::ptr, string>::iterator j;
+               j = name_map.find(p);
+               assert(j != name_map.end());
+               int fd = open(j->second.c_str(), O_NONBLOCK | o_options);
+               if (fd == -1) {
+                  int error = errno;
+                  if (error == ENXIO) {
+                     break;
+                  }
+                  logerror("Mutator error opening %s: %s\n", j->second.c_str(), strerror(error));
+                  return false;
+               }
 
-   i = w_pipe.find(p);
-   if (r_pipe.find(p) != r_pipe.end() && i != w_pipe.end()) {
-      uint32_t ready = 0x42;
-      fd = i->second;
-      int result = write(fd, &ready, 4);
-      int error = errno;
-      if (result == -1) {
-         fprintf(stderr, "Mutator could not write to pipe: %s (%d)\n", strerror(error), error);
-         return false;
+               errno = 0;
+               int fdflags = fcntl(fd, F_GETFL);
+               if (fdflags < 0 || errno) {
+                  logerror("Failed to set fcntl flags\n");
+                  return false;
+               }
+               fcntl(fd, F_SETFL, fdflags | O_NONBLOCK);
+               pipe_map.insert(make_pair(p, fd));
+            
+               pstate = (pstate == open_write) ? open_read : do_read;
+               break;
+            }
+            case do_read: {
+               uint32_t ready = 0;
+               int fd = r_pipe[p];
+               int result = read(fd, &ready, 4);
+               if (result <= 0) {
+                  int error = errno;
+                  if (error == EAGAIN || error == EWOULDBLOCK || error == EINTR || result == 0)
+                     break;
+                  perror("Mutator could not read from pipe\n");
+                  return false;
+               }
+               assert(ready == 0x42);
+               pstate = do_write;
+               break;
+            }
+            case do_write: {
+               pstate = pipe_done;
+               uint32_t ready = 0x42;
+               int fd = w_pipe[p];
+               int result = write(fd, &ready, 4);
+               int error = errno;
+               if (result == -1) {
+                  fprintf(stderr, "Mutator could not write to pipe: %s (%d)\n", strerror(error), error);
+                  return false;
+               }
+               process_socks.insert(make_pair(p, 0));
+               pstate = pipe_done;
+               break;
+            }
+            case pipe_done:
+               assert(0);
+               break;
+         }
       }
-      process_socks.insert(make_pair(p, 0));
-   }
-
+      Process::handleEvents(false);
+   } while (!is_done);
    return true;
 }
+
 #endif
