@@ -265,9 +265,10 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     }
 
    //Since there is only one region, there is only one block with the offset
+    // Not actually true; overlapping code is always possible.
    set<ParseAPI::Block*> blocks;
    obj->findBlocks(region, callSite, blocks);
-   assert(blocks.size() == 1);
+   //assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 
    set<height_pair_t> heights;
