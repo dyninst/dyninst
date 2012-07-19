@@ -1329,8 +1329,7 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
                 return false;
         }
 
-        lladdrSpace->readDataSpace(address, len, dst, true);
-        return true;
+        return lladdrSpace->readDataSpace(address, len, dst, true);
 }
 
 

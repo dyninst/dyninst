@@ -16,11 +16,7 @@ AC_DEFUN(PD_CHECK_INC_DIR,[
 
 AC_DEFUN(PD_CHECK_LIB_TYPE,[
   LIB_TYPE_DYNAMIC=`ls -H -1 $1 | grep $2 | grep '\.so' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
-  if test "$LIB_TYPE_DYNAMIC" = "true"; then
-	LIB_TYPE_STATIC=	
-  else
-  	LIB_TYPE_STATIC=`ls -H -1 $1 | grep $2 | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
-  fi
+  LIB_TYPE_STATIC=`ls -H -1 $1 | grep $2 | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
 ])
 
 AC_DEFUN(PD_SOFT_CHECK_INC_DIR,[

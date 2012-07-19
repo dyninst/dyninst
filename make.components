@@ -7,7 +7,14 @@ Everything_tests = testsuite parseThat
 dynutil = 
 common = dynutil common
 symtabAPI = dynutil common symtabAPI
-stackwalk = dynutil common proccontrol parseAPI instructionAPI symtabAPI stackwalk
+stackwalk = dynutil common proccontrol stackwalk
+ifndef WITHOUT_PARSE_API
+stackwalk += parseAPI instructionAPI
+endif
+ifndef WITHOUT_SYMTAB_API
+stackwalk += symtabAPI
+endif
+
 dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
 instructionAPI = dynutil common instructionAPI
 proccontrol = dynutil common proccontrol

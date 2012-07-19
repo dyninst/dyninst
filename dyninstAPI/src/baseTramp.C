@@ -410,9 +410,8 @@ bool baseTramp::generateCodeInlined(codeGen &gen,
    // that is later used when saving and restoring. This
    // MUST HAPPEN BEFORE THE SAVES, and state should not
    // be reset until AFTER THE RESTORES.
-   baseTrampAST->initRegisters(gen);
+   bool retval = baseTrampAST->initRegisters(gen);
    generateSaves(gen, gen.rs());
-   bool retval = true;
 
    if (!baseTrampAST->generateCode(gen, false)) {
       fprintf(stderr, "Gripe: base tramp creation failed\n");

@@ -2213,7 +2213,9 @@ void mapped_object::setCallee(const block_instance *b, func_instance *f) {
 void mapped_object::replacePLTStub(SymtabAPI::Symbol *sym, func_instance *orig, Address newAddr) {
    // Let's play relocation games...
    vector<SymtabAPI::relocationEntry> fbt;
-   parse_img()->getObject()->getFuncBindingTable(fbt);
+   bool ok = parse_img()->getObject()->getFuncBindingTable(fbt);
+   if(!ok) return;
+   
    
    for (unsigned i = 0; i < fbt.size(); ++i) {
       if (fbt[i].name() == sym->getMangledName()) {

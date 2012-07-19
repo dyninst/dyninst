@@ -288,4 +288,6 @@ Archive::~Archive()
     if (mf) {
       MappedFile::closeMappedFile(mf);
     }
+    delete basePtr;
+    
 }
