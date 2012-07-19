@@ -84,6 +84,8 @@ class InsertedRegion : public CodeRegion {
   public:
    
    PARSER_EXPORT InsertedRegion(Address base, void *data, unsigned size, Architecture arch); 
+   PARSER_EXPORT virtual ~InsertedRegion();
+   
    
    // names: not overriden (as there are no names [yet])
    // findCatchBlock: there isn't one

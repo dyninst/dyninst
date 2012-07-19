@@ -22,15 +22,6 @@ SRCS = 	../src/linux-swk.C \
 	../src/linuxbsd-swk.C \
 	../src/linux-x86-swk.C 
 
-USE_PARSE_API = true
-
-ifdef USE_PARSE_API
-	SRCS += ../src/analysis_stepper.C \
-		../src/callchecker-IAPI.C
-else
-	SRCS += ../src/callchecker.C
-endif
-
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
@@ -43,16 +34,8 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
-ifdef USE_PARSE_API
-	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
-	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	
-endif
-
-MYFLAGS += -I../../symtabAPI/h
-LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
-
-CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
-CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
+CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
+CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 AS		= as
 
 # Now make any necessary architecture specific changes to variables:

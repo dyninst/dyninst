@@ -2644,7 +2644,8 @@ void PCProcess::flushAddressCache_RT(Address start, unsigned size)
 func_instance *PCProcess::findActiveFuncByAddr(Address addr)
 {
     std::set<func_instance *> funcs;
-    findFuncsByAddr(addr, funcs, true);
+    // error checking by size...
+    (void)findFuncsByAddr(addr, funcs, true);
     if (funcs.empty()) return NULL;
 
     if (funcs.size() == 1) {

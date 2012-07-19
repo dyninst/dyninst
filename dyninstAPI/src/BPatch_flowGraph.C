@@ -369,7 +369,7 @@ BPatch_basicBlock* BPatch_flowGraph::findBlockByAddr(Address where)
   if (first <= last) {
     ret = blocks[idx];
   }
-  delete blocks;
+  delete[] blocks;
   return ret;
 }
 

@@ -49,7 +49,8 @@ SymtabReader::SymtabReader(std::string file_) :
    dwarf_handle(NULL),
    ownsSymtab(true)
 {
-   Symtab::openFile(symtab, file_);
+  // We'd throw, but...
+  (void)Symtab::openFile(symtab, file_);
 }
 
 SymtabReader::SymtabReader(const char *buffer, unsigned long size) :

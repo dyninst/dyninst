@@ -6199,7 +6199,7 @@ bool Process::writeMemory(Dyninst::Address addr, const void *buffer, size_t size
    bool result = llproc_->writeMem(buffer, addr, size, resp);
    if (!result) {
       pthrd_printf("Error writing to memory\n");
-      resp->isReady();
+      (void)resp->isReady();
       return false;
    }
 
@@ -6233,7 +6233,7 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
    if (!result) {
       pthrd_printf("Error reading from memory %lx on target process %d\n",
                    addr, llproc_->getPid());
-      memresult->isReady();
+      (void)memresult->isReady();
       return false;
    }
 

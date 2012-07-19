@@ -202,7 +202,9 @@ void BPatch::BPatch_dtor()
         BPatch_typeCollection::freeTypeCollection(stdTypes);
     if (APITypes)
         BPatch_typeCollection::freeTypeCollection(APITypes);
-
+    if(builtInTypes)
+      delete builtInTypes;
+    
 
     if(systemPrelinkCommand){
         delete [] systemPrelinkCommand;

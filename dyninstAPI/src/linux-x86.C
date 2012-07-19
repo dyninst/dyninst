@@ -256,8 +256,7 @@ bool PCProcess::bindPLTEntry(const SymtabAPI::relocationEntry &entry, Address ba
                            func_instance *, Address target_addr) {
    // We just want to overwrite the GOT entry with our target address. 
    Address got_entry = entry.rel_addr() + base_addr;
-   writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
-   return true;
+   return writeDataSpace((void *)got_entry, sizeof(Address), &target_addr);
 }
 
 
