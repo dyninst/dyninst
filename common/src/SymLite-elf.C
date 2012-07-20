@@ -42,6 +42,7 @@ using namespace COMPONENT_NAME;
 
 SymElf::SymElf(std::string file_) :
    fd(-1),
+   need_odp(false),
    file(file_),
    buffer(NULL),
    buffer_size(0),
@@ -65,10 +66,12 @@ SymElf::SymElf(std::string file_) :
       fd = -1;
       return;
    }
+   init();
 }
 
 SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
    fd(-1),
+   need_odp(false),
    file(),
    buffer(buffer_),
    buffer_size(buffer_size_),
@@ -84,6 +87,7 @@ SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
       construction_error = true;
       return;
    }
+   init();
 }
 
 SymElf::~SymElf()
@@ -103,6 +107,25 @@ SymElf::~SymElf()
       free(sym_sections);
       sym_sections = NULL;
       sym_sections_size = 0;
+   }
+}
+
+void SymElf::init()
+{
+   if (elf.e_machine() == EM_PPC64) {
+      unsigned short stridx = elf.e_shstrndx();
+      Elf_X_Shdr strshdr = elf.get_shdr(stridx);
+      Elf_X_Data strdata = strshdr.get_data();
+      const char *names = (const char *) strdata.d_buf();
+      
+      for (unsigned i=0; i < elf.e_shnum(); i++) {
+         Elf_X_Shdr shdr = elf.get_shdr(i);
+         if (strcmp(names + shdr.sh_name(), ".opd") != 0)
+            continue;
+         odp_section = shdr;
+         need_odp = true;
+         break;
+      }
    }
 }
 
@@ -188,7 +211,7 @@ Symbol_t SymElf::getContainingSymbol(Dyninst::Offset offset)
 
       FOR_EACH_SYMBOL(shdr, symbol, str_buffer, idx) 
       {
-         Dyninst::Offset sym_offset = symbol.st_value(idx);
+         Dyninst::Offset sym_offset = getSymOffset(symbol, idx);
          if (sym_offset <= offset && (!has_nearest || sym_offset > nearest)) {
             unsigned str_loc = symbol.st_name(idx);
             MAKE_SYMBOL(str_buffer+str_loc, idx, shdr, nearest_sym);
@@ -277,10 +300,15 @@ unsigned long SymElf::getSymbolSize(const Symbol_t &sym)
 
 Dyninst::Offset SymElf::getSymbolOffset(const Symbol_t &sym)
 {
+   assert(sym.i2 != INVALID_SYM_CODE);
+   if (sym.i2 != UNSET_INDEX_CODE) {
+      int cache_index = sym.i2;
+      return cache[cache_index].symaddress;
+   }
+
    GET_SYMBOL(sym, shdr, symbols, name, idx);
    name = NULL; //Silence warnings
-   Dyninst::Offset sym_offset = symbols.st_value(idx);
-   return sym_offset;
+   return getSymOffset(symbols, idx);
 }
 
 std::string SymElf::getSymbolName(const Symbol_t &sym)
@@ -329,6 +357,22 @@ static int symcache_cmp(const void *a, const void *b)
    else return 0;
 }
 
+unsigned long SymElf::getSymOffset(const Elf_X_Sym &symbol, unsigned idx)
+{
+   if (need_odp && symbol.ST_TYPE(idx) == STT_FUNC) {
+      unsigned long odp_addr = odp_section.sh_addr();
+      unsigned long odp_size = odp_section.sh_size();
+      const char *odp_data = (const char *) odp_section.get_data().d_buf();
+      
+      unsigned long sym_offset = symbol.st_value(idx);
+      while (sym_offset >= odp_addr && sym_offset < odp_addr + odp_size)
+         sym_offset = *((unsigned long *) (odp_data + sym_offset - odp_addr));
+      return sym_offset;
+   }
+
+   return symbol.st_value(idx);
+}
+
 void SymElf::createSymCache()
 {
    unsigned long sym_count = 0, cur_sym = 0, cur_sec = 0;
@@ -372,7 +416,7 @@ void SymElf::createSymCache()
             continue;
          if (!symbols.st_value(idx))
             continue;
-         cache[cur_sym].symaddress = symbols.st_value(idx);
+         cache[cur_sym].symaddress = getSymOffset(symbols, idx);
          cache[cur_sym].symloc = symbols.st_symptr(idx);
          cache[cur_sym].demangled_name = NULL;
          cur_sym++;
