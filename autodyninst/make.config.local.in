@@ -1,5 +1,7 @@
 # === local definitions ===
 
+SKIP_TEST_STATIC_32_C++ = @MISSING_STATIC_32_LIBSTDCPP@
+
 BUILD_MARK=
 BUILD_NUM=-1
 
@@ -19,6 +21,9 @@ M_pg_cxx = @_PGCXX_@
 # PGI is defined in environment to point to path; needed for licensing, so we can rely on it
 M_native_cc = @_CC_@
 M_native_cxx = @_CXX_@
+
+#Boost
+CXXFLAGS += @BOOST_DIR@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@
@@ -104,3 +109,6 @@ INSTALL = @INSTALL@
 @INCLUDE_DEST_VAR@
 
 @TESTSUITE@
+
+WITHOUT_PARSE_API = @WITHOUT_PARSEAPI@
+WITHOUT_SYMTAB_API = @WITHOUT_SYMTABAPI@

@@ -74,6 +74,31 @@ bool PCProcess::createStackwalkerSteppers()
   }
   startup_printf("Stackwalker stepper %p is a FrameFuncStepper\n", stepper);
 
+    stepper = new AnalysisStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
+
+
+  stepper = new SigHandlerStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
+
+  stepper = new BottomOfStackStepper(stackwalker_);
+  if (!stackwalker_->addStepper(stepper))
+  {
+    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
+    return false;
+  }
+  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
+
   // create a separate helper to avoid double deletion
   dynFrameHelper = new DynFrameHelper(this);
   dynWandererHelper = new DynWandererHelper(this);
@@ -84,34 +109,6 @@ bool PCProcess::createStackwalkerSteppers()
     return false;
   }
   startup_printf("Stackwalker stepper %p is a WandererStepper\n", stepper);
-
-  stepper = new SigHandlerStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a SigHandlerStepper\n", stepper);
-
-#if !defined(os_windows)
-  stepper = new BottomOfStackStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is a BottomOfStackStepper\n", stepper);
-#endif
-
-  /* Not ready for production yet
-  stepper = new AnalysisStepper(stackwalker_);
-  if (!stackwalker_->addStepper(stepper))
-  {
-    startup_printf("Error adding Stackwalker stepper %p\n", stepper);
-    return false;
-  }
-  startup_printf("Stackwalker stepper %p is an AnalysisStepper\n", stepper);
-  */
 
   return true;
 }

@@ -216,6 +216,8 @@ Address TrackLibState::getLibTrapAddress() {
 }
 
 TrackLibState::~TrackLibState() {
+  delete translate;
+  
 }
 
 void TrackLibState::notifyOfUpdate() {

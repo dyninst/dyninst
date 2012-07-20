@@ -119,6 +119,8 @@ PatchMgr::~PatchMgr() {
   patchapi_debug("Destroy PatchMgr");
   delete as_;
   delete point_maker_;
+  delete instor_;
+  
 }
 
 bool PatchMgr::getCandidates(Scope &scope,

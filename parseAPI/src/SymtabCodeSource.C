@@ -558,6 +558,12 @@ SymtabCodeSource::non_returning_funcs =
 bool
 SymtabCodeSource::nonReturning(string name)
 {
+#if defined(os_windows)
+	// We see MSVCR<N>.exit
+	// Of course, it's often reached via indirect call, but hope never fails.
+	if ((name.compare(0, strlen("MSVCR"), "MSVCR") == 0) &&
+		(name.find("exit") != name.npos)) return true;
+#endif
     return non_returning_funcs.find(name) != non_returning_funcs.end();
 }
 

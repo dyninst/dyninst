@@ -29,23 +29,6 @@ SRCS += 	../src/linux-swk.C \
 			../src/linux-x86-swk.C \
 			../src/analysis_stepper.C
 
-#USE_PARSE_API = true
-
-ifdef USE_PARSE_API
-	SRCS += ../src/analysis_stepper.C \
-		../src/callchecker-IAPI.C
-else
-	SRCS += ../src/callchecker.C
-endif
-
-ifdef USE_PARSE_API
-	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h
-	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	
-endif
-
-MYFLAGS += -I../../symtabAPI/h
-LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
-
 LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)

@@ -282,7 +282,7 @@ Walker::~Walker() {
       delete proc;
    if (lookup)
       delete lookup;
-   //TODO: Stepper cleanup
+   delete group;
 }
 
 SymbolReaderFactory *Walker::getSymbolReader()

@@ -29,6 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "SymtabReader.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/steppergroup.h"
@@ -112,21 +113,24 @@ void ProcSelf::initialize()
 
 bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &alibs)
 {
-	assert(!"not implemented");
-	return false;
+	return true;
 }
 
 SymbolReaderFactory* Stackwalker::getDefaultSymbolReader()
 {
-	assert(!"not implemented");
-	return NULL;
+	if (NULL == Walker::getSymbolReader()) {
+		static SymtabAPI::SymtabReaderFactory fact;
+		Walker::setSymbolReader(&fact);
+	}
+	return Walker::getSymbolReader();
 }
 
 void BottomOfStackStepperImpl::initialize()
 {
-	assert(!"not implemented");
+	// For now, we stop when we get a return address of 0
+	ra_stack_tops.push_back(std::pair<Address, Address>(0, 0));
 }
 void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t)
 {
-	assert(!"not implemented");
+
 }
