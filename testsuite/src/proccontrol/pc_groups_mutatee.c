@@ -222,7 +222,15 @@ int pc_groups_mutatee()
    data = 4;
 
    send_addrs(&data);
+#if defined(arch_power_test)
+   if (sizeof(long) == 8)
+     send_addrs(*((void **)bp_func));
+   else
+     send_addrs((void *) bp_func);
+#else
    send_addrs((void *) bp_func);
+#endif
+
    fmem = findUnallocatedMemory();
    if (!fmem) {
       return -1;

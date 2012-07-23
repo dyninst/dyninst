@@ -98,7 +98,7 @@ test_results_t pc_detachMutator::executeTest()
    unsigned j = 0;
    for (i = comp->procs.begin(); i != comp->procs.end(); i++, j++) {
       if (sync_points[j].code != SYNCLOC_CODE) {
-         logerror("Recieved unexpected sync message\n");
+	logerror("Received unexpected sync message: 0x%lx instead of 0x%lx\n", sync_points[j].code, SYNCLOC_CODE);
          return FAILED;
       }
    }
