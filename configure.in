@@ -43,7 +43,8 @@ AC_ARG_WITH(boost,
 	[BOOST_DIR=""])
 
 CPPFLAGS_SAVED=$CPPFLAGS
-CPPFLAGS=$BOOST_DIR
+CPPFLAGS="$CPPFLAGS $BOOST_DIR"
+export CPPFLAGS
 AC_CHECK_HEADER([boost/shared_ptr.hpp],
 	[],
 	[AC_ERROR([Missing shared_ptr.hpp in boost directory])],
