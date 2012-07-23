@@ -42,13 +42,13 @@ AC_ARG_WITH(boost,
 	[BOOST_DIR="-I${withval}"],
 	[BOOST_DIR=""])
 
-CPP_FLAGS_SAVED=$CPP_FLAGS
-CPP_FLAGS=$BOOST_DIR
+CPPFLAGS_SAVED=$CPPFLAGS
+CPPFLAGS=$BOOST_DIR
 AC_CHECK_HEADER([boost/shared_ptr.hpp],
 	[],
 	[AC_ERROR([Missing shared_ptr.hpp in boost directory])],
 	[])
-CPP_FLAGS=$CPP_FLAGS_SAVED
+CPPFLAGS=$CPPFLAGS_SAVED
 
 AC_SUBST(BOOST_DIR)
 
