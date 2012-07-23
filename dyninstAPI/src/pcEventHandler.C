@@ -358,6 +358,9 @@ bool PCEventHandler::handleExec(EventExec::const_ptr ev, PCProcess *&evProc) con
 }
 
 bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess *evProc) const {
+  proccontrol_printf("%s[%d]: entering handleThreadCreate for %d/%d\n",
+		     FILE__, __LINE__, evProc->getPid(), ev->getLWP());
+
     if( !ev->getNewThread()->haveUserThreadInfo() ) {
         proccontrol_printf("%s[%d]: no user thread info for thread %d/%d, postponing thread create\n",
                 FILE__, __LINE__, evProc->getPid(), ev->getLWP());

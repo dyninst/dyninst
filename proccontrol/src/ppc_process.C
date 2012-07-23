@@ -32,6 +32,7 @@
 #include "proccontrol/src/ppc_process.h"
 #include "common/h/arch-power.h"
 #include <string.h>
+#include <iostream>
 
 using namespace NS_power;
 using namespace std;
@@ -322,7 +323,7 @@ bool ppc_process::plat_convertToBreakpointAddress(Address &addr, int_thread *thr
     
     mem_response::ptr resp = mem_response::createMemResponse((char *) &resultAddr, sizeof(Address));
     bool result = readMem((Dyninst::Address) tmpAddr, resp, thr);
-
+    
     result = int_process::waitForAsyncEvent(resp);
     if (!result || resp->hasError())
        return false;
