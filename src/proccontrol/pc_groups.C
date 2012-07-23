@@ -356,7 +356,9 @@ test_results_t pc_groupsMutator::executeTest()
       return FAILED;
 
    //Run process through breakpoint
+   logerror("Continuing procs for breakpoint test\n");
    result = pset->continueProcs();
+
    if (!result) {
       logerror("Failed to continue proc\n");
       return FAILED;
@@ -365,6 +367,7 @@ test_results_t pc_groupsMutator::executeTest()
    waitfor_sync();
    if (error)
       return FAILED;
+   logerror("Stopping procs for breakpoint test\n");
    result = pset->stopProcs();
    if (!result)
       return FAILED;

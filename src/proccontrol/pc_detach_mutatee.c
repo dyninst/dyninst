@@ -28,6 +28,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -37,8 +38,22 @@ static testlock_t init_lock;
 
 static int num_signals = 0;
 
-#if defined(os_linux_test)
+#if !defined(os_windows_test)
+static void signal_handler(int sig)
+{
+   num_signals++;
+}
+#else
+static void signal_handler(int sig)
+{
+	WaitForSingleObject(am_signaled, 30000);
+   num_signals++;
+}
 
+#endif
+
+#if defined(os_linux_test)
+#include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -50,6 +65,8 @@ static void self_signal()
   static int gettid_not_valid = 0;
   static int has_tkill = 1;
   long int result, pid;
+
+  /* signal(SIGUSR1, signal_handler); */
 
   if (gettid_not_valid) {
      pid = getpid();
@@ -80,7 +97,6 @@ static HANDLE am_signaled;
 
 static void self_signal()
 {
-	fprintf(stderr, "self_signal GO!\n");
 	SetEvent(am_signaled);
 }
 
@@ -100,6 +116,7 @@ static void self_signal()
 
 static int threadFunc(int myid, void *data)
 {
+
    testLock(&init_lock);
 #if !defined(os_bg_test)
    self_signal();
@@ -108,26 +125,26 @@ static int threadFunc(int myid, void *data)
    return 0;
 }
 
-#if !defined(os_windows_test)
-static void signal_handler(int sig)
-{
-   num_signals++;
-}
-#else
-static void signal_handler(int sig)
-{
-	WaitForSingleObject(am_signaled, 30000);
-   num_signals++;
-}
-
-#endif
 //Basic test for create/attach and exit.
 int pc_detach_mutatee()
 {
    syncloc syncloc_msg;
    int result;
    int total_num_signals;
+
+#if !defined(os_windows_test)
+  struct sigaction action;
+
+  action.sa_handler = signal_handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+  sigaction(SIGUSR1, &action, NULL);
+#else
+   am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
+#endif
+
    num_signals = 0;
+   syncloc_msg.code = 0;
 
    initLock(&init_lock);
    testLock(&init_lock);
@@ -137,24 +154,17 @@ int pc_detach_mutatee()
       output->log(STDERR, "Initialization failed\n");
       return -1;
    }
-#if !defined(os_windows_test)
-   signal(SIGUSR1, signal_handler);
-#else
-   am_signaled = CreateEvent(NULL, FALSE, FALSE, NULL);
-#endif
+
    result = recv_message((unsigned char *) &syncloc_msg, sizeof(syncloc));
    if (result != 0) {
-	   fprintf(stderr, "Failed to receive sync message\n");
-      output->log(STDERR, "Failed to recieve sync message\n");
-      return -1;
+     output->log(STDERR, "Failed to recieve sync message\n");
+     return -1;
    }
    if (syncloc_msg.code != SYNCLOC_CODE) {
-	   fprintf(stderr, "Incorrect sync code: %x\n", syncloc_msg.code);
       output->log(STDERR, "Incorrect sync code: %x\n", syncloc_msg.code);
       return -1;
    }
    self_signal();
-
    testUnlock(&init_lock);
 
    result = finiProcControlTest(0);
@@ -162,7 +172,6 @@ int pc_detach_mutatee()
       output->log(STDERR, "Finalization failed\n");
       return -1;
    }
-
 #if defined(os_bg_test)
    total_num_signals = 1;
 #else

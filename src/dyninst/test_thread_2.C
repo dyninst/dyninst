@@ -67,7 +67,7 @@ extern "C" DLLEXPORT TestMutator *test_thread_2_factory() {
   return new test_thread_2_Mutator();
 }
 
-#define TESTNO 3
+#define TESTNO 2
 #define TESTNAME "test_thread_2"
 #define TESTDESC "thread create callback"
 
@@ -179,8 +179,9 @@ test_results_t test_thread_2_Mutator::executeTest() {
   threads.clear();
   while (((test3_threadCreateCounter < TEST3_THREADS)
          || (active_threads > 1)) && !appProc->isTerminated() ) {
-    dprintf("%s[%d]: waiting for completion for test %d, num active threads = %d\n",
-            __FILE__, __LINE__, TESTNO, active_threads);
+    dprintf("%s[%d]: waiting for completion for test; ((%d < %d) || (%d > 1)) && !(%d)\n",
+	    __FILE__, __LINE__, test3_threadCreateCounter, TEST3_THREADS,
+	    active_threads, 1, appProc->isTerminated());
     if( !bpatch->waitForStatusChange() ) {
         logerror("%s[%d]: failed to wait for events\n", __FILE__, __LINE__);
         err = 1;

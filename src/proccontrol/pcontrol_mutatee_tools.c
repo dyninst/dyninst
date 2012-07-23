@@ -122,7 +122,6 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    int is_mt = 0;
    num_threads = 0;
 
-   //fprintf(stderr, "starting MultiThreadInit\n");
 
    for (i = 0; i < gargc; i++) {
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
@@ -195,7 +194,6 @@ int handshakeWithServer()
    send_pid spid;
    handshake shake;
 
-  //fprintf(stderr, "starting handshakeWithServer\n");
 
    spid.code = SEND_PID_CODE;
 #if !defined(os_windows_test)
@@ -299,7 +297,6 @@ int finiProcControlTest(int expected_ret_code)
    //fprintf(stderr, "begin finiProcControlTest\n");
    if (num_threads == 0)
       return 0;
-
    result = MultiThreadFinish();
    if (result != 0) {
       fprintf(stderr, "Thread return values were not collected\n");
@@ -373,8 +370,13 @@ void setTimeoutAlarm()
 {
    static int set_alarm_handler = 0;
    if (!set_alarm_handler) {
+     struct sigaction action;
+     action.sa_handler = sigalarm_handler;
+     sigemptyset(&action.sa_mask);
+     action.sa_flags = 0;
+
       set_alarm_handler = 1;
-      signal(SIGALRM, sigalarm_handler);
+      sigaction(SIGALRM, &action, NULL);
    }
    timeout = 0;
    alarm(MESSAGE_TIMEOUT);
@@ -509,7 +511,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
          FD_SET(sockfd, &read_set);
          struct timeval s_timeout;
          s_timeout.tv_sec = 0;
-         s_timeout.tv_usec = 100000; //.1 sec
+         s_timeout.tv_usec = 1000000; /* 1 sec, as needed on bruckner */
          int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
          int error = errno;
          if (sresult == -1)
@@ -525,7 +527,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
                no_select = 1;
             }
             else {
-               //Seen as kernels with broken system call restarting during IRPC test.
+	      /* Seen as kernels with broken system call restarting during IRPC test. */
                if (!warned_syscall_restart) {
                   fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
                   warned_syscall_restart = 1;
@@ -561,7 +563,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
    }
    else if (strcmp(socket_type, "named_pipe") == 0) {
      unsigned int bytes_read = 0;
-     unsigned int num_retries = 300; //30 seconds
+     unsigned int num_retries = 300; /* 30 seconds */
 
      assert(created_named_pipes);
       
@@ -571,7 +573,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
          int error = errno;
          if (result == 0 || (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO))) {
 	   printf("[%s:%u] - Mutatee read loop\n", __FILE__, __LINE__);
-            usleep(100000); //.1 seconds
+	   usleep(100000); /* .1 seconds */
             if (--num_retries == 0) {
                fprintf(stderr, "Failed to read message from read pipe\n");
                return -1;
@@ -588,7 +590,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
    }      
    return 0;
 }
-#else // windows
+#else /*  windows  */
 
 
 int initMutatorConnection()

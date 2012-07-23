@@ -78,7 +78,7 @@ void func3_1()
 {
   createLock(&test3lock);
   mutateeIdle = 1;
-
+  
   lockLock(&test3lock);
   assert (NULL != createThreads(TEST3_THREADS, thread_main3, test3_threads));
 
