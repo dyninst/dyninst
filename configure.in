@@ -464,5 +464,13 @@ CXXFLAGS=$SAVED_CXXFLAGS
 
 AC_SUBST([MISSING_STATIC_32_LIBSTDCPP])
 
+if test "x$build" != "x"; then
+  PLATFORM=`./scripts/dynsysname ${build}`
+fi
+if test "x$PLATFORM" = "x"; then
+  SYSPLAT=`./scripts/sysname`
+  PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
+fi
+
 AC_CONFIG_FILES([${PLATFORM}/make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT

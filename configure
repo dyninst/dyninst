@@ -5521,6 +5521,14 @@ CXXFLAGS=$SAVED_CXXFLAGS
 
 
 
+if test "x$build" != "x"; then
+  PLATFORM=`./scripts/dynsysname ${build}`
+fi
+if test "x$PLATFORM" = "x"; then
+  SYSPLAT=`./scripts/sysname`
+  PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
+fi
+
           ac_config_files="$ac_config_files ${PLATFORM}/make.config.local:autodyninst/make.config.local.in"
 
 cat >confcache <<\_ACEOF
