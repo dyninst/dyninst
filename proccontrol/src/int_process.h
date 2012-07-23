@@ -335,6 +335,8 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size) = 0;
 
+   virtual Address plat_findFreeMemory(size_t) { return 0; }
+
    //For a platform, if plat_needsAsyncIO returns true then the async
    // set of functions need to be implemented.  Currently plat_needsAsyncIO
    // only returns true for bluegene family.  By default these are otherwise

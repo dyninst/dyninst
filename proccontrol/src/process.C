@@ -6170,6 +6170,11 @@ Dyninst::Address Process::mallocMemory(size_t size)
    return addr_result->begin()->first;
 }
 
+Dyninst::Address Process::findFreeMemory(size_t size)
+{
+	return llproc()->plat_findFreeMemory(size);
+}
+
 bool Process::freeMemory(Dyninst::Address addr)
 {
    Process::ptr this_ptr = shared_from_this();
