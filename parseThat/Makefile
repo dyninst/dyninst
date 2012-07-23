@@ -51,7 +51,7 @@ all:  $(PLATFORM)/parseThat
 $(PLATFORM)/parseThat: $(PLATFORM)/Makefile
 	$(MAKE) -C $(PLATFORM)
 
-$(PLATFORM)/Makefile: Makefile.in ../make.config.local
+$(PLATFORM)/Makefile: Makefile.in ../$(PLATFORM)/make.config.local
 	@if [ -d $(PLATFORM) ]; then \
 		echo "directory $(PLATFORM) exists"; \
 	else \
