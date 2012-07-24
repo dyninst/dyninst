@@ -2287,8 +2287,8 @@ else
   BOOST_DIR=""
 fi;
 
-CPP_FLAGS_SAVED=$CPP_FLAGS
-CPP_FLAGS=$BOOST_DIR
+CPPFLAGS_SAVED=$CPPFLAGS
+CPPFLAGS=$BOOST_DIR
 
 ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -2920,7 +2920,7 @@ echo "$as_me: error: Missing shared_ptr.hpp in boost directory" >&2;}
 fi
 
 
-CPP_FLAGS=$CPP_FLAGS_SAVED
+CPPFLAGS=$CPPFLAGS_SAVED
 
 
 
@@ -5521,8 +5521,10 @@ CXXFLAGS=$SAVED_CXXFLAGS
 
 
 
-if test "x$build" != "x"; then
-  PLATFORM=`./scripts/dynsysname ${build}`
+if test "x$PLATFORM" = "x"; then
+  if test "x$build" != "x"; then
+    PLATFORM=`./scripts/dynsysname ${build}`
+  fi
 fi
 if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`

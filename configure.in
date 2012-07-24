@@ -464,8 +464,10 @@ CXXFLAGS=$SAVED_CXXFLAGS
 
 AC_SUBST([MISSING_STATIC_32_LIBSTDCPP])
 
-if test "x$build" != "x"; then
-  PLATFORM=`./scripts/dynsysname ${build}`
+if test "x$PLATFORM" = "x"; then
+  if test "x$build" != "x"; then
+    PLATFORM=`./scripts/dynsysname ${build}`
+  fi
 fi
 if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`
