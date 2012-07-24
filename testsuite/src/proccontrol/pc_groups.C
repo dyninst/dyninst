@@ -47,6 +47,9 @@ public:
    void waitfor_sync();
    void trigger_sync();
    AddressSet::ptr getAddresses(ProcessSet::ptr pset);
+#if defined(os_windows_test)
+   AddressSet::ptr getFreeAddresses(ProcessSet::ptr pset);
+#endif
 
    bool readMemoryTest(uint64_t value, AddressSet::ptr aset);
    bool writeMemoryTest(uint64_t value, AddressSet::ptr aset);
@@ -106,6 +109,21 @@ AddressSet::ptr pc_groupsMutator::getAddresses(ProcessSet::ptr pset) {
    }
    return aset;
 }
+
+#if defined(os_windows_test)
+AddressSet::ptr pc_groupsMutator::getFreeAddresses(ProcessSet::ptr pset) {
+  AddressSet::ptr aset = AddressSet::newAddressSet();
+   
+   for (ProcessSet::iterator i = pset->begin(); i != pset->end(); i++) {
+      Process::ptr p = *i;
+
+	  Dyninst::Address result = p->findFreeMemory(sizeof(uint64_t));
+      
+	  aset->insert(result, p);
+   }
+   return aset;
+}
+#endif /* Windows-only code */
 
 bool pc_groupsMutator::writeMemoryTest(uint64_t value, AddressSet::ptr aset)
 {
@@ -271,10 +289,12 @@ test_results_t pc_groupsMutator::executeTest()
    bp_loc = getAddresses(pset);
    if (error)
       return FAILED;
+#if !defined(os_windows_test)
    free_loc = getAddresses(pset);
+#endif
    if (error)
       return FAILED;
-   
+
    waitfor_sync();
    if (error)
       return FAILED;
@@ -293,6 +313,34 @@ test_results_t pc_groupsMutator::executeTest()
       return FAILED;
    }
    if (!readMemoryTest(8, data_loc)) {
+      return FAILED;
+   }
+   
+   //Malloc memory at an address, go through read/write test
+	// This _has_ to happen before the arbitrary alloc test,
+   // otherwise we may allocate the addresses we just tried
+   // to check...
+#if defined(os_windows_test)
+   free_loc = getFreeAddresses(pset);
+#endif
+   result = pset->mallocMemory(sizeof(uint64_t), free_loc);
+   if (!result) {
+      logerror("Failed to allocate memory\n");
+      return FAILED;
+   }
+   result = writeMemoryTest(16, free_loc);
+   if (!result) {
+      logerror("Failed to write to allocated memory\n");
+      return FAILED;
+   }
+   result = readMemoryTest(16, free_loc);
+   if (!result) {
+      logerror("Failed to read from allocated memory\n");
+      return FAILED;
+   }
+   result = pset->freeMemory(free_loc);
+   if (!result) {
+      logerror("Failed to free memory in allocated region\n");
       return FAILED;
    }
 
@@ -318,28 +366,7 @@ test_results_t pc_groupsMutator::executeTest()
       logerror("Failed to free memory in allocated region\n");
       return FAILED;
    }
-   
-   //Malloc memory at an address, go through read/write test
-   result = pset->mallocMemory(sizeof(uint64_t), free_loc);
-   if (!result) {
-      logerror("Failed to allocate memory\n");
-      return FAILED;
-   }
-   result = writeMemoryTest(16, free_loc);
-   if (!result) {
-      logerror("Failed to write to allocated memory\n");
-      return FAILED;
-   }
-   result = readMemoryTest(16, free_loc);
-   if (!result) {
-      logerror("Failed to read from allocated memory\n");
-      return FAILED;
-   }
-   result = pset->freeMemory(free_loc);
-   if (!result) {
-      logerror("Failed to free memory in allocated region\n");
-      return FAILED;
-   }
+
 
    //Add a breakpoint
    bp = Breakpoint::newBreakpoint();
