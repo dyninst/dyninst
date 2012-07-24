@@ -26,8 +26,7 @@ SRCS += 	../src/linux-swk.C \
 			../src/dbginfo-stepper.C \
 			../src/x86-wanderer.C \
 			../src/linuxbsd-swk.C \
-			../src/linux-x86-swk.C \
-			../src/analysis_stepper.C
+			../src/linux-x86-swk.C 
 
 LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
