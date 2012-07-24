@@ -1591,23 +1591,25 @@ HandlerPool *int_process::handlerPool() const
 
 bool int_process::addBreakpoint_phase1(bp_install_state *is)
 {
-   pthrd_printf("Installing new breakpoint at %lx into %d\n", is->addr, getPid());
+   pthrd_printf("(grep) Installing new breakpoint at %lx into %d\n", is->addr, getPid());
    is->ibp = NULL;
    map<Address, sw_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
    is->do_install = (i == mem->breakpoints.end());
    if (!is->do_install) {
-      is->ibp = i->second;
-      assert(is->ibp && is->ibp->isInstalled());
-      bool result = is->ibp->addToIntBreakpoint(is->bp, this);
-      if (!result) {
-         pthrd_printf("Failed to install new breakpoint\n");
-         return false;
-      }
-      return true;
+     pthrd_printf("(grep) Found previously installed bp %p for addr 0x%lx\n", 
+		  i->second, is->addr);
+     is->ibp = i->second;
+     assert(is->ibp && is->ibp->isInstalled());
+     bool result = is->ibp->addToIntBreakpoint(is->bp, this);
+     if (!result) {
+       pthrd_printf("Failed to install new breakpoint\n");
+       return false;
+     }
+     return true;
    }
 
-   pthrd_printf("Adding new breakpoint to %d\n", getPid());
    is->ibp = new sw_breakpoint(mem, is->addr);
+   pthrd_printf("(grep) Adding new breakpoint to %d, raw %p\n", getPid(), is->ibp);
 
    if (!is->ibp->checkBreakpoint(is->bp, this)) {
       pthrd_printf("Failed check breakpoint\n");
@@ -4355,6 +4357,7 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
                                set<response::ptr> &resps)
 {
    empty = false;
+   pthrd_printf("(grep) Deleting breakpoint %p at 0x%lx; %d int_breakpoints share us\n", this, addr, bps.size());
    set<int_breakpoint *>::iterator i = bps.find(bp);
    if (i == bps.end()) {
       perr_printf("Attempted to remove a non-installed breakpoint\n");
@@ -4369,6 +4372,7 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
    }
 
    if (bps.empty()) {
+     pthrd_printf("(grep) Breakpoint not used by other int_breakpoints, removing\n");
       empty = true;
       bool result = uninstall(proc, resps);
       if (!result) {
@@ -4378,7 +4382,7 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
       }
    }
    else {
-      pthrd_printf("sw_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
+      pthrd_printf("(grep) sw_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
                    addr);
    }
    
@@ -4634,9 +4638,18 @@ unsigned sw_breakpoint::getNumIntBreakpoints() const {
     return bps.size();
 }
 
-bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *, int_process *)
+bool sw_breakpoint::addToIntBreakpoint(int_breakpoint *bp, int_process *)
 {
    memory->breakpoints[addr] = this;
+  
+   Breakpoint::ptr upbp = bp->upBreakpoint().lock();
+   if (upbp != Breakpoint::ptr()) {
+      //We keep the set of installed Breakpoints to keep the breakpoint shared
+      // pointer reference counter from cleaning a Breakpoint while installed.
+      hl_bps.insert(upbp);
+   }
+   bps.insert(bp);
+
    return true;
 }
 
@@ -7789,6 +7802,7 @@ bool emulated_singlestep::containsBreakpoint(Address addr) const
 }
 
 async_ret_t emulated_singlestep::add(Address addr) {
+  pthrd_printf("(grep) Emulated singlestep adding 0x%lx for thread %d\n", addr, thr->getLWP());
    if (addrs.find(addr) != addrs.end())
       return aret_success;
 
