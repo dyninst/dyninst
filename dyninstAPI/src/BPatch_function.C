@@ -914,7 +914,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   assert(type);
   
   //  only the vector was newly allocated, not the parameters themselves
-  delete [] params;
+  delete params;
   
   //  In truth it would make more sense for this to be a BPatch_constExpr,
   //  But since we are adding this as part of the DPCL compatibility process

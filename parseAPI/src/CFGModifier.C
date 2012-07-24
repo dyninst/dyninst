@@ -374,3 +374,9 @@ InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch
    memcpy(buf_, d, s);
 };
 
+InsertedRegion::~InsertedRegion()
+{
+  free(buf_);
+}
+
+

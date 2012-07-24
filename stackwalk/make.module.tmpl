@@ -73,6 +73,20 @@ SRCS  +=  ../../common/src/dwarfSW.C \
 
 endif
 
+ifndef WITHOUT_PARSE_API
+	MYFLAGS += -I../../parseAPI/h -I../../dataflowAPI/h -DUSE_PARSE_API
+	LDFLAGS += -L../../parseAPI/$(PLATFORM) -lparseAPI	
+	SRCS += ../src/analysis_stepper.C \
+		../src/callchecker-IAPI.C
+else
+	SRCS += ../src/callchecker.C
+endif
+
+ifdef WITHOUT_SYMTAB_API
+	MYFLAGS += -I../../symtabAPI/h
+	LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
+endif
+
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../proccontrol/h -I../../symtabAPI/h -I../../parseAPI/h -I../../instructionAPI/h
 
 ifdef WRAPPER_LIBS

@@ -31,6 +31,7 @@
 
 #include "stackwalk/src/analysis_stepper.h"
 #include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Function.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/frame.h"
@@ -49,6 +50,9 @@ using namespace std;
 
 std::map<string, CodeObject *> AnalysisStepperImpl::objs;
 const AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::err_height_pair;
+std::map<string, CodeSource*> AnalysisStepperImpl::srcs;
+std::map<string, Symtab*> AnalysisStepperImpl::symtabs;
+
 
 AnalysisStepperImpl::AnalysisStepperImpl(Walker *w, AnalysisStepper *p) :
    FrameStepper(w),
@@ -65,15 +69,20 @@ AnalysisStepperImpl::~AnalysisStepperImpl()
 
 CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
 {
-   Symtab *symtab = NULL;
-   bool result = Symtab::openFile(symtab, name);
-   if (!result) {
-      sw_printf("[%s:%u] - SymtabAPI failed to open file %s\n", __FILE__, __LINE__, 
-                name.c_str());
-      return NULL;
-   }
-   SymtabCodeSource *cs = new SymtabCodeSource(symtab);
-   return static_cast<CodeSource *>(cs);
+  map<string, CodeSource*>::iterator found = srcs.find(name);
+  if(found != srcs.end()) return found->second;
+  
+  Symtab *symtab = NULL;
+  bool result = Symtab::openFile(symtab, name);
+  if (!result) {
+    sw_printf("[%s:%u] - SymtabAPI failed to open file %s\n", __FILE__, __LINE__, 
+	      name.c_str());
+    return NULL;
+  }
+  SymtabCodeSource *cs = new SymtabCodeSource(symtab);
+  srcs[name] = cs;
+  symtabs[name] = symtab;
+  return static_cast<CodeSource *>(cs);
 }
 
 CodeObject *AnalysisStepperImpl::getCodeObject(string name)
@@ -89,7 +98,7 @@ CodeObject *AnalysisStepperImpl::getCodeObject(string name)
    CodeObject *code_object = new CodeObject(code_source);
    objs[name] = code_object;
 
-   code_object->parse();
+   //code_object->parse();
    return code_object;
 }
 
@@ -138,8 +147,15 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
         if (heights.size() > 1) {
 	  if(!validateRA(out_ra)) continue;
         }
-
-        if (fp_height != StackAnalysis::Height::bottom) {
+        if (fp_height == StackAnalysis::Height::bottom)
+	{
+	  if(sp_height.height() == -1 * (long)(proc->getAddressWidth()))
+	  {
+	    //out.setFP(out_sp);
+	  }
+	}
+	else
+	{
             // FP height is the distance from the last SP of the previous frame
             // to the FP in this frame at the current offset.
             // If analysis finds this height,
@@ -147,32 +163,36 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(set<height_pair_t> heights
             // We then assume that in FP points to out FP.
             out_fp_addr = out_sp + fp_height.height();
 
-            if (out_fp_addr != in_fp) {
-                sw_printf(
-                        "[%s:%u] - Warning - current FP %lx does not point to next FP located at %lx\n",
-                        __FILE__, __LINE__, in_fp, out_fp_addr);
-            }
-
-            bool resultMem = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
-            if (resultMem) {
-                out_fp_loc.location = loc_address;
-                out_fp_loc.val.addr = out_fp_addr;
-
-                out.setFPLocation(out_fp_loc);
-                out.setFP(out_fp);
-            }
-            else {
-                sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
-            }
-        }
-        else {
-            sw_printf("[%s:%u] - Did not find frame pointer in analysis\n",
-                    __FILE__, __LINE__);
-        }
-
-        out.setSP(out_sp);
-        out.setRALocation(out_ra_loc);
-        out.setRA(out_ra);
+	}
+	
+	if(out_fp_addr)
+	{
+	  if (out_fp_addr != in_fp) {
+	    sw_printf(
+		      "[%s:%u] - Warning - current FP %lx does not point to next FP located at %lx\n",
+		      __FILE__, __LINE__, in_fp, out_fp_addr);
+	  }
+	  bool resultMem = proc->readMem(&out_fp, out_fp_addr, proc->getAddressWidth());
+	  if (resultMem) {
+	    out_fp_loc.location = loc_address;
+	    out_fp_loc.val.addr = out_fp_addr;
+	    
+	    out.setFPLocation(out_fp_loc);
+	    out.setFP(out_fp);
+	  }
+	  else {
+	    sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
+	  }
+	}
+	else
+	{
+	  sw_printf("[%s:%u] - Failed to find FP\n", __FILE__, __LINE__);
+	}
+	
+	
+	out.setSP(out_sp);
+	out.setRALocation(out_ra_loc);
+	out.setRA(out_ra);
 
         if (result) {
             sw_printf("[%s:%u] - Warning - found multiple valid frames.\n", 
@@ -220,26 +240,43 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     
     if(!obj || !region) return err_heights_pair;
 
-   set<ParseAPI::Function*> funcs;
-   obj->findFuncs(region, callSite, funcs);
-   if (funcs.empty()) {
+    Address entry_addr;
+    SymtabAPI::Function* sym_func;
+    if(!symtabs[name]->getContainingFunction(callSite, sym_func))
+    {
+      sw_printf("[%s:%u] - Could not find entry point for function at offset %lx\n",
+		__FILE__, __LINE__, callSite);
+      return err_heights_pair;
+    }
+    entry_addr = sym_func->getOffset();
+    
+
+    obj->parse(entry_addr, false);
+    ParseAPI::Function* func = obj->findFuncByEntry(region, entry_addr);
+
+      //   set<ParseAPI::Function*> funcs;
+      //   obj->findFuncs(region, callSite, funcs);
+      //if (funcs.empty()) 
+    if(!func)
+    {
       sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
                 __LINE__, callSite);
       return err_heights_pair;
-   }
+    }
 
    //Since there is only one region, there is only one block with the offset
+    // Not actually true; overlapping code is always possible.
    set<ParseAPI::Block*> blocks;
    obj->findBlocks(region, callSite, blocks);
-   assert(blocks.size() == 1);
+   //assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 
    set<height_pair_t> heights;
-   for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
-   {
-      StackAnalysis analysis(*i);
-      heights.insert(height_pair_t(analysis.findSP(block, off), analysis.findFP(block, off)));
-   }
+   //for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
+   //{
+   StackAnalysis analysis(func);
+   heights.insert(height_pair_t(analysis.findSP(block, off), analysis.findFP(block, off)));
+      //}
 
    sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
    for (set<height_pair_t>::iterator i = heights.begin(); 
@@ -387,6 +424,14 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     proc->getRegValue(heightIter->first, in.getThread(), sp_base);
     out_sp = sp_base - sp_height.height();
 	
+    if(heightIter->second.height() == -1 * proc->getAddressWidth())
+    {
+      // FP candidate: register pointing to entry SP
+      fprintf(stderr, "Found candidate FP %s, height 0x%x\n",
+	      heightIter->first.name().c_str(), heightIter->second.height());
+      
+    }
+    
 
     // Since we know the outgoing SP,
     // the outgoing RA must be located just below it

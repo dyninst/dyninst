@@ -58,6 +58,7 @@ namespace Dyninst
                 break;
             case 10:
                 userSetValue = Result(dp_float);
+		break;
             case 16:
                 userSetValue = Result(dbl128);
                 break;

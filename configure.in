@@ -37,6 +37,21 @@ AC_SUBST(LIBRARY_DEST_VAR)
 AC_SUBST(PROGRAM_DEST_VAR)
 AC_SUBST(INCLUDE_DEST_VAR)
 
+AC_ARG_WITH(boost,
+	[AS_HELP_STRING([--with-boost],[Boost include directory])],
+	[BOOST_DIR="-I${withval}"],
+	[BOOST_DIR=""])
+
+CPPFLAGS_SAVED=$CPPFLAGS
+CPPFLAGS="$CPPFLAGS $BOOST_DIR"
+export CPPFLAGS
+AC_CHECK_HEADER([boost/shared_ptr.hpp],
+	[],
+	[AC_ERROR([Missing shared_ptr.hpp in boost directory])],
+	[])
+CPPFLAGS=$CPPFLAGS_SAVED
+
+AC_SUBST(BOOST_DIR)
 
 PACKAGE_BASE=""
 AC_ARG_WITH(package-base,
@@ -177,6 +192,9 @@ else
       CPPFLAGS=$CPPFLAGS_HOLD
       PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
       PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
+      AC_ARG_WITH(libelf-static,
+			[AS_HELP_STRING([--with-libelf-static],[Use static LIBELF only])],
+			[LIB_TYPE_DYNAMIC=false],)
    fi
    LIBELF_STATIC="$LIB_TYPE_STATIC"
    LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
@@ -266,6 +284,15 @@ AC_SUBST(USE_LIBERTY)
 AC_SUBST(LINK_LIBERTY)
 AC_SUBST(LIBIBERTY_LIB_DIR)
 
+AC_ARG_WITH(parseAPI,
+	[AS_HELP_STRING([--without-parseAPI],[Disable ParseAPI for stack walking])],
+	[WITHOUT_PARSEAPI="true";],[WITHOUT_PARSEAPI="";])
+AC_ARG_WITH(symtabAPI,
+	[AS_HELP_STRING([--without-symtabAPI],[Disable SymtabAPI for stack walking])],
+	[WITHOUT_SYMTABAPI="true";],[WITHOUT_SYMTABAPI="";])
+AC_SUBST(WITHOUT_PARSEAPI)
+AC_SUBST(WITHOUT_SYMTABAPI)
+
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libdwarf...])
 else
@@ -303,6 +330,9 @@ else
 
        PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
        PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
+       AC_ARG_WITH(libdwarf-static,
+			[AS_HELP_STRING([--with-libdwarf-static],[Use static LIBDWARF only])],
+			[LIB_TYPE_DYNAMIC=false],)
    fi
 
    LIBDWARF_STATIC="$LIB_TYPE_STATIC"
@@ -425,5 +455,25 @@ AC_ARG_ENABLE(testsuite, AS_HELP_STRING([--disable-testsuite], [Disable the Dyni
 AS_IF([test "x$enable_testsuite" != xyes], [TESTSUITE="DONT_BUILD_NEWTESTSUITE=1"], [TESTSUITE=""])
 AC_SUBST([TESTSUITE])
 
-AC_CONFIG_FILES([make.config.local:autodyninst/make.config.local.in])
+
+SAVED_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="$M32FLAG -static"
+AC_CHECK_LIB([stdc++], [main],
+		       [],
+		       [MISSING_STATIC_32_LIBSTDCPP="true"])
+CXXFLAGS=$SAVED_CXXFLAGS
+
+AC_SUBST([MISSING_STATIC_32_LIBSTDCPP])
+
+if test "x$PLATFORM" = "x"; then
+  if test "x$build" != "x"; then
+    PLATFORM=`./scripts/dynsysname ${build}`
+  fi
+fi
+if test "x$PLATFORM" = "x"; then
+  SYSPLAT=`./scripts/sysname`
+  PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
+fi
+
+AC_CONFIG_FILES([${PLATFORM}/make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT

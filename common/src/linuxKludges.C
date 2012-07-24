@@ -1015,8 +1015,6 @@ map_entries *getVMMaps(int pid, unsigned &maps_size) {
  done_err:
    if (fd != -1)
       close(fd);
-   if (maps)
-      free(maps);
    if (buffer)
       free(buffer);
    return NULL;

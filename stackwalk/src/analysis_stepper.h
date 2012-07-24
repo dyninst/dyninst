@@ -44,6 +44,12 @@ class CodeSource;
  class CodeRegion;
  
 }
+ namespace SymtabAPI 
+ {
+   class Symtab;
+   
+ }
+ 
 }
 
 namespace Dyninst {
@@ -72,6 +78,9 @@ class AnalysisStepperImpl : public FrameStepper
   protected:
    
    static std::map<std::string, ParseAPI::CodeObject *> objs;
+   static std::map<std::string, ParseAPI::CodeSource*> srcs;
+   static std::map<std::string, SymtabAPI::Symtab*> symtabs;
+   
    static ParseAPI::CodeObject *getCodeObject(std::string name);
    static ParseAPI::CodeSource *getCodeSource(std::string name);
 

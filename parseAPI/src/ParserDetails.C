@@ -63,6 +63,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
         case CALL:
             parsing_printf("%s[%d]: adding call edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
+	    break;
         case CALL_FT:
             parsing_printf("%s[%d]: adding function fallthrough edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);

@@ -1275,7 +1275,13 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
    if (changePC && !int_ebp->pc_regset) {
       int_ebp->pc_regset = result_response::createResultResponse();
       MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
-      thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
+      bool ok = thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
+      if(!ok)
+      {
+	pthrd_printf("Error setting pc register on breakpoint\n");
+	ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
+	return ret_error;
+      }
    }
    if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {
       pthrd_printf("Error setting pc register on breakpoint\n");
