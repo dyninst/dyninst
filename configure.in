@@ -158,6 +158,10 @@ fi
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libelf...])
 else
+   AC_ARG_WITH(libelf,
+                   [AS_HELP_STRING([--with-libelf],[LIBELF directory (must contain ./lib and ./include)])],
+                   [LIBELF_INC_DIR="${withval}/include";
+                    LIBELF_LIB_DIR="${withval}/lib";],)
    AC_ARG_WITH(libelf-incdir,
 		   [AS_HELP_STRING([--with-libelf-incdir],[LIBELF include directory])],
 		   [LIBELF_INC_DIR="${withval}";],)
@@ -194,14 +198,11 @@ else
       PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
       AC_ARG_WITH(libelf-static,
 			[AS_HELP_STRING([--with-libelf-static],[Use static LIBELF only])],
-			[LIB_TYPE_DYNAMIC=false],)
+			[LIBELF_STATIC=true],)
    fi
-   LIBELF_STATIC="$LIB_TYPE_STATIC"
-   LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
    AC_SUBST(LIBELF_INC_DIR)
    AC_SUBST(LIBELF_LIB_DIR)
    AC_SUBST(LIBELF_STATIC)
-   AC_SUBST(LIBELF_DYNAMIC)
 fi
 
 if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
@@ -296,6 +297,10 @@ AC_SUBST(WITHOUT_SYMTABAPI)
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libdwarf...])
 else
+   AC_ARG_WITH(libdwarf,
+                   [AS_HELP_STRING([--with-libdwarf],[LIBDWARF directory (must contain ./lib and ./include)])],
+                   [LIBDWARF_INC_DIR="${withval}/include";
+                    LIBDWARF_LIB_DIR="${withval}/lib";],)
    AC_ARG_WITH(libdwarf-incdir,
             [AS_HELP_STRING([--with-libdwarf-incdir],[LIBDWARF include directory])],
             [LIBDWARF_INC_DIR="${withval}";],)
@@ -332,15 +337,12 @@ else
        PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
        AC_ARG_WITH(libdwarf-static,
 			[AS_HELP_STRING([--with-libdwarf-static],[Use static LIBDWARF only])],
-			[LIB_TYPE_DYNAMIC=false],)
+			[LIBDWARF_STATIC=true],)
    fi
 
-   LIBDWARF_STATIC="$LIB_TYPE_STATIC"
-   LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
    AC_SUBST(LIBDWARF_INC_DIR)
    AC_SUBST(LIBDWARF_LIB_DIR)
    AC_SUBST(LIBDWARF_STATIC)
-   AC_SUBST(LIBDWARF_DYNAMIC)
 
    PD_CHECK_LIB_FEATURE($LIBDWARF_LIB_DIR,[dwarf],[dwarf_set_frame_cfa_value],$LIBELF_LIB_DIR,[-lelf])
    LIBDWARF_HAS_SET_FRAME="$HAS_FEATURE"

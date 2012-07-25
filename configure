@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LIBXML2_INC_DIR LIBXML2_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LIBXML2_INC_DIR LIBXML2_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -864,6 +864,7 @@ Optional Packages:
   --with-tcltk-incdir     TCL/TK include directory
   --with-tcltk-libdir     TCL/TK library directory
   --with-wrapper-libs     Comma seperated list of archive to wrap
+  --with-libelf           LIBELF directory (must contain ./lib and ./include)
   --with-libelf-incdir    LIBELF include directory
   --with-libelf-libdir    LIBELF library directory
   --with-libelf-static    Use static LIBELF only
@@ -872,6 +873,8 @@ Optional Packages:
   --with-libiberty-libdir LIBIBERTY library directory
   --without-parseAPI      Disable ParseAPI for stack walking
   --without-symtabAPI     Disable SymtabAPI for stack walking
+  --with-libdwarf         LIBDWARF directory (must contain ./lib and
+                          ./include)
   --with-libdwarf-incdir  LIBDWARF include directory
   --with-libdwarf-libdir  LIBDWARF library directory
   --with-libdwarf-static  Use static LIBDWARF only
@@ -3273,6 +3276,13 @@ if test "`echo $host_os | cut -b-3`" = "aix" ; then
 echo "$as_me: AIX system, skipping libelf..." >&6;}
 else
 
+# Check whether --with-libelf or --without-libelf was given.
+if test "${with_libelf+set}" = set; then
+  withval="$with_libelf"
+  LIBELF_INC_DIR="${withval}/include";
+                    LIBELF_LIB_DIR="${withval}/lib";
+fi;
+
 # Check whether --with-libelf-incdir or --without-libelf-incdir was given.
 if test "${with_libelf_incdir+set}" = set; then
   withval="$with_libelf_incdir"
@@ -3698,12 +3708,9 @@ fi
 # Check whether --with-libelf-static or --without-libelf-static was given.
 if test "${with_libelf_static+set}" = set; then
   withval="$with_libelf_static"
-  LIB_TYPE_DYNAMIC=false
+  LIBELF_STATIC=true
 fi;
    fi
-   LIBELF_STATIC="$LIB_TYPE_STATIC"
-   LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
-
 
 
 
@@ -3934,6 +3941,13 @@ if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libdwarf..." >&5
 echo "$as_me: AIX system, skipping libdwarf..." >&6;}
 else
+
+# Check whether --with-libdwarf or --without-libdwarf was given.
+if test "${with_libdwarf+set}" = set; then
+  withval="$with_libdwarf"
+  LIBDWARF_INC_DIR="${withval}/include";
+                    LIBDWARF_LIB_DIR="${withval}/lib";
+fi;
 
 # Check whether --with-libdwarf-incdir or --without-libdwarf-incdir was given.
 if test "${with_libdwarf_incdir+set}" = set; then
@@ -4360,12 +4374,9 @@ fi
 # Check whether --with-libdwarf-static or --without-libdwarf-static was given.
 if test "${with_libdwarf_static+set}" = set; then
   withval="$with_libdwarf_static"
-  LIB_TYPE_DYNAMIC=false
+  LIBDWARF_STATIC=true
 fi;
    fi
-
-   LIBDWARF_STATIC="$LIB_TYPE_STATIC"
-   LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
 
 
 
@@ -6208,7 +6219,6 @@ s,@ARG_WRAPPER_LIBS@,$ARG_WRAPPER_LIBS,;t t
 s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t
 s,@LIBELF_LIB_DIR@,$LIBELF_LIB_DIR,;t t
 s,@LIBELF_STATIC@,$LIBELF_STATIC,;t t
-s,@LIBELF_DYNAMIC@,$LIBELF_DYNAMIC,;t t
 s,@BUILD_XLC@,$BUILD_XLC,;t t
 s,@GNU_DEMANGLER@,$GNU_DEMANGLER,;t t
 s,@USE_LIBERTY@,$USE_LIBERTY,;t t
@@ -6219,7 +6229,6 @@ s,@WITHOUT_SYMTABAPI@,$WITHOUT_SYMTABAPI,;t t
 s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
 s,@LIBDWARF_STATIC@,$LIBDWARF_STATIC,;t t
-s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
 s,@LIBDWARF_HAS_SET_FRAME@,$LIBDWARF_HAS_SET_FRAME,;t t
 s,@THREADDB_INC_DIR@,$THREADDB_INC_DIR,;t t
 s,@THREADDB_LIB_DIR@,$THREADDB_LIB_DIR,;t t
