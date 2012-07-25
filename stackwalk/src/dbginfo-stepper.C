@@ -156,14 +156,12 @@ DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
 bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 {
    bool result = getProcessState()->readMem(buffer, addr, size);
-   if (!result)
-      return true;
    
    last_addr_read = 0;
    if (!result)
       return false;
    if (size != addr_width)
-      return true;
+      return false;
    
    last_addr_read = addr;
    if (addr_width == 4) {
