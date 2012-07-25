@@ -7,6 +7,9 @@ Everything_tests = testsuite parseThat
 dynutil = 
 common = dynutil common
 symtabAPI = dynutil common symtabAPI
+instructionAPI = dynutil common instructionAPI
+
+proccontrol = dynutil common proccontrol
 stackwalk = dynutil common proccontrol stackwalk
 ifndef WITHOUT_PARSE_API
 stackwalk += parseAPI instructionAPI
@@ -15,13 +18,14 @@ ifndef WITHOUT_SYMTAB_API
 stackwalk += symtabAPI
 endif
 
-dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
-instructionAPI = dynutil common instructionAPI
-proccontrol = dynutil common proccontrol
-depGraphAPI = dynutil common depGraphAPI
+
 parseAPI = dynutil common symtabAPI instructionAPI parseAPI
 dataflowAPI = $(parseAPI)
-patchAPI = dynutil common parseAPI
+
+patchAPI = dynutil common parseAPI patchAPI
+
+dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+
 parseThat = $(dyninstAPI) parseThat
 dynC_API = $(dyninstAPI) dynC_API
 dyner = $(dyninstAPI) dyner
@@ -29,7 +33,7 @@ testsuite = testsuite
 valueAdded = $(dyninstAPI) valueAdded/sharedMem
 
 #List all components with tests here
-test_comps = symtabAPI instructionAPI proccontrol dyninstAPI all patchAPI
+test_comps = symtabAPI instructionAPI patchAPI proccontrol dyninstAPI all
 
 DEFAULT_COMPONENT ?= default
 ifeq ($(DEFAULT_COMPONENT),default)
@@ -58,16 +62,20 @@ else
 ifeq ($(DEFAULT_COMPONENT),DataflowAPI)
 fullSystem = $(parseAPI)
 else
+ifeq ($(DEFAULT_COMPONENT),PatchAPI)
+fullSystem = $(patchAPI)
+else
 default:
 	@echo Error: Build system does not have a valid default component: $(DEFAULT_COMPONENT)
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
+endif # PatchAPI
+endif # DataflowAPI
+endif # ParseAPI
+endif # ProcControlAPI
+endif # InstructionAPI
+endif # DyninstAPI
+endif # StackwalkerAPI
+endif # SymtabAPI
+endif # default
 
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite

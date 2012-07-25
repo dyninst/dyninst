@@ -204,7 +204,6 @@ int pc_groups_mutatee()
    if (!fmem) {
       return -1;
    }
-   fprintf(stderr, "Sending unallocated address: %p\n", fmem);
    send_addrs(fmem);
 #endif
    testUnlock(&init_lock);
