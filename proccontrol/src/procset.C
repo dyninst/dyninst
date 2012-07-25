@@ -558,12 +558,13 @@ private:
    bool did_begin;
 
    bool proc_check(Process::const_ptr p, err_t thr_error) {
-      if (!p) {
+      int_process *proc = p ? p->llproc() : NULL;
+      if (!proc) {
+         perr_printf("%s attempted on exited process\n", msg);
+         if (p) p->setLastError(err_exited, "Operation attempted on exited process");
+         had_error = true;
          return false;
       }
-
-      int_process *proc = p->llproc();
-	  if (!proc) return false;
       if ((flags & CLEAR_ERRS) && !finished_clear) {
          proc->clearLastError();
       }
@@ -1368,39 +1369,37 @@ bool ProcessSet::stopProcs() const
    MTLock lock_this_func(MTLock::deliver_callbacks);
    bool had_error = false;
    bool had_success = false;
-
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process while in CB, erroring.");
       for_each(procset->begin(), procset->end(), setError(err_incallback, "Cannot continueProc from callback\n"));
       return false;
    }
    int_processSet error_set;
-
    procset_iter iter("stopProc", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {
       Process::ptr p = *i;
       int_process *proc = p->llproc();
-
       pthrd_printf("User stopping entire process %d\n", proc->getPid());
       proc->threadPool()->initialThread()->getUserState().setStateProc(int_thread::stopped);
       proc->throwNopEvent();
       had_success = true;
    }
 
-   if (had_success) {
-      bool result = int_process::waitAndHandleEvents(false);
-      if (!result) {
-         perr_printf("Internal error calling waitAndHandleEvents\n");
-         for_each(procset->begin(), procset->end(), 
-                  setError(err_internal, "Error while calling waitAndHandleForProc from process stop\n"));
-         return false;
-      }
+   if (!had_success)
+      return false;
+
+   bool result = int_process::waitAndHandleEvents(false);
+   if (!result) {
+      perr_printf("Internal error calling waitAndHandleEvents\n");
+      for_each(procset->begin(), procset->end(), 
+               setError(err_internal, "Error while calling waitAndHandleForProc from process stop\n"));
+      return false;
    }
 
    for (int_processSet::iterator i = procset->begin(); i != procset->end(); i++) {
       int_process *proc = (*i)->llproc();
       if (!proc) {
-         perr_printf("Process %d exited while waiting for user stop, erroring\n", proc->getPid());
+         perr_printf("Process %d exited while waiting for user stop, erroring\n", (*i)->getPid());
          (*i)->setLastError(err_exited, "Process exited while being stopped.\n");
          had_error = true;
          continue;
