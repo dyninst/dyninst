@@ -24,7 +24,7 @@ dataflowAPI = $(parseAPI)
 
 patchAPI = dynutil common parseAPI patchAPI
 
-dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
+dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
 
 parseThat = $(dyninstAPI) parseThat
 dynC_API = $(dyninstAPI) dynC_API
