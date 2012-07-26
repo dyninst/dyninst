@@ -700,7 +700,7 @@ class StackwalkInstrumentationHelper : public Dyninst::Stackwalker::DyninstDynam
   public:
     StackwalkInstrumentationHelper(PCProcess *pc);
     virtual bool isInstrumentation(Dyninst::Address ra, Dyninst::Address *orig_ra,
-                                   unsigned *stack_height, bool *entryExit);
+                                   unsigned *stack_height, bool *aligned, bool *entryExit);
     virtual ~StackwalkInstrumentationHelper();
 };
 

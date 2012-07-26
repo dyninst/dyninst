@@ -404,6 +404,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame
 gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
                                                             Address /*base*/, Address lib_base,
                                                             unsigned /*size*/, unsigned stack_height,
+                                                            bool aligned,
                                                             Address orig_ra, bool pEntryExit)
 {
   bool result = false;
@@ -411,6 +412,10 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
   unsigned long sp_value = 0x0;
   Address sp_addr = 0x0;
 
+  sw_printf("[%s:%u] - DyninstDynamicStepper with lib_base 0x%lx, stack-height %d, orig_ra 0x%lx, aligned %d %s\n",
+            __FILE__, __LINE__, lib_base, stack_height, orig_ra, aligned, pEntryExit ? "<entry/exit>" : "<normal>");
+  sw_printf("[%s:%u] - incoming frame has RA 0x%lx, SP 0x%lx, FP 0x%lx\n",
+            __FILE__, __LINE__, in.getRA(), in.getSP(), in.getFP());
   // Handle frameless instrumentation
   if (0x0 != orig_ra)
   {
@@ -424,6 +429,7 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Fra
               __FILE__, __LINE__);
     return gcf_success;
   }
+
 
   // Handle case where *previous* frame was entry/exit instrumentation
   if (pEntryExit)

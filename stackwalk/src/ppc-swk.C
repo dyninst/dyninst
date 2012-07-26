@@ -305,7 +305,8 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, F
 gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
                                                             Address /*base*/, Address /*lib_base*/,
                                                             unsigned /*size*/, unsigned stack_height,
-                                                            Address /*orig_ra*/, bool /*pEntryExit*/)
+                                                            bool /* aligned */,
+                                                            Address /*orig_ra*/, bool pEntryExit)
 {
   bool result;
   Address in_fp, out_ra;

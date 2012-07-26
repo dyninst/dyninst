@@ -118,7 +118,7 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    out.setRALocation(pc_loc);
    out.setFPLocation(fp_loc);
    out.setSPLocation(sp_loc);
-
+   out.setNonCall();
    return gcf_success;
 }
 

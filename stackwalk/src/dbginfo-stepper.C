@@ -253,7 +253,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    }
 
    Address pc = in.getRA() - lib.second;
-   if (in.getRALocation().location != loc_register) {
+   if (in.getRALocation().location != loc_register && !in.nonCall()) {
       /**
        * If we're here, then our in.getRA() should be pointed at the
        * instruction following a call.  We could either use the

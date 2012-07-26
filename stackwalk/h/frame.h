@@ -65,6 +65,7 @@ protected:
   bool top_frame;
   bool bottom_frame;
   bool frame_complete;
+  bool non_call_frame;
   
   const Frame *prev_frame;
   FrameStepper *stepper;
@@ -94,6 +95,8 @@ protected:
   void setSP(Dyninst::MachRegisterVal);
   void setFP(Dyninst::MachRegisterVal);
   void setThread(THR_ID);
+
+  void setNonCall();
   
   location_t getRALocation() const;
   location_t getSPLocation() const;
@@ -116,6 +119,11 @@ protected:
   FrameStepper *getNextStepper() const;
   Walker *getWalker() const;
   THR_ID getThread() const;
+
+  // Dyninst instrumentation constructs "synthetic" frames that don't correspond
+  // to calls. We really need to know about these...
+  // Also, signal handlers. 
+  bool nonCall() const;
 
   ~Frame();
 };

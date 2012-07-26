@@ -123,6 +123,7 @@ bool PCProcess::createStackwalkerSteppers()
 bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        Dyninst::Address *orig_ra,
                                                        unsigned *stack_height,
+                                                       bool *aligned,
                                                        bool *entryExit)
 {
   bool result;
@@ -153,7 +154,7 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
   orig = ri.orig;
 
   // set entryExit if we're in entry or exit instrumentation
-       // base tramp type is entry or exit
+  // base tramp type is entry or exit
 
   if (base)
   {
@@ -162,6 +163,8 @@ bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
       point = base->point();
 
       *stack_height = base->stackHeight;
+      *aligned = base->alignedStack;
+
       if (!base->needsFrame())
       {
         *orig_ra = orig;
