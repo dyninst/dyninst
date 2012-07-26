@@ -65,8 +65,7 @@ DatabaseOutputDriver::DatabaseOutputDriver(void * data)
     currTest(NULL),
     result(UNKNOWN)
 {
-   char *tmp = (char *)data;
-    sqlLogFilename = data;
+   sqlLogFilename = std::string((char *)data);
 
     FILE * fp = fopen(sqlLogFilename.c_str(), "r");
     if (fp != NULL) {
