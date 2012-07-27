@@ -107,6 +107,7 @@ public:
    bool send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p);
    bool create_pipes(ProcessSet::ptr p);
    bool init_pipes(Process::ptr p);
+   bool open_pipe(Process::ptr p, bool open_read);
 
    bool block_for_events();
    bool poll_for_events();
