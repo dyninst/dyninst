@@ -388,10 +388,8 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 
 //AnalysisStepper defined here
 #ifndef WITHOUT_PARSE_API
-#if defined(arch_x86) || defined(arch_x86_64)
 #include "stackwalk/src/analysis_stepper.h"
 #define PIMPL_IMPL_CLASS AnalysisStepperImpl
-#endif
 #define PIMPL_CLASS AnalysisStepper
 #define PIMPL_NAME "AnalysisStepper"
 #include "framestepper_pimple.h"
