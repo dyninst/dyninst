@@ -83,7 +83,7 @@ static void printMessage(ToolMessage *msg, const char *str)
                 "\trank = %u\n"
                 "\tsequenceId = %u\t"
                 "\treturnCode = %u\t"
-                "\terrorCode = %u\t"
+                "\terrCode = %u\t"
                 "\tlength = %u\n"
                 "\tjobID = %lu\t"
                 "\ttoolId = %u\n\t",
