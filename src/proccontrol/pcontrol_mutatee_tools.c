@@ -128,7 +128,6 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
    int is_mt = 0;
    num_threads = 0;
 
-   //fprintf(stderr, "starting MultiThreadInit\n");
 
    for (i = 0; i < gargc; i++) {
       if ((strcmp(gargv[i], "-mt") == 0) && init_func) {
@@ -201,7 +200,6 @@ int handshakeWithServer()
    send_pid spid;
    handshake shake;
 
-  //fprintf(stderr, "starting handshakeWithServer\n");
 
    spid.code = SEND_PID_CODE;
 #if defined(os_windows_test)
@@ -230,7 +228,6 @@ int handshakeWithServer()
       fprintf(stderr, "Recieved unexpected message.  %lx (%p) is no %lx\n", (unsigned long) shake.code, &shake, (unsigned long) HANDSHAKE_CODE);
       return -1;
    }
-  //fprintf(stderr, "got handshake message OK\n");
 
    return 0;
 }
@@ -264,7 +261,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 #if defined(os_windows_test)
 	WORD wsVer = MAKEWORD(2,0);
    WSADATA ignored;
-   //fprintf(stderr, "starting initProcControlTest\n");
    result = WSAStartup(wsVer, &ignored);
    if(result)
    {
@@ -307,10 +303,8 @@ int finiProcControlTest(int expected_ret_code)
 {
    int i, result;
    int has_error = 0;
-   //fprintf(stderr, "begin finiProcControlTest\n");
    if (num_threads == 0)
       return 0;
-
    result = MultiThreadFinish();
    if (result != 0) {
       fprintf(stderr, "Thread return values were not collected\n");
@@ -326,7 +320,7 @@ int finiProcControlTest(int expected_ret_code)
 #if defined(os_windows_test)
    WSACleanup();
 #endif
-   //fprintf(stderr, "end finiProcControlTest\n");
+   /*fprintf(stderr, "end finiProcControlTest\n");*/
    return has_error ? -1 : 0;
 }
 
@@ -352,7 +346,7 @@ void getSocketInfo()
 #if defined(os_windows_test)
 	   Sleep(10);
 #else
-	   usleep(10000); //.01 seconds
+	   usleep(10000); /*.01 seconds*/
 #endif
 	   count++;
       if (count >= MESSAGE_TIMEOUT * 100) {
@@ -384,8 +378,13 @@ void setTimeoutAlarm()
 {
    static int set_alarm_handler = 0;
    if (!set_alarm_handler) {
+     struct sigaction action;
+     action.sa_handler = sigalarm_handler;
+     sigemptyset(&action.sa_mask);
+     action.sa_flags = 0;
+
       set_alarm_handler = 1;
-      signal(SIGALRM, sigalarm_handler);
+      sigaction(SIGALRM, &action, NULL);
    }
    timeout = 0;
    alarm(MESSAGE_TIMEOUT);
@@ -552,6 +551,7 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 static int recv_message_socket(unsigned char *msg, size_t msg_size)
 {
+   assert(strcmp(socket_type, "un_socket") == 0);
    static int warned_syscall_restart = 0;
    int result = -1;
    int timeout = MESSAGE_TIMEOUT * 10;
@@ -562,7 +562,7 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
       FD_SET(sockfd, &read_set);
       struct timeval s_timeout;
       s_timeout.tv_sec = 0;
-      s_timeout.tv_usec = 100000; //.1 sec
+      s_timeout.tv_usec = 1000000; /* 1 sec, as needed on bruckner */
       int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
       int error = errno;
       if (sresult == -1)
@@ -578,7 +578,7 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
             no_select = 1;
          }
          else {
-            //Seen as kernels with broken system call restarting during IRPC test.
+            /* Seen as kernels with broken system call restarting during IRPC test. */
             if (!warned_syscall_restart) {
                fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
                warned_syscall_restart = 1;
@@ -593,24 +593,36 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
          perror("Timeout waiting for message\n");
          return -1;
       }
-       
-      result = recv(sockfd, msg, msg_size, MSG_WAITALL);
-
-      if (result == -1 && errno != EINTR ) {
-         perror("Mutatee unable to recieve message");
-         return -1;
+      else if (error == EINTR) {
+         continue;
       }
+      else if (error == ENOSYS) {
+         no_select = 1;
+      }
+      else {
+         /*Seen as kernels with broken system call restarting during IRPC test.*/
+         if (!warned_syscall_restart) {
+            fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
+            warned_syscall_restart = 1;
+         }
+         continue;
+      }
+   }
+   result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+   if (result == -1 && errno != EINTR ) {
+      perror("Mutatee unable to recieve message");
+      return -1;
+   }
 
 #if defined(os_freebsd_test)
-      /* Sometimes the recv system call is not restarted properly after a
-       * signal and an iRPC. TODO a workaround for this bug
-       */
-      if( result > 0 && result != msg_size ) {
-         logerror("Received message of unexpected size %d (expected %d)\n",
-                  result, msg_size);
-      }
-#endif
+   /* Sometimes the recv system call is not restarted properly after a
+    * signal and an iRPC. TODO a workaround for this bug
+    */
+   if( result > 0 && result != msg_size ) {
+      logerror("Received message of unexpected size %d (expected %d)\n",
+               result, msg_size);
    }
+#endif
    return 0;
 }
 
@@ -629,11 +641,13 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-   //Serialize access to IO system with barriers.  
-   // Otherwise it's easy to deadlock BlueGene.
+   /**
+    * Serialize access to IO system with barriers.  
+    * Otherwise it's easy to deadlock BlueGene.
+    **/
    for (i=0; i < world_size; i++) {
       if (i == my_rank) {
-         unsigned int num_retries = 300; //30 seconds
+         unsigned int num_retries = 300; /*30 seconds*/
          fprintf(stderr, "Mutatee: Poll on rank %d\n", my_rank); fflush(stderr);
          do {
             struct pollfd fds[1];
@@ -647,7 +661,7 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
                break;
             }
             if (result == 0) {
-               usleep(100000); //.1 seconds
+               usleep(100000); /*.1 seconds*/
                if (--num_retries == 0) {
                   had_error = 1;
                   fprintf(stderr, "Failed to read message from read pipe\n");
@@ -667,7 +681,7 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
             if (result == 0 || 
                 (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR))) 
             {
-               usleep(100000); //.1 seconds
+               usleep(100000); /*.1 seconds*/
                if (--num_retries <= 0) {
                   fprintf(stderr, "Failed to read message from read pipe\n");
                   had_error = 1;
@@ -704,7 +718,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
       assert(0);
    }
 }
-#else // windows
+#else /*  windows  */
 
 
 int initMutatorConnection()
