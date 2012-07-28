@@ -132,10 +132,21 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
 #endif  
 
 #if defined(os_windows)
-	if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
+    if(extract_pathname_tail(file_) == extract_pathname_tail(fd.file_)) file_match_ = true;
+#endif
+#if 0
+    cerr << hex << "Addr comparison: " << code_ << " ? " << fd.code_
+         << ", " << data_ << " ? " << fd.data_ 
+         << ", " << dynamic_ << " ? " << fd.dynamic_ << dec << endl;
 #endif
     bool addr_match = ((code_ == fd.code_ && data_ == fd.data_) ||
                        (dynamic_ && dynamic_ == fd.dynamic_));
+#if 0
+    cerr << "file " << file_match_ 
+         << ", addr " << addr_match
+         << ", member_ " << (member_ == fd.member_)
+         << ", pid_ " << (pid_ == fd.pid_) << endl;
+#endif
     if (file_match_ &&
         (addr_match) &&
         (member_ == fd.member_) &&

@@ -196,7 +196,7 @@ LoadedLib *AddressTranslateSysV::getAOut()
 {
    if (exec)
       return exec;
-   LoadedLib *ll = new LoadedLib(getExecName(), 0);
+   LoadedLib *ll = new LoadedLib(getExecName(), program_base);
    ll->setFactory(symfactory);
    exec = ll;
    return ll;

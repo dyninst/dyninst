@@ -47,8 +47,10 @@ bool AddressTranslateSysV::setInterpreterBase() {
     if (!parser) return false;
 
     interpreter_base = parser->getInterpreterBase();
+    program_base = parser->getProgramBase();
+
     set_interp_base = true;
 
-    parser->deleteAuxvParser();
     return true;
 }
+

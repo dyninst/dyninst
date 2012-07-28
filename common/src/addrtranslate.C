@@ -121,6 +121,7 @@ bool AddressTranslate::getLibAtAddress(Address addr, LoadedLib* &lib)
    return false;
 }
 
+#include <iostream>
 bool AddressTranslate::getLibs(vector<LoadedLib *> &libs_)
 {
    libs_.clear();

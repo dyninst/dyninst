@@ -675,8 +675,9 @@ bool PCProcess::createInitialMappedObjects() {
                            dataAddress, true);
 
        // Skip the executable
-       if( tmpDesc == desc ) continue;
-
+       if( tmpDesc == desc ) {
+          continue;
+       }
 
        mapped_object *newObj = mapped_object::createMappedObject(tmpDesc, 
                this, analysisMode_);

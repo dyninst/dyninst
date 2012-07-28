@@ -112,6 +112,7 @@ public:
 private:
    ProcessReader *reader;
    Address interpreter_base;
+   Address program_base;
    bool set_interp_base;
    int address_size;
    FCNode *interpreter;

@@ -103,14 +103,24 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 {
 // Set occupied range (needs to be ranges)
    dataBase_ = fileDesc.data();
+
+#if defined(os_linux)
+   // Handling for non-fPIE
+   if (codeBase_ == image_->imageOffset()) {
+      // Normal, non-PIE executable, so set the codeBase to 0. 
+      codeBase_ = 0;
+      dataBase_ = 0;
+   }
+#endif
+
 #if 0
    fprintf(stderr, "Creating new mapped_object %s/%s\n",
          fullName_.c_str(), getFileDesc().member().c_str());
-   fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
+   fprintf(stderr, "codeBase 0x%lx, codeOffset 0x%lx, size %d\n",
          codeBase_, image_->imageOffset(), image_->imageLength());
-   fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
+   fprintf(stderr, "dataBase 0x%lx, dataOffset 0x%lx, size %d\n",
          dataBase_, image_->dataOffset(), image_->dataLength());
-   fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
+   fprintf(stderr, "fileDescriptor: code at 0x%lx, data 0x%lx\n",
          fileDesc.code(), fileDesc.data());
    fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
          codeAbs(), codeAbs() + imageSize());

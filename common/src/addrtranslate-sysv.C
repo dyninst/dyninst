@@ -377,6 +377,7 @@ AddressTranslateSysV::AddressTranslateSysV() :
    AddressTranslate(NULL_PID),
    reader(NULL),
    interpreter_base(0),
+   program_base(0),
    set_interp_base(0),
    address_size(0),
    interpreter(NULL),
@@ -675,7 +676,6 @@ bool AddressTranslateSysV::refresh()
           return true;
        }
    }
-
    std::vector<LoadedLib *>::iterator i;
    for (i = libs.begin(); i != libs.end(); i++)
       (*i)->setShouldClean(true);
