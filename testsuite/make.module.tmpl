@@ -229,11 +229,12 @@ default: testlibs mutators mutatees_minimum drivers output_drivers components
 	@echo "**********************************************************"
 	@echo "* Build complete."
 	@echo "*"
-	@echo "* High optimization mutatees were not built, use 'make full'"
+	@echo "* High optimization mutatees were not built, use 'make test-full"
 	@echo "* to build them."
 	@echo "**********************************************************"
 
-full: testlibs mutators mutatees drivers output_drivers components
+test-full: testlibs mutators mutatees drivers output_drivers components
+full: test-full
 
 #######################################################################
 ###  A list of all the targets we're building, for install purposes

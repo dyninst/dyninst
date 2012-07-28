@@ -1749,7 +1749,7 @@ bool ProcessSet::readMemory(multimap<Process::const_ptr, read_t> &addrs) const
       bool result = proc->readMem(addr, resp);
       if (!result) {
          pthrd_printf("Error reading from memory %lx on target process %d\n", addr, proc->getPid());
-         resp->isReady();
+         (void)resp->isReady();
          free(buffer);
          had_error = true;
          continue;
@@ -1831,7 +1831,7 @@ bool ProcessSet::writeMemory(multimap<Process::const_ptr, write_t> &addrs) const
       bool result = proc->writeMem(w.buffer, w.addr, w.size, resp);
       if (!result) {
          perr_printf("Failed to write memory to %d at %lx", proc->getPid(), w.addr);
-         resp->isReady();
+         (void)resp->isReady();
          had_error = true;
          continue;
       }

@@ -163,7 +163,7 @@ int pc_singlestep_mutatee()
       return -1;
    }
    if (msg.code != SYNCLOC_CODE) {
-      output->log(STDERR, "Received unexpected sync message\n");
+      output->log(STDERR, "Received unexpected sync message (singlestep)\n");
       testUnlock(&init_lock);
       return -1;
    }

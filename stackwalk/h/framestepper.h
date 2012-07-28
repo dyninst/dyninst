@@ -220,7 +220,7 @@ class SW_EXPORT DyninstDynamicHelper
 {
  public:
    virtual bool isInstrumentation(Address ra, Address *orig_ra,
-                                  unsigned *stack_height, bool *entryExit) = 0;
+                                  unsigned *stack_height, bool *aligned, bool *entryExit) = 0;
    virtual ~DyninstDynamicHelper();
 };
 

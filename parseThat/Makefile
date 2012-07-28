@@ -1,5 +1,4 @@
-TO_CORE = ../
-TO_SCRIPTS = ../../scripts
+TO_CORE = ..
 
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
@@ -46,12 +45,17 @@ else
 INSTALL_PREFIX =
 endif
 
+MAKE_LOCAL_LOCATION = $(wildcard $(TO_CORE)/$(PLATFORM)/make.config.local)
+ifndef MAKE_LOCAL_LOCATION
+MAKE_LOCAL_LOCATION = $(TO_CORE)/make.config.local
+endif
+
 all:  $(PLATFORM)/parseThat
 
 $(PLATFORM)/parseThat: $(PLATFORM)/Makefile
 	$(MAKE) -C $(PLATFORM)
 
-$(PLATFORM)/Makefile: Makefile.in ../make.config.local
+$(PLATFORM)/Makefile: Makefile.in $(MAKE_LOCAL_LOCATION)
 	@if [ -d $(PLATFORM) ]; then \
 		echo "directory $(PLATFORM) exists"; \
 	else \

@@ -134,6 +134,7 @@ class DyninstDynamicStepperImpl : public FrameStepper {
    gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, 
                                     Address base, Address lib_base, 
 				    unsigned size, unsigned stack_height,
+                                    bool aligned,
                                     Address orig_ra, bool pEntryExit);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);

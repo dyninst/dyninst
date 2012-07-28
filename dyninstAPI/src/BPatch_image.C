@@ -705,7 +705,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
     addSpace->getAS(as);
 
     for (unsigned i=0; i<as.size(); i++) {
-       as[i]->findVarsByAll(name, vars);
+      (void)as[i]->findVarsByAll(name, vars);
        if (vars.size()) {
           var = vars[0];
           var_as = as[i];
@@ -716,7 +716,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
     if (!var) {
        std::string under_name = std::string("_") + std::string(name);
        for (unsigned i=0; i<as.size(); i++) {
-          as[i]->findVarsByAll(under_name, vars);
+	 (void)as[i]->findVarsByAll(under_name, vars);
           if (vars.size()) {
              var = vars[0];
              var_as = as[i];
@@ -730,7 +730,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
           string defaultNamespacePref = as[i]->getAOut()->parse_img()->
              getObject()->getDefaultNamespacePrefix();
           string prefix_name = defaultNamespacePref + string(".") + string(name);
-          as[i]->findVarsByAll(prefix_name, vars);
+          (void)as[i]->findVarsByAll(prefix_name, vars);
           if (vars.size()) {
              var = vars[0];
              var_as = as[i];

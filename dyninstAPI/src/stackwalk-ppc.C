@@ -73,6 +73,7 @@ bool PCProcess::createStackwalkerSteppers()
 bool StackwalkInstrumentationHelper::isInstrumentation(Dyninst::Address ra,
                                                        Dyninst::Address * /*orig_ra*/,
                                                        unsigned * stack_height,
+                                                       bool * /* deref */,
                                                        bool * /*entryExit*/)
 {
   AddressSpace::RelocInfo ri;

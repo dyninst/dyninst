@@ -50,6 +50,9 @@ class SymElf : public Dyninst::SymReader
  private:
    Elf_X elf;
    int fd;
+   bool need_odp;
+   Elf_X_Shdr odp_section;
+
    std::string file;
    const char *buffer;
    unsigned long buffer_size;
@@ -67,6 +70,8 @@ class SymElf : public Dyninst::SymReader
    void createSymCache();
    Symbol_t lookupCachedSymbol(Dyninst::Offset offset);
    
+   void init();
+   unsigned long getSymOffset(const Elf_X_Sym &symbol, unsigned idx);   
  public:
    virtual Symbol_t getSymbolByName(std::string symname);
    virtual Symbol_t getContainingSymbol(Dyninst::Offset offset);

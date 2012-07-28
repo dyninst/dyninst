@@ -53,6 +53,7 @@ Frame::Frame() :
   top_frame(false),
   bottom_frame(false),
   frame_complete(false),
+  non_call_frame(false),
   prev_frame(NULL),
   stepper(NULL),
   next_stepper(NULL),
@@ -78,6 +79,7 @@ Frame::Frame(Walker *parent_walker) :
   top_frame(false),
   bottom_frame(false),
   frame_complete(false),
+  non_call_frame(false),
   prev_frame(NULL),
   stepper(NULL),
   next_stepper(NULL),
@@ -355,6 +357,16 @@ THR_ID Frame::getThread() const
 void Frame::setThread(THR_ID t)
 {
    originating_thread = t;
+}
+
+void Frame::setNonCall() 
+{
+   non_call_frame = true;
+}
+
+bool Frame::nonCall() const
+{ 
+   return non_call_frame;
 }
 
 FrameNode::FrameNode(frame_cmp_wrapper f) :

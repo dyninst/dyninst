@@ -32,7 +32,6 @@
 #include "common/h/Types.h"
 #include "proccontrol/src/int_thread_db.h"
 
-using namespace std;
 
 #include <cassert>
 #include <cerrno>
@@ -40,11 +39,14 @@ using namespace std;
 #include <cstring>
 #include <set>
 #include <dlfcn.h>
+#include <iostream>
 
 #include "common/h/dthread.h"
 #include "dynutil/h/SymReader.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/h/Mailbox.h"
+
+using namespace std;
 
 #if defined(cap_thread_db)
 
@@ -68,6 +70,8 @@ ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, si
    async_ret_t result = llproc->getMemCache()->readMemory(local, (Address) remote, size,
                                                           llproc->resps,
                                                           llproc->triggerThread());
+   
+
    switch (result) {
       case aret_success:
          llproc->hasAsyncPending = false;
@@ -798,12 +802,15 @@ async_ret_t thread_db_process::initThreadDB() {
       }
       
       Address addr = (Address) notifyResult.u.bptaddr;
+      pthrd_printf("Received address of 0x%lx for breakpoint, checking platform conversion\n",
+		   addr);
       if( !plat_convertToBreakpointAddress(addr, triggerThread()) ) {
          perr_printf("Failed to determine breakpoint address\n");
          setLastError(err_internal, "Failed to install new thread_db event breakpoint");
          thread_db_proc_initialized = true;
          return aret_error;
       }
+      pthrd_printf("Post-conversion, using address of 0x%lx\n", addr);
       notifyResult.u.bptaddr = (void *) addr;
       
       int_breakpoint *newEventBrkpt = new int_breakpoint(Breakpoint::ptr());
@@ -825,11 +832,6 @@ async_ret_t thread_db_process::initThreadDB() {
    
    thread_db_proc_initialized = true;
    return aret_success;
-}
-
-bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-    // Default behavior is no translation
-    return true;
 }
 
 void thread_db_process::freeThreadDBAgent() {
@@ -1125,10 +1127,12 @@ void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
       dispatchHandler = new ThreadDBDispatchHandler();
       initialized = true;
    }
+   pthrd_printf("Registering threadDB handlers\n");
    hpool->addHandler(libHandler);
    hpool->addHandler(createHandler);
    hpool->addHandler(destroyHandler);
    hpool->addHandler(dispatchHandler);
+   pthrd_printf("Done registering threadDB handlers\n");
 }
 
 bool thread_db_process::plat_getLWPInfo(lwpid_t, void *) 
@@ -1370,6 +1374,7 @@ int ThreadDBCreateHandler::getPriority() const
 }
 
 Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
+  pthrd_printf("ThreadDBCreateHandler::handleEvent\n");
    if (!thread_db_process::loadedThreadDBLibrary()) {
       pthrd_printf("Failed to load thread_db.  Not running handlers");
       return Handler::ret_success;
@@ -1704,6 +1709,7 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &addr)
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::vector<std::string> envp, std::map<int, int> f) : 
    int_process(p, e, a, envp, f)
 {
+  cerr << "Thread DB process constructor" << endl;
 }
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
@@ -1821,10 +1827,6 @@ bool thread_db_process::isSupportedThreadLib(string) {
 
 bool thread_db_process::plat_supportThreadEvents() {
    return false;
-}
-
-bool thread_db_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
-   return true;
 }
 
 bool thread_db_process::threaddb_setTrackThreads(bool, std::set<std::pair<int_breakpoint *, Address> > &,

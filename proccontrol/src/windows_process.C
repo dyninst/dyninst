@@ -434,9 +434,32 @@ bool windows_process::plat_createDeallocationSnippet(Dyninst::Address addr, unsi
 Dyninst::Address windows_process::direct_infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
 {
 	if(!use_addr) addr = 0;
-	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+	
+	// TODO: share with find_free_mem
+	static Address min_specific_size = 0;
+
+	if (!min_specific_size) {
+		SYSTEM_INFO sysinfo;
+		::GetSystemInfo(&sysinfo);
+		min_specific_size = (Address) sysinfo.dwAllocationGranularity;
+	}
+
+	if (addr) {
+		size = (((size + min_specific_size - 1) / min_specific_size) * min_specific_size);
+	}
+
+	Dyninst::Address result = (Dyninst::Address)(::VirtualAllocEx(hproc, (LPVOID)addr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 	if(result == 0) {
 		pthrd_printf("infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+		fprintf(stderr, "infMalloc failed to VirtualAllocEx %d bytes, error code %d\n", size, ::GetLastError());
+		MEMORY_BASIC_INFORMATION info;
+		memset(&info, 0, sizeof(MEMORY_BASIC_INFORMATION));
+		VirtualQueryEx(hproc, (LPCVOID) (Address) addr,
+						&info,
+						sizeof(MEMORY_BASIC_INFORMATION));
+		cerr << "Mutator side: " << hex << addr << "/" << size << " / " << info.BaseAddress << " / " << info.AllocationBase
+			<< " / " << info.RegionSize << " / " << info.State << dec << endl;
+
 	} else {
 		mem->inf_malloced_memory[result] = size;
 	}
@@ -461,6 +484,39 @@ bool windows_process::direct_infFree(Dyninst::Address addr)
 	return result ? true : false;
 }
 
+Address windows_process::plat_findFreeMemory(size_t size) {
+	
+	static Address low = 0;
+	static Address hi = 0;
+	static Address size_req = 0;
+
+	if (!low) {
+		SYSTEM_INFO sysinfo;
+		::GetSystemInfo(&sysinfo);
+		low = (Address) sysinfo.lpMinimumApplicationAddress;
+		hi = (Address) sysinfo.lpMaximumApplicationAddress;
+		size_req = (Address) sysinfo.dwAllocationGranularity;
+	}
+
+	size = (size > size_req) ? size : size_req;
+
+	MEMORY_BASIC_INFORMATION info;
+	Address result = low;
+	bool done = false;
+	while (!done && (result < hi)) {
+		::VirtualQueryEx(hproc, (LPCVOID) result, &info, sizeof(MEMORY_BASIC_INFORMATION));
+		if ((info.State == MEM_FREE) && 
+			(size <= info.RegionSize)) {
+			done = true;
+		}
+		else {
+			result += size_req; // We may query the same range multiple times, but we need to 
+			// stay aligned. 
+		}
+	}
+	if (result >= hi) return 0;
+	return result;
+}
 
 bool windows_process::plat_collectAllocationResult(int_thread* thr, reg_response::ptr resp)
 {

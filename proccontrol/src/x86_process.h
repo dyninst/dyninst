@@ -47,6 +47,7 @@ class x86_process : virtual public int_process
   virtual unsigned plat_breakpointSize();
   virtual void plat_breakpointBytes(unsigned char *buffer);
   virtual bool plat_breakpointAdvancesPC() const;
+  virtual Address plat_findFreeMemory(size_t) { return 0; }
 };
 
 class x86_thread : virtual public int_thread

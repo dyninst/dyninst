@@ -88,39 +88,13 @@ static void *findUnallocatedMemory() {
    //This memory in now guarenteed available and unmapped.
    return result;
 }
-#elif defined(os_windows_test)
+#else /* defined(os_windows_test) */
 static void *findUnallocatedMemory() {
-	// Do the same allocate/deallocate trick as above
-	void *result;
-	unsigned pagesize;
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	pagesize = sysinfo.dwPageSize;
-
-	result = VirtualAlloc(NULL, pagesize, MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	return result;
-}
-#else
-#include <sys/mman.h>
-static void *findUnallocatedMemory() {
-   //Return something the mutator can pass to mallocMemory
-   void *result;
-   int iresult;
-   unsigned pagesize = getpagesize();
-   result = mmap(NULL, pagesize, PROT_READ|PROT_WRITE,
-                 MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
-   if (result == (void *) -1) {
-      perror("mmap failure");
-      output->log(STDERR, "Failed to mmap memory\n");
-      return NULL;
-   }
-   iresult = munmap(result, pagesize);
-   if (iresult == -1) {
-      output->log(STDERR, "Failed to unmap memory\n");
-      return NULL;
-   }
-   //This memory in now guarenteed available and unmapped.
-   return result;
+	/* Windows can't be trusted to find unallocated memory, 
+		since it tends to get used between when we find it 
+		here and when we try to mutator-allocate it. Instead,
+		we do a VirtualQueryEx on the mutator-side. */
+	return NULL;
 }
 #endif
 
@@ -220,14 +194,18 @@ int pc_groups_mutatee()
    initBarrier(&barrier, num_threads+1);
 
    data = 4;
-
    send_addrs(&data);
-   send_addrs((void *) bp_func);
+
+   send_addrs((void *)getFunctionPtr((unsigned long *)bp_func));
+
+#if !defined(os_windows_test)
+   /* Windows does it mutator-side */
    fmem = findUnallocatedMemory();
    if (!fmem) {
       return -1;
    }
    send_addrs(fmem);
+#endif
    testUnlock(&init_lock);
 
    threadFunc(-1, NULL);

@@ -60,6 +60,7 @@ public:
 		Dyninst::Address remote, size_t size);
 	virtual bool plat_writeMem(int_thread *thr, const void *local, 
 		Dyninst::Address remote, size_t size);
+	virtual Address plat_findFreeMemory(size_t size);
 	virtual SymbolReaderFactory *plat_defaultSymReader();
 	virtual bool needIndividualThreadAttach();
 	virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);

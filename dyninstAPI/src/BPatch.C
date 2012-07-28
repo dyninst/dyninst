@@ -64,6 +64,8 @@
 #include "nt_signal_emul.h"
 #endif
 
+#include <fstream>
+
 using namespace SymtabAPI;
 
 extern void loadNativeDemangler();
@@ -202,7 +204,9 @@ void BPatch::BPatch_dtor()
         BPatch_typeCollection::freeTypeCollection(stdTypes);
     if (APITypes)
         BPatch_typeCollection::freeTypeCollection(APITypes);
-
+    if(builtInTypes)
+      delete builtInTypes;
+    
 
     if(systemPrelinkCommand){
         delete [] systemPrelinkCommand;
@@ -1051,6 +1055,37 @@ void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
    assert(!info->procsByPid.defines(pid));
 }
 
+static void buildPath(const char *path, const char **argv,
+                      char * &pathToUse,
+                      char ** &argvToUse) {
+   ifstream file;
+   file.open(path);
+   if (!file.is_open()) return;
+   std::string line;
+   getline(file, line);
+   if (line.compare(0, 2, "#!") != 0) {
+      file.close();
+      return;
+   }
+
+   // A shell script, so reinterpret path/argv
+   std::string interp = line.substr(2);
+   pathToUse = (char *) malloc(interp.length()+1);
+   strncpy(pathToUse, interp.c_str(), interp.length()+1);
+   // I'd prefer an argc, but hey
+   int count = 0;
+   while(argv[count] != NULL) {
+      count++;
+   }
+   argvToUse = (char **) malloc((count+1) * sizeof(char *));
+   argvToUse[0] = strdup(pathToUse);
+
+   for (int tmp = 0; tmp < count; ++tmp) {
+      argvToUse[tmp+1] = strdup(argv[tmp]);
+   }
+   argvToUse[count] = NULL;
+   file.close();
+}
 
 /*
  * BPatch::processCreateInt
@@ -1119,8 +1154,27 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 #endif // !VxWorks
 #endif // !Windows
 
+   // User request: work on scripts by creating the interpreter instead
+   char *pathToUse = NULL;
+   char **argvToUse = NULL;
+
+   buildPath(path, argv, pathToUse, argvToUse);
+
    BPatch_process *ret = 
-      new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
+      new BPatch_process((pathToUse ? pathToUse : path), 
+                         (argvToUse ? (const_cast<const char **>(argvToUse)) : argv), 
+                         mode, envp, stdin_fd,stdout_fd,stderr_fd);
+   
+   if (pathToUse) free(pathToUse);
+   if (argvToUse) {
+
+      int tmp = 0;
+      while(argvToUse[tmp] != NULL) {
+         free(argvToUse[tmp]);
+         tmp++;
+      }
+      free(argvToUse);
+   }
 
    if (!ret->llproc 
          ||  !ret->llproc->isStopped()

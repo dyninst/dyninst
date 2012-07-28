@@ -335,6 +335,8 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
                               Dyninst::Address remote, size_t size) = 0;
 
+   virtual Address plat_findFreeMemory(size_t) { return 0; }
+
    //For a platform, if plat_needsAsyncIO returns true then the async
    // set of functions need to be implemented.  Currently plat_needsAsyncIO
    // only returns true for bluegene family.  By default these are otherwise
@@ -377,6 +379,7 @@ class int_process
 
    virtual bool plat_needsPCSaveBeforeSingleStep();
    virtual async_ret_t plat_needsEmulatedSingleStep(int_thread *thr, std::vector<Dyninst::Address> &result);
+   virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
    virtual bool plat_needsThreadForMemOps() const { return true; }
 

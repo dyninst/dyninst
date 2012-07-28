@@ -149,7 +149,8 @@ public:
 protected:
     Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg, bool &async);
     async_ret_t handleThreadAttach(td_thrhandle_t *thr, Dyninst::LWP lwp);
-    virtual bool plat_convertToBreakpointAddress(Address &addr, int_thread *thr);
+    // plat_convertToBreakpointAddress moved to int_process so we avoid
+    // diamond inheritance undefined behavior
 
     static volatile bool thread_db_initialized;
     bool thread_db_proc_initialized;

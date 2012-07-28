@@ -31,6 +31,9 @@
 #if !defined(SINGLETON_OBJECT_POOL_H)
 #define SINGLETON_OBJECT_POOL_H
 
+#define BOOST_POOL_NO_MT
+#undef BOOST_HAS_THREADS
+
 #include <boost/pool/pool.hpp>
 #include "pool_allocators.h"
 

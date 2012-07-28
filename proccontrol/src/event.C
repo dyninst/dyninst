@@ -130,6 +130,7 @@ bool Event::triggersCB() const
 
 void Event::setSuppressCB(bool b)
 {
+  pthrd_printf("Setting override event suppress for %s\n", name().c_str());
    suppress_cb = b;
 }
 
@@ -344,14 +345,27 @@ void EventBreakpoint::getBreakpoints(std::vector<Breakpoint::ptr> &bps)
 
 bool EventBreakpoint::suppressCB() const
 {
-   if (Event::suppressCB())
+
+  if (Event::suppressCB()) {
+    pthrd_printf("Suppressing CB on EventBreakpoint: All event suppress\n");
       return true;
+  }
    bp_instance *ibp = int_bp->lookupInstalledBreakpoint();
-   if (ibp->hl_bps.empty()) return true;
+   if (!ibp) {
+     pthrd_printf("Suppressing CB on EventBreakpoint: no bp_instance\n");
+     return true;
+   }
+   if (ibp->hl_bps.empty()) {
+     pthrd_printf("Suppressing CB on EventBreakpoint:: no hl_bps in bp_instance\n");
+     return true;
+   }
    for (bp_instance::iterator iter = ibp->begin();
         iter != ibp->end(); ++iter) {
-      if (!(*iter)->suppressCallbacks()) return false;
+     pthrd_printf("Suppressing CB on EventBreakpoint: checking for unsuppressed HL BP: %s\n",
+		  (*iter)->suppressCallbacks() ? "<suppress>" : "<no suppress>");
+     if (!(*iter)->suppressCallbacks()) return false;
    }
+   pthrd_printf("Suppressing CB on EventBreakpoint: default case\n");
    return true;
 }
 

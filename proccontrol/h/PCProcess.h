@@ -387,6 +387,11 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    bool writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val = NULL) const;
    bool readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val = NULL) const;
 
+   /** 
+    * Currently Windows-only, needed for the test infrastructure but possibly useful elsewhere 
+	*/
+   Dyninst::Address findFreeMemory(size_t size);
+
    /**
     * Libraries
     **/

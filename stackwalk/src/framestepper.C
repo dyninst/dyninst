@@ -269,17 +269,21 @@ gcframe_ret_t DyninstDynamicStepperImpl::getCallerFrame(const Frame &in, Frame &
    unsigned stack_height = 0;
    Address orig_ra = 0x0;
    bool entryExit = false;
+   bool aligned = false;
 
    // Handle dynamic instrumentation
    if (helper)
    {
-       bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &entryExit);
-       bool pEntryExit = prevEntryExit;
+      bool instResult = helper->isInstrumentation(in.getRA(), &orig_ra, &stack_height, &aligned, &entryExit);
+      bool pEntryExit = prevEntryExit;
        
-       // remember that this frame was entry/exit instrumentation
-       prevEntryExit = entryExit;
-
-       if (pEntryExit || instResult) return getCallerFrameArch(in, out, 0, 0, 0, stack_height, orig_ra, pEntryExit);
+      // remember that this frame was entry/exit instrumentation
+      prevEntryExit = entryExit;
+      
+      if (pEntryExit || instResult) {
+         out.setNonCall();
+         return getCallerFrameArch(in, out, 0, 0, 0, stack_height, aligned, orig_ra, pEntryExit);
+      }
    }
 
    return gcf_not_me;
@@ -382,14 +386,10 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef PIMPL_NAME
 #undef OVERLOAD_NEWLIBRARY
 
-#define USE_PARSE_API
-
 //AnalysisStepper defined here
-#ifdef USE_PARSE_API
-#if defined(arch_x86) || defined(arch_x86_64)
+#ifndef WITHOUT_PARSE_API
 #include "stackwalk/src/analysis_stepper.h"
 #define PIMPL_IMPL_CLASS AnalysisStepperImpl
-#endif
 #define PIMPL_CLASS AnalysisStepper
 #define PIMPL_NAME "AnalysisStepper"
 #include "framestepper_pimple.h"

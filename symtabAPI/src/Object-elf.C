@@ -4319,11 +4319,6 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
          
 	  working_module = string(ptr);
          
-	  if (status == DW_DLV_NO_ENTRY) {
-            done = true;
-            goto cleanup_dwarf;
-	  }
-
 	  status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
 	  if (status == DW_DLV_ERROR) {
             done = true;
