@@ -632,18 +632,14 @@ bool PCProcess::createInitialMappedObjects() {
         return false;
     }
 
-    // Create the executable mapped object
-    fileDescriptor desc;
-    startup_printf("%s[%d]: about to getExecFileDescriptor\n", FILE__, __LINE__);
-    if( !getExecFileDescriptor(file_, true, desc) ) {
-        startup_printf("%s[%d]: failed to find exec descriptor\n", FILE__, __LINE__);
-        return false;
-    }
+    startup_printf("Processing initial shared objects\n");
+    startup_printf("----\n");
 
-    if( !setAOut(desc) ) {
-        startup_printf("%s[%d]: failed to setAOut\n", FILE__, __LINE__);
-        return false;
-    }
+    initPatchAPI();
+
+    // Do the a.out first...
+    mapped_object *aout = mapped_object::createMappedObject(pcProc_->libraries().getExecutable(), this, analysisMode_);
+    addASharedObject(aout);
 
     // Set the RT library name
     if( !getDyninstRTLibName() ) {
@@ -651,54 +647,39 @@ bool PCProcess::createInitialMappedObjects() {
                 FILE__, __LINE__);
         return false;
     }
-    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-                   dyninstRT_name.c_str());
 
-
-    int objCount = 0;
-    startup_printf("Processing initial shared objects\n");
-    startup_printf("----\n");
-    startup_printf("%d: %s (exec)\n", objCount, getAOut()->debugString().c_str());
+    // Find main
+    startup_printf("%s[%d]:  leave setAOut/setting main\n", FILE__, __LINE__);
+    setMainFunction();
 
     // Create mapped objects for any loaded shared libraries
     const LibraryPool &libraries = pcProc_->libraries();
     for(LibraryPool::const_iterator i = libraries.begin(); i != libraries.end(); ++i) {
        // Some platforms don't use the data load address field
-       Address dataAddress = (*i)->getLoadAddress();
-       if( usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
-       fileDescriptor tmpDesc((*i)->getName(), (*i)->getLoadAddress(), dataAddress, true);
+       if ((*i) == libraries.getExecutable()) continue;
 
-       dataAddress = (*i)->getLoadAddress();
-       if( usesDataLoadAddress() ) dataAddress = (*i)->getDataLoadAddress();
-       fileDescriptor rtLibDesc(dyninstRT_name, (*i)->getLoadAddress(),
-                           dataAddress, true);
+       startup_cerr << "Library: " << (*i)->getName() 
+            << hex << " / " << (*i)->getLoadAddress() 
+            << ", " << ((*i)->isSharedLib() ? "<lib>" : "<aout>") << dec << endl;
 
-       // Skip the executable
-       if( tmpDesc == desc ) {
-          continue;
-       }
-
-       mapped_object *newObj = mapped_object::createMappedObject(tmpDesc, 
-               this, analysisMode_);
-
-
+       mapped_object *newObj = mapped_object::createMappedObject(*i, 
+                                                                 this, analysisMode_);
        if( newObj == NULL ) {
            startup_printf("%s[%d]: failed to create mapped object for library %s\n",
                    FILE__, __LINE__, (*i)->getName().c_str());
            return false;
        }
 
-       if( rtLibDesc == tmpDesc ) {
-           startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
-                   FILE__, __LINE__);
-           runtime_lib.insert(newObj);
+       if ((*i)->getName() == dyninstRT_name) {
+          startup_printf("%s[%d]: RT library already loaded, manual loading not necessary\n",
+                         FILE__, __LINE__);
+          runtime_lib.insert(newObj);
        }
-
-       objCount++;
-       startup_printf("%d: %s\n", objCount, newObj->debugString().c_str());
 
        addASharedObject(newObj);
     }
+
+
     startup_printf("----\n");
 
     return true;
@@ -765,17 +746,6 @@ bool PCProcess::setAOut(fileDescriptor &desc) {
         return false;
     }
 
-    initPatchAPI(aout);
-
-    addMappedObject(aout);
-    startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
-
-    startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
-    findSignalHandler(aout);
-
-    // Find main
-    startup_printf("%s[%d]:  leave setAOut/setting main\n", FILE__, __LINE__);
-    setMainFunction();
 
     return true;
 }
@@ -2187,6 +2157,7 @@ bool PCProcess::postIRPC_internal(void *buf,
              proccontrol_printf("%s[%d]: Iterating in loop waiting for IRPC to complete\n", FILE__, __LINE__);
              if (isTerminated()) {
                 fprintf(stderr, "IRPC on terminated process, ret false!\n");
+                assert(0);
                 delete newRPC;
                 return false;
              }

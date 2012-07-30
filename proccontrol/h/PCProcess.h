@@ -138,7 +138,8 @@ class PC_EXPORT Library
    Dyninst::Address getDataLoadAddress() const;
    Dyninst::Address getDynamicAddress() const;
    int_library *debug() const { return lib; }
-   
+   bool isSharedLib() const;
+
    void *getData() const;
    void setData(void *p) const;
 };

@@ -107,8 +107,9 @@ EventLibrary::ptr DecoderWindows::decodeLibraryEvent(DEBUG_EVENT details, int_pr
 		}
 		//cerr << "\t ... " << result << endl;
 		int_library* lib = new int_library(result,
-			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
-			(Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
+                                                   true,
+                                                   (Dyninst::Address)(details.u.LoadDll.lpBaseOfDll),
+                                                   (Dyninst::Address)(details.u.LoadDll.lpBaseOfDll));
 		addedLibs.insert(lib->getUpPtr());
 
 		pthrd_printf("Load DLL event, loading %s (at 0x%lx)\n",

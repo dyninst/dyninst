@@ -278,7 +278,8 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                    ll->getCodeLoadAddr());
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
-         lib = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
+         // Note: we set them all to "I'm a shared library"; the a.out is overridden below.
+         lib = new int_library(ll->getName(), true, ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
@@ -303,6 +304,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
    if (!aout) {
       LoadedLib *ll_aout = translator->getExecutable();
       aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
+      aout->markAOut();
    }
 
    return true;

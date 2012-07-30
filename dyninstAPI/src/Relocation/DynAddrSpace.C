@@ -46,13 +46,6 @@ bool DynAddrSpace::loadLibrary(DynObject* obj) {
   return true;
 }
 
-bool DynAddrSpace::initAs(DynObject* obj) {
-  init(obj);
-  first_as_ = obj->as();
-  as_set_.insert(obj->as());
-  return true;
-}
-
 bool DynAddrSpace::removeAddrSpace(AddressSpace *as) {
    as_set_.erase(as);
    return true;
@@ -62,10 +55,9 @@ DynAddrSpace::DynAddrSpace()
   : AddrSpace(), recursive_(false) {
 }
 
-DynAddrSpace* DynAddrSpace::create(DynObject* obj) {
+DynAddrSpace* DynAddrSpace::create() {
   DynAddrSpace* ret = new DynAddrSpace();
   if (!ret) return NULL;
-  ret->initAs(obj);
   return ret;
 }
 

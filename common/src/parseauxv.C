@@ -124,9 +124,5 @@ Address AuxvParser::getVsyscallEnd()
 
 Address AuxvParser::getProgramBase()
 {
-   Address ret = phdr;
-   if (page_size) {
-      ret -= (phdr % page_size);
-   }
-   return ret;
+   return phdr;
 }

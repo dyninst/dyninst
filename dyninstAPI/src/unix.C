@@ -396,18 +396,12 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
     return true;
 }
 
-#include "common/h/parseauxv.h"
 
 bool PCProcess::getExecFileDescriptor(string filename,
         bool, fileDescriptor &desc)
 {
    Address base = 0;
-#if defined(os_linux)
-   AuxvParser *parser = AuxvParser::createAuxvParser(getPid(), getAddressWidth());
-   if (parser) {
-      base = parser->getProgramBase();
-   }
-#endif
+
     desc = fileDescriptor(filename.c_str(),
                           base, // code
                           base, // data

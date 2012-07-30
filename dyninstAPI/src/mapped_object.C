@@ -50,10 +50,11 @@
 #include <boost/tuple/tuple.hpp>
 
 #include "PatchCFG.h"
+#include "PCProcess.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
-
+using namespace Dyninst::ProcControlAPI;
 #if defined(os_windows)
 #define FS_FIELD_SEPERATOR '\\'
 #else
@@ -132,14 +133,24 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    set_short_name();
 }
 
+mapped_object *mapped_object::createMappedObject(Library::const_ptr lib,
+                                                 AddressSpace *p,
+                                                 BPatch_hybridMode analysisMode,
+                                                 bool parseGaps) {
+   fileDescriptor desc(lib->getName(),
+                       lib->getLoadAddress(),
+                       p->usesDataLoadAddress() ? lib->getDataLoadAddress() : lib->getLoadAddress(),
+                       lib->isSharedLib());
+   return createMappedObject(desc, p, analysisMode, parseGaps);
+}
+   
+
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
                                                  AddressSpace *p,
                                                  BPatch_hybridMode analysisMode,
                                                  bool parseGaps) {
    if (!p) return NULL;
-   if ( BPatch_defensiveMode == analysisMode ||
-        ( desc.isSharedObject() &&
-          BPatch_defensiveMode == p->getAOut()->hybridMode() ) )   {
+   if ( BPatch_defensiveMode == analysisMode ) {
        // parsing in the gaps in defensive mode is a bad idea because
        // we mark all binary regions as possible code-containing areas
        parseGaps = false;
@@ -182,11 +193,11 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       // binary (which is different from the isSharedObject()) call above.
       // If so, we need to update the load address.
       if (p->proc() &&
-            (img->getObject()->getObjectType() == SymtabAPI::obj_SharedLib)) {
+          (img->getObject()->getObjectType() == SymtabAPI::obj_SharedLib)) {
          //Executable is a shared lib
          p->proc()->setAOutLoadAddress(desc);
       }
-
+      
 // Used to search for main here and enable system call tracing to find out 
 // when libc.so is loaded -- this is unnecessary now that we use ProcControlAPI
 //

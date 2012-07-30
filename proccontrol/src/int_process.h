@@ -976,8 +976,10 @@ class int_library
    bool marked;
    void *user_data;
    Library::ptr up_lib;
+   bool is_shared_lib;
   public:
    int_library(std::string n, 
+               bool shared_lib,
                Dyninst::Address load_addr,
                Dyninst::Address dynamic_load_addr, 
                Dyninst::Address data_load_addr = 0, 
@@ -996,8 +998,12 @@ class int_library
    void setUserData(void *d);
    void *getUserData();
 
+   bool isSharedLib() const;
+
    Library::ptr getUpPtr() const;
    void markAsCleanable();
+   
+   void markAOut() { is_shared_lib = false; }
 };
 
 class int_breakpoint

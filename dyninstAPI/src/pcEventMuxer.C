@@ -244,7 +244,8 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
         // DEBUG
-    if (evSignal->getSignal() == 3221225477) {
+    if (evSignal->getSignal() == 11) {
+       cerr << "SEGV IN PROCESS" << endl;
            unsigned int esp;
 		   unsigned int pc = 0;
            ProcControlAPI::RegisterPool regs;
