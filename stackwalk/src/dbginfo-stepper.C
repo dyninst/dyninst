@@ -243,14 +243,17 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
    LibAddrPair lib;
    bool result;
-
+   // This error check is duplicated in BottomOfStackStepper.
+   // We should always call BOSStepper first; however, we need the
+   // library for the debug stepper as well. If this becomes
+   // a performance problem we can cache the library info in
+   // the input frame.
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
       sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
                 __FILE__, __LINE__, in.getRA());
-      return gcf_stackbottom;
+      return gcf_error;
    }
-
    Address pc = in.getRA() - lib.second;
    if (in.getRALocation().location != loc_register && !in.nonCall()) {
       /**

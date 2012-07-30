@@ -223,6 +223,15 @@ gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & 
       if (in.getSP() >= (*i).first && in.getSP() < (*i).second)
          return gcf_stackbottom;
    }
+   LibAddrPair lib;
+   bool result;
+   result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
+   if (!result) {
+      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+                __FILE__, __LINE__, in.getRA());
+      return gcf_error;
+   }
+
 
    return gcf_not_me;
 }
