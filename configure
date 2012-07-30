@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER STATIC_COMPS TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -849,6 +849,8 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-gnu-demangler  Use g++'s built in demangler
+  --enable-static         Build all components as static libraries rather than
+                          dynamic (default is dynamic)
   --disable-testsuite     Disable the Dyninst test suite (default is no)
 
 Optional Packages:
@@ -5292,6 +5294,14 @@ echo "$as_me:$LINENO: result: ${MMTIMER}" >&5
 echo "${ECHO_T}${MMTIMER}" >&6
 
 
+# Check whether --enable-static or --disable-static was given.
+if test "${enable_static+set}" = set; then
+  enableval="$enable_static"
+  STATIC_COMPS="STATIC_COMPS=1"
+else
+  STATIC_COMPS=""
+fi;
+
 
 
 # Check whether --enable-testsuite or --disable-testsuite was given.
@@ -5396,6 +5406,8 @@ if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`
   PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
 fi
+
+
 
           ac_config_files="$ac_config_files ${PLATFORM}/make.config.local:autodyninst/make.config.local.in"
 
@@ -6096,6 +6108,7 @@ s,@NASM@,$NASM,;t t
 s,@STACKPROT@,$STACKPROT,;t t
 s,@BUILD32@,$BUILD32,;t t
 s,@MMTIMER@,$MMTIMER,;t t
+s,@STATIC_COMPS@,$STATIC_COMPS,;t t
 s,@TESTSUITE@,$TESTSUITE,;t t
 s,@MISSING_STATIC_32_LIBSTDCPP@,$MISSING_STATIC_32_LIBSTDCPP,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t

@@ -37,7 +37,6 @@
 
 #include "symtab.h"
 #include "debug.h"
-#include "common/h/singleton_object_pool.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;

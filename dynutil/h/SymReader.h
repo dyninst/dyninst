@@ -104,6 +104,11 @@ class COMMON_EXPORT SymReader
    virtual Dyninst::Offset dataOffset() = 0;
 
    virtual void *getElfHandle() { return NULL; }
+   virtual int getFD() 
+   {
+     return 0;
+   }
+   
 };
 
 class COMMON_EXPORT SymbolReaderFactory

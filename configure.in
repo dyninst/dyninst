@@ -449,6 +449,9 @@ esac
 AC_MSG_RESULT(${MMTIMER})
 AC_SUBST([MMTIMER])
 
+AC_ARG_ENABLE(static, AS_HELP_STRING([--enable-static], [Build all components as static libraries rather than dynamic (default is dynamic)]),
+			    [STATIC_COMPS="STATIC_COMPS=1"],[STATIC_COMPS=""])
+AC_SUBST([STATIC_COMPS])
 AC_SUBST([DEFS])
 
 AC_ARG_ENABLE(testsuite, AS_HELP_STRING([--disable-testsuite], [Disable the Dyninst test suite (default is no)]),
@@ -476,6 +479,8 @@ if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`
   PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
 fi
+
+
 
 AC_CONFIG_FILES([${PLATFORM}/make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT
