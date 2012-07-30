@@ -143,7 +143,6 @@ test_results_t test5_8_Mutator::executeTest() {
            handle = appAddrSpace->insertSnippet(call8Expr, *point8_1);
            return PASSED;
        }
-       fprintf(stderr, "Skipping field %s\n", fieldName);
        
        index ++;
     }
