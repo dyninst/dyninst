@@ -27,10 +27,16 @@ ABS_INCLUDE_DEST := $(abspath $(INCLUDE_DEST))
 ABS_LIBDWARF_DEST := $(LIBDWARF_LINK_FLAGS)
 ABS_LIBELF_DEST := $(LIBELF_LINK_FLAGS)
 
-#CONFIG_ARGS = "--with-dyninst-lib=$(TO_CORE)/$(ABS_LIBRARY_DEST)"
-#CONFIG_ARGS += "--with-dyninst-include=$(ABS_INCLUDE_DEST)"
-CONFIG_ARGS = "--with-dwarf-lib=$(ABS_LIBDWARF_DEST)"
+ifdef includedir
+CONFIG_ARGS = "--with-dyninst-include=$(includedir)"
+endif
+ifdef includedir
+CONFIG_ARGS += "--with-dyninst-lib=$(libdir)"
+endif
+CONFIG_ARGS += "--with-dwarf-lib=$(ABS_LIBDWARF_DEST)"
+ifdef LIBELF_LIB
 CONFIG_ARGS += "--with-elf-lib=$(ABS_LIBELF_DEST)"
+endif
 
 ifdef DEMANGLER_EXEC_LINK
 CONFIG_ARGS += "--with-liberty-lib=\"$(DEMANGLER_EXEC_LINK)\""
@@ -61,8 +67,8 @@ $(PLATFORM)/Makefile: Makefile.in $(MAKE_LOCAL_LOCATION)
 	else \
 		mkdir $(PLATFORM); \
 	fi; \
-   cd $(PLATFORM); \
-	LDFLAGS="$(CONFIG_LD_FLAGS)" CXXFLAGS="$(CONFIG_CFLAGS)" CFLAGS="$(CONFIG_CFLAGS)" PLATFORM="$(PLATFORM)" ../configure $(CONFIG_ARGS) $(INSTALL_PREFIX);
+	cd $(PLATFORM); \
+	CPPFLAGS="$(CPPFLAGS)" LDFLAGS="$(CONFIG_LD_FLAGS)" CXXFLAGS="$(CONFIG_CFLAGS)" CFLAGS="$(CONFIG_CFLAGS)" PLATFORM="$(PLATFORM)" ../configure $(CONFIG_ARGS) $(INSTALL_PREFIX);
 
 clean:
 	cd $(PLATFORM); $(MAKE) clean;
