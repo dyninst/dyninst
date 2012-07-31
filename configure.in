@@ -93,6 +93,10 @@ AC_ARG_WITH(tcl83,
             [AS_HELP_STRING([--with-tcl83],[Use Tcl/Tk 8.3])],
             [TCL_VERSION="tcl8.3"; USE_TCL83="${withval}";],
             [TCL_VERSION="tcl8.4"; USE_TCL83="false";])
+AC_ARG_WITH(tcltk,
+            [AS_HELP_STRING([--with-tcltk],[TCL/TK directory (must contain ./lib and ./include)])],
+            [TCLTK_INC_DIR="${withcal}/include";
+             TCLTK_LIB_DIR="${withcal}/lib";],)
 AC_ARG_WITH(tcltk-incdir,
             [AS_HELP_STRING([--with-tcltk-incdir],[TCL/TK include directory])],
             [TCLTK_INC_DIR="${withval}";],)
@@ -349,7 +353,10 @@ else
    AC_SUBST(LIBDWARF_HAS_SET_FRAME)
 fi
 
-
+AC_ARG_WITH(threaddb,
+        [AS_HELP_STRING([--with-threaddb],[THREADDB directory (must contain ./lib and ./include)])],
+        [THREADDB_INC_DIR="${withval}/include";
+         THREADDB_LIB_DIR="${withval}/lib64";],)
 AC_ARG_WITH(threaddb-incdir,
          [AS_HELP_STRING([--with-threaddb-incdir],[THREADDB include directory])],
          [THREADDB_INC_DIR="${withval}";],)
@@ -388,17 +395,10 @@ AC_SUBST(THREADDB_STATIC)
 AC_SUBST(THREADDB_DYNAMIC)
 AC_SUBST(HAVE_THREADDB)
 
-AC_ARG_WITH(libxml2-incdir,
-            [AS_HELP_STRING([--with-libxml2-incdir],[LIBXML2 include directory])],
-            [LIBXML2_INC_DIR="${withval}";],)
-AC_ARG_WITH(libxml2-libdir,
-            [AS_HELP_STRING([--with-libxml2-libdir],[LIBXML2 library directory])],
-            [LIBXML2_LIB_DIR="${withval}";],)
-PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
-PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
-AC_SUBST(LIBXML2_INC_DIR)
-AC_SUBST(LIBXML2_LIB_DIR)
-
+AC_ARG_WITH(launchmon,
+        [AS_HELP_STRING([--with-launchmon],[Launchmon directory (must contain ./lib and ./include)])],
+        [LAUNCHMON_INC_DIR="${withval}/include";
+        LAUNCHMON_LIB_DIR="${withval}/lib";],)
 AC_ARG_WITH(launchmon-incdir,
             [AS_HELP_STRING([--with-launchmon-incdir],[Launchmon include directory])],
             [LAUNCHMON_INC_DIR="${withval}";],)

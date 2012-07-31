@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LIBXML2_INC_DIR LIBXML2_LIB_DIR LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE MISSING_STATIC_32_LIBSTDCPP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -861,6 +861,7 @@ Optional Packages:
                           Valid values: DyninstAPI, SymtabAPI, InstructionAPI,
                           ProcControlAPI, ParseAPI, default
   --with-tcl83            Use Tcl/Tk 8.3
+  --with-tcltk            TCL/TK directory (must contain ./lib and ./include)
   --with-tcltk-incdir     TCL/TK include directory
   --with-tcltk-libdir     TCL/TK library directory
   --with-wrapper-libs     Comma seperated list of archive to wrap
@@ -878,10 +879,12 @@ Optional Packages:
   --with-libdwarf-incdir  LIBDWARF include directory
   --with-libdwarf-libdir  LIBDWARF library directory
   --with-libdwarf-static  Use static LIBDWARF only
+  --with-threaddb         THREADDB directory (must contain ./lib and
+                          ./include)
   --with-threaddb-incdir  THREADDB include directory
   --with-threaddb-libdir  THREADDB library directory
-  --with-libxml2-incdir   LIBXML2 include directory
-  --with-libxml2-libdir   LIBXML2 library directory
+  --with-launchmon        Launchmon directory (must contain ./lib and
+                          ./include)
   --with-launchmon-incdir Launchmon include directory
   --with-launchmon-libdir Launchmon library directory
   --with-libflex-libdir   Absolute path to flex library
@@ -2982,6 +2985,13 @@ else
   TCL_VERSION="tcl8.4"; USE_TCL83="false";
 fi;
 
+# Check whether --with-tcltk or --without-tcltk was given.
+if test "${with_tcltk+set}" = set; then
+  withval="$with_tcltk"
+  TCLTK_INC_DIR="${withcal}/include";
+             TCLTK_LIB_DIR="${withcal}/lib";
+fi;
+
 # Check whether --with-tcltk-incdir or --without-tcltk-incdir was given.
 if test "${with_tcltk_incdir+set}" = set; then
   withval="$with_tcltk_incdir"
@@ -4470,6 +4480,12 @@ fi
 fi
 
 
+# Check whether --with-threaddb or --without-threaddb was given.
+if test "${with_threaddb+set}" = set; then
+  withval="$with_threaddb"
+  THREADDB_INC_DIR="${withval}/include";
+         THREADDB_LIB_DIR="${withval}/lib64";
+fi;
 
 # Check whether --with-threaddb-incdir or --without-threaddb-incdir was given.
 if test "${with_threaddb_incdir+set}" = set; then
@@ -4988,174 +5004,12 @@ THREADDB_DYNAMIC="$LIB_TYPE_DYNAMIC"
 
 
 
-# Check whether --with-libxml2-incdir or --without-libxml2-incdir was given.
-if test "${with_libxml2_incdir+set}" = set; then
-  withval="$with_libxml2_incdir"
-  LIBXML2_INC_DIR="${withval}";
+# Check whether --with-launchmon or --without-launchmon was given.
+if test "${with_launchmon+set}" = set; then
+  withval="$with_launchmon"
+  LAUNCHMON_INC_DIR="${withval}/include";
+        LAUNCHMON_LIB_DIR="${withval}/lib";
 fi;
-
-# Check whether --with-libxml2-libdir or --without-libxml2-libdir was given.
-if test "${with_libxml2_libdir+set}" = set; then
-  withval="$with_libxml2_libdir"
-  LIBXML2_LIB_DIR="${withval}";
-fi;
-
-  CXXFLAGS_HOLD=$CXXFLAGS
-  if test "$LIBXML2_INC_DIR" != "" ; then
-    echo "$as_me:$LINENO: checking for libxml/xmlschemas.h in $LIBXML2_INC_DIR" >&5
-echo $ECHO_N "checking for libxml/xmlschemas.h in $LIBXML2_INC_DIR... $ECHO_C" >&6
-    CXXFLAGS="$CXXFLAGS -I$LIBXML2_INC_DIR"
-  else
-    echo "$as_me:$LINENO: checking for libxml/xmlschemas.h" >&5
-echo $ECHO_N "checking for libxml/xmlschemas.h... $ECHO_C" >&6
-  fi
-  cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include "libxml/xmlschemas.h"
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest.$ac_objext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-cat >>confdefs.h <<\_ACEOF
-#define cap_have_libxml 1
-_ACEOF
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-echo "$as_me:$LINENO: result: libxml/xmlschemas.h not found in $LIBXML2_INC_DIR" >&5
-echo "${ECHO_T}libxml/xmlschemas.h not found in $LIBXML2_INC_DIR" >&6
-fi
-rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
-  CXXFLAGS=$CXXFLAGS_HOLD
-
-
-  if test "$LIBXML2_LIB_DIR" = "" ; then
-    FIRST_LIBPARAM=""
-  else
-    FIRST_LIBPARAM="-L$LIBXML2_LIB_DIR"
-  fi
-  if test "" = "" ; then
-    FOURTH_LIBPARAM=""
-  else
-    FOURTH_LIBPARAM="-L"
-  fi
-  LIBS_HOLD=$LIBS
-  LIBS="$LIBS $FIRST_LIBPARAM $FOURTH_LIBPARAM"
-
-echo "$as_me:$LINENO: checking for xmlAddID in -lxml2" >&5
-echo $ECHO_N "checking for xmlAddID in -lxml2... $ECHO_C" >&6
-if test "${ac_cv_lib_xml2_xmlAddID+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lxml2  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char xmlAddID ();
-int
-main ()
-{
-xmlAddID ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_lib_xml2_xmlAddID=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_cv_lib_xml2_xmlAddID=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_xml2_xmlAddID" >&5
-echo "${ECHO_T}$ac_cv_lib_xml2_xmlAddID" >&6
-if test $ac_cv_lib_xml2_xmlAddID = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBXML2 1
-_ACEOF
-
-  LIBS="-lxml2 $LIBS"
-
-else
-  echo "$as_me:$LINENO: result: Cant find libxml2." >&5
-echo "${ECHO_T}Cant find libxml2." >&6
-fi
-
-  LIBS=$LIBS_HOLD
-
-
-
-
 
 # Check whether --with-launchmon-incdir or --without-launchmon-incdir was given.
 if test "${with_launchmon_incdir+set}" = set; then
@@ -6235,8 +6089,6 @@ s,@THREADDB_LIB_DIR@,$THREADDB_LIB_DIR,;t t
 s,@THREADDB_STATIC@,$THREADDB_STATIC,;t t
 s,@THREADDB_DYNAMIC@,$THREADDB_DYNAMIC,;t t
 s,@HAVE_THREADDB@,$HAVE_THREADDB,;t t
-s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
-s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
 s,@LAUNCHMON_INC_DIR@,$LAUNCHMON_INC_DIR,;t t
 s,@LAUNCHMON_LIB_DIR@,$LAUNCHMON_LIB_DIR,;t t
 s,@LIBFLEX_LIB_DIR@,$LIBFLEX_LIB_DIR,;t t
