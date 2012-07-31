@@ -60,8 +60,8 @@ SymbolReaderFactory* getSymReaderFactory()
 
 SymReaderCodeRegion::~SymReaderCodeRegion()
 {
-  munmap(rawData, _region->mem_size);
-  
+  if(rawData && (rawData != MAP_FAILED))
+    munmap(rawData, _region->mem_size);
 
 }
 
@@ -69,11 +69,15 @@ SymReaderCodeRegion::SymReaderCodeRegion(
         SymReader * st,
         SymRegion * reg) :
     _symtab(st),
-    _region(reg)
+    _region(reg),
+    rawData(NULL)
 {
   rawData = mmap(NULL, _region->mem_size, PROT_READ,
 		 MAP_PRIVATE, _symtab->getFD(), _region->file_offset);
-  
+  if(rawData == MAP_FAILED)
+  {
+    rawData = NULL;
+  }
 }
 
 void

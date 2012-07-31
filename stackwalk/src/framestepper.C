@@ -111,7 +111,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
    if (!result) {
       sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
                  __FILE__, __LINE__, in.getRA());
-      return gcf_stackbottom;
+      return gcf_error;
    }
 
    SymReader *reader = LibraryWrapper::getLibrary(lib.first);
@@ -223,15 +223,16 @@ gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & 
       if (in.getSP() >= (*i).first && in.getSP() < (*i).second)
          return gcf_stackbottom;
    }
-   LibAddrPair lib;
-   bool result;
-   result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
-   if (!result) {
-      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
-                __FILE__, __LINE__, in.getRA());
-      return gcf_error;
-   }
-
+   // So we would really like to do error checking here
+   // but we can't. Specifically, the (generic) bottom of stack
+   // stepper has no idea that instrumentation may have been overlaid
+   // on the regular address space, because it knows nothing of instrumentation
+   // at all.
+   // Which, in turn, means that we delegate down to every other stepper
+   // the responsibility to check for whether an RA is out of bounds
+   // and error out accordingly--any one of them might be first
+   // in a custom stepper group.
+   // This is sub-optimal.
 
    return gcf_not_me;
 }

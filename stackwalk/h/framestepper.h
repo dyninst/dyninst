@@ -73,7 +73,7 @@ public:
   static const unsigned stackbottom_priority = 0x10000;
   static const unsigned dyninstr_priority = 0x10010;
   static const unsigned sighandler_priority = 0x10020;
-  static const unsigned analysis_priority = 0x10058;
+  static const unsigned analysis_priority = 0x10038;
   static const unsigned debugstepper_priority = 0x10040;
   static const unsigned frame_priority = 0x10050;
   static const unsigned wanderer_priority = 0x10060;
