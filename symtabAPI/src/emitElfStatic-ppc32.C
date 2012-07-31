@@ -478,14 +478,9 @@ Offset emitElfStatic::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
 }
 
 char emitElfStatic::getPaddingValue(Region::RegionType rtype) {
-    const char PPC32_NOP = 0x60000000;
-
-    char retChar = 0;
-    if( rtype == Region::RT_TEXT || rtype == Region::RT_TEXTDATA ) {
-        retChar = PPC32_NOP;
-    }
-
-    return retChar;
+   // TODO: if this matters, we can noop-pad by returning an unsigned
+   // instead of a char...
+   return 0x0;
 }
 
 void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
