@@ -243,58 +243,61 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
+#if defined(arch_x86) || defined(arch_x86_64)
         // DEBUG
     if (evSignal->getSignal() == 11) {
-       cerr << "SEGV IN PROCESS" << endl;
-           unsigned int esp;
-		   unsigned int pc = 0;
-           ProcControlAPI::RegisterPool regs;
-           evSignal->getThread()->getAllRegisters(regs);
-           for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
-              cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
-              if ((*iter).first == x86::esp) {
-                 esp = (*iter).second;
-              }
-			  if ((*iter).first == x86::eip) {
-				  pc = (*iter).second;
-			  }
-		   }
+      cerr << "SEGV IN PROCESS" << process->getPid() << endl;
+       Address esp = 0;
+       Address pc = 0;
+       ProcControlAPI::RegisterPool regs;
+       evSignal->getThread()->getAllRegisters(regs);
+       for (ProcControlAPI::RegisterPool::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
+	 cerr << "\t Reg " << (*iter).first.name() << ": " << hex << (*iter).second << dec << endl;
+	 if (((*iter).first == x86::esp) ||
+	     ((*iter).first == x86_64::rsp)) {
+	   esp = (*iter).second;
+	 }
+	 if (((*iter).first == x86::eip) ||
+	     ((*iter).first == x86_64::rip)) {
+	   pc = (*iter).second;
+	 }
+       }
+       
+       std::vector<std::vector<Frame> > stacks;
+       process->walkStacks(stacks);
+       for (unsigned i = 0; i < stacks.size(); ++i) {
+	 for (unsigned j = 0; j < stacks[i].size(); ++j) {
+	   cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
+	 }
+	 cerr << endl << endl;
+       }
+       for (unsigned i = 0; i < 20; ++i) {
+	 unsigned tmp = 0;
+	 process->readDataSpace((void *) (esp + (i * 4)),
+				4, 
+				&tmp,
+				false);
+	 cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
+       }
+       
+       unsigned disass[1024];
+       process->readDataSpace((void *) pc, 512, disass, false);
+       Address base = pc;
+       InstructionDecoder deco(disass,512,process->getArch());
+       Instruction::Ptr insn = deco.decode();
+       while(insn) {
+	 cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
+	 base += insn->size();
+	 insn = deco.decode();
+       }
+       while(1) sleep(100);
+    }
+#endif
 
-           std::vector<std::vector<Frame> > stacks;
-           process->walkStacks(stacks);
-           for (unsigned i = 0; i < stacks.size(); ++i) {
-              for (unsigned j = 0; j < stacks[i].size(); ++j) {
-                 cerr << "Frame " << i << "/" << j << ": " << stacks[i][j] << endl;
-              }
-              cerr << endl << endl;
-           }
-           for (unsigned i = 0; i < 20; ++i) {
-              unsigned tmp = 0;
-              process->readDataSpace((void *) (esp + (i * 4)),
-                                     4, 
-                                     &tmp,
-                                     false);
-              cerr << "Stack " << hex << esp + (i*4) << ": " << tmp << dec << endl;
-           }
-
-		cerr << "Disassembling at " << hex << pc - 512 << " .. " << pc + 512 << dec << endl;
-		   unsigned disass[1024];
-		   process->readDataSpace((void *) (pc - 512), 1024, disass, false);
-		   Address base = pc-512;
-	      InstructionDecoder deco(disass,1024,process->getArch());
-		  Instruction::Ptr insn = deco.decode();
-		  while(insn) {
-			 cerr << "\t" << hex << base << ": " << insn->format(base) << dec << endl;
-			base += insn->size();
-			insn = deco.decode();
-		  }
-
-//           while(1) sleep(100);
-        }
-	if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
-		evSignal->clearThreadSignal();
-	}
-	DEFAULT_RETURN;
+    if (!PCEventHandler::isKillSignal(evSignal->getSignal())) {
+      evSignal->clearThreadSignal();
+    }
+    DEFAULT_RETURN;
 }
 
 PCEventMuxer::cb_ret_t PCEventMuxer::breakpointCallback(EventPtr ev) {

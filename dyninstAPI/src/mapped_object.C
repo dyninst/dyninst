@@ -112,7 +112,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       dataBase_ = 0;
    }
 #endif
-
 #if 0
    fprintf(stderr, "Creating new mapped_object %s/%s\n",
          fullName_.c_str(), getFileDesc().member().c_str());
@@ -127,7 +126,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
          dataAbs(), dataAbs() + dataSize());
 #endif
-
 
    // Sets "fileName_"
    set_short_name();

@@ -49,6 +49,7 @@ bool AddressTranslateSysV::setInterpreterBase() {
     program_base = parser->getProgramBase();
 
     set_interp_base = true;
+    delete parser;
 
     return true;
 }

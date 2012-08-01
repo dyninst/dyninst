@@ -506,58 +506,60 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
     Elf_X_Data data = scnp->get_data();
     Elf_X_Dyn dynsecData = data.get_dyn();
-    for (unsigned j = 0; j < dynsecData.count(); ++j) {
-      switch (dynsecData.d_tag(j)) {
-      case DT_REL:
-	hasReldyn_ = true;
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	break;
-      case DT_RELA:
-	hasReladyn_ = true;
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	break;
-      case DT_JMPREL:
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	break;
-      case DT_SYMTAB:
-      case DT_STRTAB:
-      case DT_VERSYM:
-      case DT_VERNEED:
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	break;
-      case DT_HASH:
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	elf_hash_addr_ = dynsecData.d_ptr(j);
-	break;
-      case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	gnu_hash_addr_ = dynsecData.d_ptr(j);
-	break;
-      case DT_PLTGOT:
-	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	break;
-      case DT_RELSZ:
-	secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
-	break;
-      case DT_RELASZ:
-	secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
-	break;
-      case DT_PLTRELSZ:
-         secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
-	break;
-      case DT_STRSZ:
-	secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
-	break;
-      case DT_PLTREL: 
-	if (dynsecData.d_val(j) == DT_REL)
-	  hasRelplt_ = true;
-	else if (dynsecData.d_val(j) == DT_RELA)
-	  hasRelaplt_ = true;
-	break;
-
+    // Ubuntu 12.04 - we have debug files with NOBITS dynamic sections. 
+    if (dynsecData.isValid()) {
+      for (unsigned j = 0; j < dynsecData.count(); ++j) {
+	switch (dynsecData.d_tag(j)) {
+	case DT_REL:
+	  hasReldyn_ = true;
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  break;
+	case DT_RELA:
+	  hasReladyn_ = true;
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  break;
+	case DT_JMPREL:
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  break;
+	case DT_SYMTAB:
+	case DT_STRTAB:
+	case DT_VERSYM:
+	case DT_VERNEED:
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  break;
+	case DT_HASH:
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  elf_hash_addr_ = dynsecData.d_ptr(j);
+	  break;
+	case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  gnu_hash_addr_ = dynsecData.d_ptr(j);
+	  break;
+	case DT_PLTGOT:
+	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	  break;
+	case DT_RELSZ:
+	  secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
+	  break;
+	case DT_RELASZ:
+	  secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
+	  break;
+	case DT_PLTRELSZ:
+	  secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+	  break;
+	case DT_STRSZ:
+	  secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
+	  break;
+	case DT_PLTREL: 
+	  if (dynsecData.d_val(j) == DT_REL)
+	    hasRelplt_ = true;
+	  else if (dynsecData.d_val(j) == DT_RELA)
+	    hasRelaplt_ = true;
+	  break;
+	  
+	}
       }
     }
-      
     dyn_hash_map<Offset, int>::iterator it = secAddrTagMapping.begin();
     while (it != secAddrTagMapping.end()) {
       int tag = it->second;

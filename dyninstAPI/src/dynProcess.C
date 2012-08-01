@@ -694,7 +694,7 @@ void PCProcess::addASharedObject(mapped_object *newObj) {
 
     findSignalHandler(newObj);
 
-    startup_printf("%s[%d]: adding shared object %s, addr range 0x%x to 0x%x\n",
+    startup_printf("%s[%d]: adding shared object %s, addr range 0x%lx to 0x%lx\n",
             FILE__, __LINE__,
             newObj->fileName().c_str(),
             newObj->getBaseAddress(),
@@ -1992,6 +1992,8 @@ bool PCProcess::postIRPC(AstNodePtr action, void *userData,
    // 32-bit AMD64, and 8 on 64-bit AMD64.
    irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
 #endif
+
+   irpcTramp_->setIRPCAST(action);
    
    // Create a stack frame for the RPC
    if( !irpcTramp_->generateSaves(irpcBuf, irpcBuf.rs()) ) {
@@ -2109,7 +2111,6 @@ bool PCProcess::postIRPC_internal(void *buf,
       insn = d.decode();
    }
 #endif
-
     newRPC->rpc->setData(newRPC);
 
     unsigned int start_offset = 0;
@@ -2157,7 +2158,6 @@ bool PCProcess::postIRPC_internal(void *buf,
              proccontrol_printf("%s[%d]: Iterating in loop waiting for IRPC to complete\n", FILE__, __LINE__);
              if (isTerminated()) {
                 fprintf(stderr, "IRPC on terminated process, ret false!\n");
-                assert(0);
                 delete newRPC;
                 return false;
              }
