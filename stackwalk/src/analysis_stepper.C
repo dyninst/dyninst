@@ -40,12 +40,17 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
+#ifdef LIBELF_PLATFORM
 #include "common/h/SymLite-elf.h"
+#else
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/SymtabReader.h"
+using namespace SymtabAPI;
+#endif
 
 using namespace Dyninst;
 using namespace Stackwalker;
 using namespace ParseAPI;
-using namespace SymtabAPI;
 using namespace std;
 
 std::map<string, CodeObject *> AnalysisStepperImpl::objs;
@@ -66,7 +71,7 @@ AnalysisStepperImpl::~AnalysisStepperImpl()
 }
 
 
-
+#if defined(LIBELF_PLATFORM)
 CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
 {
   map<string, CodeSource*>::iterator found = srcs.find(name);
@@ -84,6 +89,22 @@ CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
   
   return static_cast<CodeSource *>(cs);
 }
+#else
+CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
+{
+  map<string, CodeSource*>::iterator found = srcs.find(name);
+  if(found != srcs.end()) return found->second;
+  Symtab* st;
+  if(!Symtab::openFile(st, name)) return NULL;
+  
+  SymtabCodeSource *cs = new SymtabCodeSource(st);
+  srcs[name] = cs;
+  readers[name] = new SymtabReader(st);
+  
+  return static_cast<CodeSource *>(cs);  
+}
+
+#endif
 
 CodeObject *AnalysisStepperImpl::getCodeObject(string name)
 {
