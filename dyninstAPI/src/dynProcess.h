@@ -164,8 +164,6 @@ public:
     // Instrumentation support
     bool mappedObjIsDeleted(mapped_object *obj);
     void installInstrRequests(const pdvector<instMapping*> &requests);
-    bool uninstallMutations();
-    bool reinstallMutations();
     Address getTOCoffsetInfo(Address dest); // platform-specific
     Address getTOCoffsetInfo(func_instance *func); // platform-specific
     bool getOPDFunctionAddr(Address &opdAddr); // architecture-specific

@@ -1842,14 +1842,6 @@ bool PCProcess::inferiorMallocDynamic(int size, Address lo, Address hi) {
     return true;
 }
 
-bool PCProcess::uninstallMutations() {
-    return false;
-}
-
-bool PCProcess::reinstallMutations() {
-    return false;
-}
-
 // A copy of the BPatch-level instrumentation installer
 void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
     if (requests.size() == 0) {

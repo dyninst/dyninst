@@ -1171,6 +1171,9 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
     vector<Region *>::iterator reg_it;
     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
+       cerr << "Calculating relocations for region at " << hex << (*reg_it)->getRegionAddr()
+            << dec << endl;
+          
         char *regionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
         
         vector<relocationEntry>::iterator rel_it;
@@ -1178,6 +1181,11 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
             rel_it != (*reg_it)->getRelocations().end();
             ++rel_it)
         {
+           cerr << "Generating relocation at offset "
+                << hex << rel_it->rel_addr() - (*reg_it)->getRegionAddr()
+                << "(" << rel_it->rel_addr() 
+                << " - " << (*reg_it)->getRegionAddr() << ")"
+                << dec << endl;
             if( !archSpecificRelocation(target, target, regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
                         rel_it->rel_addr(), globalOffset, lmap, errMsg) )

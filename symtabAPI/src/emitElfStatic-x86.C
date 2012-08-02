@@ -117,6 +117,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
+   cerr << "archSpecificRelocation @ " << hex << dest << " /w/ offset " << globalOffset << dec << endl;
     if( X86_WIDTH == addressWidth_ ) {
         /*
          * Referring to the SYSV 386 supplement:
