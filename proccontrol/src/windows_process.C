@@ -271,7 +271,7 @@ void windows_process::dumpMemoryMap()
 }
 
 bool windows_process::plat_writeMem(int_thread *thr, const void *local, 
-									Dyninst::Address remote, size_t size)
+                                    Dyninst::Address remote, size_t size, bp_write_t)
 {
 	assert(local || !size);
 	if(!local || !size) return false;

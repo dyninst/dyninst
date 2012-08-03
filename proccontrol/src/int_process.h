@@ -326,13 +326,19 @@ class int_process
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
+   enum bp_write_t {
+      not_bp,
+      bp_install,
+      bp_clear
+   };
+
    bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);
-   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL);
+   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL, bp_write_t bp_write = not_bp);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
-                              Dyninst::Address remote, size_t size) = 0;
+                              Dyninst::Address remote, size_t size, bp_write_t bp_write) = 0;
 
    virtual Address plat_findFreeMemory(size_t) { return 0; }
 
@@ -344,7 +350,8 @@ class int_process
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
-                                   size_t size, result_response::ptr result);
+                                   size_t size, result_response::ptr result, bp_write_t bp_write);
+
    memCache *getMemCache();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;

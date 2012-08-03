@@ -1304,7 +1304,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    return bresult;      
 }
 
-bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr)
+bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
    if (!thr && plat_needsThreadForMemOps()) 
    {
@@ -1322,7 +1322,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
                    getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
-      bresult = plat_writeMem(thr, local, remote, size);
+      bresult = plat_writeMem(thr, local, remote, size, bp_write);
       if (!bresult) {
          result->markError();
       }
@@ -1334,7 +1334,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
                    getPid(), thr->getLWP());
 
       getResponses().lock();
-      bresult = plat_writeMemAsync(thr, local, remote, size, result);
+      bresult = plat_writeMemAsync(thr, local, remote, size, result, bp_write);
       if (bresult) {
          getResponses().addResponse(result, this);
       }
@@ -1884,7 +1884,7 @@ bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address,
 }
 
 bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Address,
-                                     size_t, result_response::ptr )
+                                     size_t, result_response::ptr, bp_write_t)
 {
    assert(0);
    return false;
@@ -4540,7 +4540,7 @@ bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr writ
          bp_insn[i] = buffer[i];
       }
    }
-   return proc->writeMem(bp_insn, addr, buffer_size, write_response);
+   return proc->writeMem(bp_insn, addr, buffer_size, write_response, NULL, int_process::bp_install);
 }
 
 bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
@@ -4565,7 +4565,7 @@ bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::pt
    assert(buffer_size != 0);
 
    pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
-   return proc->writeMem(buffer, addr, buffer_size, res_resp);
+   return proc->writeMem(buffer, addr, buffer_size, res_resp, NULL, int_process::bp_clear);
 }
 
 async_ret_t sw_breakpoint::uninstall(int_process *proc, set<response::ptr> &resps)

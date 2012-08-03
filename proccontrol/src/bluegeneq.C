@@ -591,7 +591,7 @@ bool bgq_process::plat_readMem(int_thread *, void *, Dyninst::Address, size_t)
    return false;
 }
 
-bool bgq_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t)
+bool bgq_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t, bp_write_t)
 {
    assert(0); //No synchronous IO
    return false;
@@ -697,8 +697,37 @@ bool bgq_process::internal_readMem(int_thread * /*stop_thr*/, Dyninst::Address a
 }
 
 bool bgq_process::internal_writeMem(int_thread * /*stop_thr*/, const void *local, Dyninst::Address addr,
-                                    size_t size, result_response::ptr resp, int_thread *thr)
+                                    size_t size, result_response::ptr resp, int_thread *thr, bp_write_t bp_write)
 {
+   if (bp_write == int_process::bp_install) {
+      pthrd_printf("Writing breakpoint memory %lx +%lu on %d with response ID %d\n",
+                   addr, (unsigned long) size, getPid(), resp->getID());
+      SetBreakpointCmd setbp;
+      setbp.threadID = thr ? thr->getLWP() : 0;
+      setbp.addr = addr;
+      setbp.instruction = *((int *) local);
+      bool result = sendCommand(setbp, SetBreakpoint, resp);
+      if (!result) {
+         pthrd_printf("Error sending SetBreakpoint\n");
+         return false;
+      }
+      return true;
+   }
+   if (bp_write == int_process::bp_clear) {
+      pthrd_printf("Reset breakpoint memory %lx +%lu on %d with response ID %d\n",
+                   addr, (unsigned long) size, getPid(), resp->getID());
+      ResetBreakpointCmd setbp;
+      setbp.threadID = thr ? thr->getLWP() : 0;
+      setbp.addr = addr;
+      setbp.instruction = *((int *) local);
+      bool result = sendCommand(setbp, ResetBreakpoint, resp);
+      if (!result) {
+         pthrd_printf("Error sending ResetBreakpoint\n");
+         return false;
+      }
+      return true;
+   }
+
    pthrd_printf("Writing memory %lx +%lu on %d with response ID %d\n", 
                 addr, (unsigned long) size, getPid(), resp->getID());
 
@@ -707,23 +736,23 @@ bool bgq_process::internal_writeMem(int_thread * /*stop_thr*/, const void *local
       num_writes_needed += 1;
    if (num_writes_needed > 1)
       resp->markAsMultiResponse(num_writes_needed);
-
+   
    for (unsigned cur = 0, j = 0; cur < size; cur += MaxMemorySize, j++) {
       uint32_t write_size;
       if (cur + MaxMemorySize >= size)
          write_size = size - cur;
       else
          write_size = MaxMemorySize;
+      SetMemoryCmd *setmem = (SetMemoryCmd *) malloc(sizeof(SetMemoryCmd) + write_size + 1);
+      setmem->threadID = thr ? thr->getLWP() : 0;
+      setmem->addr = addr + cur;
+      setmem->length = write_size;
+      setmem->specAccess = thr ? SpecAccess_UseThreadState : SpecAccess_ForceNonSpeculative;
+      setmem->sharedMemoryAccess = SharedMemoryAccess_Allow;
+      memcpy(setmem->data, ((const char *) local) + cur, write_size);
 
-      SetMemoryCmd setmem;
-      setmem.threadID = thr ? thr->getLWP() : 0;
-      setmem.addr = addr + cur;
-      setmem.length = write_size;
-      setmem.specAccess = thr ? SpecAccess_UseThreadState : SpecAccess_ForceNonSpeculative;
-      setmem.sharedMemoryAccess = SharedMemoryAccess_Allow;
-      memcpy(setmem.data, ((const char *) local) + cur, write_size);
-
-      bool result = sendCommand(setmem, SetMemory, resp);
+      bool result = sendCommand(*setmem, SetMemory, resp);
+      free(setmem);
       if (!result) {
          pthrd_printf("Error sending command to read memory\n");
          return false;
@@ -739,9 +768,9 @@ bool bgq_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr,
 }
 
 bool bgq_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
-                                     size_t size, result_response::ptr result)
+                                     size_t size, result_response::ptr result, bp_write_t bp_write)
 {
-   return internal_writeMem(thr, local, addr, size, result, NULL);
+   return internal_writeMem(thr, local, addr, size, result, NULL, bp_write);
 }
 
 bool bgq_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &)

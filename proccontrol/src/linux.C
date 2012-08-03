@@ -870,7 +870,7 @@ bool linux_process::plat_readMem(int_thread *thr, void *local,
 }
 
 bool linux_process::plat_writeMem(int_thread *thr, const void *local, 
-                                  Dyninst::Address remote, size_t size)
+                                  Dyninst::Address remote, size_t size, bp_write_t)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
 }
@@ -1034,9 +1034,9 @@ bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, me
 }
 
 bool linux_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr, size_t size, 
-                                       result_response::ptr result)
+                                       result_response::ptr result, bp_write_t bp_write)
 {
-   bool b = plat_writeMem(thr, local, addr, size);
+   bool b = plat_writeMem(thr, local, addr, size, bp_write);
    if (!b) {
       result->markError(getLastError());
       result->b = false;
