@@ -1590,13 +1590,10 @@ HandlerPool *int_process::handlerPool() const
 
 bool int_process::addBreakpoint_phase1(bp_install_state *is)
 {
-   pthrd_printf("(grep) Installing new breakpoint at %lx into %d\n", is->addr, getPid());
    is->ibp = NULL;
    map<Address, sw_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
    is->do_install = (i == mem->breakpoints.end());
    if (!is->do_install) {
-     pthrd_printf("(grep) Found previously installed bp %p for addr 0x%lx\n", 
-		  i->second, is->addr);
      is->ibp = i->second;
      assert(is->ibp && is->ibp->isInstalled());
      bool result = is->ibp->addToIntBreakpoint(is->bp, this);
@@ -1608,7 +1605,6 @@ bool int_process::addBreakpoint_phase1(bp_install_state *is)
    }
 
    is->ibp = new sw_breakpoint(mem, is->addr);
-   pthrd_printf("(grep) Adding new breakpoint to %d, raw %p\n", getPid(), is->ibp);
 
    if (!is->ibp->checkBreakpoint(is->bp, this)) {
       pthrd_printf("Failed check breakpoint\n");
@@ -2446,7 +2442,6 @@ bool hybrid_lwp_control_process::plat_syncRunState()
 	  }
    }
 	if(!a_running_thread) {
-	   pthrd_printf("WARNING: did not find a running thread, using initial thread\n");
 	   a_running_thread = tp->initialThread();
    }
 
@@ -4364,7 +4359,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
                                set<response::ptr> &resps)
 {
    empty = false;
-   pthrd_printf("(grep) Deleting breakpoint %p at 0x%lx; %d int_breakpoints share us\n", this, addr, bps.size());
    set<int_breakpoint *>::iterator i = bps.find(bp);
    if (i == bps.end()) {
       perr_printf("Attempted to remove a non-installed breakpoint\n");
@@ -4379,7 +4373,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
    }
 
    if (bps.empty()) {
-     pthrd_printf("(grep) Breakpoint not used by other int_breakpoints, removing\n");
       empty = true;
       bool result = uninstall(proc, resps);
       if (!result) {
@@ -4387,10 +4380,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
          proc->setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
-   }
-   else {
-      pthrd_printf("(grep) sw_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
-                   addr);
    }
    
    return true;
@@ -7815,7 +7804,6 @@ bool emulated_singlestep::containsBreakpoint(Address addr) const
 }
 
 async_ret_t emulated_singlestep::add(Address addr) {
-  pthrd_printf("(grep) Emulated singlestep adding 0x%lx for thread %d\n", addr, thr->getLWP());
    if (addrs.find(addr) != addrs.end())
       return aret_success;
 
