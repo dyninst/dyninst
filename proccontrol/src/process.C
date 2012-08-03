@@ -1040,24 +1040,19 @@ bool int_process::waitAndHandleEvents(bool block)
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
       // thread events after a process has exited.
-      if (ev->getProcess()->isTerminated() &&
-          (ev->getEventType().time() != EventType::Post) &&
-          (ev->getEventType().code() != EventType::Exit)) {
-         // Since the user will never handle this one...
-         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-         continue;
-      }
       // Linux (recent versions) will also process any other queued events
       // before a SIGKILL, and we want to throw those away too. 
-      if (ev->getProcess()->llproc()->wasForcedTerminated() &&
-	  ev->getEventType().time() != EventType::Post &&
-	  ev->getEventType().code() != EventType::Exit) {
-         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-	 continue;
+      if (ev->getProcess()->isTerminated() ||
+          ev->getProcess()->llproc()->wasForcedTerminated()) {
+         if ((ev->getEventType().time() != EventType::Post) &&
+             (ev->getEventType().code() != EventType::Exit)) {
+            // Since the user will never handle this one, clear it from
+            // the signal pipe too.
+            if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
+            continue;
+         }
       }
-
 #endif
-
       int_process* llp = ev->getProcess()->llproc();
       if(!llp) {
          error = true;
