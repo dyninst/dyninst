@@ -39,6 +39,7 @@
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
 #include "dyninstAPI/src/Relocation/DynObject.h"
+#include "PCProcess.h"
 
 class block_instance;
 class func_instance;
@@ -143,6 +144,11 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
                                              bool parseGaps = true);
+    static mapped_object *createMappedObject(ProcControlAPI::Library::const_ptr lib,
+                                             AddressSpace *p,
+                                             BPatch_hybridMode m = BPatch_normalMode,
+                                             bool parseGaps = true);
+
 
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, AddressSpace *child);

@@ -45,6 +45,7 @@ class AuxvParser
    Address vsyscall_text;
    Address vsyscall_end;
    bool found_vsyscall;
+   Address phdr;
 
    unsigned page_size;
    unsigned addr_size;
@@ -68,6 +69,7 @@ class AuxvParser
    Address getVsyscallBase();
    Address getVsyscallText();
    Address getVsyscallEnd();
+   Address getProgramBase();
 };
 
 

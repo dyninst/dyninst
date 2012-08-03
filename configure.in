@@ -93,6 +93,10 @@ AC_ARG_WITH(tcl83,
             [AS_HELP_STRING([--with-tcl83],[Use Tcl/Tk 8.3])],
             [TCL_VERSION="tcl8.3"; USE_TCL83="${withval}";],
             [TCL_VERSION="tcl8.4"; USE_TCL83="false";])
+AC_ARG_WITH(tcltk,
+            [AS_HELP_STRING([--with-tcltk],[TCL/TK directory (must contain ./lib and ./include)])],
+            [TCLTK_INC_DIR="${withcal}/include";
+             TCLTK_LIB_DIR="${withcal}/lib";],)
 AC_ARG_WITH(tcltk-incdir,
             [AS_HELP_STRING([--with-tcltk-incdir],[TCL/TK include directory])],
             [TCLTK_INC_DIR="${withval}";],)
@@ -219,7 +223,7 @@ if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
    AC_MSG_NOTICE([Not x86/x86_64, skipping pgcc on $host_cpu...])
 else
    AC_ARG_WITH(pgcc,
-               [AS_HELP_STRING([--with-pgcc],[Path to Pathscale's PGCC compiler])],
+               [AS_HELP_STRING([--with-pgcc],[Path to Portland Group's PGCC compiler])],
                [_PGC_="${withval}"; _PGCXX_=`dirname ${withval}`/pgCC;],)
 fi
 AC_SUBST(_PGC_)
@@ -332,8 +336,14 @@ else
                               [AC_ERROR(couldn't find libdwarf.h)])])
        CXXFLAGS=$CXXFLAGS_HOLD;
        CPPFLAGS=$CPPFLAGS_HOLD;
+       
+       LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
+       LDFLAGS_HOLD=$LDFLAGS;
+       LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
+       AC_CHECK_LIB([dwarf], [dwarf_add_arange], [AC_MSG_NOTICE(DWARF library directory: $LIBDWARF_LIB_DIR)],
+       [AC_ERROR(couldn't find libdwarf)], [-lelf])
+       LDFLAGS=$LDFLAGS_HOLD;
 
-       PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
        PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
        AC_ARG_WITH(libdwarf-static,
 			[AS_HELP_STRING([--with-libdwarf-static],[Use static LIBDWARF only])],
@@ -349,7 +359,10 @@ else
    AC_SUBST(LIBDWARF_HAS_SET_FRAME)
 fi
 
-
+AC_ARG_WITH(threaddb,
+        [AS_HELP_STRING([--with-threaddb],[THREADDB directory (must contain ./lib and ./include)])],
+        [THREADDB_INC_DIR="${withval}/include";
+         THREADDB_LIB_DIR="${withval}/lib64";],)
 AC_ARG_WITH(threaddb-incdir,
          [AS_HELP_STRING([--with-threaddb-incdir],[THREADDB include directory])],
          [THREADDB_INC_DIR="${withval}";],)
@@ -388,17 +401,10 @@ AC_SUBST(THREADDB_STATIC)
 AC_SUBST(THREADDB_DYNAMIC)
 AC_SUBST(HAVE_THREADDB)
 
-AC_ARG_WITH(libxml2-incdir,
-            [AS_HELP_STRING([--with-libxml2-incdir],[LIBXML2 include directory])],
-            [LIBXML2_INC_DIR="${withval}";],)
-AC_ARG_WITH(libxml2-libdir,
-            [AS_HELP_STRING([--with-libxml2-libdir],[LIBXML2 library directory])],
-            [LIBXML2_LIB_DIR="${withval}";],)
-PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
-PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
-AC_SUBST(LIBXML2_INC_DIR)
-AC_SUBST(LIBXML2_LIB_DIR)
-
+AC_ARG_WITH(launchmon,
+        [AS_HELP_STRING([--with-launchmon],[Launchmon directory (must contain ./lib and ./include)])],
+        [LAUNCHMON_INC_DIR="${withval}/include";
+        LAUNCHMON_LIB_DIR="${withval}/lib";],)
 AC_ARG_WITH(launchmon-incdir,
             [AS_HELP_STRING([--with-launchmon-incdir],[Launchmon include directory])],
             [LAUNCHMON_INC_DIR="${withval}";],)
@@ -449,6 +455,9 @@ esac
 AC_MSG_RESULT(${MMTIMER})
 AC_SUBST([MMTIMER])
 
+AC_ARG_ENABLE(static, AS_HELP_STRING([--enable-static], [Build all components as static libraries rather than dynamic (default is dynamic)]),
+			    [STATIC_COMPS="STATIC_COMPS=1"],[STATIC_COMPS=""])
+AC_SUBST([STATIC_COMPS])
 AC_SUBST([DEFS])
 
 AC_ARG_ENABLE(testsuite, AS_HELP_STRING([--disable-testsuite], [Disable the Dyninst test suite (default is no)]),
@@ -476,6 +485,8 @@ if test "x$PLATFORM" = "x"; then
   SYSPLAT=`./scripts/sysname`
   PLATFORM=`./scripts/dynsysname ${SYSPLAT}`
 fi
+
+
 
 AC_CONFIG_FILES([${PLATFORM}/make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT

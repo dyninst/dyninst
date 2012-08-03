@@ -149,7 +149,7 @@ void windows_process::plat_setHandles(HANDLE hp, HANDLE hf, Address eb)
         }
         CloseHandle(fmap);
     }
-	m_executable = new int_library(fileName, execBase, execBase);
+    m_executable = new int_library(fileName, false, execBase, execBase);
 
 }
 

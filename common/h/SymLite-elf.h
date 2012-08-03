@@ -99,6 +99,8 @@ class SymElf : public Dyninst::SymReader
    bool construction_error;
    
    void *getElfHandle();
+   int getFD();
+   
 };
 
 class SymElfFactory : public Dyninst::SymbolReaderFactory

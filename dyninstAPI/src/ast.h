@@ -232,7 +232,6 @@ class AstNode : public Dyninst::PatchAPI::Snippet {
 
    static AstNodePtr scrambleRegistersNode();
    
-   
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
 

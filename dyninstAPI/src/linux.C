@@ -132,7 +132,7 @@ bool PCProcess::skipHeap(const heapDescriptor &) {
     return false;
 }
 
-bool PCProcess::usesDataLoadAddress() const {
+bool AddressSpace::usesDataLoadAddress() const {
     return false;
 }
 

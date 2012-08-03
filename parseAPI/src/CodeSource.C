@@ -1,11 +1,12 @@
 /*
- * See the dyninst/COPYRIGHT file for copyright information.
+ * Copyright (c) 1996-2011 Barton P. Miller
  * 
- * We provide the Paradyn Tools (below described as "Paradyn")
- * on an AS IS basis, and do not warrant its validity or performance.
- * We reserve the right to update, modify, or discontinue this
- * software at any time.  We shall have no obligation to supply such
- * updates or modifications or any other form of support to you.
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
  * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
@@ -27,30 +28,41 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include <vector>
+#include <map>
 
-#include "common/h/parseauxv.h"
-#include "common/h/headers.h"
+#include "dyntypes.h"
 
-#include "common/h/addrtranslate.h"
-#include "common/src/addrtranslate-sysv.h"
+#include "CodeSource.h"
+#include "debug_parse.h"
+#include "util.h"
 
+using namespace std;
 using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 
-/* 
- * This file should be used when a system has an AuxvParser
- */
-bool AddressTranslateSysV::setInterpreterBase() {
-    if (set_interp_base) return true;
+/** CodeSource **/
+void
+CodeSource::addRegion(CodeRegion * cr)
+{
+    _regions.push_back(cr);
 
-    AuxvParser *parser = AuxvParser::createAuxvParser(pid, address_size);
-    if (!parser) return false;
+    // check for overlapping regions
+    if(!_regions_overlap) {
+        set<CodeRegion *> exist;
+        _region_tree.find(cr,exist);
+        if(!exist.empty())
+            _regions_overlap = true;
+    }
 
-    interpreter_base = parser->getInterpreterBase();
-    program_base = parser->getProgramBase();
-
-    set_interp_base = true;
-    delete parser;
-
-    return true;
+    _region_tree.insert(cr);
 }
+
+int
+CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
+{
+    return _region_tree.find(addr,ret);
+}
+
+
 

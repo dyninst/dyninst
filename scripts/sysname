@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/bash
 # $Id: sysname,v 1.6 2005/08/09 16:13:16 gquinn Exp $
 # Attempt to guess a canonical system name.
 #   Copyright (C) 1992, 1993, 1994, 1995 Free Software Foundation, Inc.

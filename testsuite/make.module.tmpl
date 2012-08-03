@@ -13,14 +13,14 @@ DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) $(IFLAGS) -I../src -g $(BOOST_INCDIR) $(CPPFLAGS)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
@@ -504,7 +504,7 @@ $(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI -lcommon -linstructionAPI $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon $(COMPONENT_LDFLAGS)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
@@ -632,7 +632,7 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o dynlmon.o testdriver_be.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@ 
-	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) ; $(TESTDRIVER_EXTRA_LINK_STEP)
+	$(HIDE_COMP)$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o testdriver_be.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_LINK) $(COMPONENT_LDFLAGS) -ldl ; $(TESTDRIVER_EXTRA_LINK_STEP)
 
 testdriver_wrapper: connection.o testdriver_wrapper.o
 	@echo Linking $@

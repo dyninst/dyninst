@@ -74,6 +74,7 @@ class baseTramp {
 
     int numDefinedRegs();
 
+    void setIRPCAST(AstNodePtr ast) { ast_ = ast; }
 
   private:
     instPoint *point_;

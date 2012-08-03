@@ -1691,7 +1691,7 @@ bool PCEventHandler::isValidRTSignal(int signal, PCEventHandler::RTBreakpointVal
 	return false;
 }
 
-bool PCProcess::usesDataLoadAddress() const
+bool AddressSpace::usesDataLoadAddress() const
 {
 	return false;
 }

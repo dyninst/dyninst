@@ -4891,14 +4891,18 @@ bool hw_breakpoint::needsClear() {
    return thr->bpNeedsClear(this);
 }
 
-int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
+int_library::int_library(std::string n, bool shared_lib,
+                         Dyninst::Address load_addr, 
+                         Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, 
+                         bool has_data_load_addr) :
    name(n),
    load_address(load_addr),
    data_load_address(data_load_addr),
    dynamic_address(dynamic_load_addr),
    has_data_load(has_data_load_addr),
    marked(false),
-   user_data(NULL)
+   user_data(NULL),
+   is_shared_lib(shared_lib)
 {
    assert(n != "");
    up_lib = Library::ptr(new Library());
@@ -4912,7 +4916,9 @@ int_library::int_library(int_library *l) :
    dynamic_address(l->dynamic_address),
    has_data_load(l->has_data_load),
    marked(l->marked),
-   user_data(NULL)
+   user_data(NULL),
+   is_shared_lib(l->is_shared_lib)
+   
 {
    up_lib = Library::ptr(new Library());
    up_lib->lib = this;
@@ -4945,6 +4951,10 @@ bool int_library::hasDataAddr()
 Dyninst::Address int_library::getDynamicAddr()
 {
    return dynamic_address;
+}
+
+bool int_library::isSharedLib() const {
+   return is_shared_lib;
 }
 
 void int_library::setMark(bool b)
@@ -5363,6 +5373,10 @@ Dyninst::Address Library::getDataLoadAddress() const
 Dyninst::Address Library::getDynamicAddress() const
 {
    return lib->getDynamicAddr();
+}
+
+bool Library::isSharedLib() const {
+   return lib->isSharedLib();
 }
 
 void *Library::getData() const

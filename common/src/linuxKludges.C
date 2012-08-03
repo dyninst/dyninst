@@ -410,7 +410,6 @@ bool AuxvParser::readAuxvInfo()
   uint64_t *buffer64 = NULL;
   unsigned pos = 0;
   Address dso_start = 0x0, text_start = 0x0;
-  unsigned page_size = 0x0;
 
   struct {
     unsigned long type;
@@ -449,22 +448,32 @@ bool AuxvParser::readAuxvInfo()
         auxv_entry.value = (unsigned long) buffer64[pos];
         pos++;
      }
-     
-     if (auxv_entry.type == AT_SYSINFO)
-        text_start = auxv_entry.value;
-     else if (auxv_entry.type == AT_SYSINFO_EHDR)
-        dso_start = auxv_entry.value;
-     else if (auxv_entry.type == AT_PAGESZ)
-        page_size = auxv_entry.value;
-     else if (auxv_entry.type == AT_BASE)
-        interpreter_base = auxv_entry.value;
+ 
+     switch(auxv_entry.type) {
+        case AT_SYSINFO:
+           text_start = auxv_entry.value;
+           break;
+        case AT_SYSINFO_EHDR:
+           dso_start = auxv_entry.value;
+           break;
+        case AT_PAGESZ:
+           page_size = auxv_entry.value;
+           break;
+        case AT_BASE:
+           interpreter_base = auxv_entry.value;
+           break;
+        case AT_PHDR:
+           phdr = auxv_entry.value;
+           break;
+     }
+    
   } while (auxv_entry.type != AT_NULL);
+
 
   if (buffer64)
      free(buffer64);
   if (!page_size)
      page_size = getpagesize();
-
 #if !defined(arch_x86) && !defined(arch_x86_64)
   //No vsyscall page needed or present
   return true;

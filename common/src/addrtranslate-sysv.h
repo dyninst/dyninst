@@ -107,10 +107,12 @@ public:
                         std::string exe_name,
                         Address interp_base);
    AddressTranslateSysV();
+   virtual ~AddressTranslateSysV() {};
 
 private:
    ProcessReader *reader;
    Address interpreter_base;
+   Address program_base;
    bool set_interp_base;
    int address_size;
    FCNode *interpreter;

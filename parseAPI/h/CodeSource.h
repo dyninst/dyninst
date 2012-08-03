@@ -101,7 +101,7 @@ class CodeSource : public Dyninst::InstructionSource {
     
  protected:
     /*
-     * Imelmentors of CodeSource can fill the following
+     * Implementers of CodeSource can fill the following
      * structures with available information. Some 
      * of this information is optional.
      */

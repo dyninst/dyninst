@@ -46,28 +46,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
-/** CodeSource **/
-void
-CodeSource::addRegion(CodeRegion * cr)
-{
-    _regions.push_back(cr);
-
-    // check for overlapping regions
-    if(!_regions_overlap) {
-        set<CodeRegion *> exist;
-        _region_tree.find(cr,exist);
-        if(!exist.empty())
-            _regions_overlap = true;
-    }
-
-    _region_tree.insert(cr);
-}
-
-int
-CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
-{
-    return _region_tree.find(addr,ret);
-}
 
 /** SymtabCodeRegion **/
 

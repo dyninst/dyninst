@@ -341,7 +341,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file,
 
     /* PatchAPI stuffs */
     if (!mgr) {
-       newBinaryEdit->initPatchAPI(newBinaryEdit->mobj);
+       newBinaryEdit->initPatchAPI();
     } else {
        newBinaryEdit->setMgr(mgr);
        assert(patch);

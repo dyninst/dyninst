@@ -84,6 +84,7 @@ AC_DEF 	       = @DEFS@
 
 @STACKPROT@
 @BUILD32@
+@STATIC_COMPS@
 
 build = @build@
 host = @host@

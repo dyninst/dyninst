@@ -1015,23 +1015,23 @@ int isMutateeF77(BPatch_image *appImage) {
 
 void MopUpMutatees(const unsigned int mutatees, BPatch_process *appProc[])
 {
-	unsigned int n=0;
-	dprintf("MopUpMutatees(%d)\n", mutatees);
-	for (n=0; n<mutatees; n++) {
-            if (appProc[n]) {
-                if (appProc[n]->terminateExecution()) {
-                    assert(appProc[n]->terminationStatus() == ExitedViaSignal);
-                    int signalNum = appProc[n]->getExitSignal();
-				dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
-			} else {
-				fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
-                                        n, appProc[n]->getPid());
-			}
-		} else {
-			fprintf(stderr, "Mutatee %d already terminated?\n", n);
-		}
-	}
-	dprintf("MopUpMutatees(%d) done\n", mutatees);
+  unsigned int n=0;
+  dprintf("MopUpMutatees(%d)\n", mutatees);
+  for (n=0; n<mutatees; n++) {
+    if (appProc[n]) {
+      if (appProc[n]->terminateExecution()) {
+	assert(appProc[n]->terminationStatus() == ExitedViaSignal);
+	int signalNum = appProc[n]->getExitSignal();
+	dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
+      } else {
+	fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
+		n, appProc[n]->getPid());
+      }
+    } else {
+      fprintf(stderr, "Mutatee %d already terminated?\n", n);
+    }
+  }
+  dprintf("MopUpMutatees(%d) done\n", mutatees);
 }
 
 TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appProc,

@@ -34,6 +34,7 @@
 #include "common/h/parseauxv.h"
 #include "common/h/pathName.h"
 
+#include <elf.h>
 #include <cstdio>
 #include <linux/limits.h>
 
@@ -195,7 +196,24 @@ LoadedLib *AddressTranslateSysV::getAOut()
 {
    if (exec)
       return exec;
-   LoadedLib *ll = new LoadedLib(getExecName(), 0);
+
+   // Get the base address
+   Address baseAddr = 0;
+   if (program_base && reader) {
+      if (address_size == 4) {
+         Elf32_Phdr header;
+         if (reader->ReadMem(program_base, &header, sizeof(Elf32_Phdr))) {
+            baseAddr = program_base - header.p_vaddr;
+         }
+      }
+      else {
+         Elf64_Phdr header;
+         if (reader->ReadMem(program_base, &header, sizeof(Elf64_Phdr))) {
+            baseAddr = program_base - header.p_vaddr;
+         }
+      }
+   }         
+   LoadedLib *ll = new LoadedLib(getExecName(), baseAddr);
    ll->setFactory(symfactory);
    exec = ll;
    return ll;

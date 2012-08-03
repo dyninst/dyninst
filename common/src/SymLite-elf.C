@@ -626,3 +626,9 @@ bool SymElfFactory::closeSymbolReader(SymReader *sr)
    }
    return true;
 }
+
+int SymElf::getFD()
+{
+  return fd;
+  
+}

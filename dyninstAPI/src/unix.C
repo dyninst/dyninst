@@ -396,13 +396,16 @@ bool PCProcess::setEnvPreload(std::vector<std::string> &envp, std::string fileNa
     return true;
 }
 
+
 bool PCProcess::getExecFileDescriptor(string filename,
         bool, fileDescriptor &desc)
 {
+   Address base = 0;
+
     desc = fileDescriptor(filename.c_str(),
-            0, // code
-            0, // data
-            false); // a.out
+                          base, // code
+                          base, // data
+                          false); // a.out
     return true;
 }
 

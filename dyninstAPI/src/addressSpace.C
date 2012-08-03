@@ -162,7 +162,7 @@ void AddressSpace::copyAddressSpace(AddressSpace *parent) {
 
     mapped_object *par_aout = parent->getAOut();
     mapped_object *child_aout = new mapped_object(par_aout, proc());
-    initPatchAPI(child_aout);
+    initPatchAPI();
     addMappedObject(child_aout);
 
     // Mapped objects first
@@ -2282,16 +2282,16 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
 }
 
 /* PatchAPI Stuffs */
-void AddressSpace::initPatchAPI(mapped_object* aout) {
-   DynAddrSpace* addr_space = DynAddrSpace::create(aout);
+void AddressSpace::initPatchAPI() {
+   DynAddrSpace* addr_space = DynAddrSpace::create();
    assert(addr_space);
-
-  mgr_ = PatchMgr::create(addr_space,
-                          new DynInstrumenter,
-                          new DynPointMaker);
-
+   
+   mgr_ = PatchMgr::create(addr_space,
+                           new DynInstrumenter,
+                           new DynPointMaker);
+   
    patcher_ = Patcher::create(mgr_);
-
+   
    assert(mgr());
    mgr()->instrumenter()->callModMap().clear();
    mgr()->instrumenter()->funcRepMap().clear();

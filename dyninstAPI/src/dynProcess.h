@@ -499,7 +499,6 @@ protected:
     // Shared library managment
     void addASharedObject(mapped_object *newObj);
     void removeASharedObject(mapped_object *oldObj);
-    bool usesDataLoadAddress() const; // OS-specific
 
     // Inferior heap management
     void addInferiorHeap(mapped_object *obj);

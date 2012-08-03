@@ -196,6 +196,7 @@ class AddressSpace : public InstructionSource {
     virtual void *getPtrToInstruction(const Address) const;
     virtual void *getPtrToData(const Address a) const { return getPtrToInstruction(a); }
     virtual unsigned getAddressWidth() const = 0;
+    bool usesDataLoadAddress() const; // OS-specific
     virtual bool isCode(const Address) const;
     virtual bool isData(const Address) const;
     virtual Address offset() const = 0;
@@ -561,7 +562,7 @@ class AddressSpace : public InstructionSource {
     Dyninst::PatchAPI::PatchMgrPtr mgr() const { assert(mgr_); return mgr_; }
     void setMgr(Dyninst::PatchAPI::PatchMgrPtr m) { mgr_ = m; }
     void setPatcher(Dyninst::PatchAPI::Patcher* p) { patcher_ = p; }
-    void initPatchAPI(mapped_object* aout);
+    void initPatchAPI();
     void addMappedObject(mapped_object* obj);
     Dyninst::PatchAPI::Patcher* patcher() { return patcher_; }
     static bool patch(AddressSpace*);

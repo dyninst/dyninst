@@ -29,28 +29,34 @@
  */
 
 #include "stackwalk/src/analysis_stepper.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Function.h"
 #include "dataflowAPI/h/stackanalysis.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/frame.h"
 #include "stackwalk/src/sw.h"
 
 #include "parseAPI/h/CodeSource.h"
+#include "parseAPI/h/SymLiteCodeSource.h"
 #include "parseAPI/h/CodeObject.h"
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
+#ifdef LIBELF_PLATFORM
+#include "common/h/SymLite-elf.h"
+#else
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/SymtabReader.h"
+using namespace SymtabAPI;
+#endif
+
 using namespace Dyninst;
 using namespace Stackwalker;
 using namespace ParseAPI;
-using namespace SymtabAPI;
 using namespace std;
 
 std::map<string, CodeObject *> AnalysisStepperImpl::objs;
 const AnalysisStepperImpl::height_pair_t AnalysisStepperImpl::err_height_pair;
 std::map<string, CodeSource*> AnalysisStepperImpl::srcs;
-std::map<string, Symtab*> AnalysisStepperImpl::symtabs;
+std::map<string, SymReader*> AnalysisStepperImpl::readers;
 
 
 AnalysisStepperImpl::AnalysisStepperImpl(Walker *w, AnalysisStepper *p) :
@@ -65,24 +71,40 @@ AnalysisStepperImpl::~AnalysisStepperImpl()
 }
 
 
-
+#if defined(LIBELF_PLATFORM)
 CodeSource *AnalysisStepperImpl::getCodeSource(std::string name)
 {
   map<string, CodeSource*>::iterator found = srcs.find(name);
   if(found != srcs.end()) return found->second;
   
-  Symtab *symtab = NULL;
-  bool result = Symtab::openFile(symtab, name);
-  if (!result) {
-    sw_printf("[%s:%u] - SymtabAPI failed to open file %s\n", __FILE__, __LINE__, 
-	      name.c_str());
-    return NULL;
-  }
-  SymtabCodeSource *cs = new SymtabCodeSource(symtab);
+  static SymElfFactory factory;
+  
+  SymReader* r = factory.openSymbolReader(name);
+  if(!r) return NULL;
+  
+  
+  SymReaderCodeSource *cs = new SymReaderCodeSource(r);
   srcs[name] = cs;
-  symtabs[name] = symtab;
+  readers[name] = r;
+  
   return static_cast<CodeSource *>(cs);
 }
+#else
+CodeSource* AnalysisStepperImpl::getCodeSource(std::string name)
+{
+  map<string, CodeSource*>::iterator found = srcs.find(name);
+  if(found != srcs.end()) return found->second;
+  Symtab* st;
+  if(!Symtab::openFile(st, name)) return NULL;
+  
+  SymtabCodeSource *cs = new SymtabCodeSource(st);
+  srcs[name] = cs;
+  readers[name] = new SymtabReader(st);
+  
+  return static_cast<CodeSource *>(cs);  
+}
+
+#endif
 
 CodeObject *AnalysisStepperImpl::getCodeObject(string name)
 {
@@ -211,12 +233,10 @@ CodeRegion* AnalysisStepperImpl::getCodeRegion(std::string name, Offset off)
    if (!obj) {
       return NULL;
    }
-
    set<CodeRegion *> regions;
    obj->cs()->findRegions(off, regions);
    
    if (regions.empty()) {
-      sw_printf("[%s:%u] - Could not find region at %lx\n", __FILE__, __LINE__, off);
       return NULL;
    }
    //We shouldn't be dealing with overlapping regions in a live process
@@ -224,6 +244,7 @@ CodeRegion* AnalysisStepperImpl::getCodeRegion(std::string name, Offset off)
    CodeRegion *region = *(regions.begin());
    return region;
 }
+
 
 
 
@@ -238,18 +259,12 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     CodeObject* obj = getCodeObject(name);
     
     if(!obj || !region) return err_heights_pair;
-
-    Address entry_addr;
-    SymtabAPI::Function* sym_func;
-    if(!symtabs[name]->getContainingFunction(callSite, sym_func))
-    {
-      sw_printf("[%s:%u] - Could not find entry point for function at offset %lx\n",
-		__FILE__, __LINE__, callSite);
-      return err_heights_pair;
-    }
-    entry_addr = sym_func->getOffset();
     
 
+    Symbol_t sym = readers[name]->getContainingSymbol(callSite);
+    Address entry_addr = readers[name]->getSymbolOffset(sym);
+    
+    
     obj->parse(entry_addr, false);
     ParseAPI::Function* func = obj->findFuncByEntry(region, entry_addr);
 
@@ -267,6 +282,12 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     // Not actually true; overlapping code is always possible.
    set<ParseAPI::Block*> blocks;
    obj->findBlocks(region, callSite, blocks);
+   if(blocks.size() == 0) {
+      sw_printf("[%s:%u] - Function at entry point %lx did not contain call site %lx\n", __FILE__,
+                __LINE__, entry_addr, callSite);
+     return err_heights_pair;
+   }
+   
    //assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 

@@ -33,6 +33,7 @@
 
 #include "stackwalk/h/framestepper.h"
 #include "dataflowAPI/h/stackanalysis.h"
+#include "SymReader.h"
 
 #include <string>
 
@@ -43,12 +44,6 @@ class CodeSource;
  class CodeRegion;
  
 }
- namespace SymtabAPI 
- {
-   class Symtab;
-   
- }
- 
 }
 
 namespace Dyninst {
@@ -78,7 +73,7 @@ class AnalysisStepperImpl : public FrameStepper
    
    static std::map<std::string, ParseAPI::CodeObject *> objs;
    static std::map<std::string, ParseAPI::CodeSource*> srcs;
-   static std::map<std::string, SymtabAPI::Symtab*> symtabs;
+   static std::map<std::string, SymReader*> readers;
    
    static ParseAPI::CodeObject *getCodeObject(std::string name);
    static ParseAPI::CodeSource *getCodeSource(std::string name);

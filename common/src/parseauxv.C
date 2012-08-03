@@ -90,6 +90,7 @@ AuxvParser::AuxvParser(int pid_, unsigned addr_size_) :
    vsyscall_text(0x0),
    vsyscall_end(0x0),
    found_vsyscall(false),
+   phdr(0x0),
    page_size(0x0),
    addr_size(addr_size_)
 {
@@ -120,3 +121,8 @@ Address AuxvParser::getVsyscallEnd()
 {
    return vsyscall_end;
 }   
+
+Address AuxvParser::getProgramBase()
+{
+   return phdr;
+}
