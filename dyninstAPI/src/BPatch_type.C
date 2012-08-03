@@ -189,27 +189,35 @@ bool BPatch_type::isCompatibleInt(BPatch_type *otype)
 
 BPatch_type *BPatch_type::getConstituentType() const 
 {
-	derivedInterface *derivedType = dynamic_cast<derivedInterface *>(typ);
+   Type *ctype = NULL;
 
-	if (!derivedType)
-		return NULL;
+   // Pointer, reference, typedef
+   derivedInterface *derivedType = dynamic_cast<derivedInterface *>(typ);
+   if (derivedType) {
+      ctype = derivedType->getConstituentType();
+   }
+   else {
+      // Arrays
+      typeArray *array = dynamic_cast<typeArray *>(typ);
+      if (array) {
+         ctype = array->getBaseType();
+      }
+   }
 
-	Type *ctype = derivedType->getConstituentType();
-	assert(ctype);
-
-	BPatch_type *bpt = NULL;
-
-	if (!ctype->getAnnotation(bpt, TypeUpPtrAnno))
-	{
-		fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
-	}
-	else
-	{
-		assert(bpt);
-	}
-
-		
-	return bpt;
+   if (!ctype) return NULL;
+   cerr << "ctype ptr is " << hex << ctype 
+        << " for type " << typ << dec << endl;
+   BPatch_type *bpt = NULL;
+   
+   if (!ctype->getAnnotation(bpt, TypeUpPtrAnno))
+   {
+      bpt = new BPatch_type(ctype);
+   }
+   else
+   {
+      assert(bpt);
+   }
+   return bpt;
 }
 
 BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{

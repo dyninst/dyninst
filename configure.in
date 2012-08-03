@@ -223,7 +223,7 @@ if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
    AC_MSG_NOTICE([Not x86/x86_64, skipping pgcc on $host_cpu...])
 else
    AC_ARG_WITH(pgcc,
-               [AS_HELP_STRING([--with-pgcc],[Path to Pathscale's PGCC compiler])],
+               [AS_HELP_STRING([--with-pgcc],[Path to Portland Group's PGCC compiler])],
                [_PGC_="${withval}"; _PGCXX_=`dirname ${withval}`/pgCC;],)
 fi
 AC_SUBST(_PGC_)
@@ -336,8 +336,14 @@ else
                               [AC_ERROR(couldn't find libdwarf.h)])])
        CXXFLAGS=$CXXFLAGS_HOLD;
        CPPFLAGS=$CPPFLAGS_HOLD;
+       
+       LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
+       LDFLAGS_HOLD=$LDFLAGS;
+       LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
+       AC_CHECK_LIB([dwarf], [dwarf_add_arange], [AC_MSG_NOTICE(DWARF library directory: $LIBDWARF_LIB_DIR)],
+       [AC_ERROR(couldn't find libdwarf)], [-lelf])
+       LDFLAGS=$LDFLAGS_HOLD;
 
-       PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
        PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
        AC_ARG_WITH(libdwarf-static,
 			[AS_HELP_STRING([--with-libdwarf-static],[Use static LIBDWARF only])],

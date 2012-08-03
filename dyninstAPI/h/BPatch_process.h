@@ -453,13 +453,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                                             BPatch_Vector<BPatch_catchupInfo> &catchup_handles));
    
     
-    //  BPatch_process::setMutationsActive
-    //  
-    //  Turn on/off instrumentation
-
-    API_EXPORT(Int, (activate),
-    bool,setMutationsActive,(bool activate));
-
     //  BPatch_process::oneTimeCode
     //  
     //  Have the specified code be executed by the mutatee once.  Wait until done.
