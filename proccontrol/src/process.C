@@ -1047,6 +1047,15 @@ bool int_process::waitAndHandleEvents(bool block)
          if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
          continue;
       }
+      // Linux (recent versions) will also process any other queued events
+      // before a SIGKILL, and we want to throw those away too. 
+      if (ev->getProcess()->llproc()->wasForcedTerminated() &&
+	  ev->getEventType().time() != EventType::Post &&
+	  ev->getEventType().code() != EventType::Exit) {
+         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
+	 continue;
+      }
+
 #endif
 
       int_process* llp = ev->getProcess()->llproc();
@@ -3904,7 +3913,14 @@ bool int_thread::StateTracker::setState(State to)
 
    int_thread::State handler_state = up_thr->getHandlerState().getState();
    int_thread::State generator_state = up_thr->getGeneratorState().getState();
-   if (up_thr->up_thread && handler_state == stopped) assert(generator_state == stopped || generator_state == exited || generator_state == detached );
+   if (up_thr->up_thread && handler_state == stopped) {
+     if (generator_state != stopped &&
+	 generator_state != exited &&
+	 generator_state != detached) {
+       cerr << "Crashing: generator state is " << generator_state << endl;
+     }
+     assert(generator_state == stopped || generator_state == exited || generator_state == detached );
+   }
    if (up_thr->up_thread && generator_state == running) assert(handler_state == running);
    return true;
 }
