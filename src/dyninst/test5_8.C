@@ -143,6 +143,7 @@ test_results_t test5_8_Mutator::executeTest() {
            handle = appAddrSpace->insertSnippet(call8Expr, *point8_1);
            return PASSED;
        }
+       
        index ++;
     }
     logerror( "**Failed** test #8 (declaration)\n");
