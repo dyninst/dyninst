@@ -1361,8 +1361,10 @@ bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)
    return true;
 }
 
-/*bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
+bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
+   logerror("Mutator: Read of size %u on %d\n", msg_size, p->getPid());
+
    static map<Process::ptr, pair<char *, size_t> > cached_reads;
    int timeout_count = 300; //30 sec
    for (;;) {
@@ -1372,24 +1374,26 @@ bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)
          pair<char *, size_t> &buffer = i->second;
          if (buffer.second >= msg_size) {
             memcpy(msg, buffer.first, msg_size);
-         }
-         if (buffer.second == msg_size) {
-            free(buffer.first);
-            cached_reads.erase(i);
-         }
-         else {
-            assert(buffer.second > msg_size);
-            for (unsigned j = msg_size; j < buffer.second; j++) {
-               buffer.first[j - msg_size] = buffer.first[j];
+            if (buffer.second == msg_size) {
+               free(buffer.first);
+               cached_reads.erase(i);
             }
-            buffer.second = buffer.second - msg_size;
+            else {
+               assert(buffer.second > msg_size);
+               for (unsigned j = msg_size; j < buffer.second; j++) {
+                  buffer.first[j - msg_size] = buffer.first[j];
+               }
+               buffer.second = buffer.second - msg_size;
+            }
+            logerror("Mutator: Read success\n", msg_size, p->getPid());
+            return true;
          }
-         return true;
       }
 
       fd_set fset;
       FD_ZERO(&fset);
-      int nfds = 0;
+      FD_SET(notification_fd, &fset);
+      int nfds = notification_fd;
       for (map<Process::ptr, int>::iterator j = r_pipe.begin(); j != r_pipe.end(); j++) {
          int fd = j->second;
          FD_SET(fd, &fset);
@@ -1435,9 +1439,12 @@ bool readAvail(int fd, char *buffer, size_t buffer_size, size_t *rsize_out)
             newbuffer.second += rsize;
          }
       }
+      if (FD_ISSET(notification_fd, &fset)) {
+         Process::handleEvents(false);
+      }
    }
 }
-*/
+
 
 bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
 {
@@ -1453,42 +1460,6 @@ bool ProcControlComponent::send_message_pipe(unsigned char *msg, unsigned msg_si
       return false;
    }
    logerror("Mutator: Write success\n", msg_size, p->getPid());
-   return true;
-}
-
-bool ProcControlComponent::recv_message_pipe(unsigned char *msg, unsigned msg_size, Process::ptr p)
-{
-   logerror("Mutator: Read of size %u on %d\n", msg_size, p->getPid());
-
-   map<Process::ptr, int>::iterator i = r_pipe.find(p);
-   assert(i != r_pipe.end());
-   int fd = i->second;
-   int bytes_read = 0;
-   int num_retries = 300;
-
-   do {
-      int result = read(fd, msg + bytes_read, msg_size - bytes_read);
-      int error = errno;
-      
-      if (result == 0 || 
-          (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR))) 
-      {
-         usleep(100000); //.1 seconds
-         if (--num_retries == 0) {
-            fprintf(stderr, "Failed to read message from read pipe\n");
-            return false;
-         }
-         continue;
-      }
-      else if (result == -1) {
-         fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
-         return false;
-      }
-      bytes_read += result;
-      assert(bytes_read <= msg_size);
-   } while (bytes_read < msg_size);
-
-   logerror("Mutator: Read success\n", msg_size, p->getPid());
    return true;
 }
 
@@ -1571,140 +1542,14 @@ bool ProcControlComponent::create_pipes(ProcessSet::ptr p)
       return false;
    }
 
-   return true;
-}
-
-/*
-
-enum pipe_state_t {
-   open_write = 0,
-   open_read = 1,
-   do_read = 2,
-   do_write = 3,
-   do_handshake = 4,
-   add_socket = 5,
-   pipe_done = 6
-};
-
-bool ProcControlComponent::create_pipes(ProcessSet::ptr p)
-{
-   map<Process::ptr, pipe_state_t> pstates;
-   for (ProcessSet::iterator pi = p->begin(); pi != p->end(); pi++) {
-      pstates[*pi] = open_write;
+   send_pid pids[NUM_PARALLEL_PROCS];
+   result = recv_broadcast((unsigned char *) pids, sizeof(send_pid));
+   if (!result) {
+      logerror("Failed to recv_broadcast for SEND_PID\n");
+      return false;
    }
-   bool is_done;
-   int timeout = 300; //30 seconds
-   do {
-      is_done = true;
-      bool did_anything = false;
-      for (ProcessSet::iterator pi = p->begin(); pi != p->end(); pi++) {
-         Process::ptr p = *pi;
-         pipe_state_t &pstate = pstates[p];
-         if (pstate == pipe_done) {
-            continue;
-         }
-         pipe_state_t orig_pstate = pstate;
-         is_done = false;
-         bool read_pipe = true;
-         switch (pstate) {
-            case open_write:
-            case open_read: {
-               map<Process::ptr, int> &pipe_map = (pstate == open_read) ? r_pipe : w_pipe;
-               map<Process::ptr, string> &name_map = (pstate == open_read) ? pipe_read_names : pipe_write_names;
-               int o_options = (pstate == open_read) ? O_RDONLY : O_WRONLY;
-               
-               map<Process::ptr, int>::iterator i = pipe_map.find(p);
-               assert(i == pipe_map.end());
-               map<Process::ptr, string>::iterator j;
-               j = name_map.find(p);
-               assert(j != name_map.end());
-               int fd = open(j->second.c_str(), O_NONBLOCK | o_options);
-               if (fd == -1) {
-                  int error = errno;
-                  if (error == ENXIO) {
-                     break;
-                  }
-                  logerror("Mutator error opening %s: %s\n", j->second.c_str(), strerror(error));
-                  return false;
-               }
 
-               errno = 0;
-               int fdflags = fcntl(fd, F_GETFL);
-               if (fdflags < 0 || errno) {
-                  logerror("Failed to set fcntl flags\n");
-                  return false;
-               }
-               fcntl(fd, F_SETFL, fdflags | O_NONBLOCK);
-               pipe_map.insert(make_pair(p, fd));
-            
-               pstate = (pstate == open_write) ? open_read : do_read;
-               break;
-            }
-            case do_read: {
-               uint32_t ready = 0;
-               int fd = r_pipe[p];
-               int result = read(fd, &ready, 4);
-               if (result <= 0) {
-                  int error = errno;
-                  if (error == EAGAIN || error == EWOULDBLOCK || error == EINTR || result == 0)
-                     break;
-                  perror("Mutator could not read from pipe\n");
-                  return false;
-               }
-               assert(ready == 0x42);
-               pstate = do_write;
-               break;
-            }
-            case do_write: {
-               uint32_t ready = 0x42;
-               int fd = w_pipe[p];
-               int result = write(fd, &ready, 4);
-               int error = errno;
-               if (result == -1) {
-                  fprintf(stderr, "Mutator could not write to pipe: %s (%d)\n", strerror(error), error);
-                  return false;
-               }
-               pstate = do_handshake;
-               break;
-            }
-            case do_handshake: {
-               send_pid spid;
-               int fd = r_pipe[p];
-               int result = read(fd, &spid, sizeof(send_pid));
-               if (result <= 0) {
-                  int error = errno;
-                  if (error == EAGAIN || error == EWOULDBLOCK || error == EINTR || result == 0)
-                     break;
-                  perror("Mutator could not read from pipe\n");
-                  return false;
-               }
-               pstate = add_socket;
-               break;
-            }
-            case add_socket:
-               process_socks.insert(make_pair(p, 0));
-               pstate = pipe_done;
-               break;
-            case pipe_done:
-               assert(0);
-               break;
-         }
-         if (orig_pstate != pstate)
-            did_anything = true;
-      }
-      Process::handleEvents(false);
-      if (!did_anything) {
-         if (--timeout == 0) {
-            logerror("Timed out while setting up pipes\n");
-            return false;
-         }
-         usleep(100000);
-      }
-      else {
-         timeout = 300; //Reset timeout to 30 seconds
-      }
-   } while (!is_done);
    return true;
 }
-*/
+
 #endif
