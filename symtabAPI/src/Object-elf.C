@@ -414,7 +414,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   txtaddr = 0;
 
   set<string> sectionsInOriginalBinary;
-  bool debugInfoValid = true;
 
   if(mfForDebugInfo->getFD() != -1)
     elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
@@ -425,12 +424,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   if(!elfHdrForDebugInfo.isValid()) {
     log_elferror(err_func_, "Elf header");
     fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
-    debugInfoValid = false;
   }
   else if(!pdelf_check_ehdr(elfHdrForDebugInfo)) {
     fprintf(stderr, "%s[%d]:  Warning: Elf ehdr failed integrity check\n", FILE__, __LINE__);
     log_elferror(err_func_, "ELF header failed integrity check");
-    debugInfoValid = false;
   }
 
 
@@ -3433,12 +3430,10 @@ const ostream &Object::dump_state_info(ostream &s)
 Offset Object::getPltSlot(string funcName) const
 {
   relocationEntry re;
-  bool found= false;
   Offset offset=0;
 
   for ( unsigned int i = 0; i < fbt_.size(); i++ ){
     if (funcName == fbt_[i].name() ){
-      found = true;
       offset =  fbt_[i].rel_addr();
     }
   }
@@ -3715,7 +3710,7 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
   for (int i = 0; i < fde_count; i++) {
     unsigned int j;
     unsigned char lsda_encoding = 0xff, personality_encoding = 0xff;
-    unsigned char *lsda_ptr = NULL, *personality_routine = NULL;
+    unsigned char *lsda_ptr = NULL;
     unsigned char *cur_augdata;
     unsigned long except_off;
     unsigned long fde_addr, cie_addr;
@@ -3814,7 +3809,6 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
             mi.pc = cie_addr + (unsigned long) (cur_augdata - cie_bytes);
             cur_augdata += read_val_of_type(personality_encoding, 
                                             &personality_val, cur_augdata, mi);
-            personality_routine = (unsigned char *) personality_val;
 	  }
 	else if (augmentor[j] == 'z' || augmentor[j] == 'R')
 	  {
@@ -4006,7 +4000,6 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
   Dwarf_Signed cie_count, fde_count;
   Dwarf_Error err = (Dwarf_Error) NULL;
   Dwarf_Unsigned bytes_in_cie;
-  Offset eh_frame_base, except_base;
   char *augmentor;
   int status, gcc_ver = 3;
   unsigned i;
@@ -4016,9 +4009,6 @@ bool Object::find_catch_blocks(Elf_X_Shdr *eh_frame,
     //likely to happen if we're not using gcc
     return true;
   }
-
-  eh_frame_base = eh_frame->sh_addr();
-  except_base = except_scn->sh_addr();
 
   Dwarf_Debug *dbg_ptr = dwarf.dbg();
   if (!dbg_ptr) {
@@ -4439,7 +4429,6 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
   Offset currentAddress = 0;
   unsigned currentLineBase = 0;
   unsigned functionLineToPossiblyAdd = 0;
-  unsigned last_fun = 0;
 
   //Offset baseAddress = getBaseAddress();
 
@@ -4495,7 +4484,6 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
 	case N_FUN: /* a function */ 
 	  {
-	    last_fun = i;
 	    //fprintf(stderr, "%s[%d]:  N_FUN [%s, %lu, %lu, %lu, %lu]\n", 
 	    //      FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
 	    //      stabEntry->nameIdx(i), stabEntry->other(i), 
@@ -4880,8 +4868,7 @@ void Object::parseStabTypes(Symtab *obj)
 	char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
 	bool parseActive = false;
 
-	string* currentFunctionName = NULL;
-	Offset currentFunctionBase = 0;
+	std::string *currentFunctionName = NULL;
 	Symbol *commonBlockVar = NULL;
 	string *commonBlockName = NULL;
 	typeCommon *commonBlock = NULL;
@@ -5019,8 +5006,6 @@ void Object::parseStabTypes(Symtab *obj)
 	  strncpy(tmp,ptr,colonPtr-ptr);
 	  tmp[colonPtr-ptr] = '\0';
 	  currentFunctionName = new string(tmp);
-	  currentFunctionBase = 0;
-	  Symbol *info = NULL;
 	  // Shouldn't this be a function name lookup?
 	  std::vector<Symbol *>syms;
 	  if(!obj->findSymbolByType(syms, 
@@ -5038,17 +5023,10 @@ void Object::parseStabTypes(Symtab *obj)
 					mangledName)) {
 		delete currentFunctionName;
 		currentFunctionName = new string(fortranName);
-		info = syms[0];
 	      }
 	    }
-	    else
-	      info = syms[0];
 	  }
-	  else
-	    info = syms[0];
 	  syms.clear();
-	  if(info)
-	    currentFunctionBase = info->getAddr();
 	  delete[] tmp;
 	}
 	delete[] ptr;
@@ -5366,17 +5344,11 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         Elf_X_Shdr *curSymHdr = allRegionHdrsByShndx[shdr->sh_link()];
 
-        // Check whether curSymHdr actually points to something intellegible
-        if ((!dynstr || curSymHdr->sh_offset() != dynsym_offset) &&
-            (!strtab || curSymHdr->sh_offset() != symtab_offset)) {
-           // Warning: there is no valid relocation data here since there
-           // aren't any symbols
-           fprintf(stderr, "%s[%d]: warning: possibly erroneous relocation section %d does not have a elf link field (%d) to either symtab or dynsymtab\n", FILE__, __LINE__, i, shdr->sh_link());
-           continue;
-        }
+	// Apparently, relocation entries may not have associated symbols. 
 
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
+	  Offset relStructOff = (shdr->sh_addr() + (j * shdr->sh_entsize()));
             Offset relOff, addend = 0;
             std::string name;
             unsigned long relType;
@@ -5426,42 +5398,34 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 			name = sym->getSec()->getRegionName().c_str();
 		    }
                 }
-            }else{
-               fprintf(stderr, "%s[%d]: warning: unknown symbol table "
-                       "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
-                       "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
-                       symtab_offset, dynsym_offset);
-                continue;
             }
 
 	    Region *region = NULL;
             dyn_hash_map<unsigned, Region *>::iterator shToReg_it;
             shToReg_it = shToRegion.find(i);
             if( shToReg_it != shToRegion.end() ) {
-                region = shToReg_it->second;
+	      region = shToReg_it->second;
             }
-
+	    
             assert(region != NULL);
+
             relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
             region->addRelocationEntry(newrel);
 	    
-	   
             // relocations are also stored with their targets
             // Need to find target region
-	    if (shdr->sh_info() != 0) {
-            	    Region *targetRegion = NULL;
-	            shToReg_it = shToRegion.find(shdr->sh_info());
-        	    if( shToReg_it != shToRegion.end() ) {
-                	targetRegion = shToReg_it->second;
-            	     }
-
-            	     assert(targetRegion != NULL);
-
-            	     // A relocation is somewhat useless unless it is linked to a Symbol
-	    	     if (sym) {
-                	targetRegion->addRelocationEntry(newrel);
-	    	    }
-	   }
+	    if (sym) {
+	      if (shdr->sh_info() != 0) {
+		Region *targetRegion = NULL;
+		shToReg_it = shToRegion.find(shdr->sh_info());
+		if( shToReg_it != shToRegion.end() ) {
+		  targetRegion = shToReg_it->second;
+		}
+		
+		assert(targetRegion != NULL);
+		targetRegion->addRelocationEntry(newrel);
+	      }
+	    }
 	    
         }
     }

@@ -473,8 +473,10 @@ bool BinaryEdit::getResolvedLibraryPath(const string &filename, std::vector<stri
     libPaths.push_back("/usr/share/lib");
     libPaths.push_back("/usr/lib");
     libPaths.push_back("/usr/lib64");
+    libPaths.push_back("/usr/lib/x86_64-linux-gnu");
     libPaths.push_back("/lib");
     libPaths.push_back("/lib64");
+    libPaths.push_back("/lib/x86_64-linux-gnu");
     for (unsigned int i = 0; i < libPaths.size(); i++) {
         string str = libPaths[i] + "/" + filename;
         if (stat(str.c_str(), &dummy) == 0) {

@@ -51,6 +51,7 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_X86_64_COPY);
             CASE_RETURN_STR(R_X86_64_GLOB_DAT);
             CASE_RETURN_STR(R_X86_64_RELATIVE);
+	    CASE_RETURN_STR(R_X86_64_IRELATIVE);
             CASE_RETURN_STR(R_X86_64_GOTPCREL);
             CASE_RETURN_STR(R_X86_64_32);
             CASE_RETURN_STR(R_X86_64_32S);

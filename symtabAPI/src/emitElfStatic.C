@@ -1177,7 +1177,11 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
         for(rel_it = (*reg_it)->getRelocations().begin();
             rel_it != (*reg_it)->getRelocations().end();
             ++rel_it)
-        {
+	  {
+	    // Don't process relocations for other sections; those get handled by the
+	    // stub code.
+	    if ((rel_it->rel_addr() < (*reg_it)->getMemOffset()) ||
+		(rel_it->rel_addr() >= ((*reg_it)->getMemOffset() + (*reg_it)->getMemSize()))) continue;
             if( !archSpecificRelocation(target, target, regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
                         rel_it->rel_addr(), globalOffset, lmap, errMsg) )

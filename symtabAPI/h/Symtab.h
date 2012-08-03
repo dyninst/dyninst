@@ -678,8 +678,6 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
                           std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
                           Region::RegionType rtype = Region::RT_REL);
 
-      SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
-
 	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
@@ -718,6 +716,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       std::string  name_;
       Symbol *dynref_;
       unsigned long relType_;
+      Offset rel_struct_addr_;
 };
 
 #if 1
