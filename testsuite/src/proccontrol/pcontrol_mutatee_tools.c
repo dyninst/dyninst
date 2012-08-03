@@ -394,7 +394,9 @@ void resetTimeoutAlarm()
    alarm(0);
 }
 
+#if defined(os_bgq_test)
 static int created_named_pipes = 0;
+#endif
 static void createNamedPipes()
 {
 #if defined(os_bgq_test)
