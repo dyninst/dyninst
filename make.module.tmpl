@@ -226,12 +226,12 @@ COMPONENT_LDFLAGS += $(subst $(SPACE),,-Wl$(ALL_COMP_DIRS:%=,-rpath,%))
 all: default
 
 default: testlibs mutators mutatees_minimum drivers output_drivers components
-	@echo "**********************************************************"
+	@echo "******************************************************************"
 	@echo "* Build complete."
 	@echo "*"
-	@echo "* High optimization mutatees were not built, use 'make test-full"
+	@echo "* High optimization mutatees were not built, use 'make test-full'"
 	@echo "* to build them."
-	@echo "**********************************************************"
+	@echo "******************************************************************"
 
 test-full: testlibs mutators mutatees drivers output_drivers components
 full: test-full
