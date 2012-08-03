@@ -210,19 +210,16 @@ int handshakeWithServer()
    spid.pid = getpid();
 #endif
 
-   fprintf(stderr, "[%s:%u-%d] - Sending handshake message to server\n", __FILE__, __LINE__, getpid());
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
    if (result == -1) {
       fprintf(stderr, "Could not send PID\n");
       return -1;
    }
-   fprintf(stderr, "[%s:%u-%d] - Receiving handshake message from server\n", __FILE__, __LINE__, getpid());
    result = recv_message((unsigned char *) &shake, sizeof(handshake));
    if (result != 0) {
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
-   fprintf(stderr, "[%s:%u-%d] - got handshake message, checking\n", __FILE__, __LINE__, getpid());
    if (shake.code != HANDSHAKE_CODE) {
       fprintf(stderr, "Recieved unexpected message.  %lx (%p) is no %lx\n", (unsigned long) shake.code, &shake, (unsigned long) HANDSHAKE_CODE);
       return -1;
@@ -427,7 +424,6 @@ static void createNamedPipes()
    for (i=0; i<size; i++) {
       if (i == id) {
          snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
-         fprintf(stderr, "Mutatee: Open of %s for read\n", rd_socketname); fflush(stderr);
          do {
             r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
          } while (r_pipe == -1 && (errno == ENXIO || errno == EINTR));
@@ -443,7 +439,6 @@ static void createNamedPipes()
    for (i=0; i<size; i++) {
       if (i == id) {
          snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
-         fprintf(stderr, "Mutatee: Open of %s for write\n", wr_socketname); fflush(stderr);
          do {
             w_pipe = open(wr_socketname, O_WRONLY);
          } while (w_pipe == -1 && errno == EINTR);
@@ -522,7 +517,6 @@ int send_message_pipe(unsigned char *msg, size_t msg_size)
 
    for (i = 0; i < world_size; i++) {
       if (i == my_rank) {
-         fprintf(stderr, "Mutatee: Write of size %u on %d\n", (unsigned int) msg_size, my_rank); fflush(stderr); 
          had_error = write(w_pipe, msg, msg_size);
       }
       MPI_Barrier(MPI_COMM_WORLD);
@@ -594,36 +588,24 @@ static int recv_message_socket(unsigned char *msg, size_t msg_size)
          perror("Timeout waiting for message\n");
          return -1;
       }
-      else if (error == EINTR) {
-         continue;
+
+
+      result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+      if (result == -1 && errno != EINTR ) {
+         perror("Mutatee unable to recieve message");
+         return -1;
       }
-      else if (error == ENOSYS) {
-         no_select = 1;
-      }
-      else {
-         /*Seen as kernels with broken system call restarting during IRPC test.*/
-         if (!warned_syscall_restart) {
-            fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
-            warned_syscall_restart = 1;
-         }
-         continue;
-      }
-   }
-   result = recv(sockfd, msg, msg_size, MSG_WAITALL);
-   if (result == -1 && errno != EINTR ) {
-      perror("Mutatee unable to recieve message");
-      return -1;
-   }
 
 #if defined(os_freebsd_test)
-   /* Sometimes the recv system call is not restarted properly after a
-    * signal and an iRPC. TODO a workaround for this bug
-    */
-   if( result > 0 && result != msg_size ) {
-      logerror("Received message of unexpected size %d (expected %d)\n",
-               result, msg_size);
-   }
+      /* Sometimes the recv system call is not restarted properly after a
+       * signal and an iRPC. TODO a workaround for this bug
+       */
+      if( result > 0 && result != msg_size ) {
+         logerror("Received message of unexpected size %d (expected %d)\n",
+                  result, msg_size);
+      }
 #endif
+   }
    return 0;
 }
 
@@ -649,7 +631,6 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
    for (i=0; i < world_size; i++) {
       if (i == my_rank) {
          unsigned int num_retries = 300; /*30 seconds*/
-         fprintf(stderr, "Mutatee: Poll on rank %d\n", my_rank); fflush(stderr);
          do {
             struct pollfd fds[1];
             memset(fds, 0, sizeof(struct pollfd));
@@ -670,11 +651,9 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
                }
             }
          } while (result != 1);
-         fprintf(stderr, "Mutatee: Poll returned %d (%s)\n", result, result == 1 ? "Success" : "Failure");
          if (had_error)
             break;
 
-         fprintf(stderr, "Mutatee: Read of size %u on %d\n", (unsigned int) msg_size, my_rank); fflush(stderr); 
          do {
             result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
             int error = errno;
@@ -702,7 +681,6 @@ static int recv_message_pipe(unsigned char *msg, size_t msg_size)
       MPI_Barrier(MPI_COMM_WORLD);
    }
 #endif
-   fprintf(stderr, "Mutatee: Read %s\n", had_error ? "failure" : "success");
    return had_error ? -1 : 0;
 }
 
