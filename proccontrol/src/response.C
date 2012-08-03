@@ -504,6 +504,23 @@ void allreg_response::postResponse()
    }
 }
 
+void allreg_response::setIndividualRegAccess(reg_response::ptr iacc, Dyninst::MachRegister ireg)
+{
+   assert(!indiv_access);
+   indiv_access = iacc;
+   indiv_reg = ireg;
+}
+
+Dyninst::MachRegister allreg_response::getIndividualReg()
+{
+   return indiv_reg;
+}
+
+reg_response::ptr allreg_response::getIndividualAcc()
+{
+   return indiv_access;
+}
+
 int_registerPool *allreg_response::getRegPool() const
 {
    return regpool;

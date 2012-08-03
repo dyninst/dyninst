@@ -2547,6 +2547,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          case GetSpecialRegsAck: 
          case GetGeneralRegsAck: {
             allreg_response::ptr allreg = cur_resp->getAllRegResponse();
+            assert(allreg);
             int_registerPool *regpool = allreg->getRegPool();
             assert(allreg);
             assert(regpool);
@@ -2570,6 +2571,27 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (new_ev)
                events.push_back(new_ev);
 
+            //BG/Q doesn't have an individual register access mechanism.
+            // Thus we turn requests for one register into requests for all registers.
+            // Here we check if this request is in response to a single register query
+            // and fill out the reg_response if so.
+            reg_response::ptr indiv_reg = allreg->getIndividualAcc();
+            if (indiv_reg && !indiv_reg->isReady()) {
+               if (allreg->hasError()) {
+                  allreg->markError(desc->returnCode);
+               }
+               else {
+                  MachRegister reg = allreg->getIndividualReg();
+                  int_registerPool::reg_map_t::iterator i = regpool->regs.find(reg);
+                  if (i != regpool->regs.end()) {
+                     indiv_reg->postResponse(i->second);
+                     new_ev = decodeCompletedResponse(indiv_reg, async_ev_map);
+                     if (new_ev)
+                        events.push_back(new_ev);
+                  }
+               }
+            }
+
             resp_lock_held = false;
             getResponses().signal();
             getResponses().unlock();
@@ -2577,7 +2599,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          }
          case GetFloatRegsAck:
          case GetDebugRegsAck:
-            assert(0); //Currently unused
+            assert(0); //Currently unused, but eventually needed
             break;
          case GetMemoryAck: {
             pthrd_printf("Decoding GetMemoryAck on %d\n", proc->getPid());

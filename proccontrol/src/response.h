@@ -205,6 +205,8 @@ class allreg_response : public response
   private:
    int_registerPool *regpool;
    int_thread *thr;
+   reg_response::ptr indiv_access;
+   Dyninst::MachRegister indiv_reg;
    allreg_response();
 
   public:
@@ -220,6 +222,11 @@ class allreg_response : public response
    void setRegPool(int_registerPool *p);
    void setResponse();
    void postResponse();
+   
+   void setIndividualRegAccess(reg_response::ptr iacc, Dyninst::MachRegister ireg);
+   Dyninst::MachRegister getIndividualReg();
+   reg_response::ptr getIndividualAcc();
+
    int_registerPool *getRegPool() const;
 };
 

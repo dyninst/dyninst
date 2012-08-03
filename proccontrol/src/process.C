@@ -3321,20 +3321,34 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
 
    if (!llproc()->plat_individualRegRead())
    {
+      //Convert the single get register access into a get all registers
       pthrd_printf("Platform does not support individual register access, " 
                    "getting everything\n");
-      assert(!llproc()->plat_needsAsyncIO());
-
-      int_registerPool pool;
-      allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
-      bool result = getAllRegisters(allreg_resp);
-      bool is_ready = allreg_resp->isReady();
-      if (!result || allreg_resp->hasError()) {
-         pthrd_printf("Unable to access full register set\n");
-         return false;
+      if (!llproc()->plat_needsAsyncIO()) {
+         int_registerPool pool;
+         allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
+         bool result = getAllRegisters(allreg_resp);
+         bool is_ready = allreg_resp->isReady();
+         if (!result || allreg_resp->hasError()) {
+            pthrd_printf("Unable to access full register set\n");
+            return false;
+         }
+         assert(is_ready);
+         response->setResponse(pool.regs[reg]);
       }
-      assert(is_ready);
-      response->setResponse(pool.regs[reg]);
+      else {
+         allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&cached_regpool);
+         allreg_resp->setIndividualRegAccess(response, reg);
+         getResponses().lock();
+         getResponses().addResponse(response, llproc());
+         getResponses().unlock();
+         bool result = getAllRegisters(allreg_resp);
+         if (!result) {
+            pthrd_printf("Error accessing full register set\n");
+            return false;
+         }
+         allreg_resp->isReady();
+      }
       return true;
    }
 
