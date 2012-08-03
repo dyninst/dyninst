@@ -312,23 +312,8 @@ void ppc_process::plat_getEmulatedSingleStepAsyncs(int_thread *, std::set<respon
    }
 }
 
-bool ppc_process::plat_convertToBreakpointAddress(Address &addr, int_thread *thr) {
-    if (getAddressWidth() != 8) {
-       return true;
-    }
-
-    Address tmpAddr = addr;
-    Address resultAddr = 0;
-    
-    mem_response::ptr resp = mem_response::createMemResponse((char *) &resultAddr, sizeof(Address));
-    bool result = readMem((Dyninst::Address) tmpAddr, resp, thr);
-    
-    result = int_process::waitForAsyncEvent(resp);
-    if (!result || resp->hasError())
-       return false;
-
-    addr = resultAddr;
-    return true;
+bool ppc_process::plat_convertToBreakpointAddress(Address &, int_thread *) {
+   return true;
 }
 
 bool ppc_process::plat_needsPCSaveBeforeSingleStep() 
