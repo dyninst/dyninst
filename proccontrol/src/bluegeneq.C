@@ -1676,13 +1676,13 @@ bool bgq_thread::plat_setAllRegistersAsync(int_registerPool &pool,
 
    resp->markAsMultiResponse(2);
    
-   bool result = bgproc->sendCommand(set_gen, GetGeneralRegs, resp, 0);
+   bool result = bgproc->sendCommand(set_gen, SetGeneralRegs, resp, 0);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetGeneralRegs\n");
       return false;
    }
 
-   result = bgproc->sendCommand(set_spec, GetSpecialRegs, resp, 1);
+   result = bgproc->sendCommand(set_spec, SetSpecialRegs, resp, 1);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetSpecialRegs\n");
       return false;
