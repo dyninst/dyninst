@@ -554,10 +554,9 @@ unsigned int bgq_process::getTargetPageSize()
    return false;      
 }
 
-Dyninst::Address bgq_process::plat_mallocExecMemory(Dyninst::Address, unsigned int)
+Dyninst::Address bgq_process::plat_mallocExecMemory(Dyninst::Address addr, unsigned int)
 {
-#warning TODO implement plat_mallocExecMemory
-   return 0;
+   return get_procdata_result.heapStartAddr + addr;
 }
 
 bool bgq_process::plat_individualRegAccess()

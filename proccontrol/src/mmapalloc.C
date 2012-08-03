@@ -478,7 +478,7 @@ bool mmap_alloc_process::plat_createAllocationSnippet(Dyninst::Address addr, boo
       const void *buf_tmp;
 
       //BlueGene can share the linux allocation snippet.
-      bool use_linux = (getOS() == Linux || getOS() == BlueGeneP || getOS() == BlueGeneL);
+      bool use_linux = (getOS() == Linux || getOS() == BlueGeneQ);
 
       if (use_linux) {
          flags_highest_position = linux_ppc64_mmap_flags_highest_position;
@@ -628,7 +628,7 @@ bool mmap_alloc_process::plat_createDeallocationSnippet(Dyninst::Address addr,
       unsigned int addr_lo_position;
       const void *buf_tmp = NULL;
 
-      bool use_linux = (getOS() == Linux || getOS() == BlueGeneP || getOS() == BlueGeneL);
+      bool use_linux = (getOS() == Linux || getOS() == BlueGeneQ);
       if (use_linux) {
          buf_tmp = linux_ppc64_call_munmap;
          size_highest_position = linux_ppc64_munmap_size_highest_position;
