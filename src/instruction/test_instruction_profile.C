@@ -36,9 +36,6 @@
 #include "Expression.h"
 #include "Symtab.h"
 #include "Region.h"
-#include "BPatch.h"
-#include "BPatch_addressSpace.h"
-#include "BPatch_image.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -59,18 +56,24 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
-  Symtab *s;
-  const char *libcPath;
-  if (sizeof(void *) == 8)
-     libcPath = "/lib64/libc.so.6";
-  else
-     libcPath = "/lib/libc.so.6";
+  Symtab *s = NULL;
+  std::vector<std::string> libc_paths;
 
 #if defined(os_freebsd_test)
-  libcPath = "/usr/lib/libc.so";
+  libc_paths.push_back("/usr/lib/libc.so");
+#else
+  if (sizeof(void *) == 8) {
+    libc_paths.push_back("/lib64/libc.so.6");
+    libc_paths.push_back("/lib/x86_64-linux-gnu/libc.so.6");
+  }
+  libc_paths.push_back("/lib/libc.so.6");
 #endif
 
-  if(!Symtab::openFile(s, libcPath)) {
+  for (unsigned i = 0; i < libc_paths.size(); ++i) {
+    if (Symtab::openFile(s, libc_paths[i])) break;
+  }
+
+  if (!s) {
     logerror("FAILED: couldn't open libc for parsing\n");
     return FAILED;
   }
@@ -114,16 +117,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
       }
     }
   }
-  //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
-  BPatch bp;
-  BPatch_addressSpace* libc = bp.openBinary(libcPath);
-  if(!libc) {
-    logerror("FAILED: Couldn't open libc for parse\n");
-    return FAILED;
-  }
-  
-  BPatch_Vector<BPatch_function*> funcs;
-  libc->getImage()->getProcedures(funcs);
+
   return PASSED;
 }
 
