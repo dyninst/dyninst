@@ -250,8 +250,10 @@ test_results_t test_thread_2_Mutator::executeTest() {
   }
 
   if (!err)  {
+    logerror("No error reported, terminating process and returning success\n");
     PASS_MES(TESTNAME, TESTDESC);
     appProc->terminateExecution();
+    logerror("\t Process terminated\n");
     return PASSED;
   }
   appProc->terminateExecution();

@@ -279,14 +279,15 @@ bool PCEventHandler::handleCrash(EventCrash::const_ptr ev, PCProcess *evProc) co
 }
 
 bool PCEventHandler::handleForceTerminate(EventForceTerminate::const_ptr ev, PCProcess *evProc) const {
-    if( ev->getEventType().time() == EventType::Pre ) {
-    }else{
-        evProc->setExiting(true);
-        evProc->markExited();
-        BPatch::bpatch->registerSignalExit(evProc, ev->getTermSignal());
-    }
-
-    return true;
+  if( ev->getEventType().time() == EventType::Pre ) {
+    
+  }else{
+    evProc->setExiting(true);
+    evProc->markExited();
+    BPatch::bpatch->registerSignalExit(evProc, ev->getTermSignal());
+  }
+  
+  return true;
 }
 
 bool PCEventHandler::handleFork(EventFork::const_ptr ev, PCProcess *evProc) const {

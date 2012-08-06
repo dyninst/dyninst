@@ -1511,7 +1511,7 @@ bool ProcessSet::terminate() const
    bool had_error = false;
    bool run_sync = false;
    set<int_process *> to_clean;
-
+   pthrd_printf("ProcessSet::terminate entry\n");
    MTLock lock_this_func(MTLock::deliver_callbacks);
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process while in CB, erroring.");
@@ -1560,9 +1560,11 @@ bool ProcessSet::terminate() const
 
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
-
+   pthrd_printf("Processes terminated: sync is %d\n", run_sync);
    if (run_sync) {
+     pthrd_printf("Process: waiting on waitAndHandleEvents\n");
       bool result = int_process::waitAndHandleEvents(false);
+      pthrd_printf("Process: back from waitAndHandleEvents\n");
       if (!result) {
          perr_printf("Internal error calling waitAndHandleEvents\n");
          for_each(procset->begin(), procset->end(), 

@@ -1125,14 +1125,14 @@ void emitPushReg64(Register src, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &src, gen);
     emitSimpleInsn(0x50 + src, gen);
-    gen.rs()->incStack(8);
+    if (gen.rs()) gen.rs()->incStack(8);
 }
 
 void emitPopReg64(Register dest, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
-    gen.rs()->incStack(-8);
+    if (gen.rs()) gen.rs()->incStack(-8);
 }
 
 void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, 

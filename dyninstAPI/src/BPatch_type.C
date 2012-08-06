@@ -205,8 +205,6 @@ BPatch_type *BPatch_type::getConstituentType() const
    }
 
    if (!ctype) return NULL;
-   cerr << "ctype ptr is " << hex << ctype 
-        << " for type " << typ << dec << endl;
    BPatch_type *bpt = NULL;
    
    if (!ctype->getAnnotation(bpt, TypeUpPtrAnno))

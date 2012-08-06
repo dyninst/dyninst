@@ -92,14 +92,16 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       // It's really annoying from a user design POV that ProcControl methods can
       // trigger callbacks; it means that we can't just block here, because we may
       // have _already_ gotten a callback and just not finished processing...
-      while (mailbox_.size() == 0) {
-         if (!Process::handleEvents(true)) {
-            return Error;
-         }
-      }
-      proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
-      if (!handle(NULL)) return Error;
-      return EventsReceived;
+     proccontrol_printf("[%s:%d] PCEventMuxer::wait_internal, blocking, mailbox size is %d\n", 
+			FILE__, __LINE__, mailbox_.size());
+     while (mailbox_.size() == 0) {
+       if (!Process::handleEvents(true)) {
+	 return Error;
+       }
+     }
+     proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
+     if (!handle(NULL)) return Error;
+     return EventsReceived;
    }
    proccontrol_printf("[%s:%u] - PCEventMuxer::wait is returning\n", FILE__, __LINE__);
    return NoEvents;
