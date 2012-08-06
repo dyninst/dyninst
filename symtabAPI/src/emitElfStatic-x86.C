@@ -322,11 +322,13 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                        ") that is meant for use during dynamic linking";
                 errMsg = tmp.str();
                 return false;
-            case R_X86_64_IRELATIVE:
-	      // Consistency error; we should never try to process one of these
-	      // ourselves.
-	      assert(0);
-	      return false;
+#if defined(R_X86_64_IRELATIVE)
+           case R_X86_64_IRELATIVE:
+              // Consistency error; we should never try to process one of these
+              // ourselves.
+              assert(0);
+              return false;
+#endif
             case R_X86_64_DTPMOD64:
             case R_X86_64_DTPOFF64:
             case R_X86_64_TPOFF64:
