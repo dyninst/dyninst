@@ -991,7 +991,7 @@ endif
 
 test_instruction_profile.so: test_instruction_profile.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_instruction_profile.dep $(LIBTESTSUITE) $(instruction_COMPONENT_LIB)
 	@echo Linking mutator $@
-	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -linstructionAPI -lsymtabAPI -ltestSuite 
+	$(HIDE_COMP)$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

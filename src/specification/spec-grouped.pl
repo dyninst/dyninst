@@ -2329,7 +2329,7 @@ mutator('test_instruction_profile', ['test_instruction_profile.C']).
 test_runmode('test_instruction_profile', 'disk').
 test_start_state('test_instruction_profile', 'stopped').
 tests_module('test_instruction_profile', 'instruction').
-mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
+mutator_requires_libs('test_instruction_profile', ['symtabAPI']).
 
 test('power_decode', 'power_decode', none).
 test_description('power_decode', 'Tests the read & write sets of POWER instructions.').
@@ -3137,7 +3137,7 @@ mutator_comp('xlC').
 mutator_comp('bgxlc++').
 
 % Per-compiler link options for building mutatees
-mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
+mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC', 'bg_gcc', 'bg_g++', 'bgq_gcc', 'bgq_g++']).
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
     member(Native_cc, ['xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
