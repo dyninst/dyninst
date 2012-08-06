@@ -119,7 +119,6 @@ CodeObject *AnalysisStepperImpl::getCodeObject(string name)
    CodeObject *code_object = new CodeObject(code_source);
    objs[name] = code_object;
 
-   //code_object->parse();
    return code_object;
 }
 
@@ -268,9 +267,6 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
     obj->parse(entry_addr, false);
     ParseAPI::Function* func = obj->findFuncByEntry(region, entry_addr);
 
-      //   set<ParseAPI::Function*> funcs;
-      //   obj->findFuncs(region, callSite, funcs);
-      //if (funcs.empty()) 
     if(!func)
     {
       sw_printf("[%s:%u] - Could not find function at offset %lx\n", __FILE__,
@@ -288,16 +284,12 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
      return err_heights_pair;
    }
    
-   //assert(blocks.size() == 1);
    ParseAPI::Block *block = *(blocks.begin());
 
    set<height_pair_t> heights;
-   //for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
-   //{
    StackAnalysis analysis(func);
    heights.insert(height_pair_t(analysis.findSP(block, off), analysis.findFP(block, off)));
-      //}
-
+ 
    sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
    for (set<height_pair_t>::iterator i = heights.begin(); 
         i != heights.end(); i++)
@@ -398,7 +390,8 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
    //Since there is only one region, there is only one block with the offset
    set<ParseAPI::Block*> blocks;
    obj->findBlocks(region, callSite, blocks);
-   assert(blocks.size() == 1);
+   if(blocks.empty()) return heights;
+   
    ParseAPI::Block *block = *(blocks.begin());
 
    for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
