@@ -42,7 +42,9 @@ class int_process;
 class sysv_process;
 class thread_db_process;
 class linux_process;
-
+namespace bgq {
+   class bgq_process;
+};
 namespace Dyninst {
 namespace ProcControlAPI {
 
@@ -174,6 +176,31 @@ class PC_EXPORT CallStackUnwindingSet
    CallStackUnwindingSet(ThreadSet::ptr ts);
    ~CallStackUnwindingSet();
    bool walkStack(CallStackCallback *stk_cb);
+};
+
+class PC_EXPORT MultiToolControl
+{
+   friend class bgq::bgq_process;
+  public:
+   typedef unsigned int priority_t;
+  private:
+   Process::weak_ptr proc;
+  protected:
+   MultiToolControl(Process::ptr p);
+   ~MultiToolControl();
+   static std::string default_tool_name;
+   static priority_t default_tool_priority;
+  public:
+   static void setDefaultToolName(std::string name);
+   static void setDefaultToolPriority(priority_t p);
+   static std::string getDefaultToolName();
+   static priority_t getDefaultToolPriority();
+   
+   //Tool name and priority cannot be changed after process creation.
+   //To set these values, use the static methods to set the default,
+   // values, then trigger your attach/create operation.
+   std::string getToolName() const;
+   priority_t getToolPriority() const;
 };
 
 #if 0

@@ -1305,7 +1305,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    return bresult;      
 }
 
-bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr)
+bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
    if (!thr && plat_needsThreadForMemOps()) 
    {
@@ -1323,7 +1323,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
                    getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
-      bresult = plat_writeMem(thr, local, remote, size);
+      bresult = plat_writeMem(thr, local, remote, size, bp_write);
       if (!bresult) {
          result->markError();
       }
@@ -1335,7 +1335,7 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
                    getPid(), thr->getLWP());
 
       getResponses().lock();
-      bresult = plat_writeMemAsync(thr, local, remote, size, result);
+      bresult = plat_writeMemAsync(thr, local, remote, size, result, bp_write);
       if (bresult) {
          getResponses().addResponse(result, this);
       }
@@ -1591,13 +1591,10 @@ HandlerPool *int_process::handlerPool() const
 
 bool int_process::addBreakpoint_phase1(bp_install_state *is)
 {
-   pthrd_printf("(grep) Installing new breakpoint at %lx into %d\n", is->addr, getPid());
    is->ibp = NULL;
    map<Address, sw_breakpoint *>::iterator i = mem->breakpoints.find(is->addr);
    is->do_install = (i == mem->breakpoints.end());
    if (!is->do_install) {
-     pthrd_printf("(grep) Found previously installed bp %p for addr 0x%lx\n", 
-		  i->second, is->addr);
      is->ibp = i->second;
      assert(is->ibp && is->ibp->isInstalled());
      bool result = is->ibp->addToIntBreakpoint(is->bp, this);
@@ -1609,7 +1606,6 @@ bool int_process::addBreakpoint_phase1(bp_install_state *is)
    }
 
    is->ibp = new sw_breakpoint(mem, is->addr);
-   pthrd_printf("(grep) Adding new breakpoint to %d, raw %p\n", getPid(), is->ibp);
 
    if (!is->ibp->checkBreakpoint(is->bp, this)) {
       pthrd_printf("Failed check breakpoint\n");
@@ -1885,7 +1881,7 @@ bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address,
 }
 
 bool int_process::plat_writeMemAsync(int_thread *, const void *, Dyninst::Address,
-                                     size_t, result_response::ptr )
+                                     size_t, result_response::ptr, bp_write_t)
 {
    assert(0);
    return false;
@@ -2054,11 +2050,6 @@ bool int_process::plat_handleStackInfo(stack_response::ptr, CallStackCallback *)
    return false;
 }
 
-CallStackUnwinding *int_process::getStackUnwinder(int_thread *)
-{
-   return NULL;
-}
-
 bool int_process::sysv_setTrackLibraries(bool, int_breakpoint* &, Address &, bool &)
 {
    perr_printf("Unsupported operation\n");
@@ -2121,6 +2112,25 @@ FollowFork::follow_t int_process::fork_isTracking()
    perr_printf("Unsupported operation\n");
    setLastError(err_unsupported, "Not supported on this platform");
    return FollowFork::None;
+}
+
+std::string int_process::mtool_getName() 
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return string();
+}
+
+MultiToolControl::priority_t int_process::mtool_getPriority()
+{
+   perr_printf("Unsupported operation\n");
+   setLastError(err_unsupported, "Not supported on this platform");
+   return 0;
+}
+
+MultiToolControl *int_process::mtool_getMultiToolControl()
+{
+   return NULL;
 }
 
 int_process::~int_process()
@@ -2433,7 +2443,6 @@ bool hybrid_lwp_control_process::plat_syncRunState()
 	  }
    }
 	if(!a_running_thread) {
-	   pthrd_printf("WARNING: did not find a running thread, using initial thread\n");
 	   a_running_thread = tp->initialThread();
    }
 
@@ -2524,7 +2533,6 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    suspended(false),
    stopped_on_breakpoint_addr(0x0),
    postponed_stopped_on_breakpoint_addr(0x0),
-   stack_unwinder(NULL),
    clearing_breakpoint(NULL),
    em_singlestep(NULL),
    user_data(NULL)
@@ -3314,20 +3322,34 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
 
    if (!llproc()->plat_individualRegRead())
    {
+      //Convert the single get register access into a get all registers
       pthrd_printf("Platform does not support individual register access, " 
                    "getting everything\n");
-      assert(!llproc()->plat_needsAsyncIO());
-
-      int_registerPool pool;
-      allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
-      bool result = getAllRegisters(allreg_resp);
-      bool is_ready = allreg_resp->isReady();
-      if (!result || allreg_resp->hasError()) {
-         pthrd_printf("Unable to access full register set\n");
-         return false;
+      if (!llproc()->plat_needsAsyncIO()) {
+         int_registerPool pool;
+         allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
+         bool result = getAllRegisters(allreg_resp);
+         bool is_ready = allreg_resp->isReady();
+         if (!result || allreg_resp->hasError()) {
+            pthrd_printf("Unable to access full register set\n");
+            return false;
+         }
+         assert(is_ready);
+         response->setResponse(pool.regs[reg]);
       }
-      assert(is_ready);
-      response->setResponse(pool.regs[reg]);
+      else {
+         allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&cached_regpool);
+         allreg_resp->setIndividualRegAccess(response, reg);
+         getResponses().lock();
+         getResponses().addResponse(response, llproc());
+         getResponses().unlock();
+         bool result = getAllRegisters(allreg_resp);
+         if (!result) {
+            pthrd_printf("Error accessing full register set\n");
+            return false;
+         }
+         allreg_resp->isReady();
+      }
       return true;
    }
 
@@ -3967,12 +3989,7 @@ hw_breakpoint *int_thread::getHWBreakpoint(Address a)
 
 CallStackUnwinding *int_thread::getStackUnwinder()
 {
-   return stack_unwinder;
-}
-
-void int_thread::setStackUnwinder(CallStackUnwinding *unw)
-{
-   stack_unwinder = unw;
+   return NULL;
 }
 
 int_thread *int_threadPool::findThreadByLWP(Dyninst::LWP lwp)
@@ -4364,7 +4381,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
                                set<response::ptr> &resps)
 {
    empty = false;
-   pthrd_printf("(grep) Deleting breakpoint %p at 0x%lx; %d int_breakpoints share us\n", this, addr, bps.size());
    set<int_breakpoint *>::iterator i = bps.find(bp);
    if (i == bps.end()) {
       perr_printf("Attempted to remove a non-installed breakpoint\n");
@@ -4379,7 +4395,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
    }
 
    if (bps.empty()) {
-     pthrd_printf("(grep) Breakpoint not used by other int_breakpoints, removing\n");
       empty = true;
       bool result = uninstall(proc, resps);
       if (!result) {
@@ -4387,10 +4402,6 @@ bool bp_instance::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empt
          proc->setLastError(err_internal, "Could not remove breakpoint\n");
          return false;
       }
-   }
-   else {
-      pthrd_printf("(grep) sw_breakpoint %lx not empty after int_breakpoint remove.  Leaving.\n",
-                   addr);
    }
    
    return true;
@@ -4540,7 +4551,7 @@ bool sw_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr writ
          bp_insn[i] = buffer[i];
       }
    }
-   return proc->writeMem(bp_insn, addr, buffer_size, write_response);
+   return proc->writeMem(bp_insn, addr, buffer_size, write_response, NULL, int_process::bp_install);
 }
 
 bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
@@ -4565,7 +4576,7 @@ bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::pt
    assert(buffer_size != 0);
 
    pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
-   return proc->writeMem(buffer, addr, buffer_size, res_resp);
+   return proc->writeMem(buffer, addr, buffer_size, res_resp, NULL, int_process::bp_clear);
 }
 
 async_ret_t sw_breakpoint::uninstall(int_process *proc, set<response::ptr> &resps)
@@ -6422,7 +6433,8 @@ CallStackUnwinding *Thread::getCallStackUnwinding()
    }
    int_process *proc = llthread_->llproc();
    assert(proc);
-   return proc->getStackUnwinder(llthread_);
+   
+   return llthread_->getStackUnwinder();
 }
 
 FollowFork *Process::getFollowFork()
@@ -7828,7 +7840,6 @@ bool emulated_singlestep::containsBreakpoint(Address addr) const
 }
 
 async_ret_t emulated_singlestep::add(Address addr) {
-  pthrd_printf("(grep) Emulated singlestep adding 0x%lx for thread %d\n", addr, thr->getLWP());
    if (addrs.find(addr) != addrs.end())
       return aret_success;
 

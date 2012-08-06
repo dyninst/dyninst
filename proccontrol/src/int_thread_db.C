@@ -1026,6 +1026,9 @@ async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_respon
       completed_post = true;
    }
 
+   err_t last_error = getLastError();
+   const char *last_err_msg = getLastErrorMsg();
+
    getMemCache()->setSyncHandling(true);
    for (;;) {
       result = initThreadDB();
@@ -1036,6 +1039,7 @@ async_ret_t thread_db_process::post_create(std::set<response::ptr> &async_respon
    }
    getMemCache()->setSyncHandling(false);
 
+   setLastError(last_error, last_err_msg);
    return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
@@ -1048,6 +1052,9 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
       completed_post = true;
    }
    
+   err_t last_error = getLastError();
+   const char *last_err_msg = getLastErrorMsg();
+
    getMemCache()->setSyncHandling(true);
    for (;;) {
       result = initThreadDB();
@@ -1058,7 +1065,8 @@ async_ret_t thread_db_process::post_attach(bool wasDetached, set<response::ptr> 
    }
    getMemCache()->setSyncHandling(false);
 
-   return aret_success;
+   setLastError(last_error, last_err_msg);
+   return aret_success; //Swallow these errors, thread_db failure does not bring down rest of startup
 }
 
 #if 0

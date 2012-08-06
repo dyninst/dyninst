@@ -999,35 +999,6 @@ Address AddressTranslateSysV::getLibraryTrapAddrSysV() {
 }
 
 bool AddressTranslateSysV::plat_getTrapAddr() {
-#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
-    // On ppc64_linux, the trap addr is actually a pointer to the address to
-    // set the trap -- so the current trap addr needs to be dereferenced
-    if( trap_addr != 0 ) {
-      translate_printf("[%s:%u]: trap addr is 0x%lx, reading addr from mutatee\n",
-		       __FILE__, __LINE__, trap_addr);
-        // Only need to do this for 64-bit mutatees
-        if( address_size == sizeof(void *) ) {
-            if( !reader->start() ) {
-                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
-                return false;
-            }
-
-	    if( !reader->ReadMem(trap_addr, &real_trap_addr, sizeof(trap_addr)) ) {
-	      translate_printf("[%s:%u] - Failed to dereference trap addr\n", __FILE__, __LINE__);
-	      return false;
-	    }
-	    
-	    // Depending on the state of the process, the real_trap_addr may already be relocated
-	    // Only add the interpreter base when the real_trap_addr hasn't been relocated
-	    if( real_trap_addr < interpreter_base ) real_trap_addr += interpreter_base;
-            if( !reader->done() ) {
-	      translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
-	      return false; 
-            }
-        }
-    }
-#else
   real_trap_addr = trap_addr;
-#endif
   return true;
 }

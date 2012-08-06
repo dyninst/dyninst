@@ -1210,7 +1210,7 @@ bool bgp_process::plat_readMemAsync(int_thread *, Dyninst::Address addr,
 }
 
 bool bgp_process::plat_writeMemAsync(int_thread *, const void *local, Dyninst::Address addr,
-                                   size_t size, result_response::ptr resp)
+                                     size_t size, result_response::ptr resp, bp_write_t)
 {
    pthrd_printf("Writing memory %lx +%lx on %d with response ID %d\n", 
                 addr, (unsigned long) size, getPid(), resp->getID());
@@ -1250,7 +1250,7 @@ bool bgp_process::plat_readMem(int_thread *, void *, Dyninst::Address, size_t)
    return false;
 }
 
-bool bgp_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t)
+bool bgp_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t, bp_write_t)
 {
    assert(0); //No synchronous IO
    return false;

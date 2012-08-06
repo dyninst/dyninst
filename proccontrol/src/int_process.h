@@ -326,13 +326,19 @@ class int_process
    static bool infMalloc(unsigned long size, int_addressSet *aset, bool use_addr);
    static bool infFree(int_addressSet *aset);
 
+   enum bp_write_t {
+      not_bp,
+      bp_install,
+      bp_clear
+   };
+
    bool readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr = NULL);
-   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL);
+   bool writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr = NULL, bp_write_t bp_write = not_bp);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
-                              Dyninst::Address remote, size_t size) = 0;
+                              Dyninst::Address remote, size_t size, bp_write_t bp_write) = 0;
 
    virtual Address plat_findFreeMemory(size_t) { return 0; }
 
@@ -344,7 +350,8 @@ class int_process
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
-                                   size_t size, result_response::ptr result);
+                                   size_t size, result_response::ptr result, bp_write_t bp_write);
+
    memCache *getMemCache();
 
    virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates) = 0;
@@ -361,7 +368,6 @@ class int_process
    
    virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
    virtual bool plat_handleStackInfo(stack_response::ptr stk_resp, CallStackCallback *cbs);
-   virtual CallStackUnwinding *getStackUnwinder(int_thread *thrd);
 
    virtual bool plat_supportFork();
    virtual bool plat_supportExec();
@@ -430,6 +436,10 @@ class int_process
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
    
+   virtual std::string mtool_getName();
+   virtual MultiToolControl::priority_t mtool_getPriority();
+   virtual MultiToolControl *mtool_getMultiToolControl();
+
    virtual ExecFileInfo* plat_getExecutableInfo() const { return NULL; }
  protected:
    State state;
@@ -854,8 +864,7 @@ public:
 
    hw_breakpoint *getHWBreakpoint(Address addr);
 
-   CallStackUnwinding *getStackUnwinder();
-   void setStackUnwinder(CallStackUnwinding *unw);
+   virtual CallStackUnwinding *getStackUnwinder();
  protected:
    Dyninst::THR_ID tid;
    Dyninst::LWP lwp;
@@ -910,7 +919,6 @@ public:
    Address stopped_on_breakpoint_addr;
    Address postponed_stopped_on_breakpoint_addr;
 
-   CallStackUnwinding *stack_unwinder;
    bp_instance *clearing_breakpoint;
    emulated_singlestep *em_singlestep;
    void *user_data;
