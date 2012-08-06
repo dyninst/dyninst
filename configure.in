@@ -338,7 +338,8 @@ else
                               [AC_ERROR(couldn't find libdwarf.h)])])
        CXXFLAGS=$CXXFLAGS_HOLD;
        CPPFLAGS=$CPPFLAGS_HOLD;
-       
+
+       test -n "$LIBDWARF_LIB_DIR" &&
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
        LDFLAGS_HOLD=$LDFLAGS;
        LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
@@ -474,9 +475,16 @@ CXXFLAGS="$M32FLAG -static"
 AC_CHECK_LIB([stdc++], [main],
 		       [],
 		       [MISSING_STATIC_32_LIBSTDCPP="true"])
+AC_CHECK_LIB([dl], [dlopen],
+		       [],
+		       [MISSING_DLOPEN_32="true"])
+
+
 CXXFLAGS=$SAVED_CXXFLAGS
 
 AC_SUBST([MISSING_STATIC_32_LIBSTDCPP])
+AC_SUBST([MISSING_DLOPEN_32])
+
 
 if test "x$PLATFORM" = "x"; then
   if test "x$build" != "x"; then
