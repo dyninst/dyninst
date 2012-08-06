@@ -55,6 +55,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#if defined(os_bgq_test)
+#include <mpi.h>
+#endif
+
+#include <poll.h>
+
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
@@ -195,10 +201,13 @@ int handshakeWithServer()
 
 
    spid.code = SEND_PID_CODE;
-#if !defined(os_windows_test)
-   spid.pid = getpid();
-#else
+#if defined(os_windows_test)
    spid.pid = GetCurrentProcessId();
+#elif defined(os_bgq_test)
+   MPI_Comm_rank(MPI_COMM_WORLD, &result);
+   spid.pid = result;
+#else
+   spid.pid = getpid();
 #endif
 
    result = send_message((unsigned char *) &spid, sizeof(send_pid));
@@ -211,12 +220,10 @@ int handshakeWithServer()
       fprintf(stderr, "Error recieving message\n");
       return -1;
    }
-  //fprintf(stderr, "got handshake message, checking\n");
    if (shake.code != HANDSHAKE_CODE) {
-      fprintf(stderr, "Recieved unexpected message\n");
+      fprintf(stderr, "Recieved unexpected message.  %lx (%p) is no %lx\n", (unsigned long) shake.code, &shake, (unsigned long) HANDSHAKE_CODE);
       return -1;
    }
-  //fprintf(stderr, "got handshake message OK\n");
 
    return 0;
 }
@@ -230,7 +237,6 @@ void pingSignalFD(int sfd)
    }
    write(sfd, &c, sizeof(char));
 #else
-//	assert(!"really, matt?");
 	return;
 #endif
 }
@@ -251,7 +257,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 #if defined(os_windows_test)
 	WORD wsVer = MAKEWORD(2,0);
    WSADATA ignored;
-   //fprintf(stderr, "starting initProcControlTest\n");
    result = WSAStartup(wsVer, &ignored);
    if(result)
    {
@@ -259,7 +264,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
 	   return -1;
    }
 #endif
-
    if (init_func) {
       result = MultiThreadInit(init_func, thread_data);
    }
@@ -268,7 +272,6 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       return -1;
    }
    pingSignalFD(signal_fd);
-
    getSocketInfo();
 
    result = initMutatorConnection();
@@ -281,8 +284,11 @@ int initProcControlTest(int (*init_func)(int, void*), void *thread_data)
       fprintf(stderr, "Could not handshake with server\n");
       return -1;
    }
+
    result = releaseThreads();
+
    if (result != 0) {
+
       fprintf(stderr, "Could not release threads\n");
       return -1;
    }
@@ -293,7 +299,6 @@ int finiProcControlTest(int expected_ret_code)
 {
    int i, result;
    int has_error = 0;
-   //fprintf(stderr, "begin finiProcControlTest\n");
    if (num_threads == 0)
       return 0;
    result = MultiThreadFinish();
@@ -311,7 +316,7 @@ int finiProcControlTest(int expected_ret_code)
 #if defined(os_windows_test)
    WSACleanup();
 #endif
-   //fprintf(stderr, "end finiProcControlTest\n");
+   /*fprintf(stderr, "end finiProcControlTest\n");*/
    return has_error ? -1 : 0;
 }
 
@@ -337,7 +342,7 @@ void getSocketInfo()
 #if defined(os_windows_test)
 	   Sleep(10);
 #else
-	   usleep(10000); //.01 seconds
+	   usleep(10000); /*.01 seconds*/
 #endif
 	   count++;
       if (count >= MESSAGE_TIMEOUT * 100) {
@@ -387,13 +392,12 @@ void resetTimeoutAlarm()
 }
 
 #if defined(os_bgq_test)
-#include <mpi.h>
-#endif
-
 static int created_named_pipes = 0;
+#endif
 static void createNamedPipes()
 {
-   int id, result;
+#if defined(os_bgq_test)
+   int id, result, size, i;
    uint32_t ready = 0x42;
    if (created_named_pipes)
       return;
@@ -406,35 +410,45 @@ static void createNamedPipes()
    char *rd_socketname = (char *) malloc(len);
    char *wr_socketname = (char *) malloc(len);
    
-#if defined(os_bgq_test)
    result = MPI_Comm_rank(MPI_COMM_WORLD, &id);
    if (result != MPI_SUCCESS) {
      fprintf(stderr, "Failed to get MPI_Comm_rank\n");
      return;
    }
-#else
-   id = getpid();
-   result = 0;
-#endif
-
-   snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
-   do {
-     r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
-   } while (r_pipe == -1 && errno == ENXIO);
-   printf("[%s:%u] - mutatee open(%s, O_RDONLY) = %d\n", __FILE__, __LINE__, rd_socketname, r_pipe);
-   if (r_pipe == -1) {
-      int error = errno;
-      fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
-      assert(0);
+   result = MPI_Comm_size(MPI_COMM_WORLD, &size);
+   if (result != MPI_SUCCESS) {
+     fprintf(stderr, "Failed to get MPI_Comm_size\n");
+     return;
    }
 
-   snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
-   w_pipe = open(wr_socketname, O_WRONLY);
-   printf("[%s:%u] - mutatee open(%s, O_WRONLY) = %d\n", __FILE__, __LINE__, wr_socketname, w_pipe);
-   if (w_pipe == -1) {
-      int error = errno;
-      fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
-      assert(0);
+   for (i=0; i<size; i++) {
+      if (i == id) {
+         snprintf(rd_socketname, len, "%s_w.%d", socket_name, id);
+         do {
+            r_pipe = open(rd_socketname, O_RDONLY | O_NONBLOCK);
+         } while (r_pipe == -1 && (errno == ENXIO || errno == EINTR));
+         if (r_pipe == -1) {
+            int error = errno;
+            fprintf(stderr, "Mutatee failed to create read pipe for %s: %s\n", rd_socketname, strerror(error));
+            assert(0);
+         }
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+   }
+
+   for (i=0; i<size; i++) {
+      if (i == id) {
+         snprintf(wr_socketname, len, "%s_r.%d", socket_name, id);
+         do {
+            w_pipe = open(wr_socketname, O_WRONLY);
+         } while (w_pipe == -1 && errno == EINTR);
+         if (w_pipe == -1) {
+            int error = errno;
+            fprintf(stderr, "Mutatee failed to create write pipe for %s: %s\n", wr_socketname, strerror(error));
+            assert(0);
+         }
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
    }
 
    unlink(rd_socketname);
@@ -442,14 +456,18 @@ static void createNamedPipes()
    free(rd_socketname);
    free(wr_socketname);
 
-   write(w_pipe, &ready, 4);
-
-   int fdflags = fcntl(r_pipe, F_GETFL);
-   if (fdflags < 0 || errno) {
-      logerror("Failed to set fcntl flags\n");
-      return;
+   result = send_message((unsigned char *) &ready, 4);
+   if (result == -1) {
+      int error = errno;
+      fprintf(stderr, "Failed to write to pipe during setup: %s (%d)\n", strerror(error), error);
    }
-   fcntl(r_pipe, F_SETFL, fdflags & O_NONBLOCK);
+
+   result = recv_message((unsigned char *) &ready, 4);
+   if (result == -1) {
+      int error = errno;
+      fprintf(stderr, "Failed to read from pipe during setup: %s (%d)\n", strerror(error), error);
+   }
+#endif
 }
 
 int initMutatorConnection()
@@ -479,16 +497,45 @@ int initMutatorConnection()
    return 0;
 }
 
+int send_message_socket(unsigned char *msg, size_t msg_size)
+{
+   return send(sockfd, msg, msg_size, 0);
+}
+
+int send_message_pipe(unsigned char *msg, size_t msg_size)
+{
+   int had_error = 0;
+#if defined(os_bgq_test)
+   int my_rank;
+   int world_size;
+   int i;
+
+   assert(created_named_pipes);
+
+   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+   for (i = 0; i < world_size; i++) {
+      if (i == my_rank) {
+         had_error = write(w_pipe, msg, msg_size);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+   }
+#endif
+   return had_error;
+}
+
 int send_message(unsigned char *msg, size_t msg_size)
 {
 	int result;
 	if (strcmp(socket_type, "un_socket") == 0) {
-		result = send(sockfd, msg, msg_size, 0);
+      result = send_message_socket(msg, msg_size);
 	}
    else if (strcmp(socket_type, "named_pipe") == 0) {
-      assert(created_named_pipes);
-      result = write(w_pipe, msg, msg_size);
-      printf("[%s:%u] - mutatee write(%d, msg, %u) = %d\n", __FILE__, __LINE__, w_pipe, (unsigned) msg_size, result);
+      result = send_message_pipe(msg, msg_size);
+   }
+   else {
+      assert(0);
    }
    if (result == -1) {
       perror("Mutatee unable to send message");
@@ -497,97 +544,158 @@ int send_message(unsigned char *msg, size_t msg_size)
    return 0;
 }
 
-int recv_message(unsigned char *msg, size_t msg_size)
+static int recv_message_socket(unsigned char *msg, size_t msg_size)
 {
-   if (strcmp(socket_type, "un_socket") == 0) {
-      static int warned_syscall_restart = 0;
-      int result = -1;
-      int timeout = MESSAGE_TIMEOUT * 10;
-      int no_select = 0;
-      while( result != (int) msg_size && result != 0 ) {
-         fd_set read_set;
-         FD_ZERO(&read_set);
-         FD_SET(sockfd, &read_set);
-         struct timeval s_timeout;
-         s_timeout.tv_sec = 0;
-         s_timeout.tv_usec = 1000000; /* 1 sec, as needed on bruckner */
-         int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
-         int error = errno;
-         if (sresult == -1)
-         {
-            if (error == EINVAL || error == EBADF) {
-               fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
-               return -1;
-            }
-            else if (error == EINTR) {
-               continue;
-            }
-            else if (error == ENOSYS) {
-               no_select = 1;
-            }
-            else {
-	      /* Seen as kernels with broken system call restarting during IRPC test. */
-               if (!warned_syscall_restart) {
-                  fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
-                  warned_syscall_restart = 1;
-               }
-               continue;
-            }
-         }
-         if (sresult == 0) {
-            timeout--;
-            if (timeout > 0)
-               continue;
-            perror("Timeout waiting for message\n");
+   assert(strcmp(socket_type, "un_socket") == 0);
+   static int warned_syscall_restart = 0;
+   int result = -1;
+   int timeout = MESSAGE_TIMEOUT * 10;
+   int no_select = 0;
+   while( result != (int) msg_size && result != 0 ) {
+      fd_set read_set;
+      FD_ZERO(&read_set);
+      FD_SET(sockfd, &read_set);
+      struct timeval s_timeout;
+      s_timeout.tv_sec = 0;
+      s_timeout.tv_usec = 1000000; /* 1 sec, as needed on bruckner */
+      int sresult = select(sockfd+1, &read_set, NULL, NULL, &s_timeout);
+      int error = errno;
+      if (sresult == -1)
+      {
+         if (error == EINVAL || error == EBADF) {
+            fprintf(stderr, "Mutatee unable to receive message during select: %s\n", strerror(error));
             return -1;
          }
-       
-         result = recv(sockfd, msg, msg_size, MSG_WAITALL);
-
-         if (result == -1 && errno != EINTR ) {
-            perror("Mutatee unable to recieve message");
-            return -1;
+         else if (error == EINTR) {
+            continue;
          }
-
-#if defined(os_freebsd_test)
-         /* Sometimes the recv system call is not restarted properly after a
-          * signal and an iRPC. TODO a workaround for this bug
-          */
-         if( result > 0 && result != msg_size ) {
-            logerror("Received message of unexpected size %d (expected %d)\n",
-                     result, msg_size);
+         else if (error == ENOSYS) {
+            no_select = 1;
          }
-#endif
-      }
-   }
-   else if (strcmp(socket_type, "named_pipe") == 0) {
-     unsigned int bytes_read = 0;
-     unsigned int num_retries = 300; /* 30 seconds */
-
-     assert(created_named_pipes);
-      
-     printf("[%s:%u] - Starting mutatee read\n", __FILE__, __LINE__);
-     do {
-         int result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
-         int error = errno;
-         if (result == 0 || (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO))) {
-	   printf("[%s:%u] - Mutatee read loop\n", __FILE__, __LINE__);
-	   usleep(100000); /* .1 seconds */
-            if (--num_retries == 0) {
-               fprintf(stderr, "Failed to read message from read pipe\n");
-               return -1;
+         else {
+            /* Seen as kernels with broken system call restarting during IRPC test. */
+            if (!warned_syscall_restart) {
+               fprintf(stderr, "WARNING: Unknown error out of select--broken syscall restarting in kernel?\n");
+               warned_syscall_restart = 1;
             }
             continue;
          }
-         else if (result == -1) {
-            fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
-            return -1;
-         }
-         bytes_read += result;
-         assert(bytes_read <= msg_size);
-      } while (bytes_read < msg_size);
-   }      
+      }
+      if (sresult == 0) {
+         timeout--;
+         if (timeout > 0)
+            continue;
+         perror("Timeout waiting for message\n");
+         return -1;
+      }
+
+
+      result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+      if (result == -1 && errno != EINTR ) {
+         perror("Mutatee unable to recieve message");
+         return -1;
+      }
+
+#if defined(os_freebsd_test)
+      /* Sometimes the recv system call is not restarted properly after a
+       * signal and an iRPC. TODO a workaround for this bug
+       */
+      if( result > 0 && result != msg_size ) {
+         logerror("Received message of unexpected size %d (expected %d)\n",
+                  result, msg_size);
+      }
+#endif
+   }
    return 0;
+}
+
+static int recv_message_pipe(unsigned char *msg, size_t msg_size)
+{
+   int had_error = 0;
+#if defined(os_bgq_test)
+   unsigned int bytes_read = 0;
+   int my_rank;
+   int world_size;
+   int i;
+   int result;
+
+   assert(created_named_pipes);
+
+   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+   /**
+    * Serialize access to IO system with barriers.  
+    * Otherwise it's easy to deadlock BlueGene.
+    **/
+   for (i=0; i < world_size; i++) {
+      if (i == my_rank) {
+         unsigned int num_retries = 300; /*30 seconds*/
+         do {
+            struct pollfd fds[1];
+            memset(fds, 0, sizeof(struct pollfd));
+            fds[0].fd = r_pipe;
+            fds[0].events = POLLIN;
+            result = poll(fds, 1, 0);
+            if (result == -1) {
+               had_error = 1;
+               perror("Poll failed");
+               break;
+            }
+            if (result == 0) {
+               usleep(100000); /*.1 seconds*/
+               if (--num_retries == 0) {
+                  had_error = 1;
+                  fprintf(stderr, "Failed to read message from read pipe\n");
+                  break;
+               }
+            }
+         } while (result != 1);
+         if (had_error)
+            break;
+
+         do {
+            result = read(r_pipe, msg + bytes_read, msg_size - bytes_read);
+            int error = errno;
+            
+            if (result == 0 || 
+                (result == -1 && (error == EAGAIN || error == EWOULDBLOCK || error == EIO || error == EINTR))) 
+            {
+               usleep(100000); /*.1 seconds*/
+               if (--num_retries <= 0) {
+                  fprintf(stderr, "Failed to read message from read pipe\n");
+                  had_error = 1;
+                  break;
+               }
+               continue;
+            }
+            else if (result == -1) {
+               fprintf(stderr, "Error: Could not read from read pipe: %s\n", strerror(error));
+               had_error = 1;
+               break;
+            }
+            bytes_read += result;
+            assert(bytes_read <= msg_size);
+         } while (bytes_read < msg_size);
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+   }
+#endif
+   return had_error ? -1 : 0;
+}
+
+
+int recv_message(unsigned char *msg, size_t msg_size)
+{
+   if (strcmp(socket_type, "un_socket") == 0) {
+      return recv_message_socket(msg, msg_size);
+   }
+   else if (strcmp(socket_type, "named_pipe") == 0) {
+      return recv_message_pipe(msg, msg_size);
+   }
+   else {
+      assert(0);
+   }
 }
 #else /*  windows  */
 
@@ -620,7 +728,6 @@ int initMutatorConnection()
       if (result != 0) {
 		  fprintf(stderr, "connect() to 127.0.0.1:%d failed: %d\n", server_addr.sin_port, WSAGetLastError());
          perror("Failed to connect to server");
-//		 assert(!"connect failed");
          return -1;
       }
   
