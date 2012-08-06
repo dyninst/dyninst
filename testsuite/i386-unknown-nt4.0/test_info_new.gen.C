@@ -262,22 +262,6 @@ struct {
  {"test1_14_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "high", "32", nonPIC},
  {"test1_14_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "max", "32", nonPIC},
  {"test1_14_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "max", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "none", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC", "none", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "low", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_low.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC", "low", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_high.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "high", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_high.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC", "high", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_max.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "max", "32", nonPIC},
- {"test1_15_mutatee_solo_VC_32_max.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC", "max", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, true, true, "dyninst", "VC++", "none", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "none", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, true, true, "dyninst", "VC++", "low", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_low.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "low", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, true, true, "dyninst", "VC++", "high", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "high", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, true, true, "dyninst", "VC++", "max", "32", nonPIC},
- {"test1_15_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "max", "32", nonPIC},
  {"test1_19_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "none", "32", nonPIC},
  {"test1_19_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC", "none", "32", nonPIC},
  {"test1_19_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "low", "32", nonPIC},
@@ -1346,22 +1330,6 @@ struct {
  {true, "test1_14", "test1_14", "test1_14.dll", false, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: high, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
  {true, "test1_14", "test1_14", "test1_14.dll", false, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
  {true, "test1_14", "test1_14", "test1_14.dll", false, "{test: test1_14, mutator: test1_14, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_14, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: low, mutateestart: local, compiler: VC, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: low, mutateestart: local, compiler: VC, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: high, mutateestart: local, compiler: VC, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: high, mutateestart: local, compiler: VC, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: low, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: low, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: high, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: high, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC++, run_mode: createProcess}"},
- {true, "test1_15", "test1_15", "test1_15.dll", false, "{test: test1_15, mutator: test1_15, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_15, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC++, run_mode: useAttach}"},
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_19, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: createProcess}"},
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, platmode: NONE, mutatee: test1_19, mutatorstart: local, optimization: none, mutateestart: local, compiler: VC, run_mode: useAttach}"},
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test1_19, mutatorstart: local, optimization: low, mutateestart: local, compiler: VC, run_mode: createProcess}"},
@@ -1508,7 +1476,7 @@ struct {
  {true, "test_stack_3", "test_stack_3", "test_stack_3.dll", false, "{test: test_stack_3, mutator: test_stack_3, grouped: false, pic: none, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, platmode: NONE, mutatee: test_stack_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: VC++, run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 396; i++) {
+  for (int i = 0; i < 380; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].pic, rungroup_params[i].compiler,
@@ -1517,7 +1485,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 1076 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 1060 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

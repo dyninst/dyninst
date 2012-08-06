@@ -835,30 +835,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *,
 }
 
 /*
- * BPatch_process::setMutationsActive
- *
- * Enable or disable the execution of all snippets for the thread.
- *
- * activate     If set to true, execution of snippets is enabled.  If false,
- *              execution is disabled.
- */
-bool BPatch_process::setMutationsActiveInt(bool activate)
-{
-   // If not activating or deactivating, just return.
-   if ((activate && mutationsActive) || (!activate && !mutationsActive))
-      return true;
-
-   if (activate)
-      llproc->reinstallMutations();
-   else
-      llproc->uninstallMutations();
-
-   mutationsActive = activate;
-   return true;
-}
-
-
-/*
  * BPatch_process::oneTimeCode
  *
  * execute argument <expr> once.

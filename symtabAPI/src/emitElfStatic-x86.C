@@ -117,6 +117,7 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
 {
+   cerr << "archSpecificRelocation @ " << hex << dest << " /w/ offset " << globalOffset << dec << endl;
     if( X86_WIDTH == addressWidth_ ) {
         /*
          * Referring to the SYSV 386 supplement:
@@ -321,6 +322,11 @@ bool emitElfStatic::archSpecificRelocation(Symtab *, Symtab *, char *targetData,
                        ") that is meant for use during dynamic linking";
                 errMsg = tmp.str();
                 return false;
+            case R_X86_64_IRELATIVE:
+	      // Consistency error; we should never try to process one of these
+	      // ourselves.
+	      assert(0);
+	      return false;
             case R_X86_64_DTPMOD64:
             case R_X86_64_DTPOFF64:
             case R_X86_64_TPOFF64:

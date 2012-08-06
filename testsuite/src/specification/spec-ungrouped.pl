@@ -282,16 +282,16 @@ test_runmode('test1_14', 'both').
 test_start_state('test1_14', 'stopped').
 tests_module('test1_14', 'dyninst').
 
-test('test1_15', 'test1_15', 'test1_15').
-test_description('test1_15', 'setMutationsActive').
-test_runs_everywhere('test1_15').
-mutator('test1_15', ['test1_15.C']).
-mutatee('test1_15', ['test1_15_mutatee.c']).
-compiler_for_mutatee('test1_15', Compiler) :-
-    comp_lang(Compiler, 'c').
-test_runmode('test1_15', 'both').
-test_start_state('test1_15', 'stopped').
-tests_module('test1_15', 'dyninst').
+%test('test1_15', 'test1_15', 'test1_15').
+%test_description('test1_15', 'setMutationsActive').
+%test_runs_everywhere('test1_15').
+%mutator('test1_15', ['test1_15.C']).
+%mutatee('test1_15', ['test1_15_mutatee.c']).
+%compiler_for_mutatee('test1_15', Compiler) :-
+%    comp_lang(Compiler, 'c').
+%test_runmode('test1_15', 'both').
+%test_start_state('test1_15', 'stopped').
+%tests_module('test1_15', 'dyninst').
 
 test('test1_16', 'test1_16', 'dyninst_group_test').
 test_description('test1_16', 'If else').
@@ -1782,25 +1782,25 @@ test_start_state('test1_14F', 'stopped').
 groupable_test('test1_14F').
 tests_module('test1_14F', 'dyninst').
 
-mutatee('test1_15F', ['test1_15F_mutatee.c'], ['test1_15F_fortran.F']).
+%mutatee('test1_15F', ['test1_15F_mutatee.c'], ['test1_15F_fortran.F']).
 % TODO Make sure these are correct
-compiler_for_mutatee('test1_15F', Compiler) :-
-    comp_lang(Compiler, 'fortran').
-optimization_for_mutatee('test1_15F', Compiler, 'none') :-
-    compiler_for_mutatee('test1_15F', Compiler).
+%compiler_for_mutatee('test1_15F', Compiler) :-
+%    comp_lang(Compiler, 'fortran').
+%optimization_for_mutatee('test1_15F', Compiler, 'none') :-
+%    compiler_for_mutatee('test1_15F', Compiler).
 % The C language components of the Fortran tests are compiled with different
 % options than the rest of the C files.  Regretably, this clause is very non-
 % intuitive..  I'm doing a hack here around the fact that the Python component
 % doesn't know that test1_15F_mutatee.c gets preprocessed and renamed.. This
 % sucks and I need to figure out a better way to do it.
-fortran_c_component('test1_15F').
+%fortran_c_component('test1_15F').
 % First try at a test that uses a one-to-many mutator-mutatee mapping
-test('test1_15F', 'test1_15', 'test1_15F').
-test_description('test1_15F', 'setMutationsActive (Fortran)').
-test_runs_everywhere('test1_15F').
-test_runmode('test1_15F', 'both').
-test_start_state('test1_15F', 'stopped').
-tests_module('test1_15F', 'dyninst').
+%test('test1_15F', 'test1_15', 'test1_15F').
+%test_description('test1_15F', 'setMutationsActive (Fortran)').
+%test_runs_everywhere('test1_15F').
+%test_runmode('test1_15F', 'both').
+%test_start_state('test1_15F', 'stopped').
+%tests_module('test1_15F', 'dyninst').
 
 mutatee('test1_16F', ['test1_16F_mutatee.c'], ['test1_16F_fortran.F']).
 % TODO Make sure these are correct

@@ -1361,7 +1361,6 @@ bool Symtab::extractInfo(Object *linkedFile)
      * favor of the getCodeRegions and getDataRegions functions.
      */
 
-    bool err = true;
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
 
@@ -1499,7 +1498,6 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
@@ -1511,7 +1509,6 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (!fixSymModules(raw_syms)) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
@@ -1542,34 +1539,29 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (!demangleSymbols(raw_syms)) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
     
     if (!demangleSymbols(undefDynSyms)) {
-       err = false;
        serr = Syms_To_Functions;
        return false;
     }
 
     if (!createIndices(raw_syms, false)) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
     if (!createIndices(undefDynSyms, true)) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
     if (!createAggregates()) 
     {
-        err = false;
         serr = Syms_To_Functions;
         return false;
     }
@@ -3293,18 +3285,6 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
     dynref_(dynref),
     relType_(relType)
 {}
-
-SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
-{
-   target_addr_ = ra.target_addr_;
-   rel_addr_ = ra.rel_addr_;
-   addend_ = ra.addend_;
-   rtype_ = ra.rtype_;
-   name_ = ra.name_; 
-   dynref_ = ra.dynref_;
-   relType_ = ra.relType_;
-   return *this;
-}
 
 SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
 {

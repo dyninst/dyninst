@@ -1171,13 +1171,20 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
     vector<Region *>::iterator reg_it;
     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
+       cerr << "Calculating relocations for region at " << hex << (*reg_it)->getRegionAddr()
+            << dec << endl;
+          
         char *regionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
         
         vector<relocationEntry>::iterator rel_it;
         for(rel_it = (*reg_it)->getRelocations().begin();
             rel_it != (*reg_it)->getRelocations().end();
             ++rel_it)
-        {
+	  {
+	    // Don't process relocations for other sections; those get handled by the
+	    // stub code.
+	    if ((rel_it->rel_addr() < (*reg_it)->getMemOffset()) ||
+		(rel_it->rel_addr() >= ((*reg_it)->getMemOffset() + (*reg_it)->getMemSize()))) continue;
             if( !archSpecificRelocation(target, target, regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
                         rel_it->rel_addr(), globalOffset, lmap, errMsg) )
@@ -1186,9 +1193,8 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
                 errMsg = "Failed to compute relocation: " + errMsg;
                 return false;
             }
-        }
+	  }
     }
-
     return true;
 }
 
