@@ -231,28 +231,31 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
          sw_printf("[%s:%u] - Unable to find libc, not registering restore_rt"
                    "tracker.\n", __FILE__, __LINE__);
       }
-      if (result) {
-         init_libc = true;
-         libc = fact->openSymbolReader(libc_addr.first);
-         if (!libc) {
-            sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
-                      __FILE__, __LINE__);
-         }   
-      }
-      if (libc) {
-         libc_restore = libc->getSymbolByName("__restore_rt");
-         if (!libc->isValidSymbol(libc_restore)) {
-            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
-                      __FILE__, __LINE__);
+      if (!init_libc) {
+         if (result) {
+            init_libc = true;
+            libc = fact->openSymbolReader(libc_addr.first);
+            if (!libc) {
+               sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+                         __FILE__, __LINE__);
+            }   
          }
-         else {
-            Dyninst::Address start = libc->getSymbolOffset(libc_restore) + libc_addr.second;
-            Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
-            if (start == end)
-               end = start + 16; //Estimate--annoying
-            sw_printf("[%s:%u] - Registering libc restore_rt as at %lx to %lx\n",
-                      __FILE__, __LINE__, start, end);
-            group->addStepper(parent_stepper, start, end);
+         if (result && libc) {
+            init_libc = true;
+            libc_restore = libc->getSymbolByName("__restore_rt");
+            if (!libc->isValidSymbol(libc_restore)) {
+               sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+                         __FILE__, __LINE__);
+            }
+            else {
+               Dyninst::Address start = libc->getSymbolOffset(libc_restore) + libc_addr.second;
+               Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
+               if (start == end)
+                  end = start + 16; //Estimate--annoying
+               sw_printf("[%s:%u] - Registering libc restore_rt as at %lx to %lx\n",
+                         __FILE__, __LINE__, start, end);
+               group->addStepper(parent_stepper, start, end);
+            }
          }
       }
    }

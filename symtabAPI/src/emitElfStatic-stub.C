@@ -124,7 +124,7 @@ bool emitElfStatic::isDestructorRegion(Region *) {
     return false;
 }
 
-bool emitElfStatic::isiGOTRegion(Region *) {
+bool emitElfStatic::isGOTRegion(Region *) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }

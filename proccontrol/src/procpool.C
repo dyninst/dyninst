@@ -123,7 +123,9 @@ void ProcessPool::rmThread(int_thread *thr)
 
 int_thread *ProcessPool::findThread(Dyninst::LWP lwp)
 {
-   assert(LWPIDsAreUnique());
+   if (!LWPIDsAreUnique()) {
+      return NULL;
+   }
    std::map<Dyninst::LWP, int_thread *>::iterator i = lwps.find(lwp);
    if (i == lwps.end())
       return NULL;

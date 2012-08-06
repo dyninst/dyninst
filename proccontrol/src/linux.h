@@ -121,12 +121,12 @@ class linux_process : public sysv_process, public unix_process, public thread_db
    virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
                                   mem_response::ptr result);
    virtual bool plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
-                                   size_t size, result_response::ptr result);
+                                   size_t size, result_response::ptr result, bp_write_t bp_write);
 
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size);
    virtual bool plat_writeMem(int_thread *thr, const void *local, 
-                              Dyninst::Address remote, size_t size);
+                              Dyninst::Address remote, size_t size, bp_write_t bp_write);
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);

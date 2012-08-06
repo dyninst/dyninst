@@ -31,7 +31,7 @@
 #include "proccontrol/src/bluegeneq.h"
 #include "proccontrol/src/int_event.h"
 #include "proccontrol/src/irpc.h"
-#include "proccontrol/h/Process.h"
+#include "proccontrol/h/PCProcess.h"
 #include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Mailbox.h"
@@ -40,9 +40,7 @@ using namespace Dyninst;
 using namespace ProcControlAPI;
 using namespace std;
 
-#define ELF_X_NAMESPACE ProcControlAPI
 #include "common/h/SymLite-elf.h"
-#include "common/src/Elf_X.C"
 
 #include <dirent.h>
 #include <limits.h>
@@ -59,22 +57,17 @@ using namespace std;
 #include <link.h>
 #include <execinfo.h>
 
-#define DEFAULT_TOOL_TAG "pcontrl"
-#define DEFAULT_TOOL_PRIORITY 99
-
 using namespace bgq;
 using namespace std;
 
 static void registerSignalHandlers(bool enable);
 
-const char *bgq_process::tooltag = DEFAULT_TOOL_TAG;
 uint64_t bgq_process::jobid = 0;
 uint32_t bgq_process::toolid = 0;
 bool bgq_process::set_ids = false;
 bool bgq_process::do_all_attach = true;
-uint8_t bgq_process::priority = DEFAULT_TOOL_PRIORITY;
 
-static const char *getCommandName(uint16_t cmd_type);
+const char *getCommandName(uint16_t cmd_type);
 
 static void printMessage(ToolMessage *msg, const char *str)
 {
@@ -89,7 +82,7 @@ static void printMessage(ToolMessage *msg, const char *str)
                 "\trank = %u\n"
                 "\tsequenceId = %u\t"
                 "\treturnCode = %u\t"
-                "\terrorCode = %u\t"
+                "\terrCode = %u\t"
                 "\tlength = %u\n"
                 "\tjobID = %lu\t"
                 "\ttoolId = %u\n\t",
@@ -272,7 +265,11 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    rank(pid),
    page_size(0),
    interp_base(0),
-   initial_thread_list(NULL)
+   initial_thread_list(NULL),
+   priority(0),
+   mtool(NULL),
+   startup_state(issue_attach),
+   detach_state(no_detach_issued)
 {
    if (!set_ids) {
       ScopeLock lock(id_init_lock);
@@ -306,6 +303,10 @@ bgq_process::~bgq_process()
    if (update_transaction) {
       delete update_transaction;
       update_transaction = NULL;
+   }
+   if (mtool) {
+      delete mtool;
+      mtool = NULL;
    }
 }
 
@@ -553,10 +554,9 @@ unsigned int bgq_process::getTargetPageSize()
    return false;      
 }
 
-Dyninst::Address bgq_process::plat_mallocExecMemory(Dyninst::Address, unsigned int)
+Dyninst::Address bgq_process::plat_mallocExecMemory(Dyninst::Address addr, unsigned int)
 {
-#warning TODO implement plat_mallocExecMemory
-   return 0;
+   return get_procdata_result.heapStartAddr + addr;
 }
 
 bool bgq_process::plat_individualRegAccess()
@@ -590,7 +590,7 @@ bool bgq_process::plat_readMem(int_thread *, void *, Dyninst::Address, size_t)
    return false;
 }
 
-bool bgq_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t)
+bool bgq_process::plat_writeMem(int_thread *, const void *, Dyninst::Address, size_t, bp_write_t)
 {
    assert(0); //No synchronous IO
    return false;
@@ -696,8 +696,37 @@ bool bgq_process::internal_readMem(int_thread * /*stop_thr*/, Dyninst::Address a
 }
 
 bool bgq_process::internal_writeMem(int_thread * /*stop_thr*/, const void *local, Dyninst::Address addr,
-                                    size_t size, result_response::ptr resp, int_thread *thr)
+                                    size_t size, result_response::ptr resp, int_thread *thr, bp_write_t bp_write)
 {
+   if (bp_write == int_process::bp_install) {
+      pthrd_printf("Writing breakpoint memory %lx +%lu on %d with response ID %d\n",
+                   addr, (unsigned long) size, getPid(), resp->getID());
+      SetBreakpointCmd setbp;
+      setbp.threadID = thr ? thr->getLWP() : 0;
+      setbp.addr = addr;
+      setbp.instruction = *((int *) local);
+      bool result = sendCommand(setbp, SetBreakpoint, resp);
+      if (!result) {
+         pthrd_printf("Error sending SetBreakpoint\n");
+         return false;
+      }
+      return true;
+   }
+   if (bp_write == int_process::bp_clear) {
+      pthrd_printf("Reset breakpoint memory %lx +%lu on %d with response ID %d\n",
+                   addr, (unsigned long) size, getPid(), resp->getID());
+      ResetBreakpointCmd setbp;
+      setbp.threadID = thr ? thr->getLWP() : 0;
+      setbp.addr = addr;
+      setbp.instruction = *((int *) local);
+      bool result = sendCommand(setbp, ResetBreakpoint, resp);
+      if (!result) {
+         pthrd_printf("Error sending ResetBreakpoint\n");
+         return false;
+      }
+      return true;
+   }
+
    pthrd_printf("Writing memory %lx +%lu on %d with response ID %d\n", 
                 addr, (unsigned long) size, getPid(), resp->getID());
 
@@ -706,23 +735,23 @@ bool bgq_process::internal_writeMem(int_thread * /*stop_thr*/, const void *local
       num_writes_needed += 1;
    if (num_writes_needed > 1)
       resp->markAsMultiResponse(num_writes_needed);
-
+   
    for (unsigned cur = 0, j = 0; cur < size; cur += MaxMemorySize, j++) {
       uint32_t write_size;
       if (cur + MaxMemorySize >= size)
          write_size = size - cur;
       else
          write_size = MaxMemorySize;
+      SetMemoryCmd *setmem = (SetMemoryCmd *) malloc(sizeof(SetMemoryCmd) + write_size + 1);
+      setmem->threadID = thr ? thr->getLWP() : 0;
+      setmem->addr = addr + cur;
+      setmem->length = write_size;
+      setmem->specAccess = thr ? SpecAccess_UseThreadState : SpecAccess_ForceNonSpeculative;
+      setmem->sharedMemoryAccess = SharedMemoryAccess_Allow;
+      memcpy(setmem->data, ((const char *) local) + cur, write_size);
 
-      SetMemoryCmd setmem;
-      setmem.threadID = thr ? thr->getLWP() : 0;
-      setmem.addr = addr + cur;
-      setmem.length = write_size;
-      setmem.specAccess = thr ? SpecAccess_UseThreadState : SpecAccess_ForceNonSpeculative;
-      setmem.sharedMemoryAccess = SharedMemoryAccess_Allow;
-      memcpy(setmem.data, ((const char *) local) + cur, write_size);
-
-      bool result = sendCommand(setmem, SetMemory, resp);
+      bool result = sendCommand(*setmem, SetMemory, resp);
+      free(setmem);
       if (!result) {
          pthrd_printf("Error sending command to read memory\n");
          return false;
@@ -738,9 +767,9 @@ bool bgq_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr,
 }
 
 bool bgq_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst::Address addr,
-                                     size_t size, result_response::ptr result)
+                                     size_t size, result_response::ptr result, bp_write_t bp_write)
 {
-   return internal_writeMem(thr, local, addr, size, result, NULL);
+   return internal_writeMem(thr, local, addr, size, result, NULL, bp_write);
 }
 
 bool bgq_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &)
@@ -872,6 +901,8 @@ bool bgq_process::handleStartupEvent(void *data)
       setForceGeneratorBlock(true);
       query_transaction->beginTransaction();
       update_transaction->beginTransaction();
+      tooltag = MultiToolControl::getDefaultToolName();
+      priority = (uint8_t) MultiToolControl::getDefaultToolPriority();
    }
 
    /**
@@ -886,8 +917,9 @@ bool bgq_process::handleStartupEvent(void *data)
 
    if (attach_action == do_lone_attach || attach_action == do_group_attach) {
       AttachMessage attach;
-      strncpy(attach.toolTag, tooltag, sizeof(attach.toolTag));
+      strncpy(attach.toolTag, tooltag.c_str(), sizeof(attach.toolTag));
       attach.priority = priority;
+      pthrd_printf("Sending attach with name %s, priority %u\n", tooltag.c_str(), attach.priority);
       fillInToolMessage(attach, Attach);
       if (attach_action == do_lone_attach) {
          pthrd_printf("Sending attach message to rank %d\n", getPid());
@@ -1166,6 +1198,24 @@ uint32_t bgq_process::getToolID()
    return toolid;
 }
 
+std::string bgq_process::mtool_getName()
+{
+   return tooltag;
+}
+
+MultiToolControl::priority_t bgq_process::mtool_getPriority()
+{
+   return priority;
+}
+
+MultiToolControl *bgq_process::mtool_getMultiToolControl()
+{
+   if (!mtool) {
+      mtool = new MultiToolControl(proc());
+   }
+   return mtool;
+}
+
 bool bgq_process::plat_waitAndHandleForProc()
 {
    pthrd_printf("Rotating transactions at top of plat_waitAndHandleForProc\n");
@@ -1186,310 +1236,6 @@ bool bgq_process::sendCommand(const ToolCommand &cmd, uint16_t cmd_type, respons
       assert(0); //Are we trying to send an Ack?
    }
    return false;
-}
-
-PlatformFeatures *bgq_process::plat_getPlatformFeatures()
-{
-   return dynamic_cast<PlatformFeatures *>(new BlueGeneQFeatures());
-}
-
-#define CMD_RET_SIZE(X) case X: return sizeof(X ## Cmd)
-
-#define CMD_RET_VAR_SIZE(X, F) case X: return sizeof(X ## Cmd) + static_cast<const X ## Cmd &>(cmd).F
-uint32_t bgq_process::getCommandLength(uint16_t cmd_type, const ToolCommand &cmd)
-{
-   switch (cmd_type) {
-      CMD_RET_SIZE(GetSpecialRegs);
-      CMD_RET_SIZE(GetSpecialRegsAck);
-      CMD_RET_SIZE(GetGeneralRegs);
-      CMD_RET_SIZE(GetGeneralRegsAck);
-      CMD_RET_SIZE(GetFloatRegs);
-      CMD_RET_SIZE(GetFloatRegsAck);
-      CMD_RET_SIZE(GetDebugRegs);
-      CMD_RET_SIZE(GetDebugRegsAck);
-      CMD_RET_SIZE(GetMemory);
-      CMD_RET_VAR_SIZE(GetMemoryAck, length);
-      CMD_RET_SIZE(GetThreadList);
-      CMD_RET_SIZE(GetThreadListAck);
-      CMD_RET_SIZE(GetAuxVectors);
-      CMD_RET_SIZE(GetAuxVectorsAck);
-      CMD_RET_SIZE(GetProcessData);
-      CMD_RET_SIZE(GetProcessDataAck);
-      CMD_RET_SIZE(GetThreadData);
-      CMD_RET_SIZE(GetThreadDataAck);
-      CMD_RET_SIZE(GetPreferences);
-      CMD_RET_SIZE(GetPreferencesAck);
-      CMD_RET_SIZE(GetFilenames);
-      CMD_RET_SIZE(GetFilenamesAck);
-      CMD_RET_SIZE(GetFileStatData);
-      CMD_RET_SIZE(GetFileStatDataAck);
-      CMD_RET_SIZE(GetFileContents);
-      CMD_RET_VAR_SIZE(GetFileContentsAck, numbytes);
-      CMD_RET_SIZE(SetGeneralReg);
-      CMD_RET_SIZE(SetGeneralRegAck);
-      CMD_RET_SIZE(SetFloatReg);
-      CMD_RET_SIZE(SetFloatRegAck);
-      CMD_RET_SIZE(SetDebugReg);
-      CMD_RET_SIZE(SetDebugRegAck);
-      CMD_RET_VAR_SIZE(SetMemory, length);
-      CMD_RET_SIZE(SetMemoryAck);
-      CMD_RET_SIZE(HoldThread);
-      CMD_RET_SIZE(HoldThreadAck);
-      CMD_RET_SIZE(ReleaseThread);
-      CMD_RET_SIZE(ReleaseThreadAck);
-      CMD_RET_SIZE(InstallTrapHandler);
-      CMD_RET_SIZE(InstallTrapHandlerAck);
-      CMD_RET_SIZE(AllocateMemory);
-      CMD_RET_SIZE(AllocateMemoryAck);
-      CMD_RET_SIZE(SendSignal);
-      CMD_RET_SIZE(SendSignalAck);
-      CMD_RET_SIZE(ContinueProcess);
-      CMD_RET_SIZE(ContinueProcessAck);
-      CMD_RET_SIZE(StepThread);
-      CMD_RET_SIZE(StepThreadAck);
-      CMD_RET_SIZE(SetBreakpoint);
-      CMD_RET_SIZE(SetBreakpointAck);
-      CMD_RET_SIZE(ResetBreakpoint);
-      CMD_RET_SIZE(ResetBreakpointAck);
-      CMD_RET_SIZE(SetWatchpoint);
-      CMD_RET_SIZE(SetWatchpointAck);
-      CMD_RET_SIZE(ResetWatchpoint);
-      CMD_RET_SIZE(ResetWatchpointAck);
-      CMD_RET_SIZE(RemoveTrapHandler);
-      CMD_RET_SIZE(RemoveTrapHandlerAck);
-      CMD_RET_SIZE(SetPreferences);
-      CMD_RET_SIZE(SetPreferencesAck);
-      CMD_RET_SIZE(FreeMemory);
-      CMD_RET_SIZE(FreeMemoryAck);
-      CMD_RET_SIZE(SetSpecialReg);
-      CMD_RET_SIZE(SetSpecialRegAck);
-      CMD_RET_SIZE(SetGeneralRegs);
-      CMD_RET_SIZE(SetGeneralRegsAck);
-      CMD_RET_SIZE(SetFloatRegs);
-      CMD_RET_SIZE(SetFloatRegsAck);
-      CMD_RET_SIZE(SetDebugRegs);
-      CMD_RET_SIZE(SetDebugRegsAck);
-      CMD_RET_SIZE(SetSpecialRegs);
-      CMD_RET_SIZE(SetSpecialRegsAck);
-      CMD_RET_SIZE(ReleaseControl);
-      CMD_RET_SIZE(ReleaseControlAck);
-      CMD_RET_SIZE(SetContinuationSignal);
-      CMD_RET_SIZE(SetContinuationSignalAck);
-      default:
-         perr_printf("Unknown command type\n");
-         assert(0);
-         return 0;
-   }
-}
-
-#define STR_CASE(X) case X: return #X
-static const char *getCommandName(uint16_t cmd_type)
-{
-   switch (cmd_type) {
-      STR_CASE(GetSpecialRegs);
-      STR_CASE(GetSpecialRegsAck);
-      STR_CASE(GetGeneralRegs);
-      STR_CASE(GetGeneralRegsAck);
-      STR_CASE(GetFloatRegs);
-      STR_CASE(GetFloatRegsAck);
-      STR_CASE(GetDebugRegs);
-      STR_CASE(GetDebugRegsAck);
-      STR_CASE(GetMemory);
-      STR_CASE(GetMemoryAck);
-      STR_CASE(GetThreadList);
-      STR_CASE(GetThreadListAck);
-      STR_CASE(GetAuxVectors);
-      STR_CASE(GetAuxVectorsAck);
-      STR_CASE(GetProcessData);
-      STR_CASE(GetProcessDataAck);
-      STR_CASE(GetThreadData);
-      STR_CASE(GetThreadDataAck);
-      STR_CASE(GetPreferences);
-      STR_CASE(GetPreferencesAck);
-      STR_CASE(GetFilenames);
-      STR_CASE(GetFilenamesAck);
-      STR_CASE(GetFileStatData);
-      STR_CASE(GetFileStatDataAck);
-      STR_CASE(GetFileContents);
-      STR_CASE(GetFileContentsAck);
-      STR_CASE(SetGeneralReg);
-      STR_CASE(SetGeneralRegAck);
-      STR_CASE(SetFloatReg);
-      STR_CASE(SetFloatRegAck);
-      STR_CASE(SetDebugReg);
-      STR_CASE(SetDebugRegAck);
-      STR_CASE(SetMemory);
-      STR_CASE(SetMemoryAck);
-      STR_CASE(HoldThread);
-      STR_CASE(HoldThreadAck);
-      STR_CASE(ReleaseThread);
-      STR_CASE(ReleaseThreadAck);
-      STR_CASE(InstallTrapHandler);
-      STR_CASE(InstallTrapHandlerAck);
-      STR_CASE(AllocateMemory);
-      STR_CASE(AllocateMemoryAck);
-      STR_CASE(SendSignal);
-      STR_CASE(SendSignalAck);
-      STR_CASE(ContinueProcess);
-      STR_CASE(ContinueProcessAck);
-      STR_CASE(StepThread);
-      STR_CASE(StepThreadAck);
-      STR_CASE(SetBreakpoint);
-      STR_CASE(SetBreakpointAck);
-      STR_CASE(ResetBreakpoint);
-      STR_CASE(ResetBreakpointAck);
-      STR_CASE(SetWatchpoint);
-      STR_CASE(SetWatchpointAck);
-      STR_CASE(ResetWatchpoint);
-      STR_CASE(ResetWatchpointAck);
-      STR_CASE(RemoveTrapHandler);
-      STR_CASE(RemoveTrapHandlerAck);
-      STR_CASE(SetPreferences);
-      STR_CASE(SetPreferencesAck);
-      STR_CASE(FreeMemory);
-      STR_CASE(FreeMemoryAck);
-      STR_CASE(SetSpecialReg);
-      STR_CASE(SetSpecialRegAck);
-      STR_CASE(SetGeneralRegs);
-      STR_CASE(SetGeneralRegsAck);
-      STR_CASE(SetFloatRegs);
-      STR_CASE(SetFloatRegsAck);
-      STR_CASE(SetDebugRegs);
-      STR_CASE(SetDebugRegsAck);
-      STR_CASE(SetSpecialRegs);
-      STR_CASE(SetSpecialRegsAck);
-      STR_CASE(ReleaseControl);
-      STR_CASE(ReleaseControlAck);
-      STR_CASE(SetContinuationSignal);
-      STR_CASE(SetContinuationSignalAck);
-      default:
-         perr_printf("Unknown command type\n");
-         assert(0);
-         return 0;
-   }
-}
-
-#define MESSAGE_RET_SIZE(X) case X: return sizeof(X ## Message)
-#define MESSAGE_RET_CMDLIST_SIZE(X)                                     \
-   case X: do {                                                         \
-      const X ## Message &s = static_cast<const X ## Message &>(msg);   \
-      assert(s.numCommands);                                            \
-      const CommandDescriptor &last = s.cmdList[s.numCommands-1];       \
-      return sizeof(X ## Message) + last.offset + last.length;          \
-   } while (0)
-
-uint32_t bgq_process::getMessageLength(const ToolMessage &msg)
-{
-   switch (msg.header.type) {
-      MESSAGE_RET_SIZE(ErrorAck);
-      MESSAGE_RET_SIZE(Attach);
-      MESSAGE_RET_SIZE(AttachAck);
-      MESSAGE_RET_SIZE(Detach);
-      MESSAGE_RET_SIZE(DetachAck);
-      MESSAGE_RET_CMDLIST_SIZE(Query);
-      MESSAGE_RET_CMDLIST_SIZE(QueryAck);
-      MESSAGE_RET_CMDLIST_SIZE(Update);
-      MESSAGE_RET_CMDLIST_SIZE(UpdateAck);
-      MESSAGE_RET_SIZE(SetupJob);
-      MESSAGE_RET_SIZE(SetupJobAck);
-      MESSAGE_RET_SIZE(Notify);
-      MESSAGE_RET_SIZE(NotifyAck);
-      MESSAGE_RET_SIZE(Control);
-      MESSAGE_RET_SIZE(ControlAck);
-      default:
-         perr_printf("Unknown command type\n");
-         assert(0);
-   }
-}
-
-uint16_t bgq_process::getCommandMsgType(uint16_t cmd_id)
-{
-   switch (cmd_id) {
-      case GetSpecialRegs:
-      case GetGeneralRegs:
-      case GetFloatRegs:
-      case GetDebugRegs:
-      case GetMemory:
-      case GetThreadList:
-      case GetAuxVectors:
-      case GetProcessData:
-      case GetThreadData:
-      case GetPreferences:
-      case GetFilenames:
-      case GetFileStatData:
-      case GetFileContents:
-         return Query;
-      case GetSpecialRegsAck:
-      case GetGeneralRegsAck:
-      case GetFloatRegsAck:
-      case GetDebugRegsAck:
-      case GetMemoryAck:
-      case GetThreadListAck:
-      case GetAuxVectorsAck:
-      case GetProcessDataAck:
-      case GetThreadDataAck:
-      case GetPreferencesAck:
-      case GetFilenamesAck:
-      case GetFileStatDataAck:
-      case GetFileContentsAck:
-         return QueryAck;
-      case SetGeneralReg:
-      case SetFloatReg:
-      case SetDebugReg:
-      case SetMemory:
-      case HoldThread:
-      case ReleaseThread:
-      case InstallTrapHandler:
-      case AllocateMemory:
-      case SendSignal:
-      case ContinueProcess:
-      case StepThread:
-      case SetBreakpoint:
-      case ResetBreakpoint:
-      case SetWatchpoint:
-      case ResetWatchpoint:
-      case RemoveTrapHandler:
-      case SetPreferences:
-      case FreeMemory:
-      case SetSpecialReg:
-      case SetGeneralRegs:
-      case SetFloatRegs:
-      case SetDebugRegs:
-      case SetSpecialRegs:
-      case ReleaseControl:
-      case SetContinuationSignal:
-         return Update;
-      case SetGeneralRegAck:
-      case SetFloatRegAck:
-      case SetDebugRegAck:
-      case SetMemoryAck:
-      case HoldThreadAck:
-      case ReleaseThreadAck:
-      case InstallTrapHandlerAck:
-      case AllocateMemoryAck:
-      case SendSignalAck:
-      case ContinueProcessAck:
-      case StepThreadAck:
-      case SetBreakpointAck:
-      case ResetBreakpointAck:
-      case SetWatchpointAck:
-      case ResetWatchpointAck:
-      case RemoveTrapHandlerAck:
-      case SetPreferencesAck:
-      case FreeMemoryAck:
-      case SetSpecialRegAck:
-      case SetGeneralRegsAck:
-      case SetFloatRegsAck:
-      case SetDebugRegsAck:
-      case SetSpecialRegsAck:
-      case ReleaseControlAck:
-      case SetContinuationSignalAck:
-         return UpdateAck;
-      default:
-         perr_printf("Unknown command %u\n", (unsigned) cmd_id);
-         assert(0);
-         return 0;
-   }
 }
 
 bool bgq_process::isActionCommand(uint16_t cmd_type)
@@ -1610,12 +1356,17 @@ bgq_thread::bgq_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    int_thread(p, t, l),
    thread_db_thread(p, t, l),
    ppc_thread(p, t, l),
-   last_signaled(false)
+   last_signaled(false),
+   unwinder(NULL)
 {
 }
 
 bgq_thread::~bgq_thread()
 {
+   if (unwinder) {
+      delete unwinder;
+      unwinder = NULL;
+   }
 }
 
 bool bgq_thread::plat_cont()
@@ -1924,13 +1675,13 @@ bool bgq_thread::plat_setAllRegistersAsync(int_registerPool &pool,
 
    resp->markAsMultiResponse(2);
    
-   bool result = bgproc->sendCommand(set_gen, GetGeneralRegs, resp, 0);
+   bool result = bgproc->sendCommand(set_gen, SetGeneralRegs, resp, 0);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetGeneralRegs\n");
       return false;
    }
 
-   result = bgproc->sendCommand(set_spec, GetSpecialRegs, resp, 1);
+   result = bgproc->sendCommand(set_spec, SetSpecialRegs, resp, 1);
    if (!result) {
       pthrd_printf("Error in sendCommand for SetSpecialRegs\n");
       return false;
@@ -1980,6 +1731,14 @@ bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned
 {
    bgq_thread::regPoolToUser(pool, output_buffer);
    return true;
+}
+
+CallStackUnwinding *bgq_thread::getStackUnwinder()
+{
+   if (!unwinder) {
+      unwinder = new CallStackUnwinding(thread());
+   }
+   return unwinder;
 }
 
 map<int, ComputeNode *> ComputeNode::id_to_cn;
@@ -2355,7 +2114,7 @@ const char *bgq_process::bgqErrorMessage(uint32_t rc, bool long_form)
       STR_CASE(PrologPgmError, "Job prolog program failed. ");
       STR_CASE(EpilogPgmStartError, "Starting job epilog program process failed.");
       STR_CASE(EpilogPgmError, "Job epilog program failed. ");
-      STR_CASE(RequestInProgress, "Requested operation is currently in progress.");
+      STR_CASE(ReturnCodeReserved1, "Formerly request in progress.");
       STR_CASE(ToolControlConflict, "Control authority conflict with another tool.");
       STR_CASE(NodesInJobError, "No compute nodes matched job specifications.");
       STR_CASE(ToolConflictingCmds, "An invalid combination of commands was specifed in the command list.");
@@ -2787,6 +2546,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          case GetSpecialRegsAck: 
          case GetGeneralRegsAck: {
             allreg_response::ptr allreg = cur_resp->getAllRegResponse();
+            assert(allreg);
             int_registerPool *regpool = allreg->getRegPool();
             assert(allreg);
             assert(regpool);
@@ -2810,6 +2570,27 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (new_ev)
                events.push_back(new_ev);
 
+            //BG/Q doesn't have an individual register access mechanism.
+            // Thus we turn requests for one register into requests for all registers.
+            // Here we check if this request is in response to a single register query
+            // and fill out the reg_response if so.
+            reg_response::ptr indiv_reg = allreg->getIndividualAcc();
+            if (indiv_reg && !indiv_reg->isReady()) {
+               if (allreg->hasError()) {
+                  allreg->markError(desc->returnCode);
+               }
+               else {
+                  MachRegister reg = allreg->getIndividualReg();
+                  int_registerPool::reg_map_t::iterator i = regpool->regs.find(reg);
+                  if (i != regpool->regs.end()) {
+                     indiv_reg->postResponse(i->second);
+                     new_ev = decodeCompletedResponse(indiv_reg, async_ev_map);
+                     if (new_ev)
+                        events.push_back(new_ev);
+                  }
+               }
+            }
+
             resp_lock_held = false;
             getResponses().signal();
             getResponses().unlock();
@@ -2817,7 +2598,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          }
          case GetFloatRegsAck:
          case GetDebugRegsAck:
-            assert(0); //Currently unused
+            assert(0); //Currently unused, but eventually needed
             break;
          case GetMemoryAck: {
             pthrd_printf("Decoding GetMemoryAck on %d\n", proc->getPid());
@@ -3158,7 +2939,7 @@ bool DecoderBlueGeneQ::decodeControlNotify(ArchEventBGQ *archevent, bgq_process 
       return decodeStartupEvent(archevent, proc, archevent->getMsg(), Event::async, events);
    }
    else {
-#warning TODO implement notify
+#warning TODO implement control notify
       assert(0); //Not yet implemented
       return false;
    }

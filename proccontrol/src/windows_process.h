@@ -58,7 +58,7 @@ public:
 	virtual bool plat_readMem(int_thread *thr, void *local, 
 		Dyninst::Address remote, size_t size);
 	virtual bool plat_writeMem(int_thread *thr, const void *local, 
-		Dyninst::Address remote, size_t size);
+                              Dyninst::Address remote, size_t size, bp_write_t bp_write);
 	virtual Address plat_findFreeMemory(size_t size);
 	virtual SymbolReaderFactory *plat_defaultSymReader();
 	virtual bool needIndividualThreadAttach();
