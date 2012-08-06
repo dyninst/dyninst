@@ -91,5 +91,6 @@ void func3_1()
 
 int test_thread_2_mutatee() {
   func3_1();
+  fprintf(stderr, "Done with func3_1\n");
   return 0; /* Return code for this mutatee is not checked */
 }

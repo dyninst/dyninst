@@ -1049,21 +1049,7 @@ bool int_process::waitAndHandleEvents(bool block)
 	if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
 	continue;
       }
-#if 0
-      // LWP destroy is apparently okay
-      // Linux (recent versions) will also process any other queued events
-      // before a SIGKILL, and we want to throw those away too. 
-      if (ev->getProcess()->llproc()->wasForcedTerminated() &&
-	  ev->getEventType().time() != EventType::Post &&
-	  ev->getEventType().code() != EventType::Exit) {
-	pthrd_printf("Received event %s on forced terminated process, ignoring\n",
-		     ev->name().c_str());
-         if (!isHandlerThread() && ev->noted_event) notify()->clearEvent();
-	 continue;
-      }
 #endif
-#endif
-
       int_process* llp = ev->getProcess()->llproc();
       if(!llp) {
          error = true;
