@@ -2329,7 +2329,7 @@ mutator('test_instruction_profile', ['test_instruction_profile.C']).
 test_runmode('test_instruction_profile', 'disk').
 test_start_state('test_instruction_profile', 'stopped').
 tests_module('test_instruction_profile', 'instruction').
-mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
+mutator_requires_libs('test_instruction_profile', ['symtabAPI']).
 
 test('power_decode', 'power_decode', none).
 test_description('power_decode', 'Tests the read & write sets of POWER instructions.').

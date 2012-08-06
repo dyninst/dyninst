@@ -36,9 +36,6 @@
 #include "Expression.h"
 #include "Symtab.h"
 #include "Region.h"
-#include "BPatch.h"
-#include "BPatch_addressSpace.h"
-#include "BPatch_image.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -114,16 +111,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
       }
     }
   }
-  //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
-  BPatch bp;
-  BPatch_addressSpace* libc = bp.openBinary(libcPath);
-  if(!libc) {
-    logerror("FAILED: Couldn't open libc for parse\n");
-    return FAILED;
-  }
-  
-  BPatch_Vector<BPatch_function*> funcs;
-  libc->getImage()->getProcedures(funcs);
+
   return PASSED;
 }
 
