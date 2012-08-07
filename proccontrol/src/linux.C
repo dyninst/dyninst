@@ -781,6 +781,33 @@ bool linux_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runnin
     return true;
 }
 
+// Ubuntu 10.10 and other hardened systems do not allow arbitrary ptrace_attaching; instead
+// you may only attach to a child process (https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening)
+//
+// We can detect this and warn the user; however, it takes root to disable it. 
+
+#include <fstream>
+static void warn_user_ptrace_restrictions() {
+  ifstream ptrace_scope("/proc/sys/kernel/yama/ptrace_scope");
+  if (ptrace_scope.is_open()) {
+    int val = 99;
+    ptrace_scope >> val;
+    if (val == 1) {
+      cerr << "Warning: your Linux system provides limited ptrace functionality as a security" << endl
+	   << "measure. This measure prevents ProcControl and Dyninst from attaching to binaries." << endl
+	   << "To temporarily disable this measure (until a reboot), execute the following command:" << endl
+	   << "\techo 1 > /proc/sys/kernel/yama/ptrace_scope" << endl;
+      struct stat statbuf;
+      if (!stat("/etc/sysctl.d/10-ptrace.conf", &statbuf)) {
+	cerr << "To permanently disable this measure, edit the file \"/etc/sysctl.d/10-ptrace.conf\"" << endl
+	     << "and follow the directions in that file." << endl;
+      }
+      cerr << "For more information, see https://wiki.ubuntu.com/SecurityTeam/Roadmap/KernelHardening" << endl;
+    }
+  } 
+}
+
+
 bool linux_process::plat_attach(bool, bool &)
 {
    pthrd_printf("Attaching to pid %d\n", pid);
@@ -791,12 +818,17 @@ bool linux_process::plat_attach(bool, bool &)
    if (result != 0) {
       int errnum = errno;
       pthrd_printf("Unable to attach to process %d: %s\n", pid, strerror(errnum));
-      if (errnum == EPERM)
-         setLastError(err_prem, "Do not have correct premissions to attach to pid");
-      else if (errnum == ESRCH)
+      switch(errnum) {
+      case EPERM:
+	warn_user_ptrace_restrictions();
+	setLastError(err_prem, "Do not have correct premissions to attach to pid");
+	break;
+      case ESRCH:
          setLastError(err_noproc, "The specified process was not found");
-      else {
+	 break;
+      default:
          setLastError(err_internal, "Unable to attach to the specified process");
+	 break;
       }
       return false;
    }

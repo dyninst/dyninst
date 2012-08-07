@@ -1013,9 +1013,9 @@ int isMutateeF77(BPatch_image *appImage) {
 }
 
 
-void MopUpMutatees(const unsigned int mutatees, BPatch_process *appProc[])
+void MopUpMutatees(const int mutatees, BPatch_process *appProc[])
 {
-  unsigned int n=0;
+  int n=0;
   dprintf("MopUpMutatees(%d)\n", mutatees);
   for (n=0; n<mutatees; n++) {
     if (appProc[n]) {

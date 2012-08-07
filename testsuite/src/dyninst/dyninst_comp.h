@@ -132,7 +132,7 @@ COMPLIB_DLL_EXPORT int isMutateeFortran(BPatch_image *appImage);
 // Tests to see if the mutatee has defined the mutateeF77 flag
 int isMutateeF77(BPatch_image *appImage);
 
-COMPLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_process *appProc[]);
+COMPLIB_DLL_EXPORT void MopUpMutatees(const int mutatees, BPatch_process *appProc[]);
 
 COMPLIB_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appThread,
         BPatch_process **mythreads, int *threadCount);
