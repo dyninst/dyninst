@@ -725,9 +725,11 @@ void int_process::setState(int_process::State s)
       (*i)->getGeneratorState().setState(new_thr_state);
 	  if(new_thr_state == int_thread::exited)
 	  {
-		  if((*i)->getPendingStopState().getState() != int_thread::dontcare)
-			  (*i)->getPendingStopState().restoreState();
-	  }
+             if((*i)->getPendingStopState().getState() != int_thread::dontcare) {
+                (*i)->getPendingStopState().restoreState();
+                (*i)->pendingStopsCount().dec();
+             }
+          }
    }
 }
 
@@ -1570,8 +1572,11 @@ void int_process::setForceGeneratorBlock(bool b)
    if (b) {
       force_generator_block_count.inc();
    }
-   else
-      force_generator_block_count.dec();
+   else {
+      if (force_generator_block_count.local())
+         force_generator_block_count.dec();
+   }
+
    pthrd_printf("forceGeneratorBlock - Count is now %d/%d\n", 
                 force_generator_block_count.localCount(),
                 Counter::globalCount(Counter::ForceGeneratorBlock));
@@ -2764,7 +2769,7 @@ bool int_thread::isStopped(int state_id)
 
 void int_thread::setPendingStop(bool b)
 {
-	pthrd_printf("Setting pending stop to %s, thread %d/%d\n", b ? "true" : "false", proc()->getPid(), getLWP());
+   pthrd_printf("Setting pending stop to %s, thread %d/%d\n", b ? "true" : "false", proc()->getPid(), getLWP());
    if (b) {
       pending_stop.inc();
 
@@ -2775,11 +2780,15 @@ void int_thread::setPendingStop(bool b)
       getPendingStopState().desyncState(int_thread::running);
    }
    else {
-      getPendingStopState().restoreState();
-      pending_stop.dec();
+      if (getPendingStopState().getState() != int_thread::dontcare) {
+         getPendingStopState().restoreState();
+         pending_stop.dec();
+      }
+      else {
+         pthrd_printf("Pending stop state == dontcare, ignoring\n");
+      }
    }
-	pthrd_printf("\t Pending stop level is %d\n", pending_stop.localCount());
-
+   pthrd_printf("\t Pending stop level is %d\n", pending_stop.localCount());
 }
 
 bool int_thread::hasPendingStop() const
@@ -7464,9 +7473,10 @@ void Counter::adjust(int val)
 {
    int index = (int) ct;
    locks[index].lock();
+   pthrd_printf("Adjusting counter %s by %d; before %d\n", getNameForCounter(index), val, global_counts[index]);
    global_counts[index] += val;
+   pthrd_printf("Adjusting counter %s by %d; after %d\n", getNameForCounter(index), val, global_counts[index]);
    assert(global_counts[index] >= 0);
-   pthrd_printf("Adjusting counter %s by %d to %d\n", getNameForCounter(index), val, global_counts[index]);
    locks[index].unlock();
    local_count += val;
 }

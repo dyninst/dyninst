@@ -690,6 +690,12 @@ Handler::handler_ret_t HandlePostExitCleanup::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-exit/crash cleanup for process %d on thread %d\n",
 	   proc->getPid(), thrd ? thrd->getLWP() : (Dyninst::LWP)(-1));
 
+   for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); ++i) {
+      (*i)->setPendingStop(false);
+   }
+
+   proc->setForceGeneratorBlock(false);
+
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
    } else {
