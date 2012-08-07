@@ -133,6 +133,11 @@ test_results_t test1_26_Mutator::executeTest()
 		return FAILED;
 	}
 
+        if (fields->size() < 4) {
+           logerror("**Failed** test #26; expected 4 fields, got %d\n", fields->size());
+           return FAILED;
+        }
+
 	for (i=0; i < 4; i++) {
 		char fieldName[80];
 		sprintf(fieldName, "field%d", i+1);
