@@ -111,6 +111,7 @@ public:
     bool isBootstrapped() const; // true if Dyninst has finished it's initialization for the process
     bool isAttached() const; // true if ok to operate on the process
     bool isStopped() const; // true if the process is stopped
+    bool isForcedTerminating() const { return forcedTerminating_; } // true if we're in the middle of a forced termination
     bool isTerminated() const; // true if the process is terminated ( either via normal exit or crash )
     bool hasExitedNormally() const; // true if the process has exited (via a normal exit)
     bool isExecing() const; // true if the process is in the middle of an exec
@@ -331,6 +332,7 @@ protected:
           attached_(true),
           execing_(false),
           exiting_(false),
+       forcedTerminating_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(false),
           processState_(ps_stopped),
@@ -371,6 +373,7 @@ protected:
           attached_(true), 
           execing_(false),
           exiting_(false),
+       forcedTerminating_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(true),
           processState_(ps_stopped),
@@ -414,6 +417,7 @@ protected:
           attached_(true), 
           execing_(false),
           exiting_(false),
+       forcedTerminating_(false),
           runningWhenAttached_(false), 
           createdViaAttach_(false),
           processState_(ps_stopped),
@@ -570,6 +574,7 @@ protected:
     bool attached_;
     bool execing_;
     bool exiting_;
+    bool forcedTerminating_;
     bool runningWhenAttached_;
     bool createdViaAttach_;
     processState_t processState_;

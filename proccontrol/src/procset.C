@@ -1518,6 +1518,12 @@ bool ProcessSet::terminate() const
       return false;
    }
 
+#if defined(os_linux)
+   pthrd_printf("Clearing queue pre-force-terminate\n");
+   int_process::waitAndHandleEvents(false);
+#endif
+
+   // Clean out the event queue before we terminate; otherwise we can race
    set<int_process *> procs;
    procset_iter iter("terminate", had_error, ERR_CHCK_NORM);
    for (int_processSet::iterator i = iter.begin(procset); i != iter.end(); i = iter.inc()) {

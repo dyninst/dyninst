@@ -188,17 +188,17 @@ PatchBlock::~PatchBlock() {
 
 Address
 PatchBlock::start() const {
-  return object()->codeBase() + block_->start();
+   return (object()->codeBase() + block_->start()) & object()->addrMask();
 }
 
 Address
 PatchBlock::end() const {
-  return object()->codeBase() + block_->end();
+   return (object()->codeBase() + block_->end()) & object()->addrMask();
 }
 
 Address
 PatchBlock::last() const {
-  return object()->codeBase() + block_->lastInsnAddr();
+   return (object()->codeBase() + block_->lastInsnAddr()) & object()->addrMask();
 }
 
 Address

@@ -42,7 +42,9 @@ PatchFunction::create(ParseAPI::Function *f, PatchObject* obj) {
 }
 
 PatchFunction::PatchFunction(ParseAPI::Function *f,
-     PatchObject* o) : func_(f), obj_(o), addr_(obj_->codeBase() + func_->addr()) {}
+                             PatchObject* o) : 
+   func_(f), obj_(o), addr_((obj_->codeBase() + func_->addr()) & obj_->addrMask()) {
+}
 
 PatchFunction::PatchFunction(const PatchFunction *parFunc, PatchObject* child)
   : func_(parFunc->func_), obj_(child), addr_(obj_->codeBase() + func_->addr()) {}

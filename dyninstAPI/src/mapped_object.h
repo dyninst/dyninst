@@ -164,7 +164,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     // Full name, including path
     const string &fullName() const { return fullName_; }
     const string &fileName() const { return fileName_; }
-    Address codeAbs() const { return codeBase() + imageOffset(); }
+    Address codeAbs() const;
     Address codeBase() const { return codeBase_; }
     Address imageOffset() const { return parse_img()->imageOffset(); }
     unsigned imageSize() const { return parse_img()->imageLength(); }
@@ -173,7 +173,7 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     // Deprecated...
     Address getBaseAddress() const { return codeBase(); }
 
-    Address dataAbs() const { return dataBase() + dataOffset(); }
+    Address dataAbs() const;
     Address dataBase() const { return dataBase_; }
     Address dataOffset() const { return parse_img()->dataOffset(); }
     unsigned dataSize() const { return parse_img()->dataLength(); }

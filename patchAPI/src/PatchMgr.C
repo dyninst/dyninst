@@ -173,8 +173,8 @@ bool PatchMgr::getCandidates(Scope &scope,
 
 bool PatchMgr::wantFuncs(Scope &scope, Point::Type types) {
   return (Point::TestType(types, Point::FuncDuring) ||
-          Point::TestType(types, Point::FuncEntry) &&
-         (scope.func || scope.obj || scope.wholeProgram));
+          (Point::TestType(types, Point::FuncEntry) &&
+           (scope.func || scope.obj || scope.wholeProgram)));
 }
 
 bool PatchMgr::wantCallSites(Scope &scope, Point::Type types) {

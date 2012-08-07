@@ -118,6 +118,14 @@ PatchObject::~PatchObject() {
   delete cb_;
 }
 
+Address PatchObject::addrMask() const {
+   const Address mask = (Address) -1;
+   if (co_->cs()->getAddressWidth() == 4)
+      return mask & 0xffffffff;
+   else
+      return mask;
+}
+
 PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
   if (!f) return NULL;

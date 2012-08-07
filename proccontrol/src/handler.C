@@ -2102,8 +2102,9 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
 
    // Don't allow the user to change the state of forced terminated processes 
    if( ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated() ) {
-       parent_result = Process::cbDefault;
-       child_result = Process::cbDefault;
+      pthrd_printf("Process is in forced termination, overriding result to cbProcContinue\n");
+       parent_result = Process::cbProcContinue;
+       child_result = Process::cbProcContinue;
    }
 
    // Now that the callback is over, return the state to what it was before the

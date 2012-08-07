@@ -1037,12 +1037,17 @@ bool int_process::waitAndHandleEvents(bool block)
       }
 
       gotEvent = true;
+
 #if defined(os_linux)
       // Linux is bad about enforcing event ordering, and so we will get 
       // thread events after a process has exited.
-      if (ev->getProcess()->isTerminated() &&
-          (ev->getEventType().time() != EventType::Post) &&
-          (ev->getEventType().code() != EventType::Exit)) {
+//      bool terminating = (ev->getProcess()->isTerminated()) ||
+//         (ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated());
+      bool terminating = (ev->getProcess()->isTerminated());
+
+      bool exitEvent = (ev->getEventType().time() == EventType::Post &&
+                        ev->getEventType().code() == EventType::Exit);
+      if (terminating && !exitEvent) {
          // Since the user will never handle this one...
 	pthrd_printf("Received event %s on terminated process, ignoring\n",
 		     ev->name().c_str());
@@ -1050,6 +1055,7 @@ bool int_process::waitAndHandleEvents(bool block)
 	continue;
       }
 #endif
+
       int_process* llp = ev->getProcess()->llproc();
       if(!llp) {
          error = true;
@@ -1163,6 +1169,7 @@ bool int_process::terminate(bool &needs_sync)
    // Do it all the time
    setForceGeneratorBlock(true);
 #endif
+
    return true;
 }
 
@@ -1560,8 +1567,9 @@ bool int_process::infFree(int_addressSet *aset)
 
 void int_process::setForceGeneratorBlock(bool b)
 {
-   if (b)
+   if (b) {
       force_generator_block_count.inc();
+   }
    else
       force_generator_block_count.dec();
    pthrd_printf("forceGeneratorBlock - Count is now %d/%d\n", 
@@ -3931,7 +3939,7 @@ bool int_thread::StateTracker::setState(State to)
      if (generator_state != stopped &&
 	 generator_state != exited &&
 	 generator_state != detached) {
-       cerr << "Crashing: generator state is " << generator_state << endl;
+        pthrd_printf("Crashing: generator state is %d\n", generator_state);
      }
      assert(generator_state == stopped || generator_state == exited || generator_state == detached );
    }

@@ -1141,6 +1141,8 @@ bool PCProcess::terminateProcess() {
 
     if( !isAttached() ) return false;
 
+    forcedTerminating_ = true;
+
     proccontrol_printf("%s[%d]: Terminating process %d\n", FILE__, __LINE__, getPid());
     if( !pcProc_->terminate() ) {
         proccontrol_printf("%s[%d]: Failed to terminate process %d\n", FILE__, __LINE__, 

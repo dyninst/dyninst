@@ -1380,7 +1380,7 @@ bool linux_process::preTerminate() {
          return false;
       }
    }
-
+   threadPool()->initialThread()->getInternalState().restoreStateProc();
 
    int_threadPool::iterator i;
    for(i = threadPool()->begin(); i != threadPool()->end(); i++)

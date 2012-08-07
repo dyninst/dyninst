@@ -194,13 +194,16 @@ bool PCEventMuxer::registerCallbacks() {
 // Apologies for the #define, but I get tired of copying the same text over and over, and since this has
 // a shortcut return it can't be a subfunction. 
 #define INITIAL_MUXING \
-	PCProcess *process = static_cast<PCProcess *>(ev->getProcess()->getData()); \
-    proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process); \
-    if( process == NULL ) { \
-	    proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
-        return Process::cb_ret_t(Process::cbDefault, Process::cbDefault); \
-    } \
-    Process::cb_ret_t ret = ret_stopped; 
+   PCProcess *process = static_cast<PCProcess *>(ev->getProcess()->getData()); \
+   proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process); \
+   if( process == NULL ) {                                              \
+      proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
+      return ret_default;                                               \
+   }                                                                    \
+   if (process->isForcedTerminating()) {                                \
+      return ret_continue;                                              \
+   }                                                                    \
+   Process::cb_ret_t ret = ret_stopped; 
 
 #define DEFAULT_RETURN \
 	PCEventMuxer &m = PCEventMuxer::muxer(); \

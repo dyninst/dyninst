@@ -112,20 +112,20 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       dataBase_ = 0;
    }
 #endif
-#if 0
-   fprintf(stderr, "Creating new mapped_object %s/%s\n",
-         fullName_.c_str(), getFileDesc().member().c_str());
-   fprintf(stderr, "codeBase 0x%lx, codeOffset 0x%lx, size %d\n",
-         codeBase_, image_->imageOffset(), image_->imageLength());
-   fprintf(stderr, "dataBase 0x%lx, dataOffset 0x%lx, size %d\n",
-         dataBase_, image_->dataOffset(), image_->dataLength());
-   fprintf(stderr, "fileDescriptor: code at 0x%lx, data 0x%lx\n",
-         fileDesc.code(), fileDesc.data());
-   fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
-         codeAbs(), codeAbs() + imageSize());
-   fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
-         dataAbs(), dataAbs() + dataSize());
-#endif
+   
+   startup_printf("[%s:%d] Creating new mapped_object %s/%s\n",
+                  FILE__, __LINE__, fullName_.c_str(), getFileDesc().member().c_str());
+   startup_printf("[%s:%d] \tcodeBase 0x%lx, codeOffset 0x%lx, size %d\n",
+                  FILE__, __LINE__, codeBase_, image_->imageOffset(), image_->imageLength());
+   startup_printf("[%s:%d] \tdataBase 0x%lx, dataOffset 0x%lx, size %d\n",
+                  FILE__, __LINE__, dataBase_, image_->dataOffset(), image_->dataLength());
+   startup_printf("[%s:%d] \tfileDescriptor: code at 0x%lx, data 0x%lx\n",
+                  FILE__, __LINE__, fileDesc.code(), fileDesc.data());
+   startup_printf("[%s:%d] \tCode: 0x%lx to 0x%lx\n",
+                  FILE__, __LINE__, codeAbs(), codeAbs() + imageSize());
+   startup_printf("[%s:%d] \tData: 0x%lx to 0x%lx\n",
+                  FILE__, __LINE__, dataAbs(), dataAbs() + dataSize());
+
 
    // Sets "fileName_"
    set_short_name();
@@ -308,6 +308,30 @@ mapped_object::~mapped_object()
    // codeRangesByAddr_ is static
     // Remainder are static
    image::removeImage(image_);
+}
+
+Address mapped_object::codeAbs() const {
+   // RHEL tends to use "negative" codeBase values
+   // (such that codeBase + codeOffset wraps) for 32-bit
+   // processes. Handle the math here. 
+   if (proc()->getAddressWidth() == 8) {
+      return codeBase_ + imageOffset();
+   }
+   else {
+      return ((codeBase_ + imageOffset()) & 0xffffffff);
+   }
+}
+
+Address mapped_object::dataAbs() const {
+   // RHEL tends to use "negative" codeBase values
+   // (such that codeBase + codeOffset wraps) for 32-bit
+   // processes. Handle the math here. 
+   if (proc()->getAddressWidth() == 8) {
+      return dataBase_ + dataOffset();
+   }
+   else {
+      return ((dataBase_ + dataOffset()) & 0xffffffff);
+   }
 }
 
 bool mapped_object::analyze()

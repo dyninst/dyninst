@@ -158,15 +158,18 @@ const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
  **/
 Address PCProcess::findFunctionToHijack()
 {
+   startup_printf("[%s:%d] Entering findFunctionToHijack\n", FILE__, __LINE__);
    Address codeBase = 0;
    unsigned i;
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
-
+      startup_printf("[%s:%d] trying %s\n", FILE__, __LINE__, func_name);
       pdvector<func_instance *> hijacks;
       if (!findFuncsByAll(func_name, hijacks)) continue;
       codeBase = hijacks[0]->addr();
-
+      startup_printf("[%s:%d] Using %s/%s, with base address 0x%lx\n",
+                     FILE__, __LINE__, func_name, hijacks[0]->obj()->fileName().c_str(),
+                     codeBase);
       if (codeBase)
           break;
    }
