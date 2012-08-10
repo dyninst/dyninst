@@ -205,7 +205,7 @@ public:
 
     // Platform-dependent functionality
     virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
-    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+    virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gprs_only = false);
 
     virtual bool haveUserThreadInfo();
     virtual bool getTID(Dyninst::THR_ID &tid);

@@ -243,7 +243,7 @@ class bgq_thread : public thread_db_thread, ppc_thread
    virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
-   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gpr_only = false);
 
    virtual CallStackUnwinding *getStackUnwinder();
 

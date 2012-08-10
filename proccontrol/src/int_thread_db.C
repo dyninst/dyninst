@@ -215,7 +215,7 @@ ps_err_e ps_lgetregs(struct ps_prochandle *handle, lwpid_t lwp, prgregset_t regs
       return PS_ERR;
    }
 
-   bool bresult = thr->plat_convertToSystemRegs(pool, (unsigned char *) regs);
+   bool bresult = thr->plat_convertToSystemRegs(pool, (unsigned char *) regs, true);
    if (!bresult) {
       pthrd_printf("Error convering to system regs\n");
       return PS_ERR;
@@ -1149,7 +1149,7 @@ bool thread_db_process::plat_supportThreadEvents()
 }
 
 bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
-                                                unsigned char *)
+                                                unsigned char *, bool)
 {
     return true;
 }
@@ -1790,7 +1790,7 @@ bool thread_db_thread::getTLSPtr(Dyninst::Address &)
 }
 
 bool thread_db_thread::plat_convertToSystemRegs(const int_registerPool &,
-                                                unsigned char *)
+                                                unsigned char *, bool)
 {
    return true;
 }
