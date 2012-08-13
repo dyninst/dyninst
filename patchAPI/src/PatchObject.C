@@ -126,6 +126,10 @@ Address PatchObject::addrMask() const {
       return mask;
 }
 
+Address PatchObject::codeOffsetToAddr(Address offset) const {
+   return ((codeBase() + offset) & addrMask());
+}
+
 PatchFunction*
 PatchObject::getFunc(ParseAPI::Function *f, bool create) {
   if (!f) return NULL;

@@ -170,6 +170,10 @@ class mapped_object : public codeRange, public Dyninst::PatchAPI::DynObject {
     unsigned imageSize() const { return parse_img()->imageLength(); }
     unsigned memoryEnd(); // largest allocated memory address + 1
 
+    // 32-bit math safe!
+    bool isCode(Address addr) const;
+    bool isData(Address addr) const;
+
     // Deprecated...
     Address getBaseAddress() const { return codeBase(); }
 

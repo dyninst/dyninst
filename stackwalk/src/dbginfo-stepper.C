@@ -224,7 +224,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
    }
 
    Offset offset;
-   void *symtab_v;
+   void *symtab_v = NULL;
    std::string lib;
    depth_frame->getLibOffset(lib, offset, symtab_v);
    Symtab *symtab = (Symtab*) symtab_v;

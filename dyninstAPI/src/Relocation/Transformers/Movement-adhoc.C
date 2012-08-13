@@ -241,14 +241,28 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
   }
    
   Architecture fixme = insn->getArch();
-   if (fixme == Arch_ppc32) fixme = Arch_ppc64;
-   
-   Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
-   Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+  if (fixme == Arch_ppc32) fixme = Arch_ppc64;
 
-  // Bind the IP, why not...
-  CFT->bind(thePC.get(), Result(u64, ptr->addr()));
-  CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
+  
+  
+  Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(insn->getArch())));
+  Expression::Ptr thePCFixme(new RegisterAST(MachRegister::getPC(fixme)));
+
+  switch(insn->getArch()) {
+     case Arch_x86:
+     case Arch_ppc32:
+        CFT->bind(thePC.get(), Result(u32, ptr->addr()));
+        CFT->bind(thePCFixme.get(), Result(u32, ptr->addr()));
+        break;
+     case Arch_x86_64:
+     case Arch_ppc64:
+        CFT->bind(thePC.get(), Result(u64, ptr->addr()));
+        CFT->bind(thePCFixme.get(), Result(u64, ptr->addr()));
+        break;
+     default:
+        assert(0);
+        break;
+  }
 
   Result res = CFT->eval();
 
@@ -316,8 +330,8 @@ bool adhocMovementTransformer::isGetPC(Widget::Ptr ptr,
       return true;
     }
   }
-  else {
-    relocation_cerr << "      ... not call thunk, ret false" << endl;
+  else {     
+     relocation_cerr << "\t Call to " << hex << target << " is not valid address, concluding not thunk" << dec << endl;
   }
   return false;
 }

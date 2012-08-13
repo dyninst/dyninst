@@ -65,7 +65,7 @@ PatchBlock::getInsns(Insns &insns) const {
   InstructionDecoder d(ptr, size(), block_->obj()->cs()->getArch());
   while (off < block_->end()) {
     Instruction::Ptr insn = d.decode();
-    insns[off + obj_->codeBase()] = insn;
+    insns[obj_->codeOffsetToAddr(off)] = insn;
     off += insn->size();
   }
 }

@@ -68,6 +68,7 @@ class PatchObject {
 
     // Getters and setter
     Address codeBase() const { return codeBase_; }
+    Address codeOffsetToAddr(Address offset) const;
     Address addrMask() const;
     ParseAPI::CodeObject* co() const { return co_; }
     //ParseAPI::CodeSource* cs() const { return cs_; }

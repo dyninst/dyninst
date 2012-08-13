@@ -858,9 +858,8 @@ bool AddressSpace::isData(const Address addr) const {
 bool AddressSpace::isValidAddress(const Address addr) const {
    mapped_object *obj = findObject(addr);
    if (!obj) return false;
-   if ( obj->parse_img()->getObject()->isCode(addr - obj->codeBase()) ||
-        obj->parse_img()->getObject()->isData(addr - obj->dataBase())   )
-      return true;
+   
+   if (obj->isCode(addr) || obj->isData(addr)) return true;
    return false;
 }
 

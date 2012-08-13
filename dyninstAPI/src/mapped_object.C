@@ -334,6 +334,30 @@ Address mapped_object::dataAbs() const {
    }
 }
 
+bool mapped_object::isCode(Address addr) const {
+   Address offset;
+   if (proc()->getAddressWidth() == 8) {
+      offset = addr - codeBase();
+   }
+   else {
+      offset = ((unsigned) addr) - ((unsigned) codeBase());
+   }
+
+   return parse_img()->getObject()->isCode(offset);
+}
+
+bool mapped_object::isData(Address addr) const {
+   Address offset;
+   if (proc()->getAddressWidth() == 8) {
+      offset = addr - codeBase();
+   }
+   else {
+      offset = ((unsigned) addr) - ((unsigned) codeBase());
+   }
+
+   return parse_img()->getObject()->isData(offset);
+}
+
 bool mapped_object::analyze()
 {
     if (analyzed_) return true;
@@ -1094,19 +1118,16 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 
 
 void *mapped_object::getPtrToInstruction(Address addr) const {
-  //cerr << std::hex << addr << ", codeAbs: " << codeAbs() << "\n" << std::dec ;
-  if (addr < codeAbs()) {
-    assert(0);
-    return NULL;
-  }
-  if (addr >= (codeAbs() + imageSize())) {
-    assert(0);
-    return NULL;
-  }
+   if (!isCode(addr)) return NULL;
+   
+   Address offset;
+   if (proc()->getAddressWidth() == 8) {
+      offset = addr - codeBase();
+   }
+   else {
+      offset = ((unsigned) addr) - ((unsigned) codeBase());
+   }
 
-  // Only subtract off the codeBase, not the codeBase plus
-  // codeOffset -- the image class includes the codeOffset.
-  Address offset = addr - codeBase();
   return image_->codeObject()->cs()->getPtrToInstruction(offset);
 }
 
