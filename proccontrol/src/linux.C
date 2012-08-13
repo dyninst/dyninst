@@ -1997,7 +1997,9 @@ bool linux_thread::plat_setAllRegisters(int_registerPool &regpool)
    return true;
 }
 
-bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) {
+bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area,
+                                            bool gprs_only)
+{
    init_dynreg_to_user();
 
    Architecture curplat = llproc()->getTargetArch();
@@ -2008,6 +2010,37 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       MachRegisterVal val;
       if (reg.getArchitecture() != curplat)
          continue;
+
+      if (gprs_only) {
+         bool is_gpr;
+         int rclass = (int) reg.regClass();
+
+         switch (llproc()->getTargetArch()) {
+            //In this case our definition of GPR is anything stored in the elf_gregset_t of 
+            // the user struct.
+            case Dyninst::Arch_x86:
+               is_gpr = ((rclass == x86::GPR) || (rclass == x86::FLAG) || 
+                         (rclass == x86::MISC) || (rclass == x86::SEG) || !rclass);
+               break;
+            case Dyninst::Arch_x86_64:
+               is_gpr = ((rclass == x86_64::GPR) || (rclass == x86_64::FLAG) || 
+                         (rclass == x86_64::MISC) || (rclass == x86_64::SEG) || !rclass);
+               break;
+            case Dyninst::Arch_ppc32:
+               is_gpr = true;
+               break;
+            case Dyninst::Arch_ppc64:
+               is_gpr = true;
+               break;
+            default:
+               assert(0);
+         }
+
+         if (!is_gpr) {
+            continue;
+         }
+      }
+
       num_found++;
       const unsigned int offset = i->second.first;
       const unsigned int size = i->second.second;
@@ -2020,7 +2053,7 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       if (size == 4) {
           if( sizeof(void *) == 8 ) {
               *((uint64_t *) (user_area+offset)) = (uint64_t) val;
-          }else{
+          } else {
               *((uint32_t *) (user_area+offset)) = (uint32_t) val;
           }
       }
@@ -2033,14 +2066,13 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       pthrd_printf("Register %s gets value %lx, offset %d\n", reg.name().c_str(), val, offset);
    }
 
-   if (num_found != regpool.regs.size())
+   if (!gprs_only && (num_found != regpool.regs.size()))
    {
       setLastError(err_badparam, "Invalid register set passed to setAllRegisters");
       perr_printf("Couldn't find all registers in the register set %u/%u\n", num_found,
                   (unsigned int) regpool.regs.size());
       return false;
    }
-   assert(num_found == regpool.regs.size());
 
    return true;
 }

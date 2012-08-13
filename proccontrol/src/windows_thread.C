@@ -350,7 +350,7 @@ bool windows_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRe
 	return false;
 }
 
-bool windows_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area) 
+bool windows_thread::plat_convertToSystemRegs(const int_registerPool &regpool, unsigned char *user_area, bool) 
 {
 	assert(!"Not implemented");
 	return false;

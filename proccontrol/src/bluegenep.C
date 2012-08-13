@@ -1790,7 +1790,7 @@ void bgp_thread::setDecoderPendingStop(bool b)
    decoderPendingStop_ = b;
 }
 
-bool bgp_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *r)
+bool bgp_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *r, bool)
 {
    bool is_32 = Dyninst::getArchAddressWidth(llproc()->getTargetArch()) == 4;
    for (int_registerPool::const_iterator i = pool.regs.begin(); i != pool.regs.end(); i++) {

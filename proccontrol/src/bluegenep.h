@@ -157,7 +157,7 @@ class bgp_thread : public thread_db_thread
    bool plat_getAllRegistersAsync(allreg_response::ptr result);
    bool plat_setAllRegistersAsync(int_registerPool &pool, result_response::ptr result);
 
-   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gpr_only = false);
    virtual bool attach();   
 
    bool decoderPendingStop();

@@ -1727,7 +1727,7 @@ bool bgq_thread::plat_setRegisterAsync(Dyninst::MachRegister reg, Dyninst::MachR
    return false;
 }
 
-bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *output_buffer)
+bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *output_buffer, bool gpr_only)
 {
    bgq_thread::regPoolToUser(pool, output_buffer);
    return true;

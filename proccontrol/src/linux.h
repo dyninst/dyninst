@@ -194,7 +194,7 @@ class linux_thread : virtual public thread_db_thread
                                       Dyninst::MachRegisterVal val,
                                       result_response::ptr result);
    virtual bool thrdb_getThreadArea(int val, Dyninst::Address &addr);
-   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs);
+   virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gprs_only = false);
 
    void setOptions();
    bool unsetOptions();
