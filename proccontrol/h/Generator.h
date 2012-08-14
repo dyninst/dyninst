@@ -64,7 +64,7 @@ class PC_EXPORT Generator
    static void registerNewEventCB(gen_cb_func_t func);
    static void removeNewEventCB(gen_cb_func_t);
    
-
+   void forceEventBlock();
 
    //State tracking
    typedef enum {
@@ -118,6 +118,9 @@ class PC_EXPORT Generator
 
    //  Optional interface for systems that want to return multiple events
    virtual bool getMultiEvent(bool block, std::vector<ArchEvent *> &events);
+
+  private:
+   bool eventBlock_;
 };
 
 class PC_EXPORT GeneratorMT : public Generator

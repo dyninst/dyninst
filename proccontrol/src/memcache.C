@@ -508,6 +508,11 @@ async_ret_t memCache::writeMemorySync(Dyninst::Address dest, void *src, unsigned
 async_ret_t memCache::readMemory(void *dest, Address src, unsigned long size, 
                                  set<mem_response::ptr> &resps, int_thread *thrd)
 {
+   // Normalize addresses
+   if (proc->getAddressWidth() == 4) {
+      src &= 0xffffffff;
+   }
+
    if (proc->plat_needsAsyncIO()) {
       if (!block_size) 
          block_size = proc->plat_getRecommendedReadSize();
@@ -520,6 +525,11 @@ async_ret_t memCache::readMemory(void *dest, Address src, unsigned long size,
 async_ret_t memCache::writeMemory(Dyninst::Address dest, void *src, unsigned long size,
                                   std::set<result_response::ptr> &resps, int_thread *thrd)
 {
+   // Normalize addresses
+   if (proc->getAddressWidth() == 4) {
+      dest &= 0xffffffff;
+   }
+
    if (proc->plat_needsAsyncIO()) {
       if (!block_size)
          block_size = proc->plat_getRecommendedReadSize();

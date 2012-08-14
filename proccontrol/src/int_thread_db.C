@@ -1006,9 +1006,13 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
                     symName ? symName : "NULL");
        return PS_NOSYM;
     }
+    
+    Address tmp = lib->getAddr() + objSymReader->getSymbolOffset(lookupSym);
+    if (getAddressWidth() == 4) {
+       tmp &= 0xffffffff;
+    }
 
-    *symbolAddr = (psaddr_t) (lib->getAddr() + 
-                              objSymReader->getSymbolOffset(lookupSym));
+    *symbolAddr = (psaddr_t) tmp;
 
     pthrd_printf("thread_db getSymbolAddr(%s, %s) = %p\n", objName ? objName : "NULL", 
                  symName ? symName : "NULL", *symbolAddr);
@@ -1649,6 +1653,7 @@ bool thread_db_thread::thrdb_getThreadArea(int, Dyninst::Address &)
 
 bool thread_db_thread::haveUserThreadInfo()
 {
+   pthrd_printf("haveUserThreadInfo (%d/%d): %d\n", (llproc() ? llproc()->getPid() : 0), lwp, thread_initialized);
    return thread_initialized;
 }
 

@@ -250,6 +250,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       lproc = dynamic_cast<linux_process *>(proc);
    }
 
+   if (ProcPool()->deadThread(archevent->pid)) {
+      return true;
+   }
+
+   if (!proc) {
+      pthrd_printf("Warning: could not find event for process %d\n", archevent->pid);
+   }
+
    Event::ptr event = Event::ptr();
    ArchEventLinux *child = NULL;
    ArchEventLinux *parent = NULL;
@@ -1322,7 +1330,7 @@ bool linux_process::plat_detach(result_response::ptr)
       long result = do_ptrace((pt_req) PTRACE_DETACH, thr->getLWP(), NULL, (void *) 0);
       if (result == -1) {
          had_error = true;
-         perr_printf("Failed to PTRACE_DETACH on %d/%d\n", getPid(), thr->getLWP());
+         perr_printf("Failed to PTRACE_DETACH on %d/%d (%s)\n", getPid(), thr->getLWP(), strerror(errno));
          setLastError(err_internal, "PTRACE_DETACH operation failed\n");
       }
    }
@@ -1333,7 +1341,8 @@ bool linux_process::plat_terminate(bool &needs_sync)
 {
    //ProcPool lock should be held.
    //I had been using PTRACE_KILL here, but that was proving to be inconsistent.
-   
+
+
    pthrd_printf("Terminating process %d\n", getPid());
    int result = kill(getPid(), SIGKILL);
    if (result == -1) {
@@ -1353,17 +1362,6 @@ bool linux_process::plat_terminate(bool &needs_sync)
 }
 
 bool linux_process::preTerminate() {
-#if defined(bug_force_terminate_failure)
-    // On some Linux versions (currently only identified on our power platform),
-    // a force terminate can fail to actually kill a process due to some OS level
-    // race condition. The result is that some threads in a process are stopped
-    // instead of exited and for some reason, continues will not continue the 
-    // process. This can be detected because some OS level structures (such as pipes)
-    // still exist for the terminated process
-
-    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
-    // events being delivered to the debugger, so we stop the process and disable these
-    // events for all threads in the process
 
    pthrd_printf("Stopping process %d for pre-terminate handling\n", getPid());
    threadPool()->initialThread()->getInternalState().desyncStateProc(int_thread::stopped);
@@ -1380,7 +1378,20 @@ bool linux_process::preTerminate() {
          return false;
       }
    }
+   pthrd_printf("Putting process %d back into previous state\n", getPid());
    threadPool()->initialThread()->getInternalState().restoreStateProc();
+
+#if defined(bug_force_terminate_failure)
+    // On some Linux versions (currently only identified on our power platform),
+    // a force terminate can fail to actually kill a process due to some OS level
+    // race condition. The result is that some threads in a process are stopped
+    // instead of exited and for some reason, continues will not continue the 
+    // process. This can be detected because some OS level structures (such as pipes)
+    // still exist for the terminated process
+
+    // It appears that this bug largely results from the pre-LWP destroy and pre-Exit
+    // events being delivered to the debugger, so we stop the process and disable these
+    // events for all threads in the process
 
    int_threadPool::iterator i;
    for(i = threadPool()->begin(); i != threadPool()->end(); i++)
@@ -1395,8 +1406,17 @@ bool linux_process::preTerminate() {
       }
    }
 #endif
+   
+   // We don't want to be mixing termination and breakpoint stepping. 
+   removeAllBreakpoints();
 
-    return true;
+   // And put things back where we found them. 
+   throwNopEvent();
+
+   pthrd_printf("Waiting for process %d to resynchronize before terminating\n", getPid());
+   int_process::waitAndHandleEvents(false);
+
+   return true;
 }
 
 OSType linux_process::getOS() const
@@ -2045,6 +2065,8 @@ bool linux_thread::plat_convertToSystemRegs(const int_registerPool &regpool, uns
       const unsigned int offset = i->second.first;
       const unsigned int size = i->second.second;
       assert(offset+size < MAX_USER_SIZE);
+
+      if ((offset+size) > sizeof(prgregset_t)) continue;
       
       int_registerPool::reg_map_t::const_iterator j = regpool.regs.find(reg);
       assert(j != regpool.regs.end());
@@ -2494,15 +2516,45 @@ void LinuxHandleLWPDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
     etypes.push_back(EventType(EventType::Pre, EventType::LWPDestroy));
 }
 
+LinuxHandleForceTerminate::LinuxHandleForceTerminate() :
+   Handler("Linux Force Termination") {};
+
+LinuxHandleForceTerminate::~LinuxHandleForceTerminate() {}
+
+Handler::handler_ret_t LinuxHandleForceTerminate::handleEvent(Event::ptr ev) {
+   int_process *proc = ev->getProcess()->llproc();
+
+   for (int_threadPool::iterator iter = proc->threadPool()->begin(); 
+        iter != proc->threadPool()->end(); ++iter) {
+#if defined(os_linux)
+      do_ptrace((pt_req) PTRACE_DETACH, (*iter)->getLWP(), NULL, NULL);
+#endif
+   }
+   return ret_success;
+}
+
+int LinuxHandleForceTerminate::getPriority() const
+{
+   return PostPlatformPriority;
+}
+
+void LinuxHandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Post, EventType::ForceTerminate));
+}
+
 HandlerPool *linux_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool initialized = false;
    static LinuxHandleNewThr *lbootstrap = NULL;
+   static LinuxHandleForceTerminate *lterm = NULL;
    if (!initialized) {
       lbootstrap = new LinuxHandleNewThr();
+      lterm = new LinuxHandleForceTerminate();
       initialized = true;
    }
    hpool->addHandler(lbootstrap);
+   hpool->addHandler(lterm);
    thread_db_process::addThreadDBHandlers(hpool);
    sysv_process::addSysVHandlers(hpool);
    return hpool;

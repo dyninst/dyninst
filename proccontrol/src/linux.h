@@ -292,6 +292,15 @@ class LinuxHandleLWPDestroy : public Handler
      void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+class LinuxHandleForceTerminate : public Handler
+{
+  public:
+   LinuxHandleForceTerminate();
+   virtual ~LinuxHandleForceTerminate();
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+   virtual int getPriority() const;
+   void getEventTypesHandled(std::vector<EventType> &etypes);
+};
 
 SymbolReaderFactory *getElfReader();
 

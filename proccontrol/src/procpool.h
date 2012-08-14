@@ -30,6 +30,7 @@
 #if !defined(PROCPOOL_H_)
 #define PROCPOOL_H_
 
+#include <set>
 #include <map>
 #include "dyntypes.h"
 #include "common/h/dthread.h"
@@ -43,6 +44,7 @@ class ProcessPool
 {
    friend ProcessPool *ProcPool();
  protected:
+   std::set<Dyninst::LWP> deadThreads;
    std::map<Dyninst::PID, int_process *> procs;
    std::map<Dyninst::LWP, int_thread *> lwps;
    ProcessPool();
@@ -57,6 +59,9 @@ class ProcessPool
    void rmProcess(int_process *proc);
    void rmThread(int_thread *thr);
    int_thread *findThread(Dyninst::LWP lwp);
+   // On Linux, we can get notifications for dead threads. Fun. 
+   bool deadThread(Dyninst::LWP lwp);
+   void addDeadThread(Dyninst::LWP lwp);
    unsigned numProcs();
    bool LWPIDsAreUnique();
    bool for_each(ifunc f, void *data = NULL);

@@ -32,7 +32,7 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 #include "proccontrol/h/Mailbox.h"
-
+#include "proccontrol/h/Generator.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_handler.h"
@@ -1540,6 +1540,11 @@ bool ProcessSet::terminate() const
       }
       procs.insert(proc);
    }
+
+   // Handle anything from preTerminate
+#if defined(os_linux)
+   int_process::waitAndHandleEvents(false);
+#endif
 
    ProcPool()->condvar()->lock();
 

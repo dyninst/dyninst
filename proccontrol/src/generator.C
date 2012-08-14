@@ -65,7 +65,8 @@ int_cleanup::~int_cleanup() {
 
 Generator::Generator(std::string name_) :
    state(none),
-   name(name_)
+   name(name_),
+   eventBlock_(false)
 {
    if (!cb_lock) cb_lock = new Mutex();
 }
@@ -73,6 +74,12 @@ Generator::Generator(std::string name_) :
 Generator::~Generator()
 {
    setState(exiting);
+}
+
+void Generator::forceEventBlock() {
+   pthrd_printf("Forcing generator to block in waitpid\n");
+   eventBlock_ = true;
+   ProcPool()->condvar()->broadcast();
 }
 
 void Generator::stopDefaultGenerator() {
@@ -153,6 +160,7 @@ bool Generator::getMultiEvent(bool block, vector<ArchEvent *> &events)
    if (!ev)
       return false;
    events.push_back(ev);
+   eventBlock_ = false;
    return true;
 }
 
@@ -260,6 +268,7 @@ Generator::state_t Generator::getState()
 // TODO: override this in Windows generator so that we use local counters
 bool Generator::hasLiveProc()
 {
+   pthrd_printf("Entry to generator::hasLiveProc()\n");
    if (plat_skipGeneratorBlock()) {
       return true;
    }
@@ -276,10 +285,20 @@ bool Generator::hasLiveProc()
       pthrd_printf("Generator has all exited threads, returning false from hasLiveProc\n");
       return false;
    }
-   if(num_force_generator_blocking) {
-      pthrd_printf("Generator forcing blocking, returning true from hasLiveProc\n");
-      return true;
+   if (num_force_generator_blocking) {
+      bool override = true;
+#if defined(os_linux)
+      // We only want to block if the mailbox is empty; otherwise we double up events
+      if (mbox()->size() > 0) override = false;
+#endif
+      if (override) {
+         pthrd_printf("Forcing generator blocking\n");
+         return true;
+      }
    }
+
+
+   pthrd_printf("No live processes, ret false\n");
    return false;
 }
 
@@ -405,8 +424,8 @@ bool GeneratorMT::processWait(bool block)
       pthrd_printf("Checked and found no live processes\n");
       if (!block) {
          pthrd_printf("Returning from non-blocking processWait\n");
-		 pp->condvar()->broadcast();
-		 pp->condvar()->unlock();
+         pp->condvar()->broadcast();
+         pp->condvar()->unlock();
          return false;
       }
       pp->condvar()->wait();

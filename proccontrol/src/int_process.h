@@ -305,6 +305,8 @@ class int_process
    bool addBreakpoint_phase3(bp_install_state *is);
 
    bool removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, std::set<response::ptr> &resps);
+   bool removeAllBreakpoints();
+
    sw_breakpoint *getBreakpoint(Dyninst::Address addr);
 
    virtual unsigned plat_breakpointSize() = 0;

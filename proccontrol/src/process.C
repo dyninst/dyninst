@@ -997,10 +997,13 @@ bool int_process::waitAndHandleEvents(bool block)
       //      and the below dequeue.  Perhaps dequeue should alway poll, and the user thread loops
       //      over it while (should_block == true), with a condition variable signaling when the 
       //      should_block would go to false (so we don't just spin).
+
+      if (should_block && Counter::globalCount(Counter::ForceGeneratorBlock)) {
+         // Entirely possible we didn't continue anything, but we want the generator to 
+         // wake up anyway
+         ProcPool()->condvar()->broadcast();
+      }
          
-      /**
-       * Check for new events
-       **/
       Event::ptr ev = mbox()->dequeue(should_block);
 
       if (ev == Event::ptr())
@@ -1091,6 +1094,7 @@ bool int_process::waitAndHandleEvents(bool block)
       }
     
       llproc = proc->llproc();
+
       if (llproc) {
          bool result = llproc->syncRunState();
          if (!result) {
@@ -1150,7 +1154,7 @@ bool int_process::terminate(bool &needs_sync)
    forcedTermination = true;
 
 	// On windows this leads to doubling up events
-#if defined(os_windows)
+#if defined(os_windows) 
    // If we're on windows, we want to force the generator thread into waiting for a debug
    // event _if the process is stopped_. If the process is running then we're already
    // waiting (or will wait) for a debug event, and forcing the generator to block may
@@ -1275,6 +1279,13 @@ int_thread *int_process::findStoppedThread()
 
 bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int_thread *thr)
 {
+   if (getAddressWidth() == 4) {
+      Address old = remote;
+      remote &= 0xffffffff;
+      pthrd_printf("Address cropping for 32-bit: 0x%lx to 0x%lx\n",
+                   old, remote);
+   }
+   
    if (!thr && plat_needsThreadForMemOps())
    {
       thr = findStoppedThread();
@@ -1316,6 +1327,13 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
+   if (getAddressWidth() == 4) {
+      Address old = remote;
+      remote &= 0xffffffff;
+      pthrd_printf("Address cropping for 32-bit: 0x%lx to 0x%lx\n",
+                   old, remote);
+   }
+   
    if (!thr && plat_needsThreadForMemOps()) 
    {
       thr = findStoppedThread();
@@ -1696,6 +1714,19 @@ bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
       instance = sw_breakpoint::create(this, bp, addr);
    }
    return (instance != NULL);
+}
+
+bool int_process::removeAllBreakpoints() {
+   if (!mem) return true;
+   bool ret = true;
+
+   for (std::map<Dyninst::Address, sw_breakpoint *>::iterator iter = mem->breakpoints.begin();
+        iter != mem->breakpoints.end(); ++iter) {
+      std::set<response::ptr> resps;
+      if (!iter->second->uninstall(this, resps)) ret = false;
+      assert(resps.empty());
+   }
+   return ret;
 }
 
 bool int_process::removeBreakpoint(Dyninst::Address addr, int_breakpoint *bp, set<response::ptr> &resps)
@@ -3135,6 +3166,8 @@ void int_thread::changeLWP(Dyninst::LWP new_lwp)
 
 void int_thread::throwEventsBeforeContinue()
 {
+   if (llproc()->wasForcedTerminated()) return;
+
    Event::ptr new_ev;
 
    int_iRPC::ptr rpc = nextPostedIRPC();
@@ -3416,6 +3449,10 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr respon
 bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val,
                              result_response::ptr response)
 {
+   if (getGeneratorState().getState() == int_thread::exited) {
+      // Happens when we force terminate someone at a breakpoint...
+      return false;
+   }
    if (!isGeneratorThread()) {
       assert(getHandlerState().getState() == int_thread::stopped);
       assert(getGeneratorState().getState() == int_thread::stopped);
@@ -3949,6 +3986,7 @@ bool int_thread::StateTracker::setState(State to)
 	 generator_state != exited &&
 	 generator_state != detached) {
         pthrd_printf("Crashing: generator state is %d\n", generator_state);
+        fprintf(stderr, "ERROR CASE\n");
      }
      assert(generator_state == stopped || generator_state == exited || generator_state == detached );
    }

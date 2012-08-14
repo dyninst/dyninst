@@ -132,6 +132,14 @@ int_thread *ProcessPool::findThread(Dyninst::LWP lwp)
    return (*i).second;
 }
 
+bool ProcessPool::deadThread(Dyninst::LWP lwp) {
+   return (deadThreads.find(lwp) != deadThreads.end());
+}
+
+void ProcessPool::addDeadThread(Dyninst::LWP lwp) {
+   deadThreads.insert(lwp);
+}
+
 unsigned ProcessPool::numProcs()
 {
    return (unsigned) procs.size();

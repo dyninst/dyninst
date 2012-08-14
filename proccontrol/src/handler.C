@@ -768,12 +768,16 @@ void HandleForceTerminate::getEventTypesHandled(std::vector<EventType> &etypes)
     etypes.push_back(EventType(EventType::Post, EventType::ForceTerminate));
 }
 
+#include <sys/ptrace.h>
+#include <errno.h>
+#include "linux.h"
+
 Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    int_process *proc = ev->getProcess()->llproc();
    Thread::const_ptr t = ev->getThread();
    int_thread* thrd = NULL;
    if(t)
-	   thrd = t->llthrd();
+      thrd = t->llthrd();
 
    assert(proc);
    // assert(thrd);
@@ -783,6 +787,12 @@ Handler::handler_ret_t HandleForceTerminate::handleEvent(Event::ptr ev) {
    ProcPool()->condvar()->lock();
 
    proc->setState(int_process::exited);
+   for (int_threadPool::iterator iter = proc->threadPool()->begin(); 
+        iter != proc->threadPool()->end(); ++iter) {
+      ProcPool()->addDeadThread((*iter)->getLWP());
+   }
+
+
    ProcPool()->rmProcess(proc);
 
    ProcPool()->condvar()->broadcast();
@@ -1958,6 +1968,11 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
    std::map<EventType, std::set<Process::cb_func_t>, eventtype_cmp>::iterator i = cbfuncs.find(evtype);
    if (i == cbfuncs.end()) {
       pthrd_printf("No callback registered for event type '%s'\n", ev->name().c_str());
+
+      if (proc->wasForcedTerminated() && thr) {
+         thr->getUserState().setState(int_thread::running);
+      }
+
       return ret_success;
    }
 
@@ -1972,12 +1987,22 @@ Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 
    if (ev->suppressCB()) {
       pthrd_printf("Suppressing callbacks for event %s\n", ev->name().c_str());
+
+      if (proc->wasForcedTerminated() && thr) {
+         thr->getUserState().setState(int_thread::running);
+      }
+
       return ret_success;
    }
 
    if (proc->isRunningSilent()) {
       pthrd_printf("Suppressing callback for event %s due to process being in silent mode\n",
                    ev->name().c_str());
+
+      if (proc->wasForcedTerminated() && thr) {
+         thr->getUserState().setState(int_thread::running);
+      }
+
       return ret_success;
    }
    
@@ -2108,9 +2133,9 @@ Handler::handler_ret_t HandleCallbacks::deliverCallback(Event::ptr ev, const set
 
    // Don't allow the user to change the state of forced terminated processes 
    if( ev->getProcess()->llproc() && ev->getProcess()->llproc()->wasForcedTerminated() ) {
-      pthrd_printf("Process is in forced termination, overriding result to cbProcContinue\n");
-       parent_result = Process::cbProcContinue;
-       child_result = Process::cbProcContinue;
+      pthrd_printf("Process is in forced termination, overriding result to cbThreadContinue\n");
+      parent_result = Process::cbThreadContinue;
+      child_result = Process::cbDefault;
    }
 
    // Now that the callback is over, return the state to what it was before the
