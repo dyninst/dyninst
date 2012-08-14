@@ -195,19 +195,22 @@ bool PCEventMuxer::registerCallbacks() {
 // a shortcut return it can't be a subfunction. 
 #define INITIAL_MUXING \
    PCProcess *process = static_cast<PCProcess *>(ev->getProcess()->getData()); \
-   proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p\n", FILE__, __LINE__, process); \
+   proccontrol_printf("%s[%d]: Begin callbackMux, process pointer = %p, event %s\n", \
+                      FILE__, __LINE__, process, ev->name().c_str());     \
    if( process == NULL ) {                                              \
       proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
       return ret_default;                                               \
    }                                                                    \
+   Process::cb_ret_t ret = ret_stopped;                                 \
    if (process->isForcedTerminating()) {                                \
-      return ret_continue;                                              \
+      ret = ret_continue;                                               \
    }                                                                    \
-   Process::cb_ret_t ret = ret_stopped; 
 
 #define DEFAULT_RETURN \
 	PCEventMuxer &m = PCEventMuxer::muxer(); \
 	m.enqueue(ev); \
+        proccontrol_printf("%s[%d]: after muxing event, mailbox size is %d\n", \
+                           FILE__, __LINE__, m.mailbox_.size()); \
 	return ret;
 
 
@@ -251,7 +254,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 #if defined(arch_x86) || defined(arch_x86_64)
         // DEBUG
     if (evSignal->getSignal() == 11) {
-      cerr << "SEGV IN PROCESS" << process->getPid() << endl;
+      cerr << "SEGV IN PROCESS " << process->getPid() << endl;
        Address esp = 0;
        Address pc = 0;
        ProcControlAPI::RegisterPool regs;
@@ -295,7 +298,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	 base += insn->size();
 	 insn = deco.decode();
        }
-       while(1) sleep(100);
+       while(1) sleep(1);
     }
 #endif
 
@@ -400,7 +403,8 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
-	ret = Process::cb_ret_t(Process::cbThreadStop);
+        if (ev->getEventType().time() == EventType::Pre)
+           ret = Process::cb_ret_t(Process::cbThreadStop);
 
 	DEFAULT_RETURN;
 }
