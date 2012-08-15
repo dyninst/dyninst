@@ -86,24 +86,19 @@ class test_relocations_Mutator : public SymtabMutator {
 
 	bool open_libc()
 	{
-	  libc = NULL;
-	  std::vector<std::string> libc_paths;
-	  
-#if defined(os_freebsd_test)
-	  libc_paths.push_back("/usr/lib/libc.so");
-#else
-	  if (sizeof(void *) == 8) {
-	    libc_paths.push_back("/lib64/libc.so.6");
-	    libc_paths.push_back("/lib/x86_64-linux-gnu/libc.so.6");
-	  }
-	  libc_paths.push_back("/lib/libc.so.6");
-#endif
+		if (!resolve_libc_name(libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot find libc....\n", FILE__, __LINE__);
+			return false;
+		}
 
-	  for (unsigned i = 0; i < libc_paths.size(); ++i) {
-	    if (Symtab::openFile(libc, libc_paths[i])) break;
-	  }
-	  if (!libc) return false;
-	  return true;
+		if (!Symtab::openFile(libc, libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot create libc....\n", FILE__, __LINE__);
+			return false;
+		}
+
+		return true;
 	}
 
 	public:

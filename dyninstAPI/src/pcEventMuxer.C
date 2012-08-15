@@ -201,10 +201,7 @@ bool PCEventMuxer::registerCallbacks() {
       proccontrol_printf("%s[%d]: NULL process = default/default\n", FILE__, __LINE__); \
       return ret_default;                                               \
    }                                                                    \
-   Process::cb_ret_t ret = ret_stopped;                                 \
-   if (process->isForcedTerminating()) {                                \
-      ret = ret_continue;                                               \
-   }                                                                    \
+   Process::cb_ret_t ret = ret_stopped;                                 
 
 #define DEFAULT_RETURN \
 	PCEventMuxer &m = PCEventMuxer::muxer(); \
@@ -251,8 +248,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
-#if defined(arch_x86) || defined(arch_x86_64)
-        // DEBUG
+#if defined(DEBUG)
     if (evSignal->getSignal() == 11) {
       cerr << "SEGV IN PROCESS " << process->getPid() << endl;
        Address esp = 0;
