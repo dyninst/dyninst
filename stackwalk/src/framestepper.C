@@ -396,7 +396,7 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #undef OVERLOAD_NEWLIBRARY
 
 //AnalysisStepper defined here
-#ifndef WITHOUT_PARSE_API
+#ifdef USE_PARSE_API
 #include "stackwalk/src/analysis_stepper.h"
 #define PIMPL_IMPL_CLASS AnalysisStepperImpl
 #define PIMPL_CLASS AnalysisStepper
