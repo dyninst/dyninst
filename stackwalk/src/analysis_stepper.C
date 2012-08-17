@@ -248,10 +248,8 @@ CodeRegion* AnalysisStepperImpl::getCodeRegion(std::string name, Offset off)
 
 
 std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunction(string name,
-                                                                        Offset off)
+                                                                                  Offset callSite)
 {
-    /* Look up by callsite, rather than return address */
-    Offset callSite = off - 1;
     set<height_pair_t> err_heights_pair;
     err_heights_pair.insert(err_height_pair);
     CodeRegion* region = getCodeRegion(name, callSite);
@@ -288,9 +286,9 @@ std::set<AnalysisStepperImpl::height_pair_t> AnalysisStepperImpl::analyzeFunctio
 
    set<height_pair_t> heights;
    StackAnalysis analysis(func);
-   heights.insert(height_pair_t(analysis.findSP(block, off), analysis.findFP(block, off)));
+   heights.insert(height_pair_t(analysis.findSP(block, callSite), analysis.findFP(block, callSite)));
  
-   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
+   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), callSite);
    for (set<height_pair_t>::iterator i = heights.begin(); 
         i != heights.end(); i++)
    {
@@ -325,8 +323,13 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    
    string name = libaddr.first;
    Offset offset = in.getRA() - libaddr.second;
+   Offset function_offset = offset;
+   if (in.getRALocation().location != loc_register && !in.nonCall()) {
+      /* Look up by callsite, rather than return address */
+      function_offset = function_offset - 1;
+   }
 
-   set<height_pair_t> heights = analyzeFunction(name, offset);
+   set<height_pair_t> heights = analyzeFunction(name, function_offset);
    gcframe_ret_t ret = gcf_not_me;
    if (*(heights.begin()) == err_height_pair) {
      sw_printf("[%s:%u] - Analysis failed on %s at %lx\n", __FILE__, __LINE__, name.c_str(), offset);
@@ -337,7 +340,7 @@ gcframe_ret_t AnalysisStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    
    if((ret == gcf_not_me) && in.isTopFrame())
    {
-     vector<registerState_t> all_defined_heights = fullAnalyzeFunction(name, offset);
+     vector<registerState_t> all_defined_heights = fullAnalyzeFunction(name, function_offset);
      if(!all_defined_heights.empty())
      {
 	 ret = getFirstCallerFrameArch(all_defined_heights, in, out);
@@ -357,7 +360,7 @@ bool AnalysisStepperImpl::isPrevInstrACall(Address addr, Address & target)
     return callchecker->isPrevInstrACall(addr, target);
 } 
 
-std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnalyzeFunction(std::string name, Offset off)
+std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnalyzeFunction(std::string name, Offset callSite)
 {
   std::vector<registerState_t> heights;
   
@@ -366,8 +369,6 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
      return heights;
    }
 
-   /* Look up by callsite, rather than return address */
-   Offset callSite = off - 1;
    set<CodeRegion *> regions;
    obj->cs()->findRegions(callSite, regions);
    
@@ -397,11 +398,11 @@ std::vector<AnalysisStepperImpl::registerState_t> AnalysisStepperImpl::fullAnaly
    for (set<ParseAPI::Function *>::iterator i = funcs.begin(); i != funcs.end(); i++)
    {
       StackAnalysis analysis(*i);
-      analysis.findDefinedHeights(block, off, heights);
+      analysis.findDefinedHeights(block, callSite, heights);
       
    }
 
-   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), off);
+   sw_printf("[%s:%u] - Have %lu possible stack heights in %s at %lx:\n", __FILE__, __LINE__, heights.size(), name.c_str(), callSite);
 
    // Return set of possible heights
    return heights;  
@@ -440,8 +441,8 @@ gcframe_ret_t AnalysisStepperImpl::getFirstCallerFrameArch(const std::vector<reg
     if(heightIter->second.height() == -1 * proc->getAddressWidth())
     {
       // FP candidate: register pointing to entry SP
-      fprintf(stderr, "Found candidate FP %s, height 0x%x\n",
-	      heightIter->first.name().c_str(), heightIter->second.height());
+       fprintf(stderr, "Found candidate FP %s, height 0x%lx\n",
+               heightIter->first.name().c_str(), (unsigned long) heightIter->second.height());
       
     }
     

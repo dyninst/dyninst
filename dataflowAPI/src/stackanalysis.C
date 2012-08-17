@@ -482,7 +482,13 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister r
   assert(intervals_);
 
   //(*intervals_)[b].find(addr, state);
-  ret = (*intervals_)[b][addr][reg];
+  //  ret = (*intervals_)[b][addr][reg];
+  StateIntervals &sintervals = (*intervals_)[b];
+  //Find the last instruction that is <= addr
+  StateIntervals::iterator i = sintervals.lower_bound(addr);
+  if (i == sintervals.end() || i->first != addr)
+     i--;
+  ret = i->second[reg];
 
   if (ret.isTop()) {
      return Height::bottom;
