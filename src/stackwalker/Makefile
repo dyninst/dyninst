@@ -25,8 +25,10 @@ LDFLAGS += -lpcontrol
 LDFLAGS += -L$(SYMTAB_LIBDIR) -Wl,-rpath,$(SYMTAB_LIBDIR)
 LDFLAGS += -lsymtabAPI
 
+all: stack_sampler test_basic
+
 stack_sampler: stack_sampler.o
-	g++ $(LDFLAGS) stack_sampler.o -o stack_sampler
+	g++ $(LDFLAGS) stack_sampler.o -o stack_sampler -lpthread
 
 stack_sampler.o: stack_sampler.C
 	g++ $(IFLAGS) -c -g stack_sampler.C

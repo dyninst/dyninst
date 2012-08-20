@@ -31,7 +31,7 @@
 #include "walker.h"
 #include "frame.h"
 #include "swk_errors.h"
-#include "Process.h"
+#include "PCProcess.h"
 
 void parse_args(int argc, char** argv, Dyninst::PID& pid, int& num_samples, int& sample_interval, std::string& exe)
 {
