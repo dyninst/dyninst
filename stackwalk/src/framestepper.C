@@ -399,13 +399,14 @@ DyninstDynamicStepperImpl::~DyninstDynamicStepperImpl()
 #ifdef USE_PARSE_API
 #include "stackwalk/src/analysis_stepper.h"
 #define PIMPL_IMPL_CLASS AnalysisStepperImpl
+#endif
 #define PIMPL_CLASS AnalysisStepper
 #define PIMPL_NAME "AnalysisStepper"
 #include "framestepper_pimple.h"
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
-#endif
+
 
 //DyninstDynamicStepper defined here
 #define PIMPL_IMPL_CLASS DyninstDynamicStepperImpl
