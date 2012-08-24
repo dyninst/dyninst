@@ -220,6 +220,15 @@ public:
     API_EXPORT(Int, (),
     std::string,getCalledFunctionName,());
 
+    //  BPatch_point::getBlock
+    //  Returns block to which this point belongs if such a block exists
+    //  For example, function entry points do not have blocks associated with them.
+
+    API_EXPORT(Int, (),
+
+    BPatch_basicBlock *,getBlock,());
+
+
     //  BPatch_point::getAddress
     //  Returns the address of this point in the mutatee
 

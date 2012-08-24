@@ -21,6 +21,9 @@ SRCS         += ../src/RTcommon.c \
                 ../src/RTmemEmulator.c \
                 ../src/RTsignal.c
 
+TO_INC  = ../h
+PUBLIC_H  = dyninstRTExport.h
+
 
 ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
@@ -33,6 +36,7 @@ endif
 ifdef DISABLE_STACK_PROT
 CFLAGS += -fno-stack-protector
 endif
+
 
 all: $(TARGET) $(STATIC_TARGET)
 

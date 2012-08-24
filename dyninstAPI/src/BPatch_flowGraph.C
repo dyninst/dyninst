@@ -1032,10 +1032,7 @@ bool BPatch_flowGraph::isValidInt() { return isValid_; }
 BPatch_basicBlock *BPatch_flowGraph::findBlock(block_instance *inst) {
   std::map<const block_instance *, BPatch_basicBlock *>::const_iterator iter = blockMap_.find(inst);
   if (iter != blockMap_.end()) return iter->second;
-
-  BPatch_basicBlock *newBlock = new BPatch_basicBlock(inst, this);
-  blockMap_[inst] = newBlock;
-  return newBlock;
+  return NULL;
 }
 
 BPatch_edge *BPatch_flowGraph::findEdge(edge_instance *inst) {
