@@ -99,7 +99,7 @@ bool Walker::createDefaultSteppers()
   sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
             __FILE__, __LINE__, stepper);
 
-#ifndef WITHOUT_PARSE_API 
+#ifdef USE_PARSE_API 
   stepper = new AnalysisStepper(this);
   result = addStepper(stepper);
   if (!result)

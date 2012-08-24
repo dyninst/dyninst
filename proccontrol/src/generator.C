@@ -44,6 +44,8 @@ using namespace std;
 std::set<Generator::gen_cb_func_t> Generator::CBs;
 Mutex *Generator::cb_lock;
 
+bool Generator::startedAnyGenerator = false;
+
 /*
  * Library deinitialization
  *
@@ -69,6 +71,7 @@ Generator::Generator(std::string name_) :
    eventBlock_(false)
 {
    if (!cb_lock) cb_lock = new Mutex();
+   startedAnyGenerator = true;
 }
 
 Generator::~Generator()
@@ -83,6 +86,9 @@ void Generator::forceEventBlock() {
 }
 
 void Generator::stopDefaultGenerator() {
+   if (!startedAnyGenerator)
+      return;
+
    Generator *gen = Generator::getDefaultGenerator();
    if (gen) delete gen;
 }

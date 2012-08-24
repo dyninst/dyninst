@@ -1,3 +1,14 @@
+#include <stdio.h>
+
+#include "CodeObject.h"
+#include "CFG.h"
+
+using namespace std;
+using namespace Dyninst;
+using namespace ParseAPI;
+
+int main(int argc, char * argv[])
+{
     hash_map<Address, bool> seen;
     vector<Function *> funcs;
     SymtabCodeSource *sts;
@@ -49,3 +60,4 @@
 
     delete co;
     delete sts;
+}

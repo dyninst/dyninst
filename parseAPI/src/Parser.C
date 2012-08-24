@@ -518,14 +518,24 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                 delayedFrames.size());
 
         // Mark UNSET functions in cycle as NORETURN
+	// except if we're doing non-recursive parsing.
+	// If we're just parsing one function, we want
+	// to mark everything RETURN instead.
         map<Function *, set<ParseFrame *> >::iterator iter;
         vector<Function *> updated;
         for (iter = delayedFrames.begin(); iter != delayedFrames.end(); ++iter) {
             Function * func = iter->first;
             if (func->retstatus() == UNSET) {
+	      if(recursive) 
+	      {
                 func->set_retstatus(NORETURN);
                 func->obj()->cs()->incrementCounter(PARSE_NORETURN_HEURISTIC);
-                updated.push_back(func);
+	      }
+	      else
+	      {
+		func->set_retstatus(RETURN);
+	      }
+	      updated.push_back(func);
             } 
 
             set<ParseFrame *> vec = iter->second;
@@ -552,7 +562,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                 parsing_printf("[%s] Updated retstatus of delayed frames, trying again; work.size() = %d\n",
                         __FILE__,
                         work.size());
-                parse_frames(work, true);
+                parse_frames(work, recursive);
             }
         } else {
             // We shouldn't get here
@@ -592,7 +602,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
         parsing_printf("[%s] Calling parse_frames again, work.size() = %d\n", 
                 __FILE__,
                 work.size());
-        parse_frames(work, true);
+        parse_frames(work, recursive);
     }
 
     for(unsigned i=0;i<frames.size();++i) {

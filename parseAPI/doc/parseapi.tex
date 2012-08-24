@@ -24,6 +24,10 @@
 #1\par\medskip}
 }
 
+\newcommand{\definedin}[1]{%
+\textbf{Defined in:} \texttt{#1}
+}
+
 \begin{document}
 \thispagestyle{empty}
 
@@ -236,6 +240,8 @@ The following complete example uses the ParseAPI to parse a binary and dump its 
 
 \subsection{Class CodeObject}
 
+\definedin{CodeObject.h}
+
 The CodeObject class describes an individual binary code object, such as an
 executable or library. It is the top-level container for parsing the object as
 well as accessing that parse data. The following API routines and data types
@@ -328,6 +334,8 @@ CFGFactory * fact()
 \subsection{Class CodeSource}
 \label{sec:codesource}
 
+\definedin{CodeSource.h}
+
 The CodeSource interface is used by the ParseAPI to retrieve binary code from
 an executable, library, or other binary code object; it also can provide hints
 of function entry points (such as those derived from debugging symbols) to seed
@@ -369,6 +377,8 @@ bool regionsOverlap()
 
 \subsection{Class CodeRegion}
 
+\definedin{CodeSource.h}
+
 The CodeRegion interface is an accounting structure used to divide CodeSources into distinct regions. This interface is mostly of interest to CodeSource implementors.
 
 \begin{apient}
@@ -397,6 +407,8 @@ bool contains(Address addr)
 \apidesc{Returns {\scshape true} if $\texttt{addr} \in [\texttt{low()},\texttt{high()})$, {\scshape false} otherwise.}
 
 \subsection{Class Function}
+
+\definedin{CFG.h}
 
 The Function class represents the protion of the program CFG that is reachable through intraprocedural control flow transfers from the function's entry block. Functions in the ParseAPI have only a single entry point; multiple-entry functions such as those found in Fortran programs are represented as several functions that ``share'' a subset of the CFG. 
 
@@ -521,6 +533,8 @@ bool cleansOwnStack()
 
 \subsection{Class FuncExtent}
 
+\definedin{CFG.h}
+
 Function Extents are used internally for accounting and lookup purposes. They may be useful for users who wish to precisely identify the ranges of the address space spanned by functions (functions are often discontiguous, particularly on architectures with variable length instruction sets).
 
 \begin{apient}
@@ -534,6 +548,8 @@ Address end()
 \apidesc{The end of this contiguous code extent (exclusive).}
 
 \subsection{Class Block}
+
+\definedin{CFG.h}
 
 A Block represents a basic block as defined in Section \ref{sec:abstractions}, and is the lowest level representation of code in the CFG.
 
@@ -606,6 +622,8 @@ void getFuncs(std::vector<Function *> & funcs)
 
 \subsection{Class Edge}
 
+\definedin{CFG.h}
+
 Typed Edges join two blocks in the CFG, indicating the type of control flow
 transfer instruction that joins the blocks to each other. Edges may not correspond
 to a control flow transfer instruction at all, as in the case of the {\scshape
@@ -662,6 +680,8 @@ bool interproc()
 \subsection{Class EdgePredicate}
 \label{sec:pred}
 
+\definedin{CFG.h}
+
 Edge predicates control iteration over edges. For example, the provided
 \texttt{Intraproc} edge predicate can be passed to an edge iterator
 constructor, ensuring that only intraprocedural edges are visited during
@@ -711,6 +731,8 @@ virtual bool pred_impl(Edge *)
 \apidesc{Evaluates the predicate on the provided edge.}
 
 \subsection{Class ParseCallback}
+
+\definedin{ParseCallback.h}
 
 The ParseCallback class allows ParseAPI users to be notified of various events
 during parsing. For most users this notification is unnecessary, and an

@@ -316,11 +316,7 @@ Frame::~Frame() {
   sw_printf("[%s:%u] - Destroying frame %p\n", __FILE__, __LINE__, this);
 }
 
-#ifdef cap_stackwalker_use_symtab
 bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab) const
-#else
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) const
-#endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
   if (!libstate) {
@@ -343,6 +339,8 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&) cons
 
 #if defined(cap_stackwalker_use_symtab)
   symtab = static_cast<void *>(SymtabWrapper::getSymtab(lib));
+#else
+  symtab = NULL;
 #endif
 
   return true;

@@ -57,6 +57,7 @@ class PC_EXPORT Generator
  public:
    static Generator *getDefaultGenerator();
    static void stopDefaultGenerator();
+   static bool startedAnyGenerator;
    virtual bool getAndQueueEvent(bool block) = 0;
    virtual ~Generator();
    
