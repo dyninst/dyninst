@@ -162,7 +162,7 @@ map_entries *getVMMaps(int pid, unsigned &maps_size) {
         retMaps[i].offset = maps[i].kve_offset; 
         retMaps[i].dev_major = 0; // N/A
         retMaps[i].dev_minor = 0; // N/A
-        retMaps[i].inode = maps[i].kve_fileid;
+        retMaps[i].inode = maps[i].kve_vn_fileid;
 
         retMaps[i].prems = 0;
         if( KVME_PROT_READ & maps[i].kve_protection ) {

@@ -45,6 +45,8 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
+#include <libgen.h>
+
 namespace Dyninst {
 namespace PatchAPI {
 

@@ -83,7 +83,12 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public sysv_process, public unix_process, public x86_process, public thread_db_process, public mmap_alloc_process, public hybrid_lwp_control_process
+class freebsd_process : virtual public sysv_process, \
+  virtual public unix_process, \
+  virtual public x86_process, \
+  virtual public thread_db_process, \
+  virtual public mmap_alloc_process, \
+  virtual public hybrid_lwp_control_process
 {
    friend class freebsd_thread;
 public:
@@ -111,7 +116,7 @@ public:
     virtual bool plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &runningStates);
     virtual OSType getOS() const;
 
-    virtual bool post_attach(bool wasDetached);
+    virtual async_ret_t post_attach(bool wasDetached, std::set<response::ptr> &async_responses);
     virtual async_ret_t post_create(std::set<response::ptr> &async_responses);
 
     virtual int getEventQueue();
@@ -133,8 +138,8 @@ public:
 
     virtual bool plat_suspendThread(int_thread *thr);
     virtual bool plat_resumeThread(int_thread *thr);
-    virtual bool plat_debuggerSuspended();
-    virtual void noteNewDequeuedEvent(Event::ptr ev);
+    //virtual bool plat_debuggerSuspended();
+    //virtual void noteNewDequeuedEvent(Event::ptr ev);
 protected:
     string libThreadName;
     bool forking;

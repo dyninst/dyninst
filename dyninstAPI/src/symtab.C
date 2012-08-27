@@ -528,11 +528,11 @@ void image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, textsec->getRegionSize(), scs.getArch());
+            InstructionDecoder decoder(p, textsec->getMemSize(), scs.getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                   bytesSeen < textsec->getRegionSize())
+                   bytesSeen < textsec->getMemSize())
             {
                 InsnCategory category = curInsn->getCategory();
                 if( category == c_CallInsn ) {
