@@ -148,6 +148,9 @@ class dwarfWalker {
    Dwarf_Debug &dbg();
 
    void setEntry(Dwarf_Die entry);
+   void setTag(Dwarf_Half tag);
+   void setOffset(Dwarf_Off offset);
+
 
    bool findTag();
    bool findOffset();
@@ -177,6 +180,16 @@ class dwarfWalker {
    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
                                          Type *elementType);
    bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
+   bool decodeLocationListForStaticOffsetOrAddress(Dwarf_Locdesc **locationList, 
+                                                   Dwarf_Signed listLength, 
+                                                   Symtab * objFile, 
+                                                   vector<VariableLocation>& locs, 
+                                                   Address lowpc,
+                                                   Address * initialStackValue = NULL);
+   void deallocateLocationList(Dwarf_Locdesc *locationList,
+                               Dwarf_Signed listLength);
+   void deallocateLocationList(Dwarf_Locdesc **locationList,
+                               Dwarf_Signed listLength);
 
    // Track which enclosure (array, struct, class, etc.) contains the current
    // dwarf parsee
