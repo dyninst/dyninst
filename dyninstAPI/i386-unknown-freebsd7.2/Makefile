@@ -29,7 +29,6 @@ SRCS =          ../src/freebsd.C \
 		../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
-		../src/parse-x86.C \
 		../src/frameChecker.C \
 		../src/IAPI_to_AST.C \
 		../src/BPatch_memoryAccessAdapter.C \
