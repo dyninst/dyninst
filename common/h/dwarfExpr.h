@@ -70,8 +70,11 @@ extern signed long DynToDwarfReg(Dyninst::MachRegister reg);
   if ( condition ) { return; }
 #define DWARF_NULL_IF(condition,...)		\
   if ( condition ) { return NULL; }
-#define DWARF_NEXT_IF(condition, ...)					\
-  if (condition) { if (depth != 1) { return false; } else {walk_error = true; break; } }
+#define DWARF_NEXT_IF(condition, format, args...) \
+  if (condition) {  \
+     printf(format, ## args);                                                 \
+  if (depth != 1) { return false; } else {walk_error = true; break; } \
+}
 
 #if defined(COMPONENT_NAME) && !defined(libcommon)
 
