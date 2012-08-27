@@ -47,7 +47,7 @@
 
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
-Address DYNINSTheap_loAddr = 0x4096;
+Address DYNINSTheap_loAddr = 0x10000; /* Bump to 64k to make SELinux happier */
 Address DYNINSTheap_hiAddr = ~0x0;
 #elif defined(arch_power)
 int     DYNINSTheap_align  = 4; /* heaps are word-aligned */
