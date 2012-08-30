@@ -33,15 +33,19 @@
 
 #include <map>
 #include "dynutil/h/dyn_regs.h"
-using namespace Dyninst;
-extern std::map<MachRegister, int> machRegIndex_x86;
-extern std::map<MachRegister, int> machRegIndex_x86_64;
-extern std::map<MachRegister, int> machRegIndex_ppc;
-extern std::map<MachRegister, int> machRegIndex_ppc_64;
 
+namespace Dyninst {
+namespace DataflowAPI {
 
+typedef std::map<MachRegister, int> RegisterMap;
 
+RegisterMap &machRegIndex_x86();
+RegisterMap &machRegIndex_x86_64();
+RegisterMap &machRegIndex_ppc();
+RegisterMap &machRegIndex_ppc_64();
 
+};
+};
 #endif //REGISTERMAP_H
 
 #endif //cap_liveness
