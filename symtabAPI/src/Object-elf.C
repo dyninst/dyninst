@@ -52,6 +52,8 @@
 #include "emitElf-64.h"
 #endif
 
+#include "dwarfWalker.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -4842,8 +4844,11 @@ void Object::parseTypeInfo(Symtab *obj)
 #endif	 
 
 	parseStabTypes(obj);
-	parseDwarfTypes(obj);
 
+        DwarfWalker walker(obj, *(dwarf.dbg()));
+        walker.parse();
+        //parseDwarfTypes(obj);
+        
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
 	gettimeofday(&endtime, NULL);

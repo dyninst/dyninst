@@ -1215,6 +1215,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
    lladdrSpace(in_lladdSpace),
    type(typ)
 {
+
         //Create Ast's for all members in the location list.
         //This will likely be done only for local variables within a function
         if (!type)

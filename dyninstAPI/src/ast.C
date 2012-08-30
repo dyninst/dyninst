@@ -1847,7 +1847,6 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Register &retReg) {
-
     return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
@@ -2916,10 +2915,15 @@ void AstVariableNode::setVariableAST(codeGen &gen){
         return;
     }
     Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
+    bool found = false;
     for(unsigned i=0; i< ranges_->size();i++){
-        if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
-            index = i;
+       if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second) {
+          index = i;
+          found = true;
+          break;
+       }
     }
+    assert(found);
 }
 
 void AstInsnBranchNode::setVariableAST(codeGen &g){
