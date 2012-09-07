@@ -601,24 +601,7 @@ std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start)
 		      boost::bind(processPredecessor, _1, boost::ref(visited), boost::ref(worklist)));
 	
 	
-	/*        for( ; sit != curBlock->sources().end(&epred); ++sit) {
-            ParseAPI::Edge *e = *sit;
-	    parsing_printf("\t\tblock %x, edge type %s\n",
-			   e->src()->start(),
-			   format(e->type()).c_str());
 
-            // FIXME debugging assert
-            assert(detail::isNonCallEdge(e));
-
-            // FIXME check this algorithm... O(log n) lookup in visited
-            if(!detail::leadsToVisitedBlock(e, visited))
-            {
-                worklist.push_back(e->src());
-                visited.insert(e->src());
-            }
-	
-        }
-	*/
     }
     return std::make_pair(0, 0);
 

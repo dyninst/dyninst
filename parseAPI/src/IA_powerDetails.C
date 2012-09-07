@@ -513,22 +513,7 @@ bool IA_powerDetails::parseJumpTable(Block* currBlk,
 	  std::for_each(boost::make_filter_iterator(epred, worklistBlock->sources().begin(), worklistBlock->sources().end()),
 			boost::make_filter_iterator(epred, worklistBlock->sources().end(), worklistBlock->sources().end()),
 			boost::bind(detail_ppc::processPredecessor, _1, boost::ref(visited), boost::ref(worklist)));
-	  /*	  Block::edgelist::const_iterator sit = worklistBlock->sources().begin(&epred);
-	  for( ; sit != worklistBlock->sources().end(&epred); ++sit) {
-	    parsing_printf("\t\t\tIterating \n");
-	    ParseAPI::Edge *e = *sit;
 
-	    // FIXME debugging assert
-	    assert(e->type() != CALL);
-
-	    // FIXME check this algorithm... O(log n) lookup in visited
-	    if((visited.find(e->src()) == visited.end()))
-	      {
-		worklist.push_back(e->src());
-		visited.insert(e->src());
-	      }
-	  }
-	  */
         }
 
     }
