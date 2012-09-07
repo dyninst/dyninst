@@ -61,6 +61,8 @@ class DATAFLOW_EXPORT LivenessAnalyzer{
 
 	const bitArray& getLivenessIn(ParseAPI::Block *block);
 	const bitArray& getLivenessOut(ParseAPI::Block *block, bitArray &allRegsDefined);
+	void processEdgeLiveness(ParseAPI::Edge* e, livenessData& data, ParseAPI::Block* block, const bitArray& allRegsDefined);
+	
 	void summarizeBlockLivenessInfo(ParseAPI::Function* func, ParseAPI::Block *block, bitArray &allRegsDefined);
 	bool updateBlockLivenessInfo(ParseAPI::Block *block, bitArray &allRegsDefined);
 	

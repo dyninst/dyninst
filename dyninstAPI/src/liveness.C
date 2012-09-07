@@ -125,11 +125,12 @@ const bitArray parse_block::getLivenessOut(parse_func * context) {
 
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
     const Block::edgelist & target_edges = targets();
-    Block::edgelist::iterator eit = target_edges.begin(&epred);
+    Block::edgelist::iterator eit = boost::make_filter_iterator(epred, target_edges.begin(), target_edges.end());
+    Block::edgelist::iterator eit_end = boost::make_filter_iterator(epred, target_edges.end(), target_edges.end());
 
     liveness_cerr << "getLivenessOut for block [" << hex << start() << "," << end() << "]" << dec << endl;
    
-    for( ; eit != target_edges.end(); ++eit) { 
+    for( ; eit != eit_end; ++eit) { 
         // covered by Intraproc predicate
         //if ((*eit)->type() == CALL) continue;
         // Is this correct?

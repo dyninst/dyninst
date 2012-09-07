@@ -61,10 +61,6 @@ Function::Function() :
 	 _ret_addr(0),
         _parsed(false),
         _cache_valid(false),
-        _bl(_blocks),
-        _call_edge_list(_call_edges),
-	_retBL(_return_blocks),
-        _exitBL(_exit_blocks),
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
@@ -88,10 +84,6 @@ Function::Function(Address addr, string name, CodeObject * obj,
 	 _ret_addr(0),
         _parsed(false),
         _cache_valid(false),
-        _bl(_blocks),
-        _call_edge_list(_call_edges),
-	_retBL(_return_blocks),
-        _exitBL(_exit_blocks),
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
@@ -128,21 +120,37 @@ Function::blocks()
     return _bl;
 }
 
-Function::edgelist & 
+// Get the current set of blocks,
+// as a const operation
+const Function::blocklist&
+Function::blocks() const
+{
+  /*Function* mutable_this = const_cast<Function*>(this);
+  
+  if(!_cache_valid)
+    mutable_this->finalize();
+  */
+  assert(_cache_valid);
+  
+  return _bl;
+}
+
+
+const Function::edgelist & 
 Function::callEdges() {
     if(!_cache_valid)
         finalize();
     return _call_edge_list; 
 }
 
-Function::blocklist &
+const Function::blocklist &
 Function::returnBlocks() {
   if (!_cache_valid) 
     finalize();
   return _retBL;
 }
 
-Function::blocklist &
+const Function::blocklist &
 Function::exitBlocks() {
   if (!_cache_valid) 
     finalize();
@@ -169,7 +177,7 @@ vector<Block *> const&
 Function::blocks_int()
 {
     if(_cache_valid)
-        return _blocks;
+        return _bl;
 
     // overloaded map warning:
     // visited[addr] == 1 means visited
@@ -178,14 +186,14 @@ Function::blocks_int()
     vector<Block *> worklist;
 
     bool need_entry = true;
-    for(vector<Block*>::iterator bit=_blocks.begin();
-        bit!=_blocks.end();++bit) 
+    for(vector<Block*>::iterator bit=_bl.begin();
+        bit!=_bl.end();++bit) 
     {
         Block * b = *bit;
         visited[b->start()] = 1;
         need_entry = need_entry && (b != _entry);
     }
-    worklist.insert(worklist.begin(),_blocks.begin(),_blocks.end());
+    worklist.insert(worklist.begin(),_bl.begin(),_bl.end());
 
     if(need_entry) {
         worklist.push_back(_entry);
@@ -194,8 +202,8 @@ Function::blocks_int()
     }
 
     // avoid adding duplicate return blocks
-    for(vector<Block*>::iterator bit=_exit_blocks.begin();
-        bit!=_exit_blocks.end();++bit)
+    for(vector<Block*>::iterator bit=_exitBL.begin();
+        bit!=_exitBL.end();++bit)
     {
         Block * b = *bit;
         visited[b->start()] = 2;
@@ -214,7 +222,7 @@ Function::blocks_int()
            // Woo hlt!
            exits_func = true;
         }
-        for(Block::edgelist::iterator tit=trgs.begin();
+        for(Block::edgelist::const_iterator tit=trgs.begin();
             tit!=trgs.end();++tit) {
             Edge * e = *tit;
             Block * t = e->trg();
@@ -224,7 +232,7 @@ Function::blocks_int()
             }
 
             if(e->type() == CALL) {
-                _call_edges.insert(e);
+                _call_edge_list.insert(e);
                 found_call = true;
                 continue;
             }
@@ -268,16 +276,19 @@ Function::blocks_int()
            if (link_return)
               delayed_link_return(_obj,cur);
            if(visited[cur->start()] <= 1) {
-              _exit_blocks.push_back(cur);
-              if (link_return)
-                 _return_blocks.push_back(cur);
+              _exitBL.push_back(cur);
+              if (link_return) 
+	      {
+                 _retBL.push_back(cur);
+	      }
+	      
            }
         }
     }
     Block::compare comp;
-    sort(_blocks.begin(),_blocks.end(),comp);
+    sort(_bl.begin(),_bl.end(),comp);
 
-    return _blocks;
+    return _bl;
 }
 
 /* Adds return edges to the CFG for a particular retblk, based 
@@ -292,7 +303,7 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
     bool link_entry = false;
 
     dyn_hash_map<Address,bool> linked;
-    Block::edgelist::iterator eit = retblk->targets().begin();
+    Block::edgelist::const_iterator eit = retblk->targets().begin();
     for( ; eit != retblk->targets().end(); ++eit) {
         Edge * e = *eit;
         linked[e->trg()->start()] = true;
@@ -330,9 +341,9 @@ Function::delayed_link_return(CodeObject * o, Block * retblk)
 void
 Function::add_block(Block *b)
 {
-	++b->_func_cnt;            // block counts references
-    _blocks.push_back(b);
-    _bmap[b->start()] = b;
+  ++b->_func_cnt;            // block counts references
+  _bl.push_back(b);
+  _bmap[b->start()] = b;
 }
 
 const string &
@@ -388,12 +399,12 @@ Function::removeBlock(Block* dead)
     _cache_valid = false;
     bool found = false;
 
-    // remove dead block from _blocks // KEVINTODO: use binary search
-    std::vector<Block *>::iterator biter = _blocks.begin();
-    while ( !found && _blocks.end() != biter ) {
+    // remove dead block from _bl // KEVINTODO: use binary search
+    std::vector<Block *>::iterator biter = _bl.begin();
+    while ( !found && _bl.end() != biter ) {
         if (dead == *biter) {
             found = true;
-            biter = _blocks.erase(biter);
+            biter = _bl.erase(biter);
         }
         else {
             biter++;
@@ -415,22 +426,22 @@ Function::removeBlock(Block* dead)
         assert(0);
     }
 
-    // remove dead block from _return_blocks and _call_edges
+    // remove dead block from _retBL and _call_edge_list
     const Block::edgelist & outs = dead->targets();
-    for (Block::edgelist::iterator oit = outs.begin();
+    for (Block::edgelist::const_iterator oit = outs.begin();
          outs.end() != oit; 
          oit++ ) 
     {
         switch((*oit)->type()) {
             case CALL: {
                 bool foundEdge = false;
-                for (set<Edge*>::iterator cit = _call_edges.begin();
-                     _call_edges.end() != cit;
+                for (set<Edge*>::iterator cit = _call_edge_list.begin();
+                     _call_edge_list.end() != cit;
                      cit++) 
                 {
                     if (*oit == *cit) {
                         foundEdge = true;
-                        _call_edges.erase(cit);
+                        _call_edge_list.erase(cit);
                         break;
                     }
                 }
@@ -438,10 +449,10 @@ Function::removeBlock(Block* dead)
                 break;
             }
             case RET:
-                _return_blocks.erase(std::remove(_return_blocks.begin(),
-                                                 _return_blocks.end(),
+                _retBL.erase(std::remove(_retBL.begin(),
+                                                 _retBL.end(),
                                                  dead),
-                                     _return_blocks.end());
+                                     _retBL.end());
                 break;
             default:
                 break;
@@ -467,7 +478,7 @@ Function::tampersStack(bool recalculate)
 
     // this is above the cond'n below b/c it finalizes the function, 
     // which could in turn call this function
-    Function::blocklist & retblks = returnBlocks();
+    const Function::blocklist & retblks = returnBlocks();
     if ( retblks.begin() == retblks.end() ) {
         _tamper = TAMPER_NONE;
         return _tamper;
@@ -483,7 +494,7 @@ Function::tampersStack(bool recalculate)
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
     _tamper = TAMPER_UNSET;
-    Function::blocklist::iterator bit;
+    Function::blocklist::const_iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction(retnAddr), 

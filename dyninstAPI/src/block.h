@@ -66,7 +66,6 @@ class edge_instance : public Dyninst::PatchAPI::PatchEdge {
 
 class EdgePredicateAdapter 
    : public ParseAPI::iterator_predicate <
-  EdgePredicateAdapter,
   edge_instance *,
   edge_instance * > {
   public:

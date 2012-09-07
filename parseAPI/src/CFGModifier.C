@@ -67,7 +67,7 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    bool hasSink = false;
    if (linkToSink) {
       const Block::edgelist & trgs = edge->src()->targets();
-      for (Block::edgelist::iterator titer = trgs.begin(); titer != trgs.end(); titer++) {
+      for (Block::edgelist::const_iterator titer = trgs.begin(); titer != trgs.end(); titer++) {
          if ((*titer)->sinkEdge() && (*titer)->type() == edge->type()) {
             hasSink = true;
             break;
@@ -164,21 +164,21 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
 
 
    // 2b)
-   for (vector<Edge *>::iterator iter = b->_targets.begin(); 
-        iter != b->_targets.end(); ++iter) {
+   for (vector<Edge *>::iterator iter = b->_trglist.begin(); 
+        iter != b->_trglist.end(); ++iter) {
       b->obj()->_pcb->removeEdge(b, *iter, ParseCallback::target);
       (*iter)->_source = ret;
-      ret->_targets.push_back(*iter);
+      ret->_trglist.push_back(*iter);
       b->obj()->_pcb->addEdge(ret, *iter, ParseCallback::target);
    }
-   b->_targets.clear();
+   b->_trglist.clear();
 
    // 2c)
    Edge *ft = b->obj()->_fact->_mkedge(b, ret, FALLTHROUGH);
    ft->_type._sink = false;
-   b->_targets.push_back(ft);
+   b->_trglist.push_back(ft);
    b->obj()->_pcb->addEdge(b, ft, ParseCallback::target);
-   ret->_sources.push_back(ft);
+   ret->_srclist.push_back(ft);
    b->obj()->_pcb->addEdge(ret, ft, ParseCallback::source);
 
    // 3)
@@ -193,15 +193,15 @@ Block *CFGModifier::split(Block *b, Address a, bool trust, Address newlast) {
       // 2) Add the block to the function list
       (*iter)->add_block(ret);
       // 3) Swap the old block for the new in the return blocks
-      for (unsigned i = 0; i < (*iter)->_return_blocks.size(); ++i) {
-         if ((*iter)->_return_blocks[i] == b) {
-            (*iter)->_return_blocks[i] = ret;
+      for (unsigned i = 0; i < (*iter)->_retBL.size(); ++i) {
+         if ((*iter)->_retBL[i] == b) {
+            (*iter)->_retBL[i] = ret;
          }
       }
       // 4) Swap the old block for the new in the exit blocks
-      for (unsigned i = 0; i < (*iter)->_exit_blocks.size(); ++i) {
-         if ((*iter)->_exit_blocks[i] == b) {
-            (*iter)->_exit_blocks[i] = ret;
+      for (unsigned i = 0; i < (*iter)->_exitBL.size(); ++i) {
+         if ((*iter)->_exitBL[i] == b) {
+            (*iter)->_exitBL[i] = ret;
          }
       }
       b->obj()->_pcb->addBlock(*iter, ret);
@@ -224,7 +224,7 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
    }
 
    // 1) Remove from containing functions
-   // 2) Remove all source edges (and clear up src func's _call_edges)
+   // 2) Remove all source edges (and clear up src func's _call_edge_list)
    // 3) Remove all target edges. 
    // 4) Remove from Parser data structures;
    // 5) Destroy the block and related edges
@@ -252,23 +252,23 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       }
       
       // 2)
-      if (!b->_sources.empty()) {
+      if (!b->_srclist.empty()) {
          if (!force) return false;
 
-         for (std::vector<Edge *>::iterator iter = b->_sources.begin();
-              iter != b->_sources.end(); ++iter) 
+         for (std::vector<Edge *>::iterator iter = b->_srclist.begin();
+              iter != b->_srclist.end(); ++iter) 
          {
             Edge *edge = *iter;
             deadEdges.push_back(edge);
             // callbacks
             pcb->removeEdge(b, edge, ParseCallback::source);
             edge->src()->obj()->_pcb->removeEdge(edge->src(), edge, ParseCallback::target);
-            // clear up _call_edges vector in the caller function         
+            // clear up _call_edge_list vector in the caller function         
             if (edge->type() == CALL) {
                std::vector<Function *> funcs;
                edge->src()->getFuncs(funcs);
                for (unsigned k = 0; k < funcs.size(); ++k) {
-                   funcs[k]->_call_edges.erase(edge);
+                   funcs[k]->_call_edge_list.erase(edge);
                }
             }
             // remove edge from source block
@@ -277,8 +277,8 @@ bool CFGModifier::remove(vector<Block*> &blks, bool force) {
       }
 
       // 3)
-      for (std::vector<Edge *>::iterator iter = b->_targets.begin();
-           iter != b->_targets.end(); ++iter) 
+      for (std::vector<Edge *>::iterator iter = b->_trglist.begin();
+           iter != b->_trglist.end(); ++iter) 
       {
          Edge *edge = *iter;
          deadEdges.push_back(edge);
@@ -364,6 +364,8 @@ InsertedRegion *CFGModifier::insert(CodeObject *obj,
    // Parsing starting at the base address will create a new function. 
    // Work around this by looking up and deleting that function when 
    // we're done parsing. 
+   // However, only do that if this new code is not the entry block
+   // of the function...
    Function *newFunc = obj->findFuncByEntry(newRegion, base);
    if (newFunc) {
       obj->parser->remove_func(newFunc);

@@ -61,6 +61,8 @@
 #include "Relocation/DynObject.h"
 #include "Relocation/DynInstrumenter.h"
 
+#include <boost/bind.hpp>
+
 // Implementations of non-virtual functions in the address space
 // class.
 
@@ -2193,6 +2195,16 @@ MemoryEmulator * AddressSpace::getMemEm() {
     return memEmulator_;
 }
 
+void updateSrcListAndVisited(ParseAPI::Edge* e,
+			     std::list<ParseAPI::Edge*>& srcList,
+			     std::set<ParseAPI::Edge*>& visited)			     
+{
+  if (visited.find(e) == visited.end()) {
+    srcList.push_back(e);
+    visited.insert(e);
+  }
+}
+			     
 // create stub edge set which is: all edges such that: 
 //     e->trg() in owBlocks and e->src() not in delBlocks, 
 //     in which case, choose stub from among e->src()->sources()
@@ -2240,14 +2252,15 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
         {
             // build "srcList" worklist
             SingleContext epred_((*fit)->ifunc(),true,true);
-            Intraproc epred(&epred_);
+            //Intraproc epred(&epred_);
             std::list<ParseAPI::Edge*> srcList;
-            for(Block::edgelist::iterator eit = sourceEdges.begin(&epred); eit != sourceEdges.end(); ++eit) {
-               if (visited.find(*eit) == visited.end()) {
-                  srcList.push_back(*eit);
-                  visited.insert(*eit);
-               }
-            }
+	    std::for_each(boost::make_filter_iterator(epred_, sourceEdges.begin(), sourceEdges.end()),
+			  boost::make_filter_iterator(epred_, sourceEdges.end(), sourceEdges.end()),
+			  boost::bind(updateSrcListAndVisited,
+				      _1,
+				      boost::ref(srcList),
+				      boost::ref(visited)));
+
 
             // find all stub blocks for this edge
             for (list<ParseAPI::Edge*>::iterator eit = srcList.begin(); eit != srcList.end(); eit++) {
@@ -2264,15 +2277,14 @@ AddressSpace::getStubs(const std::list<block_instance *> &owBlocks,
                 } 
                 else {
                    const Block::edgelist &srcSrcs = isrc->sources();
-                   for (Block::edgelist::iterator sit = srcSrcs.begin(&epred);
-                        sit != srcSrcs.end();
-                        sit++)
-                   {
-                      if (visited.find(*sit) == visited.end()) {
-                         srcList.push_back(*sit);
-                         visited.insert(*sit);
-                      }
-                   }
+		   std::for_each(boost::make_filter_iterator(epred_, srcSrcs.begin(), srcSrcs.end()),
+				 boost::make_filter_iterator(epred_, srcSrcs.end(), srcSrcs.end()),
+				 boost::bind(updateSrcListAndVisited,
+					     _1,
+					     boost::ref(srcList),
+					     boost::ref(visited)));
+		   
+
                 }
             }
         }

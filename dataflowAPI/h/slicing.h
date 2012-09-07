@@ -178,7 +178,6 @@ class Slicer {
 
   typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
-
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
   // from foo must enter bar. This makes an assumption that
@@ -554,6 +553,13 @@ class Slicer {
             Predicates & p,
             SliceFrame const& cand,
             ParseAPI::Block * source);
+    void handlePredecessorEdge(ParseAPI::Edge* e,
+			       Predicates& p,
+			       SliceFrame const& cand,
+			       vector<SliceFrame> & newCands,
+			       bool& err,
+			       SliceFrame& nf);
+  
 
     /* general slicing support */
   

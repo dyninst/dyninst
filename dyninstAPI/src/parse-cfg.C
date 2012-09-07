@@ -252,7 +252,7 @@ void parse_block::debugPrint() {
 
     parsing_printf("  Sources:\n");
     const Block::edgelist & srcs = sources();
-    Block::edgelist::iterator sit = srcs.begin();
+    Block::edgelist::const_iterator sit = srcs.begin();
     unsigned s = 0;
     for ( ; sit != srcs.end(); ++sit) {
         parse_block * src = static_cast<parse_block*>((*sit)->src());
@@ -263,7 +263,7 @@ void parse_block::debugPrint() {
     }
     parsing_printf("  Targets:\n");
     const Block::edgelist & trgs = sources();
-    Block::edgelist::iterator tit = trgs.begin();
+    Block::edgelist::const_iterator tit = trgs.begin();
     unsigned t = 0;
     for( ; tit != trgs.end(); ++tit) {
         parse_block * trg = static_cast<parse_block*>((*tit)->trg());
@@ -338,7 +338,7 @@ bool parse_block::isExitBlock()
     if (e->type() == CALL && trgs.size() > 1) {
         // there's a CALL edge and at least one other edge, 
         // it's an exit block if there is no CALL_FT edge
-        for(Block::edgelist::iterator eit = ++(trgs.begin());
+        for(Block::edgelist::const_iterator eit = ++(trgs.begin());
             eit != trgs.end();
             eit++)
         {
@@ -355,7 +355,7 @@ bool parse_block::isCallBlock()
     const Block::edgelist & trgs = targets();
     if(!trgs.empty())
     {
-        for (Block::edgelist::iterator eit = trgs.begin();
+        for (Block::edgelist::const_iterator eit = trgs.begin();
              eit != trgs.end();
              eit++) 
         {
@@ -463,7 +463,7 @@ void parse_func::getReachableBlocks
     while(worklist.size()) {
         parse_block *curBlock = worklist.front();
         const Block::edgelist & outEdges = curBlock->targets();
-        Block::edgelist::iterator tIter = outEdges.begin();
+        Block::edgelist::const_iterator tIter = outEdges.begin();
         for (; tIter != outEdges.end(); tIter++) {
             parse_block *targB = (parse_block*) (*tIter)->trg();
             if ( CALL != (*tIter)->type() &&
@@ -514,7 +514,7 @@ void parse_block::setUnresolvedCF(bool newVal)
 }
 
 parse_func *parse_block::getCallee() {
-   for (edgelist::iterator iter = targets().begin(); iter != targets().end(); ++iter) {
+   for (edgelist::const_iterator iter = targets().begin(); iter != targets().end(); ++iter) {
       if ((*iter)->type() == ParseAPI::CALL) {
          parse_block *t = static_cast<parse_block *>((*iter)->trg());
          return t->getEntryFunc();
@@ -550,7 +550,7 @@ bool parse_func::hasUnresolvedCF() {
    if (unresolvedCF_ == UNSET_CF) {
       for (blocklist::iterator iter = blocks().begin();
            iter != blocks().end(); ++iter) {
-         for (Block::edgelist::iterator iter2 = (*iter)->targets().begin();
+         for (Block::edgelist::const_iterator iter2 = (*iter)->targets().begin();
               iter2 != (*iter)->targets().end(); ++iter2) {
             if ((*iter2)->sinkEdge() &&
                 (*iter2)->type() == ParseAPI::INDIRECT) {

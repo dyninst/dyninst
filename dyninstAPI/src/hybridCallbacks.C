@@ -562,7 +562,7 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
       // or that the return insn is in a replacement for the called 
       // or tail-called func
       const Block::edgelist & trgs = (*bit)->targets();
-      for (Block::edgelist::iterator eit = trgs.begin();
+      for (Block::edgelist::const_iterator eit = trgs.begin();
            eit != trgs.end(); 
            eit++)
       {
@@ -582,8 +582,8 @@ void HybridAnalysis::getCallBlocks(Address retAddr,
               }
               // see if calledF tail-calls to func that has ret point
               // or if calledF has been replaced, by hideDebugger
-              Function::edgelist & calls = calledF->callEdges();
-              for (Function::edgelist::iterator cit = calls.begin();
+              const Function::edgelist & calls = calledF->callEdges();
+              for (Function::edgelist::const_iterator cit = calls.begin();
                    cit != calls.end();
                    cit++)
               {

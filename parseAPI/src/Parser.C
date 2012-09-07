@@ -1559,12 +1559,12 @@ Parser::split_block(
     ret = factory()._mkblock(owner,cr,addr);
 
     // move out edges
-    vector<Edge *> & trgs = b->_targets;
+    vector<Edge *> & trgs = b->_trglist;
     vector<Edge *>::iterator tit = trgs.begin(); 
     for(;tit!=trgs.end();++tit) {
         Edge *e = *tit;
         e->_source = ret;
-        ret->_targets.push_back(e);
+        ret->_trglist.push_back(e);
     }
     if (!trgs.empty() && RET == (*trgs.begin())->type()) {
        isRetBlock = true;
@@ -1598,7 +1598,7 @@ Parser::split_block(
            FILE__,__LINE__,b->start(),b->end(),po->addr());
         }
         if (isRetBlock) {
-           po->_return_blocks.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
+           po->_retBL.clear(); //could remove b from the vector instead of clearing it, not sure what's cheaper
         }
     }
     // KEVINTODO: study performance impact of this callback
@@ -1726,8 +1726,8 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
     assert(et != NOEDGE);
     Edge * e = factory()._mkedge(src,dst,et);
     e->_type._sink = sink;
-    src->_targets.push_back(e);
-    dst->_sources.push_back(e);
+    src->_trglist.push_back(e);
+    dst->_srclist.push_back(e);
     _pcb.addEdge(src, e, ParseCallback::target);
     _pcb.addEdge(dst, e, ParseCallback::source);
     return e;
@@ -1752,7 +1752,7 @@ Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
     Edge * e = factory()._mkedge(src,_sink,et);
     e->_type._sink = true;
-    src->_targets.push_back(e);
+    src->_trglist.push_back(e);
     return e;
 }
 

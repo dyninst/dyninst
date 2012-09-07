@@ -47,8 +47,6 @@ Block::Block(CodeObject * o, CodeRegion *r, Address start) :
     _start(start),
     _end(start),
     _lastInsn(start),
-    _srclist(_sources),
-    _trglist(_targets),
     _func_cnt(0),
     _parsed(false)
 {
@@ -105,11 +103,12 @@ Block::getFuncs(vector<Function *> & funcs)
 }
 
 bool
-EdgePredicate::pred_impl(Edge * e) const
+EdgePredicate::pred_impl(Edge *) const
 {
-    if(_next)
-        return (*_next)(e);
-    else
+    parsing_printf("Invoking edge predicate\n");
+    //        if(_next)
+    //  return (*_next)(e);
+    //else
         return true;
 }
 
@@ -117,6 +116,8 @@ bool
 Intraproc::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
+    parsing_printf("Invoking Intraproc predicate\n");
+    
     return base && (e->type() != CALL) && (e->type() != RET);
 }
 
@@ -195,11 +196,11 @@ void Edge::uninstall()
             if ( ! (*fit)->_cache_valid ) {
                 continue;
             }
-            for (set<Edge*>::iterator eit = (*fit)->_call_edges.begin();
-                 eit != (*fit)->_call_edges.end(); eit++) 
+            for (set<Edge*>::iterator eit = (*fit)->_call_edge_list.begin();
+                 eit != (*fit)->_call_edge_list.end(); eit++) 
             {
                 if (this == (*eit)) {
-                    (*fit)->_call_edges.erase(*eit);
+                    (*fit)->_call_edge_list.erase(*eit);
                     break;
                 }
             }

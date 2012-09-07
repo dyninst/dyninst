@@ -58,11 +58,7 @@ class CodeObject {
    friend class CFGModifier;
  public:
     PARSER_EXPORT static void version(int& major, int& minor, int& maintenance);
-    typedef ContainerWrapper<
-        std::set<Function*,Function::less>,
-        Function*,
-        Function*
-    > funclist;
+    typedef std::set<Function*,Function::less> funclist;
 
     PARSER_EXPORT CodeObject(CodeSource * cs, 
                              CFGFactory * fact = NULL, 
@@ -105,7 +101,7 @@ class CodeObject {
     PARSER_EXPORT int findFuncs(CodeRegion * cr,
             Address start, Address end,
             std::set<Function*> & funcs);
-    PARSER_EXPORT funclist & funcs() { return flist; }
+    PARSER_EXPORT const funclist & funcs() { return flist; }
 
     // blocks
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
@@ -168,7 +164,7 @@ class CodeObject {
 
     bool owns_factory;
     bool defensive;
-    funclist flist;
+    funclist& flist;
 };
 
 

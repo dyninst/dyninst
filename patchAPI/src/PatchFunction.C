@@ -86,7 +86,7 @@ const PatchFunction::Blockset&
 PatchFunction::exitBlocks() {
   if (func_->exitBlocks().size() != exit_blocks_.size()) 
   {
-      for (ParseAPI::Function::blocklist::iterator iter = func_->exitBlocks().begin();
+      for (ParseAPI::Function::blocklist::const_iterator iter = func_->exitBlocks().begin();
            iter != func_->exitBlocks().end(); ++iter) {
         PatchBlock* pblk = obj()->getBlock(*iter);
         exit_blocks_.insert(pblk);
@@ -624,7 +624,7 @@ bool PatchFunction::consistency() const {
       if (exit_blocks_.size() != func_->returnBlocks().size()) CONSIST_FAIL;
       for (Blockset::const_iterator iter = exit_blocks_.begin(); iter != exit_blocks_.end(); ++iter) {
          bool found = false;
-         for (ParseAPI::Function::blocklist::iterator iter2 = func_->returnBlocks().begin();
+         for (ParseAPI::Function::blocklist::const_iterator iter2 = func_->returnBlocks().begin();
               iter2 != func_->returnBlocks().end(); ++iter2) {
             if ((*iter)->block() == *iter2) {
                found = true;

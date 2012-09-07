@@ -32,6 +32,8 @@
 
 #include <stdio.h>
 #include <iostream>
+#include <boost/bind.hpp>
+
 #include "util.h"
 #include "common/h/Types.h"
 
@@ -98,10 +100,21 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
   return;
 }
 
+void source_helper(ParseAPI::Edge* e,
+		   BPatch_Vector<BPatch_basicBlock*>& srcs,
+		   BPatch_flowGraph* flowGraph,
+		   func_instance* func)
+{
+  BPatch_basicBlock* b = flowGraph->findBlock(func->obj()->findBlock(e->src()));
+  assert(b);
+  srcs.push_back(b);
+}
+
+
 // returns the predecessors of the basic block, provided they are in the same
 // function, since our CFGs at the BPatch level are intraprocedural
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
-  BPatch_basicBlock *b;
+  //  BPatch_basicBlock *b;
   pdvector<block_instance *> in_blocks;
   // can't iterate over the PatchAPI cfg since that doesn't allow you to detect
   // edges from shared blocks into blocks that are not shared and not in the 
@@ -110,15 +123,25 @@ void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
   const Block::edgelist &isrcs = iblock->llb()->sources();
   func_instance *func = flowGraph->getFunction()->lowlevel_func();
   SingleContext epred_(func->ifunc(),false,true);
-  Intraproc epred(&epred_);
-  for (Block::edgelist::iterator eit = isrcs.begin(&epred); 
-       eit != isrcs.end(); 
+  //Intraproc epred(&epred_);
+  std::for_each(boost::make_filter_iterator(epred_, isrcs.begin(), isrcs.end()),
+		boost::make_filter_iterator(epred_, isrcs.end(), isrcs.end()),
+		boost::bind(source_helper,
+			    _1,
+			    boost::ref(srcs),
+			    flowGraph,
+			    func));
+  
+  /*
+  for (Block::edgelist::const_iterator eit = isrcs.begin(&epred_); 
+       eit != isrcs.end(&epred_); 
        ++eit) 
   {
     b = flowGraph->findBlock(func->obj()->findBlock((*eit)->src()));
     assert(b);
     srcs.push_back(b);
   }
+  */
 }
 
 //returns the successors of the basic block in a set
