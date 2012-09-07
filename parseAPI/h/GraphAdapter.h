@@ -3,6 +3,7 @@
 #include "CFG.h"
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map/property_map.hpp>
+#include <boost/graph/properties.hpp>
 
 using namespace Dyninst;
 using namespace ParseAPI;
