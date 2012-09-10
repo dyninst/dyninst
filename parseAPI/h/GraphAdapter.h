@@ -90,3 +90,5 @@ boost::graph_traits<Function>::degree_size_type degree(boost::graph_traits<Funct
   return in_degree(v,g)+out_degree(v,g);
   
 }  
+bool dominates(Function& f, Address a, Address b);
+bool dominates(Function& f, Block* a, Block* b);

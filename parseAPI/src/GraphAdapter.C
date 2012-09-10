@@ -1,8 +1,11 @@
 #include "../h/GraphAdapter.h"
 #include <boost/graph/dominator_tree.hpp>
+#include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/graph_concepts.hpp>
 #include <boost/property_map.hpp>
 #include <boost/bind.hpp>
+
+#include <sstream>
 
 using namespace Dyninst;
 using namespace ParseAPI;
@@ -11,48 +14,15 @@ using namespace std;
 
 typedef graph_traits<Function>::vertex_descriptor Vertex;
 
-template <typename Key>
-struct auto_indexer : public boost::put_get_helper<int&, auto_indexer<Key> >
-{
-  
-  auto_indexer() : m_index(0) 
-  {
-  }
-  int& operator[](const Key& k) const
-  {
-    //if(m_values.find(k) == m_values.end()) m_values[k] = m_index++;
-    return m_values[k];
-  }
-
-  
-  
-
-  mutable int m_index;
-  mutable std::map<Key, int> m_values;
-  
-};
-
-
 namespace boost
 {
-  template<typename Key>
-  struct property_traits<auto_indexer<Key> >
+  template<>
+  struct property_map<Function, vertex_index_t>
   {
-    typedef Key key_type;
-    typedef int value_type;
-    typedef int& reference;
-    typedef lvalue_property_map_tag category;
-    
-  };
-  
-    
-    template<>
-    struct property_map<Function, vertex_index_t>
-    {
-      typedef auto_indexer<graph_traits<Function>::vertex_descriptor > type;
-      typedef type const_type;
+    typedef boost::associative_property_map< std::map<graph_traits<Function>::vertex_descriptor, int> > type;
+    typedef type const_type;
       
-    };
+  };
 }
 
 
@@ -61,13 +31,18 @@ namespace Dyninst
   namespace ParseAPI
   {
     
-      
+    
       
 
     template <typename PROPERTY>
-    typename property_map<Function, PROPERTY>::type get(PROPERTY, const Function& f)
+    typename property_map<Function, PROPERTY>::const_type get(PROPERTY, const Function& f)
     {
-      typename property_map<Function, PROPERTY>::const_type r;
+      typedef typename property_map<Function, PROPERTY>::const_type prop_map;
+      typedef typename property_traits<prop_map>::value_type value_type;
+      typedef typename property_traits<prop_map>::key_type key_type;
+      static std::map<key_type, value_type> m;
+      
+      typename property_map<Function, PROPERTY>::const_type r(m);
       return r;
     }
     
@@ -80,34 +55,81 @@ bool contains(Block* b, Address a)
 }
 
 
+std::string block_info(Block* b)
+{
+  std::stringstream s;
+  if(b) 
+  {
+    s << "[" << b->start() << ", " << b->end() << ")";
+  }
+  else
+  {
+    s << "(NULL)";
+  }
+  return s.str();
+}
 
+template<typename OS>
+OS& operator<<(OS& os, Block* b)
+{
+  os << block_info(b);
+  return os;
+}
 
+struct print_vertex : public base_visitor<print_vertex> 
+{
+  typedef on_discover_vertex event_filter;
+  template<class Vertex, class Graph>
+  void operator()(Vertex v, Graph& g)
+  {
+    cout << v << endl;
+  }
+};
+
+template<class IndexMap>
+std::string block_and_index(Block* b, IndexMap indexMap)
+{
+  std::stringstream s;
+  s << "Block " << get(indexMap, b) << ": " << block_info(b);
+  return s.str();
+}
 
 bool dominates(Function& f, Block* a, Block* b)
 {
   graph_traits<Function>::vertex_iterator firstBlock, curBlock, lastBlock;
   
 
+  // Concept checks for testing
   BOOST_CONCEPT_ASSERT((GraphConcept<Function>));
   BOOST_CONCEPT_ASSERT((IncidenceGraphConcept<Function>));
   BOOST_CONCEPT_ASSERT((VertexListGraphConcept<Function>));
   BOOST_CONCEPT_ASSERT((BidirectionalGraphConcept<Function>));
   BOOST_CONCEPT_ASSERT((MultiPassInputIteratorConcept<graph_traits<Function>::vertex_iterator>));
   
-  // Concept checks for testing
   tie(firstBlock, lastBlock) = vertices(f);
   vector<Vertex> domTreePredVector = vector<Vertex>(num_vertices(f), graph_traits<Function>::null_vertex());
   typedef property_map<Function, vertex_index_t>::type IndexMap;
   typedef iterator_property_map<vector<Vertex>::iterator, IndexMap> PredMap;
-  IndexMap indexMap(get(vertex_index, f));
+  const IndexMap indexMap(get(vertex_index, f));
+  graph_traits<Function>::vertex_iterator ui, ue;
+  int index = 0;
+  for(tie(ui, ue) = vertices(f); ui != ue; ++ui, ++index)
+  {
+    put(indexMap, *ui, index);
+  }
+  
+
   PredMap results(make_iterator_property_map(domTreePredVector.begin(), indexMap));
   
-  lengauer_tarjan_dominator_tree(f, *firstBlock, results);
+
+  lengauer_tarjan_dominator_tree(f, f.entry(), results);
+
   // now walk through the tree and find whether a dominates b
   Vertex cur_idom = b;
   do
   {
-    cur_idom = get(results, cur_idom);
+    Vertex next_idom = get(results, cur_idom);
+    cur_idom = next_idom;
   } while(cur_idom != a && cur_idom != graph_traits<Function>::null_vertex());
   return cur_idom == a;
 }
