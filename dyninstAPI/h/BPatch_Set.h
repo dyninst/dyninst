@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include <iostream>
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P

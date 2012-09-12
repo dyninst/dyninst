@@ -449,6 +449,8 @@ AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Of
     ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
 {
    vector<AstNodePtr>::iterator i;
+   assert(!ast_wrappers_.empty());
+
    for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
       (*i)->referenceCount++;
    }
@@ -2921,6 +2923,13 @@ void AstVariableNode::setVariableAST(codeGen &gen){
           index = i;
           found = true;
           break;
+       }
+    }
+    if (!found) {
+       cerr << "Error: unable to find AST representing variable at " << hex << addr << dec << endl;
+       cerr << "Options are: " << endl;
+       for(unsigned i=0; i< ranges_->size();i++){
+          cerr << "\t" << hex << (*ranges_)[i].first << "-" << (*ranges_)[i].second << dec << endl;
        }
     }
     assert(found);

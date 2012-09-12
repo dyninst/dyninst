@@ -194,6 +194,8 @@ public:
 
     char *,getName,(char *s, int len));
 
+    // String interface to mangled name
+    API_EXPORT(Str, (), std::string, getMangledName, ());
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees

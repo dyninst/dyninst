@@ -210,16 +210,14 @@ localVar::localVar(std::string name,  Type *typ, std::string fileName,
 	type_(typ), 
 	fileName_(fileName), 
 	lineNum_(lineNum),
-   func_(f)
+        func_(f),
+        locsExpanded_(false)
 {
 	type_->incrRefCount();
 
 	if (locs)
 	{
-		for (unsigned int i = 0; i < locs->size(); ++i)
-		{
-         addLocation((*locs)[i]);
-		}
+           std::copy(locs->begin(), locs->end(), std::back_inserter(locs_));
 	}
 }
 
@@ -230,12 +228,11 @@ localVar::localVar(localVar &lvar) :
 	type_ = lvar.type_;
 	fileName_ = lvar.fileName_;
 	lineNum_ = lvar.lineNum_;
-   func_ = lvar.func_;
+        func_ = lvar.func_;
+        locsExpanded_ = lvar.locsExpanded_;
 
-	for (unsigned int i = 0; i < lvar.locs_.size(); ++i)
-	{
-		locs_.push_back(lvar.locs_[i]);
-	}
+        std::copy(lvar.locs_.begin(), lvar.locs_.end(),
+                  std::back_inserter(locs_));
 
 	if (type_ != NULL)
 	{
@@ -245,70 +242,106 @@ localVar::localVar(localVar &lvar) :
 
 bool localVar::addLocation(VariableLocation &location)
 {
-   if (!func_) {
-	locs_.push_back(location);
-      return true;
-   }
-   std::vector<VariableLocation> &func_fp = func_->getFramePtr();
-   if (!func_fp.size() || location.stClass != storageRegOffset || location.reg != -1) {
+   if (!locsExpanded_) {
       locs_.push_back(location);
       return true;
    }
 
-   // Merge variable and function frame pointer's location lists
+   expandLocation(location, locs_);
+   return true;
+}
+
+void localVar::expandLocation(const VariableLocation &loc,
+                              std::vector<VariableLocation> &ret) {
+   if (loc.mr_reg != Dyninst::FrameBase) {
+      ret.push_back(loc);
+      return;
+   }
+
+
+   // We're referencing a frame base; must have a function or this
+   // is corrupted data. 
+   assert(func_);
+
+   std::vector<VariableLocation> &func_fp = func_->getFramePtr();
+
+//#define DEBUG
+
+#ifdef DEBUG
+   cerr << "Expanding location for variable " << name_ << endl;
+#endif
+
+/*
+   if (func_fp.empty()) {
+      cerr << "Error: function " << hex << func_
+           << " / " << func_->getAllMangledNames()[0] << " has no frame pointer!" << endl;
+   }
+*/
+   assert(!func_fp.empty());
+
+   // We need to break loc into a list matching the address
+   // ranges of func_fp. 
+   
+   // Also, combine our frame offset with func_fp[...]'s frame
+   // offset and use its register.
+
    std::vector<VariableLocation>::iterator i;
    for (i = func_fp.begin(); i != func_fp.end(); i++) 
    {
       Offset fplowPC = i->lowPC;
       Offset fphiPC = i->hiPC;
-      Offset varlowPC = location.lowPC;
-      Offset varhiPC = location.hiPC;
-      
-      /* Combine fplocs->frameOffset to loc->frameOffset
-         
-      6 cases
-      1) varlowPC > fphiPC > fplowPC - no overlap - no push
-      2) fphiPC > varlowPC > fplowPC - one push
-      3) fphiPC > fplowPC > varlowPC - one push
-      4) fphiPC > varhiPC > fplowPC - one push
-      5) fphiPC > fplowPC > varhiPC - no overlap - no push
-      6) fphiPC > varhiPC > varlowPC> fpilowPC - one push 
-      
-      */
+
+      Offset varlowPC = loc.lowPC;
+      Offset varhiPC = loc.hiPC;
+#ifdef DEBUG
+      cerr << "var range: " << hex
+           << varlowPC << ".." << varhiPC << endl;
+      cerr << "frame range: " << hex
+           << fplowPC << ".." << fphiPC << dec << endl;
+#endif
+      if (fplowPC > varhiPC) {
+         // Done, the frame base is after the variable
+//         cerr << "Frame base is after variable end, done" << endl;
+         break;
+      }
+
+      if (fphiPC < varlowPC) {
+         // No overlap yet, continue
+//         cerr << "Frame base is before variable, trying next" << endl;
+         continue;
+      }
+
+
+      // low is MAX(varlowPC, fplowPC)
+      Offset low = (varlowPC < fplowPC) ? fplowPC : varlowPC;
+
+      // high is MIN(varhiPC, fphiPC)
+      Offset high = (varhiPC < fphiPC) ? varhiPC : fphiPC;
 
       VariableLocation newloc;
-      newloc.stClass = location.stClass;
-      newloc.refClass = location.refClass;
-      newloc.reg = location.reg;
-      newloc.frameOffset =location.frameOffset +  i->frameOffset;
 
-      if ( (varlowPC > fplowPC && varlowPC >= fphiPC) || (varhiPC <= fplowPC && varhiPC < fplowPC) ) {
-         //nothing
-      } 
-      else if ( varlowPC >= fplowPC && fphiPC >= varhiPC) 
-      {
-         newloc.lowPC = varlowPC;
-         newloc.hiPC = varhiPC;
-      } 
-      else if (varlowPC >= fplowPC && varlowPC < fphiPC) 
-      {
-         newloc.lowPC = varlowPC;
-         newloc.hiPC = fphiPC;
-      } 
-      else if (varlowPC < fplowPC && varlowPC < fphiPC ) 
-      { // varhiPC > fplowPC && varhiPC > fphiPC
-         newloc.lowPC = fplowPC;
-         newloc.hiPC = fphiPC;
-      } 
-      else if (varhiPC > fplowPC && varhiPC < fphiPC) 
-      {
-         newloc.lowPC = fplowPC;
-         newloc.hiPC = varhiPC;
-      }
-      locs_.push_back(newloc);
-   } // fploc iteration
+      newloc.stClass = loc.stClass;
+      newloc.refClass = loc.refClass;
+      newloc.mr_reg = i->mr_reg;
+      newloc.frameOffset = loc.frameOffset + i->frameOffset;
+      newloc.lowPC = low;
+      newloc.hiPC = high;
 
-	return true;
+#ifdef DEBUG
+      cerr << "Created variable location ["
+           << hex << newloc.lowPC << ".." << newloc.hiPC
+           << "], reg " << newloc.mr_reg.name()
+           << " /w/ offset " << newloc.frameOffset
+           << " = (" << loc.frameOffset 
+           << "+" << i->frameOffset << ")" 
+           << ", " 
+           << storageClass2Str(newloc.stClass)
+           << ", " 
+           << storageRefClass2Str(newloc.refClass) << endl;
+#endif
+      ret.push_back(newloc);
+   }
+   return;
 }
 
 localVar::~localVar()
@@ -364,7 +397,17 @@ std::string &localVar::getFileName()
 
 std::vector<Dyninst::VariableLocation> &localVar::getLocationLists() 
 {
-	return locs_;
+   if (!locsExpanded_) {
+      // Here we get clever
+      std::vector<VariableLocation> orig;
+      locs_.swap(orig);
+      for (unsigned i = 0; i < orig.size(); ++i) {
+         expandLocation(orig[i], locs_);
+      }
+      locsExpanded_ = true;
+   }
+
+   return locs_;
 }
 
 bool localVar::operator==(const localVar &l)
@@ -382,12 +425,7 @@ bool localVar::operator==(const localVar &l)
 	if (fileName_ != l.fileName_) return false;
 	if (lineNum_ != l.lineNum_) return false;
 
-	if (locs_.size() != l.locs_.size()) return false;
-
-	for (unsigned int i = 0; i < locs_.size(); ++i)
-	{
-		if ( !(locs_[i] == l.locs_[i]) ) return false;
-	}
+        if (locs_ != l.locs_) return false;
 
 	return true;
 }

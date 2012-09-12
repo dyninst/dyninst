@@ -543,6 +543,7 @@ bool BPatch_flowGraph::createBasicBlocks()
     {
       block_instance* iblk = SCAST_BI(*ibIter);
       BPatch_basicBlock *newblock = findBlock(iblk);
+      assert(newblock);
       allBlocks.insert(newblock);
 
       // Insert source/target edges
@@ -1032,7 +1033,9 @@ bool BPatch_flowGraph::isValidInt() { return isValid_; }
 BPatch_basicBlock *BPatch_flowGraph::findBlock(block_instance *inst) {
   std::map<const block_instance *, BPatch_basicBlock *>::const_iterator iter = blockMap_.find(inst);
   if (iter != blockMap_.end()) return iter->second;
-  return NULL;
+  BPatch_basicBlock *block = new BPatch_basicBlock(inst, this);
+  blockMap_[inst] = block;
+  return block;
 }
 
 BPatch_edge *BPatch_flowGraph::findEdge(edge_instance *inst) {

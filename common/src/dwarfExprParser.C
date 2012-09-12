@@ -29,23 +29,356 @@
  */
 
 #include <stack>
+#include <stdio.h>
 #include "dynutil/h/dyn_regs.h"
-#include "common/h/dwarfExpr.h"
+#include "common/h/dwarfExprParser.h"
+#include "common/h/dwarfResult.h"
 #include "common/h/debug_common.h"
 #include "dynutil/h/VariableLocation.h"
 #include "dynutil/h/ProcReader.h"
 #include "common/h/Types.h"
 
 using namespace std;
-using namespace Dyninst;
-using namespace COMPONENT_NAME;
 
-bool Dyninst::COMPONENT_NAME::decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
-                                                    long int *initialStackValue,
-                                                    VariableLocation *loc, bool &isLocSet,
-                                                    ProcessReader *reader,
-                                                    Dyninst::Architecture arch,
-                                                    long int &end_result)
+namespace Dyninst {
+namespace Dwarf {
+
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           VariableLocation &loc,
+                           Dyninst::Architecture arch) {
+   SymbolicDwarfResult res(loc, arch);
+   if (!decodeDwarfExpression(dwlocs, initialStackValue, 
+                              res, arch)) return false;
+   res.val();
+   return true;
+}
+
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           ProcessReader *reader,
+                           Address pc,
+                           Dwarf_Debug dbg,
+                           Dyninst::Architecture arch,
+                           MachRegisterVal &end_result) {
+   ConcreteDwarfResult res(reader, arch, pc, dbg);
+   if (!decodeDwarfExpression(dwlocs, initialStackValue, 
+                              res, arch)) return false;
+   if (res.err()) return false;
+   end_result = res.val();
+   return true;
+}
+
+
+
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           DwarfResult &cons,
+                           Dyninst::Architecture arch) {
+   // This is basically a decode passthrough, with the work
+   // being done by the DwarfResult. 
+
+   int addr_width = getArchAddressWidth(arch);
+   if (initialStackValue != NULL) cons.pushUnsignedVal((Dyninst::MachRegisterVal) *initialStackValue);
+
+   Dwarf_Loc *locations = dwlocs->ld_s;
+   unsigned count = dwlocs->ld_cents;
+   for ( unsigned int i = 0; i < count; i++ ) 
+   {
+      /* lit0 - lit31 : the constants 0..31 */
+      if ( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) 
+      {
+         cons.pushUnsignedVal((Dyninst::MachRegisterVal) (locations[i].lr_atom - DW_OP_lit0));
+         continue;
+      }
+
+      /* reg0 - reg31: named registers (not their constants) */
+      if ( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) 
+      {
+         cons.pushReg(MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_reg0,
+                                                  arch));
+         continue;
+      }
+
+      /* breg0 - breg31: register contents plus an optional offset */
+      if ( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) 
+      {
+         cons.readReg(MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_breg0,
+                                                  arch));
+         cons.pushSignedVal((Dyninst::MachRegisterVal) locations[i].lr_number);
+         cons.pushOp(DwarfResult::Add);
+         continue;
+      }
+
+      switch( locations[i].lr_atom ) {
+         // This is the same thing as breg, just with an encoded instead of literal
+         // register.
+         // The register is in lr_number
+         // The offset is in lr_number2
+         case DW_OP_bregx:
+            cons.readReg(MachRegister::DwarfEncToReg(locations[i].lr_number, arch));
+            cons.pushSignedVal(locations[i].lr_number2);
+            cons.pushOp(DwarfResult::Add);
+            break;
+
+         case DW_OP_regx:
+            cons.pushReg(MachRegister::DwarfEncToReg(locations[i].lr_number, arch));
+            break;
+            
+         case DW_OP_nop:
+            break;
+
+         case DW_OP_addr:
+         case DW_OP_const1u:
+         case DW_OP_const2u:
+         case DW_OP_const4u:
+         case DW_OP_const8u:
+         case DW_OP_constu:
+            cons.pushUnsignedVal(locations[i].lr_number);
+            break;
+
+         case DW_OP_const1s:
+         case DW_OP_const2s:
+         case DW_OP_const4s:
+         case DW_OP_const8s:
+         case DW_OP_consts:
+            cons.pushSignedVal(locations[i].lr_number);
+            break;
+
+         case DW_OP_fbreg:
+            cons.pushFrameBase();
+            cons.pushSignedVal(locations[i].lr_number);
+            cons.pushOp(DwarfResult::Add);
+            break;
+
+         case DW_OP_dup:
+            cons.pushOp(DwarfResult::Pick, 0);
+            break;
+
+         case DW_OP_drop:
+            cons.pushOp(DwarfResult::Drop, 0);
+            break;
+
+         case DW_OP_pick: 
+            cons.pushOp(DwarfResult::Pick, locations[i].lr_number);
+            break;
+
+         case DW_OP_over: 
+            cons.pushOp(DwarfResult::Pick, 1);
+            break;
+
+         case DW_OP_swap: 
+            cons.pushOp(DwarfResult::Pick, 1);
+            cons.pushOp(DwarfResult::Drop, 2);
+            break;
+
+         case DW_OP_rot: 
+            cons.pushOp(DwarfResult::Pick, 2);
+            cons.pushOp(DwarfResult::Pick, 2);
+            cons.pushOp(DwarfResult::Drop, 3);
+            cons.pushOp(DwarfResult::Drop, 3);
+            break;
+
+         case DW_OP_deref:
+            cons.pushOp(DwarfResult::Deref, addr_width);
+            break;
+
+         case DW_OP_deref_size:
+            cons.pushOp(DwarfResult::Deref, locations[i].lr_number);
+            break;
+
+         case DW_OP_call_frame_cfa:
+            // This is a reference to the CFA as computed by stack walking information.
+            // The current order is:
+            // Variable: reference frame base (fbreg, above)
+            // Frame base: reference CFA
+            // CFA: offset from stack pointer
+            cons.pushCFA();
+            break;
+
+         case DW_OP_abs:
+            cons.pushOp(DwarfResult::Abs);
+            break;
+
+         case DW_OP_and:
+            cons.pushOp(DwarfResult::And);
+            break;
+
+         case DW_OP_div:
+            cons.pushOp(DwarfResult::Div);
+            break;
+
+         case DW_OP_minus:
+            cons.pushOp(DwarfResult::Sub);
+            break;
+
+         case DW_OP_mod:
+            cons.pushOp(DwarfResult::Mod);
+            break;
+
+         case DW_OP_mul:
+            cons.pushOp(DwarfResult::Mul);
+            break;
+
+         case DW_OP_neg:
+            cons.pushSignedVal(-1);
+            cons.pushOp(DwarfResult::Mul);
+            break;
+
+         case DW_OP_not:
+            cons.pushOp(DwarfResult::Not);
+            break;
+
+         case DW_OP_or:
+            cons.pushOp(DwarfResult::Or);
+            break;
+
+         case DW_OP_plus:
+            cons.pushOp(DwarfResult::Add);
+            break;
+
+         case DW_OP_plus_uconst:
+            cons.pushUnsignedVal(locations[i].lr_number);
+            cons.pushOp(DwarfResult::Add);
+            break;
+
+         case DW_OP_shl:
+            cons.pushOp(DwarfResult::Shl);
+            break;
+
+         case DW_OP_shr:
+            cons.pushOp(DwarfResult::Shr);
+            break;
+         
+         case DW_OP_shra:
+            cons.pushOp(DwarfResult::ShrArith);
+            break;
+
+         case DW_OP_xor:
+            cons.pushOp(DwarfResult::Xor);
+            break;
+
+         case DW_OP_le:
+            cons.pushOp(DwarfResult::LE);
+            break;
+
+         case DW_OP_ge:
+            cons.pushOp(DwarfResult::GE);
+            break;
+
+         case DW_OP_eq:
+            cons.pushOp(DwarfResult::Eq);
+            break;
+
+         case DW_OP_ne:
+            cons.pushOp(DwarfResult::Neq);
+            break;
+
+         case DW_OP_lt:
+            cons.pushOp(DwarfResult::LT);
+            break;
+
+         case DW_OP_gt:
+            cons.pushOp(DwarfResult::GT);
+            break;
+
+         case DW_OP_bra: {
+            // Conditional branch... 
+            // It needs immediate evaluation so we can continue processing
+            // the DWARF. 
+            Dyninst::MachRegisterVal value;
+
+            if (!cons.eval(value)) {
+               // Error in dwarf, or we're doing static. I'm not worrying about
+               // encoding a conditional branch in static eval right now. 
+               return false;
+            }
+            
+            if (value == 0) break;
+            // Do not break; fall through to skip
+         }
+         case DW_OP_skip: {
+            int bytes = (int)(Dwarf_Signed)locations[i].lr_number;
+            unsigned int target = (unsigned int) locations[i].lr_offset + bytes;
+            
+            int j = i;
+            if ( bytes < 0 ) {
+               for ( j = i - 1; j >= 0; j-- ) {
+                  if ( locations[j].lr_offset == target ) { break; }
+               } /* end search backward */
+            } else {
+               for ( j = i + 1; j < dwlocs->ld_cents; j ++ ) {
+                  if ( locations[j].lr_offset == target ) { break; }
+               } /* end search forward */
+            } /* end if positive offset */
+            
+            /* Because i will be incremented the next time around the loop. */
+            i = j - 1; 
+            break;
+         }
+            
+         default:
+            return false;
+      } /* end operand switch */
+   } /* end iteration over Dwarf_Loc entries. */
+
+   return true;
+}
+
+}
+
+}
+
+#if 0
+
+#if defined(arch_x86_64)
+
+#define IA32_MAX_MAP 7
+#define AMD64_MAX_MAP 15
+static int const amd64_register_map[] =
+  {
+    0,  // RAX
+    2,  // RDX
+    1,  // RCX
+    3,  // RBX
+    6,  // RSI
+    7,  // RDI
+    5,  // RBP
+    4,  // RSP
+    8, 9, 10, 11, 12, 13, 14, 15    // gp 8 - 15
+    /* This is incomplete. The x86_64 ABI specifies a mapping from
+       dwarf numbers (0-66) to ("architecture number"). Without a
+       corresponding mapping for the SVR4 dwarf-machine encoding for
+       IA-32, however, it is not meaningful to provide this mapping. */
+  };
+
+
+int Dyninst::Register_DWARFtoMachineEnc32(int n)
+{
+   return n;
+}
+
+
+int Dyninst::Register_DWARFtoMachineEnc64(int n)
+{
+   if (n <= AMD64_MAX_MAP)
+      return amd64_register_map[n];
+   return n;
+}
+
+#endif
+
+#endif
+
+
+
+#if 0
+bool Dyninst::decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                                    long int *initialStackValue,
+                                    VariableLocation *loc, bool &isLocSet,
+                                    ProcessReader *reader,
+                                    Dyninst::Architecture arch,
+                                    long int &end_result)
 {
    /* Initialize the stack. */
    int addr_width = getArchAddressWidth(arch);
@@ -158,6 +491,7 @@ bool Dyninst::COMPONENT_NAME::decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
                loc->frameOffset = 0;
+               loc->mr_reg = Dyninst::FrameBase;
                to_push = static_cast<long int>(locations[i].lr_number);
             }
             else if (reader) {
@@ -546,8 +880,27 @@ bool Dyninst::COMPONENT_NAME::decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          case DW_OP_nop:
             break;
 
+         case DW_OP_call_frame_cfa: {
+            long int to_push = 0;
+            if (loc) {
+               loc->stClass = storageRegOffset;
+               loc->refClass = storageNoRef;
+               loc->frameOffset = 0;
+               loc->mr_reg = Dyninst::FrameBase;
+            }
+            else if (reader) {
+               Dyninst::MachRegister r = Dyninst::FrameBase;
+               Dyninst::MachRegisterVal v;
+               bool result = reader->GetReg(r, v);
+               if (!result) {
+                  return false;
+               }
+            }
+            opStack.push(to_push);
+            break;
+         }
          default:
-            dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+            printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
             return false;
             break;
       } /* end operand switch */
@@ -561,3 +914,6 @@ bool Dyninst::COMPONENT_NAME::decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
    end_result = opStack.top();
    return true;
 }
+
+#endif
+

@@ -40,6 +40,7 @@
 #include "Function.h"
 #include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
+#include "common/h/dwarfFrameParser.h"
 
 #include "annotations.h"
 
@@ -53,7 +54,8 @@ Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
       framePtrRegNum_(-1),
-      locs_(NULL),
+      frameBase_(NULL),
+      frameBaseExpanded_(false),
       functionSize_(0)
 {}
 
@@ -61,7 +63,8 @@ Function::Function()
     : Aggregate(),
       retType_(NULL), 
       framePtrRegNum_(-1),
-      locs_(NULL),
+      frameBase_(NULL),
+      frameBaseExpanded_(false),
       functionSize_(0)
 {}
 
@@ -113,31 +116,109 @@ Offset Function::getTOCOffset() const
     return retval;
 }
 
-static std::vector<Dyninst::VariableLocation> emptyLocVec;
+std::vector<Dyninst::VariableLocation> &Function::getFramePtrRefForInit() {
+   return frameBase_;
+}
+
 std::vector<Dyninst::VariableLocation> &Function::getFramePtr() 
 {
-	if (locs_) return *locs_;
-	return emptyLocVec;
+   if (frameBaseExpanded_)
+      return frameBase_;
+
+   frameBaseExpanded_ = true;
+
+   std::vector<VariableLocation> orig;
+   orig.swap(frameBase_);
+
+   for (unsigned i = 0; i < orig.size(); ++i) {
+      expandLocation(orig[i], frameBase_);
+   }
+
+   return frameBase_;
 }
 
-#if 0
-bool Function::addLocation(VariableLocation &loc)
-{
-	locs_.push_back(loc);
-    return true;
-}
-#endif
-#if 1 
 bool Function::setFramePtr(vector<VariableLocation> *locs) 
 {
-    if (locs_) 
-        return false;
-    
-    locs_ = locs;
-    return true;
+   frameBase_.clear();
+   std::copy(locs->begin(), locs->end(), std::back_inserter(frameBase_));
+   return true;
 }
-#endif
 
+void Function::expandLocation(const VariableLocation &loc,
+                              std::vector<VariableLocation> &ret) {
+   // We are the frame base, so... WTF? 
+   assert(loc.mr_reg != Dyninst::FrameBase);
+
+   if (loc.mr_reg != Dyninst::CFA) {
+      ret.push_back(loc);
+      return;
+   }
+
+   Dyninst::Dwarf::DwarfFrameParser::Ptr frameParser =
+      Dyninst::Dwarf::DwarfFrameParser::create(module_->exec()->getObject()->dwarf_dbg(),
+                                               module_->exec()->getObject()->getArch());
+   
+   std::vector<VariableLocation> FDEs;
+   Dyninst::Dwarf::FrameErrors_t err;
+   frameParser->getRegsForFunction(getOffset(),
+                                   Dyninst::CFA,
+                                   FDEs,
+                                   err);
+
+
+   assert(!FDEs.empty());
+
+   // This looks surprisingly similar to localVar's version...
+   // Perhaps we should unify. 
+
+   std::vector<VariableLocation>::iterator i;
+   for (i = FDEs.begin(); i != FDEs.end(); i++) 
+   {
+      Offset fdelowPC = i->lowPC;
+      Offset fdehiPC = i->hiPC;
+
+      Offset frame_lowPC = loc.lowPC;
+      Offset frame_hiPC = loc.hiPC;
+
+      if (frame_hiPC < fdehiPC) {
+         // We're done since the variable proceeds the frame
+         // base
+         break;
+      }
+
+      // low is MAX(frame_lowPC, fdelowPC)
+      Offset low = (frame_lowPC < fdelowPC) ? fdelowPC : frame_lowPC;
+
+      // high is MIN(frame_hiPC, fdehiPC)
+      Offset high = (frame_hiPC < fdehiPC) ? frame_hiPC : fdehiPC;
+
+      VariableLocation newloc;
+
+      newloc.stClass = loc.stClass;
+      newloc.refClass = loc.refClass;
+      newloc.mr_reg = i->mr_reg;
+      newloc.frameOffset = loc.frameOffset + i->frameOffset;
+      newloc.lowPC = low;
+      newloc.hiPC = high;
+
+/*
+      cerr << "Created frame pointer ["
+           << hex << newloc.lowPC << ".." << newloc.hiPC
+           << "], reg " << newloc.mr_reg.name()
+           << " /w/ offset " << newloc.frameOffset
+           << " = (" << loc.frameOffset 
+           << "+" << i->frameOffset << ")" 
+           << ", " 
+           << storageClass2Str(newloc.stClass)
+           << ", " 
+           << storageRefClass2Str(newloc.refClass) << endl;
+*/
+
+
+      ret.push_back(newloc);
+   }
+   return;
+}
 
 bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)
 {
@@ -328,7 +409,7 @@ Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THRO
 		gtranslate(sb, t_id, "typeID");
 		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
 #if 0
-		gtranslate(sb, locs_, "framePointerLocationList");
+		gtranslate(sb, frameBase_, "framePointerLocationList");
 #endif
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
@@ -373,13 +454,13 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::VariableLocation &l)
 	const char *stc = storageClass2Str(l.stClass);
 	const char *strc = storageRefClass2Str(l.refClass);
 	os << "{"
-		<< "storageClass=" << stc
-		<< " storageRefClass=" << strc
-		<< " reg=" << l.reg
-		<< " frameOffset=" << l.frameOffset
-		<< " lowPC=" << l.lowPC
-		<< " hiPC=" << l.hiPC
-		<< "}";
+           << "storageClass=" << stc
+           << " storageRefClass=" << strc
+           << " reg=" << l.mr_reg.name() 
+           << " frameOffset=" << l.frameOffset
+           << " lowPC=" << l.lowPC
+           << " hiPC=" << l.hiPC
+           << "}";
 	return os;
 }
 
@@ -396,10 +477,10 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f
             << " framePtrRegNum_=" << f.getFramePtrRegnum()
 		<< " FramePtrLocationList=[";
 #if 0
-	for (unsigned int i = 0; i < f.locs_.size(); ++i)
+	for (unsigned int i = 0; i < f.frameBase_.size(); ++i)
 	{
-		os << f.locs_[i]; 
-		if ( (i + 1) < f.locs_.size())
+		os << f.frameBase_[i]; 
+		if ( (i + 1) < f.frameBase_.size())
 			os << ", ";
 	}
 #endif
@@ -426,12 +507,12 @@ bool Function::operator==(const Function &f)
 		return false;
 
 #if 0
-	if (locs_.size() != f.locs_.size())
+	if (frameBase_.size() != f.frameBase_.size())
 		return false;
 
-	for (unsigned int i = 0; i < locs_.size(); ++i)
+	for (unsigned int i = 0; i < frameBase_.size(); ++i)
 	{
-		if (locs_[i] == locs_[i])
+		if (frameBase_[i] == frameBase_[i])
 			return false;
 	}
 #endif

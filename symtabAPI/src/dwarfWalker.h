@@ -8,6 +8,7 @@
 #include <stack>
 #include <vector>
 #include <string>
+#include <set>
 #include "dyntypes.h"
 #include "VariableLocation.h"
 #include "Type.h"
@@ -43,11 +44,13 @@ class DwarfWalker {
          Dwarf_Off offset;
          Dwarf_Half tag;
          Address base;
+         Address low;
+         Address high;
       Context() :
          func(NULL), commonBlock(NULL),
             enumType(NULL), enclosure(NULL),
             parseSibling(true), parseChild(true), 
-            base(0) {};
+            base(0), low(0), high(0) {};
       };
       
       std::stack<Context> c;
@@ -65,6 +68,8 @@ class DwarfWalker {
       Dwarf_Off offset() { return c.top().offset; }
       Dwarf_Half tag() { return c.top().tag; }
       Address base() { return c.top().base; }
+      Address low() { return c.top().low; }
+      Address high() { return c.top().high; }
 
       void setFunc(Function *f) { c.top().func = f; }
       void setCommon(typeCommon *tc) { c.top().commonBlock = tc; }
@@ -78,6 +83,8 @@ class DwarfWalker {
       void setOffset(Dwarf_Off o) { c.top().offset = o; }
       void setTag(Dwarf_Tag t) { c.top().tag = t; }
       void setBase(Address a) { c.top().base = a; }
+      void setLow(Address a) { c.top().low = a; }
+      void setHigh(Address a) { c.top().high = a; }
    };
 
   public:
@@ -106,6 +113,7 @@ class DwarfWalker {
    bool parse_int(Dwarf_Die entry, bool parseSiblings);
 
    bool parseSubprogram();
+   bool parseLexicalBlock();
    bool parseCommonBlock();
    bool parseConstant();
    bool parseVariable();
@@ -158,27 +166,32 @@ class DwarfWalker {
    // We might be able to fold this into specEntry and call it
    // "authoritativeEntry" or something. 
    Dwarf_Die abstractEntry() { return contexts_.abstractEntry(); }
+   Address lowAddr() { return contexts_.low(); }
+   Address highAddr() { return contexts_.high(); }
 
    // A printable ID for a particular entry
-   unsigned long id() { return (unsigned long) offset(); }
+   unsigned long id() { return (unsigned long) (offset() - compile_offset); }
 
    void setEntry(Dwarf_Die entry);
    void setSpecEntry(Dwarf_Die se) { contexts_.setSpecEntry(se); }
    void setAbstractEntry(Dwarf_Die se) { contexts_.setAbstractEntry(se); }
    void setTag(Dwarf_Half tag) { contexts_.setTag(tag); }
    void setOffset(Dwarf_Off offset) { contexts_.setOffset(offset); }
+   void setLow(Address low) { contexts_.setLow(low); }
+   void setHigh(Address high) { contexts_.setHigh(high); }
 
    bool buildSrcFiles(Dwarf_Die entry);
+   bool hasDeclaration(bool &decl);
    bool findTag();
    bool findOffset();
    bool handleAbstractOrigin(bool &isAbstractOrigin);
    bool handleSpecification(bool &hasSpec);
    bool findFuncName();
-   bool findFunction();
-   bool findLowAddr();
+   bool findFunction(bool &found);
+   bool findBaseAddr();
    bool getFrameBase();
-   bool getReturnType(bool hasSpecification);
-   bool addFuncToContainer(fieldListType *dieEnclosure);
+   bool getReturnType(bool hasSpecification, Type *&returnType);
+   bool addFuncToContainer(Type *returnType);
    bool findType(Type *&, bool defaultToVoid);
    bool getLineInformation(Dwarf_Unsigned &variableLineNo,
                            bool &hasLineNumber,
@@ -190,12 +203,25 @@ class DwarfWalker {
    bool findValue(long &value, bool &valid);
    bool fixName(std::string &name, Type *type);
    bool fixBitFields(std::vector<VariableLocation> &locs, long &size);
+   bool findEntryToUse(Dwarf_Half attr, bool &found, Dwarf_Die &entry);
    bool parseSubrangeAUX(Dwarf_Die entry,
                          std::string &lobound,
                          std::string &hibound);
    bool decodeLocationList(Dwarf_Half attr,
                            Address *initialVal,
                            std::vector<VariableLocation> &locs);
+   bool checkForConstant(Dwarf_Half attr,
+                         Dwarf_Attribute &locationAttribute,
+                         bool &constant,
+                         Dwarf_Half &form);
+   bool findConstant(Dwarf_Half attr, Address &value);
+   bool findConstantWithForm(Dwarf_Attribute &attr,
+                               Dwarf_Half form,
+                               Address &value);
+   bool decodeConstantLocation(Dwarf_Attribute &attr, Dwarf_Half form, 
+                               std::vector<VariableLocation> &locs);
+   bool constructConstantVariableLocation(Address value,
+                                          std::vector<VariableLocation> &locs);
    typeArray *parseMultiDimensionalArray(Dwarf_Die firstRange,
                                          Type *elementType);
    bool decipherBound(Dwarf_Attribute boundAttribute, std::string &name);
@@ -211,6 +237,8 @@ class DwarfWalker {
    // Track which enclosure (array, struct, class, etc.) contains the current
    // dwarf parsee
    std::map<Dwarf_Off, fieldListType *> enclosureMap;
+   // Header-only functions get multiple parsed.
+   std::set<Function *> parsedFuncs;
    
    Contexts contexts_;
 
@@ -223,7 +251,8 @@ class DwarfWalker {
    std::string name_;
 
    // Per-module info
-   Address curBase; 
+   Address modLow;
+   Address modHigh;
    Dwarf_Unsigned cu_header_length;
    Dwarf_Half version;
    Dwarf_Unsigned abbrev_offset;
@@ -233,6 +262,10 @@ class DwarfWalker {
    Dwarf_Sig8 signature;
    Dwarf_Unsigned typeoffset;
    Dwarf_Unsigned next_cu_header;
+
+   // For debugging purposes; to match dwarfdump's output,
+   // we need to subtract a "header overall offset". 
+   Dwarf_Off compile_offset;
 
 };
 

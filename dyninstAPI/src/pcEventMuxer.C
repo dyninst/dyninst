@@ -248,6 +248,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
+#define DEBUG
 #if defined(DEBUG)
     if (evSignal->getSignal() == 11) {
       cerr << "SEGV IN PROCESS " << process->getPid() << endl;
@@ -294,7 +295,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	 base += insn->size();
 	 insn = deco.decode();
        }
-       while(1) sleep(1);
     }
 #endif
 

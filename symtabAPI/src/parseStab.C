@@ -276,7 +276,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             loc.stClass = storageRegOffset;
             loc.refClass = storageNoRef;
             loc.frameOffset = framePtr;
-            loc.reg = -1;
             locVar->addLocation(loc);
             if (!ptrType) {
                //bperr("adding local var with missing type %s, type = %d\n",
@@ -312,7 +311,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          loc.stClass = storageRegOffset;
          loc.refClass = storageNoRef;
          loc.frameOffset = framePtr;
-         loc.reg = -1;
          locVar->addLocation(loc);
 
          if (!ptrType) 
@@ -539,7 +537,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
                loc.frameOffset = framePtr;
-               loc.reg = -1;
                param->addLocation(loc);
 
                if (symt_current_func) 
@@ -578,7 +575,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
                loc.frameOffset = 0;
-               loc.reg = -1;
                var->addLocation(loc);
                if (symt_current_func) {
                      if (!symt_current_func->addParam(var)) 
@@ -815,7 +811,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   loc.stClass = storageAddr;
                   loc.refClass = storageNoRef;
                   loc.frameOffset = framePtr;
-                  loc.reg = -1;
                   locVar->addLocation(loc);
 
                   if (!symt_current_func->addLocalVar(locVar)) 

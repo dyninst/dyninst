@@ -84,13 +84,21 @@ class localVar : public Serializable, public AnnotatableSparse
 	Type *type_;
 	std::string fileName_;
 	int lineNum_;
-   Function *func_;
+        Function *func_;
 	std::vector<VariableLocation> locs_;
-
+        // We start with an abstract location that may include "the frame
+        // pointer" as a register. Once a user requests the location list
+        // we concretize it and set this flag.
+        bool locsExpanded_;
+        
 	// scope_t scope;
 
+        void expandLocation(const VariableLocation &var,
+                            std::vector<VariableLocation> &ret);
+
 	public:
-	SYMTAB_EXPORT localVar() {}
+	SYMTAB_EXPORT localVar() :
+        type_(NULL), lineNum_(-1), func_(NULL), locsExpanded_(false) {}
 	//  Internal use only
 	localVar(std::string name,  Type *typ, std::string fileName, 
             int lineNum, Function *f, 

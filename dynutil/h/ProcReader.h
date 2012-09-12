@@ -32,6 +32,7 @@
 #define PROCREADER_H_
 
 #include "dyntypes.h"
+#include "dyn_regs.h"
 
 namespace Dyninst {
 
@@ -39,8 +40,8 @@ class ProcessReader {
  public:
    virtual bool start() = 0;
    virtual bool isAsync() { return false; }
-   virtual bool ReadMem(Dyninst::Address addr, void *buffer, unsigned size) = 0;
-   virtual bool GetReg(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) = 0;
+   virtual bool ReadMem(Address addr, void *buffer, unsigned size) = 0;
+   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) = 0;
    virtual bool done() = 0;
    virtual ~ProcessReader() {}
 };

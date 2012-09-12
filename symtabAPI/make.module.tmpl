@@ -83,15 +83,12 @@ SRCS	     +=	../src/Object.C \
                 ../src/annotations.C \
                 ../src/debug.C \
                 ../src/SymtabReader.C \
-                ../src/dwarfWalker.C
+                ../src/dwarfWalker.C \
+                ../src/parseDwarf.C
 
 ifdef LIBELF_PLATFORM
 SRCS  +=  ../../common/src/Elf_X.C \
           ../../common/src/SymLite-elf.C
-endif
-ifdef USES_DWARF_DEBUG
-SRCS  +=  ../../common/src/dwarfSW.C \
-          ../../common/src/dwarfExpr.C
 endif
 
 

@@ -28,57 +28,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(DWARF_SW_H_)
-#define DWARF_SW_H_
+#if !defined(DWARF_EXPR_H)
+#define DWARF_EXPR_H
 
-#include <vector>
-#include "dynutil/h/dyntypes.h"
-#include "dynutil/h/ProcReader.h"
+#include <stack>
+#include "dynutil/h/dyn_regs.h"
 #include "libdwarf.h"
+#include "dwarf.h"
 
 namespace Dyninst {
-namespace COMPONENT_NAME {
 
-typedef enum {
-   FE_Bad_Frame_Data = 15,   /* to coincide with equivalent SymtabError */
-   FE_No_Frame_Entry,
-   FE_Frame_Read_Error,
-   FE_No_Error
-} FrameErrors_t;
+class VariableLocation;
+class ProcessReader;
 
-typedef struct {
-  Dwarf_Fde *fde_data;
-  Dwarf_Signed fde_count;
-  Dwarf_Cie *cie_data;
-  Dwarf_Signed cie_count;   
-} fde_cie_data;
+namespace Dwarf {
 
-class DwarfSW {
-   typedef enum {
-      dwarf_status_uninitialized,
-      dwarf_status_error,
-      dwarf_status_ok
-   } dwarf_status_t;
-   Dwarf_Debug dbg;
-   unsigned addr_width;
-   dwarf_status_t fde_dwarf_status;
+class DwarfResult;
 
-   std::vector<fde_cie_data> fde_data;
-   void setupFdeData();
-  public:
-   DwarfSW(Dwarf_Debug dbg_, unsigned addr_width_);
-   ~DwarfSW();
+int Register_DWARFtoMachineEnc32(int n);
+int Register_DWARFtoMachineEnc64(int n);
 
-   bool hasFrameDebugInfo();
-   bool getRegValueAtFrame(Address pc, 
-                           Dyninst::MachRegister reg, 
-                           Dyninst::MachRegisterVal &reg_result,
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           Dyninst::VariableLocation &loc,
+                           Dyninst::Architecture arch);
+
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           Dyninst::ProcessReader *reader,
                            Dyninst::Architecture arch,
-                           ProcessReader *reader,
-                           FrameErrors_t &err_result);
-};
+                           long int &end_result);
+
+bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
+                           long int *initialStackValue,
+                           DwarfResult &res,
+                           Dyninst::Architecture arch);
 
 }
+
 }
 
 #endif

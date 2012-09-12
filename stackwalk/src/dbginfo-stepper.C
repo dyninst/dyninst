@@ -40,21 +40,23 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
+#include "common/h/dwarfFrameParser.h"
 
 #include "symtabAPI/h/Symtab.h"
 
 using namespace Dyninst;
 using namespace Stackwalker;
+using namespace Dwarf;
 
-static std::map<std::string, DwarfSW *> dwarf_info;
+static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 
 #include <stdarg.h>
 #include "dwarf.h"
 #include "libdwarf.h"
 #include "common/h/Elf_X.h"
-#include "common/h/dwarfSW.h"
+#include "common/h/dwarfFrameParser.h"
 
-static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
+static DwarfFrameParser::Ptr ll_getDwarfInfo(Elf_X *elfx)
 {
    Elf *elf = elfx->e_elfp();
    Dwarf_Debug dbg;
@@ -64,16 +66,25 @@ static DwarfSW *ll_getDwarfInfo(Elf_X *elfx)
       sw_printf("Error opening dwarf information %u (0x%x): %s\n",
                 (unsigned) dwarf_errno(err), (unsigned) dwarf_errno(err),
                 dwarf_errmsg(err));
-      return NULL;
+      return DwarfFrameParser::Ptr();
    }
-   return new DwarfSW(dbg, elfx->wordSize());
+   
+   // FIXME for ppc
+   Architecture arch;
+   if (elfx->wordSize() == 4)
+      arch = Dyninst::Arch_x86;
+   else
+      arch = Dyninst::Arch_x86_64;
+
+
+   return DwarfFrameParser::create(dbg, arch);
 }
 
-static DwarfSW *getDwarfInfo(std::string s)
+static DwarfFrameParser::Ptr getDwarfInfo(std::string s)
 {
-   static std::map<std::string, DwarfSW *> dwarf_info;
+   static std::map<std::string, DwarfFrameParser::Ptr > dwarf_info;
    
-   std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
+   std::map<std::string, DwarfFrameParser::Ptr >::iterator i = dwarf_info.find(s);
    if (i != dwarf_info.end())
       return i->second;
    
@@ -81,19 +92,19 @@ static DwarfSW *getDwarfInfo(std::string s)
    if (!reader) {
       sw_printf("[%s:%u] - Error opening default symbol reader %s\n",
                 __FILE__, __LINE__, s.c_str());
-      return NULL;
+      return DwarfFrameParser::Ptr();
    }
    Elf_X *elfx = (Elf_X *) reader->getElfHandle();
-   DwarfSW *result = ll_getDwarfInfo(elfx);
+   DwarfFrameParser::Ptr result = ll_getDwarfInfo(elfx);
    dwarf_info[s] = result;
    return result;
 }
 
-static DwarfSW *getAuxDwarfInfo(std::string s)
+static DwarfFrameParser::Ptr getAuxDwarfInfo(std::string s)
 {
-   static std::map<std::string, DwarfSW *> dwarf_aux_info;
+   static std::map<std::string, DwarfFrameParser::Ptr > dwarf_aux_info;
    
-   std::map<std::string, DwarfSW *>::iterator i = dwarf_aux_info.find(s);
+   std::map<std::string, DwarfFrameParser::Ptr >::iterator i = dwarf_aux_info.find(s);
    if (i != dwarf_aux_info.end())
       return i->second;
    
@@ -101,14 +112,14 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
    if (!orig_reader) {
       sw_printf("[%s:%u] - Error.  Could not find elf handle for %s\n",
                 __FILE__, __LINE__, s.c_str());
-      return NULL;
+      return DwarfFrameParser::Ptr();
    }
    Elf_X *orig_elf = (Elf_X *) orig_reader->getElfHandle();
    if (!orig_elf) {
       sw_printf("[%s:%u] - Error. Could not find elf handle for file %s\n",
                 __FILE__, __LINE__, s.c_str());
-      dwarf_aux_info[s] = NULL;
-      return NULL;
+      dwarf_aux_info[s] = DwarfFrameParser::Ptr();
+      return DwarfFrameParser::Ptr();
    }
    
    string dbg_name;
@@ -118,8 +129,8 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
    if (!result) {
       sw_printf("[%s:%u] - No separate debug file associated with %s\n",
                 __FILE__, __LINE__, s.c_str());
-      dwarf_aux_info[s] = NULL;
-      return NULL;
+      dwarf_aux_info[s] = DwarfFrameParser::Ptr();
+      return DwarfFrameParser::Ptr();
    }
 
    SymReader *reader = LibraryWrapper::testLibrary(dbg_name);
@@ -129,14 +140,14 @@ static DwarfSW *getAuxDwarfInfo(std::string s)
       if (!reader) {
          sw_printf("[%s:%u] - Error opening symbol reader for buffer associated with %s\n",
                    __FILE__, __LINE__, dbg_name.c_str());
-         dwarf_aux_info[s] = NULL;
-         return NULL;
+         dwarf_aux_info[s] = DwarfFrameParser::Ptr();
+         return DwarfFrameParser::Ptr();
       }
       LibraryWrapper::registerLibrary(reader, dbg_name);
    }
    
    Elf_X *elfx = (Elf_X *) reader->getElfHandle();
-   DwarfSW *dresult = ll_getDwarfInfo(elfx);
+   DwarfFrameParser::Ptr dresult = ll_getDwarfInfo(elfx);
    dwarf_aux_info[s] = dresult;
    return dresult;
 }
@@ -286,7 +297,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
        * into separate files, usually in /usr/lib/debug/.  Check these 
        * for DWARF debug info
        **/
-      DwarfSW *dauxinfo = getAuxDwarfInfo(lib.first);
+      DwarfFrameParser::Ptr dauxinfo = getAuxDwarfInfo(lib.first);
       if (dauxinfo && dauxinfo->hasFrameDebugInfo()) {
          sw_printf("[%s:%u] - Using separate DWARF debug file for %s", 
                    __FILE__, __LINE__, lib.first.c_str());
@@ -304,7 +315,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    /**
     * Check the actual file for DWARF stackwalking data
     **/
-   DwarfSW *dinfo = getDwarfInfo(lib.first);
+   DwarfFrameParser::Ptr dinfo = getDwarfInfo(lib.first);
    if (!dinfo) {
       sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
                 __FILE__, __LINE__, lib.first.c_str());
@@ -348,7 +359,7 @@ DebugStepperImpl::~DebugStepperImpl()
 
 #if defined(arch_x86) || defined(arch_x86_64)
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
-                                                   Frame &out, DwarfSW *dinfo,
+                                                   Frame &out, DwarfFrameParser::Ptr dinfo,
                                                    bool isVsyscallPage)
 {
    MachRegisterVal frame_value, stack_value, ret_value;
@@ -365,7 +376,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    depth_frame = cur_frame;
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                      ret_value, arch, this, frame_error);
+                                      ret_value, this, frame_error);
 
    if (!result && frame_error == FE_No_Frame_Entry && isVsyscallPage) {
       //Work-around kernel bug.  The vsyscall page location was randomized, but
@@ -374,7 +385,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       // old PC.
       pc += 0xffffe000;
       result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                         ret_value, arch, this, frame_error);
+                                         ret_value, this, frame_error);
 
    }
    if (!result) {
@@ -391,7 +402,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       frame_reg = x86_64::rbp;
 
    result = dinfo->getRegValueAtFrame(pc, frame_reg,
-                                      frame_value, arch, this, frame_error);
+                                      frame_value, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
                  __FILE__, __LINE__, in.getRA());
@@ -400,7 +411,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    location_t fp_loc = getLastComputedLocation(frame_value);
 
    result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
-                                      stack_value, arch, this, frame_error);
+                                      stack_value, this, frame_error);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
                  __FILE__, __LINE__, in.getRA());

@@ -41,6 +41,7 @@
 #include "BPatch_function.h"
 #include "BPatch.h"
 #include "mapped_module.h"
+#include "RegisterConversion.h"
 //#include "Annotatable.h"
 
 #ifdef i386_unknown_nt4_0
@@ -512,20 +513,22 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 
 BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::VariableLocation *loc)
 {
-	Dyninst::storageClass stClass = loc->stClass;
-	storageRefClass refClass = loc->refClass;
-	if((stClass == storageAddr) && (refClass == storageNoRef))
-		return BPatch_storageAddr;
-	else if((stClass == storageAddr) && (refClass == storageRef))
-		return BPatch_storageAddrRef;
-	else if((stClass == storageReg) && (refClass == storageNoRef))
-		return BPatch_storageReg;
-	else if((stClass == storageReg) && (refClass == storageRef))
-       return BPatch_storageRegRef;
-   else if((stClass == storageRegOffset) && (loc->reg == -1))
-       return BPatch_storageFrameOffset;
+   Dyninst::storageClass stClass = loc->stClass;
+   storageRefClass refClass = loc->refClass;
+   if((stClass == storageAddr) && (refClass == storageNoRef))
+      return BPatch_storageAddr;
+   else if((stClass == storageAddr) && (refClass == storageRef))
+      return BPatch_storageAddrRef;
+   else if((stClass == storageReg) && (refClass == storageNoRef))
+      return BPatch_storageReg;
+   else if((stClass == storageReg) && (refClass == storageRef))
+      return BPatch_storageRegRef;
+   else if((stClass == storageRegOffset) && ((loc->mr_reg == Dyninst::InvalidReg) ||
+                                             (loc->mr_reg == Dyninst::FrameBase) ||
+                                             (loc->mr_reg == Dyninst::CFA)))
+      return BPatch_storageFrameOffset;
    else if((stClass == storageRegOffset))
-   	return BPatch_storageRegOffset;
+      return BPatch_storageRegOffset;
    else {
       assert(0);
       return (BPatch_storageClass) -1;
@@ -566,7 +569,8 @@ int BPatch_localVar::getRegister() {
     if (!locs.size())
         return -1;
 
-    return locs[0].reg;
+    bool ignored;
+    return convertRegID(locs[0].mr_reg, ignored);
 }
 
 BPatch_storageClass BPatch_localVar::getStorageClass() {

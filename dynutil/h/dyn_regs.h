@@ -141,6 +141,8 @@ namespace Dyninst
    DEF_REGISTER(FrameBase,  1 | Arch_none, "abstract");
    DEF_REGISTER(ReturnAddr, 2 | Arch_none, "abstract");
    DEF_REGISTER(StackTop,   3 | Arch_none, "abstract");
+   // DWARF-ism; the CFA is the value of the stack pointer in the previous frame
+   DEF_REGISTER(CFA,        4 | Arch_none, "abstract");
 
    namespace x86
    {

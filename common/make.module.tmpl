@@ -13,6 +13,9 @@ RELEASE_MINOR = 0
 
 DEFINES		     +=  
 
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
+
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) $(DEFINES)
@@ -79,7 +82,10 @@ SRCS	     +=	../../common/src/Ident.C \
 		../../common/src/arch-x86.C \
 		../../common/src/arch-power.C \
                 ../../common/src/debug_common.C \
-                ../../common/src/VariableLocation.C
+                ../../common/src/VariableLocation.C \
+                ../../common/src/dwarfResult.C \
+                ../../common/src/dwarfExprParser.C \
+                ../../common/src/dwarfFrameParser.C
 
 
 #IGEN_GEN_SRCS = 

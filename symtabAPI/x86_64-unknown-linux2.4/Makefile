@@ -16,7 +16,6 @@ include ../../make.config
 SRCS =          ../src/Object-elf.C \
 		../src/Archive.C \
 		../src/Archive-elf.C \
-		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
 		../src/emitElf-64.C \

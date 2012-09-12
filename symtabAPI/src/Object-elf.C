@@ -5353,7 +5353,7 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
         for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
             // Relocation entry fields - need to be populated
-	  Offset relStructOff = (shdr->sh_addr() + (j * shdr->sh_entsize()));
+
             Offset relOff, addend = 0;
             std::string name;
             unsigned long relType;
@@ -5471,4 +5471,8 @@ Dyninst::Architecture Object::getArch()
 #else
    return Arch_none;
 #endif
+}
+
+Dwarf_Debug Object::dwarf_dbg() {
+   return dwarf.dbg_data;
 }
