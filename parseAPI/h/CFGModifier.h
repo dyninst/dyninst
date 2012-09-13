@@ -77,6 +77,11 @@ class CFGModifier {
 
    // As the above, but for functions. 
    PARSER_EXPORT static bool remove(Function *);
+
+   // Label a block as the entry of a new function. If the block is already an
+   // entry that function is returned; otherwise we create a new function and
+   // return it.
+   PARSER_EXPORT static Function *makeEntry(Block *);
 };
 
 class InsertedRegion : public CodeRegion {

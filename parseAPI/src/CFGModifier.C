@@ -114,6 +114,13 @@ bool CFGModifier::redirect(Edge *edge, Block *target) {
    for (unsigned i = 0; i < modifiedFuncs.size(); ++i) {
       modifiedFuncs[i]->invalidateCache();
    }
+
+   // And if this was an interprocedural edge, mark the target as a function entry
+   // and create a function for it
+   if (edge->type() == CALL) {
+      makeEntry(target);
+   }
+
    return true;
 }
 
@@ -341,8 +348,8 @@ bool CFGModifier::remove(Function *f) {
 }
 
 InsertedRegion *CFGModifier::insert(CodeObject *obj, 
-                         Address base, void *data, 
-                         unsigned size) {
+                                    Address base, void *data, 
+                                    unsigned size) {
    cerr << "Inserting new code: " << hex << (unsigned) (*((unsigned *)data)) << dec << endl;
 
    // As per Nate's suggestion, we're going to add this data as a new
@@ -364,6 +371,17 @@ InsertedRegion *CFGModifier::insert(CodeObject *obj,
    }
 
    return newRegion;
+}
+
+Function *CFGModifier::makeEntry(Block *b) {
+   // This is actually a really straightforward application of the existing 
+   // functionality. 
+   // We want to call ParseData::get_func(CodeRegion *, Address, FuncSource)
+
+   ParseData *data = b->obj()->parser->_parse_data;
+   
+   return data->get_func(b->region(), b->start(), MODIFICATION);
+
 }
 
 InsertedRegion::InsertedRegion(Address b, void *d, unsigned s, Architecture arch) : 

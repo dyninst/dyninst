@@ -409,6 +409,7 @@ enum FuncSource {
     GAP,        // gap heuristics
     GAPRT,      // RT from gap-discovered function
     ONDEMAND,   // dynamically discovered
+    MODIFICATION, // Added via user modification
     _funcsource_end_
 };
 

@@ -126,9 +126,18 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
 #if defined (os_windows)
-            _snprintf_s(name,32,"targ%lx",entry);
+           if (src == MODIFICATION) {
+              _snprintf_s(name,32,"mod%lx",entry);
+           }
+           else {
+              _snprintf_s(name,32,"targ%lx",entry);
+           }
 #else
-            snprintf(name,32,"targ%lx",entry);
+           if (src == MODIFICATION) {
+              snprintf(name,32,"mod%lx",entry);
+           } else {
+              snprintf(name,32,"targ%lx",entry);
+           }
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
             ret = _parser->factory()._mkfunc(
