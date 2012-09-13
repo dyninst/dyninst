@@ -13,7 +13,7 @@ DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS = -I../../dyninstAPI/h -I../../symtabAPI/h -I../../dynutil/h -I../../instructionAPI/h -I../../proccontrol/h -I../../patchAPI/h -I../../stackwalk/h -I../../dataflowAPI/h -I../../external
-LFLAGS = -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
+LFLAGS = -L../../common/$(PLATFORM) -L../../dwarf/$(PLATFORM) -L../../elf/$(PLATFORM) -L../../symlite/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM) -L../../parseAPI/$(PLATFORM) -L../../proccontrol/$(PLATFORM) -L../../patchAPI/$(PLATFORM) -L../../stackwalk/$(PLATFORM) -L../../dyninstAPI/$(PLATFORM)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -118,6 +118,7 @@ endif
 TESTDRIVER_LDFLAGS += $(DEMANGLER_EXEC_LINK)
 
 ALL_COMP_DIRS = $(TO_CORE)/common/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/dwarf/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/testsuite/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/parseAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/stackwalk/$(PLATFORM)
@@ -126,6 +127,7 @@ ALL_COMP_DIRS += $(TO_CORE)/dyninstAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/symtabAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/instructionAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/patchAPI/$(PLATFORM)
+
 
 #######################################################
 # Dyninst infrastructure components
@@ -504,11 +506,11 @@ $(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lpcontrol -lstackwalk -lpatchAPI -lparseAPI -lsymtabAPI -linstructionAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon -ldynDwarf -ldynElf -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
@@ -516,7 +518,7 @@ $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Linking $<
-	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon $(COMPONENT_LDFLAGS)
+	$(HIDE_COMP)$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon -lsymLite $(COMPONENT_LDFLAGS)
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	@echo Linking $<
