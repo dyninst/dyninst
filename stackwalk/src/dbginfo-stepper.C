@@ -40,7 +40,7 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
-#include "common/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfFrameParser.h"
 
 #include "symtabAPI/h/Symtab.h"
 
@@ -53,8 +53,7 @@ static std::map<std::string, DwarfFrameParser::Ptr> dwarf_info;
 #include <stdarg.h>
 #include "dwarf.h"
 #include "libdwarf.h"
-#include "common/h/Elf_X.h"
-#include "common/h/dwarfFrameParser.h"
+#include "elf/h/Elf_X.h"
 
 static DwarfFrameParser::Ptr ll_getDwarfInfo(Elf_X *elfx)
 {

@@ -67,7 +67,7 @@
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 
 #if !defined(PTRACE_GETREGS) && defined(PPC_PTRACE_GETREGS)
 #define PTRACE_GETREGS PPC_PTRACE_GETREGS

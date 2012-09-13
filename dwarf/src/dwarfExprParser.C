@@ -31,8 +31,8 @@
 #include <stack>
 #include <stdio.h>
 #include "dynutil/h/dyn_regs.h"
-#include "common/h/dwarfExprParser.h"
-#include "common/h/dwarfResult.h"
+#include "dwarf/h/dwarfExprParser.h"
+#include "dwarf/h/dwarfResult.h"
 #include "common/h/debug_common.h"
 #include "dynutil/h/VariableLocation.h"
 #include "dynutil/h/ProcReader.h"

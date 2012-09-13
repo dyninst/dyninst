@@ -58,7 +58,6 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
    int min;
    int max;
    volatile int guard2;
-   int debug=0;
 
    do {
       guard2 = RTmemoryMapper.guard2;
@@ -98,7 +97,6 @@ unsigned long RTtranslateMemory(unsigned long input, unsigned long origAddr, uns
 
 unsigned long RTtranslateMemoryShift(unsigned long input, unsigned long origAddr, unsigned long curAddr) {
    /* Standard nonblocking synchronization construct */
-	int debug=0;
 	int index;
    int min;
    int max;

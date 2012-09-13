@@ -42,7 +42,7 @@
 #include "debug_parse.h"
 #include "util.h"
 
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -236,7 +236,7 @@ bool shouldAddRegion(SymRegion* sr)
 
 void SymReaderCodeSource::init_regions()
 {
-  for(int i = 0; i < _symtab->numRegions(); i++)
+  for(unsigned i = 0; i < _symtab->numRegions(); i++)
   {
     SymRegion reg;
     

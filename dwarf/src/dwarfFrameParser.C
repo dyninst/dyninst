@@ -28,9 +28,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "common/h/dwarfFrameParser.h"
-#include "common/h/dwarfExprParser.h"
-#include "common/h/dwarfResult.h"
+#include "dwarf/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfExprParser.h"
+#include "dwarf/h/dwarfResult.h"
 #include "dynutil/h/VariableLocation.h"
 #include "common/h/Types.h"
 #include "libdwarf.h"

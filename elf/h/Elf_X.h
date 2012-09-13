@@ -34,7 +34,6 @@
 #include "libelf.h"
 
 namespace Dyninst {
-namespace COMPONENT_NAME {
 
 // Forward declarations
 class Elf_X;
@@ -505,7 +504,6 @@ class Elf_X_Dyn {
     bool is64;
 };
 
-}
 }
 
 #endif

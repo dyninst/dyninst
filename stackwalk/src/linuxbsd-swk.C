@@ -47,12 +47,12 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "common/h/Elf_X.h"
+#include "elf/h/Elf_X.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 #include "symtabAPI/h/SymtabReader.h"
 #include "linuxbsd-swk.h"
 

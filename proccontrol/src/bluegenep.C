@@ -43,7 +43,7 @@
 #include "proccontrol/src/irpc.h"
 
 #include "dynutil/h/SymReader.h"
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>

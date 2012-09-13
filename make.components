@@ -1,28 +1,28 @@
 #Don't add tests to Everything
-Everything = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
+Everything = dynutil common elf dwarf symlite symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI dynC_API
 
 #List of tests
 Everything_tests = testsuite parseThat
 #List dependencies for components here, followed by the component directory
 dynutil = 
 common = dynutil common
-symtabAPI = dynutil common symtabAPI
+dwarf = dynutil common dwarf
+elf = dynutil common elf
+symlite = dynutil common elf symlite
+symtabAPI = dynutil common dwarf symtabAPI elf
 instructionAPI = dynutil common instructionAPI
+parseAPI = dynutil common elf symlite symtabAPI instructionAPI parseAPI
+dataflowAPI = $(parseAPI)
+patchAPI = dynutil common parseAPI patchAPI
+proccontrol = dynutil common elf proccontrol symlite
 
-proccontrol = dynutil common proccontrol
-stackwalk = dynutil common proccontrol stackwalk
+stackwalk = dynutil common dwarf elf proccontrol stackwalk
 ifndef WITHOUT_PARSE_API
 stackwalk += parseAPI instructionAPI
 endif
 ifndef WITHOUT_SYMTAB_API
 stackwalk += symtabAPI
 endif
-
-
-parseAPI = dynutil common symtabAPI instructionAPI parseAPI
-dataflowAPI = $(parseAPI)
-
-patchAPI = dynutil common parseAPI patchAPI
 
 dyninstAPI = dynutil common symtabAPI instructionAPI parseAPI patchAPI proccontrol stackwalk dyninstAPI_RT dyninstAPI
 

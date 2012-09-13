@@ -36,9 +36,8 @@
 using namespace Dyninst;
 using namespace Stackwalker;
 
-#define ELF_X_NAMESPACE Stackwalker
-#include "common/h/SymLite-elf.h"
-#include "common/h/Elf_X.h"
+#include "symlite/h/SymLite-elf.h"
+#include "elf/h/Elf_X.h"
 
 #include "stackwalk/src/sw.h"
 

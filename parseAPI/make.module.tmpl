@@ -30,10 +30,15 @@ endif
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 
-LDFLAGS += -L../../common/$(PLATFORM) -lcommon
+LDFLAGS += -L../../common/$(PLATFORM) -lcommon -L../../symlite/$(PLATFORM) -lsymLite
+
 ifneq (x$(WITHOUT_SYMTAB_API),xtrue)
 LDFLAGS += -L../../symtabAPI/$(PLATFORM) -lsymtabAPI
 SRCS += ../src/SymtabCodeSource.C
+endif
+
+ifdef USES_LIBELF
+LDFLAGS += -L../../elf/$(PLATFORM) -ldynElf
 endif
 
 LDFLAGS     += $(LIBDIR)
@@ -42,9 +47,6 @@ LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
 CXXFLAGS	+= $(G_PTHREAD)
 else
-ifeq (solaris,$(findstring solaris,$(PLATFORM)))
-LDFLAGS		+= -G
-endif #sparc
 endif #USES_NATIVE
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
@@ -82,9 +84,7 @@ SRCS +=	../src/ParserDetails.C \
         ../src/IA_powerDetails.C \
         ../src/IA_platformDetailsFactory.C \
         ../src/CFGModifier.C\
-	../src/SymLiteCodeSource.C \
-	../../common/src/SymLite-elf.C \
-	../../common/src/Elf_X.C
+	../src/SymLiteCodeSource.C 
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/ABI.C \

@@ -42,6 +42,9 @@
 #define START_FUNC_NAME "_start"
 
 namespace Dyninst {
+
+class Elf_X;
+
 namespace Stackwalker {
 
 struct vsys_info {
@@ -63,8 +66,6 @@ struct vsys_info {
 };
 
 vsys_info *getVsysInfo(ProcessState *ps);
-
-class Elf_X;
 
 }
 }

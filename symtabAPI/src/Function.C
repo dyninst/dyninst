@@ -40,7 +40,7 @@
 #include "Function.h"
 #include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
-#include "common/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfFrameParser.h"
 
 #include "annotations.h"
 
@@ -54,7 +54,6 @@ Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
       framePtrRegNum_(-1),
-      frameBase_(NULL),
       frameBaseExpanded_(false),
       functionSize_(0)
 {}
@@ -63,7 +62,6 @@ Function::Function()
     : Aggregate(),
       retType_(NULL), 
       framePtrRegNum_(-1),
-      frameBase_(NULL),
       frameBaseExpanded_(false),
       functionSize_(0)
 {}

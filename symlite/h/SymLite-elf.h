@@ -29,13 +29,12 @@
  */
 
 #include "dynutil/h/SymReader.h"
-#include "common/h/Elf_X.h"
+#include "elf/h/Elf_X.h"
 #include "common/h/headers.h"
 
 #include <map>
 
 namespace Dyninst {
-namespace COMPONENT_NAME {
 
 struct SymCacheEntry {
    Dyninst::Offset symaddress;
@@ -115,5 +114,4 @@ public:
    virtual bool closeSymbolReader(SymReader *sr);
 };
 
-}
 }

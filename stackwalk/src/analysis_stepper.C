@@ -41,7 +41,7 @@
 #include "instructionAPI/h/InstructionDecoder.h"
 
 #ifdef LIBELF_PLATFORM
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 #else
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/SymtabReader.h"

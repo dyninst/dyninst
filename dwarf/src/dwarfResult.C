@@ -1,6 +1,6 @@
-#include "common/h/dwarfResult.h"
+#include "dwarf/h/dwarfResult.h"
 #include "dynutil/h/VariableLocation.h"
-#include "common/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfFrameParser.h"
 #include "dynutil/h/ProcReader.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/dyn_regs.h"

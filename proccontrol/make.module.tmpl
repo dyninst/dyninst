@@ -78,11 +78,12 @@ SRCS	     +=	../src/event.C \
 		../src/procset.C \
 		../src/processplat.C
 
-ifdef LIBELF_PLATFORM
-SRCS  +=  ../../common/src/Elf_X.C \
-          ../../common/src/SymLite-elf.C
-endif
 
 IFLAGS       += -I../src -I../h
 LDFLAGS += -L../../common/$(PLATFORM)
 
+LDFLAGS += -L../../symlite/$(PLATFORM) -lsymLite
+
+ifdef LIBELF_PLATFORM
+LDFLAGS	+= -L../../elf/$(PLATFORM) -ldynElf
+endif

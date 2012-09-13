@@ -33,8 +33,8 @@
 #include "libelf.h"
 #include "dwarf.h"
 #include "libdwarf.h"
-#include "common/h/dwarfExprParser.h"
-#include "common/h/dwarfFrameParser.h"
+#include "dwarf/h/dwarfExprParser.h"
+#include "dwarf/h/dwarfFrameParser.h"
 
 #include "Symtab.h"
 #include "Type.h"

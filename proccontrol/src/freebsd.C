@@ -42,7 +42,7 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/int_event.h"
 #include "common/h/freebsdKludges.h"
-#include "common/h/SymLite-elf.h"
+#include "symlite/h/SymLite-elf.h"
 
 // System includes
 #include <sys/syscall.h>

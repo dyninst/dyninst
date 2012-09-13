@@ -7,7 +7,7 @@
 #include "Object.h"
 #include "Object-elf.h"
 #include "Function.h"
-#include "common/h/dwarfExprParser.h"
+#include "dwarf/h/dwarfExprParser.h"
 #include "common/h/pathName.h"
 
 using namespace Dyninst;
