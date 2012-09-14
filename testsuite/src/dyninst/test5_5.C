@@ -74,7 +74,7 @@ test_results_t test5_5_Mutator::executeTest() {
    BPatch_variableExpr *var1 = appImage->findVariable(*(*point5_1)[0],
                                                       "local_fn_var");
    BPatch_variableExpr *var2 = appImage->findVariable(*(*point5_1)[0],
-                                                      "local_file_var");
+                                                      "local_file_var_5_5");
    BPatch_variableExpr *var3 = appImage->findVariable(*(*point5_1)[0],
                                                       "CPP_DEFLT_ARG");
    
@@ -83,7 +83,7 @@ test_results_t test5_5_Mutator::executeTest() {
       if (!var1)
          logerror("  can't find local variable local_fn_var\n");
       if (!var2)
-         logerror("  can't find file local variable local_file_var\n");
+         logerror("  can't find file local variable local_file_var_5_5\n");
       if (!var3)
          logerror("  can't find global variable CPP_DEFLT_ARG\n");
       return FAILED;
@@ -95,7 +95,7 @@ test_results_t test5_5_Mutator::executeTest() {
    if (!var2) {
       logerror("**Failed** test #5 (namespace)\n");
       if (!var2)
-         logerror("  can't find file local variable local_file_var\n");
+         logerror("  can't find file local variable local_file_var_5_5\n");
       return FAILED;
    }
 #endif

@@ -114,7 +114,7 @@ test_results_t test5_2_Mutator::executeTest() {
 		 break;
 	      else {
                  logerror( "**Failed** test #2 (overloaded functions)\n");
-                 logerror( "    The overloaded function has wrong number of parameters %d\n", param->size());
+                 logerror( "    The overloaded function %s has wrong number of parameters %d\n", func->getMangledName().c_str(), param->size());
                  return FAILED;
               }
           }
