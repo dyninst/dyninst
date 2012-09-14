@@ -212,30 +212,30 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
     else
         mangledNames_.push_back(name);
 
-    bool isStaticSymtab = false;
-    bool isDynamicSymtab = false;
+    Symbol *staticSym = NULL;
+    Symbol *dynamicSym = NULL;
     for (unsigned i = 0; i < symbols_.size(); ++i) {
       if (symbols_[i]->isInDynSymtab()) {
-	isDynamicSymtab = true;
+         dynamicSym = symbols_[i];
       }
       if (symbols_[i]->isInSymtab()) {
-	isStaticSymtab = true;
+         staticSym = symbols_[i];
       }
     }
 
     // Add a symbol representing this name
     // We only do this for mangled names since we don't have access
     // to a name mangler
-    if (isStaticSymtab) {
-      Symbol *newSym = new Symbol(*(symbols_[0]));
-      newSym->mangledName_ = name;
+    if (staticSym) {
+      Symbol *newSym = new Symbol(*staticSym);
+      newSym->setMangledName(name);
       module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = false;
       module_->exec()->addSymbol(newSym);
     }
-    if (isDynamicSymtab) {
-      Symbol *newSym = new Symbol(*(symbols_[0]));
-      newSym->mangledName_ = name;
+    if (dynamicSym) {
+      Symbol *newSym = new Symbol(*dynamicSym);
+      newSym->setMangledName(name);
       module_->exec()->demangleSymbol(newSym);
       newSym->isDynamic_ = true;
       module_->exec()->addSymbol(newSym);
