@@ -55,9 +55,9 @@ void test1_37_inc3();
  * group.
  */
 
-static volatile int globalVariable37_1 = 0;
-static volatile int globalVariable37_2 = 0;
-static volatile int globalVariable37_3 = 0;
+volatile int globalVariable37_1 = 0;
+volatile int globalVariable37_2 = 0;
+volatile int globalVariable37_3 = 0;
 
 /* Function definitions follow */
 
