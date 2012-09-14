@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER STATIC_COMPS TESTSUITE MISSING_STATIC_32_LIBSTDCPP MISSING_DLOPEN_32 LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ INSTALL LIBRARY_DEST_VAR PROGRAM_DEST_VAR INCLUDE_DEST_VAR CXXCPP EGREP BOOST_DIR USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR DEFAULT_COMPONENT LIBXML2_LIB_DIR LIBSML2_INC_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC BUILD_XLC GNU_DEMANGLER USE_LIBERTY LINK_LIBERTY LIBIBERTY_LIB_DIR WITHOUT_PARSEAPI WITHOUT_SYMTABAPI LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_HAS_SET_FRAME THREADDB_INC_DIR THREADDB_LIB_DIR THREADDB_STATIC THREADDB_DYNAMIC HAVE_THREADDB LAUNCHMON_INC_DIR LAUNCHMON_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER STATIC_COMPS TESTSUITE MISSING_STATIC_32_LIBSTDCPP MISSING_DLOPEN_32 LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -3165,6 +3165,8 @@ fi
 
 
 
+
+
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
   { { echo "$as_me:$LINENO: error: cannot run $ac_config_sub" >&5
@@ -4289,9 +4291,9 @@ fi
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
        LDFLAGS_HOLD=$LDFLAGS;
        LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
-       echo "$as_me:$LINENO: checking for dwarf_add_arange in -ldwarf" >&5
-echo $ECHO_N "checking for dwarf_add_arange in -ldwarf... $ECHO_C" >&6
-if test "${ac_cv_lib_dwarf_dwarf_add_arange+set}" = set; then
+       echo "$as_me:$LINENO: checking for dwarf_next_cu_header_c in -ldwarf" >&5
+echo $ECHO_N "checking for dwarf_next_cu_header_c in -ldwarf... $ECHO_C" >&6
+if test "${ac_cv_lib_dwarf_dwarf_next_cu_header_c+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -4309,11 +4311,11 @@ extern "C"
 #endif
 /* We use char because int might match the return type of a gcc2
    builtin and then its argument prototype would still apply.  */
-char dwarf_add_arange ();
+char dwarf_next_cu_header_c ();
 int
 main ()
 {
-dwarf_add_arange ();
+dwarf_next_cu_header_c ();
   ;
   return 0;
 }
@@ -4340,25 +4342,25 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_dwarf_dwarf_add_arange=yes
+  ac_cv_lib_dwarf_dwarf_next_cu_header_c=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_lib_dwarf_dwarf_add_arange=no
+ac_cv_lib_dwarf_dwarf_next_cu_header_c=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_dwarf_dwarf_add_arange" >&5
-echo "${ECHO_T}$ac_cv_lib_dwarf_dwarf_add_arange" >&6
-if test $ac_cv_lib_dwarf_dwarf_add_arange = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_lib_dwarf_dwarf_next_cu_header_c" >&5
+echo "${ECHO_T}$ac_cv_lib_dwarf_dwarf_next_cu_header_c" >&6
+if test $ac_cv_lib_dwarf_dwarf_next_cu_header_c = yes; then
   { echo "$as_me:$LINENO: DWARF library directory: $LIBDWARF_LIB_DIR" >&5
 echo "$as_me: DWARF library directory: $LIBDWARF_LIB_DIR" >&6;}
 else
-  { { echo "$as_me:$LINENO: error: couldn't find libdwarf" >&5
-echo "$as_me: error: couldn't find libdwarf" >&2;}
+  { { echo "$as_me:$LINENO: error: couldn't find sufficiently recent libdwarf (> 2011-12) with dwarf_next_cu_header_c" >&5
+echo "$as_me: error: couldn't find sufficiently recent libdwarf (> 2011-12) with dwarf_next_cu_header_c" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
@@ -6139,6 +6141,8 @@ s,@USE_TCL83@,$USE_TCL83,;t t
 s,@TCLTK_INC_DIR@,$TCLTK_INC_DIR,;t t
 s,@TCLTK_LIB_DIR@,$TCLTK_LIB_DIR,;t t
 s,@DEFAULT_COMPONENT@,$DEFAULT_COMPONENT,;t t
+s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
+s,@LIBSML2_INC_DIR@,$LIBSML2_INC_DIR,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t

@@ -343,8 +343,8 @@ else
        LIBDWARF_LINK_FLAGS="-L$LIBDWARF_LIB_DIR";
        LDFLAGS_HOLD=$LDFLAGS;
        LDFLAGS="$LDFLAGS $LIBDWARF_LINK_FLAGS";
-       AC_CHECK_LIB([dwarf], [dwarf_add_arange], [AC_MSG_NOTICE(DWARF library directory: $LIBDWARF_LIB_DIR)],
-       [AC_ERROR(couldn't find libdwarf)], [-lelf])
+       AC_CHECK_LIB([dwarf], [dwarf_next_cu_header_c], [AC_MSG_NOTICE(DWARF library directory: $LIBDWARF_LIB_DIR)],
+       [AC_ERROR(couldn't find sufficiently recent libdwarf (> 2011-12) with dwarf_next_cu_header_c)], [-lelf])
        LDFLAGS=$LDFLAGS_HOLD;
 
        PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
