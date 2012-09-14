@@ -45,16 +45,16 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwalk -lparseAPI -lpatchAPI -lcommon -ldl -pthread
+LIBS        += -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwalk -lparseAPI -lpatchAPI -lsymLite -lcommon -ldl -pthread
 
 # The echo will remove the quotes
 LIBS += $(shell echo $(DEMANGLER_LINK))
 
 ifneq (x,x$(strip $(ELFFLAGS)))
-LIBS += $(ELFFLAGS)
+LIBS += $(ELFFLAGS) -ldynElf
 endif
 ifneq (x,x$(strip $(DWARFFLAGS)))
-LIBS += $(DWARFFLAGS)
+LIBS += $(DWARFFLAGS) -ldynDwarf
 endif
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
