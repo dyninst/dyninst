@@ -1426,7 +1426,7 @@ bool PCProcess::registerThread(PCThread *thread) {
    if (tid == (Address) -1) return true;
    if (index == (Address) -1) return true;
 
-   initializeRegisterThread();
+   if (!initializeRegisterThread()) return false;
 
    // Must match the "hash" algorithm used in the RT lib
    int working = (tid % thread_hash_size);
