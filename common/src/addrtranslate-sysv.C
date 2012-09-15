@@ -607,6 +607,20 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
    }
    else {
       ll = new LoadedLib(name, addr);
+
+      if (sizeof(long) == 8 &&
+          address_size == 4) {
+         // There is an annoying problem where RHEL6 uses wrapping unsigned math
+         // to load libraries. In these cases, the base address is very large, 
+         // e.g. 0xffff.... and the library is loaded at 0x00.....; the code offset, 
+         // when added to the base, wraps. However, we use 64-bit math and we end up
+         // with a 33-bit number instead. 
+         // To handle this, I'm sign extending 32-bit numbers. 
+         if (addr >= 0x80000000) {
+            addr |= 0xffffffff00000000;
+         }
+      }
+
       ll->setFactory(symfactory);
       assert(ll);
       sorted_libs[p] = ll;
