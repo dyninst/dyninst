@@ -142,8 +142,9 @@ block_instance * func_instance::setNewEntry(block_instance *def,
         if (deadBlocks.find(block) == deadBlocks.end()) {
             ParseAPI::Intraproc epred;
             const Block::edgelist & ib_ins = block->llb()->sources();
-            Block::edgelist::iterator eit = ib_ins.begin(&epred);
-            if (eit == ib_ins.end()) 
+	    
+	    if(std::distance(boost::make_filter_iterator(epred, ib_ins.begin(), ib_ins.end()), 
+			     boost::make_filter_iterator(epred, ib_ins.end(), ib_ins.end())) == 0)
             {
                 if (NULL != newEntry) {
                     fprintf(stderr,"WARNING: multiple blocks in function %lx "
@@ -493,7 +494,7 @@ bool func_instance::consistency() const {
 
    const ParseAPI::Function::blocklist &img_blocks = ifunc()->blocks();
    assert(img_blocks.size() == all_blocks_.size());
-   for (ParseAPI::Function::blocklist::iterator iter = img_blocks.begin();
+   for (ParseAPI::Function::blocklist::const_iterator iter = img_blocks.begin();
         iter != img_blocks.end(); ++iter) {
       parse_block *img_block = SCAST_PB(*iter);
       block_instance *b_inst = obj()->findBlock(img_block);

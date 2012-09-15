@@ -379,8 +379,8 @@ bool mapped_object::analyze()
   // PatchAPI to create function objects, destroying lazy function creation
   // We already have exported ones. Force analysis (if needed) and get
   // the functions we created via analysis.
-  CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
-  CodeObject::funclist::iterator fit = allFuncs.begin();
+  const CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
+  CodeObject::funclist::const_iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
   // For each function, we want to add our base address
       if((*fit)->src() != HINT)
@@ -742,8 +742,8 @@ const pdvector<mapped_module *> &mapped_object::getModules() {
 bool mapped_object::getAllFunctions(pdvector<func_instance *> &funcs) {
     unsigned start = funcs.size();
 
-    CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
-    CodeObject::funclist::iterator fit = img_funcs.begin();
+    const CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
+    CodeObject::funclist::const_iterator fit = img_funcs.begin();
     for( ; fit != img_funcs.end(); ++fit) {
         if(funcs_.find((parse_func*)*fit) == funcs_.end()) {
             findFunction((parse_func*)*fit);

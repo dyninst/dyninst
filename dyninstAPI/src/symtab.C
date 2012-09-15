@@ -964,7 +964,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-CodeObject::funclist &
+const CodeObject::funclist &
 image::getAllFunctions()
 {
     analyzeIfNeeded();
@@ -1603,8 +1603,8 @@ void pdmodule::dumpMangled(std::string &prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
 
-  CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
-  CodeObject::funclist::iterator fit = allFuncs.begin();
+  const CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
+  CodeObject::funclist::const_iterator fit = allFuncs.begin();
   for( ; fit != allFuncs.end(); ++fit) {
       parse_func * pdf = (parse_func*)*fit;
       if (pdf->pdmod() != this) continue;
@@ -1963,13 +1963,15 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
 
 bool pdmodule::getFunctions(pdvector<parse_func *> &funcs)  {
     unsigned curFuncSize = funcs.size();
-
-    CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
-    CodeObject::funclist::iterator fit = allFuncs.begin();
+    const CodeObject::funclist & allFuncs = imExec()->getAllFunctions();
+    
+    CodeObject::funclist::const_iterator fit = allFuncs.begin();
     for( ; fit != allFuncs.end(); ++fit) {
         parse_func *f = (parse_func*)*fit;
-        if (f->pdmod() == this)
+        if (f->pdmod() == this) 
+	{
             funcs.push_back(f);
+	}
     }
   
     return (funcs.size() > curFuncSize);

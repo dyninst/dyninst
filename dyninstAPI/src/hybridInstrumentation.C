@@ -318,7 +318,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     {
         func->lowlevel_func()->ifunc()->blocks(); // ensure ParseAPI function finalization
         const ParseAPI::Block::edgelist &inEdges = func->lowlevel_func()->ifunc()->entry()->sources();
-        for (ParseAPI::Block::edgelist::iterator iter = inEdges.begin(); iter != inEdges.end(); ++iter)
+        for (ParseAPI::Block::edgelist::const_iterator iter = inEdges.begin(); iter != inEdges.end(); ++iter)
         {
             if ((*iter)->type() != ParseAPI::CALL)
             {
@@ -973,7 +973,7 @@ bool HybridAnalysis::addIndirectEdgeIfNeeded(BPatch_point *sourcePt,
     // see if the edge already exists
     using namespace ParseAPI;
     const Block::edgelist &edges = sourcePt->llpoint()->block()->llb()->targets();
-    Block::edgelist::iterator eit = edges.begin();
+    Block::edgelist::const_iterator eit = edges.begin();
     mapped_object *targObj = proc()->lowlevel_process()->findObject(target);
     if (targObj) {
         for (; eit != edges.end(); eit++)
@@ -1387,7 +1387,7 @@ bool HybridAnalysis::getCallAndBranchTargets(block_instance *block,
 {
     using namespace ParseAPI;
     const Block::edgelist & trgs = block->llb()->targets();
-    for (Block::edgelist::iterator eit = trgs.begin();
+    for (Block::edgelist::const_iterator eit = trgs.begin();
          eit != trgs.end();
          eit++)
     {

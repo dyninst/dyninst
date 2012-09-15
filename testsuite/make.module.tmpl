@@ -119,6 +119,8 @@ TESTDRIVER_LDFLAGS += $(DEMANGLER_EXEC_LINK)
 
 ALL_COMP_DIRS = $(TO_CORE)/common/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/dwarf/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/elf/$(PLATFORM)
+ALL_COMP_DIRS += $(TO_CORE)/symlite/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/testsuite/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/parseAPI/$(PLATFORM)
 ALL_COMP_DIRS += $(TO_CORE)/stackwalk/$(PLATFORM)
@@ -364,7 +366,7 @@ symlink: all
 
 clean_solo_mutatees: dyninst_clean_solo_mutatees symtab_clean_solo_mutatees instruction_clean_solo_mutatees proccontrol_clean_solo_mutatees
 
-clean: clean_solo_mutatees
+clean:
 	@echo Cleaning testsuite
 	$(HIDE_COMP)$(RM) *.da *.bb. *.bbg 
 	$(HIDE_COMP)$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so testdriver_wrapper

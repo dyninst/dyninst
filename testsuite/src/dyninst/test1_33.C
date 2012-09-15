@@ -45,6 +45,9 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
 
+#include "../../../parseAPI/h/CFG.h"
+#include "../../../parseAPI/h/GraphAdapter.h"
+
 #include "test_lib.h"
 #include "dyninst_comp.h"
 
@@ -449,6 +452,28 @@ test_results_t test1_33_Mutator::executeTest()
 			return FAILED;
 		}
 	}
+	ParseAPI::Function* parse_func = ParseAPI::convert(func3);
+	assert(parse_func);
+	Block* parse_entry = parse_func->entry();
+	bool parse_idoms_ok = true;
+	for(Function::blocklist::const_iterator bl = parse_func->blocks().begin();
+	    bl != parse_func->blocks().end();
+	    ++bl)
+	{
+	  if(*bl == parse_entry) continue;
+	  if(!dominates(*parse_func, parse_entry, *bl))
+	  {
+	    parse_idoms_ok = false;
+	  }
+	}
+	if(!parse_idoms_ok)
+	{
+	  logerror("**Failed** test #33 (CFG)\n");
+	  logerror("  ParseAPI dominator algorithm does not have entry block dominating all blocks in function\n");
+	  return FAILED;
+	}
+	
+		      
 
 	BPatch_variableExpr *expr33_1 = 
 		appImage->findVariable("test1_33_globalVariable1");

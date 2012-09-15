@@ -78,7 +78,7 @@ void DynPatchCallback::destroy_cb(PatchAPI::PatchBlock *b)
 {
     SCAST_MO(b->obj())->destroy(SCAST_BI(b));
 }
-void DynPatchCallback::destroy_cb(PatchEdge *e, PatchObject *o)
+void DynPatchCallback::destroy_cb(PatchEdge *, PatchObject *)
 {
     // nothing to do
 }

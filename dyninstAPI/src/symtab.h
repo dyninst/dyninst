@@ -371,7 +371,7 @@ class image : public codeRange {
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, pdvector<SymtabAPI::Symbol *> &ret);
 
-   ParseAPI::CodeObject::funclist &getAllFunctions();
+   const ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
    //-----------DEFENSIVE-MODE CODE------------//

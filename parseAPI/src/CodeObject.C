@@ -213,7 +213,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             // (this could happen because of shared code)
             bool edgeExists = false;
             const Block::edgelist & existingTs = worklist[idx].source->targets();
-            for (Block::edgelist::iterator tit = existingTs.begin();
+            for (Block::edgelist::const_iterator tit = existingTs.begin();
                  tit != existingTs.end();
                  tit++)
             {
@@ -226,7 +226,7 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
             if (!edgeExists) {
                 add_edge(worklist[idx].source, trgB, worklist[idx].edge_type);
                 if (CALL == worklist[idx].edge_type) {
-                    // if it's a call edge, add it to Function::_call_edges
+                    // if it's a call edge, add it to Function::_call_edge_list
                     // since we won't re-finalize the function
                     vector<Function*> funcs;
                     worklist[idx].source->getFuncs(funcs);
@@ -235,12 +235,12 @@ CodeObject::parseNewEdges( vector<NewEdgeToParse> & worklist )
                         fit++) 
                     {
                         const Block::edgelist & tedges = worklist[idx].source->targets();
-                        for(Block::edgelist::iterator eit = tedges.begin();
+                        for(Block::edgelist::const_iterator eit = tedges.begin();
                             eit != tedges.end();
                             eit++)
                         {
                             if ((*eit)->trg() == trgB) {
-                                (*fit)->_call_edges.insert(*eit);
+                                (*fit)->_call_edge_list.insert(*eit);
                             }
                         }
                     }

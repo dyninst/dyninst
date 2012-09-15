@@ -48,6 +48,8 @@
 #include "parseAPI/h/CodeSource.h"
 #include "parseAPI/h/CodeObject.h"
 
+#include <boost/bind.hpp>
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
@@ -593,7 +595,7 @@ Slicer::getSuccessors(
         // the location)
 
         const Block::edgelist & targets = cand.loc.block->targets();
-        Block::edgelist::iterator eit = targets.begin();
+        Block::edgelist::const_iterator eit = targets.begin();
         for( ; eit != targets.end(); ++eit) {
             if((*eit)->sinkEdge()) {
                 // will force widening
@@ -615,6 +617,48 @@ Slicer::getSuccessors(
     }
     return !err;
 }
+
+void Slicer::handlePredecessorEdge(ParseAPI::Edge* e,
+				   Predicates& p,
+				   SliceFrame const& cand,
+				   vector<SliceFrame> & newCands,
+				   bool& err,
+				   SliceFrame& nf)
+{
+  switch(e->type()) 
+  {
+  case CALL:
+    slicing_printf("\t\t Handling call... ");
+    if(handleCallBackward(p,cand,newCands,e,err)) {
+      slicing_printf("succeess, err: %d\n",err);
+    } else {
+      slicing_printf("failed, err: %d\n",err);
+    }
+    break;
+  case RET:
+    slicing_printf("\t\t Handling return... ");
+    nf = cand;
+    if(handleReturnBackward(p,cand,nf,e,err)) {
+      slicing_printf("succeess, err: %d\n",err);
+    } else {
+      slicing_printf("failed, err: %d\n",err);
+    }
+    break;
+  default:
+    nf = cand;
+    slicing_printf("\t\t Handling default edge type %d... ",
+		   e->type());
+    if(handleDefault(backward,p,e,nf,err)) {
+      slicing_printf("success, err: %d\n",err);
+      newCands.push_back(nf);
+    } else {
+      slicing_printf("failed, err: %d\n",err);
+    }
+  }
+}
+
+
+  
 
 /*
  * Same as successors, only backwards
@@ -675,39 +719,18 @@ Slicer::getPredecessors(
     SingleContextOrInterproc epred(cand.loc.func, true, true);
 
     const Block::edgelist & sources = cand.loc.block->sources();
-    Block::edgelist::iterator eit = sources.begin(&epred);
-    for( ; eit != sources.end(); ++eit) {
-        ParseAPI::Edge * e = *eit;
-        switch(e->type()) {
-            case CALL:
-                slicing_printf("\t\t Handling call... ");
-                if(handleCallBackward(p,cand,newCands,e,err)) {
-                    slicing_printf("succeess, err: %d\n",err);
-                } else {
-                    slicing_printf("failed, err: %d\n",err);
-                }
-                break;
-            case RET:
-                slicing_printf("\t\t Handling return... ");
-                nf = cand;
-                if(handleReturnBackward(p,cand,nf,e,err)) {
-                    slicing_printf("succeess, err: %d\n",err);
-                } else {
-                    slicing_printf("failed, err: %d\n",err);
-                }
-                break;
-            default:
-                nf = cand;
-                slicing_printf("\t\t Handling default edge type %d... ",
-                    e->type());
-                if(handleDefault(backward,p,*eit,nf,err)) {
-                    slicing_printf("success, err: %d\n",err);
-                    newCands.push_back(nf);
-                } else {
-                    slicing_printf("failed, err: %d\n",err);
-                }
-        }
-    }
+    std::for_each(boost::make_filter_iterator(epred, sources.begin(), sources.end()),
+		  boost::make_filter_iterator(epred, sources.end(), sources.end()),
+		  boost::bind<void>(&Slicer::handlePredecessorEdge,
+				    this,
+				    _1,
+				    boost::ref(p),
+				    boost::ref(cand),
+				    boost::ref(newCands),
+				    boost::ref(err),
+				    boost::ref(nf)
+				    ));
+   
     return !err; 
 }
 
@@ -728,7 +751,7 @@ Slicer::handleCall(
     bool widen = false;
 
     const Block::edgelist & targets = cur.loc.block->targets();
-    Block::edgelist::iterator eit = targets.begin();
+    Block::edgelist::const_iterator eit = targets.begin();
     for( ; eit != targets.end(); ++eit) {
         ParseAPI::Edge * e = *eit;
         if (e->sinkEdge()) widen = true;
@@ -923,7 +946,7 @@ Slicer::handleReturn(
     ParseAPI::Block * retBlock = NULL;
     
     const Block::edgelist & targets = cur.loc.block->targets();
-    Block::edgelist::iterator eit = targets.begin();
+    Block::edgelist::const_iterator eit = targets.begin();
     for(; eit != targets.end(); ++eit) {
         if((*eit)->type() == CALL_FT) {
             retBlock = (*eit)->trg();
@@ -1202,7 +1225,7 @@ bool containsCall(ParseAPI::Block *block) {
   // We contain a call if the out-edges include
   // either a CALL or a CALL_FT edge
   const Block::edgelist &targets = block->targets();
-  Block::edgelist::iterator eit = targets.begin();
+  Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
     if (edge->type() == CALL) return true;
@@ -1214,7 +1237,7 @@ bool containsRet(ParseAPI::Block *block) {
   // We contain a call if the out-edges include
   // either a CALL or a CALL_FT edge
   const Block::edgelist &targets = block->targets();
-  Block::edgelist::iterator eit = targets.begin();
+  Block::edgelist::const_iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
     ParseAPI::Edge *edge = *eit;
     if (edge->type() == RET) return true;

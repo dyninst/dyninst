@@ -38,7 +38,7 @@
 #include "debug_parse.h"
 
 #include <deque>
-
+#include <boost/bind.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -548,6 +548,23 @@ Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset)
     return 0;
 }
 
+void processPredecessor(Edge* e, std::set<Block*>& visited, std::deque<Block*>& worklist)
+{
+  parsing_printf("\t\tblock %x, edge type %s\n",
+		 e->src()->start(),
+		 format(e->type()).c_str());
+
+  // FIXME debugging assert
+  assert(detail::isNonCallEdge(e));
+
+  // FIXME check this algorithm... O(log n) lookup in visited
+  if(!detail::leadsToVisitedBlock(e, visited))
+  {
+    worklist.push_back(e->src());
+    visited.insert(e->src());
+  }  
+}
+
 
 std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start) 
 {
@@ -576,20 +593,15 @@ std::pair<Address, Address> IA_x86Details::findThunkAndOffset(Block* start)
             return std::make_pair(tableInsnAddr, thunkOffset);
         }
 
-        Block::edgelist::iterator sit = curBlock->sources().begin(&epred);
-        for( ; sit != curBlock->sources().end(); ++sit) {
-            ParseAPI::Edge *e = *sit;
+        //Block::edgelist::const_iterator sit = curBlock->sources().begin(&epred);
+	parsing_printf("\tpredecessors:\n");
 
-            // FIXME debugging assert
-            assert(detail::isNonCallEdge(e));
+	std::for_each(boost::make_filter_iterator(epred, curBlock->sources().begin(), curBlock->sources().end()),
+		      boost::make_filter_iterator(epred, curBlock->sources().end(), curBlock->sources().end()),
+		      boost::bind(processPredecessor, _1, boost::ref(visited), boost::ref(worklist)));
+	
+	
 
-            // FIXME check this algorithm... O(log n) lookup in visited
-            if(!detail::leadsToVisitedBlock(e, visited))
-            {
-                worklist.push_back(e->src());
-                visited.insert(e->src());
-            }
-        }
     }
     return std::make_pair(0, 0);
 
@@ -647,7 +659,7 @@ boost::tuple<Instruction::Ptr,
                 condBranchInsn = i;
                 foundCondBranch = true;
 
-                Block::edgelist::iterator tit = curBlk->targets().begin();
+                Block::edgelist::const_iterator tit = curBlk->targets().begin();
                 bool taken_hit = false;
                 bool fallthrough_hit = false;
                 for ( ; tit != curBlk->targets().end(); ++tit) {
@@ -675,7 +687,7 @@ boost::tuple<Instruction::Ptr,
             break; // done
 
             // look further back
-        Block::edgelist::iterator sit = curBlk->sources().begin();
+        Block::edgelist::const_iterator sit = curBlk->sources().begin();
         depth++;
             // We've seen depth 2 in libc et al
         if(depth > 2) return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
