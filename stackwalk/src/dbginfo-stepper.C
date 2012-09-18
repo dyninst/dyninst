@@ -385,7 +385,6 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       pc += 0xffffe000;
       result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
                                          ret_value, this, frame_error);
-
    }
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get return debug info at %lx, error: %u\n",
@@ -417,6 +416,17 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       return gcf_not_me;
    }
    location_t sp_loc = getLastComputedLocation(stack_value);   
+
+   if (isVsyscallPage) {
+      // RHEL6 has broken DWARF in the vsyscallpage; it has
+      // a double deref for the stack pointer. We detect this
+      // (as much as we can...) and ignore it
+      if (stack_value < in.getSP()) {
+         stack_value = 0;
+         sp_loc.location = loc_unknown;
+      }
+   }
+      
 
    out.setRA(ret_value);
    out.setFP(frame_value);
