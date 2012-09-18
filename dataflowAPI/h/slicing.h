@@ -556,7 +556,7 @@ class Slicer {
     void handlePredecessorEdge(ParseAPI::Edge* e,
 			       Predicates& p,
 			       SliceFrame const& cand,
-			       vector<SliceFrame> & newCands,
+			       std::vector<SliceFrame> & newCands,
 			       bool& err,
 			       SliceFrame& nf);
   
