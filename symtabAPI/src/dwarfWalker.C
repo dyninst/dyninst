@@ -1132,13 +1132,14 @@ bool DwarfWalker::findFunction(bool &found) {
    
    if (status == DW_DLV_OK 
        && obj()->convertDebugOffset(entryAddr, lowpc)) {
-      Function *tmp;
-      symtab()->findFuncByEntryOffset(tmp, lowpc);
-      setFunc(tmp);
-      dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
-                   id(), lowpc, curFunc());
-      found = true;
-      return true;
+      Function *tmp = NULL;
+      if (symtab()->findFuncByEntryOffset(tmp, lowpc)) {
+         setFunc(tmp);
+         dwarf_printf("(0x%lx) Lookup by offset 0x%lx identifies %p\n",
+                      id(), lowpc, curFunc());
+         found = true;
+         return true;
+      }
    }
 #if 0
    if (nameDefined()) {

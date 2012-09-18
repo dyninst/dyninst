@@ -654,9 +654,17 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
 }
 
 bool Symtab::fixSymRegion(Symbol *sym) {
-   if (sym->getRegion() == NULL) {
-      sym->setRegion(findEnclosingRegion(sym->getOffset()));
-   }
+   if (!sym->getRegion()) return true;
+   
+   if (sym->getType() != Symbol::ST_FUNCTION &&
+       sym->getType() != Symbol::ST_OBJECT) return true;
+   
+   if (sym->getRegion()->getMemOffset() <= sym->getOffset() &&
+       (sym->getRegion()->getMemOffset() + sym->getRegion()->getMemSize()) > sym->getOffset())
+      return true;
+   
+   sym->setRegion(findEnclosingRegion(sym->getOffset()));
+   
    return true;
 }
 

@@ -2098,14 +2098,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          Region *sec;
          if(secNumber >= 1 && secNumber < regions_.size()) {
             sec = regions_[secNumber];
-            
-            if (soffset < sec->getMemOffset() ||
-                soffset >= (sec->getMemOffset() + sec->getMemSize())) {
-               // I've seen this in split debug files; the regions we get
-               // are off by one and thus wrong. We'll fix it up later. 
-               sec = NULL;
-            }
-
          } else {
             sec = NULL;
          }
@@ -2269,14 +2261,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       Region *sec;
       if(secNumber >= 1 && secNumber < regions_.size()) {
          sec = regions_[secNumber];
-         
-         if (soffset < sec->getMemOffset() ||
-             soffset >= (sec->getMemOffset() + sec->getMemSize())) {
-            // I've seen this in split debug files; the regions we get
-            // are off by one and thus wrong. We'll fix it up later. 
-            sec = NULL;
-         }
-         
       } else {
          sec = NULL;
       }
