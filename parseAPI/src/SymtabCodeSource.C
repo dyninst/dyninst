@@ -69,7 +69,6 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
     //       functions at the same linear address within
     //       two address spaces. That error is reflected
     //       here.
-	cerr << "ParseAPI: looking up name for addr " << hex << entry << dec << endl;
     SymtabAPI::Function * f = NULL;
     bool found = _symtab->findFuncByEntryOffset(f,entry);
     if(found) {

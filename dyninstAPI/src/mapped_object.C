@@ -556,10 +556,11 @@ const pdvector <func_instance *> *mapped_object::findFuncVectorByMangled(const s
         // Okay, we've pulled in some of the functions before (this can happen as a
         // side effect of adding functions). But did we get them all?
         pdvector<func_instance *> *map_funcs = allFunctionsByMangledName[funcname];
-        if (map_funcs->size() == img_funcs->size())
+        if (map_funcs->size() == img_funcs->size()) {
             // We're allocating at the lower level...
             delete img_funcs;
             return map_funcs;
+        }
     }
 
     // Slow path: check each img_func, add those we don't already have, and return.

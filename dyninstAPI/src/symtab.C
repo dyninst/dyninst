@@ -378,8 +378,8 @@ void image::findMain()
         else if (linkedFile->findFunctionsByName(funcs, "_fini"))
             foundFini = true;
     
-    	Region *textsec = NULL;
-    	bool foundText = linkedFile->findRegion(textsec, ".text");
+    	Region *eReg = NULL;
+    	bool foundText = linkedFile->findRegion(eReg, ".text");
         if (foundText == false) {
             return;
         }
@@ -388,7 +388,7 @@ void image::findMain()
     	{
             logLine("No main symbol found: attempting to create symbol for main\n");
             const unsigned char* p;
-            p = (( const unsigned char * ) textsec->getPtrToRawData());
+            p = (( const unsigned char * ) eReg->getPtrToRawData());
 
             Address mainAddress = 0;
 
@@ -396,9 +396,9 @@ void image::findMain()
 	        SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
             CodeObject tco(&scs,NULL,NULL,false);
 
-            tco.parse(textsec->getRegionAddr(),false);
+            tco.parse(eReg->getRegionAddr(),false);
             set<CodeRegion *> regions;
-            scs.findRegions(textsec->getRegionAddr(),regions);
+            scs.findRegions(eReg->getRegionAddr(),regions);
             if(regions.empty()) {
                 // express puzzlement
                 return;
@@ -406,7 +406,7 @@ void image::findMain()
             SymtabCodeRegion * reg = 
                 static_cast<SymtabCodeRegion*>(*regions.begin());
             Function * func = 
-                tco.findFuncByEntry(reg,textsec->getRegionAddr());
+                tco.findFuncByEntry(reg,eReg->getRegionAddr());
             if(!func) {
                 // again, puzzlement
                 return;
@@ -436,7 +436,7 @@ void image::findMain()
                                             Symbol::SV_DEFAULT, 
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
-                                            textsec, 
+                                            eReg, 
                                             0 );
 	        linkedFile->addSymbol(newSym);		
         }
@@ -451,24 +451,29 @@ void image::findMain()
     	bool foundMain = false;
     	bool foundStart = false;
     	bool foundFini = false;
+
     	//check if 'main' is in allsymbols
         vector <SymtabAPI::Function *> funcs;
         if (linkedFile->findFunctionsByName(funcs, "main") ||
-            linkedFile->findFunctionsByName(funcs, "_main"))
-            foundMain = true;
-
-        if (linkedFile->findFunctionsByName(funcs, "_start"))
-            foundStart = true;
-
-        if (linkedFile->findFunctionsByName(funcs, "_fini"))
-            foundFini = true;
-    
-    	Region *textsec = NULL;
-    	bool foundText = linkedFile->findRegion(textsec, ".text");
-        if (foundText == false) {
-            return;
+            linkedFile->findFunctionsByName(funcs, "_main")) {
+           foundMain = true;
         }
-	
+
+        if (linkedFile->findFunctionsByName(funcs, "_start")) {
+            foundStart = true;
+        }
+
+        if (linkedFile->findFunctionsByName(funcs, "_fini")) {
+            foundFini = true;
+        }
+
+        Address eAddr = linkedFile->getEntryOffset();
+        Region *eReg = linkedFile->findEnclosingRegion(eAddr);
+        if (!eReg) {
+           return;
+        }
+        Address eStart = eReg->getMemOffset();
+
     	if( !foundMain )
     	{
             logLine( "No main symbol found: creating symbol for main\n" );
@@ -476,7 +481,11 @@ void image::findMain()
     	    //find and add main to allsymbols
             const unsigned char* p;
 		                   
-            p = (( const unsigned char * ) textsec->getPtrToRawData());
+            p = (( const unsigned char * ) eReg->getPtrToRawData());
+
+            if (eAddr > eStart) {
+               p += (eAddr - eStart);
+            }
 
             switch(linkedFile->getAddressWidth()) {
        	    	case 4:
@@ -528,11 +537,11 @@ void image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, textsec->getMemSize(), scs.getArch());
+            InstructionDecoder decoder(p, eReg->getMemSize(), scs.getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
-                   bytesSeen < textsec->getMemSize())
+                   bytesSeen < eReg->getMemSize())
             {
                 InsnCategory category = curInsn->getCategory();
                 if( category == c_CallInsn ) {
@@ -548,7 +557,7 @@ void image::findMain()
             if( numCalls != 4 ) {
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
-                Address callAddress = textsec->getRegionAddr() + bytesSeen;
+                Address callAddress = eReg->getRegionAddr() + bytesSeen;
                 RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
@@ -591,7 +600,7 @@ void image::findMain()
                                             Symbol::SV_DEFAULT,
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
-                                            textsec, 
+                                            eReg, 
                                             0 );
                 linkedFile->addSymbol( newSym );
            }
@@ -603,7 +612,7 @@ void image::findMain()
                                             Symbol::SV_DEFAULT, 
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
-                                            textsec, 
+                                            eReg, 
                                             0 );
 	        linkedFile->addSymbol(newSym);		
             }
@@ -614,9 +623,9 @@ void image::findMain()
                                            Symbol::ST_FUNCTION,
                                            Symbol::SL_GLOBAL,
                                            Symbol::SV_DEFAULT, 
-                                           textsec->getRegionAddr(),
+                                           eReg->getRegionAddr(),
                                            linkedFile->getDefaultModule(),
-                                           textsec,
+                                           eReg,
                                            0 );
             //cout << "sim for start!" << endl;
         
@@ -1845,8 +1854,8 @@ const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &n
         parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
-            return NULL;
+           fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
+           return NULL;
         }
         
         if (imf) {
@@ -1878,7 +1887,6 @@ const pdvector <parse_func *> *image::findFuncVectorByMangled(const std::string 
         parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
-            fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__, name.c_str());
             return NULL;
         }
         

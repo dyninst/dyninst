@@ -50,10 +50,9 @@ void setNewthrCB(void (*cb)(int)) {
 #define IDX_NONE -1
 
 /* I split these in half to make mutator-side updates easier */
-static dyntid_t *DYNINST_thread_hash_tids;
-static long *DYNINST_thread_hash_indices;
-
-static unsigned DYNINST_thread_hash_size;
+dyntid_t *DYNINST_thread_hash_tids;
+long *DYNINST_thread_hash_indices;
+unsigned DYNINST_thread_hash_size;
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 

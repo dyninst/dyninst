@@ -42,6 +42,7 @@
 
 #include "common/h/headers.h"
 #include "elf/h/Elf_X.h"
+#include <iostream>
 
 using namespace std;
 using boost::crc_32_type;

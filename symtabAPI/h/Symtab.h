@@ -364,6 +364,9 @@ class Symtab : public LookupInterface,
    // Parsing code
 
    bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
+
+   bool fixSymRegion(Symbol *sym);
+
    bool fixSymModules(std::vector<Symbol *> &raw_syms);
    bool demangleSymbols(std::vector<Symbol *> &rawsyms);
    bool createIndices(std::vector<Symbol *> &raw_syms, bool undefined);

@@ -778,7 +778,9 @@ void PCProcess::setMainFunction() {
 
     for (unsigned i = 0; i < NUMBER_OF_MAIN_POSSIBILITIES; i++) {
         main_function_ = findOnlyOneFunction(main_function_names[i]);
-        if (main_function_) break;
+        if (main_function_) {
+           break;
+        }
     }
 }
  
@@ -1049,6 +1051,7 @@ bool PCProcess::insertBreakpointAtMain() {
     if( main_function_ == NULL ) {
         startup_printf("%s[%d]: main function not yet found, cannot insert breakpoint\n",
                 FILE__, __LINE__);
+        return false;
     }
     Address addr = main_function_->addr();
 
