@@ -950,7 +950,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
    if (pendingInsertions == NULL) {
      // There's no insertion set, instrument now
      bool tmp;
-     finalizeInsertionSet(false, &tmp);
+     if (!finalizeInsertionSet(false, &tmp)) {
+        return NULL;
+     }
    }   
 
    return retHandle;

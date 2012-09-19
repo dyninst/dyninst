@@ -561,6 +561,8 @@ bool DwarfWalker::parseVariable() {
    if (!curFunc() && !curEnclosure()) {
       /* The typeOffset forms a module-unique type identifier,
          so the Type look-ups by it rather than name. */
+      dwarf_printf("(0x%lx) Adding global variable\n", id());
+
       Dyninst::Offset addr = 0;
       if (locs.size() && locs[0].stClass == storageAddr)
          addr = locs[0].frameOffset;
@@ -584,8 +586,8 @@ bool DwarfWalker::parseVariable() {
                                             (int) variableLineNo, 
                                             curFunc());
       for (unsigned int i = 0; i < locs.size(); ++i) {
-         dwarf_printf("(0x%lx) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
-                      id(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
+         dwarf_printf("(0x%lx) (%s) Adding location %d of %d: (0x%lx - 0x%lx): %s, %s, %s, %ld\n",
+                      id(), newVariable->getName().c_str(), i+1, (int) locs.size(), locs[i].lowPC, locs[i].hiPC, 
                       storageClass2Str(locs[i].stClass),
                       storageRefClass2Str(locs[i].refClass),
                       locs[i].mr_reg.name().c_str(),
@@ -597,6 +599,8 @@ bool DwarfWalker::parseVariable() {
    else if (curEnclosure()) {
       if (!nameDefined()) return true;
       assert( locs[0].stClass != storageRegOffset );
+      dwarf_printf("(0x%lx) Adding variable to an enclosure\n", id());
+
       curEnclosure()->addField( curName(), type, locs[0].frameOffset);
    } /* end if this variable is not global */
    return true;
@@ -1855,6 +1859,9 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
          loc.lowPC = location->ld_lopc + modLow;
          loc.hiPC = location->ld_hipc + modLow;
       }
+
+      dwarf_printf("(0x%lx) Variable valid over range 0x%lx to 0x%lx\n", 
+                   id(), loc.lowPC, loc.hiPC);
       
       long int *tmp = (long int *)initialStackValue;
       bool result = decodeDwarfExpression(location, tmp, loc,

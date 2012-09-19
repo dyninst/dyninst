@@ -948,7 +948,6 @@ void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
 void BPatch_registerExpr::BPatch_registerExprInt(Dyninst::MachRegister mach) {
    bool whocares;
    Register reg = convertRegID(mach, whocares);
-   cerr << "Post conversion, using register " << reg << endl;
    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::origRegister,
                                                  (void *)reg));
     assert(BPatch::bpatch != NULL);
@@ -1053,6 +1052,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
   ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
   ast_wrapper->setType(type);
+
 }
 
 
@@ -1271,6 +1271,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 variableAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
                 variableAst->setType(type);
                 variableASTs.push_back(variableAst);
+                   
                 ranges->push_back(pair<Offset, Offset>(locs[i].lowPC + baseAddr,
                                              locs[i].hiPC + baseAddr));
         }

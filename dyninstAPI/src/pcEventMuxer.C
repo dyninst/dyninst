@@ -86,7 +86,10 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
       Process::handleEvents(false);
       proccontrol_printf("[%s:%d] after PC event handling, %d events in mailbox\n", FILE__, __LINE__, mailbox_.size());
       if (mailbox_.size() == 0) return NoEvents;
-      if (!handle(NULL)) return Error;
+      if (!handle(NULL)) {
+         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
+         return Error;
+      }
    }
    else {
       // It's really annoying from a user design POV that ProcControl methods can
@@ -96,6 +99,7 @@ PCEventMuxer::WaitResult PCEventMuxer::wait_internal(bool block) {
 			FILE__, __LINE__, mailbox_.size());
      while (mailbox_.size() == 0) {
        if (!Process::handleEvents(true)) {
+         proccontrol_printf("[%s:%d] Failed to handle event, returning error\n", FILE__, __LINE__);
 	 return Error;
        }
      }
