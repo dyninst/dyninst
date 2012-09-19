@@ -1836,7 +1836,7 @@ bool DwarfWalker::decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **lo
 
 
       if (location->ld_lopc == 0 &&
-          location->ld_hipc == (Address) ~0) {
+          location->ld_hipc == (Dwarf_Addr) ~0) {
          // Unset low and high. Use the lexical block info if present, otherwise
          // pass through. 
          if (lowAddr() != highAddr()) {
