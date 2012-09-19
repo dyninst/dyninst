@@ -1,339 +1,842 @@
-6 API Reference - Static Components
+\section{API Reference - Static Components}
 This section describes the five interfaces of SymtabAPI. Each of the subsections represent a different interface.
 
-6.1 Symbol Table Interface
+\subsection{Symbol Table Interface}
 This section describes the symbol table interface for the SymtabAPI library. Currently this interface has the following capabilities
-Parsing the symbols in a binary, either on disk or in memory 
-Querying for symbols 
-Updating existing symbol information
-Adding new symbols 
-Exporting symbols in standard formats
-Getting relocation, exception information
-Getting header information
+\begin{itemize}
+    \item Parsing the symbols in a binary, either on disk or in memory 
+    \item Querying for symbols 
+    \item Updating existing symbol information
+    \item Adding new symbols 
+    \item Exporting symbols in standard formats
+    \item Getting relocation, exception information
+    \item Getting header information
+\end{itemize}
 The primary classes for this interface are Symtab, Module, Symbol, Archive and ExceptionBlock.
 
-\subsubsection{Symtab}
+\subsubsection{Class Symtab}
 \definedin{Symtab.h}
 
 The Symtab class represents an object file either on-disk or in-memory. This class is responsible for the parsing of the Object file information and holding the data that can be accessed through look up functions.
 
+\paragraph{File opening/parsing}
+
 \begin{apient}
-static bool openFile(Symtab *&obj, string filename)
+static bool openFile(Symtab *&obj, string filename,
+                    def_t defensive_binary = NotDefensive)
 \end{apient}
-\apidesc{Creates a new Symtab object for an object file on disk. This object serves as a handle to the parsed object file. filename represents the name of the Object file to be parsed. The Symtab object is returned in obj if the parsing succeeds.
-Returns true if the file is parsed without an error, else returns false. The error is set to Object_Parsing. printSymtabError() should be called to get more error details.}
+\apidesc{
+    Creates a new Symtab object for an object file on disk. This object serves as a handle to the parsed object file. filename represents the name of the Object file to be parsed. The Symtab object is returned in obj if the parsing succeeds.
+Returns true if the file is parsed without an error, else returns false. The
+error is set to Object\_Parsing. printSymtabError() should be called to get more error details.
+}
+
 \begin{apient}
 static bool openFile(Symtab *&obj, char *mem_image, size_t size,
-std::string name)
+                    std::string name,
+                    def_t defensive_binary = NotDefensive)
 \end{apient}
-\apidesc{This factory method creates a new Symtab object for an object file in memory. This object serves as a handle to the parsed object file. mem_image represents the pointer to the Object file in memory to be parsed. size indicates the size of the image. name specifies the name we will give to the parsed object. The Symtab object is returned in obj if the parsing succeeds.
+\apidesc{
+    This factory method creates a new Symtab object for an object file in
+    memory. This object serves as a handle to the parsed object file. mem\_image represents the pointer to the Object file in memory to be parsed. size indicates the size of the image. name specifies the name we will give to the parsed object. The Symtab object is returned in obj if the parsing succeeds.
 Returns true if the file is parsed without an error, else returns
-false. The error is set to Object_Parsing. printSymtabError() should
-be called to get more error details.}
+false. The error is set to Object\_Parsing. printSymtabError() should
+be called to get more error details.
+}
+
+\paragraph{Region lookup}
+
 \begin{apient}
 bool getCodeRegions(std::vector<Region *>&ret)
 \end{apient}
-\apidesc{This method finds all the code regions in the object file. Returns true with ret containing the code regions if there is atleast one code region in the object file or else returns false.}
+\apidesc{
+This method finds all the code regions in the object file. Returns true with ret containing the code regions if there is at least one code region in the object file or else returns false.
+}
+
+\begin{apient}
 bool getDataRegions(std::vector<Region *>&ret)
-This method finds all the data regions in the object file. Returns true with ret containing the data regions if there is atleast one data region in the object file or else returns false.
+\end{apient}
+\apidesc{
+This method finds all the data regions in the object file. Returns true with ret containing the data regions if there is at least one data region in the object file or else returns false.
+}
+
+\begin{apient}
 bool getAllRegions(std::vector<Region *>&ret)
+\end{apient}
+\apidesc{
 This method retrieves all the regions in the object file. Returns true with ret containing the regions.
+}
+
+\begin{apient}
 bool getAllNewRegions(std::vector<Region *>&ret)
-This method finds all the new regions added to the object file. Returns true with ret containing the regions if there is atleast one new region that is added to the object file or else returns false.
+\end{apient}
+\apidesc{
+This method finds all the new regions added to the object file. Returns true with ret containing the regions if there is at least one new region that is added to the object file or else returns false.
+}
+
+\begin{apient}
 bool findRegion(Region *&reg, string sname)
+\end{apient}
+\apidesc{
 Find a section wih name sname in the binary. It returns true with reg containing a handle to the section, if there is a section with that name or else returns false with reg set to NULL.
+}
+
+\begin{apient}
 bool findRegion(Region *&reg, const Offset addr, const unsigned long size)
+\end{apient}
+\apidesc{
 Find a section wih name sname in the binary. It returns true with reg containing a handle to the section, if there is a section with that name or else returns false with reg set to NULL.
+}
+
+\begin{apient}
 bool findRegionByEntry(Region *&reg, const Offset soff)
+\end{apient}
+\apidesc{
 Find a section with starting offset soff in the binary. It returns true with reg containing a handle to the section, if there is a section at that offset or else returns false with reg set to NULL.
+}
+
+\begin{apient}
 Region *findEnclosingRegion(const Offset offset)
-Find the region handle which contains this offset. Returns the region handle if some region contains the offset in the object file; otherwise returns NULL. If this method is called on a Symtab object representing a .o file, the behavior is undefined.
-6.1.1.3 Module, Function, Variable, and Symbol lookup
+\end{apient}
+\apidesc{
+Find the region handle which contains this offset. Returns the region handle if
+some region contains the offset in the object file; otherwise returns NULL. If
+this method is called on a Symtab object representing a .o file, the behavior is
+undefined.}
+
+\paragraph{Module, Function, Variable, and Symbol lookup}
+
+\begin{apient}
 bool findModuleByName(Module *&ret, const string name)
+\end{apient}
+\apidesc{
 This method searches for a module with name name. ret contains the handle to the module found.
 If the module exists return true, or else return false with ret set to NULL.
+}
+
+\begin{apient}
 bool getAllModules(vector<module *> &ret)
-This method returns all modules in the object file. Returns true on success and false if there are no modules. The error value is set to No_Such_Module.
+\end{apient}
+\apidesc{
+This method returns all modules in the object file. Returns true on success and
+false if there are no modules. The error value is set to No\_Such\_Module.
+}
+
+\begin{apient}
 bool findFunctionByEntryOffset(Function *&ret, const Offset offset)
-This method returns the Function object that begins at offset. Returns true on success and false if there is no matching function. The error value is set to No_Such_Function.
-typedef enum {
-mangledName,
-prettyName,
-typedName,
-anyName
-} NameType;
+\end{apient}
+\apidesc{
+This method returns the Function object that begins at offset. Returns true on
+success and false if there is no matching function. The error value is set to
+No\_Such\_Function.
+}
+
+\begin{apient}
 bool findFunctionsByName(vector<Function> &ret, const string name,
- Symtab::NameType nameType = anyName,
- bool isRegex = false, bool checkCase = false)
+                        Symtab::NameType nameType = anyName,
+                        bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of Functions whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Functions, if any.
-Returns true if it finds functions that match the given name, otherwise returns false. The error value is set to No_Such_Function.
+Returns true if it finds functions that match the given name, otherwise returns
+false. The error value is set to No\_Such\_Function.
+}
+
+\begin{apient}
 bool getContainingFunction(Offset offset, Function *&ret)
-This method returns the function, if any, that contains the provided offset. Returns true on success and false on failure. The error value is set to No_Such_Function.
+\end{apient}
+\apidesc{
+This method returns the function, if any, that contains the provided offset.
+Returns true on success and false on failure. The error value is set to
+No\_Such\_Function.
+}
+
+\begin{apient}
 bool getAllFunctions(vector<Function *> &ret)
-This method returns all functions in the object file. Returns true on success and false if there are no modules. The error value is set to No_Such_Function.
+\end{apient}
+\apidesc{
+This method returns all functions in the object file. Returns true on success
+and false if there are no modules. The error value is set to No\_Such\_Function.
+}
+
+\begin{apient}
 bool findVariableByOffset(Variable *&ret, const Offset offset)
-This method returns the Variable object at offset. Returns true on success and false if there is no matching variable. The error value is set to No_Such_Variable.
+\end{apient}
+\apidesc{
+This method returns the Variable object at offset. Returns true on success and
+false if there is no matching variable. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool findVariablesByName(vector<Function> &ret, const string name,
- Symtab::NameType nameType,
- bool isRegex = false, bool checkCase = false)
+                        Symtab::NameType nameType,
+                        bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of Variables whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any (note: a Variable may not have a typed name). If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Variables, if any.
-Returns true if it finds variables that match the given name, otherwise returns false. The error value is set to No_Such_Variable.
+Returns true if it finds variables that match the given name, otherwise returns
+false. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool getAllVariables(vector<Variable *> &ret)
-This method returns all variables in the object file. Returns true on success and false if there are no modules. The error value is set to No_Such_Variable.
+\end{apient}
+\apidesc{
+This method returns all variables in the object file. Returns true on success
+and false if there are no modules. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool findSymbolByType(vector <Symbol *> &ret, const string name,
-    Symbol::SymbolType sType, NameType nameType = anyName,
-    bool isRegex = false, bool checkCase = false)
+                    Symbol::SymbolType sType, NameType nameType = anyName,
+                    bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of symbols with type sType whose names match the given name. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
-Returns true if it finds symbols with the given attributes. or else returns false. The error value is set to No_Such_Function / No_Such_Variable/ No_Such_Module/ No_Such_Symbol based on the type.
+Returns true if it finds symbols with the given attributes. or else returns
+false. The error value is set to No\_Such\_Function / No\_Such\_Variable/
+No\_Such\_Module/ No\_Such\_Symbol based on the type.
+}
+
+\begin{apient}
 bool getAllSymbolsByType(vector<Symbol *> &ret)
+\end{apient}
+\apidesc{
 This method returns all symbols.
-Returns true on success and false if there are no symbols. The error value is set to No_Such_Symbol.
+Returns true on success and false if there are no symbols. The error value is
+set to No\_Such\_Symbol.
+}
+
+\begin{apient}
 bool getAllSymbolsByType(vector<Symbol *> &ret, 
- Symbol::SymbolType sType)
+                        Symbol::SymbolType sType)
+\end{apient}
+\apidesc{
 This method returns all symbols whose type matches the given type sType.
-Returns true on success and false if there are no symbols with the given type. The error value is set to No_Such_Symbol.
+Returns true on success and false if there are no symbols with the given type.
+The error value is set to No\_Such\_Symbol.
+}
+
+\begin{apient}
 bool getAllUndefinedSymbols(std::vector<Symbol *> &ret)
+\end{apient}
+\apidesc{
 This method returns all symbols that reference symbols in other files (e.g., external functions or variables).
-Returns true if there is atleast one such symbol or else returns false with the error set to No_Such_Symbol.
-6.1.1.4 Function, Variable, and Symbol insertion and modification
+Returns true if there is at least one such symbol or else returns false with the
+error set to No\_Such\_Symbol.}
+
+\paragraph{Function, Variable, and Symbol insertion and modification}
+
+\begin{apient}
 Function *createFunction(string name, Offset offset, unsigned size, Module *mod)
+\end{apient}
+\apidesc{
 This method creates a Function and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module mod. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new Function on success or NULL on failure. 
+}
+
+\begin{apient}
 Variable *createVariable(string name, Offset offset, unsigned size, Module *mod)
+\end{apient}
+\apidesc{
 This method creates a Variable and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module mod. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new Variable on success or NULL on failure. 
+}
+
+\begin{apient}
 bool addSymbol(Symbol *newsym)
+\end{apient}
+\apidesc{
 This method adds a new symbol newsym to all of the internal data structures. The primary name of the newsym must be a mangled name. isDynamic represents whether the symbol belongs to the dynamic symbol table; if false, the symbol is added to the static symbol table. Returns true on success and false on failure. A new copy of newsym is not made. newsym must not be deallocated after adding it to symtabAPI.
 We suggest using createFunction or createVariable when possible.
+}
+
+\begin{apient}
 bool addSymbol(Symbol *newsym, Symbol *referringSymbol)
+\end{apient}
+\apidesc{
 This method adds a new dynamic symbol newsym which refers to referringSymbol to all of the internal data structures. newsym must represent a dynamic symbol. The primary name of the newsym must be a mangled name. All the required version names are allocated automatically. Also if the referringSymbol belongs to a shared library which is not currently a dependency, the shared library is added to the list of dependencies implicitly. Returns true on success and false on failure. A new copy of newsym is not made. newsym must not be deallocated after adding it to symtabAPI.
+}
+
+\begin{apient}
 bool deleteFunction(Function *func)
+\end{apient}
+\apidesc{
 This method deletes the Function func from all data structures. It will not be available for further queries. Return true on success and false if func is not owned by the Symtab.
+}
+
+\begin{apient}
 bool deleteVariable(Variable *var)
+\end{apient}
+\apidesc{
 This method deletes the symbol sym from all of symtabs data structures. It will not be available for further queries. Return true on success and false if func is not owned by the Symtab.
+}
+
+\begin{apient}
 bool deleteSymbol(Symbol *sym)
-This method deletes the symbol sym from all of symtabs data structures. It will not be available for further queries. Return true on success and false if func is not owned by the Symtab.
-6.1.1.5 Catch and Exception block lookup
+\end{apient}
+\apidesc{
+This method deletes the symbol sym from all of symtabs data structures. It
+will not be available for further queries. Return true on success and false if
+func is not owned by the Symtab.}
+
+\paragraph{Catch and Exception block lookup}
+
+\begin{apient}
 bool getAllExceptions(vector<ExceptionBlock *> &exceptions)
+\end{apient}
+\apidesc{
 This method retrieves all the exception blocks in the Object file. 
 Returns false if there are no exception blocks else returns true with exceptions containing a vector of ExceptionBlocks.
+}
+
+\begin{apient}
 bool findException(ExceptionBlock &excp, Offset addr)
+\end{apient}
+\apidesc{
 This method returns the exception block in the binary at the offset addr. 
 Returns false if there is no exception block at the given offset else returns true with excp containing the exception block.
+}
+
+\begin{apient}
 bool findCatchBlock(ExceptionBlock &excp, Offset addr, unsigned size = 0)
-This method returns true if the address range [addr, addr+size] contains a catch block, with excp pointing to the appropriate block, else returns false.
-6.1.1.6 Symtab information
+\end{apient}
+\apidesc{
+This method returns true if the address range [addr, addr+size] contains a catch
+block, with excp pointing to the appropriate block, else returns false.}
+
+\paragraph{Symtab information}
+
+\begin{apient}
 bool isExec() const
+\end{apient}
+\apidesc{
 This method returns true if the Object is an executable or else returns false.
+}
+
+\begin{apient}
 bool isStripped()
+\end{apient}
+\apidesc{
 This method returns true if the Object is stripped or else returns false.
+}
+\begin{apient}
 typedef enum {
-obj_Unknown,
-obj_SharedLib,
-obj_Executable,
-obj_RelocatableFile,
+    obj_Unknown,
+    obj_SharedLib,
+    obj_Executable,
+    obj_RelocatableFile,
 } ObjectType;
+
+\begin{apient}
 ObjectType getObjectType() const
+\end{apient}
+\apidesc{
 This method queries information on the type of the object file.
+}
+
+\begin{apient}
 bool isCode(const Offset where) const
+\end{apient}
+\apidesc{
 This method checks if the given offset where belongs to the text section. Returns true if that is the case or else returns false.
+}
+
+\begin{apient}
 bool isData(const Offset where) const
+\end{apient}
+\apidesc{
 This method checks if the given offset where belongs to the data section. Returns true if that is the case or else returns false.
+}
+
+\begin{apient}
 bool isValidOffset(const Offset where) const
+\end{apient}
+\apidesc{
 This method checks if the given offset where is valid. For an offset to be valid it should be aligned and it should be a valid code offset or a valid data offset.
 Returns true if it succeeds or else returns false.
+}
+
+\begin{apient}
 const string &file() const
+\end{apient}
+\apidesc{
 This method returns the full path name of the object file. Returns an empty string if the object file is a memory image.
+}
+
+\begin{apient}
 const string &name() const
+\end{apient}
+\apidesc{
 This method returns the name of the object file. Returns an empty string if the object file is a memory image.
+}
+
+\begin{apient}
 char *mem_image() const
+\end{apient}
+\apidesc{
 This method returns the pointer to the object file in memory. Returns NULL if its a file on disk and not a memory image.
+}
+
+\begin{apient}
 Offset imageOffset() const
 Offset dataOffset() const
+\end{apient}
+\apidesc{
 These methods return the code/data segment address values for the object, offset from the start (base) of the binary.
+}
+
+\begin{apient}
 Offset imageLength() const
 Offset dataLength() const
+\end{apient}
+\apidesc{
 These methods return the code/data segment length values for the binary.
+}
+
+\begin{apient}
 char* image_ptr () const
 char* data_ptr () const
+\end{apient}
+\apidesc{
 These methods return a pointer to the start of the code or the data section for the binary.
+}
+
+\begin{apient}
 unsigned getNumberOfSymbols() const
+\end{apient}
+\apidesc{
 This method return the total number of symbols present in the binary
 The number returned represents all the symbols present in the .symtab section of the binary.
+}
+
+\begin{apient}
 unsigned getAddressWidth() const
+\end{apient}
+\apidesc{
 This method returns the address width in bytes for the object file. On 32-bit systems this function will return 4, and on 64-bit systems this function will return 8.
+}
+
+\begin{apient}
 Offset getLoadOffset() const
+\end{apient}
+\apidesc{
 This method returns the offset of the load section of the object file.
+}
+
+\begin{apient}
 Offset getEntryOffset() const
+\end{apient}
+\apidesc{
 This method returns the entry point offset of the object file.
+}
+
+\begin{apient}
 Offset getBaseOffset() const
-This method returns the base address of the object file.
-6.1.1.7 Line number information
-bool getAddressRanges(vector< pair<Offset, Offset> > & ranges, 
-string lineSource, unsigned int LineNo)
+\end{apient}
+\apidesc{
+This method returns the base address of the object file.}
+
+paragraph{Line number information}
+
+\begin{apient}
+bool getAddressRanges(vector< pair<Offset, Offset> > & ranges,
+                     string lineSource, unsigned int LineNo)
+\end{apient}
+\apidesc{
 This method returns the address ranges in ranges corresponding to the line with line number lineNo in the source file lineSource. Searches all modules for the given source.
 Return true if at least one address range corresponding to the line number was found and returns false if none found.
+}
+
+\begin{apient}
 bool getSourceLines(vector<LineNoTuple> &lines, Offset addressInRange)
+\end{apient}
+\apidesc{
 This method returns the source file names and line numbers corresponding to the given address addressInRange. Searches all modules for the given source. 
 Return true if at least one tuple corresponding to the offset was found and returns false if none found.
+}
+
+\begin{apient}
 bool addLine(string &lineSource, unsigned int lineNo, 
-unsigned int lineOffset, Offset lowInclusiveAddr, 
-Offset highExclusiveAddr)
+            unsigned int lineOffset, Offset lowInclusiveAddr, 
+            Offset highExclusiveAddr)
+\end{apient}
+\apidesc{
 This method adds a new line to the line map. lineSource represents the source file name. lineNo represents the line number.
 Returns true on success and false on error.
+}
+
+\begin{apient}
 bool addAddressRange(Offset lowInclusiveAddr, Offset highExclusiveAddr,
-string lineSource, unsigned int lineNo, 
-unsigned int lineOffset = 0);
+                    string lineSource, unsigned int lineNo, 
+                    unsigned int lineOffset = 0);
+\end{apient}
+\apidesc{
 This method adds an address range [lowInclusiveAddr, highExclusiveAddr) for the line with line number lineNo in source file lineSource at offset lineOffset. 
-Returns true on success and false on error.
-6.1.1.8 Type information
+Returns true on success and false on error.}
+\paragraph{Type information}
+
+\begin{apient}
 void parseTypesNow()
+\end{apient}
+\apidesc{
 Forces SymtabAPI to perform type parsing instead of delaying it to when needed.
+}
+
+\begin{apient}
 bool findType(Type *&type, string name)
+\end{apient}
+\apidesc{
 Performs a look up among all the built-in types, standard types and user-defined types and returns a handle to the found type with name name. 
 Returns true if a type is found with type containing the handle to the type, else return false.
+}
+
+\begin{apient}
 bool addType(Type *type)
+\end{apient}
+\apidesc{
 Adds a new type type to symtabAPI. Return true on success.
+}
+
+\begin{apient}
 std::vector<Type *> *getAllstdTypes()
+\end{apient}
+\apidesc{
 Returns all the standard types that normally occur in a program.
+}
+
+\begin{apient}
 std::vector<Type *> *getAllbuiltInTypes()
+\end{apient}
+\apidesc{
 Returns all the bulit-in types defined in the binary.
+}
+
+\begin{apient}
 bool findLocalVariable(vector<localVar *> &vars, string name)
+\end{apient}
+\apidesc{
 The method returns a list of local variables named name within the object file. 
 Returns true with vars containing a list of localVar objects corresponding to the local variables if found or else returns false.
+}
+
+\begin{apient}
 bool findVariableType(Type *&type, std::string name)
+\end{apient}
+\apidesc{
 This method looks up a global variable with name name and returns its type attribute.
 Returns true if a variable is found or returns false with type set to NULL.
-typedef enum ... SymtabError
-SymtabError can take one of the following values.
-Obj_Parsing - An error occurred during object parsing(internal error)
-Syms_To_Functions - An error occurred in converting symbols to functions(internal error)
-Build_Function_Lists - An error occurred while building function lists(internal error)
-No_Such_Module - No matching module exists with the given inputs
-No_Such_Function - No matching module exists with the given inputs
-No_Such_Variable - No matching variable exists with the given inputs
-No_Such_Symbol - No matching symbol exists with the given inputs
-No_Such_Region - No matching region exists with the given inputs
-No_Such_Member - No matching member exists in the archive with the given inputs
-Not_A_File - Binary to be parsed may be an archive and not a file
-Not_An_Archive - Binary to be parsed is not an archive
-Duplicate_Symbol - Duplicate symbol found in symbol table
-Invalid_Flags - Flags passed are invalid
-Bad_Frame_Data - Stack walking DWARF information has bad frame data
-No_Frame_Entry - No stack walking frame data found in debug information for this location
-Frame_Read_Error - Failed to read stack frame data
-No_Error - Previous operation did not result in failur.
+}
+
+\begin{center}
+    \begin{tabular}{ll}
+        \toprule
+        SymtabError enum& Meaning\\
+        \midrule
+     Obj\_Parsing & An error occurred during object parsing(internal error)\\
+     Syms\_To\_Functions & An error occurred in converting symbols to functions(internal error)\\
+     Build\_Function\_Lists & An error occurred while building function lists(internal error)\\
+     No\_Such\_Module & No matching module exists with the given inputs\\
+     No\_Such\_Function & No matching function exists with the given inputs\\
+     No\_Such\_Variable & No matching variable exists with the given inputs\\
+     No\_Such\_Symbol & No matching symbol exists with the given inputs\\
+     No\_Such\_Region & No matching region exists with the given inputs\\
+     No\_Such\_Member & No matching member exists in the archive with the given inputs\\
+     Not\_A\_File & Binary to be parsed may be an archive and not a file\\
+     Not\_An\_Archive & Binary to be parsed is not an archive\\
+     Duplicate\_Symbol & Duplicate symbol found in symbol table\\
+     Invalid\_Flags & Flags passed are invalid\\
+     Bad\_Frame\_Data & Stack walking DWARF information has bad frame data\\
+     No\_Frame\_Entry & No stack walking frame data found in debug information for this location\\
+     Frame\_Read\_Error & Failed to read stack frame data\\
+     No\_Error & Previous operation did not result in failure.\\
+     \bottomrule
+ \end{tabular}
+ \end{center}
+
+\begin{apient}
 static SymtabError getLastSymtabError()
+\end{apient}
+\apidesc{
 This method returns an error value for the previously performed operation that resulted in a failure. 
 SymtabAPI sets a global error value in case of error during any operation. This call returns the last error that occurred while performing any operation.
+}
+
+\begin{apient}
 static string &printError(SymtabError serr)
-This method returns a detailed description of the enum value serr in human readable format.
-6.1.1.9 Deprecated methods
+\end{apient}
+\apidesc{
+This method returns a detailed description of the enum value serr in human
+readable format.}
+
+\paragraph{Deprecated methods}
+
+\begin{apient}
 bool findSymbolByType(vector <Symbol *> &ret, const string name,
-Symbol::SymbolType sType, bool isMangled = false,
-bool isRegex = false, bool checkCase = false)
+                    Symbol::SymbolType sType, bool isMangled = false,
+                    bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of symbols with type sType whose names match the given Mangled/Pretty name based on the isMangled flag. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
-Returns true if it finds symbols with the given attributes. or else returns false. The error value is set to No_Such_Function / No_Such_Variable/ No_Such_Module/ No_Such_Symbol based on the type.
+Returns true if it finds symbols with the given attributes. or else returns
+false. The error value is set to No\_Such\_Function / No\_Such\_Variable/
+No\_Such\_Module/ No\_Such\_Symbol based on the type.
 This method is deprecated; please use the alternate findSymbolByType defined above.
+}
+
+\begin{apient}
 bool findFuncByEntryOffset(vector<Symbol *> &ret, const Offset offset)
+\end{apient}
+\apidesc{
 This method returns a vector of function symbols with the given offset offset.
-Returns true on success and false if there is no symbol with the given offset. The error value is set to No_Such_Symbol.
-This method is deprecated; please use findFunctionByEntryOffset defined above.
-6.1.2 Class Module
+Returns true on success and false if there is no symbol with the given offset.
+The error value is set to No\_Such\_Symbol.
+This method is deprecated; please use findFunctionByEntryOffset defined above.}
+
+\subsubsection{Class Module}
 This class represents a module which is part of the image. This class also gives all the information pertaining to a module.
+
+\begin{apient}
 typedef enum{
-lang_Unknown,
-lang_Assembly,
-lang_C,
-lang_CPlusPlus,
-lang_GnuCPlusPlus,
-lang_Fortran,
-lang_Fortran_with_pretty_debug,
-lang_CMFortran 
+    lang_Unknown,
+    lang_Assembly,
+    lang_C,
+    lang_CPlusPlus,
+    lang_GnuCPlusPlus,
+    lang_Fortran,
+    lang_Fortran\_with\_pretty\_debug,
+    lang_CMFortran 
 }supportedLanguages
+\end{apient}
+\apidesc{
 This represents the language of the source file which has been compiled into the object file.
-6.1.2.1 Module information
+}
+
+\paragraph{Module information}
+
+\begin{apient}
 bool isShared() const
+\end{apient}
+\apidesc{
 This method returns true if the module is shared, else return false.
+}
+
+\begin{apient}
 const string& fullName() const
+\end{apient}
+\apidesc{
 This method returns the full path name for the module. 
 There is always a file name corresponding to a module.
+}
+
+\begin{apient}
 const string& fileName() const
+\end{apient}
+\apidesc{
 This method returns the file name for the module. 
 There is always a file name corresponding to a module.
+}
+
+\begin{apient}
 bool setName(string newName)
+\end{apient}
+\apidesc{
 This method sets the full name of the module to newName. Returns true on success and false on failure.
 supportedLanguages language() const
+}
+
+\begin{apient}
 bool setLanguage(supportedLanguages lang)
+\end{apient}
+\apidesc{
 These methods return the language for the module / set it to lang.
+}
+
+\begin{apient}
 Offset addr() const
+\end{apient}
+\apidesc{
 This method returns the offset for the module from the start of the object file.
+}
+
+\begin{apient}
 Symtab *exec() const
-Returns the Symtab object to which this module belongs to.
-6.1.2.2 Function, Variable, Symbol lookup
+\end{apient}
+\apidesc{
+Returns the Symtab object to which this module belongs to.}
+
+\paragraph{Function, Variable, Symbol lookup}
+
+\begin{apient}
 bool findFunctionByEntryOffset(Function *&ret, const Offset offset)
-This method returns the Function object that begins at offset. Returns true on success and false if there is no matching function. The error value is set to No_Such_Function.
+\end{apient}
+\apidesc{
+This method returns the Function object that begins at offset. Returns true on
+success and false if there is no matching function. The error value is set to
+No\_Such\_Function.
+}
+
+\begin{apient}
 typedef enum {
-mangledName,
-prettyName,
-typedName,
-anyName
+    mangledName,
+    prettyName,
+    typedName,
+    anyName
 } NameType;
+\end{apient}
+
+\begin{apient}
 bool findFunctionsByName(vector<Function> &ret, const string name,
- Symtab::NameType nameType = anyName,
- bool isRegex = false, bool checkCase = false)
+                        Symtab::NameType nameType = anyName,
+                        bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of Functions whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Functions, if any.
-Returns true if it finds functions that match the given name, otherwise returns false. The error value is set to No_Such_Function.
+Returns true if it finds functions that match the given name, otherwise returns
+false. The error value is set to No\_Such\_Function.
+}
+
+\begin{apient}
 bool getContainingFunction(Offset offset, Function *&ret)
-This method returns the function, if any, that contains the provided offset. Returns true on success and false on failure. The error value is set to No_Such_Function.
+\end{apient}
+\apidesc{
+This method returns the function, if any, that contains the provided offset.
+Returns true on success and false on failure. The error value is set to
+No\_Such\_Function.
+}
+
+\begin{apient}
 bool getAllFunctions(vector<Function *> &ret)
-This method returns all functions in the object file. Returns true on success and false if there are no modules. The error value is set to No_Such_Function.
+\end{apient}
+\apidesc{
+This method returns all functions in the object file. Returns true on success
+and false if there are no modules. The error value is set to No\_Such\_Function.
+}
+
+\begin{apient}
 bool findVariableByOffset(Variable *&ret, const Offset offset)
-This method returns the Variable object at offset. Returns true on success and false if there is no matching variable. The error value is set to No_Such_Variable.
+\end{apient}
+\apidesc{
+This method returns the Variable object at offset. Returns true on success and
+false if there is no matching variable. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool findVariablesByName(vector<Function> &ret, const string name,
- Symtab::NameType nameType,
- bool isRegex = false, bool checkCase = false)
+                        Symtab::NameType nameType,
+                        bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of Variables whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any (note: a Variable may not have a typed name). If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Variables, if any.
-Returns true if it finds variables that match the given name, otherwise returns false. The error value is set to No_Such_Variable.
+Returns true if it finds variables that match the given name, otherwise returns
+false. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool getAllVariables(vector<Variable *> &ret)
-This method returns all variables in the object file. Returns true on success and false if there are no modules. The error value is set to No_Such_Variable.
+\end{apient}
+\apidesc{
+This method returns all variables in the object file. Returns true on success
+and false if there are no modules. The error value is set to No\_Such\_Variable.
+}
+
+\begin{apient}
 bool findSymbol(vector <Symbol *> &ret, const string name,
-    Symbol::SymbolType sType, NameType nameType = anyName,
-    bool isRegex = false, bool checkCase = false)
+                Symbol::SymbolType sType, NameType nameType = anyName,
+                bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
 This method finds and returns a vector of symbols with type sType whose names match the given name. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
-Returns true if it finds symbols with the given attributes. or else returns false. The error value is set to No_Such_Function / No_Such_Variable/ No_Such_Module/ No_Such_Symbol based on the type.
+Returns true if it finds symbols with the given attributes. or else returns
+false. The error value is set to No\_Such\_Function / No\_Such\_Variable/
+No\_Such\_Module/ No\_Such\_Symbol based on the type.
+}
+
+\begin{apient}
 bool getAllSymbolsByType(vector<Symbol *> &ret)
+\end{apient}
+\apidesc{
 This method returns all symbols.
-Returns true on success and false if there are no symbols. The error value is set to No_Such_Symbol.
+Returns true on success and false if there are no symbols. The error value is
+set to No\_Such\_Symbol.
+}
+
+\begin{apient}
 bool getAllSymbolsByType(vector<Symbol *> &ret, 
  Symbol::SymbolType sType)
+\end{apient}
+\apidesc{
 This method returns all symbols whose type matches the given type sType.
-Returns true on success and false if there are no symbols with the given type. The error value is set to No_Such_Symbol.
-6.1.2.3 Line number information
+Returns true on success and false if there are no symbols with the given type.
+The error value is set to No\_Such\_Symbol.}
+
+\paragraph{Line number information}
+
+\begin{apient}
 bool hasLineInformation()
+\end{apient}
+\apidesc{
 Return true if the module has line information present or else it returns false.
+}
+
+\begin{apient}
 bool getAddressRanges(vector< pair<unsigned long, unsigned long> > & ranges, 
-string lineSource, unsigned int LineNo)
+                    string lineSource, unsigned int LineNo)
+\end{apient}
+\apidesc{
 This method returns the address ranges in ranges corresponding to the line with line number lineNo in the source file lineSource. Searches only this module for the given source.
 Return true if at least one address range corresponding to the line number was found and returns false if none found.
+}
+
+\begin{apient}
 bool getSourceLines(vector<LineNoTuple> &lines, Offset addressInRange)
+\end{apient}
+\apidesc{
 This method returns the source file names and line numbers corresponding to the given address addressInRange. Searches only this module for the given source. 
 Return true if at least one tuple corresponding to the offset was found and returns false if none found.
+}
+
+\begin{apient}
 LineInformation *getLineInformation() const
-This method returns the line map corresponding to the module. Returns NULL if there is no line information existing for the module.
-6.1.2.4 Type information
+\end{apient}
+\apidesc{
+This method returns the line map corresponding to the module. Returns NULL if
+there is no line information existing for the module.}
+
+\paragraph{Type information}
+
+\begin{apient}
 bool findType(Type *&type, string name)
+\end{apient}
+\apidesc{
 This method performs a look up and returns a handle to the named type. 
 This method searches all the built-in types, standard types and user-defined types within the module. Returns true if a type is found with type containing the handle to the type, else return false.
+}
+
+\begin{apient}
 bool findLocalVariable(vector<localVar *> &vars, string name)
+\end{apient}
+\apidesc{
 The method returns a list of local variables within the module with name name. 
 Returns true with vars containing a list of localVar objects corresponding to the local variables if found or else returns false.
-bool findVariableType(Type *&type, std::string name)
-This method looks up a global variable with name name and returns its type attribute.
-Returns true if a variable is found or returns false with type set to NULL.
-6.1.2.5 Deprecated
-bool findSymbolByType(vector <Symbol *> &ret, const string name,
-    Symbol::SymbolType sType, bool isMangled = false,
-    bool isRegex = false, bool checkCase = false)
-This method finds and returns a vector of symbols within the module with type sType where the name matches the given Mangled/Pretty name based on the isMangled flag. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
-Returns true if it finds symbols with the given attributes. or else returns false. The error value is set to No_Such_Function / No_Such_Variable/ No_Such_Module/ No_Such_Symbol based on the type.
-This method is deprecated; use the replacement findSymbolByType defined above.
+}
 
+\begin{apient}
+bool findVariableType(Type *&type, std::string name)
+\end{apient}
+\apidesc{
+This method looks up a global variable with name name and returns its type attribute.
+Returns true if a variable is found or returns false with type set to NULL.}
+
+\paragraph{Deprecated}
+
+\begin{apient}
+bool findSymbolByType(vector <Symbol *> &ret, const string name,
+                    Symbol::SymbolType sType, bool isMangled = false,
+                    bool isRegex = false, bool checkCase = false)
+\end{apient}
+\apidesc{
+This method finds and returns a vector of symbols within the module with type sType where the name matches the given Mangled/Pretty name based on the isMangled flag. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
+Returns true if it finds symbols with the given attributes. or else returns
+false. The error value is set to No\_Such\_Function / No\_Such\_Variable/
+No\_Such\_Module/ No\_Such\_Symbol based on the type.
+This method is deprecated; use the replacement findSymbolByType defined above.
+}
