@@ -47,7 +47,7 @@ virtual Address malloc(PatchObject* obj, size_t size, Address near);
 This method allocates a buffer of \emph{size} bytes on the \textbf{Mutatee}
 side. The address \emph{near} is a relative address in the object \emph{obj}, if
 the instrumentation is for binary rewriting; otherwise, \emph{near} is an
-absolute address, where this method tries to allocates a buffer near the address
+absolute address, where this method tries to allocate a buffer near the address
 \emph{near}.
 
 If this method succeeds, it returns a non-zero address; otherwise, it returns 0.
@@ -128,52 +128,33 @@ Returns the PatchMgr's pointer, where the PatchMgr contains this address space.
 
 \textbf{Declared in}: Snippet.h
 
-The Snippet class is a template class, so that programmers can easily plug in
-their own snippet representation and the corresponding mini-compiler to
-translate the representation into the binary code.
+The Snippet class allows programmers to customize their own snippet
+representation and the corresponding mini-compiler to translate the
+representation into the binary code.
 
 
 \begin{apient}
-template <class T>
-class Snippet;
-
+static Ptr create(Snippet* a);
 \end{apient}
 
 
 \apidesc{
-The template parameter T is the implementation of the Snippet.
+Creates an object of the Snippet.
 }
 
 \begin{apient}
-static Ptr create(T rep);
+virtual bool generate(Point *pt, Buffer &buf);
 \end{apient}
 
 
 \apidesc{
-Creates an object of the Snippet. It takes input the actual representation of
-a snippet, which is a user-defined structure.
-}
 
-\begin{apient}
-static Ptr get(SnippetPtr s);
-\end{apient}
+Users should implement this virtual function for generating binary code for
+the snippet.
 
-
-\apidesc{
-This static method does type-casting. The parameter \emph{s} is the return value of
-Instance::snippet().
-
-This method returns an object of this class.
-}
-
-\begin{apient}
-T rep();
-\end{apient}
-
-
-\apidesc{
-Returns the implementation of this Snippet.
-}
+Returns false if code generation failed catastrophically. Point {\em pt} is an
+in-param that identifies where the snippet is being generated.  Buffer {\em buf}
+is an out-param that holds the generated code.  }
 
 \subsection{Command}
 \label{sec-3.2.3}
@@ -258,7 +239,7 @@ virtual bool undo();
 \apidesc{
 The method run() of BatchCommand invokes the run() method of each Command in
 \emph{to\_do\_} in order, and puts the finished Commands in \emph{done\_}. The method
-undo() of BatchCommand invokes the undo() method of each Command in \emph{undo\_} in
+undo() of BatchCommand invokes the undo() method of each Command in \emph{done \_} in
 order.
 }
 
@@ -349,15 +330,15 @@ new function, where the old function is replaced by the new function.
 }
 
 \begin{apient}
-virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, Symbol *clone);
+virtual bool wrapFunction(PatchFunction* oldfunc, PatchFunction* newfunc, string name);
 \end{apient}
 
 
 \apidesc{
-Replaces all calls to \emph{oldfunc} with calls to wrapper \emph{newfunc} (similar to
-function replacement). However, we create a copy of original using the name
-information contained in clone that can be used to call the original. The
-wrapper code would look like follows:
+  Replaces all calls to \emph{oldfunc} with calls to wrapper \emph{newfunc}
+  (similar to function replacement). However, we create a copy of original using
+  the {\em name} that can be used to call the original. The wrapper code would
+  look like follows:
 }
 
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -375,9 +356,7 @@ void *malloc_wrapper(int size) {
 \apidesc{
 This interface requires the user to give us a name (as represented by clone) for
 the original function. This matches current techniques and allows users to use
-indirect calls (function pointers). We use a Symbol, rather than a string, to
-ensure that we name the clone correctly; this also helps with mangled names in
-C++ contexts.
+indirect calls (function pointers).
 }
 
 \begin{apient}
@@ -402,7 +381,8 @@ wrapper PatchFunction.
 }
 
 \begin{apient}
-bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee, PatchFunction *context = NULL);
+bool modifyCall(PatchBlock *callBlock, PatchFunction *newCallee,
+                PatchFunction *context = NULL);
 \end{apient}
 
 
@@ -688,14 +668,3 @@ This Command replaces the old PatchFunction \emph{old\_func} with the new
 PatchFunction \emph{new\_func}.
 }
 
-\subsection{AddrSpace\_1st}
-\label{sec-3.3.6}
-
-
-TODO
-
-\subsection{Instrumenter\_1st}
-\label{sec-3.3.7}
-
-
-TODO

@@ -77,8 +77,7 @@ that connects two basic blocks.
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
 \begin{lstlisting}[caption=Example of code patching]
-MySnippet snip;
-Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 
 Patcher patcher(mgr);
 for (vector<Point*>::iterator iter = pts.begin();
@@ -91,10 +90,10 @@ patcher.commit();
 
 The above code is to insert the same code \emph{snippet} to all points
 \emph{pts} found in Section~\ref{sec-example-pt}. We'll explain the snippet
-(Line 1 and 2) in the example in Section~\ref{sec-example-snip}. Each point
-maintains a list of snippet instances, and the PushBackCommand is to push a
-snippet instance to the end of that list. An instance of Patcher is to represent
-a transaction of code patching. In this example, all snippet insertions (or all
+(Line 1) in the example in Section~\ref{sec-example-snip}. Each point maintains
+a list of snippet instances, and the PushBackCommand is to push a snippet
+instance to the end of that list. An instance of Patcher is to represent a
+transaction of code patching. In this example, all snippet insertions (or all
 PushBackCommands) are performed atomically when the Patcher::commit method is
 invoked. That is, all snippet insertions would succeed or all would fail.
 
@@ -131,18 +130,20 @@ space, and then \emph{write} the code snippet into this buffer.
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
 \lstset{numbers=left}
 \begin{lstlisting}[caption=Example of implementing snippet plugin]
-struct MySnippet {
-  void* binary_blob;
+class MySnippet : public Snippet {
+  public:
+    virtual bool generate(Point *pt, Buffer &buf) {
+      // Generate and store binary code in the Buffer buf
+      return true;
+    }
 };
-MySnippet snip;
-Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}
-The above code illustrates how to plug in a user-defined snippet representation
-\emph{MySnippet}, which simply uses a binary blob as the code snippet for
-insertion. The snippet representation \emph{MySnippet} is specified as a
-template parameter to PatchAPI's \emph{Snippet} class, so that the
-instrumentation engine can recognize \emph{MySnippet} in the later code
-generation phase.
+
+The above code illustrates how to customize a user-defined snippet
+\emph{MySnippet} by implementing the ``mini-compiler'' in the {\em generate}
+method, which will be used later in the instrumentation engine to generate
+binary code.
 
 \subsubsection{Code Parsing}
 \lstset{language=[GNU]C++,basicstyle=\fontfamily{fvm}\selectfont\small}
@@ -177,13 +178,10 @@ class MyPoint : public Point {
 
 class MyPointMaker: public PointMaker {
   protected:
-    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f);
-    ...
+    virtual Point *mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
+      return new MyPoint(t, m, f);
+    }
 };
-
-Point *MyPointMaker::mkFuncPoint(Point::Type t, PatchMgrPtr m, PatchFunction *f) {
-  return new MyPoint(t, m, f);
-}
 \end{lstlisting}
 In the above example, the MyPoint class inherits from the Point class, and the
 MyPointMaker class inherits from the PointMaker class. The mkFuncPoint method in
@@ -219,14 +217,13 @@ as->loadObject(obj);
 MyInstrumenter inst = ...
 PatchMgrPtr mgr = PatchMgr::create(as, ..., inst);
 
-MySnippet* snip = ...
-Snippet<MySnippet>::ptr snippet = Snippet<MySnippet>::create(snip);
+MySnippet::ptr snippet = MySnippet::create(new MySnippet);
 \end{lstlisting}
 The above code shows how to register the above four types of plugins.  An
 instance of the factory class for creating CFG structures is registered to an
 PatchObject (Line 1 and 2), which is in turn loaded into an instance of
 AddrSpace (Line 4 and 5). The AddrSpace (or its subclass implemented by
 programmers) instance is passed to PatchMgr::create (Line 7 and 8), together
-with an instance of Instrumenter (or its subclass). Finally, the user-specified
-snippet representation is passed as a template parameter to the Snippet
-class (Line 10 and 11). Therefore, all plugins are glued together in PatchAPI.
+with an instance of Instrumenter (or its subclass). Finally, a snippet of custom
+snippet representation MySnippet is created (Line 10). Therefore, all plugins
+are glued together in PatchAPI.
