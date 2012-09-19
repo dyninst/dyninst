@@ -1,45 +1,100 @@
-6.3 Line Number Interface
+\subsection{Line Number Interface}
+
 This section describes the line number interface for the SymtabAPI library. Currently this interface has the following capabilities
-Look up address ranges for a given line number
-Look up source lines for a given address.
-Add new line information.
+\begin{itemize}
+    \item Look up address ranges for a given line number
+    \item Look up source lines for a given address.
+    \item Add new line information.
+\end{itemize}
+
 In order to look up or add line information, the user/application must have already parsed the object file and should have a Symtab handle to the object file. For more information on line information lookups through the Symtab class refer to Section 6. The rest of this section describes the classes that are part of the line number interface.
-6.3.1 Class LineInformation
+
+\subsubsection{Class LineInformation}
 This class represents an entire line map for a module. This contains mappings from a line number within a source to the address ranges.
+
+\begin{apient}
 bool getAddressRanges(vector< pair<unsigned long, unsigned long> > & ranges, 
 string &lineSource, unsigned int LineNo)
+\end{apient}
+\apidesc{
 This methos returns the address ranges in ranges corresponding to the line with line number lineNo in the source file lineSource. Searches within this line map.
 Return true if at least one address range corresponding to the line number was found and returns false if none found.
+}
+
+\begin{apient}
 bool getSourceLines(vector<LineNoTuple> & lines, Offset addressInRange)
+\end{apient}
+\apidesc{
 This method returns the source file names and line numbers corresponding to the given address addressInRange. Searches within this line map. 
 Return true if at least one tuple corresponding to the offset was found and returns false if none found.
+}
+
+\begin{apient}
 bool addLine(string &lineSource, unsigned int lineNo, 
-unsigned int lineOffset, Offset lowInclusiveAddr, 
-Offset highExclusiveAddr, Symtab *obj = NULL)
+            unsigned int lineOffset, Offset lowInclusiveAddr, 
+            Offset highExclusiveAddr, Symtab *obj = NULL)
+\end{apient}
+\apidesc{
 This method adds a new line to the line Map. lineSource represents the source file name. lineNo represents the line number.
 If obj is NULL it is just added to that line map or else the new line is added back to the library.
+}
+
+\begin{apient}
 bool addAddressRange(Offset lowInclusiveAddr, Offset highExclusiveAddr,
-string &lineSource, unsigned int lineNo, 
-unsigned int lineOffset = 0, Symtab *obj = NULL);
+                    string &lineSource, unsigned int lineNo, 
+                    unsigned int lineOffset = 0, Symtab *obj = NULL);
+\end{apient}
+\apidesc{
 This method adds an address range [lowInclusiveAddr, highExclusiveAddr) for the line with line number lineNo in source file lineSource. 
 If obj is NULL it is just added to that line map or else the new line is added back to the library.
+}
+
+\begin{apient}
 LineInformation::const_iterator begin()
+\end{apient}
+\apidesc{
 This method returns an iterator pointing to the beginning of the line information for the module.
 This is useful for iterating over the entire line information present in a module. An example described in Section 6.3.3 gives more information on how to use begin() for iterating over the line information.
+}
+
+\begin{apient}
 LineInformation::const_iterator end()
+\end{apient}
+\apidesc{
 This method returns an iterator pointing to the end of the line information for the module.
 This is useful for iterating over the entire line information present in a module. An example described in Section 6.3.3 gives more information on how to use end() for iterating over the line information.
-6.3.2 Class LineNoTuple
-LineNoTuple is tuple of three objects: source file where a line is present, line number in that source file and start column in that line. Its members can be accessed directly. 
+}
+
+\subsubsection{Class LineNoTuple}
+
+LineNoTuple is tuple of three objects: source file where a line is present, line
+number in that source file and start column in that line. It's members can be accessed directly. 
+
+\begin{apient}
 const chat *first
+\end{apient}
+\apidesc{
 This member gives the source file for the line
+}
+
+\begin{apient}
 unsigned int second
+\end{apient}
+\apidesc{
 This member gives the line number for the line
+}
+
+\begin{apient}
 unsigned int column
+\end{apient}
+\apidesc{
 This member gives the start column for that line.
-6.3.3 Iterating over Line Information
+}
+
+\subsubsection{Iterating over Line Information}
 The LineInformation class also provides the ability for iterating over its data (line numbers and their corresponding address ranges). The following example shows how to iterate over the line information for a given module using SymtabAPI.
 
+\begin{lstlisting}
 //Example showing how to iterate over the line information for a given module.
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -64,41 +119,92 @@ const std::pair<Offset, Offset> addrRange = iter->first;
 //Second component gives information about the line itself.
 LineNoTuple lt = iter->second;
 }
-6.4 Local Variable Interface
-This section describes the local variable interface for the SymtabAPI library. Currently this interface has the following capabilities
-Look up local variables and parameters within an function.
-Look up local variables local to a particular scope.
-Add new local variables.
-To look up or to add local variables, the user/application must have already parsed the object file and should have a Symtab handle to the object file. For more information on local variable lookups through the Symbol class refer to Section 6. The rest of this section describes the classes that are part of the local variable interface.
-typedef enum {
-storageAddr,  
-storageReg,  
-storageRegOffset, 
-} storageClass;
-This represents a handle that encodes how a variable is stored and gives information on how to access it. If the value is storageAddr then absolute address of the variable is available. If the value is storageReg then the register holds the variable value. If the value is storageRegOffset then the address of the variable can be calculated as $reg+address.
-typedef enum{
-storageAddrRef,  
-storageRegRef, 
-} StorageRefClass;
-This gives information on whether a variable can be accessed through an address or a register. If the value is storageAddrRef then the variable can be accessed through a pointer and the address of that pointer is available. If the value is storageRegRef then the variable can be accessed through a register which holds the pointer.
-typedef struct{
-storageClass stClass;//storage class for the variable
-storageRef refClass;//storage reference for the variable
-int reg;//Register in which the local variable will
-//be stored
-} VariableLocation;
-This represents a particular scope for a variable where it is local. Gives information on how to access the variable based on the location.
-6.4.1 Class localVar
-This represents a local variable or parameter within a function.
-string &getName() const
-This method returns the name of the local variable.
-Type *getType()
- This method returns the type of the local variable.
-string &getFileName()
-This method returns the filename where this local variable was declared.
-int getLineNum()
-This method returns the line number at which the local variable was declared.
-vector<VariableLocation> *getLocationLists()
-A local variable can be in scope at different positions and based on that it is accessible in different ways. Location lists provide a way to encode that information. 
-The method retrieves the location list where the variable is in scope. These are represented by the loc_t objects which give information on the storage class and how to access it.
+\end{lstlisting}
 
+\subsection{Local Variable Interface}
+
+This section describes the local variable interface for the SymtabAPI library. Currently this interface has the following capabilities
+\begin{itemize}
+    \item Look up local variables and parameters within an function.
+    \item Look up local variables local to a particular scope.
+    \item Add new local variables.
+\end{itemize}
+
+To look up or to add local variables, the user/application must have already parsed the object file and should have a Symtab handle to the object file. For more information on local variable lookups through the Symbol class refer to Section 6. The rest of this section describes the classes that are part of the local variable interface.
+
+\begin{apient}
+typedef enum {
+    storageAddr,  
+    storageReg,  
+    storageRegOffset, 
+} storageClass;
+\end{apient}
+\apidesc{
+This represents a handle that encodes how a variable is stored and gives
+information on how to access it. If the value is storageAddr then absolute
+address of the variable is available. If the value is storageReg then the
+register holds the variable value. If the value is storageRegOffset then the
+address of the variable can be calculated as \$reg+address.
+}
+
+\begin{apient}
+typedef enum{
+    storageAddrRef,  
+    storageRegRef, 
+} StorageRefClass;
+\end{apient}
+\apidesc{
+This gives information on whether a variable can be accessed through an address or a register. If the value is storageAddrRef then the variable can be accessed through a pointer and the address of that pointer is available. If the value is storageRegRef then the variable can be accessed through a register which holds the pointer.
+}
+
+\begin{apient}
+typedef struct{
+    storageClass stClass;//storage class for the variable
+    storageRef refClass;//storage reference for the variable
+    int reg;//Register in which the local variable will be stored
+} VariableLocation;
+\end{apient}
+\apidesc{
+This represents a particular scope for a variable where it is local. Gives information on how to access the variable based on the location.
+}
+
+\subsubsection{Class localVar}
+This represents a local variable or parameter within a function.
+
+
+\begin{apient}
+string &getName() const
+\end{apient}
+\apidesc{
+This method returns the name of the local variable.
+}
+
+\begin{apient}
+Type *getType()
+\end{apient}
+\apidesc{
+ This method returns the type of the local variable.
+}
+
+\begin{apient}
+string &getFileName()
+\end{apient}
+\apidesc{
+This method returns the filename where this local variable was declared.
+}
+
+\begin{apient}
+int getLineNum()
+\end{apient}
+\apidesc{
+This method returns the line number at which the local variable was declared.
+}
+
+\begin{apient}
+vector<VariableLocation> *getLocationLists()
+\end{apient}
+\apidesc{
+A local variable can be in scope at different positions and based on that it is accessible in different ways. Location lists provide a way to encode that information. 
+The method retrieves the location list where the variable is in scope. These are
+represented by the loc\_t objects which give information on the storage class and how to access it.
+}
