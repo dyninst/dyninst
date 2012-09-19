@@ -1936,26 +1936,28 @@ tests_module('test1_14F', 'dyninst').
 %test_start_state('test1_15F', 'stopped').
 %tests_module('test1_15F', 'dyninst').
 
-mutatee('test1_16F', ['test1_16F_mutatee.c'], ['test1_16F_fortran.F']).
+% The current implementation of this test is fundamentally broken, as it
+% references local variables in other functions. Disabling.
+%mutatee('test1_16F', ['test1_16F_mutatee.c'], ['test1_16F_fortran.F']).
 % TODO Make sure these are correct
-compiler_for_mutatee('test1_16F', Compiler) :-
-    comp_lang(Compiler, 'fortran').
-optimization_for_mutatee('test1_16F', Compiler, 'none') :-
-    compiler_for_mutatee('test1_16F', Compiler).
+%compiler_for_mutatee('test1_16F', Compiler) :-
+%    comp_lang(Compiler, 'fortran').
+%optimization_for_mutatee('test1_16F', Compiler, 'none') :-
+%    compiler_for_mutatee('test1_16F', Compiler).
 % The C language components of the Fortran tests are compiled with different
 % options than the rest of the C files.  Regretably, this clause is very non-
 % intuitive..  Im doing a hack here around the fact that the Python component
 % doesnt know that test1_16F_mutatee.c gets preprocessed and renamed.. This
 % sucks and I need to figure out a better way to do it.
-fortran_c_component('test1_16F').
+%fortran_c_component('test1_16F').
 % First try at a test that uses a one-to-many mutator-mutatee mapping
-test('test1_16F', 'test1_16', 'test1_16F').
-test_description('test1_16F', 'If else (Fortran)').
-test_runs_everywhere('test1_16F').
-test_runmode('test1_16F', 'dynamic').
-test_start_state('test1_16F', 'stopped').
-groupable_test('test1_16F').
-tests_module('test1_16F', 'dyninst').
+%test('test1_16F', 'test1_16', 'test1_16F').
+%test_description('test1_16F', 'If else (Fortran)').
+%test_runs_everywhere('test1_16F').
+%test_runmode('test1_16F', 'dynamic').
+%test_start_state('test1_16F', 'stopped').
+%groupable_test('test1_16F').
+%tests_module('test1_16F', 'dyninst').
 
 mutatee('test1_17F', ['test1_17F_mutatee.c'], ['test1_17F_fortran.F']).
 % TODO Make sure these are correct
