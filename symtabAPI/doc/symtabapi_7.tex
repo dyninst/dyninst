@@ -1,0 +1,117 @@
+7 API Reference - Dynamic Components
+Unlike the static components discussed in Section 6, which operate on files, SymtabAPIs dynamic components operate on a process. The dynamic components currently consist of the Dynamic Address Translation system, which translates between absolute addresses in a running process and static SymtabAPI objects. 
+7.1 Class AddressLookup
+The AddressLookup class provides a mapping interface for determining the address in a process where a SymtabAPI object is loaded. A single dynamic library may load at different addresses in different processes. The address fields in a dynamic libraries symbol tables will contain offsets rather than absolute addresses. These offsets can be added to the libraries load address, which is computed at runtime, to determine the absolute address where a symbol is loaded. 
+The AddressLookup class examines a process and finds its dynamic libraries and executables and each ones load address. This information can be used to map between SymtabAPI objects and absolute addresses. Each AddressLookup instance is associated with one process. An AddressLookup object can be created to work with the currently running process or a different process on the same system.
+On the Linux and Solaris platforms the AddressLookup class needs to read from the process address space to determine its shared objects and load addresses. By default, AddressLookup will attach to another process using a debugger interface to read the necessary information, or simply use memcpy if reading from the current process. The default behavior can be changed by implementing a new ProcessReader class and passing an instance of it to the createAddressLookup factor constructors. The ProcessReader class is discussed in more detail in Section 7.1.1.
+When an AddressLookup object is created for a running process it takes a snapshot of the process currently loaded libraries and their load addresses. This snapshot is used to answer queries into the AddressLookup object, and is not automatically updated when the process loads or unloads libraries. The refresh function can be used to updated an AddressLookup objects view of its process.
+static AddressLookup *createAddressLookup(ProcessReader *reader = NULL)
+This factory constructor creates a new AddressLookup object associated with the process that called this function. The returned AddressLookup object should be cleaned with the delete operator when it is no longer needed.
+If the reader parameter is non-NULL on Linux or Solaris then the new AddressLookup object will use reader to read from the target process.
+This function returns the new AddressLookup object on success and NULL on error.
+static AddressLookup *createAddressLookup(PID pid, 
+ProcessReader *reader = NULL)
+This factory constructor creates a new AddressLookup object associated with the process referred to by pid. The returned AddressLookup object should be cleaned with the delete operator when it is no longer needed.
+If the reader parameter is non-NULL on Linux or Solaris then the new AddressLookup object will use reader to read from the target process.
+This function returns the new AddressLookup object on success and NULL on error.
+typedef struct {
+std::string name;
+Address codeAddr;
+Address dataAddr;
+} LoadedLibrary;
+static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &ll)
+This factory constructor creates a new AddressLookup associated with a previously collected list of libraries from a process. The list of libraries can initially be collected with the getLoadAddresses function. The list can then be used with this function to re-create the AddressLookup object, even if the original process no longer exists. This can be useful for off-line address lookups, where only the load addresses are collected while the process exists and then all address translation is done after the process has terminated.
+This function returns the new AddressLookup object on success and NULL on error.
+bool getLoadAddresses(std::vector<LoadedLibrary> &ll)
+This function returns a vector of LoadedLibrary objects that can be used by the createAddressLookup(const std::vector<LoadedLibrary> &ll) function to create a new AddressLookup object. This function is usually used as part of an off-line address lookup mechanism. 
+This function returns true on success and false on error.
+bool refresh()
+When a AddressLookup object is initially created it takes a snapshot of the libraries currently loaded in a process, which is then used to answer queries into this API. As the process runs more libraries may be loaded and unloaded, and this snapshot may become out of date. 
+An AddressLookups view of a process can be updated by calling this function, which causes it to examine the process for loaded and unloaded objects and update its data structures accordingly.
+This function returns true on success and false on error.
+bool getAddress(Symtab *tab, Symbol *sym, Address &addr)
+Given a Symtab object, tab, and a symbol, sym, this function returns the address, addr, where the symbol can be found in the process associated with this AddressLookup. 
+This function returns true if it was able to successfully lookup the address of sym and false otherwise.
+bool getAddress(Symtab *tab, Offset off, Address &addr)
+Given a Symtab object, tab, and an offset into that object, off, this function returns the address, addr, of that location in the process associated with this AddressLookup. 
+This function returns true if it was able to successfully lookup the address of sym and false otherwise.
+bool getSymbol(Address addr, Symbol * &sym, Symtab* &tab, bool close = false)
+Given an address, addr, this function returns the Symtab object, tab, and Symbol, sym, that reside at that address. If the close parameter is true then getSymbol will return the nearest symbol that comes before addr; this can be useful when looking up the function that resides at an address.
+This function returns true if it was able to find a symbol and false otherwise.
+bool getOffset(Address addr, Symtab* &tab, Offset &off)
+Given an address, addr, this function returns the Symtab object, tab, and an offset into tab, off, that reside at that address. 
+This function returns true on success and false otherwise.
+bool getAllSymtabs(std::vector<Symtab *> &tabs)
+This function returns all Symtab objects that are contained in the process represented by this AddressLookup object. This will include the process executable and all shared objects loaded by this process. 
+This function returns true on success and false otherwise.
+bool getLoadAddress(Symtab *sym, Address &load_address)
+Given a Symtab object, sym, that resides in the process associated with this AddressLookup, this function returns syms load address.
+On the AIX system, where an object can have one load address for its code and one for its data, this function will return the codes load address. Use getDataLoadAddress to get the data load address.
+This function returns true on success and false otherwise.
+bool getDataLoadAddress(Symtab *sym, Address &load_addr)
+Given a Symtab object, sym, this function returns the load address of its data section. This function will return the data load address on AIX systems only, all other supported operating systems return zero.
+This function returns true on success and false otherwise.
+
+7.1.1 Class ProcessReader
+The implementation of the AddressLookup on Linux and Solaris requires it to be able to read from the target process address space. By default, reading from another process on the same system this is done through the OSs debugger interface. A user can provide their own process reading mechanism by implementing a child of the ProcessReader class and passing it to the AddressLookup constructors. 
+The API described in this section is an interface that a user can implement. With the exception of the ProcessReader constructor, these functions should not be called by user code.
+The ProcessReader is defined, but not used, on non-Linux and Solaris systems.
+PID pid
+The pid member variable of ProcessReader refers to the PID of the process being read from.
+ProcessReader(PID pid_)
+This constructor for a ProcessReader should be called by any child class constructor.
+virtual bool start() = 0
+This function is called by AddressLookup before it begins a batch of reads from a process. Multiple readAddressSpace calls may follow the call to begin, which are then concluded with a call to done. This function may be useful for any initialization that needs to be done before reads. Note that this function signifies the start of a batch of reads, and multiple batches of reads occur during the lifetime of a ProcessReader. 
+This function should return true on success and false on error.
+virtual bool readAddressSpace(Address traced, unsigned amount, void *inSelf) = 0
+This function should read amount bytes from the address at traced into the buffer pointed to by inSelf. 
+This function should return true on success and false on error.
+virtual bool done() = 0
+This function is called to signify the completion of a batch of reads. It is guaranteed to be paired with a start call.
+This function should return true on success and false on error.
+Appendix A: Building SymtabAPI
+This appendix describes how to build SymtabAPI from source code, which can be downloaded from http://www.paradyn.org or http://www.dyninst.org. 
+ Building on Unix
+Building SymtabAPI on UNIX platforms is a four step process that involves: unpacking the SymtabAPI source, installing any SymtabAPI dependencies, configuring paths in make.config.local, and running the build. 
+SymtabAPIs source code is packaged in a tar.gz format. If your SymtabAPI source tarball is called symtab_src_1.0.tar.gz, then you could extract it with the command gunzip symtab_src_1.0.tar.gz; tar -xvf symtab_src_1.0.tar. This will create two directories: core and scripts. 
+SymtabAPI has several dependencies, depending on what platform you are using, which must be installed before SymtabAPI can be built. Note that for most of these packages Symtab needs to be able to access the packages include files, which means that development versions are required. If a version number is listed for a packaged, then there are known bugs that may affect Symtab with earlier versions of the package. 
+Linux/x86libdwarf-20060327 
+libelf
+libxml2
+Linux/IA-64libdwarf-20060327 
+libunwind-0.98.5
+libelf
+libxml2
+Linux/x86-64libdwarf-20060327 
+libelf
+libxml2
+Solaris/Sparclibxml2
+AIX/Powerlibxml2
+Windows/x86libxml2
+
+At the time of this writing the Linux packages could be found at:
+libdwarf - http://reality.sgiweb.org/davea/dwarf.html
+libelf - http://www.mr511.de/software/english.html
+libunwind - http://www.hpl.hp.com/research/linux/libunwind/download.php4
+libxml2 - http://xmlsoft.org/downloads.html
+Once the dependencies for SymtabAPI have been installed, SymtabAPI must be configured to know where to find these packages. This is done through SymtabAPIs core/make.config.local file. This file must be written in GNU Makefile syntax and must specify directories for each dependency. Specifically, LIBDWARFDIR, LIBELFDIR and LIBXML2DIR variables must be set. LIBDWARFDIR should be set to the absolute path of libdwarf library where dwarf.h and libdwarf.h files reside. LIBELFDIR should be set to the absolute path where libelf.a and libelf.so files are located. Finally, LIBXML2DIR to the absolute path where libxml2 is located.
+The next thing is to set DYNINST_ROOT, PLATFORM, and LD_LIBRARY_PATH environment variables. DYNINST_ROOT should be set to the path of the directory that contains core and scripts subdirectories.
+PLATFORM should be set to one of the following values depending upon what operating system you are running on:
+alpha-dec-osf5.1Tru64 UNIX on the Alpha processor
+i386-unknown-linux2.4Linux 2.4/2.6 on an Intel x86 processor
+ia64-unknown-linux2.4Linux 2.4/2.6 on an IA-64 processor
+rs6000-ibm-aix5.1AIX Version 5.1
+sparc-sun-solaris2.9Solaris 2.9 on a SPARC processor
+x86_64-unknown-linux2.4Linux 2.4/2.6 on an AMD-64 processor
+
+LD_LIBRARY_PATH variable should be set in a way that it includes libdwarf home directory/lib and ${DYNINST_ROOT}/${PLATFORM}/lib directories.
+Once make.config.local is set you are ready to build SymtabAPI. Change to the core directory and execute the command make SymtabAPI. This will build the SymtabAPI library. Successfully built binaries will be stored in a directory named after your platform at the same level as the core directory. 
+ Building on Windows
+SymtabAPI for Windows is built with Microsoft Visual Studio 2003 project and solution files.   Building SymtabAPI for Windows is similar to UNIX in that it is a four step process: unpack the SymtabAPI source code, install SymtabAPIs package dependencies, configure Visual Studio to use the dependencies, and run the build system. 
+SymtabAPIs source code is distributed as part of a tar.gz package. Most popular unzipping programs are capable of handling this format. Extracting the Symtab tarball results in two directories: core and scripts. 
+Symtab for Windows depends on Microsofts Debugging Tools for Windows, which could be found at http://www.microsoft.com/whdc/devtools/debugging/default.mspx at the time of this writing. Download these tools and install them at an appropriate location. Make sure to do a custom install and install the SDK, which is not always installed by default. For the rest of this section, we will assume that the Debugging Tools are installed at c:\program files\Debugging Tools for Windows. If this is not the case, then adjust the following instruction appropriately.
+Once the Debugging Tools are installed, Visual Studio must be configured to use them. We need to add the Debugging Tools include and library directories to Visual Studios search paths. In Visual Studio 2003 select Options... from the tools menu. Next select Projects and VC++ Directories from the pane on the left. You should see a list of directories that are sorted into categories such as Executable files, Include files, etc. The current category can be changed with a drop down box in the upper right hand side of the Dialog. 
+First, change to the Library files category, and add an entry that points to C:\Program Files\Debugging Tools for Windows\sdk\lib\i386. Make sure that this entry is above Visual Studios default search paths.
+Next, Change to the Include files category and make a new entry in the list that points to C:\Program Files\Debugging Tools for Windows\sdk\inc. Also make sure that this entry is above Visual Studios default search paths. Some users have had a problem where Visual Studio cannot find the cvconst.h file. You may need to add the directory containing this file to the include search path. We have seen it installed at $(VCInstallDir)/../Visual Studio SDKs/DIA SDK/include, although you may need to search for it. You also need to add the libxml2 include path depending on the where the libxml2 is installed on the system.
+Once you have installed and configured the Debugging Tools for Windows you are ready to build Symtab. First, you need to create the directories where Dyninst will install its completed build. From the core directory you need to create the directories ../i386-unknown-nt4.0/bin and ../i386-unknown-nt4.0/lib. Next open the solution file core/SymtabAPI.sln with Visual Studio.   You can then build SymtabAPI by select Build Solution from the build menu. This will build the SymtabAPI library.
+
