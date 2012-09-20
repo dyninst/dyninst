@@ -43,7 +43,7 @@
 //#include <libelf.h>
 
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"

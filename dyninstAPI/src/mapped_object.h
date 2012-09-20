@@ -35,7 +35,7 @@
 
 #include <string>
 #include "common/h/Types.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/h/BPatch_enums.h"
 #include <list>
 #include "dyninstAPI/src/Relocation/DynObject.h"

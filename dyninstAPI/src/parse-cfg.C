@@ -35,7 +35,7 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#include "symtab.h"
+#include "image.h"
 #include "debug.h"
 
 using namespace Dyninst;

@@ -35,7 +35,7 @@
 #include <string>
 #include <fstream>
 
-#include "symtab.h"
+#include "image.h"
 #include "common/h/arch.h"
 #include "parRegion.h"
 #include "util.h"

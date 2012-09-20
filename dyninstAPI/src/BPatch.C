@@ -603,6 +603,8 @@ BPatch_process *BPatch::getProcessByPid(int pid, bool *exists)
         BPatch_process *proc = info->procsByPid[pid];
         return proc;
     } else {
+       
+
         if (exists) *exists = false;
         return NULL;
     }

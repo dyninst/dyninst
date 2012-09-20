@@ -46,7 +46,7 @@
 #include "BPatch_point.h"
 
 #include "util.h"
-#include "symtab.h"
+#include "image.h"
 #include "instPoint.h"
 #include "debug.h"
 

@@ -40,7 +40,7 @@
 
 #include <string>
 #include "common/src/Dictionary.C"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 

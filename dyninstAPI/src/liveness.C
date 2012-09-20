@@ -43,7 +43,7 @@
 #include "instructionAPI/h/Instruction.h"
 #include "addressSpace.h"
 using namespace Dyninst::InstructionAPI;
-#include "symtab.h"
+#include "image.h"
 
 #if defined(arch_x86) || defined(arch_x86_64)
 // Special-casing for IA-32...

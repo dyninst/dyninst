@@ -31,7 +31,6 @@
 #include "common/h/std_namesp.h"
 #include <iomanip>
 #include <string>
-#include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/addressSpace.h"
@@ -45,7 +44,7 @@
 #include "common/h/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
-#include "symtab.h"
+#include "image.h"
 #include "MemoryEmulator/memEmulator.h"
 #include <boost/tuple/tuple.hpp>
 

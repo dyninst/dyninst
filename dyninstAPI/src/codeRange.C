@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include "codeRange.h"
 
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"

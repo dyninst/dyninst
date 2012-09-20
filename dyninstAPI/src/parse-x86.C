@@ -38,7 +38,7 @@
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "mapped_object.h"
-#include "symtab.h"
+#include "image.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"
 #include <deque>
@@ -171,7 +171,7 @@ bool parse_func::writesFPRs(unsigned level) {
 #include "addressSpace.h"
 #include "function.h"
 #include "baseTramp.h"
-#include "symtab.h"
+#include "image.h"
 
 using namespace Dyninst::SymtabAPI;
 

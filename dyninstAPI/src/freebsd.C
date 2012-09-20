@@ -34,7 +34,7 @@
 
 #include "binaryEdit.h"
 #include "dynProcess.h"
-#include "symtab.h"
+#include "image.h"
 #include "function.h"
 #include "instPoint.h"
 #include "baseTramp.h"

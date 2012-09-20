@@ -41,7 +41,7 @@
 #include "baseTramp.h"
 #include "registerSpace.h"
 #include "mapped_object.h"
-#include "symtab.h"
+#include "image.h"
 
 #include "common/h/pathName.h"
 
@@ -321,6 +321,7 @@ bool PCProcess::hasReachedBootstrapState(bootstrapState_t state) const {
 }
 
 void PCProcess::setBootstrapState(bootstrapState_t newState) {
+   cerr << "Setting bs state to " << newState << endl;
     bootstrapState_ = newState;
 }
 
@@ -772,7 +773,7 @@ void PCProcess::findSignalHandler(mapped_object *obj) {
     startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, obj);
 }
 
-// NUMBER_OF_MAIN_POSSIBILITIES is defined in symtab.h
+// NUMBER_OF_MAIN_POSSIBILITIES is defined in image.h
 void PCProcess::setMainFunction() {
     assert(!main_function_);
 
@@ -1271,7 +1272,10 @@ void PCProcess::writeDebugDataSpace(void *inTracedProcess, u_int amount,
 bool PCProcess::writeDataSpace(void *inTracedProcess,
                     u_int amount, const void *inSelf)
 {
-    if( isTerminated() ) return false;
+   if( isTerminated() ) {
+      cerr << "Writing to terminated process!" << endl;
+      return false;
+   }
     bool result = pcProc_->writeMemory((Address)inTracedProcess, inSelf, amount);
 
     if( BPatch_defensiveMode == proc()->getHybridMode() && !result ) {
