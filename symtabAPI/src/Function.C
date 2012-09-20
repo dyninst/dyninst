@@ -41,7 +41,9 @@
 #include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
 
-//#include "dwarf/h/dwarfFrameParser.h"
+#if !defined(os_windows)
+#include "dwarf/h/dwarfFrameParser.h"
+#endif
 
 #include "annotations.h"
 #include <iterator>
