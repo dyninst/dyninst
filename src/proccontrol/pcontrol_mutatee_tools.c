@@ -59,7 +59,9 @@
 #include <mpi.h>
 #endif
 
+#if !defined(os_windows_test)
 #include <poll.h>
+#endif
 
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
