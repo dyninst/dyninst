@@ -22,7 +22,8 @@ SRCS =          ../src/Object-elf.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \
 		../src/emitElfStatic-x86.C \
-		../src/relocationEntry-elf-x86.C
+		../src/relocationEntry-elf-x86.C \
+		../src/parseDwarf.C
 
 
 #MYFLAGS	+= -DNO_MDL_PRINT

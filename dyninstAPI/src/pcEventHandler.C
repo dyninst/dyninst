@@ -388,7 +388,7 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
     }
 
     BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(evProc->getPid());
-    if( bpproc == NULL ) {
+    if( bpproc == NULL && evProc->isBootstrapped() ) {
         proccontrol_printf("%s[%d]: failed to locate BPatch_process for process %d\n",
                 FILE__, __LINE__, evProc->getPid());
         return false;
@@ -404,8 +404,9 @@ bool PCEventHandler::handleThreadCreate(EventNewThread::const_ptr ev, PCProcess 
     evProc->addThread(newThr);
 
     if( !evProc->registerThread(newThr) ) return false;
-
-    bpproc->triggerThreadCreate(newThr);
+    
+    if (bpproc)
+       bpproc->triggerThreadCreate(newThr);
 
     return true;
 }

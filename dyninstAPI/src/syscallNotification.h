@@ -75,14 +75,6 @@ class syscallNotification {
                         PCProcess *p);
     
     ~syscallNotification() {
-        // These must check if the PCProcess is exited before doing anything
-        // dangerous
-        if (preForkInst) removePreFork();
-        if (postForkInst) removePostFork();
-        if (preExecInst) removePreExec();
-        if (postExecInst) removePostExec();
-        if (preExitInst) removePreExit();
-        if (preLwpExitInst) removePreLwpExit();
     }
     
     bool installPreFork();

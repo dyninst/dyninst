@@ -186,7 +186,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
 
    std::string spath(path);
    llproc = PCProcess::createProcess(spath, argv_vec, mode, envp_vec,
-                             directoryName, stdin_fd, stdout_fd, stderr_fd);
+                                     directoryName, 
+                                     stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) {
       BPatch_reportError(BPatchFatal, 68,
            "Dyninst was unable to create the specified process");
@@ -799,6 +800,10 @@ void BPatch_process::beginInsertionSetInt()
  */
 bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 {
+
+   if (statusIsTerminated()) return false;
+
+
   // Can't insert code when mutations are not active.
   bool shouldContinue = false;
   if (!mutationsActive) {

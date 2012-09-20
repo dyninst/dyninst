@@ -6696,9 +6696,6 @@ test1_13F_mutatee_solo_gcc_none.o: test1_13F_solo_me.c
 test1_14F_mutatee_solo_gcc_none.o: test1_14F_solo_me.c 
 	@echo Compiling $@
 	$(HIDE_COMP)$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_14F_solo_me.c 
-test1_16F_mutatee_solo_gcc_none.o: test1_16F_solo_me.c 
-	@echo Compiling $@
-	$(HIDE_COMP)$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_16F_solo_me.c 
 test1_17F_mutatee_solo_gcc_none.o: test1_17F_solo_me.c 
 	@echo Compiling $@
 	$(HIDE_COMP)$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_17F_solo_me.c 

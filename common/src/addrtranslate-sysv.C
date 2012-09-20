@@ -606,6 +606,7 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
       ll = i->second;
    }
    else {
+#if defined(arch_64bit)
       if (sizeof(long) == 8 &&
           address_size == 4) {
          // There is an annoying problem where RHEL6 uses wrapping unsigned math
@@ -618,6 +619,7 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
             addr |= 0xffffffff00000000;
          }
       }
+#endif
 
       ll = new LoadedLib(name, addr);
 

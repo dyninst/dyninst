@@ -412,7 +412,7 @@ void image::findMain()
                 return;
             }
 
-            Function::edgelist & calls = func->callEdges();
+            const Function::edgelist & calls = func->callEdges();
             if(calls.size() != 1) {
                 startup_printf("%s[%d] _start has unexpected number (%d) of"
                                " call edges, bailing on findMain()\n",

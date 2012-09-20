@@ -1,0 +1,852 @@
+\subsubsection{Class Function}
+The Function class represents a collection of symbols that have the same address
+and a type of ST\_FUNCTION. When appropriate, use this representation instead of the underlying Symbol objects.
+
+\begin{apient}
+const Module *getModule () const
+\end{apient}
+\apidesc{
+This method returns the module handle to which this symbol belongs. If the symbol does not belong to any module NULL is returned.
+}
+
+\begin{apient}
+Offset getOffset() const
+\end{apient}
+\apidesc{
+This method returns the offset associated with this function.
+}
+
+\begin{apient}
+unsigned getSize() const
+\end{apient}
+\apidesc{
+This method returns the size of the function (as reported by the symbol table).
+}
+
+\begin{apient}
+vector<string> &getAllMangledNames() const
+vector<string> &getAllPrettyNames() const
+vector<string> &getAllTypedNames() const
+\end{apient}
+\apidesc{
+This method returns a list of appropriate (mangled/unmangled/typed) names associated with this function, including all aliases (alternate names).
+}
+
+\begin{apient}
+Region *getRegion() const
+\end{apient}
+\apidesc{
+This method returns a handle to the region in which this function is present. Returns NULL if the symbol is not associated with a region.
+}
+
+\begin{apient}
+bool getSymbols(vector<Symbol *> &syms) const
+\end{apient}
+\apidesc{
+This method returns the vector of Symbols that refer to the function.
+}
+
+\begin{apient}
+bool setModule (Module *module)
+\end{apient}
+\apidesc{
+This function changes the module to which the function belongs to module. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setSize (unsigned size)
+\end{apient}
+\apidesc{
+This function changes the size of the function to size. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setOffset (Offset offset)
+\end{apient}
+\apidesc{
+The method changes the offset of the function to offset. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool addMangledName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a mangled name name to the function. If isPrimary is true then it becomes the default name for the function.
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+bool addPrettyName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a pretty name name to the function. If isPrimary is true then it becomes the default name for the function. 
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+bool addTypedName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a typed name name to the function. If isPrimary is true then it becomes the default name for the function. 
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+bool getLocalVariables(vector<localVar *> &vars)
+\end{apient}
+\apidesc{
+This method returns the local variables in the function. vars contains the list of variables found.
+If there is no debugging information present then it returns false with the
+error code set to NO\_DEBUG\_INFO accordingly. Otherwise it returns true.
+}
+
+\begin{apient}
+bool getParams(vector<localVar *> &params)
+\end{apient}
+\apidesc{
+This method returns the parameters to the function. params contains the list of parameters.
+If there is no debugging information present then it returns false with the
+error code set to NO\_DEBUG\_INFO accordingly. Returns true on success.
+}
+
+\begin{apient}
+bool findLocalVariable(vector<localVar *> &vars, string name)
+\end{apient}
+\apidesc{
+This method returns a list of local variables within a function that have name name. vars contains the list of variables found.
+Returns true on success and false on failure.
+}
+
+\begin{apient}
+Type *getReturnType()
+\end{apient}
+\apidesc{
+Retrive the return type of a function.
+}
+
+\begin{apient}
+bool setReturnType(Type *type)
+\end{apient}
+\apidesc{
+Sets the return type of a function to type.
+}
+
+\subsubsection{Class Variable}
+
+The Variable class represents a collection of symbols that have the same address
+\begin{apient}
+const Module *getModule () const
+\end{apient}
+\apidesc{
+This method returns the module handle to which this symbol belongs. If the symbol does not belong to any module NULL is returned.
+}
+
+\begin{apient}
+Offset getOffset() const
+\end{apient}
+\apidesc{
+This method returns the offset associated with this function.
+}
+
+\begin{apient}
+unsigned getSize() const
+\end{apient}
+\apidesc{
+This method returns the size of the function (as reported by the symbol table).
+}
+
+\begin{apient}
+vector<string> &getAllMangledNames() const
+vector<string> &getAllPrettyNames() const
+vector<string> &getAllTypedNames() const
+\end{apient}
+\apidesc{
+This method returns a the list of appropriate (mangled/unmangled/typed) names associated with this function, including all aliases (alternate names).
+}
+
+\begin{apient}
+Region *getRegion() const
+\end{apient}
+\apidesc{
+This method returns a handle to the region in which this function is present. Returns NULL if the symbol is not associated with a region.
+}
+
+\begin{apient}
+bool getSymbols(vector<Symbol *> &syms) const
+\end{apient}
+\apidesc{
+This method returns the vector of Symbols that refer to the function.
+}
+
+\begin{apient}
+bool setModule (Module *module)
+\end{apient}
+\apidesc{
+This function changes the module to which the function belongs to module. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setSize (unsigned size)
+\end{apient}
+\apidesc{
+This function changes the size of the function to size. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setOffset (Offset offset)
+\end{apient}
+\apidesc{
+The method changes the offset of the function to offset. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool addMangledName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a mangled name name to the function. If isPrimary is true then it becomes the default name for the function.
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+bool addPrettyName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a pretty name name to the function. If isPrimary is true then it becomes the default name for the function. 
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+bool addTypedName(string name, bool isPrimary = false)
+\end{apient}
+\apidesc{
+This method adds a typed name name to the function. If isPrimary is true then it becomes the default name for the function. 
+This method returns true on success and false on failure.
+}
+
+\begin{apient}
+Type *getType()
+\end{apient}
+\apidesc{
+Retrive the return type of a variable.
+}
+
+\begin{apient}
+bool setType(Type *type)
+\end{apient}
+\apidesc{
+Sets the type of the variable to type.
+}
+
+\subsubsection{Class Symbol}
+
+The Symbol class represents a symbol in the object file. This class holds the symbol information such as the mangled, pretty and typed names, the module in which it is present, type, linkage, offset and size.
+
+\begin{apient}
+typedef enum {
+    ST_UNKNOWN,
+    ST_FUNCTION,
+    ST_OBJECT,
+    ST_MODULE,
+    ST_SECTION,
+    ST_TLS,
+    ST_DELETED,
+    ST_NOTYPE
+} SymbolType
+\end{apient}
+\apidesc{
+This represents the type for a symbol. ST\_UNKNOWN represents an unknown type,
+ST\_FUNCTION represents a function type. ST\_OBJECT represents the variable type,
+ST\_MODULE represents the module type, ST\_SECTION represents sections, ST\_TLS
+represents thread local storage, ST\_DELETED represents deleted symbols, and ST\_NOTYPE represents the existence of no type.
+}
+
+\begin{apient}
+typedef enum {
+    SL_UNKNOWN,
+    SL_GLOBAL,
+    SL_LOCAL,
+    SL_WEAK
+} SymbolLinkage
+\end{apient}
+
+\begin{apient}
+typedef enum {
+    SV_UNKNOWN,
+    SV_DEFAULT,
+    SV_INTERNAL,
+    SV_HIDDEN,
+    SV_PROTECTED
+} SymbolVisibility
+\end{apient}
+
+\paragraph{Symbol information}
+
+\begin{apient}
+Symbol (const string name, SymbolType stype,
+        SymbolLinkage slinkage, SymbolVisibility visibility,
+        Offset addr, Module *mod = NULL, Region *reg = NULL,
+        unsigned size = 0, bool isDynamic = false,
+        bool isAbsolute = true)
+\end{apient}
+\apidesc{
+This represents the type for a symbol. ST\_UNKNOWN represents an unknown type,
+ST\_FUNCTION represents a function type. ST\_OBJECT represents the variable
+type, ST\_MODULE represents the module type, ST\_SECTION represents sections,
+ST\_TLS represents thread local storage, ST\_DELETED represents deleted symbols,
+and ST\_NOTYPE represents the existence of no type.
+This method creates an object of class Symbol with the mangled name name, the symbol type stype, the symbol linkage slinkage, the symbol visibility visibility, and the offset addr. The remaining fields are optional and assigned defaults if not present. If isDynamic is true the symbol belongs to the dynamic symbol table (ELF only); the default is to place the symbol in the static symbol table. 
+The void pointer can be used to extend the Symbol class to store any additional information. This is particularly useful when converting between Symbol to any other object.
+}
+
+\begin{apient}
+bool operator== (const Symbol &sym) const
+\end{apient}
+\apidesc{
+This method compares this symbol with sym. 
+Returns true if all the members of the object sym are same as the members of this object.
+}
+
+\begin{apient}
+const string& getMangledName () const
+\end{apient}
+\apidesc{
+This method returns the primary mangled name for the symbol. Refer to Section 4 for more details on a mangled name.
+}
+
+\begin{apient}
+const string& getPrettyName() const
+\end{apient}
+\apidesc{
+This method returns the primary pretty (unmangled) name for the symbol. Refer to Section 4 for more details on a mangled name.
+}
+
+\begin{apient}
+const string& getTypedName() const
+\end{apient}
+\apidesc{
+This method returns the primary typed name for the symbol. Refer to Section 4 for more details on a typed name.
+}
+
+\begin{apient}
+const Module *getModule () const
+\end{apient}
+\apidesc{
+This method returns the module handle to which this symbol belongs. If the symbol does not belong to any module NULL is returned.
+}
+
+\begin{apient}
+SymbolType getType() const
+\end{apient}
+\apidesc{
+This method returns the type of the symbol. 
+}
+
+\begin{apient}
+SymbolLinkage getLinkage() const
+\end{apient}
+\apidesc{
+This method returns the linkage associated with this symbol.
+}
+
+\begin{apient}
+Offset getOffset() const
+\end{apient}
+\apidesc{
+This method returns the offset associated with this symbol.
+}
+
+\begin{apient}
+unsigned getSize() const
+\end{apient}
+\apidesc{
+This method returns the size occupied by a symbol in bytes.
+}
+
+\begin{apient}
+Section *getRegion() const
+\end{apient}
+\apidesc{
+This method returns a handle to the section in which this symbol is present. Returns NULL if the symbol is not associated with a section.
+}
+
+\begin{apient}
+bool isInDynSymtab() const
+\end{apient}
+\apidesc{
+Returns true if the symbol belongs to the dynamic symbol table
+}
+
+\begin{apient}
+bool isInSymtab() const
+\end{apient}
+\apidesc{
+Returns true if the symbol belongs to the regular symbol table.
+}
+
+\begin{apient}
+bool isAbsolute() const 
+\end{apient}
+\apidesc{
+Returns true if the symbol has the absolute flag set.
+}
+
+\begin{apient}
+bool getVersionFileName(std::string &fileName)
+\end{apient}
+\apidesc{
+This method retrieves the file name in which this symbol is present. Returns false if this symbol does not have any version information present otherwise returns true.
+}
+
+\begin{apient}
+bool getVersions(std::vector<std::string> *&vers)
+\end{apient}
+\apidesc{
+This method retrieves all the version names for this symbol. Returns false if the symbol does not have any version information present.
+}
+
+\begin{apient}
+bool getVersionNum(unsigned &verNum)
+\end{apient}
+\apidesc{
+This method retrieves the version number of the symbol. Returns false if the symbol does not have any version information present.
+}
+
+\begin{apient}
+Function *getFunction()
+Variable *getVariable()
+\end{apient}
+\apidesc{
+Return the Function or Variable that contains this symbol if such exists; otherwise return NULL.
+}
+
+\paragraph{Symbol modification}
+
+\begin{apient}
+bool setModule (Module *module)
+\end{apient}
+\apidesc{
+This function changes the module to which the symbol belongs to module. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setSize (unsigned ns)
+\end{apient}
+\apidesc{
+The method changes the size of the symbol to ns. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setOffset(Offset newOffset)
+\end{apient}
+\apidesc{
+This method changes the offset of the symbol to newAddr. Returns true if it succeeds.
+}
+
+\begin{apient}
+bool setType(SymbolType sType)
+\end{apient}
+\apidesc{
+This method sets the type of the symbol to sType. Returns true if it succeeds, else returns false.
+}
+
+\begin{apient}
+bool setVersionFileName(std::string &fileName)
+\end{apient}
+\apidesc{
+This sets the version file name for the symbol. Returns true on success.
+}
+
+\begin{apient}
+bool setVersions(std::vector<std::string> &vers)
+\end{apient}
+\apidesc{
+This sets the version names for this symbols to the names in vers. Returns true on success.
+}
+
+\begin{apient}
+bool setMangledName(string name
+\end{apient}
+\apidesc{
+This method sets the mangled name of the symbol to name.
+}
+
+\begin{apient}
+bool setPrettyName(string name
+\end{apient}
+\apidesc{
+This method sets the mangled name of the symbol to name.
+}
+
+\begin{apient}
+bool setTypedName(string name
+\end{apient}
+\apidesc{
+This method sets the mangled name of the symbol to name.
+}
+
+\paragraph{Deprecated}
+\begin{apient}
+Offset getAddr() const
+\end{apient}
+\apidesc{
+Please use the equivalent getOffset instead.
+}
+
+\begin{apient}
+Region *getSec() const
+\end{apient}
+\apidesc{
+Please use the equivalent getRegion instead.
+}
+
+\begin{apient}
+const string &getName() const
+\end{apient}
+\apidesc{
+Please use the equivalent getMangledName instead.
+}
+
+\begin{apient}
+const string &getModuleName () const
+\end{apient}
+\apidesc{
+Please use getModule instead.
+}
+
+\begin{apient}
+bool setModuleName (string moduleName)
+\end{apient}
+\apidesc{
+Please use setModule instead.
+}
+
+\begin{apient}
+bool setAddr(Offset newAddr)
+\end{apient}
+\apidesc{
+Please use setOffset instead.
+}
+
+\subsubsection{Class Archive}
+This is used only on AIX and ELF platforms. This class represents an archive. This class has information of all the members in the archives.
+
+\begin{apient}
+static bool openArchive(Archive *&img, string name)
+\end{apient}
+\apidesc{
+This factory method creates a new Archive object for an archive file on disk. This object serves as a handle to the parsed archive file. name represents the name of the archive to be parsed. The Archive object is returned in img if the parsing succeeds.
+This method returns false if the given file is not an archive. The error is set
+to Not\_An\_Archive. This returns true if the archive is parsed without an error. printSymtabError() should be called to get more error details.
+}
+
+\begin{apient}
+static bool openArchive(Archive *&img, char *mem_image, size_t size)
+\end{apient}
+\apidesc{
+This factory method creates a new Archive object for an archive file in memory.
+This object serves as a handle to the parsed archive file. mem\_image represents the pointer to the archive to be parsed. size represents the size of the memory image. The Archive object is returned in img if the parsing succeeds.
+This method returns false if the given file is not an archive. The error is set
+to Not\_An\_Archive. This returns true if the archive is parsed without an error. printSymtabError() should be called to get more error details. This method is not supported currently on all ELF platforms.
+}
+
+\begin{apient}
+bool getMember(Symtab *&img, string member_name)
+\end{apient}
+\apidesc{
+This method returns the member object handle if the member exists in the archive. img corresponds to the object handle for the member.
+This method returns false if the member with name member\_name does not exist else returns true.
+}
+
+\begin{apient}
+bool getMemberByOffset(Symtab *&img, Offset memberOffset)
+\end{apient}
+\apidesc{
+This method returns the member object handle if the member exists at the start offset memberOffset in the archive. img corresponds to the object handle for the member.
+This method returns false if the member with name member\_name does not exist else returns true.
+}
+
+\begin{apient}
+bool getAllMembers(vector <Symtab *> &members)
+\end{apient}
+\apidesc{
+This method returns all the member object handles in the archive. Returns true on success with members containing the Symtab Objects for all the members in the archive.
+}
+
+\begin{apient}
+bool isMemberInArchive(string member_name)
+\end{apient}
+\apidesc{
+This method returns true if the member with name member\_name exists in the archive or else returns false.
+}
+
+\begin{apient}
+bool findMemberWithDefinition(Symtab *&obj, string name)
+\end{apient}
+\apidesc{
+This method retrieves the member in an archive which contains the definition to a symbol with mangled name name.
+Returns true with obj containing the Symtab handle to that member or else returns false.
+}
+
+\begin{apient}
+static SymtabError getLastSymtabError()
+\end{apient}
+\apidesc{
+This method returns an error value for the previously performed operation that resulted in a failure. 
+SymtabAPI sets a global error value in case of error during any operation. This call returns the last error that occurred while performing any operation.
+}
+
+\begin{apient}
+static string &printError(SymtabError serr)
+\end{apient}
+\apidesc{
+This method returns a detailed description of the enum value serr in human
+readable format.
+}
+
+\subsubsection{Class ExceptionBlock}
+This class represents an exception block present in the object file. This class gives all the information pertaining to that exception block.
+
+\begin{apient}
+bool hasTry() const
+\end{apient}
+\apidesc{
+This method returns true if the exception block has a try block, else returns false.
+}
+
+\begin{apient}
+Offset tryStart() const
+\end{apient}
+\apidesc{
+This methods returns the start offset of the try block.
+If the exception block does not have a try block it returns 0.
+}
+
+\begin{apient}
+Offset tryEnd() const
+\end{apient}
+\apidesc{
+This method returns the end offset of the try block.
+If the exception block does not have a try block it returns 0.
+}
+
+\begin{apient}
+Offset trySize() const
+\end{apient}
+\apidesc{
+This method returns the size of the try block. This returns 0 in case the exception block does not have a try block.
+}
+
+\begin{apient}
+Offset catchStart() const
+\end{apient}
+\apidesc{
+This method returns the start address of the catch block.
+}
+
+\begin{apient}
+bool contains(Offset addr) const
+\end{apient}
+\apidesc{
+This method returns true if the offset addr is contained with in the try block. If there is no try block associated with this exception block or the offset does not fall within the try block, it returns false.
+}
+
+\subsubsection{Class Region}
+
+This class represents a Region present in the object file. This conatins information of sections and the segments(for ELF only) in case none of the sections fall under it. 
+\begin{apient}
+enum perm_t{
+    RP_R, RP_RW, RP_RX, RP_RWX };
+\end{apient}
+\apidesc{
+This enum represents the permissions of a region. RP\_R indicates that it is
+just readable, RP\_RW indicates that is both read and write, RP\_RX indicates
+that it has both read and execute permissions and finally RP\_RWX indicates that it has all read, write and execute permissions
+}
+
+\begin{apient}
+enum RegionType { 
+    RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB ,
+    RT_BSS, RT_SYMVERSIONS, RT_SYMVERDEF, RT_SYMVERNEEDED, 
+    RT_REL, RT_RELA, RT_PLTREL, RT_PLTRELA, RT_DYNAMIC, RT_HASH, RT_GNU_HASH, RT_OTHER };
+\end{apient}
+\apidesc{
+This enum represents the permissions of a region. RP\_R indicates that it is
+just readable, RP\_RW indicates that is both read and write, RP\_RX indicates
+that it has both read and execute permissions and finally RP\_RWX indicates that it has all read, write and execute permissions
+
+This enum represents the type of the region whether it is text, data, text and data, symbol table, string table, bss, symbol versions, symbol version definitions, symbol version requirements, relocations (2 types), PLT relocations (2 types), hash symbols (2 types), dynamic or other type following the order specified above.
+}
+
+\begin{apient}
+static bool createRegion( Offset diskOff, perm_t perms, region_t regType,
+                            unsigned long diskSize = 0, Offset memOff = 0, 
+                            unsigned long memSize = 0, std::string name = "",
+                            char *rawDataPtr = NULL);
+\end{apient}
+\apidesc{
+This enum represents the permissions of a region. RP\_R indicates that it is
+just readable, RP\_RW indicates that is both read and write, RP\_RX indicates
+that it has both read and execute permissions and finally RP\_RWX indicates that
+it has all read, write and execute permissions.
+
+This factory method creates a new region with disk offset diskOff, permissions perms, region type regType, disk size diskSize, memory offset memOff, memory size memSize, name name and the raw data pointer rawDataPtr.
+}
+
+\begin{apient}
+unsigned getRegionNumber() const;
+\end{apient}
+\apidesc{
+This method returns the region number index for the region.
+}
+
+\begin{apient}
+bool setRegionNumber(unsigned sidnumber);
+\end{apient}
+\apidesc{
+This method is used to set a region number for a section. This is mostly used by the rewritter where regions are to be added.
+}
+
+\begin{apient}
+std::string getRegionName() const;
+\end{apient}
+\apidesc{
+Retrieve the symbolic name of a Region.
+}
+
+\begin{apient}
+Offset getRegionAddr() const;
+\end{apient}
+\apidesc{
+Get the Offset of the Region from the start of the object file. This generally returns the disk offset on all ELF/XCOFF platforms and the memory offset on windows which is the most accurate value.
+}
+
+\begin{apient}
+unsigned long getRegionSize() const
+\end{apient}
+\apidesc{
+Gets the region size of this region. This returns the disk size on all ELF/XCOFF platforms and the memory size on windows which is the most accurate value.
+}
+
+\begin{apient}
+void *getPtrToRawData() const;
+\end{apient}
+\apidesc{
+Retrive the pointer to the raw data of the section
+}
+
+\begin{apient}
+bool setPtrToRawData(void *newPtr, unsigned long rawsize);
+\end{apient}
+\apidesc{
+Set the raw data pointer of the section to newPtr. rawsize represents the size of the raw data buffer. 
+Returns true if success or false when unable to set/change the raw data of the section. Implicitly changes the size of the section.
+}
+
+\begin{apient}
+Offset getDiskOffset() const
+\end{apient}
+\apidesc{
+Returns the disk offset for this region. 
+}
+
+\begin{apient}
+unsigned long getDiskSize() const
+\end{apient}
+\apidesc{
+Returns the disk size for this region.
+}
+
+\begin{apient}
+Offset getMemOffset() const
+\end{apient}
+\apidesc{
+Returns the memoryoffset for this region.
+}
+
+\begin{apient}
+unsigned long getMemSize() const
+\end{apient}
+\apidesc{
+Returns the memory size for this region.
+}
+
+\begin{apient}
+bool isBSS() const;
+bool isText() const;
+bool isData() const;
+\end{apient}
+\apidesc{
+Methods to query the type of the Region.
+}
+
+\begin{apient}
+perm_t getRegionPermissions() const
+\end{apient}
+\apidesc{
+This returns the permissions for this region.
+}
+
+\begin{apient}
+bool setRegionPermissions(perm_t newPerms)
+\end{apient}
+\apidesc{
+This sets the regions permissions to newPerms. Returns true on success.
+}
+
+\begin{apient}
+RegionType getRegionType() const
+\end{apient}
+\apidesc{
+This returns the region type for this region.
+}
+
+\begin{apient}
+bool isOffsetInRegion(const Offset &offset) const;
+\end{apient}
+\apidesc{
+Return true if the offset falls within the region data or else returns false.
+}
+
+\begin{apient}
+bool isLoadable() const;
+\end{apient}
+\apidesc{
+Return true if the section is loaded into memory at execution time.
+}
+
+\begin{apient}
+bool setLoadable() const;
+\end{apient}
+\apidesc{
+This method sets the region to be loadable into memory at load time. Returns true on success.
+}
+
+\begin{apient}
+bool isDirty() const;
+\end{apient}
+\apidesc{
+Return true if the raw data of the section has been changed.
+}
+
+\begin{apient}
+std::vector<relocationEntry> &getRelocations();
+\end{apient}
+\apidesc{
+Get relocations pertaining this the section. Returns an empty vector if there are no relocations for this section
+}
+
+\begin{apient}
+bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, 
+                        unsigned long relType);
+\end{apient}
+\apidesc{
+Add a relocation entry for this section. dynref represents the dynamic symbol with respect to which the relocation should be made. relType is one of the numerous relocation types which specifies type of relocation to be applied.
+}
+
+\begin{apient}
+bool patchData(Offset off, void *buf, unsigned size);
+\end{apient}
+\apidesc{
+Patch the raw data for this section. buf reprsents the buffer to be patched with at offset off and size size.
+}
+
