@@ -28,7 +28,7 @@ typeStruct *stType = structType->isStructType();
 \end{lstlisting}
 
 \begin{apient}
-const string &getName()
+string &getName()
 \end{apient}
 \apidesc{
 This method returns the name associated with this type.
@@ -60,11 +60,11 @@ typedef enum{
     dataUnknownType,
     dataNullType,
     dataTypeClass
-} DataClass;
+} dataClass;
 \end{apient}
 
 \begin{apient}
-DataClass getType()
+dataClass getType()
 \end{apient}
 \apidesc{
 This method returns the data class associated with the type. 
@@ -169,8 +169,7 @@ This class represents an enumeration type containing a list of constants with va
 \begin{apient}
 static typeEnum *create(string &name, vector<pair<string, int> *> &consts, 
                         Symtab *obj = NULL) 
-static typeEnum *create(string &name, vector<string> &constNames
-                        Symtab *obj = NULL)
+static typeEnum *create(string &name, vector<string> &constNames, Symtab *obj)
 \end{apient}
 \apidesc{
 These factory methods create a new enumerated type. There are two variations to this function. consts supplies the names and Ids of the constants of the enum. The first variant is used when user-defined identifiers are required; the second variant is used when system-defined identifiers will be used. 
@@ -186,14 +185,14 @@ Returns true on success and false on failure.
 }
 
 \begin{apient}
-vector< pair<string, int> *> *getConstants();
+std::vector<std::pair<std::string, int> > &getConstants();
 \end{apient}
 \apidesc{
 This method returns the vector containing the enum constants represented by a (name, value) pair of the constant.
 }
 
 \begin{apient}
-bool setName(string &name)
+bool setName(const char* name)
 \end{apient}
 \apidesc{
 This method sets the new name of the enum type to name. 
@@ -360,33 +359,32 @@ This gives information about the name, type and visibility of each of the fields
 }
 
 \begin{apient}
-bool addField(string &fieldname, Type *type,
-            visibility_t vis = VisUnknown)
+void addField(std::string fieldname, Type *type, int offsetVal = -1, 
+              visibility_t vis = visUnknown)
 \end{apient}
 \apidesc{
-This method adds a new field at the end to the container type with field name fieldname, type type and type visibility vis. Returns true on success and false on failure.
+This method adds a new field at the end to the container type with field name fieldname, type type and type visibility vis.
 }
 
 \begin{apient}
-bool addField(string &fieldname, Type *type,int num
-            visibility_t vis = VisUnknown)
+void addField(unsigned num, std::string fieldname, Type *type, int offsetVal = -1, 
+              visibility_t vis = visUnknown)         
 \end{apient}
 \apidesc{
-This method adds a field after the field with number num with field name fieldname, type type and type visibility vis. Returns true on success and false on failure.
+This method adds a field after the field with number num with field name fieldname, type type and type visibility vis.
 }
 
 \begin{apient}
-bool addField(Field *fld)
+void addField(Field *fld)
 \end{apient}
 \apidesc{
-This method adds a new field fld to the container type.Returns true on success and false on failure. 
-}
+This method adds a new field fld to the container type.}
 
 \begin{apient}
-bool addField(Field *fld, int num)
+void addField(unsigned num, Field *fld)
 \end{apient}
 \apidesc{
-This method adds a field fld after field num to the container type. Returns true on success and false on failure.
+This method adds a field fld after field num to the container type.
 }
 
 \paragraph{Class typeStruct : public fieldListType}
@@ -399,7 +397,7 @@ applicable.
 
 
 \begin{apient}
-static typeStruct *create(string &name, vector<pair<string, Type *>> &flds,
+static typeStruct *create(string &name, vector<pair<string, Type *>*> &flds,
                         Symtab *obj = NULL)
 \end{apient}
 \apidesc{
@@ -430,7 +428,7 @@ This class represents a union type, a special case of the container type. The fi
 
 
 \begin{apient}
-static typeUnion *create(string &name, vector<pair<string, Type *>> &flds,
+static typeUnion *create(string &name, vector<pair<string, Type *>*> &flds,
                          Symtab *obj = NULL)
 \end{apient}
 \apidesc{
@@ -474,7 +472,7 @@ The methods of the CBlock can be used to access information about the members of
 This class represents a common block in Fortran. Multiple functions can share a common block.
 
 \begin{apient}
-bool getComponents(vector<Field *> &vars)
+bool getComponents(vector<Field *> *vars)
 \end{apient}
 \apidesc{
 This method returns the vector containing the individual variables of the common block. 
@@ -482,7 +480,7 @@ Returns true if there is at least one variable, else returns false.
 }
 
 \begin{apient}
-bool getFunctions(vector<Symbol *> &funcs)
+bool getFunctions(vector<Symbol *> *funcs)
 \end{apient}
 \apidesc{
 This method returns the functions that can see this common block with the set of variables described in getComponents method above.
@@ -560,12 +558,10 @@ This class represents a reference type, a special case of the derived type. The 
 
 
 \begin{apient}
-static typeRef *create(string &name, Type *ptr, int size,
-                        Symtab * obj = NULL)
+static typeRef *create(string &name, Type *ptr, Symtab * obj = NULL)
 \end{apient}
 \apidesc{
-This factory method creates a new type, named name, which is a reference to objects of type ptr. The size parameter is used to specify the size in bytes of each instance of the type. 
-The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
+This factory method creates a new type, named name, which is a reference to objects of type ptr. The newly created type is added to the Symtab object obj. If obj is NULL the type is not added to any object file, but it will be available for further queries.
 }
 
 \begin{apient}

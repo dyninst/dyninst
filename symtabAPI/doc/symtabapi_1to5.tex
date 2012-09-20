@@ -21,7 +21,7 @@ that represents information that may be present in the object (e.g., relocation
 or exception information). Adding a new format requires no changes to the
 interface and hence will not affect any of the tools that use the SymtabAPI. 
 
-Our other design goal with SymtabAPI is to allow user and tool developers to
+Our other design goal with SymtabAPI is to allow users and tool developers to
 easily extend or add symbol or debug information to the library through a
 platform-independent interface. Often times it is impossible to satify all the
 requirements of a tool that uses SymtabAPI, as those requirements can vary from
@@ -135,7 +135,7 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 //Name the object file to be parsed:
-std::string file = libfoo.so;
+std::string file = "libfoo.so";
 
 //Declare a pointer to an object of type Symtab; this represents the file.
 Symtab *obj = NULL;
@@ -152,13 +152,13 @@ using namespace SymtabAPI;
 std::vector <Symbol *> syms;
 std::vector <Function *> funcs;
 
-// search for a function with demangled (pretty) name bar.
-if (obj->findFunctionsByName(funcs, bar)) {
+// search for a function with demangled (pretty) name "bar".
+if (obj->findFunctionsByName(funcs, "bar")) {
        // Add a new (mangled) name to the first function
-       funcs[0]->addMangledName(newname);
+       funcs[0]->addMangledName("newname");
 }
 
-// search for symbol of any type with demangled (pretty) name bar.
+// search for symbol of any type with demangled (pretty) name "bar".
 if (obj->findSymbolByType(syms, "bar", Symbol::ST_UNKNOWN)) {
 
 // change the type of the found symbol to type variable(ST_OBJECT)
@@ -179,11 +179,11 @@ using namespace SymtabAPI;
 Module *mod;
 
 //obj represents a handle to a parsed object file.
-//Lookup module handle for DEFAULT_MODULE 
-obj->findModule(mod, DEFAULT_MODULE);
+//Lookup module handle for "DEFAULT_MODULE" 
+obj->findModule(mod, "DEFAULT_MODULE");
 
 // Create a new function symbol
-Variable *newVar = mod->createVariable(newIntVar,  // Name of new variable
+Variable *newVar = mod->createVariable("newIntVar",  // Name of new variable
                                        0x12345,      // Offset from data section
                                        sizeof(int)); // Size of symbol 
 \end{lstlisting}
@@ -203,7 +203,7 @@ using namespace SymtabAPI;
 // obj represents a handle to a parsed object file using SymtabAPI
 // Find a handle to the integer type
 Type *lookupType;
-obj->findType(int, lookupType);
+obj->findType("int", lookupType);
 
 // Convert the generic type object to the specific scalar type object
 typeScalar *intType = lookupType->getScalarType()
@@ -212,14 +212,14 @@ typeScalar *intType = lookupType->getScalarType()
 vector<pair<string, Type *> >fields;
 
 //create a new array type(int type2[10])
-typeArray *intArray = typeArray::create(obj,intArray,intType,0,9);
+typeArray *intArray = typeArray::create(obj,"intArray",intType,0,9);
 
 //types of the structure fields
-fields.push_back(pair<string, Type *>(field1, intType));
-fields.push_back(pair<string, Type *>(field2, intArray));
+fields.push_back(pair<string, Type *>("field1", intType));
+fields.push_back(pair<string, Type *>("field2", intArray));
 
 //create the structure type
-typeStruct *struct1 = typeStruct::create(obj, struct1, fields, obj);
+typeStruct *struct1 = typeStruct::create(obj, "struct1", fields, obj);
 \end{lstlisting}
 
 Users can also query line number information present in an object file. The following example shows how to use SymtabAPI to get the address range for a line number within a source file.
@@ -245,17 +245,17 @@ using namespace SymtabAPI;
 // Obj represents a handle to a parsed object file using symtabAPI
 // Get the Symbol object representing function bar
 vector<Symbol *> syms;
-obj->findSymbolByType(syms, bar, Symbol::ST_FUNCTION);
+obj->findSymbolByType(syms, "bar", Symbol::ST_FUNCTION);
 
 // Find the local var foo within function bar
-vector<localVar *> *vars = syms[0]->findLocalVarible(foo);
+vector<localVar *> *vars = syms[0]->findLocalVarible("foo");
 \end{lstlisting}
 
 Parsing an XCOFF object file is different than the rest of the file formats as the XCOFF format also allows archives to contain dynamic libraries. The following examples shows how to open an XCOFF archive using SymtabAPI on AIX.
 
 \begin{lstlisting}
 //Name the object file to be parsed
-std::string file = libfoo.a
+std::string file = "libfoo.a"
 
 // Declare a pointer to an object of type Archive. This represents the archive.
 Archive *archive = NULL;
@@ -267,8 +267,8 @@ Symtab *obj = NULL;
 Archive::openArchive(file, archive);
 
 // Get the Symtab object for the desired object
-archive->getMember(bar.o, obj);
-// Obj now contains a handle to the desired binary object bar.o
+archive->getMember("bar.o", obj);
+// Obj now contains a handle to the desired binary object "bar.o"
 \end{lstlisting}
 
 The rest of this document describes the class hierarchy and the API in detail.
@@ -282,7 +282,7 @@ The following definitions and basic types are referenced throughout the rest of 
 \begin{description}
 \item[Offset] - Offsets represent an address relative to the start address(base) of the object file. For executables, the Offset represents an absolute address.
 The following definitions deal with the symbol table interface.
-\item[Object File] - An object file is the representation of code that a compiler or assembler generates by processing a source code file. It represents .os, a.outs and shared libraries.
+\item[Object File] - An object file is the representation of code that a compiler or assembler generates by processing a source code file. It represents .o's, a.out's and shared libraries.
 \item[Region] - A region represents a contiguous area of the file that contains executable code or readable data.
 \item[Symbol] - A symbol represents an entry in the symbol table, and may identify a function, variable or other structure within the file.
 \item[Function] - A function represents a code object within the file represented by one or more symbols.

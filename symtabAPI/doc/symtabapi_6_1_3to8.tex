@@ -68,7 +68,7 @@ The method changes the offset of the function to offset. Returns true if it succ
 }
 
 \begin{apient}
-bool addMangledName(string name, bool isPrimary = false)
+bool addMangledName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a mangled name name to the function. If isPrimary is true then it becomes the default name for the function.
@@ -76,7 +76,7 @@ This method returns true on success and false on failure.
 }
 
 \begin{apient}
-bool addPrettyName(string name, bool isPrimary = false)
+bool addPrettyName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a pretty name name to the function. If isPrimary is true then it becomes the default name for the function. 
@@ -84,7 +84,7 @@ This method returns true on success and false on failure.
 }
 
 \begin{apient}
-bool addTypedName(string name, bool isPrimary = false)
+bool addTypedName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a typed name name to the function. If isPrimary is true then it becomes the default name for the function. 
@@ -200,7 +200,7 @@ The method changes the offset of the function to offset. Returns true if it succ
 }
 
 \begin{apient}
-bool addMangledName(string name, bool isPrimary = false)
+bool addMangledName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a mangled name name to the function. If isPrimary is true then it becomes the default name for the function.
@@ -208,7 +208,7 @@ This method returns true on success and false on failure.
 }
 
 \begin{apient}
-bool addPrettyName(string name, bool isPrimary = false)
+bool addPrettyName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a pretty name name to the function. If isPrimary is true then it becomes the default name for the function. 
@@ -216,7 +216,7 @@ This method returns true on success and false on failure.
 }
 
 \begin{apient}
-bool addTypedName(string name, bool isPrimary = false)
+bool addTypedName(string name, bool isPrimary)
 \end{apient}
 \apidesc{
 This method adds a typed name name to the function. If isPrimary is true then it becomes the default name for the function. 
@@ -282,11 +282,19 @@ typedef enum {
 \paragraph{Symbol information}
 
 \begin{apient}
-Symbol (const string name, SymbolType stype,
-        SymbolLinkage slinkage, SymbolVisibility visibility,
-        Offset addr, Module *mod = NULL, Region *reg = NULL,
-        unsigned size = 0, bool isDynamic = false,
-        bool isAbsolute = true)
+SYMTAB_EXPORT Symbol (const std::string& name,
+                      SymbolType t,
+                      SymbolLinkage l,
+                      SymbolVisibility v,
+                      Offset o,
+                      Module *module = NULL, 
+                      Region *r = NULL, 
+                      unsigned s = 0,
+                      bool d = false,
+                      bool a = false,
+                      int index= -1,
+                      int strindex = -1,
+                      bool cs = false)
 \end{apient}
 \apidesc{
 This represents the type for a symbol. ST\_UNKNOWN represents an unknown type,
@@ -328,7 +336,7 @@ This method returns the primary typed name for the symbol. Refer to Section 4 fo
 }
 
 \begin{apient}
-const Module *getModule () const
+Module *getModule () const
 \end{apient}
 \apidesc{
 This method returns the module handle to which this symbol belongs. If the symbol does not belong to any module NULL is returned.
@@ -363,7 +371,7 @@ This method returns the size occupied by a symbol in bytes.
 }
 
 \begin{apient}
-Section *getRegion() const
+Region *getRegion() const
 \end{apient}
 \apidesc{
 This method returns a handle to the section in which this symbol is present. Returns NULL if the symbol is not associated with a section.
@@ -464,7 +472,7 @@ This sets the version names for this symbols to the names in vers. Returns true 
 }
 
 \begin{apient}
-bool setMangledName(string name
+bool setMangledName(string name)
 \end{apient}
 \apidesc{
 This method sets the mangled name of the symbol to name.
@@ -588,7 +596,7 @@ Returns true with obj containing the Symtab handle to that member or else return
 }
 
 \begin{apient}
-static SymtabError getLastSymtabError()
+static SymtabError getLastError()
 \end{apient}
 \apidesc{
 This method returns an error value for the previously performed operation that resulted in a failure. 
@@ -596,7 +604,7 @@ SymtabAPI sets a global error value in case of error during any operation. This 
 }
 
 \begin{apient}
-static string &printError(SymtabError serr)
+static string printError(SymtabError serr)
 \end{apient}
 \apidesc{
 This method returns a detailed description of the enum value serr in human
@@ -665,9 +673,9 @@ that it has both read and execute permissions and finally RP\_RWX indicates that
 
 \begin{apient}
 enum RegionType { 
-    RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB ,
-    RT_BSS, RT_SYMVERSIONS, RT_SYMVERDEF, RT_SYMVERNEEDED, 
-    RT_REL, RT_RELA, RT_PLTREL, RT_PLTRELA, RT_DYNAMIC, RT_HASH, RT_GNU_HASH, RT_OTHER };
+    RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB , RT_BSS, RT_SYMVERSIONS, 
+    RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_RELA, RT_PLTREL, RT_PLTRELA, 
+    RT_DYNAMIC, RT_HASH, RT_GNU_HASH, RT_OTHER, RT_INVALID = -1};
 \end{apient}
 \apidesc{
 This enum represents the permissions of a region. RP\_R indicates that it is
@@ -678,10 +686,10 @@ This enum represents the type of the region whether it is text, data, text and d
 }
 
 \begin{apient}
-static bool createRegion( Offset diskOff, perm_t perms, region_t regType,
-                            unsigned long diskSize = 0, Offset memOff = 0, 
-                            unsigned long memSize = 0, std::string name = "",
-                            char *rawDataPtr = NULL);
+static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
+                            unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
+                            std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false,
+                            bool isTLS = false, unsigned long memAlign = sizeof(unsigned))
 \end{apient}
 \apidesc{
 This enum represents the permissions of a region. RP\_R indicates that it is
@@ -693,28 +701,28 @@ This factory method creates a new region with disk offset diskOff, permissions p
 }
 
 \begin{apient}
-unsigned getRegionNumber() const;
+unsigned getRegionNumber() const
 \end{apient}
 \apidesc{
 This method returns the region number index for the region.
 }
 
 \begin{apient}
-bool setRegionNumber(unsigned sidnumber);
+bool setRegionNumber(unsigned sidnumber)
 \end{apient}
 \apidesc{
 This method is used to set a region number for a section. This is mostly used by the rewritter where regions are to be added.
 }
 
 \begin{apient}
-std::string getRegionName() const;
+std::string getRegionName() const
 \end{apient}
 \apidesc{
 Retrieve the symbolic name of a Region.
 }
 
 \begin{apient}
-Offset getRegionAddr() const;
+Offset getRegionAddr() const
 \end{apient}
 \apidesc{
 Get the Offset of the Region from the start of the object file. This generally returns the disk offset on all ELF/XCOFF platforms and the memory offset on windows which is the most accurate value.
@@ -728,14 +736,14 @@ Gets the region size of this region. This returns the disk size on all ELF/XCOFF
 }
 
 \begin{apient}
-void *getPtrToRawData() const;
+void *getPtrToRawData() const
 \end{apient}
 \apidesc{
 Retrive the pointer to the raw data of the section
 }
 
 \begin{apient}
-bool setPtrToRawData(void *newPtr, unsigned long rawsize);
+bool setPtrToRawData(void *newPtr, unsigned long rawsize)
 \end{apient}
 \apidesc{
 Set the raw data pointer of the section to newPtr. rawsize represents the size of the raw data buffer. 
@@ -771,9 +779,9 @@ Returns the memory size for this region.
 }
 
 \begin{apient}
-bool isBSS() const;
-bool isText() const;
-bool isData() const;
+bool isBSS() const
+bool isText() const
+bool isData() const
 \end{apient}
 \apidesc{
 Methods to query the type of the Region.
@@ -801,47 +809,52 @@ This returns the region type for this region.
 }
 
 \begin{apient}
-bool isOffsetInRegion(const Offset &offset) const;
+bool isOffsetInRegion(const Offset &offset) const
 \end{apient}
 \apidesc{
 Return true if the offset falls within the region data or else returns false.
 }
 
 \begin{apient}
-bool isLoadable() const;
+bool isLoadable() const
 \end{apient}
 \apidesc{
 Return true if the section is loaded into memory at execution time.
 }
 
 \begin{apient}
-bool setLoadable() const;
+bool setLoadable(bool isLoadable)
 \end{apient}
 \apidesc{
 This method sets the region to be loadable into memory at load time. Returns true on success.
 }
 
 \begin{apient}
-bool isDirty() const;
+bool isDirty() const
 \end{apient}
 \apidesc{
 Return true if the raw data of the section has been changed.
 }
 
 \begin{apient}
-std::vector<relocationEntry> &getRelocations();
+std::vector<relocationEntry> &getRelocations()
 \end{apient}
 \apidesc{
 Get relocations pertaining this the section. Returns an empty vector if there are no relocations for this section
 }
 
 \begin{apient}
-bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, 
-                        unsigned long relType);
+bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, 
+                        Region::RegionType rtype = Region::RT_REL)
 \end{apient}
 \apidesc{
 Add a relocation entry for this section. dynref represents the dynamic symbol with respect to which the relocation should be made. relType is one of the numerous relocation types which specifies type of relocation to be applied.
 }
+
+\begin{apient}
+bool addRelocationEntry(const relocationEntry& rel)
+\end{apient}
+\apidesc{Add the given relocation entry for this section}
 
 \begin{apient}
 bool patchData(Offset off, void *buf, unsigned size);
