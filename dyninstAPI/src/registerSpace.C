@@ -726,7 +726,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // about the source register.
     // cap_emitter
 
+    
     registerSlot *src = registers_[source];
+    // If we didn't find src we just corrupted registers_; assert fail.
+    // AND FIX THE STRUCTURE. 
     assert(src);
     registerSlot *dest = registers_[destination];
     assert(dest);

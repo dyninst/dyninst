@@ -183,6 +183,17 @@ void registerSpace::initialize32() {
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
+
+    // Everyone else
+    for (unsigned i = r13; i <= r31; ++i) {
+      char name[32];
+      sprintf(name, "r%2d", i-r0);
+      registers.push_back(new registerSlot(i, name,
+					   false, 
+					   registerSlot::liveAlways,
+					   registerSlot::GPR));
+    }
+
     /// Aaaand the off-limits ones.
 
     registers.push_back(new registerSlot(r0,
@@ -309,6 +320,19 @@ void registerSpace::initialize64() {
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
+
+
+    // Everyone else
+    for (unsigned i = r13; i <= r31; ++i) {
+      char name[32];
+      sprintf(name, "r%2d", i-r0);
+      registers.push_back(new registerSlot(i, name,
+					   false, 
+					   registerSlot::liveAlways,
+					   registerSlot::GPR));
+    }
+
+
     /// Aaaand the off-limits ones.
 
     registers.push_back(new registerSlot(r0,
@@ -1889,31 +1913,34 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
   emitASload(as, dest, 0, gen, noCost);
 }
 
-void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
+void emitVload(opCode op, Address src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, AddressSpace *proc)
 {
-    if (op == loadConstOp) {
-        insnCodeGen::loadImmIntoReg(gen, dest, (long)src1);
-
-    } else if (op == loadOp) {
-        insnCodeGen::loadPartialImmIntoReg(gen, dest, (long)src1);
-
-	// really load dest, (dest)imm
-        if (size == 1)
-            insnCodeGen::generateImm(gen, LBZop, dest, dest, LOW(src1));
-        else if (size == 2)
-            insnCodeGen::generateImm(gen, LHZop, dest, dest, LOW(src1));
-        else if ((size == 4) ||
-		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
-            insnCodeGen::generateImm(gen, Lop,   dest, dest, LOW(src1));
-        else if (size == 8)
-            insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
-                                             dest, dest, (int16_t)LOW(src1));
-        else assert(0 && "Incompatible loadOp size");
-
-    } else if (op == loadFrameRelativeOp) {
+  switch(op) {
+  case loadConstOp:
+    insnCodeGen::loadImmIntoReg(gen, dest, (long)src1);
+    break;
+  case loadOp:
+    insnCodeGen::loadPartialImmIntoReg(gen, dest, (long)src1);
+    
+    // really load dest, (dest)imm
+    if (size == 1) {
+      insnCodeGen::generateImm(gen, LBZop, dest, dest, LOW(src1));
+    }
+    else if (size == 2) {
+      insnCodeGen::generateImm(gen, LHZop, dest, dest, LOW(src1));
+    }
+    else if ((size == 4) ||
+	     (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+      insnCodeGen::generateImm(gen, Lop,   dest, dest, LOW(src1));
+    else if (size == 8)
+      insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+				       dest, dest, (int16_t)LOW(src1));
+    else assert(0 && "Incompatible loadOp size");
+    break;
+  case loadFrameRelativeOp: {
 	long offset = (long)src1;
 	if (gen.addrSpace()->getAddressWidth() == 4)
 	    offset += TRAMP_FRAME_SIZE_32;
@@ -1932,19 +1959,44 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 	    insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
 					     dest, REG_SP, offset);
 	else assert(0 && "Incompatible loadFrameRelativeOp size");
+  }
+    break;
+  case loadFrameAddr: {
+    // offsets are signed!
+    long offset = (long)src1;
+    offset += (gen.addrSpace()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
+	       : TRAMP_FRAME_SIZE_64);
+    
+    if (offset < MIN_IMM16 || MAX_IMM16 < offset) assert(0);
+    insnCodeGen::generateImm(gen, CALop, dest, REG_SP, offset);
+  }
+    break;
+  case loadRegRelativeAddr:
+    // (readReg(src2) + src1)
+    gen.rs()->readProgramRegister(gen, src2, dest, size);
+    emitImm(plusOp, dest, src1, dest, gen, false);
+    break;
+  case loadRegRelativeOp:
+    // *(readReg(src2) + src1)
+    gen.rs()->readProgramRegister(gen, src2, dest, size);
 
-    } else if (op == loadFrameAddr) {
-	// offsets are signed!
-        long offset = (long)src1;
-        offset += (gen.addrSpace()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
-                                                      : TRAMP_FRAME_SIZE_64);
+    if (size == 1)
+      insnCodeGen::generateImm(gen, LBZop, dest, dest, src1);
+    else if (size == 2)
+      insnCodeGen::generateImm(gen, LHZop, dest, dest, src1);
+    else if ((size == 4) ||
+	     (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+      insnCodeGen::generateImm(gen, Lop,   dest, dest, src1);
+    else if (size == 8)
+      insnCodeGen::generateMemAccess64(gen, LDop, LDxop,
+				       dest, dest, src1);
+    break;
+  default:
 
-        if (offset < MIN_IMM16 || MAX_IMM16 < offset) assert(0);
-        insnCodeGen::generateImm(gen, CALop, dest, REG_SP, offset);
 
-    } else {
-        assert(0);
-    }
+    cerr << "Unknown op " << op << endl;
+    assert(0);
+  }
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,

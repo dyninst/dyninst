@@ -502,8 +502,12 @@ StackAnalysis::Height StackAnalysis::find(Block *b, Address addr, MachRegister r
   StateIntervals &sintervals = (*intervals_)[b];
   //Find the last instruction that is <= addr
   StateIntervals::iterator i = sintervals.lower_bound(addr);
-  if (i == sintervals.end() || i->first != addr)
-     i--;
+  if ((i == sintervals.end() && !sintervals.empty()) || 
+      (i->first != addr && i != sintervals.begin())) {
+      i--;
+  }
+  if (i == sintervals.end()) return Height::bottom;
+
   ret = i->second[reg];
 
   if (ret.isTop()) {
