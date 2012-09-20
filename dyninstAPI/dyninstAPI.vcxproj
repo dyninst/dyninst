@@ -705,6 +705,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
       <Project>{6deca5e0-df7a-4017-82f3-e7d105ddf0e4}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\proccontrol\proccontrol.vcxproj">
+      <Project>{e2356da6-9c35-45f6-b9d2-21c1cad3a6ef}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\stackwalk\stackwalk.vcxproj">
       <Project>{bf4f4a40-e4c7-4f0e-a667-0ba93b05d42a}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

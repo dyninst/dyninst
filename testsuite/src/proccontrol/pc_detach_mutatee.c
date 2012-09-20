@@ -42,12 +42,6 @@ static void signal_handler(int sig)
 {
    num_signals++;
 }
-#else
-static void signal_handler(int sig)
-{
-	WaitForSingleObject(am_signaled, 30000);
-   num_signals++;
-}
 
 #endif
 
@@ -93,6 +87,13 @@ static void self_signal()
 #elif defined(os_windows_test)
 
 static HANDLE am_signaled;
+
+static void signal_handler(int sig)
+{
+WaitForSingleObject(am_signaled, 30000);
+   num_signals++;
+}
+
 
 static void self_signal()
 {

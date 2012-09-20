@@ -32,7 +32,7 @@
 #include "dyninstAPI/src/addressSpace.h"
 #include "memEmulator.h"
 #include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Region.h"
 #include "dyninstAPI/src/dynProcess.h"
