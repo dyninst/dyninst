@@ -32,7 +32,7 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "symtab.h"
+#include "image.h"
 #include "parse-cfg.h"
 #include "instPoint.h"
 #include "Parsing.h"

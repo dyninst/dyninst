@@ -45,6 +45,9 @@
     <ClCompile Include="src\process.C">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\processplat.C">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\procpool.C">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -107,6 +110,9 @@
     <ClInclude Include="h\PCErrors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="h\PCProcess.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="h\ProcessSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -126,9 +132,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\x86_process.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="h\PCProcess.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

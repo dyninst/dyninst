@@ -41,7 +41,7 @@
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/EventHandler.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 
 #include "dyninstAPI/src/ast.h"
 

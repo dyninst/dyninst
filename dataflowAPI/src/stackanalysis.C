@@ -178,6 +178,11 @@ struct intra_nosink : public ParseAPI::EdgePredicate
   
 };
 
+void add_target(std::queue<Block*>& worklist, Edge* e)
+{
+	worklist.push(e->trg());
+}
+
 void StackAnalysis::fixpoint() {
   std::queue<Block *> worklist;
   
@@ -237,12 +242,11 @@ void StackAnalysis::fixpoint() {
     const Block::edgelist & outEdges = block->targets();
     std::for_each(boost::make_filter_iterator(epred2, outEdges.begin(), outEdges.end()),
 		  boost::make_filter_iterator(epred2, outEdges.end(), outEdges.end()),
-		  boost::bind(&std::queue<Block *>::push,
-			      boost::ref(worklist),
-			      boost::bind(&Edge::trg, _1)));
-    
+		  boost::bind(add_target, boost::ref(worklist), _1));    
   }
 }
+
+
 
 void StackAnalysis::summarize() {
 	// Now that we know the actual inputs to each block,
@@ -903,6 +907,12 @@ void StackAnalysis::createEntryInput(RegisterState &input) {
 #endif
 }
 
+StackAnalysis::RegisterState StackAnalysis::getSrcOutputRegs(Edge* e)
+{
+	Block* b = e->src();
+	return blockOutputs[b];
+}
+
 void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
    input.clear();
 
@@ -914,11 +924,9 @@ void StackAnalysis::meetInputs(Block *block, RegisterState &input) {
    std::for_each(boost::make_filter_iterator(epred2, inEdges.begin(), inEdges.end()),
 		 boost::make_filter_iterator(epred2, inEdges.end(), inEdges.end()),
 		 boost::bind(&StackAnalysis::meet,
-			     boost::ref(this),
-			     boost::bind(&BlockState::operator[],
-					 boost::ref(blockOutputs),
-					 boost::bind(&Edge::src, _1)),
-			     boost::ref(input)));
+					 this,
+					 boost::bind(&StackAnalysis::getSrcOutputRegs, this, _1),
+					 boost::ref(input)));
    
 
 }

@@ -55,7 +55,7 @@ public:
 	virtual bool attach();
 
 	virtual bool plat_getThreadArea(int val, Dyninst::Address &addr);
-	virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gprs_only = false)
+	virtual bool plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *regs, bool gprs_only = false);
 	virtual bool plat_needsEmulatedSingleStep(std::vector<Dyninst::Address> &result);
 	virtual bool plat_needsPCSaveBeforeSingleStep();
 

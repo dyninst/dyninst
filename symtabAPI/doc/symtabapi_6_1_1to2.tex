@@ -23,24 +23,23 @@ The Symtab class represents an object file either on-disk or in-memory. This cla
 
 \begin{apient}
 static bool openFile(Symtab *&obj, string filename,
-                    def_t defensive_binary = NotDefensive)
+                     def_t defensive_binary = NotDefensive)
 \end{apient}
 \apidesc{
     Creates a new Symtab object for an object file on disk. This object serves as a handle to the parsed object file. filename represents the name of the Object file to be parsed. The Symtab object is returned in obj if the parsing succeeds.
-Returns true if the file is parsed without an error, else returns false. The
-error is set to Object\_Parsing. printSymtabError() should be called to get more error details.
+Returns true if the file is parsed without an error, else returns false. getLastSymtabError() and printError() should be called to get more error details.
 }
 
 \begin{apient}
 static bool openFile(Symtab *&obj, char *mem_image, size_t size,
-                    std::string name,
-                    def_t defensive_binary = NotDefensive)
+                     std::string name,
+                     def_t defensive_binary = NotDefensive)
 \end{apient}
 \apidesc{
     This factory method creates a new Symtab object for an object file in
     memory. This object serves as a handle to the parsed object file. mem\_image represents the pointer to the Object file in memory to be parsed. size indicates the size of the image. name specifies the name we will give to the parsed object. The Symtab object is returned in obj if the parsing succeeds.
 Returns true if the file is parsed without an error, else returns
-false. The error is set to Object\_Parsing. printSymtabError() should
+false. getLastSymtabError() and printError() should
 be called to get more error details.
 }
 
@@ -132,9 +131,10 @@ No\_Such\_Function.
 }
 
 \begin{apient}
-bool findFunctionsByName(vector<Function> &ret, const string name,
-                        Symtab::NameType nameType = anyName,
-                        bool isRegex = false, bool checkCase = false)
+bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+                         NameType nameType = anyName, 
+                         bool isRegex = false,
+                         bool checkCase = true)
 \end{apient}
 \apidesc{
 This method finds and returns a vector of Functions whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Functions, if any.
@@ -168,9 +168,10 @@ false if there is no matching variable. The error value is set to No\_Such\_Vari
 }
 
 \begin{apient}
-bool findVariablesByName(vector<Function> &ret, const string name,
-                        Symtab::NameType nameType,
-                        bool isRegex = false, bool checkCase = false)
+bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+                         NameType nameType = anyName, 
+                         bool isRegex = false, 
+                         bool checkCase = true)
 \end{apient}
 \apidesc{
 This method finds and returns a vector of Variables whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any (note: a Variable may not have a typed name). If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Variables, if any.
@@ -188,8 +189,8 @@ and false if there are no modules. The error value is set to No\_Such\_Variable.
 
 \begin{apient}
 bool findSymbolByType(vector <Symbol *> &ret, const string name,
-                    Symbol::SymbolType sType, NameType nameType = anyName,
-                    bool isRegex = false, bool checkCase = false)
+                      Symbol::SymbolType sType, NameType nameType = anyName,
+                      bool isRegex = false, bool checkCase = false)
 \end{apient}
 \apidesc{
 This method finds and returns a vector of symbols with type sType whose names match the given name. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matched symbols if any.
@@ -199,7 +200,7 @@ No\_Such\_Module/ No\_Such\_Symbol based on the type.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(vector<Symbol *> &ret)
+bool getAllSymbols(vector<Symbol *> &ret)
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -228,14 +229,14 @@ error set to No\_Such\_Symbol.}
 \paragraph{Function, Variable, and Symbol insertion and modification}
 
 \begin{apient}
-Function *createFunction(string name, Offset offset, unsigned size, Module *mod)
+Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL)
 \end{apient}
 \apidesc{
 This method creates a Function and updates all necessary data structures (including creating Symbols, if necessary). The function has the provided mangled name, offset, and size, and is added to the Module mod. Symbols representing the function are added to the static and dynamic symbol tables. Returns the pointer to the new Function on success or NULL on failure. 
 }
 
 \begin{apient}
-Variable *createVariable(string name, Offset offset, unsigned size, Module *mod)
+Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL)
 \end{apient}
 \apidesc{
 This method creates a Variable and updates all necessary data structures (including creating Symbols, if necessary). The variable has the provided mangled name, offset, and size, and is added to the Module mod. Symbols representing the variable are added to the static and dynamic symbol tables. Returns the pointer to the new Variable on success or NULL on failure. 
@@ -325,6 +326,7 @@ typedef enum {
     obj_Executable,
     obj_RelocatableFile,
 } ObjectType;
+\end{apient}
 
 \begin{apient}
 ObjectType getObjectType() const
@@ -356,14 +358,14 @@ Returns true if it succeeds or else returns false.
 }
 
 \begin{apient}
-const string &file() const
+string file() const
 \end{apient}
 \apidesc{
 This method returns the full path name of the object file. Returns an empty string if the object file is a memory image.
 }
 
 \begin{apient}
-const string &name() const
+string name() const
 \end{apient}
 \apidesc{
 This method returns the name of the object file. Returns an empty string if the object file is a memory image.
@@ -401,7 +403,7 @@ These methods return a pointer to the start of the code or the data section for 
 }
 
 \begin{apient}
-unsigned getNumberOfSymbols() const
+unsigned getNumberofSymbols() const
 \end{apient}
 \apidesc{
 This method return the total number of symbols present in the binary
@@ -455,7 +457,7 @@ Return true if at least one tuple corresponding to the offset was found and retu
 }
 
 \begin{apient}
-bool addLine(string &lineSource, unsigned int lineNo, 
+bool addLine(string lineSource, unsigned int lineNo, 
             unsigned int lineOffset, Offset lowInclusiveAddr, 
             Offset highExclusiveAddr)
 \end{apient}
@@ -497,14 +499,14 @@ Adds a new type type to symtabAPI. Return true on success.
 }
 
 \begin{apient}
-std::vector<Type *> *getAllstdTypes()
+static std::vector<Type *> *getAllstdTypes()
 \end{apient}
 \apidesc{
 Returns all the standard types that normally occur in a program.
 }
 
 \begin{apient}
-std::vector<Type *> *getAllbuiltInTypes()
+static std::vector<Type *> *getAllbuiltInTypes()
 \end{apient}
 \apidesc{
 Returns all the bulit-in types defined in the binary.
@@ -526,6 +528,11 @@ This method looks up a global variable with name name and returns its type attri
 Returns true if a variable is found or returns false with type set to NULL.
 }
 
+\begin{apient}
+typedef enum ... SymtabError
+\end{apient}
+\apidesc{ SymtabError can take one of the following values.}
+
 \begin{center}
     \begin{tabular}{ll}
         \toprule
@@ -543,10 +550,13 @@ Returns true if a variable is found or returns false with type set to NULL.
      Not\_A\_File & Binary to be parsed may be an archive and not a file\\
      Not\_An\_Archive & Binary to be parsed is not an archive\\
      Duplicate\_Symbol & Duplicate symbol found in symbol table\\
+     Export\_Error & Desc \\
+     Emit\_Error & Desc \\
      Invalid\_Flags & Flags passed are invalid\\
      Bad\_Frame\_Data & Stack walking DWARF information has bad frame data\\
      No\_Frame\_Entry & No stack walking frame data found in debug information for this location\\
      Frame\_Read\_Error & Failed to read stack frame data\\
+     Multiple\_Region\_Matches & Desc \\ 
      No\_Error & Previous operation did not result in failure.\\
      \bottomrule
  \end{tabular}
@@ -561,7 +571,7 @@ SymtabAPI sets a global error value in case of error during any operation. This 
 }
 
 \begin{apient}
-static string &printError(SymtabError serr)
+static string printError(SymtabError serr)
 \end{apient}
 \apidesc{
 This method returns a detailed description of the enum value serr in human
@@ -602,7 +612,7 @@ typedef enum{
     lang_CPlusPlus,
     lang_GnuCPlusPlus,
     lang_Fortran,
-    lang_Fortran\_with\_pretty\_debug,
+    lang_Fortran_with_pretty_debug,
     lang_CMFortran 
 }supportedLanguages
 \end{apient}
@@ -685,8 +695,8 @@ typedef enum {
 
 \begin{apient}
 bool findFunctionsByName(vector<Function> &ret, const string name,
-                        Symtab::NameType nameType = anyName,
-                        bool isRegex = false, bool checkCase = false)
+                         Symtab::NameType nameType = anyName,
+                         bool isRegex = false, bool checkCase = true)
 \end{apient}
 \apidesc{
 This method finds and returns a vector of Functions whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any. If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Functions, if any.
@@ -720,9 +730,9 @@ false if there is no matching variable. The error value is set to No\_Such\_Vari
 }
 
 \begin{apient}
-bool findVariablesByName(vector<Function> &ret, const string name,
+bool findVariablesByName(vector<Function> &ret, const string &name,
                         Symtab::NameType nameType,
-                        bool isRegex = false, bool checkCase = false)
+                        bool isRegex = false, bool checkCase = true)
 \end{apient}
 \apidesc{
 This method finds and returns a vector of Variables whose names match the given pattern. The nameType parameter determines which names are searched: mangled, pretty, typed, or any (note: a Variable may not have a typed name). If the isRegex flag is set a regular expression match is performed with the symbol names. checkCase is applicable only if isRegex has been set. This indicates if the case be considered while performing regular expression matching. ret contains the list of matching Variables, if any.
@@ -751,7 +761,7 @@ No\_Such\_Module/ No\_Such\_Symbol based on the type.
 }
 
 \begin{apient}
-bool getAllSymbolsByType(vector<Symbol *> &ret)
+bool getAllSymbols(vector<Symbol *> &ret)
 \end{apient}
 \apidesc{
 This method returns all symbols.
@@ -784,6 +794,14 @@ bool getAddressRanges(vector< pair<unsigned long, unsigned long> > & ranges,
 \apidesc{
 This method returns the address ranges in ranges corresponding to the line with line number lineNo in the source file lineSource. Searches only this module for the given source.
 Return true if at least one address range corresponding to the line number was found and returns false if none found.
+}
+
+\begin{apient}
+bool getSourceLines(vector<Statement *> &lines, Offset addressInRange)
+\end{apient}
+\apidesc{
+This method returns the source file names and line numbers corresponding to the given address addressInRange. Searches only this module for the given source. 
+Return true if at least one tuple corresponding to the offset was found and returns false if none found.
 }
 
 \begin{apient}

@@ -104,7 +104,7 @@ template class  pdvector<baseTrampInstance *>;
 template class  pdvector<instruction>;
 template class  pdvector<instruction *>;
 
-#include "symtab.h"
+#include "image.h"
 template class  pdvector< ExceptionBlock >;
 
 class codeRange;

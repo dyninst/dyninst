@@ -36,7 +36,7 @@
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "dyninstAPI/src/debug.h"

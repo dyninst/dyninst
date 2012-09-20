@@ -35,7 +35,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "common/h/arch.h"
 #include "dyninstAPI/src/inst-power.h"
 #include "common/h/debugOstream.h"

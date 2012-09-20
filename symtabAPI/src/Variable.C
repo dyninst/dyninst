@@ -40,6 +40,7 @@
 #include "Variable.h"
 #include "Aggregate.h"
 #include "Function.h"
+#include <iterator>
 
 #include "symtabAPI/src/Object.h"
 

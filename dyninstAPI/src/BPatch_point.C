@@ -47,7 +47,7 @@
 #include "BPatch.h"
 #include "BPatch_process.h"
 #include "BPatch_libInfo.h"
-#include "symtab.h"
+#include "image.h"
 #include "instPoint.h"
 #include "instP.h"
 #include "baseTramp.h"

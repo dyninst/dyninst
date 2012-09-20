@@ -46,7 +46,9 @@
 #include "BPatch_basicBlock.h"
 
 #include "../../../parseAPI/h/CFG.h"
+#if !defined(os_windows_test)
 #include "../../../parseAPI/h/GraphAdapter.h"
+#endif
 
 #include "test_lib.h"
 #include "dyninst_comp.h"
@@ -452,6 +454,8 @@ test_results_t test1_33_Mutator::executeTest()
 			return FAILED;
 		}
 	}
+#if !defined(os_windows_test)
+
 	ParseAPI::Function* parse_func = ParseAPI::convert(func3);
 	assert(parse_func);
 	Block* parse_entry = parse_func->entry();
@@ -472,7 +476,7 @@ test_results_t test1_33_Mutator::executeTest()
 	  logerror("  ParseAPI dominator algorithm does not have entry block dominating all blocks in function\n");
 	  return FAILED;
 	}
-	
+#endif	
 		      
 
 	BPatch_variableExpr *expr33_1 = 

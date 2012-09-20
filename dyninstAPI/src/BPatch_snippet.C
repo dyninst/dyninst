@@ -1272,8 +1272,17 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 variableAst->setType(type);
                 variableASTs.push_back(variableAst);
                    
-                ranges->push_back(pair<Offset, Offset>(locs[i].lowPC + baseAddr,
-                                             locs[i].hiPC + baseAddr));
+				Address low, hi;
+				if (locs[i].lowPC == 0 && locs[i].hiPC == (Address) -1) {
+					low = 0;
+					hi = (Address) -1;
+				}
+				else {
+					low = locs[i].lowPC;
+					hi = locs[i].hiPC;
+				}
+
+                ranges->push_back(pair<Address, Address>(low, hi));
         }
         ast_wrapper = AstNodePtr(AstNode::variableNode(variableASTs, ranges));
         //    ast_wrapper = variableAst;

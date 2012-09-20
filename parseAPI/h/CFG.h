@@ -158,8 +158,8 @@ class Edge : public allocatable {
          EdgeTypeEnum type);
      PARSER_EXPORT virtual ~Edge();
 
-    PARSER_EXPORT virtual Block * src() const { return _source; }
-    PARSER_EXPORT virtual Block * trg() const { return _target; }
+    PARSER_EXPORT Block * src() const { return _source; }
+    PARSER_EXPORT Block * trg() const { return _target; }
     PARSER_EXPORT EdgeTypeEnum type() const { 
         return static_cast<EdgeTypeEnum>(_type._type_enum); 
     }

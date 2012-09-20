@@ -37,7 +37,7 @@
 #include <limits.h>
 #include "common/h/headers.h"
 #include "common/h/Dictionary.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
@@ -1601,6 +1601,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
 
    if (reg.reg() == REGNUM_ESP) {
       cerr << "Special handling for REGNUM_ESP!" << endl;
+      assert(0);
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);

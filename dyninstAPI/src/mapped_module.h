@@ -45,7 +45,7 @@ class image;
 
 #include <string>
 #include "common/h/Types.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "symtabAPI/h/Symtab.h"
 
 #define CHECK_ALL_CALL_POINTS  // paradyn might need it

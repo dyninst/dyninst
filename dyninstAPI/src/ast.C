@@ -30,7 +30,7 @@
 
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -2919,14 +2919,14 @@ void AstVariableNode::setVariableAST(codeGen &gen){
     Address addr = gen.point()->addr_compat();     //Offset of inst point from function base address
     bool found = false;
     for(unsigned i=0; i< ranges_->size();i++){
-       if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second) {
+       if((*ranges_)[i].first<=addr && addr<=(*ranges_)[i].second) {
           index = i;
           found = true;
-          break;
        }
     }
     if (!found) {
        cerr << "Error: unable to find AST representing variable at " << hex << addr << dec << endl;
+       cerr << "Pointer " << hex << this << dec << endl;
        cerr << "Options are: " << endl;
        for(unsigned i=0; i< ranges_->size();i++){
           cerr << "\t" << hex << (*ranges_)[i].first << "-" << (*ranges_)[i].second << dec << endl;

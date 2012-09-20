@@ -67,7 +67,11 @@
 #include "symtabAPI/h/Function.h"
 #include "symtabAPI/h/Variable.h"
 
+#include "parseAPI/h/CodeObject.h"
+#include "parseAPI/h/CodeSource.h"
+
 #include "dyninstAPI/src/Parsing.h"
+
 
 using namespace Dyninst;
 
@@ -479,9 +483,9 @@ class image : public codeRange {
 #endif
 
    // ParseAPI
-   ParseAPI::CodeObject * obj_;
-   ParseAPI::SymtabCodeSource * cs_;
-   ParseAPI::SymtabCodeSource::hint_filt *filt;
+   Dyninst::ParseAPI::CodeObject * obj_;
+   Dyninst::ParseAPI::SymtabCodeSource * cs_;
+   Dyninst::ParseAPI::SymtabCodeSource::hint_filt *filt;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback

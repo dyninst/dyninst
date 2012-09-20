@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/dynProcess.h"
 
 #include "dyninstAPI/src/binaryEdit.h"
-#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/image.h"
 // get_index...
 #include "dyninstAPI/src/dynThread.h"
 #include "ABI.h"
