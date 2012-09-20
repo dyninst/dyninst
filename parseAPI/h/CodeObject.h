@@ -53,6 +53,7 @@ class Parser;   // internals
 class ParseCallback;
 class ParseCallbackManager;
 class CFGModifier;
+class CodeSource;
 
 class CodeObject {
    friend class CFGModifier;

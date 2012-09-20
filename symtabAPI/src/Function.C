@@ -40,9 +40,12 @@
 #include "Function.h"
 #include "dynutil/h/VariableLocation.h"
 #include "symtabAPI/src/Object.h"
-#include "dwarf/h/dwarfFrameParser.h"
+
+//#include "dwarf/h/dwarfFrameParser.h"
 
 #include "annotations.h"
+#include <iterator>
+
 
 #include <iostream>
 
@@ -145,8 +148,13 @@ bool Function::setFramePtr(vector<VariableLocation> *locs)
 void Function::expandLocation(const VariableLocation &loc,
                               std::vector<VariableLocation> &ret) {
    // We are the frame base, so... WTF? 
+
    assert(loc.mr_reg != Dyninst::FrameBase);
 
+#if defined(os_windows) 
+   ret.push_back(loc);
+   return;
+#else
    if (loc.mr_reg != Dyninst::CFA) {
       ret.push_back(loc);
       return;
@@ -216,6 +224,7 @@ void Function::expandLocation(const VariableLocation &loc,
       ret.push_back(newloc);
    }
    return;
+#endif
 }
 
 bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)

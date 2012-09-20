@@ -35,6 +35,7 @@
 #include <iostream>
 #include "common/h/std_namesp.h"
 #include "BPatch_basicBlockLoop.h"
+#include <iterator>
 
 #include "BPatch_edge.h"
 

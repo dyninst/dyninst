@@ -45,8 +45,6 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
-#include <libgen.h>
-
 namespace Dyninst {
 namespace PatchAPI {
 
@@ -102,6 +100,8 @@ typedef std::set<ParseAPI::CodeSource*> CodeSourceSet;
 #if defined(_MSC_VER)
 #define patchapi_debug(...)
 #else
+// Get basename
+#include <libgen.h> 
 #define patchapi_debug(...) do { \
   if (getenv("DYNINST_DEBUG_PATCHAPI")) {   \
   const char* nodir = basename(__FILE__);              \

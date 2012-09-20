@@ -1212,6 +1212,12 @@ typedef struct localsStruct {
     localsStruct() : foundSyms() {}
 } localsStruct;
 
+Dyninst::MachRegister WinConvert(Register reg) {
+	//  Info from CV_HREG_e structure; from comments online this is correct
+		
+	return Dyninst::InvalidReg;
+}
+
 BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
                                void *userContext)
 {
@@ -1219,7 +1225,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
     Function *func;
     storageClass storage;
     localVar *newvar;
-    int reg;
+    long reg;
     signed long frameOffset;
     Offset base;
     HANDLE p;
@@ -1246,7 +1252,6 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
         ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE) && 
          (pSymInfo->Register = CV_REG_EBP)))
     {
-        reg = -1;
         frameOffset = (signed) pSymInfo->Address;
         storage = storageRegOffset;
         storageName = "Frame Relative";
@@ -1274,7 +1279,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 	loc.stClass = storage;
 	loc.refClass = storageNoRef;
 	loc.frameOffset = frameOffset;
-	loc.reg = reg;
+	//loc.reg = reg;
 	
 	std::string vName = convertCharToString(pSymInfo->Name);
 	std::string fName = convertCharToString(func->getModule()->fileName().c_str());

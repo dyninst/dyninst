@@ -77,6 +77,7 @@ namespace Dyninst {
   namespace ParseAPI {
     class Function;
     class Block;
+	class Edge;
   };
 
   namespace InstructionAPI {
@@ -354,7 +355,7 @@ class StackAnalysis {
     void createEntryInput(RegisterState &input);
     void meetInputs(ParseAPI::Block *b, RegisterState &input);
     void meet(const RegisterState &source, RegisterState &accum);
-
+	RegisterState StackAnalysis::getSrcOutputRegs(ParseAPI::Edge* e);
     void computeInsnEffects(ParseAPI::Block *block,
                             const InstructionPtr &insn,
                             const Offset off,
