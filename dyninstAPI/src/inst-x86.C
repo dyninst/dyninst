@@ -229,12 +229,12 @@ void registerSpace::initialize64() {
                                           "rsp",
                                           true, // Off-limits...
                                           registerSlot::liveAlways,
-                                          registerSlot::SPR); 
+                                          registerSlot::GPR); 
     registerSlot * rbp = new registerSlot(REGNUM_RBP,
                                           "rbp",
                                           true,
                                           registerSlot::liveAlways,
-                                          registerSlot::SPR);
+                                          registerSlot::GPR);
     registerSlot * rsi = new registerSlot(REGNUM_RSI,
                                           "rsi",
                                           false,
