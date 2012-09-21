@@ -143,9 +143,9 @@ extern unsigned int bcExp[];
 extern int ia32features();
 extern int amd_features();
 
-extern int divarw;
-extern float dfvars;
-extern double dfvard;
+extern int divarw[4];
+extern float dfvars[4];
+extern double dfvard[4];
 extern long double dfvart; /* 10 byte hopefully, but it shouldn't matter... */
 extern unsigned char dlarge[512];
 
