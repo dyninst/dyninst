@@ -321,7 +321,6 @@ bool PCProcess::hasReachedBootstrapState(bootstrapState_t state) const {
 }
 
 void PCProcess::setBootstrapState(bootstrapState_t newState) {
-   cerr << "Setting bs state to " << newState << endl;
     bootstrapState_ = newState;
 }
 

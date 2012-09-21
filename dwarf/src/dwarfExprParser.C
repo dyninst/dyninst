@@ -238,8 +238,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             break;
 
          case DW_OP_plus_uconst:
-            cons.pushUnsignedVal(locations[i].lr_number);
-            cons.pushOp(DwarfResult::Add);
+            cons.pushOp(DwarfResult::Add, locations[i].lr_number);
             break;
 
          case DW_OP_shl:

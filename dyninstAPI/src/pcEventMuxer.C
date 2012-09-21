@@ -238,7 +238,6 @@ PCEventMuxer::cb_ret_t PCEventMuxer::exitCallback(EventPtr ev) {
 
 PCEventMuxer::cb_ret_t PCEventMuxer::crashCallback(EventPtr ev) {
 	INITIAL_MUXING;
-
 	if (ev->getEventType().time() != EventType::Pre) {
 		ret = ret_default;
 	}
@@ -252,10 +251,9 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
-#define DEBUG
 #if defined(DEBUG)
-    if (evSignal->getSignal() == 11) {
-      cerr << "SEGV IN PROCESS " << process->getPid() << endl;
+    if (evSignal->getSignal() == 11 ||
+        evSignal->getSignal() == 8) {
        Address esp = 0;
        Address pc = 0;
        ProcControlAPI::RegisterPool regs;

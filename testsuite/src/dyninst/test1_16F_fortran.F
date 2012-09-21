@@ -120,19 +120,28 @@
 !------------------------------------------------------------------------------
 
 	SUBROUTINE test1_16_func2
-	INTEGER foo = 0
+#include "test1_16F_common.h"
+	INTEGER foo
+
+	foo = 0
 	END
 
 !------------------------------------------------------------------------------
 
 	SUBROUTINE test1_16_func3
-	INTEGER foo = 0
+#include "test1_16F_common.h"
+	INTEGER foo
+
+	foo = 0
 	END
 
 !------------------------------------------------------------------------------
 
 	SUBROUTINE test1_16_func4
-	INTEGER foo = 0
+#include "test1_16F_common.h"
+	INTEGER foo
+
+	foo = 0
 	END
 
 !------------------------------------------------------------------------------

@@ -33,7 +33,6 @@ void SymbolicDwarfResult::pushUnsignedVal(MachRegisterVal val) {
       // No register, so default to StorageAddr
       var.stClass = storageAddr;
    }
-
    operands.push(val);
 }
 
@@ -56,9 +55,15 @@ void SymbolicDwarfResult::pushOp(Operator op) {
    }         
 }
 
-void SymbolicDwarfResult::pushOp(Operator, 
-                                   unsigned) {
-   error = true;
+void SymbolicDwarfResult::pushOp(Operator op, 
+                                 unsigned u) {
+   switch(op) {
+      case Add:
+         var.frameOffset += u;
+         break;
+      default:
+         error = true;
+   }
 }
 
 void SymbolicDwarfResult::pushFrameBase() {
@@ -71,7 +76,7 @@ void SymbolicDwarfResult::pushCFA() {
 
 VariableLocation &SymbolicDwarfResult::val() {
    if (!operands.empty()) {
-      var.frameOffset = operands.top(); 
+      var.frameOffset += operands.top(); 
       operands.pop();
    }
    return var;
@@ -240,6 +245,10 @@ void ConcreteDwarfResult::pushOp(Operator op) {
 
 void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
    switch (op) {
+      case Add: 
+         pushUnsignedVal(ref);
+         pushOp(Add);
+         break;
       case Deref: {
          CHECK_OPER(1);
          MachRegisterVal v;
