@@ -226,11 +226,12 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
     size_t length;
     struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
     if( NULL == procInfo ) {
+      fprintf(stderr, "no proc info\n");
         return -1;
     }
 
-    int numEntries = length / procInfo->ki_structsize;
 
+    int numEntries = length / procInfo->ki_structsize;
     // The string won't be set until there are multiple LWPs
     if( numEntries == 1 ) {
         lwpid_t ret = procInfo->ki_tid;
@@ -238,7 +239,18 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
         return ret;
     }
 
+    // By experimentation, we appear to want the last
+    // entry. 
+    //
+    // "BSD, what the hell" - bill, 24SEP2012, personal communication
+
+    lwpid_t ret = procInfo[numEntries-1].ki_tid;
+    free(procInfo);
+    return ret;
+#if 0
+    
     for(int i = 0; i < numEntries; ++i) {
+      fprintf(stderr, "%d: %s\n", i+1, procInfo[i].ki_ocomm);
         if( std::string(procInfo[i].ki_ocomm).find("initial") != std::string::npos ) {
             lwpid_t ret = procInfo[i].ki_tid;
             free(procInfo);
@@ -247,7 +259,9 @@ lwpid_t sysctl_getInitialLWP(pid_t pid) {
     }
 
     free(procInfo);
+    fprintf(stderr, "Failed to find initial thread\n");
     return -1;
+#endif
 }
 
 // returns true if the process is running

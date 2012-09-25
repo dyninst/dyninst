@@ -513,6 +513,19 @@ unsigned func_instance::get_size() const { assert(0); return 0; }
 
 
 bool func_instance::isInstrumentable() {
+#if defined(os_freebsd)
+  // FreeBSD system call wrappers are using an indirect jump to an error
+  // handling function; this confuses our parsing and we conclude they
+  // are uninstrumentable. They're not. It's fine. 
+  
+  std::string wrapper_prefix = "__sys_";
+  for (unsigned i = 0; i < symTabNameVector().size(); ++i) {
+    if (symTabNameVector()[i].compare(0, 6, wrapper_prefix) == 0) {
+      return true;
+    }
+  }
+#endif
+
   Dyninst::PatchAPI::Instrumenter* inst = proc()->mgr()->instrumenter();
   if (inst) return inst->isInstrumentable(this);
   return false;

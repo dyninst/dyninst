@@ -143,7 +143,6 @@ public:
 protected:
     string libThreadName;
     bool forking;
-    bool debugger_stopped;
     freebsd_process *parent;
 };
 

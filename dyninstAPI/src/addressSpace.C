@@ -1705,7 +1705,6 @@ bool AddressSpace::relocate() {
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
-
      FuncSet &modFuncs = iter->second;
 
      bool repeat = false;

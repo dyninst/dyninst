@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
+#include <iostream> 
 
 using namespace std;
 using namespace Dyninst;
@@ -56,7 +57,6 @@ SymElf::SymElf(std::string file_) :
       construction_error = true;
       return;
    }
-
    elf = Elf_X(fd, ELF_C_READ);
    if (!elf.isValid()) {
       construction_error = true;

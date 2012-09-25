@@ -44,6 +44,8 @@
 #include "common/h/freebsdKludges.h"
 #include "symlite/h/SymLite-elf.h"
 
+#include <iostream>
+
 // System includes
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -65,7 +67,7 @@
 
 #include <map>
 using std::make_pair;
-
+using namespace std;
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -189,7 +191,7 @@ Generator *Generator::getDefaultGenerator() {
         assert(gen);
         gen->launch();
     }
-    return static_cast<Generator *>(gen);
+    return gen;
 }
 
 GeneratorFreeBSD::GeneratorFreeBSD() :
@@ -250,7 +252,7 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
 
     if (dyninst_debug_proccontrol)
     {
-        pthrd_printf("Waitpid return status %x for pid %d/%d:\n", status, pid, lwp);
+      pthrd_printf("Waitpid return status %x for pid %d/%d:\n", status, pid, lwp);
         if (WIFEXITED(status))
             pthrd_printf("Exited with %d\n", WEXITSTATUS(status));
         else if (WIFSIGNALED(status))
@@ -654,8 +656,8 @@ int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
     std::vector<std::string> envp;
     freebsd_process *newproc = new freebsd_process(pid_, exec, args, envp, f);
     assert(newproc);
-
-    return static_cast<int_process *>(newproc);
+    newproc->plat_debuggerSuspended();
+    return newproc;
 }
 
 int_process *int_process::createProcess(std::string exec,
@@ -664,13 +666,14 @@ int_process *int_process::createProcess(std::string exec,
 {
     freebsd_process *newproc = new freebsd_process(0, exec, args, envp, f);
     assert(newproc);
-    return static_cast<int_process *>(newproc);
+    return newproc;
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, int_process *parent) {
     freebsd_process *newproc = new freebsd_process(pid_, parent);
+    newproc->plat_debuggerSuspended();
     assert(newproc);
-    return static_cast<int_process *>(newproc);
+    return newproc;
 }
 
 int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_id,
@@ -686,7 +689,7 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
     }
     freebsd_thread *lthrd = new freebsd_thread(proc, thr_id, lwp_id);
     assert(lthrd);
-    return static_cast<int_thread *>(lthrd);
+    return lthrd;
 }
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
@@ -749,7 +752,6 @@ freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std:
   mmap_alloc_process(p, e, a, envp, f),
   hybrid_lwp_control_process(p, e, a, envp, f),
   forking(false),
-  debugger_stopped(false),
   parent(NULL)
 {
 }
@@ -763,7 +765,6 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p) :
   mmap_alloc_process(pid_, p),
   hybrid_lwp_control_process(pid_, p),
   forking(false),
-  debugger_stopped(false),
   parent(dynamic_cast<freebsd_process *>(p))
 {
 }
@@ -820,7 +821,7 @@ bool freebsd_process::initKQueueEvents() {
         return false;
     }
     pthrd_printf("Enabled kqueue events for process %d\n",
-            pid);
+		 pid);
 
     return true;
 }
@@ -883,6 +884,7 @@ OSType freebsd_process::getOS() const
 
 bool freebsd_process::plat_attach(bool allStopped, bool &) {
     pthrd_printf("Attaching to pid %d\n", pid);
+
     if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;
         pthrd_printf("Unable to attach to process %d: %s\n", pid, strerror(errnum));
@@ -1726,7 +1728,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
     return true;
 }
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
 static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     struct reg old_regs;
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)&old_regs, 0) ) {
@@ -1738,11 +1740,17 @@ static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     // registers and not set in the current set of registers -- 
     // the OS doesn't allow us to change this flag, change it to the
     // current value
+#if defined(arch_x86)
     if( (old_regs.r_eflags & PSL_RF) != (regs->r_eflags & PSL_RF) ) {
         if( old_regs.r_eflags & PSL_RF ) regs->r_eflags |= PSL_RF;
         else regs->r_eflags &= ~PSL_RF;
     }
-    
+#elif defined(arch_x86_64)
+    if( (old_regs.r_rflags & PSL_RF) != (regs->r_rflags & PSL_RF) ) {
+        if( old_regs.r_rflags & PSL_RF ) regs->r_rflags |= PSL_RF;
+        else regs->r_rflags &= ~PSL_RF;
+    }
+#endif    
     return true;
 }
 #else

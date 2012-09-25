@@ -49,6 +49,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <iostream>
 
 using namespace Dyninst;
 using namespace std;
@@ -57,11 +58,12 @@ int_breakpoint *sysv_process::lib_trap = NULL;
 
 sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, vector<string> envp, map<int,int> f) :
    int_process(p, e, a, envp, f),
-   translator(NULL),
    lib_initialized(false),
    procreader(NULL),
    aout(NULL),
-   libtracking(NULL)
+   libtracking(NULL),
+   translator_(NULL),
+   translator_state(NotReady)
 {
    track_libraries = LibraryTracking::getDefaultTrackLibraries();
 }
@@ -77,18 +79,18 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    procreader = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);
-   translator = NULL;
-   if (sp->translator)
-      translator = constructTranslator(pid_);
+   translator_ = NULL;
+   if (sp->translator_) {
+     // Delay create because we can't use a
+     // method in a class that inherits from us
+     translator_state = Ready;
+   }
    libtracking = NULL;
 }
 
 sysv_process::~sysv_process()
 {
-   if (translator) {
-      delete translator;
-      translator = NULL;
-   }
+  deleteAddrTranslator();
    if (procreader) {
       delete procreader;
       procreader = NULL;
@@ -139,19 +141,19 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
    memCache *cache = proc->getMemCache();
 
-   if (!proc->translator) {
+   if (!proc->translator()) {
       //Can happen if we read during initialization.  We'll fail to read,
       // and the addrtranslate layer will handle things properly.
       return false;
    }
 
-   proc->translator->setReadAbort(false);
+   proc->translator()->setReadAbort(false);
    async_ret_t ret = cache->readMemory(buffer, addr, size, memresults);
    switch (ret) {
       case aret_success:
          return true;
       case aret_async:
-         proc->translator->setReadAbort(true);
+         proc->translator()->setReadAbort(true);
          return false;
       case aret_error:
          return false;
@@ -180,18 +182,18 @@ bool PCProcReader::getNewAsyncs(set<response::ptr> &resps)
 
 bool sysv_process::initLibraryMechanism()
 {
-   if (lib_initialized) {
-      if( translator == NULL ) {
-         translator = constructTranslator(getPid());
-         if (!translator && procreader->isAsync()) {
-            pthrd_printf("Waiting for async read to finish initializing\n");
-            return false;
-         }
-         if (!translator) {
-            perr_printf("Error creating address translator object\n");
-            return false;
-         }
+  if (lib_initialized) {
+    if( translator() == NULL ) {
+      createAddrTranslator();
+      if (!translator() && procreader->isAsync()) {
+	pthrd_printf("Waiting for async read to finish initializing\n");
+	return false;
       }
+      if (!translator()) {
+	perr_printf("Error creating address translator object\n");
+	return false;
+      }
+    }
 
       return true;
    }
@@ -203,14 +205,15 @@ bool sysv_process::initLibraryMechanism()
       procreader = new PCProcReader(this);
    assert(procreader);
 
-   assert(!translator);
 
-   translator = constructTranslator(getPid());
-   if (!translator && procreader->isAsync()) {
+   assert(!translator_);
+   createAddrTranslator();
+
+   if (!translator() && procreader->isAsync()) {
       pthrd_printf("Waiting for async read to finish initializing\n");
       return false;
    }
-   if (!translator) {
+   if (!translator()) {
       perr_printf("Error creating address translator object\n");
       return false;
    }
@@ -220,7 +223,7 @@ bool sysv_process::initLibraryMechanism()
       lib_trap->setProcessStopper(true);
    }
 
-   breakpoint_addr = translator->getLibraryTrapAddrSysV();
+   breakpoint_addr = translator()->getLibraryTrapAddrSysV();
    if (track_libraries) {
       pthrd_printf("Installing library breakpoint at %lx\n", breakpoint_addr);
       bool result = false;
@@ -252,8 +255,8 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       return false;
    }
 
-   assert(translator);
-   result = translator->refresh();
+   assert(translator());
+   result = translator()->refresh();
    if (!result && procreader->hasPendingAsync()) {
       procreader->getNewAsyncs(async_responses);
       waiting_for_async = true;
@@ -269,7 +272,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       (*i)->setMark(false);
    }
    vector<LoadedLib *> ll_libs;
-   translator->getLibs(ll_libs);
+   translator()->getLibs(ll_libs);
    for (vector<LoadedLib *>::iterator i = ll_libs.begin(); i != ll_libs.end(); i++)
    {
       LoadedLib *ll = *i;
@@ -302,7 +305,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
    }
 
    if (!aout) {
-      LoadedLib *ll_aout = translator->getExecutable();
+      LoadedLib *ll_aout = translator()->getExecutable();
       aout = (int_library *) (ll_aout ? ll_aout->getUpPtr() : NULL);
       aout->markAOut();
    }
@@ -322,10 +325,7 @@ bool sysv_process::plat_execed()
       // aout has already been deleted in the forking process
       aout = NULL;
    }
-   if (translator) {
-      delete translator;
-      translator = NULL;
-   }
+   deleteAddrTranslator();
    if (procreader) {
       delete procreader;
       procreader = NULL;
@@ -390,4 +390,32 @@ LibraryTracking *sysv_process::sysv_getLibraryTracking()
       libtracking = new LibraryTracking(proc());
    }
    return libtracking;
+}
+
+AddressTranslate *sysv_process::translator() {
+  switch(translator_state) {
+  case NotReady:
+    return NULL;
+  case Ready:
+    translator_state = Creating;
+    translator_ = constructTranslator(getPid());
+    translator_state = Created;
+    return translator_;
+  case Creating:
+    return NULL;
+  case Created:
+    return translator_;
+  default:
+    return NULL;
+  }
+}
+
+void sysv_process::createAddrTranslator() {
+  translator_state = Ready;
+}
+
+void sysv_process::deleteAddrTranslator() {
+  translator_state = NotReady;
+  if (translator_) delete translator_;
+  translator_ = NULL;
 }

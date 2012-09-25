@@ -406,6 +406,7 @@ SymReaderCodeSource::non_returning_funcs =
 bool
 SymReaderCodeSource::nonReturning(string name)
 {
+  parsing_printf("Checking non-returning (SymLite) for %s\n", name.c_str());
     return non_returning_funcs.find(name) != non_returning_funcs.end();
 }
 

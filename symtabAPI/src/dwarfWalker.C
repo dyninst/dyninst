@@ -1709,13 +1709,28 @@ bool DwarfWalker::decipherBound(Dwarf_Attribute boundAttribute, std::string &bou
       case DW_FORM_data2:
       case DW_FORM_data4:
       case DW_FORM_data8:
-      case DW_FORM_sdata:
       case DW_FORM_udata: 
       {
+         dwarf_printf("(0x%lx) Decoding form %d with formudata\n",
+                      id(), boundForm);
+                     
          Dwarf_Unsigned constantBound;
          DWARF_FAIL_RET(dwarf_formudata( boundAttribute, & constantBound, NULL ));
          char bString[40];
-         sprintf(bString, "%lu", (unsigned long)constantBound);
+         sprintf(bString, "%llu", (unsigned long long)constantBound);
+         boundString = bString;
+         return true;
+      } break;
+
+      case DW_FORM_sdata:
+      {
+         dwarf_printf("(0x%lx) Decoding form %d with formsdata\n",
+                      id(), boundForm);
+                     
+         Dwarf_Signed constantBound;
+         DWARF_FAIL_RET(dwarf_formsdata( boundAttribute, & constantBound, NULL ));
+         char bString[40];
+         sprintf(bString, "%lld", (long long)constantBound);
          boundString = bString;
          return true;
       } break;

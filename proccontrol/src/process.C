@@ -42,6 +42,7 @@
 #include "proccontrol/h/ProcessSet.h"
 #include "proccontrol/h/PlatFeatures.h"
 
+#include "freebsd.h"
 #if defined(os_windows)
 #include "proccontrol/src/windows_process.h"
 #include "proccontrol/src/windows_thread.h"
@@ -1298,6 +1299,8 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
 
    result->setProcess(this);
    bool bresult;
+
+
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(),
@@ -1324,6 +1327,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
    }
    return bresult;      
 }
+#include "freebsd.h"
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
 {
@@ -1344,7 +1348,6 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
       }
    }
    result->setProcess(this);
-
    bool bresult;
    if (!plat_needsAsyncIO()) {
       pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
@@ -2393,13 +2396,24 @@ hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID p, std::stri
                                                          std::vector<std::string> a, 
                                                          std::vector<std::string> envp, 
                                                          std::map<int,int> f) :
-   int_process(p, e, a, envp, f)
+  int_process(p, e, a, envp, f),
+  debugger_stopped(false)
 {
 }
 
 hybrid_lwp_control_process::hybrid_lwp_control_process(Dyninst::PID pid_, int_process *p) :
-   int_process(pid_, p)
+  int_process(pid_, p),
+  debugger_stopped(false)
 {
+  // Clone debugger_stopped from parent
+  hybrid_lwp_control_process *par = dynamic_cast<hybrid_lwp_control_process *>(p);
+  assert(par); // Otherwise we have a very, very strange system
+  debugger_stopped = par->debugger_stopped;
+  pthrd_printf("Set debugger stopped to %s on %d, matching parent %d\n",
+	       (debugger_stopped ? "true" : "false"),
+	       pid_,
+	       p->getPid());
+	       
 }
 
 hybrid_lwp_control_process::~hybrid_lwp_control_process()
@@ -2440,11 +2454,13 @@ void hybrid_lwp_control_process::noteNewDequeuedEvent(Event::ptr ev)
    if (ev->getSyncType() == Event::sync_process) {
 	   pthrd_printf("Marking %d debugger suspended on event: %s\n", getPid(), ev->name().c_str());
       debugger_stopped = true;
+      pthrd_printf("Setting, debugger stopped: %d (%p) (%d)\n", debugger_stopped, this, getPid());
    }
 }
 
 bool hybrid_lwp_control_process::plat_debuggerSuspended()
 {
+  pthrd_printf("Querying, debugger stopped: %d (%p) (%p) (%d)\n", debugger_stopped, &debugger_stopped, this, getPid());
    return debugger_stopped;
 }
 
@@ -2489,6 +2505,7 @@ bool hybrid_lwp_control_process::plat_syncRunState()
 	if(!a_running_thread) {
 	   a_running_thread = tp->initialThread();
    }
+
 
    if (!any_target_running && !any_running) {
       pthrd_printf("Target process state %d is stopped and process is stopped, leaving\n", getPid());
@@ -3129,6 +3146,7 @@ int_thread *int_thread::createThread(int_process *proc,
    pthrd_printf("Creating %s thread %d/%d, thr_id = 0x%lx\n", 
                 initial_thrd ? "initial" : "new",
                 proc->getPid(), newthr->getLWP(), thr_id);
+
    proc->threadPool()->addThread(newthr);
    if (initial_thrd) {
       proc->threadPool()->setInitialThread(newthr);
@@ -3144,6 +3162,7 @@ int_thread *int_thread::createThread(int_process *proc,
 	   newthr->getHandlerState().setState(neonatal_intermediate);
 		newthr->getGeneratorState().setState(neonatal_intermediate);
    }
+
    return newthr;
 }
 

@@ -171,7 +171,7 @@ bool ProcDebug::readMem(void *dest, Address source, size_t size)
    CHECK_PROC_LIVE;
    bool result = proc->readMemory(dest, source, size);
    if (!result) {
-      sw_printf("[%s:%u] - ProcControlAPI error reading memory\n", __FILE__, __LINE__);
+     sw_printf("[%s:%u] - ProcControlAPI error reading memory at 0x%lx\n", __FILE__, __LINE__, source);
       Stackwalker::setLastError(err_proccontrol, ProcControlAPI::getLastErrorMsg());
    }
    return result;

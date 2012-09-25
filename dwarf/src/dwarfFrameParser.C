@@ -90,10 +90,12 @@ bool DwarfFrameParser::getRegValueAtFrame(Address pc,
 {
    ConcreteDwarfResult cons(reader, arch, pc, dbg);
 
-   if (!getRegAtFrame(pc, reg, cons, err_result))
-      return false;
-   
+   if (!getRegAtFrame(pc, reg, cons, err_result)) {
+     assert(err_result != FE_No_Error);
+     return false;
+   }
    if (cons.err()) {
+     err_result = FE_Frame_Eval_Error;
       return false;
    }
 
@@ -108,8 +110,10 @@ bool DwarfFrameParser::getRegRepAtFrame(Address pc,
                                FrameErrors_t &err_result) {
    SymbolicDwarfResult cons(loc, arch);
 
-   if (!getRegAtFrame(pc, reg, cons, err_result))
-      return false;
+   if (!getRegAtFrame(pc, reg, cons, err_result)) {
+     assert(err_result != FE_No_Error);
+     return false;
+   }
    
    if (cons.err()) {
       err_result = FE_Frame_Eval_Error;
@@ -146,12 +150,14 @@ bool DwarfFrameParser::getRegsForFunction(Address entryPC,
    Dwarf_Fde fde;
    Address low, high;
    if (!getFDE(entryPC, fde, low, high, err_result)) {
-      return false;
+     assert(err_result != FE_No_Error);
+     return false;
    }
    
    Dwarf_Half dwarf_reg;
    if (!getDwarfReg(reg, fde, dwarf_reg, err_result)) {
-      return false;
+     assert(err_result != FE_No_Error);
+     return false;
    }
 
    Address worker = high;
@@ -160,6 +166,7 @@ bool DwarfFrameParser::getRegsForFunction(Address entryPC,
       SymbolicDwarfResult cons(loc, arch);
       Address next;
       if (!getRegAtFrame_aux(worker, fde, dwarf_reg, reg, cons, next, err_result)) {
+	assert(err_result != FE_No_Error);
          return false;
       }
       loc.lowPC = next;
@@ -197,11 +204,13 @@ bool DwarfFrameParser::getRegAtFrame(Address pc,
    Dwarf_Fde fde;
    Address u1, u2;
    if (!getFDE(pc, fde, u1, u2, err_result)) {
+	assert(err_result != FE_No_Error);
       return false;
    }
 
    Dwarf_Half dwarf_reg;
    if (!getDwarfReg(reg, fde, dwarf_reg, err_result)) {
+	assert(err_result != FE_No_Error);
       return false;
    }
 
@@ -256,7 +265,10 @@ bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
    {
       bool done;
       if (!handleExpression(pc, register_num, orig_reg,
-                            arch, cons, done, err_result)) return false;
+                            arch, cons, done, err_result)) {
+	assert(err_result != FE_No_Error);
+	return false;
+      }
       if (done) return true;
    }
 
@@ -282,12 +294,14 @@ bool DwarfFrameParser::getRegAtFrame_aux(Address pc,
          Dwarf_Signed listlen = 0;
          result = dwarf_loclist_from_expr(dbg, block_ptr, offset_or_block_len, &llbuf, &listlen, &err);
          if (result != DW_DLV_OK) {
+	   err_result = FE_Frame_Read_Error;
             return false;
          }
          
          if (!decodeDwarfExpression(llbuf, NULL, 
                                     cons,
                                     arch)) {
+	   err_result = FE_Frame_Eval_Error;
             return false;
          }
 
@@ -430,6 +444,7 @@ bool DwarfFrameParser::handleExpression(Address pc,
          err_result = FE_No_Error;
          if (!getRegAtFrame(pc, Dyninst::FrameBase,
                             cons, err_result)) {
+	   assert(err_result != FE_No_Error);
             return false;
          }
          break;

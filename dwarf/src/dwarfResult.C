@@ -5,9 +5,11 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/dyn_regs.h"
 #include "common/h/Types.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Dwarf;
+using namespace std;
 
 #define CHECK_OPER(n) if (operands.size() < n) { error = true; break; }
 
@@ -90,7 +92,7 @@ void ConcreteDwarfResult::pushReg(MachRegister) {
 void ConcreteDwarfResult::readReg(MachRegister reg) {
    Dyninst::MachRegisterVal v;
    if (!reader->GetReg(reg, v)) error = true;
-   
+   cerr << "readReg (" << reg.name() << "): " << hex << v << dec << endl;
    push(v);
 }
 
@@ -273,6 +275,7 @@ void ConcreteDwarfResult::pushOp(Operator op, unsigned ref) {
             }
             case 8: {
                uint64_t u;
+	       cerr << "readMem @ " << hex << peek(0) << dec << endl;
                if (!reader->ReadMem(peek(0), &u, sizeof(u))) error = true;
                v = u;
                break;

@@ -2835,7 +2835,11 @@ bool Object::fix_global_symbol_modules_static_dwarf()
    IntervalTree<Dwarf_Addr, std::string> module_ranges;
 
    /* Iterate over the CU headers. */
-   while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
+   while ( dwarf_next_cu_header_c( dbg, 1, 
+				   NULL, NULL, NULL, // len, stamp, abbrev
+				   NULL, NULL, NULL, // address, offset, extension
+				   NULL, NULL, // signature, typeoffset
+				   & hdr, NULL ) == DW_DLV_OK ) 
    {
       /* Obtain the module DIE. */
       Dwarf_Die moduleDIE;

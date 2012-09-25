@@ -311,49 +311,23 @@ mapped_object::~mapped_object()
 }
 
 Address mapped_object::codeAbs() const {
-   // RHEL tends to use "negative" codeBase values
-   // (such that codeBase + codeOffset wraps) for 32-bit
-   // processes. Handle the math here. 
-   if (proc()->getAddressWidth() == 8) {
-      return codeBase_ + imageOffset();
-   }
-   else {
-      return ((codeBase_ + imageOffset()) & 0xffffffff);
-   }
+  return codeBase_ + imageOffset();
 }
 
 Address mapped_object::dataAbs() const {
-   // RHEL tends to use "negative" codeBase values
-   // (such that codeBase + codeOffset wraps) for 32-bit
-   // processes. Handle the math here. 
-   if (proc()->getAddressWidth() == 8) {
-      return dataBase_ + dataOffset();
-   }
-   else {
-      return ((dataBase_ + dataOffset()) & 0xffffffff);
-   }
+  return dataBase_ + dataOffset();
 }
 
 bool mapped_object::isCode(Address addr) const {
    Address offset;
-   if (proc()->getAddressWidth() == 8) {
-      offset = addr - codeBase();
-   }
-   else {
-      offset = ((unsigned) addr) - ((unsigned) codeBase());
-   }
+   offset = addr - codeBase();
 
    return parse_img()->getObject()->isCode(offset);
 }
 
 bool mapped_object::isData(Address addr) const {
    Address offset;
-   if (proc()->getAddressWidth() == 8) {
-      offset = addr - codeBase();
-   }
-   else {
-      offset = ((unsigned) addr) - ((unsigned) codeBase());
-   }
+   offset = addr - codeBase();
 
    return parse_img()->getObject()->isData(offset);
 }

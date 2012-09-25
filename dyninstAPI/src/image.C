@@ -1854,7 +1854,8 @@ const pdvector<parse_func *> *image::findFuncVectorByPretty(const std::string &n
         parse_func *imf = NULL;
         
         if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
-           fprintf(stderr, "%s[%d]:  failed to getAnnotations here [%s]\n", FILE__, __LINE__,name.c_str());
+	  // TODO: just create the function here...
+
            return NULL;
         }
         

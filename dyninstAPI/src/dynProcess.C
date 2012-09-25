@@ -1856,6 +1856,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
     vector<func_instance *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
+      inst_printf("%s[%d]: handling request %d of %d\n", FILE__, __LINE__, lcv+1, requests.size());
 
         instMapping *req = requests[lcv];
         pdvector<miniTramp *> minis;
@@ -1881,6 +1882,13 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                           FILE__,__LINE__);
               continue;  // probably should have a flag telling us whether errors
            }
+
+	   inst_printf("%s[%d]: Instrumenting %s at 0x%lx, offset 0x%lx in %s\n",
+		       FILE__, __LINE__, 
+		       func->symTabName().c_str(),
+		       func->addr(),
+		       func->addr() - func->obj()->codeBase(),
+		       func->obj()->fullName().c_str());
             
            // should be silently handled or not
            AstNodePtr ast;
@@ -1919,6 +1927,7 @@ void PCProcess::installInstrRequests(const pdvector<instMapping*> &requests) {
                          req->where);
                  break;
            } // switch
+	   inst_printf("%s[%d]: found %d points to instrument\n", FILE__, __LINE__, points.size());
            for (std::vector<Point *>::iterator iter = points.begin();
                 iter != points.end(); ++iter) {
               Dyninst::PatchAPI::Instance::Ptr inst = (req->order == orderFirstAtPoint) ? 
