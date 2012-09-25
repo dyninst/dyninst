@@ -217,7 +217,7 @@ edges can cross the boundaries of the higher level abstractions like
 {\item {\scshape code object}: A collection of distinct code regions are represented as a single code object, such as an executable or library. Code objects can normally be thought of as a single, discontiguous unique address space. However, the ParseAPI supports code objects in which the different regions have overlapping address spaces, such as UNIX archive files containing unlinked code.
 }% end code object
 
-{\item {\scshape instruction source}: An instruction source describes a backing store containing binary code. A binary file, a library, a memory dump or a process's executing memory image can all be described as an instruction source, allowing parsing of a variety of binary code objects.
+{\item {\scshape instruction source}: An instruction source describes a backing store containing binary code. A binary file, a library, a memory dump, or a process's executing memory image can all be described as an instruction source, allowing parsing of a variety of binary code objects.
 }% end instruction source
 
 {\item {\scshape code source}: The code source implements the instruction source interface, exporting methods that can access the underlying bytes of the binary code for parsing. It also exports a number of additional helper methods that do things such as returning the location of structured exception handling routines and function symbols. Code sources are tailored to particular binary types; the ParseAPI provides a SymtabAPI-based code source that understands ELF, COFF and PE file formats.
@@ -248,9 +248,11 @@ well as accessing that parse data. The following API routines and data types
 are provided to support parsing and retrieving parsing products.
 
 \begin{apient}
-typedef ContainerWrapper<vector<Function*>,Function*,Function*> funclist
+
+typedef std::set<Function *, Function::less> funclist
+% typedef ContainerWrapper<vector<Function*>,Function*,Function*> funclist
 \end{apient}
-\apidesc{Container for access to functions. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
+\apidesc{Container for access to functions. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of std::set, as it is subject to change.}
 
 \begin{apient}
 CodeObject(CodeSource * cs,
@@ -280,6 +282,23 @@ new information about function locations is provided through the CodeSource.}
 void parse(Address target, bool recursive)
 \end{apient}
 \apidesc{Parses the binary starting with the instruction at the provided target address. If \texttt{recursive} is {\scshape true}, recursive traversal parsing is used as in the default \texttt{parse()} method; otherwise only instructions reachable through intraprocedural control flow are visited.}
+
+\begin{apient}
+void parse(CodeRegion * cr, Address target, bool recursive)
+\end{apient}
+\apidesc{Parses the specified core region of the binary starting with the 
+instruction at the provided target address. If \texttt{recursive} is 
+{\scshape true}, recursive traversal parsing is used as in the default 
+\texttt{parse()} method; otherwise only instructions reachable through 
+intraprocedural control flow are visited.
+}
+
+\begin{apient}
+bool parseNewEdges( vector<NewEdgeToParse> & worklist );
+\end{apient}
+\apidesc{Parses a set of newly created edges specified in the worklist supplied 
+that were not included when the function was originally parsed. 
+}
 
 \begin{apient}
 void parseGaps(CodeRegion *cr)
@@ -317,9 +336,9 @@ int findBlocks(CodeRegion * cr, Address addr, std::set<Block*> & blocks)
 \apidesc{Finds all blocks spanning \texttt{addr} in the code region, adding each to \texttt{blocks}. Multiple blocks can be returned only on platforms with variable-length instruction sets (such as IA32) for which overlapping instructions are possible; at most one block will be returned on all other platforms.}
 
 \begin{apient}
-void finalize()
+Block * findNextBlock(CodeRegion * cr, Address addr)
 \end{apient}
-\apidesc{Force complete parsing of the CodeObject; parsing operations are otherwise completed only as needed to answer queries.}
+\apidesc{Find the next reachable basic block starting at address \texttt{entry}. Returns {\scshape null} if no such block exists.}
 
 \begin{apient}
 CodeSource * cs()
@@ -330,6 +349,62 @@ CodeSource * cs()
 CFGFactory * fact()
 \end{apient}
 \apidesc{Return a reference to the CFG object factory.}
+
+\begin{apient}
+bool defensiveMode()
+\end{apient}
+\apidesc{Return a boolean specifying whether or not defensive mode is enabled.}
+
+\begin{apient}
+bool isIATcall(Address insn, std::string &calleeName)
+\end{apient}
+\apidesc{Returns a boolean specifying if the address at \texttt{addr} is located at the call named in \texttt{calleeName}. }
+
+\begin{apient}
+void startCallbackBatch()
+\end{apient}
+\apidesc{Starts a batch of callbacks that have been registered.}
+
+\begin{apient}
+void finishCallbackBatch()
+\end{apient}
+\apidesc{Completes all callbacks in the current batch.}
+
+\begin{apient}
+void registerCallback(ParseCallback * cb)
+\end{apient}
+\apidesc{Registers a callback and adds it to the callback batch. Callback will be executed when startCallbackBatch() is called.}
+
+\begin{apient}
+void unregisterCallback(ParseCallback * cb)
+\end{apient}
+\apidesc{Removes the callback \texttt{cb} from the callback batch. This callback will no longer be exectued when 
+startCallbackBatch() is exectued.}
+
+\begin{apient}
+void finalize()
+\end{apient}
+\apidesc{Force complete parsing of the CodeObject; parsing operations are otherwise completed only as needed to answer queries.}
+
+\begin{apient}
+void destroy(Edge *)
+\end{apient}
+\apidesc{Destroy the edge listed.}
+
+\begin{apient}
+void destroy(Block *)
+\end{apient}
+\apidesc{Destroy the code block listed.}
+
+\begin{apient}
+void destroy(Function *)
+\end{apient}
+\apidesc{Destroy the function lister.}
+
+\begin{apient}
+Address getFreeAddr()
+\end{apient}
+\apidesc{Return a unused address that can be used for instruction insertion.}
 
 \subsection{Class CodeSource}
 \label{sec:codesource}
@@ -359,6 +434,11 @@ virtual Address loadAddress()
 std::map< Address, std::string > & linkage()
 \end{apient}
 \apidesc{Returns a reference to the external linkage map, which may or may not be filled in for a particular CodeSource implementation.}
+
+\begin{apient}
+std::vector< Hint > const& hints()
+\end{apient}
+\apidesc{Returns a vector of the currently defined hints.}
 
 \begin{apient}
 std::vector<CodeRegion *> const& regions()
@@ -444,15 +524,26 @@ RETURN & may return \\
 \apidesc{Return type of function \texttt{retstatus()}, see description below.}
 
 \begin{apient}
-typedef ContainerWrapper<vector<Block*>,Block*,Block*> blocklist
-typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
+typedef std::vector<Block*> blocklist
+typedef std::set<Edge*> edgelist
 \end{apient}
-\apidesc{Containers for block and edge access. Refer to Section \ref{sec:containers} for details on \texttt{ContainerWrapper}. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
+\apidesc{Containers for block and edge access. Library users \emph{must not} rely on the underlying container type of std::set/std::vector lists, as it is subject to change.}
+
+\begin{apient}
+Function(Address addr, string name, CodeObject * obj, CodeRegion * region, InstructionSource * isource);
+\end{apient}
+\apidesc{Creates a function at \texttt{addr} in the code region specified. 
+Insructions for this function are given in \texttt{isource}.}
 
 \begin{apient}
 const string & name()
 \end{apient}
 \apidesc{Returns the name of this function.}
+
+\begin{apient}
+Address addr() 
+\end{apient}
+\apidesc{Returns the first address of the function.}
 
 \begin{apient}
 CodeRegion * region()
@@ -510,6 +601,11 @@ blocklist & returnBlocks()
 \apidesc{Returns a list of all blocks ending in a \texttt{return} instruction.}
 
 \begin{apient}
+blocklist & exitBlocks()
+\end{apient}
+\apidesc{Returns a list of all blocks ending in a \texttt{call} instruction.}
+
+\begin{apient}
 std::vector<FuncExtent *> const& extents()
 \end{apient}
 \apidesc{Returns a list of contiguous extents of binary code within the function.}
@@ -531,11 +627,37 @@ bool cleansOwnStack()
 \end{apient}
 \apidesc{Indicates whether the function tears down its own stack on return.}
 
+\begin{apient}
+void setEntryBlock(block * new_entry
+\end{apient}
+\apidesc{Set the entry block for this function to \texttt{new_entry}.}
+
+\begin{apient}
+void set_retstatus(FuncReturnStatus rs)
+\end{apient}
+\apidesc{Set the return status for the function to \texttt{rs}}
+
+\begin{apient}
+void removeBlock( Block* )
+\end{apient}
+\apidesc{Remove a basic block from the function}
+
+\begin{apient}
+bool cleansOwnStack()
+\end{apient}
+\apidesc{Indicates whether the function tears down its own stack on return.}
+
 \subsection{Class FuncExtent}
 
 \definedin{CFG.h}
 
 Function Extents are used internally for accounting and lookup purposes. They may be useful for users who wish to precisely identify the ranges of the address space spanned by functions (functions are often discontiguous, particularly on architectures with variable length instruction sets).
+
+
+\begin{apient}
+Function * func() 
+\end{apient}
+\apidesc{Return the function linked to FuncExtent.}
 
 \begin{apient}
 Address start()
@@ -554,9 +676,9 @@ Address end()
 A Block represents a basic block as defined in Section \ref{sec:abstractions}, and is the lowest level representation of code in the CFG.
 
 \begin{apient}
-typedef ContainerWrapper<vector<Edge*>,Edge*,Edge*> edgelist
+typedef std::vector<Edge *> edgelist
 \end{apient}
-\apidesc{Container for edge access. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of ContainerWrapper lists, as it is subject to change.}
+\apidesc{Container for edge access. Refer to Section \ref{sec:containers} for details. Library users \emph{must not} rely on the underlying container type of std::vector, as it is subject to change.}
 
 
 \begin{apient}
@@ -572,6 +694,11 @@ following the last byte in the last instruction). }
 
 \begin{apient}
 Address lastInsnAddr()
+\end{apient}
+\apidesc{Returns the address of the last instruction in this block.}
+
+\begin{apient}
+Address last()
 \end{apient}
 \apidesc{Returns the address of the last instruction in this block.}
 
