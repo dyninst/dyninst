@@ -3276,7 +3276,13 @@ void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
       // a pre-mature exit event.  The thread will be exiting soon, but
       // isn't there yet.  We'll run the thread instead to make sure it
       // reaches a proper exit.
+      
+      // If we're freeBSD, they don't give us a thread exit event and
+      // so running only the exiting thread can result in a process
+      // that is "executing" with no continued threads. That is bad. 
+#if !defined(os_freebsd)
       thrd->getExitingState().setState(int_thread::running);
+#endif
    }
    ProcPool()->condvar()->broadcast();
    ProcPool()->condvar()->unlock();
