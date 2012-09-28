@@ -58,6 +58,7 @@ class AddressSpace;
 class BPatch_snippet;
 class BPatchSnippetHandle;
 class BPatch_module;
+class BPatch_object;
 
 namespace Dyninst { 
    namespace ParseAPI { 
@@ -154,6 +155,11 @@ public:
     API_EXPORT(Int, (),
 
     const char *,libraryName,());
+
+    // BPatch_module::getObject
+    // Returns BPatch_object containing this file
+    API_EXPORT(Int, (),
+    BPatch_object *, getObject, ());
 
     // BPatch_module::getAddressWidth
     // Returns the width (in bytes) of an address in this module

@@ -90,6 +90,11 @@ BPatch_sourceObj *BPatch_module::getObjParent()
    return (BPatch_sourceObj *) img;
 }
 
+BPatch_object *BPatch_module::getObjectInt() {
+   if (!isValid()) return NULL;
+   return img->findOrCreateObject(mod->obj());
+}
+
 char *BPatch_module::getNameInt(char *buffer, int length)
 {
    if (!mod)
