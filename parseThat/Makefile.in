@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -lsymtabAPI -lparseAPI -lpcontrol -lstackwalk -lparseAPI -lpatchAPI -lsymLite -ldl -pthread -ldynDwarf -ldynElf -lcommon
+LIBS        += -ldyninstAPI -lstackwalk -lpcontrol -lpatchAPI -lparseAPI -linstructionAPI -lsymtabAPI -lsymLite -ldynDwarf -ldynElf -pthread
 
 # The echo will remove the quotes
 LIBS += $(shell echo $(DEMANGLER_LINK))
@@ -57,54 +57,12 @@ ifneq (x,x$(strip $(DWARFFLAGS)))
 LIBS += $(DWARFFLAGS)
 endif
 
-ifneq (, $(findstring sparc, $(PLATFORM)))
-LIBS        += -lstdc++ -lsocket -lrt
-endif
-
-ifneq (, $(findstring i386, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring i486, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring i586, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring i686, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring x86_64, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring ppc32, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring ppc32_bgp, $(PLATFORM)))
-LIBS        += -linstructionAPI
-endif
-
-ifneq (, $(findstring ppc64_linux, $(PLATFORM)))
-LIBS        += -linstructionAPI
-CXXFLAGS    += -m64
-endif
-
-ifneq (, $(findstring alpha, $(PLATFORM)))
-CXXFLAGS    += -pthread
-endif
-
-ifneq (, $(findstring ia64, $(PLATFORM)))
-LIBS        += -ldl
-endif
-
 ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
 LIBS	    += -lpthread
+else
+LIBS	+= -ldl
 endif
+
 
 all: ready parseThat
 

@@ -3288,12 +3288,8 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
        installedCtrlBrkpts.find(from);
 
     if( breakIter != installedCtrlBrkpts.end() ) {
-        proccontrol_printf("%s[%d]: there already exists a ctrl transfer breakpoint from "
-                "0x%lx to 0x%lx, replacing with new mapping\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
-
         if( !pcProc_->rmBreakpoint(from, breakIter->second) ) {
-           proccontrol_printf("%s[%d]: failed to replace ctrl transfer breakpoint from "
-                              "0x%lx to 0x%lx\n", FILE__, __LINE__, from, breakIter->second->getToAddress());
+	  // Oops? 
         }
         installedCtrlBrkpts.erase(breakIter);
     }
@@ -3302,14 +3298,10 @@ void PCProcess::addTrap(Address from, Address to, codeGen &) {
     newBreak->setSuppressCallbacks(true);
 
     if( !pcProc_->addBreakpoint(from, newBreak) ) {
-        proccontrol_printf("%s[%d]: failed to add ctrl transfer breakpoint from "
-                "0x%lx to 0x%lx\n", FILE__, __LINE__, from, to);
+      // Oops? 
     }
 
     installedCtrlBrkpts.insert(make_pair(from, newBreak));
-
-    proccontrol_printf("%s[%d]: added ctrl transfer breakpoint from 0x%lx to 0x%lx\n",
-            FILE__, __LINE__, from, to);
 }
 
 void PCProcess::removeTrap(Address from) {

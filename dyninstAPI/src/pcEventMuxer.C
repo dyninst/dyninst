@@ -252,8 +252,7 @@ PCEventMuxer::cb_ret_t PCEventMuxer::signalCallback(EventPtr ev) {
 	EventSignal::const_ptr evSignal = ev->getEventSignal();
 
 #if defined(DEBUG)
-    if (evSignal->getSignal() == 11 ||
-        evSignal->getSignal() == 8) {
+	{
        Address esp = 0;
        Address pc = 0;
        ProcControlAPI::RegisterPool regs;
@@ -401,8 +400,9 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadCreateCallback(EventPtr ev) {
 PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
-        if (ev->getEventType().time() == EventType::Pre)
-           ret = Process::cb_ret_t(Process::cbThreadStop);
+        if (ev->getEventType().time() == EventType::Pre) {
+	  ret = Process::cb_ret_t(Process::cbThreadStop);
+	}
 
 	DEFAULT_RETURN;
 }

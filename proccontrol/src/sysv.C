@@ -75,7 +75,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    track_libraries = sp->track_libraries;
-   aout = sp->aout;
+   aout = new int_library(sp->aout);
    procreader = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);

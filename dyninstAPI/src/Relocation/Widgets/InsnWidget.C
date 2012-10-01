@@ -65,7 +65,8 @@ InsnWidget::InsnWidget(Instruction::Ptr insn, Address addr) :
 string InsnWidget::format() const {
 	stringstream ret;
  // ret << "Insn(" << insn_->format() << ")";
-	ret << "Insn(" << hex << addr_ << dec << ")" << endl;
+	ret << "Insn(" << hex << addr_ 
+	    << ": " << insn_->format(addr_) << dec << ")" << endl;
 	return ret.str();
 }
 

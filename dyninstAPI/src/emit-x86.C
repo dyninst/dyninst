@@ -2218,6 +2218,10 @@ void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 
 bool shouldSaveReg(registerSlot *reg, baseTramp *inst, bool saveFlags)
 { 
+  if (reg->encoding() == REGNUM_RSP) {
+    return false;
+  }
+  
    if (inst->point()) {
       regalloc_printf("\t shouldSaveReg for BT %p, from 0x%lx\n", inst, inst->point()->insnAddr() );
    }
@@ -2360,6 +2364,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
          
    bool skipRedZone = (num_to_save > 0) || alignStack || saveOrigAddr || createFrame;
 
+
    if (alignStack) {
       emitStackAlign(AMD64_RED_ZONE, gen);
    } else if (skipRedZone) {
@@ -2370,9 +2375,11 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       instFrameSize += AMD64_RED_ZONE;
    }
 
+
    // Save the live ones
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
+
       if (!shouldSaveReg(reg, bt, saveFlags))
            continue; 
       if (createFrame && reg->encoding() == REGNUM_RBP)
@@ -2419,6 +2426,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
 
       emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
+
    }
 
    assert(num_saved == num_to_save);
@@ -2478,7 +2486,6 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt,  codeGen &gen)
       bt->skippedRedZone = skipRedZone; 
    }
 
-
    return true;
 }
 
@@ -2490,6 +2497,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    bool alignStack = false;
    bool skippedRedZone = false;
    bool restoreFlags = false;
+
 
    if (bt) {
       useFPRs = bt->savedFPRs;
@@ -2548,6 +2556,12 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    // restore saved registers
    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
       registerSlot *reg = gen.rs()->GPRs()[i];
+      if (reg->encoding() == REGNUM_RBP && createFrame) {
+	// Although we marked it saved, we already restored it
+	// above. 
+	continue;
+      }
+
       if (reg->liveState == registerSlot::spilled) {
          emitPopReg64(reg->encoding(),gen);
       }
