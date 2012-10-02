@@ -401,7 +401,8 @@ PCEventMuxer::cb_ret_t PCEventMuxer::threadDestroyCallback(EventPtr ev) {
 	INITIAL_MUXING;
 
         if (ev->getEventType().time() == EventType::Pre) {
-	  ret = Process::cb_ret_t(Process::cbThreadStop);
+	  //ret = Process::cb_ret_t(Process::cbThreadStop);
+	  ret = ret_stopped;
 	}
 
 	DEFAULT_RETURN;

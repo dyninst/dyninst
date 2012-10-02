@@ -2480,30 +2480,36 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    int_threadPool::iterator i;
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
-	   pthrd_printf("Checking %d/%d\n", getPid(), thr->getLWP());
-	   if (thr->getDetachState().getState() == int_thread::detached) {
-		   pthrd_printf("%d/%d detached, skipping\n", getPid(), thr->getLWP());
-         continue;
+      pthrd_printf("Checking %d/%d: state %s\n", getPid(), thr->getLWP(), int_thread::stateStr(thr->getUserState().getState()));
+#if defined(os_freebsd) 
+	   if (thr->getUserState().getState() == int_thread::exited) {
+	     // Let it go, man...
+	     continue;
 	   }
-	  if (!RUNNING_STATE(thr->getHandlerState().getState())) {
-		   pthrd_printf("%d/%d not running, any_stopped = true\n", getPid(), thr->getLWP());
-         any_stopped = true;
-	  } else {
-		   pthrd_printf("%d/%d running, any_running = true\n", getPid(), thr->getLWP());
-         any_running = true;
-         if (!a_running_thread) a_running_thread = thr;
-      }
-	  if (RUNNING_STATE(thr->getTargetState())) {
-		   pthrd_printf("%d/%d target running, any_target_running = true\n", getPid(), thr->getLWP());
-         any_target_running = true;
-	  }
-	  if (!RUNNING_STATE(thr->getTargetState())) {
-		   pthrd_printf("%d/%d target stopped, any_target_stopped = true\n", getPid(), thr->getLWP());
-         any_target_stopped = true;
-	  }
+#endif
+	   if (thr->getDetachState().getState() == int_thread::detached) {
+	     pthrd_printf("%d/%d detached, skipping\n", getPid(), thr->getLWP());
+	     continue;
+	   }
+	   if (!RUNNING_STATE(thr->getHandlerState().getState())) {
+	     pthrd_printf("%d/%d not running, any_stopped = true\n", getPid(), thr->getLWP());
+	     any_stopped = true;
+	   } else {
+	     pthrd_printf("%d/%d running, any_running = true\n", getPid(), thr->getLWP());
+	     any_running = true;
+	     if (!a_running_thread) a_running_thread = thr;
+	   }
+	   if (RUNNING_STATE(thr->getTargetState())) {
+	     pthrd_printf("%d/%d target running, any_target_running = true\n", getPid(), thr->getLWP());
+	     any_target_running = true;
+	   }
+	   if (!RUNNING_STATE(thr->getTargetState())) {
+	     pthrd_printf("%d/%d target stopped, any_target_stopped = true\n", getPid(), thr->getLWP());
+	     any_target_stopped = true;
+	   }
    }
-	if(!a_running_thread) {
-	   a_running_thread = tp->initialThread();
+   if(!a_running_thread) {
+     a_running_thread = tp->initialThread();
    }
 
 
@@ -2534,7 +2540,15 @@ bool hybrid_lwp_control_process::plat_syncRunState()
 		  continue;
 	  }
 	  if (thr->getDetachState().getState() == int_thread::detached)
-         continue;
+	    continue;
+
+#if defined(os_freebsd) 
+	   if (thr->getUserState().getState() == int_thread::exited) {
+	     // Let it go, man...
+	     continue;
+	   }
+#endif
+
       if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
          pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
          result = resumeThread(thr);
@@ -3185,6 +3199,8 @@ void int_thread::changeLWP(Dyninst::LWP new_lwp)
 
 void int_thread::throwEventsBeforeContinue()
 {
+  pthrd_printf("Checking thread %d/%d for events thrown before continue\n",
+	       llproc()->getPid(), getLWP());
    if (llproc()->wasForcedTerminated()) return;
 
    Event::ptr new_ev;
@@ -3256,8 +3272,12 @@ void int_thread::setExitingInGenerator(bool b)
 void int_thread::cleanFromHandler(int_thread *thrd, bool should_delete)
 {
    ProcPool()->condvar()->lock();
-   
+
+#if !defined(os_freebsd)   
    thrd->getUserState().setState(int_thread::exited);
+#else
+   thrd->setExiting(true);
+#endif
 
    if (should_delete) {
       thrd->getExitingState().setState(int_thread::exited);
@@ -3301,7 +3321,7 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
    pthrd_printf("Reading registers for thread %d\n", getLWP());
 
    regpool_lock.lock();
-   if (cached_regpool.full) {
+   if (cached_regpool.full && 0) {
       *response->getRegPool() = cached_regpool;
       response->getRegPool()->thread = this;
       response->markReady();
@@ -4648,7 +4668,12 @@ bool sw_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read
    assert(buffer_size <= BP_BUFFER_SIZE);   
 
    read_response->setBuffer(buffer, buffer_size);
-   return proc->readMem(addr, read_response);
+   bool ret = proc->readMem(addr, read_response);
+   pthrd_printf("Buffer contents from read breakpoint:\n");
+   for (unsigned i = 0; i < buffer_size; ++i) {
+     pthrd_printf("\t 0x%x\n", (unsigned char)buffer[i]);
+   }
+   return ret;
 }
 
 bool sw_breakpoint::restoreBreakpointData(int_process *proc, result_response::ptr res_resp)

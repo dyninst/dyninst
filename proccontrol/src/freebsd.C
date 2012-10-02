@@ -362,6 +362,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
     pthrd_printf("Decoding event for %d/%d\n", proc ? proc->getPid() : -1,
             thread ? thread->getLWP() : -1);
 
+        for(int_threadPool::iterator i = proc->threadPool()->begin();
+            i != proc->threadPool()->end(); ++i)
+        {
+	  int_thread *thread = *i;
+	  reg_response::ptr regvalue = reg_response::createRegResponse();
+	  thread->getRegister(MachRegister::getPC(proc->getTargetArch()), regvalue);
+	  regvalue->isReady();
+	  regvalue->getResult();
+        }
+
+
     const int status = archevent->status;
     bool result = false;
     bool multipleEvents = false;
@@ -696,6 +707,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     static bool initialized = false;
     static FreeBSDPollLWPDeathHandler *lpolldeath = NULL;
     static FreeBSDPreForkHandler *luserfork = NULL;
+    static FreeBSDPostThreadDeathBreakpointHandler *ldeathbp = NULL;
 
 #if defined(bug_freebsd_mt_suspend)
     static FreeBSDPreStopHandler *lprestop = NULL;
@@ -709,6 +721,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     if( !initialized ) {
         lpolldeath = new FreeBSDPollLWPDeathHandler();
         luserfork = new FreeBSDPreForkHandler();
+	ldeathbp = new FreeBSDPostThreadDeathBreakpointHandler();
 
 #if defined(bug_freebsd_mt_suspend)
         lprestop = new FreeBSDPreStopHandler();
@@ -723,6 +736,7 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     }
     hpool->addHandler(lpolldeath);
     hpool->addHandler(luserfork);
+    hpool->addHandler(ldeathbp);
 
 #if defined(bug_freebsd_mt_suspend)
     hpool->addHandler(lprestop);
@@ -1057,6 +1071,15 @@ bool freebsd_thread::isSignalStopped() const {
     return signalStopped;
 }
 
+bool freebsd_thread::isAlive() {
+  if (getUserState().getState() != exited) return true;
+  vector<Dyninst::LWP> lwps;
+  freebsd_process *lproc = dynamic_cast<freebsd_process *>(llproc());
+  lproc->getThreadLWPs(lwps);
+  if (std::find(lwps.begin(), lwps.end(), getLWP()) != lwps.end()) return false;
+  return true;
+}
+
 void freebsd_thread::setPendingPCBugSignal(bool b) {
     pendingPCBugSignal = b;
 }
@@ -1194,6 +1217,51 @@ void FreeBSDPollLWPDeathHandler::getEventTypesHandled(std::vector<EventType> &et
     etypes.push_back(EventType(EventType::None, EventType::SingleStep));
     etypes.push_back(EventType(EventType::None, EventType::Signal));
 }
+
+FreeBSDPostThreadDeathBreakpointHandler::FreeBSDPostThreadDeathBreakpointHandler() 
+  : Handler("FreeBSD Post-User-Thread-Death-BP-Restore Handler") {
+}
+
+FreeBSDPostThreadDeathBreakpointHandler::~FreeBSDPostThreadDeathBreakpointHandler() {
+}
+
+Handler::handler_ret_t FreeBSDPostThreadDeathBreakpointHandler::handleEvent(Event::ptr ev) {
+  // We have cleared the BP and can mark the thread as dead
+  freebsd_thread *ft = dynamic_cast<freebsd_thread *>(ev->getThread()->llthrd());
+  if (!ft->isExiting()) return Handler::ret_success;
+  ft->getUserState().setState(int_thread::exited);
+  // We might be trying to process a stop on this thread; if so, copy it to a different,
+  // non-exited thread.
+  
+  if (ft->getPendingStopState().getState() == int_thread::running) {
+    freebsd_process *lproc = dynamic_cast<freebsd_process *>(ev->getProcess()->llproc());
+    
+    int_threadPool *tp = lproc->threadPool();
+    int_threadPool::iterator i;
+
+    for (i = tp->begin(); i != tp->end(); i++) {
+       int_thread *thr = *i;
+       if (thr->getUserState().getState() == int_thread::exited) {
+          continue;
+       }
+       if (thr->hasPendingStop()) continue;
+
+       thr->setPendingStop(true);
+       break;
+    }
+  }
+
+  return Handler::ret_success;
+}
+
+int FreeBSDPostThreadDeathBreakpointHandler::getPriority() const {
+  return PrePlatformPriority;
+}
+
+void FreeBSDPostThreadDeathBreakpointHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+  etypes.push_back(EventType(EventType::None, EventType::BreakpointRestore));
+}
+
 
 #if defined(bug_freebsd_mt_suspend)
 FreeBSDPreStopHandler::FreeBSDPreStopHandler() 

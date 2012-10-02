@@ -174,6 +174,7 @@ public:
     bool hasPendingPCBugSignal() const;
     void setSignalStopped(bool b);
     bool isSignalStopped() const;
+    bool isAlive();
 
 protected:
     bool bootstrapStop;
@@ -192,6 +193,16 @@ public:
     virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+class FreeBSDPostThreadDeathBreakpointHandler : public Handler
+{
+ public:
+  FreeBSDPostThreadDeathBreakpointHandler();
+  virtual ~FreeBSDPostThreadDeathBreakpointHandler();
+  virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
+  virtual int getPriority() const;
+  virtual void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 #if defined(bug_freebsd_mt_suspend)
