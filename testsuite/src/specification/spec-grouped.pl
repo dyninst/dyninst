@@ -69,9 +69,9 @@ module('symtab').
 module('stackwalker').
 module('instruction').
 module('proccontrol').
+module('patchapi').
 
-platform_module(P, 'dyninst') :- platform(_, S, _, P),
- S \= 'bluegene'.
+platform_module(_, 'dyninst').
 platform_module(_, 'symtab').
 platform_module(P, 'instruction') :- platform('i386', _, _, P).
 platform_module(P, 'instruction') :- platform('x86_64', _, _, P).
