@@ -3493,12 +3493,16 @@ test_runmode(Test, 'binary') :- test_runmode(Test, 'static').
 % runmode_platform(?Platform, ?Runmode)
 % This specifies what platforms support which runmodes, essentially
 % specify binary rewriter support for Dyninst
-runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
-runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
+runmode_platform(P, 'createProcess') :- platform(_, S, _, P),
+  S \= 'bluegene'.
+runmode_platform(P, 'useAttach') :- platform(_, S, _, P),
+  S \= 'bluegene'.
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power32', 'linux', _, P).
+runmode_platform(P, 'binary') :- platform('power64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power32', 'bluegene', _, P).
+runmode_platform(P, 'binary') :- platform('power64', 'bluegene', _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
 runmode_platform(P, 'disk') :- platform(_, _, _, P).
