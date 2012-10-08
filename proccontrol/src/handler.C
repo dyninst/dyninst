@@ -1284,10 +1284,19 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
     **/
    bool changePC = false;
    Address changePCTo = 0x0;
+   MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
    int_breakpoint *transferbp = breakpoint->getCtrlTransferBP(thrd);
+
    if (transferbp) {
       changePC = true;
-      changePCTo = transferbp->toAddr();
+      if (transferbp->isOffsetTransfer()) {
+         Address cur_addr = breakpoint->getAddr();
+         signed long offset = (signed long) transferbp->toAddr();
+         changePCTo = cur_addr + offset;
+      }
+      else {
+         changePCTo = transferbp->toAddr();
+      }
       pthrd_printf("Breakpoint has control transfer.  Moving PC to %lx\n", changePCTo);
    }
    else if (swbp && proc->plat_breakpointAdvancesPC()) {
@@ -1298,13 +1307,12 @@ Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 
    if (changePC && !int_ebp->pc_regset) {
       int_ebp->pc_regset = result_response::createResultResponse();
-      MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
       bool ok = thrd->setRegister(pcreg, changePCTo, int_ebp->pc_regset);
       if(!ok)
       {
-	pthrd_printf("Error setting pc register on breakpoint\n");
-	ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
-	return ret_error;
+         pthrd_printf("Error setting pc register on breakpoint\n");
+         ev->setLastError(err_internal, "Could not set pc register upon breakpoint\n");
+         return ret_error;
       }
    }
    if (int_ebp->pc_regset && int_ebp->pc_regset->hasError()) {

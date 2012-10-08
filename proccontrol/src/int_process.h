@@ -1040,10 +1040,11 @@ class int_breakpoint
    bool onetime_bp_hit;
    bool procstopper;
    bool suppress_callbacks;
+   bool offset_transfer;
    std::set<Thread::const_ptr> thread_specific;
  public:
    int_breakpoint(Breakpoint::ptr up);
-   int_breakpoint(Dyninst::Address to, Breakpoint::ptr up);
+   int_breakpoint(Dyninst::Address to, Breakpoint::ptr up, bool off);
    int_breakpoint(unsigned int hw_prems_, unsigned int hw_size_, Breakpoint::ptr up);
    ~int_breakpoint();
 
@@ -1052,7 +1053,6 @@ class int_breakpoint
    Dyninst::Address getAddress(int_process *p) const;
    void *getData() const;
    void setData(void *v);
-   
    void setOneTimeBreakpoint(bool b);
    void markOneTimeHit();
    bool isOneTimeBreakpoint() const;
@@ -1072,6 +1072,7 @@ class int_breakpoint
    unsigned getHWSize() const;
    unsigned getHWPerms() const;
    
+   bool isOffsetTransfer() const;
    Breakpoint::weak_ptr upBreakpoint() const;
 };
 

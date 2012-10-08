@@ -3220,6 +3220,7 @@ void int_thread::throwEventsBeforeContinue()
    Event::ptr new_ev;
 
    int_iRPC::ptr rpc = nextPostedIRPC();
+   bp_instance *bpi = isStoppedOnBP();
    if (rpc && !runningRPC() && rpc->getState() == int_iRPC::Posted) {
       pthrd_printf("Found thread %d/%d ready to run IRPC, not continuing\n", llproc()->getPid(), getLWP());
 
@@ -3232,26 +3233,26 @@ void int_thread::throwEventsBeforeContinue()
       rpc->setState(int_iRPC::Prepping);
       new_ev = EventRPCLaunch::ptr(new EventRPCLaunch());
    }
-   else {
-      bp_instance *bpi = isStoppedOnBP();
-      if (bpi) {
-         if (bpi->swBP()) {
-            //Stop the process to clear a software breakpoint
-            pthrd_printf("Found thread %d/%d to be stopped on a software BP, not continuing\n",
-                         llproc()->getPid(), getLWP());
-            getBreakpointState().desyncStateProc(int_thread::stopped);
-            EventBreakpointClear::ptr evclear =  EventBreakpointClear::ptr(new EventBreakpointClear());
-            evclear->getInternal()->stopped_proc = true;
-            new_ev = evclear;
-         }
-         else {
-            //No process stop needed for a hardware breakpoint
-            pthrd_printf("Found thread %d/%d to be stopped on a hardware BP, not continuing\n",
-                         llproc()->getPid(), getLWP());
-            getBreakpointState().desyncState(int_thread::stopped);
-            new_ev = EventBreakpointClear::ptr(new EventBreakpointClear());
-         }
+   else if (bpi) {
+      if (bpi->swBP()) {
+         //Stop the process to clear a software breakpoint
+         pthrd_printf("Found thread %d/%d to be stopped on a software BP, not continuing\n",
+                      llproc()->getPid(), getLWP());
+         getBreakpointState().desyncStateProc(int_thread::stopped);
+         EventBreakpointClear::ptr evclear =  EventBreakpointClear::ptr(new EventBreakpointClear());
+         evclear->getInternal()->stopped_proc = true;
+         new_ev = evclear;
       }
+      else {
+         //No process stop needed for a hardware breakpoint
+         pthrd_printf("Found thread %d/%d to be stopped on a hardware BP, not continuing\n",
+                      llproc()->getPid(), getLWP());
+         getBreakpointState().desyncState(int_thread::stopped);
+         new_ev = EventBreakpointClear::ptr(new EventBreakpointClear());
+      }
+   }
+   else {
+      new_ev = llproc()->plat_throwEventsBeforeContinue(this);
    }
 
    if (new_ev) {
@@ -4312,11 +4313,12 @@ int_breakpoint::int_breakpoint(Breakpoint::ptr up) :
    onetime_bp(false),
    onetime_bp_hit(false),
    procstopper(false),
-   suppress_callbacks(false)
+   suppress_callbacks(false),
+   offset_transfer(false)
 {
 }
 
-int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
+int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up, bool off) :
    up_bp(up),
    to(to_),
    isCtrlTransfer_(true),
@@ -4327,7 +4329,8 @@ int_breakpoint::int_breakpoint(Dyninst::Address to_, Breakpoint::ptr up) :
    onetime_bp(false),
    onetime_bp_hit(false),
    procstopper(false),
-   suppress_callbacks(false)
+   suppress_callbacks(false),
+   offset_transfer(off)
 {
 }
 
@@ -4444,6 +4447,11 @@ void int_breakpoint::setSuppressCallbacks(bool b)
 bool int_breakpoint::suppressCallbacks() const
 {
    return suppress_callbacks;
+}
+
+bool int_breakpoint::isOffsetTransfer() const
+{
+   return offset_transfer;
 }
 
 bp_instance::bp_instance(Address addr_) :
@@ -7687,7 +7695,14 @@ Breakpoint::ptr Breakpoint::newBreakpoint()
 Breakpoint::ptr Breakpoint::newTransferBreakpoint(Dyninst::Address to)
 {
    Breakpoint::ptr newbp = Breakpoint::ptr(new Breakpoint());
-   newbp->llbreakpoint_ = new int_breakpoint(to, newbp);
+   newbp->llbreakpoint_ = new int_breakpoint(to, newbp, false);
+   return newbp;
+}
+
+Breakpoint::ptr Breakpoint::newTransferOffsetBreakpoint(signed long shift)
+{
+   Breakpoint::ptr newbp = Breakpoint::ptr(new Breakpoint());
+   newbp->llbreakpoint_ = new int_breakpoint((Address) shift, newbp, true);
    return newbp;
 }
 
