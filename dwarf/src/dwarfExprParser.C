@@ -78,16 +78,23 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
    // This is basically a decode passthrough, with the work
    // being done by the DwarfResult. 
 
+   dwarf_printf("Entry to decodeDwarfExpression\n");
+
    int addr_width = getArchAddressWidth(arch);
-   if (initialStackValue != NULL) cons.pushUnsignedVal((Dyninst::MachRegisterVal) *initialStackValue);
+   if (initialStackValue != NULL) {
+      dwarf_printf("\tInitializing expr stack with 0x%lx\n", initialStackValue);
+      cons.pushUnsignedVal((Dyninst::MachRegisterVal) *initialStackValue);
+   }
 
    Dwarf_Loc *locations = dwlocs->ld_s;
    unsigned count = dwlocs->ld_cents;
    for ( unsigned int i = 0; i < count; i++ ) 
    {
+      dwarf_printf("\tAtom %d of %d: val 0x%x\n", i, count, locations[i].lr_atom);
       /* lit0 - lit31 : the constants 0..31 */
       if ( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) 
       {
+         dwarf_printf("\t\t Pushing unsigned val 0x%lx\n", locations[i].lr_atom - DW_OP_lit0);
          cons.pushUnsignedVal((Dyninst::MachRegisterVal) (locations[i].lr_atom - DW_OP_lit0));
          continue;
       }
@@ -95,6 +102,9 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
       /* reg0 - reg31: named registers (not their constants) */
       if ( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) 
       {
+         dwarf_printf("\t\t Pushing reg %s\n",MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_reg0,
+                                                                          arch).name().c_str());
+
          cons.pushReg(MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_reg0,
                                                   arch));
          continue;
@@ -103,6 +113,9 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
       /* breg0 - breg31: register contents plus an optional offset */
       if ( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) 
       {
+         dwarf_printf("\t\t Pushing reg %s + %d\n",MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_reg0,
+                                                                               arch).name().c_str(),
+                      locations[i].lr_number);
          cons.readReg(MachRegister::DwarfEncToReg(locations[i].lr_atom - DW_OP_breg0,
                                                   arch));
          cons.pushSignedVal((Dyninst::MachRegisterVal) locations[i].lr_number);
@@ -116,16 +129,23 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          // The register is in lr_number
          // The offset is in lr_number2
          case DW_OP_bregx:
+            dwarf_printf("\t\t Pushing reg %s + %d\n",MachRegister::DwarfEncToReg(locations[i].lr_number,
+                                                                                  arch).name().c_str(),
+                         locations[i].lr_number2);
+            
             cons.readReg(MachRegister::DwarfEncToReg(locations[i].lr_number, arch));
             cons.pushSignedVal(locations[i].lr_number2);
             cons.pushOp(DwarfResult::Add);
             break;
 
          case DW_OP_regx:
+            dwarf_printf("\t\t Pushing reg %s\n",MachRegister::DwarfEncToReg(locations[i].lr_number,
+                                                                                  arch).name().c_str());
             cons.pushReg(MachRegister::DwarfEncToReg(locations[i].lr_number, arch));
             break;
             
          case DW_OP_nop:
+            dwarf_printf("\t\t NOP\n");
             break;
 
          case DW_OP_addr:
@@ -134,6 +154,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          case DW_OP_const4u:
          case DW_OP_const8u:
          case DW_OP_constu:
+            dwarf_printf("\t\t Pushing unsigned 0x%lx\n", locations[i].lr_number);
             cons.pushUnsignedVal(locations[i].lr_number);
             break;
 
@@ -142,37 +163,45 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          case DW_OP_const4s:
          case DW_OP_const8s:
          case DW_OP_consts:
+            dwarf_printf("\t\t Pushing signed 0x%lx\n", locations[i].lr_number);
             cons.pushSignedVal(locations[i].lr_number);
             break;
 
          case DW_OP_fbreg:
+            dwarf_printf("\t\t Pushing FB + 0x%lx\n", locations[i].lr_number);
             cons.pushFrameBase();
             cons.pushSignedVal(locations[i].lr_number);
             cons.pushOp(DwarfResult::Add);
             break;
 
-         case DW_OP_dup:
-            cons.pushOp(DwarfResult::Pick, 0);
+         case DW_OP_dup: 
+            dwarf_printf("\t\t Pushing dup\n");
+           cons.pushOp(DwarfResult::Pick, 0);
             break;
 
          case DW_OP_drop:
+            dwarf_printf("\t\t Pushing drop\n");
             cons.pushOp(DwarfResult::Drop, 0);
             break;
 
          case DW_OP_pick: 
+            dwarf_printf("\t\t Pushing pick %d\n", locations[i].lr_number);
             cons.pushOp(DwarfResult::Pick, locations[i].lr_number);
             break;
 
          case DW_OP_over: 
+            dwarf_printf("\t\t Pushing pick 1\n");
             cons.pushOp(DwarfResult::Pick, 1);
             break;
 
          case DW_OP_swap: 
+            dwarf_printf("\t\t Pushing swap\n");
             cons.pushOp(DwarfResult::Pick, 1);
             cons.pushOp(DwarfResult::Drop, 2);
             break;
 
          case DW_OP_rot: 
+            dwarf_printf("\t\t Pushing rotate\n");
             cons.pushOp(DwarfResult::Pick, 2);
             cons.pushOp(DwarfResult::Pick, 2);
             cons.pushOp(DwarfResult::Drop, 3);
@@ -180,10 +209,12 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             break;
 
          case DW_OP_deref:
+            dwarf_printf("\t\t Pushing deref %d\n", addr_width);
             cons.pushOp(DwarfResult::Deref, addr_width);
             break;
 
          case DW_OP_deref_size:
+            dwarf_printf("\t\t Pushing deref %d\n", locations[i].lr_number);
             cons.pushOp(DwarfResult::Deref, locations[i].lr_number);
             break;
 
@@ -193,22 +224,27 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             // Variable: reference frame base (fbreg, above)
             // Frame base: reference CFA
             // CFA: offset from stack pointer
+            dwarf_printf("\t\t Pushing CFA\n");
             cons.pushCFA();
             break;
 
          case DW_OP_abs:
+            dwarf_printf("\t\t Pushing abs\n");
             cons.pushOp(DwarfResult::Abs);
             break;
 
          case DW_OP_and:
+            dwarf_printf("\t\t Pushing and\n");
             cons.pushOp(DwarfResult::And);
             break;
 
          case DW_OP_div:
+            dwarf_printf("\t\t Pushing div\n");
             cons.pushOp(DwarfResult::Div);
             break;
 
          case DW_OP_minus:
+            dwarf_printf("\t\t Pushing sub\n");
             cons.pushOp(DwarfResult::Sub);
             break;
 
@@ -234,10 +270,13 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             break;
 
          case DW_OP_plus:
+            dwarf_printf("\t\t Pushing add\n");
             cons.pushOp(DwarfResult::Add);
             break;
 
          case DW_OP_plus_uconst:
+            dwarf_printf("\t\t Pushing add 0x%x\n", locations[i].lr_number);
+
             cons.pushOp(DwarfResult::Add, locations[i].lr_number);
             break;
 

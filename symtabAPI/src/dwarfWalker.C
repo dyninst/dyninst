@@ -9,6 +9,7 @@
 #include "Function.h"
 #include "dwarf/h/dwarfExprParser.h"
 #include "common/h/pathName.h"
+#include "common/h/debug_common.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -39,10 +40,6 @@ using namespace Dwarf;
          return false;                                                  \
       }                                                                 \
    }
-
-
-// TODO
-#define dwarf_printf if (0) printf
 
 DwarfWalker::DwarfWalker(Symtab *symtab, Dwarf_Debug &dbg)
    :
