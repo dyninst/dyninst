@@ -3332,7 +3332,7 @@ bool CallStackUnwindingSet::walkStack(CallStackCallback *stk_cb)
       return false;
    }
 
-   thrset_iter iter("walkStack", had_error, ERR_CHCK_STOPPED);
+   thrset_iter iter("walkStack", had_error, ERR_CHCK_NORM);
    set<response::ptr> all_responses;
    set<int_process *> all_procs;
    int_threadSet *ithrset = thrset->getIntThreadSet();

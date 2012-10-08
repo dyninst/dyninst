@@ -53,6 +53,7 @@ response::response() :
    error(false),
    errorcode(0),
    proc(NULL),
+   aio(NULL),
    decoder_event(NULL),
    multi_resp_size(0),
    multi_resp_recvd(0)
@@ -132,6 +133,16 @@ unsigned int response::getID() const
    return id;
 }
 
+int_eventAsyncIO *response::getAsyncIOEvent()
+{
+   return aio;
+}
+
+void response::setAsyncIOEvent(int_eventAsyncIO *aio_)
+{
+   aio = aio_;
+}
+
 string response::name() const
 {
    switch (resp_type) {
@@ -147,6 +158,8 @@ string response::name() const
          return "Set Response";
       case rt_stack:
          return "Stack Response";
+      case rt_data:
+         return "Data Response";
    }
    assert(0);
    return "";
@@ -234,6 +247,13 @@ stack_response::ptr response::getStackResponse()
    return resp_type == rt_stack ?
       boost::static_pointer_cast<stack_response>(shared_from_this()) :
       stack_response::ptr();
+}
+
+data_response::ptr response::getDataResponse()
+{
+   return resp_type == rt_data ?
+      boost::static_pointer_cast<data_response>(shared_from_this()) :
+      data_response::ptr();
 }
 
 response::ptr responses_pending::rmResponse(unsigned int id)
@@ -646,6 +666,36 @@ int_thread *stack_response::getThread()
 void stack_response::postResponse(void *d)
 {
    data = d;
+}
+
+data_response::data_response() :
+   data(NULL)
+{
+   resp_type = rt_data;
+}
+
+data_response::~data_response()
+{
+   if (data) {
+      free(data);
+      data = NULL;
+   }
+}
+
+data_response::ptr data_response::createDataResponse()
+{
+   return data_response::ptr(new data_response());
+}
+
+void *data_response::getData()
+{
+   return data;
+}
+
+void data_response::postResponse(void *d)
+{
+   data = d;
+   markReady();
 }
 
 unsigned int ResponseSet::next_id = 1;

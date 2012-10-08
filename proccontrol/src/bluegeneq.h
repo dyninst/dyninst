@@ -56,6 +56,8 @@ class bgq_process;
 class bgq_thread;
 class ComputeNode;
 class ArchEventBGQ;
+class HandlePreControlAuthority;
+class HandlePostControlAuthority;
 
 template <class CmdType, class AckType> class Transaction;
 
@@ -68,6 +70,8 @@ class bgq_process :
 {
    friend class ComputeNode;
    friend class HandlerBGQStartup;
+   friend class HandlePreControlAuthority;
+   friend class HandlePostControlAuthority;
    friend class DecoderBlueGeneQ;
    friend class bgq_thread;
   private:
@@ -109,6 +113,8 @@ class bgq_process :
    virtual bool plat_supportLWPPostDestroy();
    virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual void noteNewDequeuedEvent(Event::ptr ev);
+   virtual unsigned int plat_getCapabilities();
+   virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
 
    void getStackInfo(bgq_thread *thr, CallStackCallback *cbs);
    virtual bool plat_getStackInfo(int_thread *thr, stack_response::ptr stk_resp);
@@ -126,6 +132,7 @@ class bgq_process :
                          mem_response::ptr resp, int_thread *thr);
    bool internal_writeMem(int_thread *stop_thr, const void *local, Dyninst::Address addr,
                           size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write);
+   virtual bool plat_needsThreadForMemOps() const;
 
    virtual bool plat_preHandleEvent();
    virtual bool plat_postHandleEvent();
@@ -169,6 +176,8 @@ class bgq_process :
    bool debugger_suspended;
    bool decoder_pending_stop;
    bool is_doing_temp_detach;
+   bool stopped_on_startup;
+   bool held_on_startup;
 
    uint32_t rank;
 
@@ -179,7 +188,9 @@ class bgq_process :
    GetAuxVectorsAckCmd get_auxvectors_result;
    GetThreadListAckCmd *initial_thread_list;
 
-   string tooltag;
+   EventControlAuthority::ptr pending_control_authority; //Used for releasing control authority
+   int_eventControlAuthority *stopwait_on_control_authority; //Used for gaining control authority
+   std::string tooltag;
    uint8_t priority;
    MultiToolControl *mtool;
    enum {
@@ -188,10 +199,12 @@ class bgq_process :
       issue_control_request,
       waitfor_control_request_ack,
       waitfor_control_request_notice,
+      issue_data_collection,
+      waitfor_data_or_stop,
       skip_control_request_signal,
       waitfor_control_request_signal,
-      issue_data_collection,
       waitfor_data_collection,
+      waits_done,
       data_collected,
       startup_done
    } startup_state;
@@ -217,7 +230,7 @@ class bgq_process :
    static unsigned int num_pending_stackwalks;
 };
 
-class bgq_thread : public thread_db_thread, ppc_thread
+class bgq_thread : public thread_db_thread, public ppc_thread
 {
    friend class bgq_process;
   private:
@@ -312,6 +325,28 @@ class HandleBGQStartup : public Handler
    virtual int getPriority() const;
 };
 
+//Handles the notice event, while we still have CA.  Removes BPs, etc
+class HandlePreControlAuthority : public Handler
+{
+  public:
+   HandlePreControlAuthority();
+   ~HandlePreControlAuthority();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
+//Handles the releasing of CA, triggers on the continue after a HandlePreControlAuthority event
+class HandlePostControlAuthority : public Handler
+{
+  public:
+   HandlePostControlAuthority();
+   ~HandlePostControlAuthority();
+
+   virtual void getEventTypesHandled(vector<EventType> &etypes);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
+};
+
 class GeneratorBGQ : public GeneratorMT
 {
   friend class ComputeNode;
@@ -352,7 +387,7 @@ class ArchEventBGQ : public ArchEvent
 class DecoderBlueGeneQ : public Decoder
 {
   private:
-   Event::ptr decodeCompletedResponse(response::ptr resp,
+   Event::ptr decodeCompletedResponse(response::ptr resp, int_process *proc, int_thread *thrd,
                                       map<Event::ptr, EventAsync::ptr> &async_evs);
 
    bool decodeStartupEvent(ArchEventBGQ *ae, bgq_process *proc, 
@@ -376,6 +411,8 @@ class DecoderBlueGeneQ : public Decoder
    bool decodeControlNotify(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events);
    bool decodeReleaseControlAck(ArchEventBGQ *archevent, bgq_process *proc, int err_code, std::vector<Event::ptr> &events);
+   bool decodeControlAck(ArchEventBGQ *ev, bgq_process *qproc, vector<Event::ptr> &events);
+
 
    Event::ptr createEventDetach(bgq_process *proc, bool err);
  public:

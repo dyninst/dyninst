@@ -173,7 +173,7 @@ bool int_process::waitfor_startup()
    bool proc_exited = false;
    while (getState() != running) {
       if (proc_exited || getState() == exited) {
-         pthrd_printf("Error.  Proces exited during create/attach\n");
+         pthrd_printf("Error.  Process exited during create/attach\n");
          globalSetLastError(err_exited, "Process exited during startup");
          return false;
       }
@@ -248,7 +248,6 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 	pthrd_printf("Calling plat_attach for %d processes\n", (int) procs.size());
    map<pair<int_process *, Dyninst::LWP>, bool> runningStates;
    for (set<int_process *>::iterator i = procs.begin(); i != procs.end();) {
-
 	   int_process *proc = *i;
       if (!proc) {
          procs.erase(i++);
@@ -270,8 +269,6 @@ bool int_process::attach(int_processSet *ps, bool reattach)
          continue;
       }
 
-		// works with sleep here
-
       //Keep track of the initial running states for each thread.  We'll fill them in latter
       // after we create the int_thread objects.
       bool allStopped = true;
@@ -284,9 +281,7 @@ bool int_process::attach(int_processSet *ps, bool reattach)
 
       bool local_should_sync = false;
       pthrd_printf("Calling plat_attach for process %d\n", proc->getPid());
-	// works with sleep here
-	  bool result = proc->plat_attach(allStopped, local_should_sync);
-	// works with sleep here? 
+      bool result = proc->plat_attach(allStopped, local_should_sync);
       if (!result) {
          pthrd_printf("Failed to plat_attach to %d\n", proc->getPid());
          procs.erase(i++);
@@ -299,7 +294,6 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       i++;
    }
 
-// breaks if sleep here
    //Create the int_thread objects via attach_threads
    if (!reattach) {
       for (set<int_process *>::iterator i = procs.begin(); i != procs.end(); i++) {
@@ -309,7 +303,6 @@ bool int_process::attach(int_processSet *ps, bool reattach)
       }
    }
 
-// Breaks if sleep here. 
    if (should_sync) {
       ProcPool()->condvar()->broadcast();
       ProcPool()->condvar()->unlock();      
@@ -725,11 +718,11 @@ void int_process::setState(int_process::State s)
       (*i)->getGeneratorState().setState(new_thr_state);
 	  if(new_thr_state == int_thread::exited)
 	  {
-             if((*i)->getPendingStopState().getState() != int_thread::dontcare) {
-                (*i)->getPendingStopState().restoreState();
-                (*i)->pendingStopsCount().dec();
-             }
-          }
+        if((*i)->getPendingStopState().getState() != int_thread::dontcare) {
+           (*i)->getPendingStopState().restoreState();
+           (*i)->pendingStopsCount().dec();
+        }
+     }
    }
 }
 
@@ -1308,11 +1301,20 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
          result->markError();
       }
       result->setResponse();
+
+      int_eventAsyncIO *iev = result->getAsyncIOEvent();
+      if (iev) {
+         pthrd_printf("Enqueueing new EventAsyncRead into mailbox on synchronous platform\n");
+         EventAsyncRead::ptr ev = EventAsyncRead::ptr(new EventAsyncRead(iev));
+         ev->setProcess(proc());
+         ev->setSyncType(Event::async);
+         mbox()->enqueue(ev);
+      }
    }
    else {
       pthrd_printf("Async read from remote memory %lx to %p, size = %lu on %d/%d\n",
                    remote, result->getBuffer(), (unsigned long) result->getSize(), 
-                   getPid(), thr->getLWP());
+                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       getResponses().lock();
       bresult = plat_readMemAsync(thr, remote, result);
@@ -1322,7 +1324,7 @@ bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result, int
       getResponses().unlock();
       getResponses().noteResponse();
    }
-   return bresult;      
+   return bresult;
 }
 
 bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t size, result_response::ptr result, int_thread *thr, bp_write_t bp_write)
@@ -1355,11 +1357,20 @@ bool int_process::writeMem(const void *local, Dyninst::Address remote, size_t si
          result->markError();
       }
       result->setResponse(bresult);
+
+      int_eventAsyncIO *iev = result->getAsyncIOEvent();
+      if (iev) {
+         pthrd_printf("Enqueueing new EventAsyncWrite into mailbox on synchronous platform\n");
+         EventAsyncWrite::ptr ev = EventAsyncWrite::ptr(new EventAsyncWrite(iev));
+         ev->setProcess(proc());
+         ev->setSyncType(Event::async);
+         mbox()->enqueue(ev);
+      }
    }
    else {
       pthrd_printf("Async writing to remote memory %lx from %p, size = %lu on %d/%d\n",
                    remote, local, (unsigned long) size,
-                   getPid(), thr->getLWP());
+                   getPid(), thr ? thr->getLWP() : (Dyninst::LWP)(-1));
 
       getResponses().lock();
       bresult = plat_writeMemAsync(thr, local, remote, size, result, bp_write);
@@ -1807,10 +1818,21 @@ int_library *int_process::getLibraryByName(std::string s) const
    return NULL;
 }
 
+unsigned int int_process::plat_getCapabilities()
+{
+   return (Process::pc_read | Process::pc_write | Process::pc_irpc | Process::pc_control);
+}
+
+Event::ptr int_process::plat_throwEventsBeforeContinue(int_thread *)
+{
+   return Event::ptr();
+}
+
 bool int_process::plat_threadOpsNeedProcStop() 
 {
    return false;
 }
+
 size_t int_process::numLibs() const
 {
    return mem->libs.size();
@@ -2177,6 +2199,15 @@ MultiToolControl *int_process::mtool_getMultiToolControl()
    return NULL;
 }
 
+SignalMask *int_process::getSigMask()
+{
+#if defined(os_windows)
+   return NULL;
+#else
+   return &pcsigmask;
+#endif
+}
+
 int_process::~int_process()
 {
    pthrd_printf("Deleting int_process at %p\n", this);
@@ -2511,20 +2542,30 @@ bool hybrid_lwp_control_process::plat_syncRunState()
    for (i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       bool result = true;
-	  if (!thr->isUser()) {
-		  // Pretend is member of Wu Tang clan -- Bill Williams, 13JUN2012
-		  resumeThread(thr);
-		  continue;
-	  }
-	  if (thr->getDetachState().getState() == int_thread::detached)
+      if (!thr->isUser()) {
+         // Pretend is member of Wu Tang clan -- Bill Williams, 13JUN2012
+         resumeThread(thr);
          continue;
-      if (thr->isSuspended() && RUNNING_STATE(thr->getTargetState())) {
-         pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
-         result = resumeThread(thr);
       }
-      else if (!thr->isSuspended() && !RUNNING_STATE(thr->getTargetState())) {
-         pthrd_printf("Suspending thread %d/%d\n", getPid(), thr->getLWP());
-         result = suspendThread(thr);
+      if (thr->getDetachState().getState() == int_thread::detached)
+         continue;
+      if (RUNNING_STATE(thr->getTargetState())) {
+         if (thr->isSuspended()) {
+            pthrd_printf("Resuming thread %d/%d\n", getPid(), thr->getLWP());
+            result = resumeThread(thr);
+         }
+         else {
+            pthrd_printf("Thread %d/%d is already resumed, not resuming\n", getPid(), thr->getLWP());
+         }
+      }
+      else if (!RUNNING_STATE(thr->getTargetState())) {
+         if (!thr->isSuspended()) {
+            pthrd_printf("Suspending thread %d/%d\n", getPid(), thr->getLWP());
+            result = suspendThread(thr);
+         }
+         else {
+            pthrd_printf("Thread %d/%d is already suspended, not suspending\n", getPid(), thr->getLWP());
+         }
       }
       if (!result) {
          pthrd_printf("Error suspending/resuming threads\n");
@@ -2563,6 +2604,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    internal_state(this, InternalStateID, dontcare),
    detach_state(this, DetachStateID, dontcare),
    user_irpc_state(this, UserRPCStateID, dontcare),
+   control_authority_state(this, ControlAuthorityStateID, dontcare),
    user_state(this, UserStateID, neonatal),
    handler_state(this, HandlerStateID, neonatal),
    generator_state(this, GeneratorStateID, neonatal),
@@ -2920,6 +2962,11 @@ int_thread::StateTracker &int_thread::getUserRPCState()
 	return user_irpc_state;
 }
 
+int_thread::StateTracker &int_thread::getControlAuthorityState()
+{
+   return control_authority_state;
+}
+
 int_thread::StateTracker &int_thread::getUserState()
 {
    return user_state;
@@ -2993,6 +3040,7 @@ int_thread::StateTracker &int_thread::getStateByID(int id)
       case InternalStateID: return internal_state;
       case DetachStateID: return detach_state;
       case UserRPCStateID: return user_irpc_state;
+      case ControlAuthorityStateID: return control_authority_state;
       case UserStateID: return user_state;
       case HandlerStateID: return handler_state;
       case GeneratorStateID: return generator_state;
@@ -3016,6 +3064,7 @@ std::string int_thread::stateIDToName(int id)
       case BreakpointResumeStateID: return "breakpoint resume";
       case InternalStateID: return "internal";
       case UserRPCStateID: return "irpc user";
+      case ControlAuthorityStateID: return "control authority";
       case UserStateID: return "user";
       case DetachStateID: return "detach";
       case HandlerStateID: return "handler";
@@ -3300,6 +3349,17 @@ bool int_thread::getAllRegisters(allreg_response::ptr response)
       response->getRegPool()->thread = this;
       response->markReady();
       regpool_lock.unlock();
+
+      int_eventAsyncIO *iev = response->getAsyncIOEvent();
+      if (iev) {
+         pthrd_printf("Enqueueing new EventAsyncReadAllRegs into mailbox on synchronous platform\n");
+         EventAsyncReadAllRegs::ptr ev = EventAsyncReadAllRegs::ptr(new EventAsyncReadAllRegs(iev));
+         ev->setProcess(proc());
+         ev->setThread(thread());
+         ev->setSyncType(Event::async);
+         mbox()->enqueue(ev);
+      }
+
       pthrd_printf("Successfully retrieved all registers for %d\n", getLWP());
    }
    else
@@ -3338,6 +3398,15 @@ bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr re
          return false;
       }
 
+      int_eventAsyncIO *iev = response->getAsyncIOEvent();
+      if (iev) {
+         pthrd_printf("Enqueueing new EventAsyncSetAllRegs into mailbox on synchronous platform\n");
+         EventAsyncSetAllRegs::ptr ev = EventAsyncSetAllRegs::ptr(new EventAsyncSetAllRegs(iev));
+         ev->setProcess(proc());
+         ev->setThread(thread());
+         ev->setSyncType(Event::async);
+         mbox()->enqueue(ev);
+      }
       pthrd_printf("Successfully set all registers for %d\n", getLWP());
    }
    else {
@@ -3981,15 +4050,7 @@ bool int_thread::StateTracker::setState(State to)
 
    int_thread::State handler_state = up_thr->getHandlerState().getState();
    int_thread::State generator_state = up_thr->getGeneratorState().getState();
-   if (up_thr->up_thread && handler_state == stopped) {
-     if (generator_state != stopped &&
-	 generator_state != exited &&
-	 generator_state != detached) {
-        pthrd_printf("Crashing: generator state is %d\n", generator_state);
-        fprintf(stderr, "ERROR CASE\n");
-     }
-     assert(generator_state == stopped || generator_state == exited || generator_state == detached );
-   }
+   if (up_thr->up_thread && handler_state == stopped) assert(generator_state == stopped || generator_state == exited || generator_state == detached );
    if (up_thr->up_thread && generator_state == running) assert(handler_state == running);
    return true;
 }
@@ -6352,6 +6413,80 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
    return true;
 }
 
+bool Process::writeMemoryAsync(Dyninst::Address addr, const void *buffer, size_t size, void *opaque_val) const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("writeMemoryAsync on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if( llproc_->getState() == int_process::detached ) {
+       perr_printf("writeMemoryAsync on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   pthrd_printf("User wants to async write memory to remote addr 0x%lx from buffer 0x%p of size %lu\n", 
+                addr, buffer, (unsigned long) size);
+   result_response::ptr resp = result_response::createResultResponse();
+   int_eventAsyncIO *iev = new int_eventAsyncIO(resp, int_eventAsyncIO::memwrite);
+   iev->local_memory = const_cast<void *>(buffer);
+   iev->remote_addr = addr;
+   iev->size = size;
+   iev->opaque_value = opaque_val;
+   resp->setAsyncIOEvent(iev);
+
+   bool result = llproc_->writeMem(buffer, addr, size, resp);
+   if (!result) {
+      pthrd_printf("Error writing to memory\n");
+      (void)resp->isReady();
+      return false;
+   }
+   llproc_->plat_preAsyncWait();
+
+   return true;
+}
+
+bool Process::readMemoryAsync(void *buffer, Dyninst::Address addr, size_t size, void *opaque_val) const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("readMemoryAsync on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return false;
+   }
+
+   if( llproc_->getState() == int_process::detached ) {
+       perr_printf("readMemoryAsync on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+
+   pthrd_printf("User wants to async read memory from 0x%lx to 0x%p of size %lu\n", 
+                addr, buffer, (unsigned long) size);
+
+   mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
+   int_eventAsyncIO *iev = new int_eventAsyncIO(memresult, int_eventAsyncIO::memread);
+   iev->local_memory = buffer;
+   iev->remote_addr = addr;
+   iev->size = size;
+   iev->opaque_value = opaque_val;
+   memresult->setAsyncIOEvent(iev);
+
+   bool result = llproc_->readMem(addr, memresult);
+   if (!result) {
+      pthrd_printf("Error reading from memory %lx on target process %d\n",
+                   addr, llproc_->getPid());
+      (void)memresult->isReady();
+      return false;
+   }
+   llproc_->plat_preAsyncWait();
+
+   return true;
+}
+
 bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
 {
    MTLock lock_this_func;
@@ -6503,6 +6638,17 @@ FollowFork *Process::getFollowFork()
    return llproc_->getForkTracking();
 }
 
+SignalMask *Process::getSignalMask()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getSignalMask on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->getSigMask();
+}
+
 const LibraryTracking *Process::getLibraryTracking() const
 {
    MTLock lock_this_func;
@@ -6525,6 +6671,16 @@ const ThreadTracking *Process::getThreadTracking() const
    return llproc_->threaddb_getThreadTracking();
 }
 
+const SignalMask *Process::getSignalMask() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getSignalMask on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+   return llproc_->getSigMask();
+}
 
 err_t Process::getLastError() const {
    MTLock lock_this_func;
@@ -6575,6 +6731,17 @@ ExecFileInfo* Process::getExecutableInfo() const
    }
 
    return llproc()->plat_getExecutableInfo();
+}
+
+unsigned int Process::getCapabilities() const
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getCapabilities on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }   
+   return llproc()->plat_getCapabilities();
 }
 
 Thread::Thread() :
@@ -6894,6 +7061,75 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
       return false;
    }
    return true;   
+}
+
+bool Thread::getAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("getAllRegistersAsync on deleted thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
+   pthrd_printf("User wants to async read registers on %d/%d\n",
+                llthread_->proc()->getPid(), llthread_->getLWP());
+   if( llthread_->getUserState().getState() == int_thread::detached ) {
+       perr_printf("getAllRegistersAsync on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+   if (llthread_->getUserState().getState() != int_thread::stopped) {
+      setLastError(err_notstopped, "Thread must be stopped before getting registers");
+      perr_printf("User called getAllRegistersAsync on running thread %d\n", llthread_->getLWP());
+      return false;
+   }
+
+   allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
+   int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallread);
+   iev->opaque_value = opaque_val;
+   iev->rpool = &pool;
+   response->setAsyncIOEvent(iev);
+   bool result = llthread_->getAllRegisters(response);
+   if (!result) {
+      pthrd_printf("Error getting all registers async\n");
+      return false;
+   }
+   llthread_->llproc()->plat_preAsyncWait();
+   return true;
+}
+
+bool Thread::setAllRegistersAsync(RegisterPool &pool, void *opaque_val) const
+{
+   MTLock lock_this_func;
+   if (!llthread_) {
+      perr_printf("setAllRegistersAsync on deleted thread\n");
+      setLastError(err_exited, "Thread is exited\n");
+      return false;
+   }
+   pthrd_printf("User wants to async set registers on %d/%d\n",
+                llthread_->proc()->getPid(), llthread_->getLWP());
+   if( llthread_->proc()->llproc()->getState() == int_process::detached ) {
+       perr_printf("setAllRegistersAsync on detached process\n");
+       setLastError(err_detached, "Process is detached\n");
+       return false;
+   }
+   if (llthread_->getUserState().getState() != int_thread::stopped) {
+      setLastError(err_notstopped, "Thread must be stopped before setting registers");
+      perr_printf("User called setAllRegistersAsync on running thread %d\n", llthread_->getLWP());
+      return false;
+   }
+
+   result_response::ptr response = result_response::createResultResponse();
+   int_eventAsyncIO *iev = new int_eventAsyncIO(response, int_eventAsyncIO::regallwrite);
+   iev->opaque_value = opaque_val;
+   response->setAsyncIOEvent(iev);
+   bool result = llthread_->setAllRegisters(*pool.llregpool, response);
+   if (!result) {
+      pthrd_printf("Error setting all registers async\n");
+      return false;
+   }
+   llthread_->llproc()->plat_preAsyncWait();
+   return true;
 }
 
 bool Thread::isInitialThread() const

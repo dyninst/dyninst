@@ -193,10 +193,15 @@ std::string EventType::name() const
       STR_CASE(Detach);
       STR_CASE(IntBootstrap);
       STR_CASE(ForceTerminate);
-	  STR_CASE(PreBootstrap);
+      STR_CASE(PreBootstrap);
       STR_CASE(Nop);
       STR_CASE(ThreadDB);
-	  STR_CASE(ThreadInfo);
+      STR_CASE(ThreadInfo);
+      STR_CASE(ControlAuthority);
+      STR_CASE(AsyncRead);
+      STR_CASE(AsyncWrite);
+      STR_CASE(AsyncReadAllRegs);
+      STR_CASE(AsyncSetAllRegs);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -816,6 +821,101 @@ void EventIntBootstrap::setData(void *d)
    data = d;
 }
 
+EventAsyncIO::EventAsyncIO(EventType et, int_eventAsyncIO *iev_) :
+   Event(et),
+   iev(iev_)
+{
+}
+
+EventAsyncIO::~EventAsyncIO()
+{
+   if (iev) {
+      delete iev;
+      iev = NULL;
+   }
+}
+
+bool EventAsyncIO::hadError() const
+{
+   return iev->resp->hasError();
+}
+
+void *EventAsyncIO::getOpaqueVal() const
+{
+   return iev->opaque_value;
+}
+
+int_eventAsyncIO *EventAsyncIO::getInternalEvent() const
+{
+   return iev;
+}
+
+EventAsyncRead::EventAsyncRead(int_eventAsyncIO *iev_) :
+   EventAsyncIO(EventType(EventType::None, EventType::AsyncRead), iev_)
+{
+}
+
+EventAsyncRead::~EventAsyncRead()
+{
+}
+
+void *EventAsyncRead::getMemory() const
+{
+   return iev->local_memory;
+}
+
+size_t EventAsyncRead::getSize() const
+{
+   return iev->size;
+}
+
+Address EventAsyncRead::getAddress() const
+{
+   return iev->remote_addr;
+}
+
+EventAsyncWrite::EventAsyncWrite(int_eventAsyncIO *iev_) :
+   EventAsyncIO(EventType(EventType::None, EventType::AsyncWrite), iev_)
+{
+}
+
+EventAsyncWrite::~EventAsyncWrite()
+{
+}
+
+size_t EventAsyncWrite::getSize() const
+{
+   return iev->size;
+}
+
+Address EventAsyncWrite::getAddress() const
+{
+   return iev->remote_addr;
+}
+
+EventAsyncReadAllRegs::EventAsyncReadAllRegs(int_eventAsyncIO *iev_) :
+   EventAsyncIO(EventType(EventType::None, EventType::AsyncReadAllRegs), iev_)
+{
+}
+
+EventAsyncReadAllRegs::~EventAsyncReadAllRegs()
+{
+}
+
+const RegisterPool &EventAsyncReadAllRegs::getRegisters() const
+{
+   return *iev->rpool;
+}
+
+EventAsyncSetAllRegs::EventAsyncSetAllRegs(int_eventAsyncIO *iev_) :
+   EventAsyncIO(EventType(EventType::None, EventType::AsyncSetAllRegs), iev_)
+{
+}
+
+EventAsyncSetAllRegs::~EventAsyncSetAllRegs()
+{
+}
+
 EventNop::EventNop() :
    Event(EventType(EventType::None, EventType::Nop))
 {
@@ -859,6 +959,66 @@ bool EventThreadDB::triggersCB() const
             return true;
    return false;
 }
+
+EventControlAuthority::EventControlAuthority(EventType::Time t, int_eventControlAuthority *iev_) :
+   Event(EventType(t, EventType::ControlAuthority)),
+   iev(iev_)
+{
+}
+
+EventControlAuthority::~EventControlAuthority()
+{
+   if (iev && !iev->dont_delete) {
+      delete iev;
+   }
+   iev = NULL;
+}
+
+bool EventControlAuthority::procStopper() const
+{
+   if (eventTrigger() == ControlUnset)
+      return false;
+   if (eventTrigger() == ControlGained)
+      return false;
+   if (iev->unset_desync)
+      return false;
+
+   int_process *proc = getProcess()->llproc();
+   int_thread *thr = getThread()->llthrd();
+
+   if (!iev->did_desync) {
+      pthrd_printf("Desyncing control authority state for EventControlAuthority\n");
+      thr->getControlAuthorityState().desyncStateProc(int_thread::stopped);
+      iev->did_desync = true;
+   }
+   return !proc->getProcStopManager().processStoppedTo(int_thread::ControlAuthorityStateID);
+}
+
+std::string EventControlAuthority::otherToolName() const
+{
+   return iev->toolname;
+}
+ 
+unsigned int EventControlAuthority::otherToolID() const
+{
+   return iev->toolid;
+}
+
+int EventControlAuthority::otherToolPriority() const
+{
+   return iev->priority;
+}
+
+EventControlAuthority::Trigger EventControlAuthority::eventTrigger() const
+{
+   return iev->trigger;
+}
+
+int_eventControlAuthority *EventControlAuthority::getInternalEvent() const 
+{
+   return iev;
+}
+
 
 int_eventBreakpoint::int_eventBreakpoint(Address a, sw_breakpoint *, int_thread *thr) :
    addr(a),
@@ -986,7 +1146,42 @@ int_eventDetach::~int_eventDetach()
 {
 }
 
+int_eventControlAuthority::int_eventControlAuthority(string toolname_, unsigned int toolid_,
+                                                     int priority_, EventControlAuthority::Trigger trigger_) :
+   toolname(toolname_),
+   toolid(toolid_),
+   priority(priority_),
+   trigger(trigger_),
+   control_lost(false),
+   handled_bps(false),
+   took_ca(false),
+   did_desync(false),
+   unset_desync(false),
+   dont_delete(false),
+   waiting_on_stop(false)
+{
+}
 
+int_eventControlAuthority::int_eventControlAuthority()
+{   
+}
+
+int_eventControlAuthority::~int_eventControlAuthority()
+{
+}
+
+int_eventAsyncIO::int_eventAsyncIO(response::ptr resp_, asyncio_type iot_) : 
+   resp(resp_),
+   iot(iot_),
+   rpool(NULL)
+{
+   pthrd_printf("Creating int_eventAsyncIO at %p\n", this);
+}
+
+int_eventAsyncIO::~int_eventAsyncIO()
+{
+   pthrd_printf("Deleting int_eventAsyncIO at %p\n", this);
+}
 
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
@@ -1018,6 +1213,18 @@ int_eventDetach::~int_eventDetach()
      return boost::static_pointer_cast<const NAME>(shared_from_this()); \
    }
 
+#define DEFN_EVENT_CAST4(NAME, TYPE, TYPE2, TYPE3, TYPE4)   \
+   NAME::ptr Event::get ## NAME() {  \
+      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3 && etype.code() != EventType::TYPE4) return NAME::ptr(); \
+     return boost::static_pointer_cast<NAME>(shared_from_this()); \
+   } \
+   NAME::const_ptr Event::get ## NAME() const { \
+      if (etype.code() != EventType::TYPE && etype.code() != EventType::TYPE2 && etype.code() != EventType::TYPE3 && etype.code() != EventType::TYPE4) return NAME::const_ptr(); \
+     return boost::static_pointer_cast<const NAME>(shared_from_this()); \
+   }
+
+
+DEFN_EVENT_CAST4(EventAsyncIO, AsyncRead, AsyncWrite, AsyncReadAllRegs, AsyncSetAllRegs)
 DEFN_EVENT_CAST3(EventTerminate, Exit, Crash, ForceTerminate)
 DEFN_EVENT_CAST2(EventNewThread, UserThreadCreate, LWPCreate)
 DEFN_EVENT_CAST2(EventThreadDestroy, UserThreadDestroy, LWPDestroy)
@@ -1048,3 +1255,8 @@ DEFN_EVENT_CAST(EventIntBootstrap, IntBootstrap)
 DEFN_EVENT_CAST(EventNop, Nop)
 DEFN_EVENT_CAST(EventThreadDB, ThreadDB)
 DEFN_EVENT_CAST(EventWinStopThreadDestroy, WinStopThreadDestroy)
+DEFN_EVENT_CAST(EventControlAuthority, ControlAuthority)
+DEFN_EVENT_CAST(EventAsyncRead, AsyncRead)
+DEFN_EVENT_CAST(EventAsyncWrite, AsyncWrite)
+DEFN_EVENT_CAST(EventAsyncReadAllRegs, AsyncReadAllRegs)
+DEFN_EVENT_CAST(EventAsyncSetAllRegs, AsyncSetAllRegs)

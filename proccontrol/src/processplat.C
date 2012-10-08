@@ -49,11 +49,13 @@ LibraryTracking::~LibraryTracking()
 
 void LibraryTracking::setDefaultTrackLibraries(bool b)
 {
+   MTLock lock_this_func(MTLock::allow_init);
    default_track_libs = b;
 }
 
 bool LibraryTracking::getDefaultTrackLibraries()
 {
+   MTLock lock_this_func(MTLock::allow_init);
    return default_track_libs;
 }
 
@@ -99,11 +101,13 @@ ThreadTracking::~ThreadTracking()
 
 void ThreadTracking::setDefaultTrackThreads(bool b) 
 {
+   MTLock lock_this_func(MTLock::allow_init);
    default_track_threads = b;
 }
 
 bool ThreadTracking::getDefaultTrackThreads()
 {
+   MTLock lock_this_func(MTLock::allow_init);
    return default_track_threads;
 }
 
@@ -148,11 +152,13 @@ FollowFork::~FollowFork()
 FollowFork::follow_t FollowFork::default_should_follow_fork = FollowFork::Follow;
 
 void FollowFork::setDefaultFollowFork(FollowFork::follow_t f) {
+   MTLock lock_this_func(MTLock::allow_init);
    default_should_follow_fork = f;
 }
 
 FollowFork::follow_t FollowFork::getDefaultFollowFork()
 {
+   MTLock lock_this_func(MTLock::allow_init);
    return default_should_follow_fork;
 }
 
@@ -195,6 +201,7 @@ CallStackUnwinding::~CallStackUnwinding()
 
 bool CallStackUnwinding::walkStack(CallStackCallback *stk_cb) const
 {
+   MTLock lock_this_func;
    Thread::ptr thr = wt.lock();
    if (!thr) {
       perr_printf("CallStackUnwinding called on exited thread\n");
@@ -229,25 +236,25 @@ MultiToolControl::~MultiToolControl()
 
 void MultiToolControl::setDefaultToolName(string name) 
 {
-   MTLock lock_this_func;
+   MTLock lock_this_func(MTLock::allow_init);
    default_tool_name = name;
 }
 
 void MultiToolControl::setDefaultToolPriority(MultiToolControl::priority_t p)
 {
-   MTLock lock_this_func;
+   MTLock lock_this_func(MTLock::allow_init);
    default_tool_priority = p;
 }
 
 string MultiToolControl::getDefaultToolName()
 {
-   MTLock lock_this_func;
+   MTLock lock_this_func(MTLock::allow_init);
    return default_tool_name;
 }
 
 MultiToolControl::priority_t MultiToolControl::getDefaultToolPriority()
 {
-   MTLock lock_this_func;
+   MTLock lock_this_func(MTLock::allow_init);
    return default_tool_priority;
 }
 
@@ -275,6 +282,45 @@ MultiToolControl::priority_t MultiToolControl::getToolPriority() const
       return 0;
    }
    return llproc->mtool_getPriority();
+}
+
+dyn_sigset_t SignalMask::default_sigset;
+bool SignalMask::sigset_initialized = false;
+
+SignalMask::SignalMask() :
+   the_sigset(getDefaultSigMask())
+{
+}
+
+SignalMask::~SignalMask()
+{
+}
+
+dyn_sigset_t SignalMask::getSigMask() const
+{
+   return the_sigset;
+}
+
+void SignalMask::setSigMask(dyn_sigset_t s)
+{
+   the_sigset = s;
+}
+
+dyn_sigset_t SignalMask::getDefaultSigMask()
+{
+   if (!sigset_initialized) {
+#if !defined(os_windows)
+      sigfillset(&default_sigset);
+#endif
+      sigset_initialized = true;
+   }
+   return default_sigset;
+}
+
+void SignalMask::setDefaultSigMask(dyn_sigset_t s)
+{
+   sigset_initialized = true;
+   default_sigset = s;
 }
 
 #if 0

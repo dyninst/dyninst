@@ -600,9 +600,20 @@ void HandleSignal::getEventTypesHandled(std::vector<EventType> &etypes)
 Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
+   int_process *proc = ev->getProcess()->llproc();
    
    EventSignal *sigev = static_cast<EventSignal *>(ev.get());
-   thrd->setContSignal(sigev->getSignal());
+   int signal_no = sigev->getSignal();
+   thrd->setContSignal(signal_no);
+
+   SignalMask *smask = proc->getSigMask();
+   if (smask) {
+      dyn_sigset_t mask = smask->getSigMask();
+      if (!sigismember(&mask, signal_no)) {
+         pthrd_printf("Not giving callback on signal because its not in the SignalMask\n");
+         ev->setSuppressCB(true);
+      }
+   }
 
    return ret_success;
 }
@@ -1758,6 +1769,10 @@ Handler::handler_ret_t HandleDetach::handleEvent(Event::ptr ev)
    if (!removed_bps) 
    {
       proc->setForceGeneratorBlock(true);
+      ProcPool()->condvar()->lock();
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
+      
       if (!temporary) {
          while (!mem->breakpoints.empty())
          {
@@ -1880,6 +1895,36 @@ Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
 void HandleAsync::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::Async));
+}
+
+HandleAsyncIO::HandleAsyncIO() :
+   Handler("AsyncIO Handler")
+{
+}
+
+HandleAsyncIO::~HandleAsyncIO()
+{
+}
+   
+Handler::handler_ret_t HandleAsyncIO::handleEvent(Event::ptr ev)
+{
+   pthrd_printf("In AsyncIO Handler for %d\n", ev->getProcess()->getPid());
+   EventAsyncIO::ptr evio = ev->getEventAsyncIO();
+   assert(evio);
+   int_eventAsyncIO *iev = evio->getInternalEvent();
+   pthrd_printf("Dealing with int_eventAsyncIO %p\n", iev);
+   assert(iev);
+   assert(iev->resp);
+   (void)iev->resp->isReady();
+   return ret_success;
+}
+
+void HandleAsyncIO::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::AsyncRead));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncWrite));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncReadAllRegs));
+   etypes.push_back(EventType(EventType::None, EventType::AsyncSetAllRegs));
 }
 
 HandleNop::HandleNop() :
@@ -2375,6 +2420,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    static HandlePostForkCont *hpostforkcont = NULL;
    static HandlePostExec *hpostexec = NULL;
    static HandleAsync *hasync = NULL;
+   static HandleAsyncIO *hasyncio = NULL;
    static HandleForceTerminate *hforceterm = NULL;
    static HandleNop *hnop = NULL;
    static HandleDetach *hdetach = NULL;
@@ -2407,6 +2453,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
       hpostforkcont = new HandlePostForkCont();
       hpostexec = new HandlePostExec();
       hasync = new HandleAsync();
+      hasyncio = new HandleAsyncIO();
       hforceterm = new HandleForceTerminate();
       hprebootstrap = new HandlePreBootstrap();
       hnop = new HandleNop();
@@ -2438,6 +2485,7 @@ HandlerPool *createDefaultHandlerPool(int_process *p)
    hpool->addHandler(hpostexec);
    hpool->addHandler(hrpclaunch);
    hpool->addHandler(hasync);
+   hpool->addHandler(hasyncio);
    hpool->addHandler(hforceterm);
    hpool->addHandler(hprebootstrap);
    hpool->addHandler(hnop);

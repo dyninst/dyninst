@@ -390,7 +390,9 @@ class int_process
    virtual bool plat_convertToBreakpointAddress(Address &, int_thread *) { return true; }
    virtual void plat_getEmulatedSingleStepAsyncs(int_thread *thr, std::set<response::ptr> resps);
    virtual bool plat_needsThreadForMemOps() const { return true; }
-
+   virtual unsigned int plat_getCapabilities();
+   virtual Event::ptr plat_throwEventsBeforeContinue(int_thread *thr);
+   
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
@@ -437,7 +439,8 @@ class int_process
    virtual FollowFork *getForkTracking();
    virtual bool fork_setTracking(FollowFork::follow_t b);
    virtual FollowFork::follow_t fork_isTracking();
-   
+   SignalMask *getSigMask();
+
    virtual std::string mtool_getName();
    virtual MultiToolControl::priority_t mtool_getPriority();
    virtual MultiToolControl *mtool_getMultiToolControl();
@@ -474,6 +477,7 @@ class int_process
    ProcStopEventManager proc_stop_manager;
    std::map<int, int> proc_desyncd_states;
    FollowFork::follow_t fork_tracking;
+   SignalMask pcsigmask;
    void *user_data;
    err_t last_error;
    const char *last_error_string;
@@ -644,7 +648,7 @@ public:
    } State;
    //The order of these is very important.  Lower numbered
    // states take precedence over higher numbered states.
-   static const int NumStateIDs = 16;
+   static const int NumStateIDs = 17;
    static const int NumTargetStateIDs = (NumStateIDs-2); //Handler and Generator states aren't target states
 
    static const int AsyncStateID            = 0;
@@ -660,9 +664,10 @@ public:
    static const int StartupStateID          = 10;
    static const int DetachStateID           = 11;
    static const int UserRPCStateID          = 12;
-   static const int UserStateID             = 13;
-   static const int HandlerStateID          = 14;
-   static const int GeneratorStateID        = 15;
+   static const int ControlAuthorityStateID = 13;
+   static const int UserStateID             = 14;
+   static const int HandlerStateID          = 15;
+   static const int GeneratorStateID        = 16;
    static std::string stateIDToName(int id);
 
    class StateTracker {
@@ -703,6 +708,7 @@ public:
    StateTracker &getAsyncState();
    StateTracker &getInternalState();
    StateTracker &getDetachState();
+   StateTracker &getControlAuthorityState();
    StateTracker &getUserRPCState();
    StateTracker &getUserState();
    StateTracker &getHandlerState();
@@ -896,6 +902,7 @@ public:
    StateTracker internal_state;
    StateTracker detach_state;
    StateTracker user_irpc_state;
+   StateTracker control_authority_state;
    StateTracker user_state;
    StateTracker handler_state;
    StateTracker generator_state;

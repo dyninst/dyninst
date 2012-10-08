@@ -172,9 +172,12 @@ static void printMessage(ToolMessage *msg, const char *str)
          NotifyMessage *no = static_cast<NotifyMessage *>(msg);
          switch (no->notifyMessageType) {
             case NotifyMessageType_Signal:
-               pclean_printf("Signal: signum = %u, threadId = %u, instAddress = 0x%lx, dataAddress = %lx, reason = %u\n",
-                             no->type.signal.signum, (unsigned) no->type.signal.threadID, no->type.signal.instAddress,
-                             no->type.signal.dataAddress, (unsigned) no->type.signal.reason);
+               pclean_printf("Signal: signum = %u, threadId = %u, instAddress = 0x%lx, "
+                             "dataAddress = %lx, reason = %u, executeMode = %d\n",
+                             no->type.signal.signum, (unsigned) no->type.signal.threadID,
+                             no->type.signal.instAddress, no->type.signal.dataAddress, 
+                             (unsigned) no->type.signal.reason,
+                             (unsigned) no->type.signal.executeMode);
                break;
             case NotifyMessageType_Termination:
                pclean_printf("Exit: exitStatus = %u\n", no->type.termination.exitStatus);
@@ -266,6 +269,7 @@ bgq_process::bgq_process(Dyninst::PID p, std::string e, std::vector<std::string>
    page_size(0),
    interp_base(0),
    initial_thread_list(NULL),
+   stopwait_on_control_authority(NULL),
    priority(0),
    mtool(NULL),
    startup_state(issue_attach),
@@ -772,6 +776,11 @@ bool bgq_process::plat_writeMemAsync(int_thread *thr, const void *local, Dyninst
    return internal_writeMem(thr, local, addr, size, result, NULL, bp_write);
 }
 
+bool bgq_process::plat_needsThreadForMemOps() const
+{
+   return false;
+}
+
 bool bgq_process::plat_getOSRunningStates(std::map<Dyninst::LWP, bool> &)
 {
    return true;
@@ -815,6 +824,36 @@ void bgq_process::noteNewDequeuedEvent(Event::ptr ev)
    }
 }
 
+unsigned int bgq_process::plat_getCapabilities()
+{
+   if (!hasControlAuthority)
+      return Process::pc_read;
+   return int_process::plat_getCapabilities();
+}
+
+Event::ptr bgq_process::plat_throwEventsBeforeContinue(int_thread *thr)
+{
+   if (!pending_control_authority)
+      return Event::ptr();
+   if (thr != threadPool()->initialThread())
+      return Event::ptr();
+
+   pthrd_printf("Throwing new ControlAuthority event upon main thread continue in %d\n", getPid());
+   int_eventControlAuthority *iev = new int_eventControlAuthority();
+   *iev = *pending_control_authority->getInternalEvent();
+   iev->unset_desync = false;
+
+   thr->getControlAuthorityState().desyncStateProc(int_thread::stopped);
+
+   EventControlAuthority::ptr new_ev = EventControlAuthority::ptr(new EventControlAuthority(EventType::Post, iev));
+   new_ev->setProcess(proc());
+   int_thread *initial_thread = threadPool()->initialThread();
+   new_ev->setThread(initial_thread->thread());
+   new_ev->setSyncType(Event::async);
+
+   return new_ev;
+}
+
 void bgq_process::plat_threadAttachDone()
 {
    pthrd_printf("Adding bootstrap event to mailbox\n");
@@ -826,7 +865,7 @@ void bgq_process::plat_threadAttachDone()
    int_thread::State new_state = int_thread::none;
    Event::SyncType new_ev_sync_state = Event::unset;
 
-   if (priority != QueryPriorityLevel) {
+   if (hasControlAuthority) {
       new_ev_sync_state = Event::async;
       new_state = int_thread::stopped;
    }
@@ -837,8 +876,15 @@ void bgq_process::plat_threadAttachDone()
 
    for (int_threadPool::iterator i = threadPool()->begin(); i != threadPool()->end(); i++) {
       int_thread *thr = *i;
-      thr->getGeneratorState().setState(new_state);
-      thr->getHandlerState().setState(new_state);
+      if (new_state == int_thread::stopped) {
+         thr->getGeneratorState().setState(new_state);
+         thr->getHandlerState().setState(new_state);
+      }
+      else {
+         //The order we set these in matters on whether we're doing stop/run operations
+         thr->getHandlerState().setState(new_state);
+         thr->getGeneratorState().setState(new_state);
+      }
       thr->getUserState().setState(new_state);
    }
    ev->setSyncType(new_ev_sync_state);
@@ -858,6 +904,7 @@ bool bgq_process::handleStartupEvent(void *data)
       do_group_wait = 3,
       group_done = 4
    } attach_action = action_none;
+   bool expecting_stop = false;
 
    /**
     * Most of this complexity is for group attaches, which happen for
@@ -969,20 +1016,22 @@ bool bgq_process::handleStartupEvent(void *data)
    
    if (startup_state == issue_control_request && priority == QueryPriorityLevel) {
       pthrd_printf("In Query-Only mode (priority 0). Not issuing control request to %d\n", getPid());
-      startup_state = issue_data_collection;
+      startup_state = skip_control_request_signal;
    }
 
    if (startup_state == issue_control_request) {
       pthrd_printf("Issuing ControlMessage in startup handler\n");
       ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
-      sigset_t all_sigs;
-      sigfillset(&all_sigs);
-      ctrl_msg->notifySignalSet(&all_sigs);
+      sigset_t sigs = getSigMask()->getSigMask();;
+      sigaddset(&sigs, SIGTRAP);
+      sigaddset(&sigs, SIGSTOP);
+      ctrl_msg->notifySignalSet(&sigs);
       ctrl_msg->sndSignal = SIGSTOP;
       ctrl_msg->dynamicNotifyMode = DynamicNotifyDLoader;
       ctrl_msg->dacTrapMode = DACTrap_NoChange;
       fillInToolMessage(*ctrl_msg, Control);
       
+      startup_state = waitfor_control_request_ack;
       bool result = getComputeNode()->writeToolAttachMessage(this, ctrl_msg, true);
       if (!result) {
          pthrd_printf("Error writing ControlMessage in attach handler\n");
@@ -990,7 +1039,6 @@ bool bgq_process::handleStartupEvent(void *data)
          return false;
       }
 
-      startup_state = waitfor_control_request_ack;
       return true;
    }
    
@@ -1004,11 +1052,11 @@ bool bgq_process::handleStartupEvent(void *data)
       free(ctrl_ack);
       ctrl_ack = NULL;
 
-      if (ctrl_retcode != Success) {
+      if (ctrl_retcode != Success && ctrl_retcode != ToolControlConflict) {
          perr_printf("Error return in ControlAckMessage: %s\n",
                      bgqErrorMessage(ctrl_retcode));
          setLastError(err_internal, "Could not send ControlMessage\n");
-         return false;                     
+         return false;
       }
       if (controllingToolId != bgq_process::getToolID()) {
          pthrd_printf("Tool '%s' with ID %d has authority at priority %d\n", 
@@ -1016,6 +1064,7 @@ bool bgq_process::handleStartupEvent(void *data)
          if (tool_priority > priority) {
             pthrd_printf("WARNING: Tool %s has higher priority (%d > %d), running in Query-Only mode\n",
                          toolTag, tool_priority, priority);
+            expecting_stop = false;
             startup_state = issue_data_collection;
          }
          else {
@@ -1026,61 +1075,39 @@ bool bgq_process::handleStartupEvent(void *data)
          }
       }
       else {
-         pthrd_printf("ProcControlAPI is only tool, taking control authority\n");
+         pthrd_printf("We are top priority tool, now have control authority\n");
          hasControlAuthority = true;
-         startup_state = waitfor_control_request_signal;
-         return true;
+         expecting_stop = true;
+         startup_state = issue_data_collection;
       }
    }
 
    if (startup_state == waitfor_control_request_notice) {
-      /**
-       * Don't really need to use the notify message for anything.
-       * Most work handled in the control request handler.
-       **/
       NotifyMessage *notify_msg = static_cast<NotifyMessage *>(data);
       if (notify_msg->type.control.reason == NotifyControl_Available) {
-         pthrd_printf("Successfully took control, waiting for control request signal\n");
-         hasControlAuthority = true;
-         startup_state = waitfor_control_request_signal;
+         pthrd_printf("ControlRequestNotify means we can now try to retake control\n");
+         startup_state = issue_control_request;
+         free(notify_msg);
+         return handleStartupEvent(NULL);
       }
       else if (notify_msg->type.control.reason == NotifyControl_Conflict) {
          pthrd_printf("Conflict message from control request, moving to data collection\n");
-         pthrd_printf("Conflicting tag is %s, id = %u, priority = %u\n", 
+         pthrd_printf("Conflicting tag is %s, id = %u, priority = %u\n",
                       notify_msg->type.control.toolTag,
                       notify_msg->type.control.toolid,
                       notify_msg->type.control.priority);
          startup_state = skip_control_request_signal;
+         free(notify_msg);
       }
       else
          assert(0);
-      free(notify_msg);
-   }
-
-   if (startup_state == waitfor_control_request_signal) {
-      pthrd_printf("Received attach SIGNAL\n");
-      NotifyMessage *notify_msg = static_cast<NotifyMessage *>(data);
-      assert(notify_msg->type.signal.reason == NotifySignal_Generic);
-      assert(notify_msg->type.signal.signum == SIGSTOP);
-
-      int_thread *thrd = threadPool()->initialThread();
-      assert(thrd);
-      thrd->getStartupState().desyncStateProc(int_thread::stopped);
-      
-      startup_state = issue_data_collection;
-      free(notify_msg);
-   }
-   if (startup_state == skip_control_request_signal) {
-      int_thread *thrd = threadPool()->initialThread();
-      assert(thrd);
-      thrd->getStartupState().desyncStateProc(int_thread::running);
-      startup_state = issue_data_collection;
    }
 
    /**
     * Send a set of query in a single CommandMessage.  We want:
     *  - GetProcessData
     *  - AuxVectors
+    *  - GetThreadData
     *  - ThreadList
     **/
    if (startup_state == issue_data_collection) {
@@ -1094,21 +1121,54 @@ bool bgq_process::handleStartupEvent(void *data)
       auxv_cmd.threadID = 0;
       sendCommand(auxv_cmd, GetAuxVectors);
 
+      GetThreadDataCmd thrddata_cmd;
+      thrddata_cmd.threadID = 0;
+      sendCommand(thrddata_cmd, GetThreadData);
+
       GetThreadListCmd thread_list;
       thread_list.threadID = 0;
       sendCommand(thread_list, GetThreadList);
 
-      startup_state = waitfor_data_collection;
+      if (expecting_stop)
+         startup_state = waitfor_data_or_stop;
+      else
+         startup_state = waitfor_data_collection;
       return true;
+   }
+
+   bool data_on_either = false;
+   bool stop_on_either = false;
+   if (startup_state == waitfor_data_or_stop) {
+      ToolMessage *msg = static_cast<ToolMessage *>(data);
+      data_on_either = (msg->header.type == QueryAck);
+      stop_on_either = (msg->header.type == Notify);
+      pthrd_printf("Waiting for either data or stop, got %s\n", data_on_either ? "data" : "stop");
+      assert((data_on_either || stop_on_either) && !(data_on_either && stop_on_either));
+   }
+
+   if (startup_state == waitfor_control_request_signal || stop_on_either) {
+      pthrd_printf("Received attach SIGNAL\n");
+      NotifyMessage *notify_msg = static_cast<NotifyMessage *>(data);
+      int_thread *thrd = threadPool()->initialThread();
+      thrd->getUserState().setStateProc(int_thread::stopped);      
+      assert(notify_msg->type.signal.reason == NotifySignal_Generic);
+      assert(notify_msg->type.signal.signum == SIGSTOP);
+      free(notify_msg);
+      if (stop_on_either) {
+         startup_state = waitfor_data_collection;
+         return true;
+      }
+      else
+         startup_state = waits_done;
    }
 
    /**
     * Receive the data from the above query command.
     **/
-   if (startup_state == waitfor_data_collection) {
+   if (startup_state == waitfor_data_collection || data_on_either) {
       pthrd_printf("Handling getProcessDataAck for %d\n", getPid());
       QueryAckMessage *query_ack = static_cast<QueryAckMessage *>(data);
-      assert(query_ack->numCommands == 3);
+      assert(query_ack->numCommands == 4);
 
       for (unsigned i = 0; i < (unsigned) query_ack->numCommands; i++) {
          char *cmd_ptr = ((char *) data) + query_ack->cmdList[i].offset;
@@ -1120,27 +1180,80 @@ bool bgq_process::handleStartupEvent(void *data)
             initial_thread_list = new GetThreadListAckCmd();
             *initial_thread_list = *(GetThreadListAckCmd *) cmd_ptr;
          }
+         else if (query_ack->cmdList[i].type == GetThreadDataAck) {
+            BG_Thread_ToolState ts = ((GetThreadDataAckCmd *) cmd_ptr)->toolState;
+            stopped_on_startup = ((ts == Suspend) || (ts == HoldSuspend));
+            held_on_startup = ((ts == Hold) || (ts == HoldSuspend));
+            pthrd_printf("On startup, found stopped: %s, held: %s\n",
+                         stopped_on_startup ? "true" : "false",
+                         held_on_startup ? "true" : "false");
+         }
       }
-      startup_state = data_collected;
+
+      if (stopped_on_startup || held_on_startup) {
+         debugger_stopped = true;
+         debugger_suspended = true;
+      }
+
+      if (data_on_either && (stopped_on_startup || held_on_startup)) {
+         pthrd_printf("Attaching to already stopped tool.  Skipping wait for SIGSTOP\n");
+         startup_state = waits_done;
+      }
+      else if (data_on_either) {
+         pthrd_printf("Got data ack during startup.  Waiting for SIGSTOP\n");
+         startup_state = waitfor_control_request_signal;
+         return true;
+      }
+      else {
+         startup_state = waits_done;
+      }
    }
 
-   if (startup_state == data_collected) {
-      startup_state = startup_done;
+   if (startup_state == waits_done) {
+      pthrd_printf("In state waits_done for %d\n", getPid());
+      int_thread *thrd = threadPool()->initialThread();
+      assert(thrd);
+
+      setState(neonatal_intermediate);
+
+      if (hasControlAuthority) {
+         thrd->getStartupState().desyncStateProc(int_thread::stopped);
+         if (stopped_on_startup || held_on_startup) {
+            thrd->getGeneratorState().setStateProc(int_thread::stopped);
+            thrd->getHandlerState().setStateProc(int_thread::stopped);
+         }
+      }
+      else {
+         thrd->getStartupState().desyncStateProc(int_thread::running);
+         thrd->getHandlerState().setStateProc(int_thread::running);
+      }
+      
       setState(running);
       getStartupTeardownProcs().dec();
 
-      int_thread *initial_thread = threadPool()->initialThread();
       assert(initial_thread_list->numthreads > 0);
-      initial_thread->changeLWP(initial_thread_list->threadlist[0].tid);
+      thrd->changeLWP(initial_thread_list->threadlist[0].tid);
       
+      startup_state = startup_done;
       return true;
    }
 
    if (startup_state == startup_done) {
+      pthrd_printf("Handling state startup_done for %d\n", getPid());
       int_thread *thrd = threadPool()->initialThread();
       thrd->getStartupState().restoreStateProc();
       getStartupTeardownProcs().dec();
       setForceGeneratorBlock(false);
+      
+      if (held_on_startup) {
+         int_threadPool *tp = threadPool();
+         for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
+            int_thread *thrd = *i;
+            pthrd_printf("Threads were held on startup.  Updating held state for %d/%d\n",
+                         getPid(), thrd->getLWP());
+            thrd->setSuspended(true);
+         }
+      }
       pthrd_printf("Startup done on %d\n", getPid());
    }
 
@@ -1371,7 +1484,7 @@ bgq_thread::~bgq_thread()
 
 bool bgq_thread::plat_cont()
 {
-   int_thread *signal_thrd = NULL;
+   int_thread *signal_thrd = NULL, *resumed_thread = NULL;
    int cont_signal = 0;
    set<int_thread *> ss_threads;
    bgq_process *proc = dynamic_cast<bgq_process *>(llproc());
@@ -1381,9 +1494,13 @@ bool bgq_thread::plat_cont()
    int_threadPool *tp = proc->threadPool();
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       bgq_thread *t = dynamic_cast<bgq_thread *>(*i);
-      if (t->last_signaled) {
+      bool is_suspended = t->isSuspended();
+      if (t->last_signaled && !is_suspended) {
          signal_thrd = t;
          t->last_signaled = false;
+      }
+      if (!is_suspended && !resumed_thread) {
+         resumed_thread = t;
       }
       if (t->continueSig_) {
          cont_signal = t->continueSig_;
@@ -1394,20 +1511,24 @@ bool bgq_thread::plat_cont()
       }
    }
 
-   if (!signal_thrd) {
-      signal_thrd = tp->initialThread();
-   }
-
-   pthrd_printf("Sending SetContinueSignalCmd to %d/%d with signal %d\n",
-                proc->getPid(), signal_thrd->getLWP(), cont_signal);
-
-   SetContinuationSignalCmd cont_signal_cmd;
-   cont_signal_cmd.threadID = signal_thrd->getLWP();
-   cont_signal_cmd.signum = cont_signal;
-   bool result = proc->sendCommand(cont_signal_cmd, SetContinuationSignal);
-   if (!result) {
-      pthrd_printf("Error sending continuation signal\n");
-      return false;
+   if (cont_signal) {
+      if (!signal_thrd) {
+         pthrd_printf("The signaled thread is suspended, selecting a resumed thread to re-signal\n");
+         signal_thrd = resumed_thread;
+      }
+      assert(signal_thrd);
+      
+      pthrd_printf("Sending SetContinueSignalCmd to %d/%d with signal %d\n",
+                   proc->getPid(), signal_thrd->getLWP(), cont_signal);
+      
+      SetContinuationSignalCmd cont_signal_cmd;
+      cont_signal_cmd.threadID = signal_thrd->getLWP();
+      cont_signal_cmd.signum = cont_signal;
+      bool result = proc->sendCommand(cont_signal_cmd, SetContinuationSignal);
+      if (!result) {
+         pthrd_printf("Error sending continuation signal\n");
+         return false;
+      }
    }
 
    if (ss_threads.empty()) {
@@ -1423,7 +1544,7 @@ bool bgq_thread::plat_cont()
       return true;
    }
 
-   pthrd_printf("%lu threads of %d are in single step, selecting thread for single step\n",
+   pthrd_printf("%lu threads of process %d are in single step, selecting thread for single step\n",
                 (unsigned long) ss_threads.size(), proc->getPid());
    int_thread *ss_thread = NULL;
    if (ss_threads.size() > 1 && proc->last_ss_thread) {
@@ -1448,8 +1569,9 @@ bool bgq_thread::plat_cont()
    assert(ss_thread);
 
    StepThreadCmd step_thrd;
+   pthrd_printf("Single stepping thread %d/%d\n", proc->getPid(), ss_thread->getLWP());
    step_thrd.threadID = ss_thread->getLWP();
-   result = proc->sendCommand(step_thrd, StepThread);
+   bool result = proc->sendCommand(step_thrd, StepThread);
    if (!result) {
       pthrd_printf("Error doing sendCommand of StepThread\n");
       return false;
@@ -1727,7 +1849,7 @@ bool bgq_thread::plat_setRegisterAsync(Dyninst::MachRegister reg, Dyninst::MachR
    return false;
 }
 
-bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *output_buffer, bool gpr_only)
+bool bgq_thread::plat_convertToSystemRegs(const int_registerPool &pool, unsigned char *output_buffer, bool /*gpr_only*/)
 {
    bgq_thread::regPoolToUser(pool, output_buffer);
    return true;
@@ -2052,6 +2174,249 @@ void HandleBGQStartup::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::IntBootstrap));
    etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
+}
+
+HandlePreControlAuthority::HandlePreControlAuthority() :
+   Handler("BGQ Pre-ControlAuthority")
+{
+}
+
+HandlePreControlAuthority::~HandlePreControlAuthority()
+{
+}
+
+void HandlePreControlAuthority::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Pre, EventType::ControlAuthority));
+}
+
+Handler::handler_ret_t HandlePreControlAuthority::handleEvent(Event::ptr ev)
+{
+   EventControlAuthority::ptr ca = ev->getEventControlAuthority();
+   int_eventControlAuthority *iev = ca->getInternalEvent();
+   int_process *proc = ca->getProcess()->llproc();
+   bgq_process *bgproc = dynamic_cast<bgq_process *>(proc);
+
+   pthrd_printf("Handling pre-controlauthority event on %d.  "
+                "Other tool is priority %d, name %s.  We are priority %d\n",
+                proc->getPid(), iev->priority, iev->toolname.c_str(), bgproc->priority);
+
+   if (iev->trigger == EventControlAuthority::ControlNoChange) {
+      return ret_success;
+   }
+   bool gained = (iev->trigger == EventControlAuthority::ControlGained);
+
+   if (!iev->unset_desync) {
+      ev->setSyncType(Event::sync_process);
+      int_thread *thr = ca->getThread()->llthrd();
+      thr->getControlAuthorityState().restoreStateProc();
+      iev->unset_desync = true;
+   }
+   /**
+    * If we've been allowed control authority, then submit the request
+    **/
+   if (gained && !iev->took_ca) {
+      //Create a ControlMessage that requests control, and setup an async response object
+      if (!iev->dresp) {
+         pthrd_printf("Constructing ControlMessage in HandlePreControlAuthority handler\n");
+         ControlMessage *ctrl_msg = (ControlMessage *) malloc(sizeof(ControlMessage));
+         sigset_t sigs = bgproc->getSigMask()->getSigMask();;
+         sigaddset(&sigs, SIGTRAP);
+         sigaddset(&sigs, SIGSTOP);
+         ctrl_msg->notifySignalSet(&sigs);
+         ctrl_msg->sndSignal = SIGSTOP;
+         ctrl_msg->dynamicNotifyMode = DynamicNotifyDLoader;
+         ctrl_msg->dacTrapMode = DACTrap_NoChange;
+         
+         iev->dresp = data_response::createDataResponse();
+         bgproc->fillInToolMessage(*ctrl_msg, Control, iev->dresp);
+
+         getResponses().lock();
+         bool result = bgproc->getComputeNode()->writeToolMessage(bgproc, ctrl_msg, true);
+         if (result) {
+            getResponses().addResponse(iev->dresp, bgproc);
+         }
+         getResponses().unlock();
+         getResponses().noteResponse();
+         if (!result) {
+            perr_printf("Failed to write tool message to CN for process %d\n", bgproc->getPid());
+            return ret_error;
+         }
+      }
+
+      //Wait for async response to control request
+      if (!iev->dresp->isReady()) {
+         pthrd_printf("Postponing taking control authority as we wait for ControlAck on %d\n", bgproc->getPid());
+         bgproc->handlerPool()->notifyOfPendingAsyncs(iev->dresp, ev);
+         return ret_async;
+      }
+
+      //Have the ControlAck response.  Handle.
+      ControlAckMessage *msg = (ControlAckMessage *) iev->dresp->getData();
+      
+      if (msg->controllingToolId == bgproc->getToolID()) {
+         //Will mark haveControlAuthority after we get the SIGSTOP
+         pthrd_printf("Yeah.  ControlAckMessage gave us control of %d\n", bgproc->getPid());
+         iev->took_ca = true;
+         free(msg);
+      }
+      else {
+         char toolTag_cstr[ToolTagSize+1];
+         bzero(toolTag_cstr, ToolTagSize+1);
+         memcpy(toolTag_cstr, msg->toolTag, ToolTagSize);
+         iev->toolname = toolTag_cstr;
+         iev->toolid = msg->controllingToolId;
+         iev->priority = msg->priority;
+         iev->trigger = EventControlAuthority::ControlNoChange;
+         pthrd_printf("Someone else grabbed Control Authority of us on %d: name = %s, id = %u, priority = %u\n",
+                      bgproc->getPid(), iev->toolname.c_str(), iev->toolid, iev->priority);
+         free(msg);
+         return ret_success;
+      }
+   }
+
+   if (gained && !iev->waiting_on_stop) {
+      //We've got CA.  The system should still throw us a SIGSTOP now.
+      //We'll decode that SIGSTOP into a new CA event with the same int_eventControlAuthority
+      pthrd_printf("Returning from CA handler as we wait for the SIGSTOP\n");
+      bgproc->stopwait_on_control_authority = iev;
+      iev->dont_delete = true;
+      iev->waiting_on_stop = true;
+      ev->setSuppressCB(true);
+      return ret_success;
+   }
+
+   /**
+    * Disable or Resume breakpoints, depending on whether we're releasing or
+    * taking control authority.  
+    **/
+   const char *action_str = gained ? "resuming" : "suspending";
+   set<response::ptr> &async_responses = iev->async_responses;
+   if (!iev->handled_bps) {
+      pthrd_printf("%s all breakpoints before control authority release\n", action_str);
+      for (std::map<Dyninst::Address, sw_breakpoint *>::iterator i = proc->memory()->breakpoints.begin();
+           i != proc->memory()->breakpoints.end(); i++)
+      {
+         sw_breakpoint *bp = i->second;
+         bool result;
+         if (gained) 
+            result = bp->resume(proc, async_responses);
+         else
+            result = bp->suspend(proc, async_responses);
+         if (!result) {
+            perr_printf("Error %s breakpoint at %lx in %d\n", action_str, i->first, bgproc->getPid());
+            ev->setLastError(err_internal, "Error handling breakpoints before control authority transfer\n");
+            return ret_error;
+         }
+      }
+      iev->handled_bps = true;
+   }
+
+   pthrd_printf("Checking if breakpoint %s has completed for %d in control release handler\n",
+                action_str, proc->getPid());
+   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
+      if ((*i)->hasError()) {
+         perr_printf("Error while %s breakpoint\n", action_str);
+         ev->setLastError(err_internal, "Error handling breakpoints during control authority transfer\n");
+         return ret_error;
+      }
+      if (!(*i)->isReady()) {
+         pthrd_printf("Suspending control authority handler due to async in breakpoint %s.\n", action_str);
+         proc->handlerPool()->notifyOfPendingAsyncs(async_responses, ev);
+         return ret_async;
+      }
+   }
+
+   //TODO: When HW breakpoints are supported on BGQ, handle those too.
+
+   if (!gained) {
+      //This will cause the post-controlauthority handler to run when the process is next continued.
+      bgproc->pending_control_authority = ca;
+   }
+   else {
+      pthrd_printf("Marking ourselves as having CA\n");
+      bgproc->hasControlAuthority = true;
+   }
+
+   return ret_success;
+}
+
+HandlePostControlAuthority::HandlePostControlAuthority() :
+   Handler("BGQ Post-ControlAuthority")
+{
+}
+
+HandlePostControlAuthority::~HandlePostControlAuthority()
+{
+}
+
+void HandlePostControlAuthority::getEventTypesHandled(vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::Post, EventType::ControlAuthority));
+}
+
+Handler::handler_ret_t HandlePostControlAuthority::handleEvent(Event::ptr ev)
+{
+   //This triggers when the user continues the process after we're notified
+   // of a control change.  Just send the ReleaseControl message
+   EventControlAuthority::ptr ca = ev->getEventControlAuthority();
+   int_process *proc = ca->getProcess()->llproc();
+   bgq_process *bgproc = dynamic_cast<bgq_process *>(proc);
+   pthrd_printf("Handling PostControlAuthority for %d\n", proc->getPid());
+
+   int_thread *thr = ca->getThread()->llthrd();
+   thr->getControlAuthorityState().restoreStateProc();
+
+   bgproc->hasControlAuthority = false;
+   bgproc->pending_control_authority = EventControlAuthority::ptr();
+
+   pthrd_printf("Sending continue command to %d for control authority release\n", proc->getPid());
+   SetContinuationSignalCmd cont_signal_cmd;
+   cont_signal_cmd.threadID = 0;
+   cont_signal_cmd.signum = 0;
+   bool result = bgproc->sendCommand(cont_signal_cmd, SetContinuationSignal);
+   if (!result) {
+      pthrd_printf("Error sending continue command\n");
+      return ret_error;
+   }
+
+   for (int_threadPool::iterator i = bgproc->threadPool()->begin(); i != bgproc->threadPool()->end(); i++) {
+      int_thread *thr = *i;
+      if (thr->isSuspended()) {
+         ReleaseThreadCmd release_thrd;
+         release_thrd.threadID = thr->getLWP();
+         bool result = bgproc->sendCommand(release_thrd, ReleaseThread);
+         if (!result) {
+            pthrd_printf("Error sending ReleaseThread command\n");
+            return ret_error;
+         }
+      }
+   }
+
+   ContinueProcessCmd cont_process;
+   cont_process.threadID = 0;
+   bgproc->sendCommand(cont_process, ContinueProcess);
+
+   pthrd_printf("Sending control authority release command to %d\n", proc->getPid());
+   ReleaseControlCmd release;
+   release.threadID = 0;
+   release.notify = ReleaseControlNotify_Active;
+   result = bgproc->sendCommand(release, ReleaseControl);
+   if (!result) {
+      perr_printf("Error sending release control command to %d\n", proc->getPid());
+      return ret_error;
+   }
+
+   for (int_threadPool::iterator i = proc->threadPool()->begin(); i != proc->threadPool()->end(); i++) {
+      int_thread *thrd = *i;
+      thrd->getUserState().setState(int_thread::running);
+      thrd->getHandlerState().setState(int_thread::running);
+      thrd->getGeneratorState().setState(int_thread::running);
+   }
+   ProcPool()->condvar()->lock();
+   ProcPool()->condvar()->broadcast();
+   ProcPool()->condvar()->unlock();
+   return ret_success;
 }
 
 const char *bgq_process::bgqErrorMessage(uint32_t rc, bool long_form)
@@ -2425,7 +2790,7 @@ unsigned DecoderBlueGeneQ::getPriority() const
    return Decoder::default_priority;
 }
 
-Event::ptr DecoderBlueGeneQ::decodeCompletedResponse(response::ptr resp,
+Event::ptr DecoderBlueGeneQ::decodeCompletedResponse(response::ptr resp, int_process *proc, int_thread *thrd,
                                                      map<Event::ptr, EventAsync::ptr> &async_evs)
 {
    if (resp->isMultiResponse() && !resp->isMultiResponseComplete())
@@ -2436,7 +2801,32 @@ Event::ptr DecoderBlueGeneQ::decodeCompletedResponse(response::ptr resp,
       pthrd_printf("Marking response %s/%d ready\n", resp->name().c_str(), resp->getID());
       resp->markReady();
 
-      return Event::ptr();
+      int_eventAsyncIO *ioev = resp->getAsyncIOEvent();
+      if (!ioev) {
+         return Event::ptr();
+      }
+
+      pthrd_printf("Decoded to User-level AsyncIO event.  Creating associated Event with ioev %p\n", ioev);
+      EventAsyncIO::ptr newev;
+      switch (ioev->iot) {
+         case int_eventAsyncIO::memread:
+            newev = EventAsyncRead::ptr(new EventAsyncRead(ioev));
+            break;
+         case int_eventAsyncIO::memwrite:
+            newev = EventAsyncWrite::ptr(new EventAsyncWrite(ioev));
+            break;
+         case int_eventAsyncIO::regallread:
+            newev = EventAsyncReadAllRegs::ptr(new EventAsyncReadAllRegs(ioev));
+            break;
+         case int_eventAsyncIO::regallwrite:
+            newev = EventAsyncSetAllRegs::ptr(new EventAsyncSetAllRegs(ioev));
+            break;
+      }
+      assert(newev);
+      newev->setSyncType(Event::async);
+      newev->setProcess(proc->proc());
+      newev->setThread(thrd ? thrd->thread() : Thread::ptr());
+      return newev;
    }
 
    pthrd_printf("Creating new EventAsync over %s for response %s/%d\n",
@@ -2489,6 +2879,43 @@ Event::ptr DecoderBlueGeneQ::createEventDetach(bgq_process *proc, bool err)
    return new_ev;
 }
 
+bool DecoderBlueGeneQ::decodeControlAck(ArchEventBGQ *ev, bgq_process *proc, vector<Event::ptr> &events)
+{
+   if (proc->startup_state == bgq_process::waitfor_control_request_ack) {
+      //Control ACKs during startup are handled by the start-up handler.
+      pthrd_printf("Decoded ControlAck to startup event\n");
+      return decodeStartupEvent(ev, proc, ev->getMsg(), Event::async, events);
+   }
+
+   pthrd_printf("Decoding ControlACK message response for %d\n", proc->getPid());
+   ControlAckMessage *msg = static_cast<ControlAckMessage *>(ev->getMsg());
+   ev->dontFreeMsg();
+
+   // These ControlAck message always come in a response set of size 1, since they
+   // don't pair with other messages.
+   uint32_t seq_id = msg->header.sequenceId;
+   ResponseSet *resp_set = ResponseSet::getResponseSetByID(seq_id);
+   assert(resp_set);
+   
+   map<Event::ptr, EventAsync::ptr> async_ev_map;
+   getResponses().lock();
+   bool found = false;
+   unsigned int id = resp_set->getIDByIndex(0, found);
+   assert(found);
+   response::ptr resp = getResponses().rmResponse(id);
+   data_response::ptr dresp = resp->getDataResponse();
+   dresp->postResponse((void *) msg);
+   Event::ptr new_ev = decodeCompletedResponse(dresp, proc, NULL, async_ev_map);
+   assert(new_ev);
+   events.push_back(new_ev);
+   getResponses().signal();
+   getResponses().unlock();
+
+   delete resp_set;
+
+   return true;
+}
+
 bool DecoderBlueGeneQ::decodeReleaseControlAck(ArchEventBGQ *, bgq_process *proc, 
                                                int err_code, std::vector<Event::ptr> &events)
 {
@@ -2498,7 +2925,7 @@ bool DecoderBlueGeneQ::decodeReleaseControlAck(ArchEventBGQ *, bgq_process *proc
       events.push_back(new_ev);
       return true;
    }
-   assert(0);
+   
    return false;
 }
 
@@ -2566,7 +2993,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (desc->returnCode)
                allreg->markError(desc->returnCode);
             
-            Event::ptr new_ev = decodeCompletedResponse(allreg, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(allreg, proc, thr, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
 
@@ -2584,7 +3011,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
                   int_registerPool::reg_map_t::iterator i = regpool->regs.find(reg);
                   if (i != regpool->regs.end()) {
                      indiv_reg->postResponse(i->second);
-                     new_ev = decodeCompletedResponse(indiv_reg, async_ev_map);
+                     new_ev = decodeCompletedResponse(indiv_reg, proc, thr, async_ev_map);
                      if (new_ev)
                         events.push_back(new_ev);
                   }
@@ -2610,7 +3037,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (desc->returnCode)
                memresp->markError(desc->returnCode);
 
-            Event::ptr new_ev = decodeCompletedResponse(memresp, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(memresp, proc, thr, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
 
@@ -2621,6 +3048,10 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
          }
          case GetThreadDataAck: {
             pthrd_printf("Decoded new event on %d to GetThreadDataAck message\n", proc->getPid());
+            if (proc->startup_state < bgq_process::startup_done) {
+               pthrd_printf("GetThreadDataAck is startup event\n");
+               break;
+            }
             stack_response::ptr stkresp = cur_resp->getStackResponse();
             GetThreadDataAckCmd *cmd = static_cast<GetThreadDataAckCmd *>(base_cmd);
             assert(stkresp);
@@ -2631,7 +3062,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             if (desc->returnCode) 
                stkresp->markError(desc->returnCode);
             
-            Event::ptr new_ev = decodeCompletedResponse(stkresp, async_ev_map);
+            Event::ptr new_ev = decodeCompletedResponse(stkresp, proc, thr, async_ev_map);
             if (new_ev)
                events.push_back(new_ev);
             
@@ -2686,7 +3117,7 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
                if (has_error) 
                   result_resp->markError(desc->returnCode);
                result_resp->postResponse(!has_error);
-               Event::ptr new_ev = decodeCompletedResponse(result_resp, async_ev_map);
+               Event::ptr new_ev = decodeCompletedResponse(result_resp, proc, thr, async_ev_map);
                if (new_ev)
                   events.push_back(new_ev);
 
@@ -2710,7 +3141,8 @@ bool DecoderBlueGeneQ::decodeUpdateOrQueryAck(ArchEventBGQ *archevent, bgq_proce
             assert(0); //Currently unused
             break;                  
          case SendSignalAck:
-            pthrd_printf("Decoded SendSignalAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
+            pthrd_printf("Decoded SendSignalAck on %d/%d. Dropping\n", 
+                         proc ? proc->getPid() : -1, thr ? thr->getLWP() : -1);
             break;
          case ContinueProcessAck:
             pthrd_printf("Decoded ContinueProcessAck on %d/%d. Dropping\n", proc->getPid(), thr->getLWP());
@@ -2818,6 +3250,18 @@ bool DecoderBlueGeneQ::decodeStop(ArchEventBGQ *archevent, bgq_process *proc, in
    {
       pthrd_printf("Decoded event to startup control signal\n");
       return decodeStartupEvent(archevent, proc, archevent->getMsg(), Event::sync_process, events);
+   }
+   if (proc->stopwait_on_control_authority) {
+      pthrd_printf("Decoded SIGSTOP to control authority response\n");
+      int_eventControlAuthority *iev = proc->stopwait_on_control_authority;
+      EventControlAuthority::ptr newev = EventControlAuthority::ptr(new EventControlAuthority(EventType::Pre, iev));
+      iev->dont_delete = false;
+      proc->stopwait_on_control_authority = NULL;
+      newev->setProcess(proc->proc());
+      newev->setThread(thr->thread());
+      newev->setSyncType(Event::sync_process);
+      events.push_back(newev);
+      return true;
    }
 
    if (proc->decoderPendingStop()) {
@@ -2938,11 +3382,52 @@ bool DecoderBlueGeneQ::decodeControlNotify(ArchEventBGQ *archevent, bgq_process 
       pthrd_printf("Decoded event to startup control request notice\n");
       return decodeStartupEvent(archevent, proc, archevent->getMsg(), Event::async, events);
    }
-   else {
-#warning TODO implement control notify
-      assert(0); //Not yet implemented
-      return false;
+
+   NotifyMessage *notify = (NotifyMessage *) archevent->getMsg();
+   char toolname[ToolTagSize+1];
+   bzero(toolname, ToolTagSize+1);
+   memcpy(toolname, notify->type.control.toolTag, ToolTagSize);
+   EventControlAuthority::Trigger trigger;
+
+   pthrd_printf("Decoded event to control authority notice.  Tag = %s, id = %u, priority = %d, reason = %s\n",
+                toolname, notify->type.control.toolid, notify->type.control.priority,
+                notify->type.control.reason == NotifyControl_Conflict ? "Conflict" : "Available");
+   
+   //Make a policy decision on whether to do nothing, release, or take control
+   if (notify->type.control.reason == NotifyControl_Conflict) {
+      if (notify->type.control.priority > proc->priority && proc->hasControlAuthority) {
+         pthrd_printf("Requesting tool has higher priority, releasing control authority\n");
+         trigger = EventControlAuthority::ControlLost;
+      }
+      else {
+         pthrd_printf("Requesting tool has lower priority, keeping control authority\n");
+         trigger = EventControlAuthority::ControlNoChange;
+      }
    }
+   else {
+      if (proc->priority == QueryPriorityLevel) {
+         pthrd_printf("Requesting tool is releasing authority, but we are not interested in taking it\n");
+         trigger = EventControlAuthority::ControlNoChange;
+      }
+      else {
+         pthrd_printf("Other tool is releasing control authority.  Taking\n");
+         trigger = EventControlAuthority::ControlGained;
+      }
+   }
+   
+   int_eventControlAuthority *iev;
+   iev = new int_eventControlAuthority(toolname,
+                                       notify->type.control.toolid,
+                                       notify->type.control.priority,
+                                       trigger);
+
+   EventControlAuthority::ptr new_ev = EventControlAuthority::ptr(new EventControlAuthority(EventType::Pre, iev));
+   new_ev->setProcess(proc->proc());
+   int_thread *initial_thread = proc->threadPool()->initialThread();
+   new_ev->setThread(initial_thread->thread());
+   new_ev->setSyncType(Event::async);
+   events.push_back(new_ev);
+   return true;
 }
 
 bool DecoderBlueGeneQ::decodeDetachAck(ArchEventBGQ *archevent, bgq_process *proc, std::vector<Event::ptr> &events)
@@ -3026,7 +3511,7 @@ bool DecoderBlueGeneQ::decode(ArchEvent *ae, vector<Event::ptr> &events)
    switch (header->type) {
       case ControlAck:
          pthrd_printf("Decoding ControlAck on %d\n", proc->getPid());
-         return decodeStartupEvent(archevent, qproc, msg, Event::async, events);
+         return decodeControlAck(archevent, qproc, events);
       case AttachAck:
          pthrd_printf("Decoding AttachAck on %d\n", proc->getPid());
          return decodeStartupEvent(archevent, qproc, msg, Event::async, events);
@@ -3068,11 +3553,17 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 {
    static bool init = false;
    static HandleBGQStartup *handle_startup = NULL;
+   static HandlePreControlAuthority *handle_pre_control = NULL;
+   static HandlePostControlAuthority *handle_post_control = NULL;
    if (!init) {
       handle_startup = new HandleBGQStartup();
+      handle_pre_control = new HandlePreControlAuthority();
+      handle_post_control = new HandlePostControlAuthority();
       init = true;
    }
    hpool->addHandler(handle_startup);
+   hpool->addHandler(handle_pre_control);
+   hpool->addHandler(handle_post_control);
    thread_db_process::addThreadDBHandlers(hpool);
    sysv_process::addSysVHandlers(hpool);
    return hpool;
@@ -3378,7 +3869,6 @@ void ComputeNode::emergencyShutdown()
                }
                break;
             }
-
 
             pthrd_printf("Building ReleaseControlCmd\n");
             ReleaseControlCmd *releasectrl = (ReleaseControlCmd *) (update + 1);

@@ -84,6 +84,12 @@ class EventIntBootstrap;
 class EventNop;
 class EventThreadDB;
 class EventWinStopThreadDestroy;
+class EventControlAuthority;
+class EventAsyncIO;
+class EventAsyncRead;
+class EventAsyncWrite;
+class EventAsyncReadAllRegs;
+class EventAsyncSetAllRegs;
 
 class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 {
@@ -217,6 +223,24 @@ class PC_EXPORT Event : public boost::enable_shared_from_this<Event>
 
    boost::shared_ptr<EventWinStopThreadDestroy> getEventWinStopThreadDestroy();
    boost::shared_ptr<const EventWinStopThreadDestroy> getEventWinStopThreadDestroy() const;
+
+   boost::shared_ptr<EventControlAuthority> getEventControlAuthority();
+   boost::shared_ptr<const EventControlAuthority> getEventControlAuthority() const;
+
+   boost::shared_ptr<EventAsyncIO> getEventAsyncIO();
+   boost::shared_ptr<const EventAsyncIO> getEventAsyncIO() const;
+
+   boost::shared_ptr<EventAsyncRead> getEventAsyncRead();
+   boost::shared_ptr<const EventAsyncRead> getEventAsyncRead() const;
+
+   boost::shared_ptr<EventAsyncWrite> getEventAsyncWrite();
+   boost::shared_ptr<const EventAsyncWrite> getEventAsyncWrite() const;
+
+   boost::shared_ptr<EventAsyncReadAllRegs> getEventAsyncReadAllRegs();
+   boost::shared_ptr<const EventAsyncReadAllRegs> getEventAsyncReadAllRegs() const;
+
+   boost::shared_ptr<EventAsyncSetAllRegs> getEventAsyncSetAllRegs();
+   boost::shared_ptr<const EventAsyncSetAllRegs> getEventAsyncSetAllRegs() const;
 
    //Not meant for public consumption
    void setLastError(err_t ec, const char *es);
@@ -696,6 +720,106 @@ class PC_EXPORT EventWinStopThreadDestroy : public EventThreadDestroy
    virtual ~EventWinStopThreadDestroy();
 };
 
+class int_eventControlAuthority;
+class PC_EXPORT EventControlAuthority : public Event
+{
+   friend void boost::checked_delete<EventControlAuthority>(EventControlAuthority *);
+   friend void boost::checked_delete<const EventControlAuthority>(const EventControlAuthority *);
+   int_eventControlAuthority *iev;
+  public:
+   typedef boost::shared_ptr<EventControlAuthority> ptr;
+   typedef boost::shared_ptr<const EventControlAuthority> const_ptr;
+   int_eventControlAuthority *getInternalEvent() const;
+
+   EventControlAuthority(EventType::Time t, int_eventControlAuthority *iev_);
+   virtual ~EventControlAuthority();
+   virtual bool procStopper() const;
+
+   std::string otherToolName() const;
+   unsigned int otherToolID() const;
+   int otherToolPriority() const;
+   
+   typedef enum {
+      ControlUnset,
+      ControlLost,
+      ControlGained,
+      ControlNoChange
+   } Trigger;
+   Trigger eventTrigger() const;
+};
+
+class int_eventAsyncIO;
+class PC_EXPORT EventAsyncIO : public Event {
+   friend void boost::checked_delete<EventAsyncIO>(EventAsyncIO *);
+   friend void boost::checked_delete<const EventAsyncIO>(const EventAsyncIO *);
+  protected:
+   int_eventAsyncIO *iev;
+  public:
+   typedef boost::shared_ptr<EventAsyncIO> ptr;
+   typedef boost::shared_ptr<const EventAsyncIO> const_ptr;
+   int_eventAsyncIO *getInternalEvent() const;
+
+   EventAsyncIO(EventType et, int_eventAsyncIO *iev_);
+   ~EventAsyncIO();
+
+   bool hadError() const;
+   void *getOpaqueVal() const;
+};
+
+class PC_EXPORT EventAsyncRead : public EventAsyncIO {
+   friend void boost::checked_delete<EventAsyncRead>(EventAsyncRead *);
+   friend void boost::checked_delete<const EventAsyncRead>(const EventAsyncRead *);
+  public:
+   typedef boost::shared_ptr<EventAsyncRead> ptr;
+   typedef boost::shared_ptr<const EventAsyncRead> const_ptr;
+   
+   EventAsyncRead(int_eventAsyncIO *iev_);
+   ~EventAsyncRead();
+
+   void *getMemory() const;
+   size_t getSize() const;
+   Dyninst::Address getAddress() const;
+};
+
+class PC_EXPORT EventAsyncWrite : public EventAsyncIO {
+   friend void boost::checked_delete<EventAsyncWrite>(EventAsyncWrite *);
+   friend void boost::checked_delete<const EventAsyncWrite>(const EventAsyncWrite *);
+  public:
+   typedef boost::shared_ptr<EventAsyncWrite> ptr;
+   typedef boost::shared_ptr<const EventAsyncWrite> const_ptr;
+   
+   EventAsyncWrite(int_eventAsyncIO *iev_);
+   ~EventAsyncWrite();
+
+   size_t getSize() const;
+   Dyninst::Address getAddress() const;
+};
+
+class PC_EXPORT EventAsyncReadAllRegs : public EventAsyncIO {
+   friend void boost::checked_delete<EventAsyncReadAllRegs>(EventAsyncReadAllRegs *);
+   friend void boost::checked_delete<const EventAsyncReadAllRegs>(const EventAsyncReadAllRegs *);
+  public:
+   typedef boost::shared_ptr<EventAsyncReadAllRegs> ptr;
+   typedef boost::shared_ptr<const EventAsyncReadAllRegs> const_ptr;
+   
+   EventAsyncReadAllRegs(int_eventAsyncIO *iev_);
+   ~EventAsyncReadAllRegs();
+
+   const RegisterPool &getRegisters() const;
+};
+
+class PC_EXPORT EventAsyncSetAllRegs : public EventAsyncIO {
+   friend void boost::checked_delete<EventAsyncSetAllRegs>(EventAsyncSetAllRegs *);
+   friend void boost::checked_delete<const EventAsyncSetAllRegs>(const EventAsyncSetAllRegs *);
+  public:
+   typedef boost::shared_ptr<EventAsyncSetAllRegs> ptr;
+   typedef boost::shared_ptr<const EventAsyncSetAllRegs> const_ptr;
+   
+   EventAsyncSetAllRegs(int_eventAsyncIO *iev_);
+   ~EventAsyncSetAllRegs();
+};
+
 }
 }
+
 #endif
