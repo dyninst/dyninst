@@ -84,6 +84,7 @@ class LibraryTracking;
 class ThreadTracking;
 class CallStackUnwinding;
 class FollowFork;
+class SignalMask;
 
 class ExecFileInfo;
 
@@ -108,6 +109,7 @@ class PC_EXPORT Breakpoint
 
    static Breakpoint::ptr newBreakpoint();
    static Breakpoint::ptr newTransferBreakpoint(Dyninst::Address to);
+   static Breakpoint::ptr newTransferOffsetBreakpoint(signed long shift);
    static Breakpoint::ptr newHardwareBreakpoint(unsigned int mode, unsigned int size);
 
    void *getData() const;

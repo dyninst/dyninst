@@ -45,6 +45,12 @@ class linux_process;
 namespace bgq {
    class bgq_process;
 };
+
+#if !defined(_MSC_VER)
+//For sigset_t
+#include <signal.h>
+#endif
+
 namespace Dyninst {
 namespace ProcControlAPI {
 
@@ -201,6 +207,29 @@ class PC_EXPORT MultiToolControl
    // values, then trigger your attach/create operation.
    std::string getToolName() const;
    priority_t getToolPriority() const;
+};
+
+#if defined(_MSC_VER)
+typedef void* dyn_sigset_t;
+#else
+typedef sigset_t dyn_sigset_t;
+#endif
+
+//On posix system, the sigset referenced below is a pointer to a sigset_t
+class PC_EXPORT SignalMask
+{
+   friend class ::int_process;
+  protected:
+   dyn_sigset_t the_sigset;
+   static dyn_sigset_t default_sigset;
+   static bool sigset_initialized;
+   SignalMask();
+   ~SignalMask();
+  public:
+   static dyn_sigset_t getDefaultSigMask();
+   static void setDefaultSigMask(dyn_sigset_t s);
+   dyn_sigset_t getSigMask() const;
+   void setSigMask(dyn_sigset_t s);
 };
 
 #if 0
