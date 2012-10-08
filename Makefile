@@ -9,12 +9,10 @@ TO_CORE = .
 # Include the make configuration specification (site configuration options)
 include ./make.config
 
-# Note that the first rule listed ("all") is what gets made by default,
-# i.e., if make is given no arguments.  Don't add other targets before all!
-all: world
-
 # Include component dependency information
 include ./make.components
+
+all: world
 
 .PHONY: $(Everything) $(Everything_install) $(Everything_tests) $(Everything_tests_install) install world intro comp_intro ready clean distclean depend all
 .PHONY: DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI PatchAPI
