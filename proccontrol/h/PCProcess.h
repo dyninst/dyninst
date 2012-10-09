@@ -425,7 +425,10 @@ class PC_EXPORT Process : public boost::enable_shared_from_this<Process>
    /**
     * Symbol access
     **/
-   SymbolReaderFactory *getDefaultSymbolReader();
+   void setSymbolReader(SymbolReaderFactory *reader) const;
+   SymbolReaderFactory *getSymbolReader() const;
+   static SymbolReaderFactory *getDefaultSymbolReader();
+   static void setDefaultSymbolReader(SymbolReaderFactory *reader);
 
    /**
     * Perform specific operations.  Interface objects will only be returned

@@ -107,13 +107,13 @@ AddressTranslate *sysv_process::constructTranslator(Dyninst::PID pid_)
    bool result = plat_getInterpreterBase(base);
    if (result) {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader(),
+                                                       getSymReader(),
                                                        INVALID_HANDLE_VALUE,
                                                        std::string(""), base);
    }
    else {
       return AddressTranslate::createAddressTranslator(pid_, procreader,
-                                                       plat_defaultSymReader());
+                                                       getSymReader());
    }
 }
 
