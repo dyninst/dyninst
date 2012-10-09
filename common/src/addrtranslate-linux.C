@@ -191,6 +191,8 @@ string AddressTranslateSysV::getExecName()
    return exec_name;
 }
 
+#include <iostream>
+using namespace std;
 
 LoadedLib *AddressTranslateSysV::getAOut()
 {
@@ -213,6 +215,11 @@ LoadedLib *AddressTranslateSysV::getAOut()
          }
       }
    }         
+
+   if (page_size) {
+      baseAddr -= (baseAddr % page_size);
+   }
+
    LoadedLib *ll = new LoadedLib(getExecName(), baseAddr);
    ll->setFactory(symfactory);
    exec = ll;
