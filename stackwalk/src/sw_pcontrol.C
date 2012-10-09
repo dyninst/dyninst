@@ -407,7 +407,7 @@ bool PCLibraryState::checkLibraryContains(Address addr, Library::ptr lib)
    std::string filename = lib->getName();
    Address base = lib->getLoadAddress();
 
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
    SymReader *reader = fact->openSymbolReader(filename);
    if (!reader) {
       sw_printf("[%s:%u] - Error could not open expected file %s\n", 

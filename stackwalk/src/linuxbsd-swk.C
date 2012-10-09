@@ -61,8 +61,7 @@ extern int P_gettid();
 
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
-   if (NULL == Walker::getSymbolReader())
-   {
+   if (NULL == Walker::getSymbolReader()) {
       static SymElfFactory symelffact;
       Walker::setSymbolReader(&symelffact);
    }
@@ -285,7 +284,7 @@ void BottomOfStackStepperImpl::initialize()
                 __FILE__, __LINE__);
       return;
    }
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
    if (!fact) {
       sw_printf("[%s:%u] - Failed to get symbol reader\n");
       return;

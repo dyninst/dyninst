@@ -58,7 +58,7 @@ TrackLibState::TrackLibState(ProcessState *parent, std::string executable_) :
    sw_printf("[%s:%u] - Creating a TrackLibState on pid %d\n",
              __FILE__, __LINE__, pid);
    if (!symfactory)
-      symfactory = getDefaultSymbolReader();
+      symfactory = Walker::getSymbolReader();
 
    if (procstate->isFirstParty()) {
       translate = AddressTranslate::createAddressTranslator(&procreader, symfactory, executable_);
@@ -339,7 +339,7 @@ SymReader *LibraryWrapper::getLibrary(std::string filename)
       return i->second;
    }
    
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
    SymReader *reader = fact->openSymbolReader(filename);
    if (!reader)
       return NULL;

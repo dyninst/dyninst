@@ -150,7 +150,7 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
    }
    ret->vsys_mem = buffer;
 
-   fact = getDefaultSymbolReader();
+   fact = Walker::getSymbolReader();
    if (!fact) {
       sw_printf("[%s:%u] - No symbol reading capability\n",
                 __FILE__, __LINE__);
@@ -213,7 +213,7 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
                 " to get libc\n", __FILE__, __LINE__);
       return;
    }
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymbolReaderFactory *fact = Walker::getSymbolReader();
    if (!fact) {
       sw_printf("[%s:%u] - Failed to get symbol reader\n", __FILE__, __LINE__);
       return;
